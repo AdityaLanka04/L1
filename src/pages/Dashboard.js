@@ -52,11 +52,11 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
   const [isCustomizing, setIsCustomizing] = useState(false);
   const [widgets, setWidgets] = useState([
     { id: 'quick-actions', type: 'quick-actions', title: 'Quick Actions', enabled: true, size: 'medium' },
-    { id: 'ai-assistant', type: 'ai-assistant', title: 'AI Learning Assistant', enabled: true, size: 'medium' },
+    { id: 'ai-assistant', type: 'ai-assistant', title: 'AI Learning Assistant', enabled: true, size: 'large' },
     { id: 'learning-review', type: 'learning-review', title: 'Learning Reviews', enabled: true, size: 'medium' },
     { id: 'stats', type: 'stats', title: 'Learning Stats', enabled: true, size: 'medium' },
-    { id: 'recent-activity', type: 'recent-activity', title: 'Recent Activity', enabled: true, size: 'medium' },
     { id: 'daily-goal', type: 'daily-goal', title: 'Daily Goal', enabled: true, size: 'medium' },
+    { id: 'recent-activity', type: 'recent-activity', title: 'Recent Activity', enabled: false, size: 'medium' },
     { id: 'heatmap', type: 'heatmap', title: 'Activity Heatmap', enabled: true, size: 'full' },
     { id: 'progress-chart', type: 'progress-chart', title: 'Weekly Progress', enabled: false, size: 'medium' },
     { id: 'motivational-quote', type: 'motivational-quote', title: 'Daily Quote', enabled: false, size: 'small' }
@@ -349,10 +349,10 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
   const resetWidgets = () => {
     const defaultWidgets = [
       { id: 'quick-actions', type: 'quick-actions', title: 'Quick Actions', enabled: true, size: 'medium' },
-      { id: 'ai-assistant', type: 'ai-assistant', title: 'AI Learning Assistant', enabled: true, size: 'medium' },
+      { id: 'ai-assistant', type: 'ai-assistant', title: 'AI Learning Assistant', enabled: true, size: 'large' },
       { id: 'learning-review', type: 'learning-review', title: 'Learning Reviews', enabled: true, size: 'medium' },
       { id: 'stats', type: 'stats', title: 'Learning Stats', enabled: true, size: 'medium' },
-      { id: 'recent-activity', type: 'recent-activity', title: 'Recent Activity', enabled: true, size: 'medium' },
+      { id: 'recent-activity', type: 'recent-activity', title: 'Recent Activity', enabled: false, size: 'medium' },
       { id: 'daily-goal', type: 'daily-goal', title: 'Daily Goal', enabled: true, size: 'medium' },
       { id: 'heatmap', type: 'heatmap', title: 'Activity Heatmap', enabled: true, size: 'full' },
       { id: 'progress-chart', type: 'progress-chart', title: 'Weekly Progress', enabled: false, size: 'medium' },
@@ -1263,15 +1263,8 @@ const completeTour = () => {
             )}
             <span className="user-name">{displayName}</span>
           </div>
-          
-          <button 
-            className="help-btn" 
-            onClick={startTour}
-            title="Take a tour"
-          >
-            HELP
-          </button>
-          
+
+
           <button 
             className={`customize-btn ${isCustomizing ? 'active' : ''}`}
             onClick={() => {

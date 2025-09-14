@@ -310,6 +310,8 @@ body {
 }
 
 
+
+
 /* Widget Base Styles */
 .dashboard-widget {
   background: rgba(255, 255, 255, 0.02);
@@ -2869,4 +2871,53 @@ input[type="checkbox"]:checked::after {
   left: 50% !important;
   transform: translateX(-50%) !important;
   margin: 0 !important;
+}
+
+.dashboard-widgets {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 20px;
+  grid-auto-rows: minmax(280px, auto); /* Changed from 200px to 280px */
+  position: relative;
+  max-width: 1800px;
+  margin: 0 auto;
+  transition: all 0.2s ease;
+  min-height: 400px;
+  align-items: stretch; /* Add this line */
+}
+
+.dashboard-widget {
+  background: rgba(255, 255, 255, 0.02);
+  border: 2px solid #D7B38C;
+  padding: 25px;
+  backdrop-filter: blur(10px);
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+  font-family: 'Quicksand', sans-serif;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-radius: 0;
+  height: 100%; /* Add this line to make all widgets fill their grid area */
+  min-height: 280px; /* Add this line for consistent minimum height */
+}
+
+.widget-small {
+  grid-column: span 3;
+  grid-row: span 1; /* Add this line */
+}
+
+.widget-medium {
+  grid-column: span 4;
+  grid-row: span 1; /* Add this line */
+}
+
+.widget-large {
+  grid-column: span 8;
+  grid-row: span 1; /* Add this line */
+}
+
+.widget-full {
+  grid-column: span 12;
+  grid-row: span 1; /* Add this line */
 }

@@ -286,15 +286,6 @@
   padding-bottom: 10px;
 }
 
-.section-title::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 30px;
-  height: 1px;
-  background: #D7B38C;
-}
 
 .form-row {
   display: grid;
@@ -755,15 +746,7 @@
   padding-bottom: 10px;
 }
 
-.section-title::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 30px;
-  height: 1px;
-  background: #D7B38C;
-}
+
 
 .form-row {
   display: grid;

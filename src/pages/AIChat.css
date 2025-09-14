@@ -32,22 +32,7 @@
     0 0 0 1px rgba(215, 179, 140, 0.1);
 }
 
-.chat-sidebar::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(215, 179, 140, 0.08) 0%,
-    rgba(215, 179, 140, 0.02) 30%,
-    transparent 60%,
-    rgba(215, 179, 140, 0.03) 100%
-  );
-  pointer-events: none;
-}
+
 
 .chat-sidebar.closed {
   width: 0;
@@ -86,21 +71,6 @@
   position: relative;
 }
 
-.sidebar-title::before {
-  content: '';
-  position: absolute;
-  left: -5px;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: linear-gradient(
-    180deg,
-    #D7B38C 0%,
-    rgba(215, 179, 140, 0.6) 50%,
-    transparent 100%
-  );
-  animation: pulseGlow 2s ease-in-out infinite;
-}
 
 @keyframes pulseGlow {
   0%, 100% { 

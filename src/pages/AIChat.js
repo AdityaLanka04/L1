@@ -661,9 +661,6 @@ const AIChat = () => {
           </div>
           
           <div className="header-right">
-            <button className="back-btn" onClick={goToDashboard}>
-              Dashboard
-            </button>
             <div className="user-info">
               {userProfile?.picture && (
                 <img 
@@ -673,6 +670,9 @@ const AIChat = () => {
                 />
               )}
             </div>
+            <button className="back-btn" onClick={goToDashboard}>
+              Dashboard
+            </button>
             <button className="logout-btn" onClick={handleLogout}>
               LOGOUT
             </button>

@@ -1,52 +1,181 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight, HelpCircle, SkipForward, Play } from 'lucide-react';
+// src/components/HelpTour.jsx
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import {
+  X, ChevronLeft, ChevronRight, HelpCircle, SkipForward, Play,
+  RefreshCw, AlertTriangle
+} from 'lucide-react';
 
-const HelpTour = ({ isOpen, onClose, onComplete }) => {
+/**
+ * Glass UI Theme — tuned for dark dashboards
+ * You can tweak ACCENT_* to your brand color.
+ */
+const PANEL_BG_TOP = 'rgba(16, 18, 22, 0.35)';
+const PANEL_BG_BOTTOM = 'rgba(18, 20, 25, 0.44)';
+const PANEL_BORDER = 'rgba(255, 255, 255, 0.14)';
+const PANEL_INNER_HAIRLINE = 'rgba(255,255,255,0.06)';
+const PANEL_SHADOW = '0 16px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04)';
+const TEXT_PRIMARY = '#EDEFF3';
+const TEXT_SECONDARY = 'rgba(228,234,244,0.78)';
+const DIM_BG = 'rgba(2, 3, 5, 0.55)';
+
+const ACCENT_START = '#E7B768'; // warm gold
+const ACCENT_END   = '#F5D9B2'; // soft cream
+const ACCENT_BORDER = 'rgba(231,183,104,0.75)';
+
+const PROGRESS_TRACK = 'rgba(255,255,255,0.10)';
+const DOT_ACTIVE_GLOW = '0 0 0 6px rgba(244,199,119,0.22)';
+
+// Spotlight ring around target
+const SPOTLIGHT_BORDER = ACCENT_START; 
+const SPOTLIGHT_GLOW_MAIN = '0 0 0 10px rgba(231,183,104,0.25)'; // warm gold glow
+const SPOTLIGHT_GLOW_SOFT = '0 14px 38px rgba(0,0,0,0.50)';
+const HelpTour = ({
+  isOpen,
+  onClose,
+  onComplete,
+  steps,
+  autoSkipMissing = false,
+  observeRoot = typeof document !== 'undefined' ? document.body : null,
+  maxRetriesPerStep = 10,
+  retryIntervalMs = 50,
+  maxScrollWaitMs = 450,
+  scrollBehavior = 'smooth',
+}) => {
+  // ---------- Steps ----------
+  const defaultSteps = useMemo(
+    () => [
+      {
+        id: 'welcome',
+        title: 'Welcome to Brainwave!',
+        content:
+          'Let me show you around your personalized learning dashboard. This interactive tour will help you discover the features that make studying faster and more effective.',
+        target: '.welcome-section',
+        position: 'bottom',
+      },
+      {
+        id: 'ai-assistant',
+        title: 'AI Learning Assistant',
+        content:
+          'Start a session with your personal AI tutor—ask doubts, get examples, and clarify concepts in seconds.',
+        target: '.ai-assistant-card',
+        position: 'right',
+      },
+      {
+        id: 'quick-actions',
+        title: 'Quick Actions',
+        content: 'Jump to flashcards, notes, and other essentials instantly.',
+        target: '.quick-actions',
+        position: 'right',
+      },
+      {
+        id: 'learning-stats',
+        title: 'Learning Statistics',
+        content:
+          'Track streaks, questions answered, time studied, and AI sessions. Use this to keep your momentum strong.',
+        target: '.stats-overview-widget',
+        position: 'left',
+      },
+      {
+        id: 'daily-goal',
+        title: 'Daily Goals',
+        content:
+          'Set your target and watch the ring fill as you learn. Small daily wins compound fast.',
+        target: '.daily-goal-widget',
+        position: 'left',
+      },
+      {
+        id: 'learning-reviews',
+        title: 'Learning Reviews',
+        content:
+          'Auto-generated quizzes from your chats. Create new reviews or continue where you left off.',
+        target: '.learning-review-widget',
+        position: 'left',
+      },
+      {
+        id: 'recent-activity',
+        title: 'Recent Activity',
+        content: 'A quick feed of your latest study actions and scores.',
+        target: '.recent-activity-widget',
+        position: 'left',
+      },
+      {
+        id: 'activity-heatmap',
+        title: 'Activity Heatmap',
+        content:
+          'See your yearly consistency. Darker means more study that day—aim for streaks.',
+        target: '.activity-heatmap',
+        position: 'top',
+      },
+      {
+        id: 'customization',
+        title: 'Dashboard Customization',
+        content:
+          'Click “CUSTOMIZE” to reorder, resize, or toggle widgets to match your flow.',
+        target: '.customize-btn',
+        position: 'bottom',
+      },
+      {
+        id: 'profile',
+        title: 'Profile & Settings',
+        content: 'Tune preferences and manage your account here.',
+        target: '.profile-btn',
+        position: 'bottom',
+      },
+      {
+        id: 'progress-chart',
+        title: 'Weekly Progress',
+        content: 'Track questions solved per day this week at a glance.',
+        target: '.progress-chart-widget',
+        position: 'left',
+      },
+      {
+        id: 'motivational-quote',
+        title: 'Daily Quote',
+        content: 'A little motivation to keep you going!',
+        target: '.motivational-quote-widget',
+        position: 'right',
+      },
+    ],
+    []
+  );
+  const tourSteps = steps?.length ? steps : defaultSteps;
+
+  // ---------- State ----------
   const [currentStep, setCurrentStep] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [isScrolling, setIsScrolling] = useState(false);
+  const [missingTarget, setMissingTarget] = useState(false);
+
+  // ---------- Refs ----------
   const tooltipRef = useRef(null);
   const arrowRef = useRef(null);
-
-  // Blur panes (frame around the target hole)
   const blurTopRef = useRef(null);
   const blurBottomRef = useRef(null);
   const blurLeftRef = useRef(null);
   const blurRightRef = useRef(null);
+  const mutationObserverRef = useRef(null);
+  const mountedRef = useRef(false);
 
-  const tourSteps = [
-    { id: 'welcome', title: 'Welcome to Brainwave!', content: 'Let me show you around your personalized learning dashboard. This interactive tour will help you discover the features that make studying faster and more effective.', target: '.welcome-section', position: 'bottom' },
-    { id: 'ai-assistant', title: 'AI Learning Assistant', content: 'Start a session with your personal AI tutor—ask doubts, get examples, and clarify concepts in seconds.', target: '.ai-assistant-card', position: 'right' },
-    { id: 'quick-actions', title: 'Quick Actions', content: 'Jump to flashcards, notes, and other essentials instantly.', target: '.quick-actions', position: 'right'},
-    { id: 'learning-stats', title: 'Learning Statistics', content: 'Track streaks, questions answered, time studied, and AI sessions. Use this to keep your momentum strong.', target: '.stats-overview-widget', position: 'left'},
-    { id: 'daily-goal', title: 'Daily Goals', content: 'Set your target and watch the ring fill as you learn. Small daily wins compound fast.', target: '.daily-goal-widget', position: 'left'},
-    { id: 'learning-reviews', title: 'Learning Reviews', content: 'Auto-generated quizzes from your chats. Create new reviews or continue where you left off.', target: '.learning-review-widget', position: 'left'},
-    { id: 'recent-activity', title: 'Recent Activity', content: 'A quick feed of your latest study actions and scores.', target: '.recent-activity-widget', position: 'left' },
-    { id: 'activity-heatmap', title: 'Activity Heatmap', content: 'See your yearly consistency. Darker means more study that day—aim for streaks.', target: '.activity-heatmap', position: 'top' },
-    { id: 'customization', title: 'Dashboard Customization', content: 'Click “CUSTOMIZE” to reorder, resize, or toggle widgets to match your flow.', target: '.customize-btn', position: 'bottom' },
-    { id: 'profile', title: 'Profile & Settings', content: 'Tune preferences and manage your account here.', target: '.profile-btn', position: 'bottom'}
-  ];
+  // ---------- Mount guards & scheduler ----------
+  const schedule = (fn) => requestAnimationFrame(() => mountedRef.current && fn());
 
-  // Open/close (no body scroll lock)
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  // ---------- Open/close ----------
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
       setCurrentStep(0);
+      setMissingTarget(false);
     } else {
       setIsVisible(false);
     }
   }, [isOpen]);
 
-  // Reposition on step change/visibility/resize
-  useEffect(() => {
-    if (isVisible && currentStep < tourSteps.length) updateHighlight();
-    const onResize = () => isVisible && updateHighlight();
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStep, isVisible]);
-
-  // ---------- Scroll helpers ----------
+  // ---------- Utilities ----------
   const getScrollableParent = (el) => {
     let p = el?.parentElement;
     while (p) {
@@ -58,53 +187,79 @@ const HelpTour = ({ isOpen, onClose, onComplete }) => {
     return window;
   };
 
+  const isElementInViewport = (el, threshold = 0.85) => {
+    const r = el.getBoundingClientRect?.();
+    if (!r) return false;
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    const vw = window.innerWidth || document.documentElement.clientWidth;
+
+    const visibleH = Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0));
+    const visibleW = Math.max(0, Math.min(r.right, vw) - Math.max(r.left, 0));
+    const area = r.width * r.height || 1;
+    const visibleArea = visibleH * visibleW;
+    return (visibleArea / area) >= threshold;
+  };
+
   const waitForScrollEnd = (node) =>
     new Promise((resolve) => {
       let done = false;
       const finish = () => { if (!done) { done = true; resolve(); } };
-      const target = node === window ? window : node;
-      if ('onscrollend' in window) {
-        const handler = () => { target.removeEventListener('scrollend', handler); finish(); };
-        target.addEventListener('scrollend', handler, { once: true });
-        setTimeout(finish, 800);
-      } else {
-        let last = node === window ? window.scrollY : node.scrollTop;
-        let still = 0;
-        const tick = () => {
-          const cur = node === window ? window.scrollY : node.scrollTop;
-          still = Math.abs(cur - last) < 1 ? still + 1 : 0;
-          last = cur;
-          if (still >= 6) finish(); else requestAnimationFrame(tick);
-        };
+      const startTime = performance.now();
+      let last = node === window ? window.scrollY : node.scrollTop;
+      let still = 0;
+
+      const tick = () => {
+        if (!mountedRef.current) return finish();
+        const now = performance.now();
+        const cur = node === window ? window.scrollY : node.scrollTop;
+        still = Math.abs(cur - last) < 1 ? still + 1 : 0;
+        last = cur;
+
+        if (still >= 4) return finish();
+        if (now - startTime > maxScrollWaitMs) return finish();
         requestAnimationFrame(tick);
-        setTimeout(finish, 900);
-      }
+      };
+
+      requestAnimationFrame(tick);
+      setTimeout(finish, maxScrollWaitMs + 60);
     });
 
   const centerIntoView = async (element, offsetTop = 0) => {
+    if (!element?.getBoundingClientRect) return;
+
     const parent = getScrollableParent(element);
+
+    // Skip scrolling if already mostly visible
+    if (isElementInViewport(element, 0.8)) return;
+
     setIsScrolling(true);
 
     if (parent === window) {
       const rect = element.getBoundingClientRect();
       const targetY = window.scrollY + rect.top - (window.innerHeight / 2 - rect.height / 2) - offsetTop;
-      window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+      window.scrollTo({ top: Math.max(0, targetY), behavior: scrollBehavior });
       await waitForScrollEnd(window);
     } else {
       const parentRect = parent.getBoundingClientRect();
       const elRect = element.getBoundingClientRect();
       const current = parent.scrollTop;
       const target = current + (elRect.top - parentRect.top) - (parent.clientHeight / 2 - elRect.height / 2) - offsetTop;
-      parent.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+      parent.scrollTo({ top: Math.max(0, target), behavior: scrollBehavior });
       await waitForScrollEnd(parent);
     }
 
     setIsScrolling(false);
   };
 
-  const scrollToElement = (element) => centerIntoView(element, 0);
+  const findTargetWithRetries = async (selector) => {
+    for (let i = 0; i < maxRetriesPerStep; i++) {
+      const el = document.querySelector(selector);
+      if (el) return el;
+      await new Promise(r => setTimeout(r, retryIntervalMs));
+    }
+    return null;
+  };
 
-  // ---------- Placement that avoids covering target ----------
   const placeTooltipSmart = (rect, preferred, tooltipRect, margin = 20, gap = 14) => {
     const topSpace = rect.top;
     const bottomSpace = window.innerHeight - rect.bottom;
@@ -149,56 +304,89 @@ const HelpTour = ({ isOpen, onClose, onComplete }) => {
     if (!arrow) return;
     const size = 10;
 
+    // reset
     arrow.style.borderWidth = '';
     arrow.style.top = '';
     arrow.style.left = '';
     arrow.style.right = '';
     arrow.style.bottom = '';
 
+    const arrowColor = 'rgba(18,20,25,0.55)';
+
     if (side === 'top') {
       arrow.style.borderWidth = `${size}px ${size}px 0 ${size}px`;
-      arrow.style.borderColor = `#ffffff transparent transparent transparent`;
+      arrow.style.borderColor = `${arrowColor} transparent transparent transparent`;
       arrow.style.bottom = `-${size}px`;
       arrow.style.left = `${Math.min(tooltipRect.width - 24, Math.max(24, rect.left + rect.width / 2 - left)) - size}px`;
     } else if (side === 'bottom') {
       arrow.style.borderWidth = `0 ${size}px ${size}px ${size}px`;
-      arrow.style.borderColor = `transparent transparent #ffffff transparent`;
+      arrow.style.borderColor = `transparent transparent ${arrowColor} transparent`;
       arrow.style.top = `-${size}px`;
       arrow.style.left = `${Math.min(tooltipRect.width - 24, Math.max(24, rect.left + rect.width / 2 - left)) - size}px`;
     } else if (side === 'left') {
       arrow.style.borderWidth = `${size}px 0 ${size}px ${size}px`;
-      arrow.style.borderColor = `transparent transparent transparent #ffffff`;
+      arrow.style.borderColor = `transparent transparent transparent ${arrowColor}`;
       arrow.style.right = `-${size}px`;
       arrow.style.top = `${Math.min(tooltipRect.height - 24, Math.max(24, rect.top + rect.height / 2 - top)) - size}px`;
     } else if (side === 'right') {
       arrow.style.borderWidth = `${size}px ${size}px ${size}px 0`;
-      arrow.style.borderColor = `transparent #ffffff transparent transparent`;
+      arrow.style.borderColor = `transparent ${arrowColor} transparent transparent`;
       arrow.style.left = `-${size}px`;
       arrow.style.top = `${Math.min(tooltipRect.height - 24, Math.max(24, rect.top + rect.height / 2 - top)) - size}px`;
     }
   };
 
-  // ---------- Spotlight, blur panes & tooltip ----------
+  // ---------- Core: updateHighlight ----------
   const updateHighlight = async () => {
-    const currentStepData = tourSteps[currentStep];
-    const targetElement = document.querySelector(currentStepData.target);
-    if (!targetElement || !tooltipRef.current) return;
+    if (!mountedRef.current || !isVisible) return;
 
-    await scrollToElement(targetElement); // center first
+    const step = tourSteps[currentStep];
+    if (!step?.target) return;
 
-    const padding = 14;          // hole padding around target
-    const radius = 14;           // rounded corner radius
-    const rect = targetElement.getBoundingClientRect();
+    const tooltip = tooltipRef.current;
+    if (!tooltip) {
+      schedule(updateHighlight);
+      return;
+    }
+
+    let targetElement = document.querySelector(step.target);
+    if (!targetElement) targetElement = await findTargetWithRetries(step.target);
+
+    if (!targetElement) {
+      if (autoSkipMissing && currentStep < tourSteps.length - 1) {
+        setMissingTarget(false);
+        setCurrentStep((s) => s + 1);
+      } else {
+        setMissingTarget(true);
+      }
+      return;
+    }
+
+    setMissingTarget(false);
+
+    // center if needed
+    await centerIntoView(targetElement, 0);
+    if (!mountedRef.current) return;
+
+    const elRect = targetElement.getBoundingClientRect?.();
+    const tooltipRect = tooltip.getBoundingClientRect?.();
+    if (!elRect || !tooltipRect) {
+      schedule(updateHighlight);
+      return;
+    }
+
+    // Spotlight ring
+    const padding = 14;
+    const radius = 14;
     const hole = {
-      top: Math.max(0, rect.top - padding),
-      left: Math.max(0, rect.left - padding),
-      width: rect.width + padding * 2,
-      height: rect.height + padding * 2,
-      right: Math.min(window.innerWidth, rect.right + padding),
-      bottom: Math.min(window.innerHeight, rect.bottom + padding)
+      top: Math.max(0, elRect.top - padding),
+      left: Math.max(0, elRect.left - padding),
+      width: elRect.width + padding * 2,
+      height: elRect.height + padding * 2,
+      right: Math.min(window.innerWidth, elRect.right + padding),
+      bottom: Math.min(window.innerHeight, elRect.bottom + padding)
     };
 
-    // Spotlight glow box (sits exactly on the hole with extra glow)
     const spotlight = document.querySelector('.help-tour-spotlight');
     if (spotlight) {
       spotlight.style.top = `${hole.top}px`;
@@ -208,22 +396,21 @@ const HelpTour = ({ isOpen, onClose, onComplete }) => {
       spotlight.style.borderRadius = `${radius}px`;
     }
 
-    // Blur panes: position four rectangles around the hole
+    // Blur panes (kept for screen blur around target)
     const commonBlurStyle = (el) => {
       el.style.position = 'absolute';
-      el.style.backdropFilter = 'blur(7px)';
-      el.style.WebkitBackdropFilter = 'blur(7px)';
-      el.style.background = 'rgba(10,10,12,0.35)';
+      el.style.backdropFilter = 'blur(8px) saturate(110%)';
+      el.style.WebkitBackdropFilter = 'blur(8px) saturate(110%)';
+      el.style.background = 'rgba(8,10,14,0.35)';
       el.style.pointerEvents = 'auto';
-      el.style.zIndex = 10000; // below tooltip (10002) but above page
+      el.style.zIndex = 10000;
       el.style.transition = 'all .25s ease';
+      el.style.boxShadow = 'inset 0 0 0 1px rgba(255,255,255,0.06)';
     };
-
     const topPane = blurTopRef.current;
     const bottomPane = blurBottomRef.current;
     const leftPane = blurLeftRef.current;
     const rightPane = blurRightRef.current;
-
     [topPane, bottomPane, leftPane, rightPane].forEach((el) => el && commonBlurStyle(el));
 
     if (topPane) {
@@ -243,43 +430,100 @@ const HelpTour = ({ isOpen, onClose, onComplete }) => {
       leftPane.style.left = '0px';
       leftPane.style.width = `${hole.left}px`;
       leftPane.style.height = `${hole.height}px`;
-      leftPane.style.borderTopLeftRadius = '0px';
-      leftPane.style.borderBottomLeftRadius = '0px';
     }
     if (rightPane) {
       rightPane.style.top = `${hole.top}px`;
       rightPane.style.left = `${hole.right}px`;
       rightPane.style.width = `${Math.max(0, window.innerWidth - hole.right)}px`;
       rightPane.style.height = `${hole.height}px`;
-      rightPane.style.borderTopRightRadius = '0px';
-      rightPane.style.borderBottomRightRadius = '0px';
     }
 
-    // Tooltip placement (smart to avoid covering the widget)
-    const tooltip = tooltipRef.current;
-    const tooltipRect = tooltip.getBoundingClientRect();
-    const { side, top, left } = placeTooltipSmart(rect, currentStepData.position, tooltipRect);
-
+    // Tooltip placement
+    const { side, top, left } = placeTooltipSmart(elRect, step.position, tooltipRect);
     tooltip.style.top = `${top}px`;
     tooltip.style.left = `${left}px`;
     tooltip.style.opacity = '1';
     tooltip.style.transform = 'scale(1) translateY(0)';
     tooltip.setAttribute('data-side', side);
-
-    // arrow
-    positionArrow(side, rect, tooltipRect, top, left);
+    positionArrow(side, elRect, tooltipRect, top, left);
   };
 
+  // ---------- Reposition on step/visibility/resize ----------
+  useEffect(() => {
+    if (isVisible) schedule(updateHighlight);
+    const onResize = () => schedule(updateHighlight);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isVisible, currentStep, tourSteps]);
+
+  // ---------- Route changes (SPA) ----------
+  useEffect(() => {
+    const onRoute = () => schedule(updateHighlight);
+    window.addEventListener('hashchange', onRoute);
+    window.addEventListener('popstate', onRoute);
+    return () => {
+      window.removeEventListener('hashchange', onRoute);
+      window.removeEventListener('popstate', onRoute);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isVisible]);
+
+  // ---------- Asset load ----------
+  useEffect(() => {
+    const onLoad = () => schedule(updateHighlight);
+    window.addEventListener('load', onLoad);
+    document.fonts?.addEventListener?.('loadingdone', onLoad);
+    return () => {
+      window.removeEventListener('load', onLoad);
+      document.fonts?.removeEventListener?.('loadingdone', onLoad);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isVisible]);
+
+  // ---------- MutationObserver ----------
+  useEffect(() => {
+    if (!isVisible || !observeRoot) return;
+    let rafId = null;
+    const scheduleUpdate = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        if (tooltipRef.current) updateHighlight();
+      });
+    };
+
+    const mo = new MutationObserver((mutations) => {
+      const relevant = mutations.some(m =>
+        m.type === 'childList' ||
+        (m.type === 'attributes' && (m.attributeName === 'style' || m.attributeName === 'class'))
+      );
+      if (relevant) scheduleUpdate();
+    });
+
+    mo.observe(observeRoot, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class'] });
+    mutationObserverRef.current = mo;
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      mo.disconnect();
+      mutationObserverRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isVisible, observeRoot, currentStep, tourSteps]);
+
   // ---------- Controls ----------
-  const nextStep = () => (currentStep < tourSteps.length - 1 ? setCurrentStep((s) => s + 1) : completeTour());
-  const prevStep = () => currentStep > 0 && setCurrentStep((s) => s - 1);
-  const skipTour = () => completeTour();
   const completeTour = () => {
     setIsVisible(false);
     localStorage.setItem('hasCompletedTour', 'true');
     onComplete && onComplete();
     onClose && onClose();
   };
+  const nextStep = () => {
+    if (currentStep < tourSteps.length - 1) setCurrentStep(s => s + 1);
+    else completeTour();
+  };
+  const prevStep = () => currentStep > 0 && setCurrentStep(s => s - 1);
+  const skipTour = () => completeTour();
   const goToStep = (i) => setCurrentStep(i);
 
   if (!isVisible) return null;
@@ -289,32 +533,32 @@ const HelpTour = ({ isOpen, onClose, onComplete }) => {
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 10000, pointerEvents: 'none' }}>
-      {/* Dim base (very subtle) to help the blur feel rich */}
-      <div style={{ position: 'absolute', inset: 0, background: 'rgba(7,8,10,0.25)', pointerEvents: 'auto' }} />
+      {/* Dim base */}
+      <div style={{ position: 'absolute', inset: 0, background: DIM_BG, pointerEvents: 'auto' }} />
 
-      {/* 4 Blur panes forming a hole */}
+      {/* 4 Blur panes */}
       <div ref={blurTopRef} />
       <div ref={blurBottomRef} />
       <div ref={blurLeftRef} />
       <div ref={blurRightRef} />
 
-      {/* Spotlight ring on the hole to make target pop */}
+      {/* Spotlight */}
       <div
         className="help-tour-spotlight"
         style={{
           position: 'absolute',
           background: 'transparent',
-          border: '3px solid #E5C49E',
+          border: `1px solid ${SPOTLIGHT_BORDER}`,
           borderRadius: '14px',
-          boxShadow: '0 0 0 10px rgba(229,196,158,0.15), 0 14px 38px rgba(229,196,158,0.45)',
-          outline: '2px solid rgba(229,196,158,0.15)',
+          boxShadow: `${SPOTLIGHT_GLOW_MAIN}, ${SPOTLIGHT_GLOW_SOFT}`,
+          outline: `1px solid rgba(255,255,255,0.10)`,
           transition: 'all 0.28s ease',
           pointerEvents: 'none',
           zIndex: 10001
         }}
       />
 
-      {/* Loading */}
+      {/* Loading / Navigating */}
       {isScrolling && (
         <div
           style={{
@@ -322,41 +566,46 @@ const HelpTour = ({ isOpen, onClose, onComplete }) => {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            background: 'rgba(255,255,255,0.98)',
-            padding: '16px 22px',
-            borderRadius: '12px',
-            boxShadow: '0 12px 40px rgba(0,0,0,0.28)',
+            background: 'rgba(20,22,26,0.50)',
+            color: TEXT_PRIMARY,
+            padding: '12px 16px',
+            borderRadius: '14px',
+            border: `1px solid ${PANEL_BORDER}`,
+            boxShadow: PANEL_SHADOW,
             display: 'flex',
             alignItems: 'center',
             gap: '10px',
             zIndex: 10003,
-            pointerEvents: 'auto'
+            pointerEvents: 'auto',
+            backdropFilter: 'blur(12px) saturate(120%)',
+            WebkitBackdropFilter: 'blur(12px) saturate(120%)'
           }}
         >
-          <div style={{ width: 18, height: 18, border: '2px solid #e6e6e6', borderTop: '2px solid #D7B38C', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-          <span style={{ fontWeight: 600, color: '#333' }}>Navigating…</span>
+          <div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.2)', borderTop: `2px solid ${ACCENT_END}`, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: 0.2 }}>Navigating…</span>
         </div>
       )}
 
-      {/* Tooltip (glassy, with arrow) */}
+      {/* Tooltip */}
       <div
         ref={tooltipRef}
         style={{
           position: 'absolute',
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,248,248,0.96))',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          border: '1px solid rgba(0,0,0,0.06)',
+          background: `linear-gradient(180deg, ${PANEL_BG_TOP}, ${PANEL_BG_BOTTOM})`,
+          border: `1px solid ${PANEL_BORDER}`,
           borderRadius: 18,
-          boxShadow: '0 30px 60px rgba(0,0,0,0.22)',
-          maxWidth: 420,
-          minWidth: 320,
+          boxShadow: PANEL_SHADOW,
+          maxWidth: 460,
+          minWidth: 330,
           zIndex: 10002,
           pointerEvents: 'auto',
           opacity: 0,
           transform: 'scale(0.96) translateY(8px)',
           transition: 'opacity .25s ease, transform .25s ease',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          color: TEXT_PRIMARY,
+          backdropFilter: 'blur(16px) saturate(140%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(140%)',
         }}
       >
         {/* Arrow */}
@@ -368,17 +617,29 @@ const HelpTour = ({ isOpen, onClose, onComplete }) => {
             height: 0,
             borderStyle: 'solid',
             borderColor: 'transparent',
-            filter: 'drop-shadow(0 6px 10px rgba(0,0,0,0.15))'
+            filter: 'drop-shadow(0 8px 18px rgba(0,0,0,0.28))'
           }}
         />
 
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 20px 8px 20px' }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '18px 20px 12px 20px',
+          borderBottom: `1px solid ${PANEL_INNER_HAIRLINE}`
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 22, display: 'grid', placeItems: 'center', width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg, #D7B38C, #c19a6b)', color: '#fff' }}>
-              {currentStepData.icon}
+            <span style={{
+              fontSize: 22, display: 'grid', placeItems: 'center',
+              width: 36, height: 36, borderRadius: 10,
+              background: `linear-gradient(135deg, ${ACCENT_START}, ${ACCENT_END})`,
+              color: '#0f1012',
+              boxShadow: '0 6px 18px rgba(231,183,104,0.25), inset 0 1px 0 rgba(255,255,255,0.35)'
+            }}>
+              {currentStepData.icon ?? '•'}
             </span>
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: '#171717', margin: 0, lineHeight: 1.2 }}>
+            <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0, lineHeight: 1.2, letterSpacing: .2 }}>
               {currentStepData.title}
             </h3>
           </div>
@@ -386,15 +647,13 @@ const HelpTour = ({ isOpen, onClose, onComplete }) => {
             onClick={completeTour}
             aria-label="Close tour"
             style={{
-              background: 'transparent',
-              border: 'none',
+              background: 'rgba(255,255,255,0.02)',
+              border: `1px solid ${PANEL_INNER_HAIRLINE}`,
               cursor: 'pointer',
               padding: 8,
               borderRadius: 10,
-              color: '#5f5f5f',
-              transition: 'background .2s ease',
-              display: 'grid',
-              placeItems: 'center'
+              color: TEXT_SECONDARY,
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
             }}
           >
             <X style={{ width: 20, height: 20 }} />
@@ -402,28 +661,50 @@ const HelpTour = ({ isOpen, onClose, onComplete }) => {
         </div>
 
         {/* Content */}
-        <div style={{ padding: '10px 20px 4px 20px' }}>
-          <p style={{ margin: 0, color: '#3c3c3c', lineHeight: 1.6, fontSize: 15 }}>
-            {currentStepData.content}
-          </p>
+        <div style={{ padding: '10px 20px 10px 20px' }}>
+          {!missingTarget ? (
+            <p style={{ margin: 0, color: TEXT_SECONDARY, lineHeight: 1.65, fontSize: 15 }}>
+              {currentStepData.content}
+            </p>
+          ) : (
+            <div style={{
+              display: 'flex', gap: 10, alignItems: 'flex-start',
+              color: '#FFE7B8',
+              background: 'rgba(73,53,12,0.35)',
+              border: '1px solid rgba(255,214,143,0.25)',
+              padding: 12, borderRadius: 12,
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
+            }}>
+              <AlertTriangle style={{ width: 18, height: 18, flex: '0 0 auto' }} />
+              <div style={{ fontSize: 14.5, lineHeight: 1.55 }}>
+                <strong>Widget not found. Add it from <span style={{ color: ACCENT_START }}>Customize</span>, or skip ahead.</strong>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
         <div
           style={{
             padding: '14px 18px 18px 18px',
-            borderTop: '1px solid rgba(0,0,0,0.06)',
-            background: 'linear-gradient(180deg, #fbfbfb, #f6f6f6)'
+            borderTop: `1px solid ${PANEL_INNER_HAIRLINE}`,
+            background: 'rgba(16,18,22,0.28)'
           }}
         >
           {/* Progress */}
           <div style={{ marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 12, color: '#6b6b6b', fontWeight: 700, letterSpacing: 0.2 }}>
-                Step {currentStep + 1} / {tourSteps.length}
+              <span style={{ fontSize: 12, color: TEXT_SECONDARY, fontWeight: 800, letterSpacing: 0.4 }}>
+                {currentStep + 1} of {tourSteps.length}
               </span>
-              <div style={{ flex: 1, height: 6, background: '#ececec', borderRadius: 999, overflow: 'hidden' }}>
-                <div style={{ height: '100%', background: 'linear-gradient(90deg, #D7B38C, #c19a6b)', width: `${progressPercentage}%`, transition: 'width .25s ease' }} />
+              <div style={{ flex: 1, height: 6, background: PROGRESS_TRACK, borderRadius: 999, overflow: 'hidden', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.25)' }}>
+                <div style={{
+                  height: '100%',
+                  background: `linear-gradient(90deg, ${ACCENT_START}, ${ACCENT_END})`,
+                  width: `${progressPercentage}%`,
+                  transition: 'width .25s ease',
+                  boxShadow: '0 6px 14px rgba(231,183,104,0.35)'
+                }} />
               </div>
             </div>
             <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 10 }}>
@@ -433,10 +714,16 @@ const HelpTour = ({ isOpen, onClose, onComplete }) => {
                   onClick={() => goToStep(index)}
                   style={{
                     width: 9, height: 9, borderRadius: '50%', border: 'none',
-                    background: index === currentStep ? '#D7B38C' : index < currentStep ? '#e3cdb2' : '#d8d8d8',
-                    cursor: 'pointer', transform: index === currentStep ? 'scale(1.25)' : 'scale(1)',
+                    background:
+                      index === currentStep
+                        ? ACCENT_START
+                        : index < currentStep
+                          ? 'rgba(231,183,104,0.45)'
+                          : 'rgba(255,255,255,0.20)',
+                    cursor: 'pointer',
+                    transform: index === currentStep ? 'scale(1.25)' : 'scale(1)',
                     transition: 'transform .2s ease, background .2s ease',
-                    boxShadow: index === currentStep ? '0 0 0 3px rgba(215,179,140,0.28)' : 'none'
+                    boxShadow: index === currentStep ? DOT_ACTIVE_GLOW : 'none'
                   }}
                   title={`Go to step ${index + 1}`}
                 />
@@ -449,17 +736,18 @@ const HelpTour = ({ isOpen, onClose, onComplete }) => {
             <button
               onClick={skipTour}
               style={{
-                color: '#6b6b6b',
-                border: '2px solid transparent',
-                background: 'transparent',
+                color: TEXT_SECONDARY,
+                border: `1px solid ${PANEL_INNER_HAIRLINE}`,
+                background: 'rgba(255,255,255,0.02)',
                 padding: '10px 12px',
-                borderRadius: 10,
+                borderRadius: 12,
                 fontSize: 13,
-                fontWeight: 700,
+                fontWeight: 800,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8
+                gap: 8,
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
               }}
             >
               <SkipForward style={{ width: 16, height: 16 }} />
@@ -472,55 +760,101 @@ const HelpTour = ({ isOpen, onClose, onComplete }) => {
                 disabled={currentStep === 0}
                 style={{
                   padding: '10px 16px',
-                  border: '1px solid #e4e4e4',
+                  border: `1px solid ${PANEL_INNER_HAIRLINE}`,
                   borderRadius: 12,
-                  background: '#fff',
-                  color: '#2c2c2c',
+                  background: 'rgba(255,255,255,0.02)',
+                  color: TEXT_PRIMARY,
                   fontSize: 14,
-                  fontWeight: 700,
+                  fontWeight: 800,
                   cursor: currentStep === 0 ? 'not-allowed' : 'pointer',
                   opacity: currentStep === 0 ? 0.55 : 1,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
                   minHeight: 40,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
                 }}
               >
                 <ChevronLeft style={{ width: 16, height: 16 }} />
                 Previous
               </button>
 
-              <button
-                onClick={nextStep}
-                style={{
-                  padding: '10px 18px',
-                  border: '1px solid #D7B38C',
-                  borderRadius: 12,
-                  background: 'linear-gradient(135deg, #D7B38C, #c19a6b)',
-                  color: 'white',
-                  fontSize: 14,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  minHeight: 40,
-                  boxShadow: '0 6px 16px rgba(215,179,140,0.38)'
-                }}
-              >
-                {currentStep === tourSteps.length - 1 ? (
-                  <>
-                    <Play style={{ width: 16, height: 16 }} />
-                    Start Learning
-                  </>
-                ) : (
-                  <>
-                    Next
-                    <ChevronRight style={{ width: 16, height: 16 }} />
-                  </>
-                )}
-              </button>
+              {!missingTarget ? (
+                <button
+                  onClick={nextStep}
+                  style={{
+                    padding: '10px 18px',
+                    border: `1px solid ${ACCENT_BORDER}`,
+                    borderRadius: 12,
+                    background: `linear-gradient(135deg, ${ACCENT_START}, ${ACCENT_END})`,
+                    color: '#0f1012',
+                    fontSize: 14,
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    minHeight: 40,
+                    boxShadow: '0 14px 28px rgba(231,183,104,0.35), inset 0 1px 0 rgba(255,255,255,0.45)'
+                  }}
+                >
+                  {currentStep === tourSteps.length - 1 ? (
+                    <>
+                      <Play style={{ width: 16, height: 16 }} />
+                      Finish
+                    </>
+                  ) : (
+                    <>
+                      Next
+                      <ChevronRight style={{ width: 16, height: 16 }} />
+                    </>
+                  )}
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={() => schedule(updateHighlight)}
+                    style={{
+                      padding: '10px 14px',
+                      border: `1px solid ${PANEL_INNER_HAIRLINE}`,
+                      borderRadius: 12,
+                      background: 'rgba(255,255,255,0.02)',
+                      color: TEXT_PRIMARY,
+                      fontSize: 13,
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      minHeight: 40,
+                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
+                    }}
+                  >
+                    <RefreshCw style={{ width: 16, height: 16 }} />
+                    Retry
+                  </button>
+                  <button
+                    onClick={nextStep}
+                    style={{
+                      padding: '10px 18px',
+                      border: `1px solid ${ACCENT_BORDER}`,
+                      borderRadius: 12,
+                      background: `linear-gradient(135deg, ${ACCENT_START}, ${ACCENT_END})`,
+                      color: '#0f1012',
+                      fontSize: 14,
+                      fontWeight: 900,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      minHeight: 40,
+                      boxShadow: '0 14px 28px rgba(231,183,104,0.35), inset 0 1px 0 rgba(255,255,255,0.45)'
+                    }}
+                  >
+                    Skip Step
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -548,14 +882,14 @@ const HelpButton = ({ onStartTour }) => {
           right: 24,
           width: 64,
           height: 64,
-          borderRadius: '50%',
-          background: 'linear-gradient(135deg, #D7B38C, #c19a6b)',
-          color: 'white',
-          border: 'none',
+          borderRadius: '18px',
+          background: `linear-gradient(135deg, ${ACCENT_START}, ${ACCENT_END})`,
+          color: '#0f1012',
+          border: `1px solid ${ACCENT_BORDER}`,
           cursor: 'pointer',
           display: 'grid',
           placeItems: 'center',
-          boxShadow: '0 10px 26px rgba(215,179,140,0.45)',
+          boxShadow: '0 16px 38px rgba(0,0,0,0.45), 0 8px 18px rgba(231,183,104,0.25)',
           transition: 'transform .2s ease, box-shadow .2s ease',
           zIndex: 1000
         }}
@@ -569,19 +903,22 @@ const HelpButton = ({ onStartTour }) => {
             position: 'fixed',
             bottom: 100,
             right: 24,
-            background: '#1f1f1f',
-            color: 'white',
+            background: 'rgba(18,20,25,0.55)',
+            border: `1px solid ${PANEL_BORDER}`,
+            color: TEXT_PRIMARY,
             padding: '10px 12px',
-            borderRadius: 10,
+            borderRadius: 12,
             fontSize: 12.5,
-            fontWeight: 600,
+            fontWeight: 700,
             whiteSpace: 'nowrap',
-            boxShadow: '0 10px 24px rgba(0,0,0,0.35)',
-            zIndex: 1001
+            boxShadow: '0 12px 28px rgba(0,0,0,0.45)',
+            zIndex: 1001,
+            backdropFilter: 'blur(12px) saturate(120%)',
+            WebkitBackdropFilter: 'blur(12px) saturate(120%)'
           }}
         >
           Take a tour of the platform
-          <div style={{ position: 'absolute', top: '100%', right: 20, border: '6px solid transparent', borderTopColor: '#1f1f1f' }} />
+          <div style={{ position: 'absolute', top: '100%', right: 20, border: '6px solid transparent', borderTopColor: 'rgba(18,20,25,0.55)' }} />
         </div>
       )}
     </div>

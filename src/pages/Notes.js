@@ -630,13 +630,6 @@ const Notes = () => {
           </div>
           
           <div className="header-right">
-            <button 
-              className="save-btn"
-              onClick={saveNote}
-              disabled={saving || !selectedNote}
-            >
-              {saving ? 'Saving...' : 'Save Note'}
-            </button>
             <div className="user-info">
               {userProfile?.picture && (
                 <img 
@@ -646,6 +639,14 @@ const Notes = () => {
                 />
               )}
             </div>
+            <button 
+              className="save-btn"
+              onClick={saveNote}
+              disabled={saving || !selectedNote}
+            >
+              {saving ? 'Saving...' : 'Save Note'}
+            </button>
+            
             <button className="logout-btn" onClick={handleLogout}>
               LOGOUT
             </button>
