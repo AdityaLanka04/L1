@@ -2053,7 +2053,7 @@
 .nav-zone {
   position: absolute;
   top: 0;
-  width: 100px;
+  width: 50px;  /* Change from 100px to 80px */
   height: 100%;
   z-index: 15;
   display: flex;
@@ -2064,7 +2064,6 @@
   cursor: pointer;
   backdrop-filter: blur(5px);
 }
-
 .nav-zone-left {
   left: 0;
   background: linear-gradient(to right, rgba(215, 179, 140, 0.15), transparent);
@@ -2095,6 +2094,8 @@
   transform: scale(0.8);
   transition: transform 0.3s ease;
 }
+
+
 
 .nav-zone:hover .nav-arrow {
   transform: scale(1.2);

@@ -868,109 +868,120 @@ const completeTour = () => {
           );
 
         case 'learning-review':
-          return (
-            <div className="learning-review-widget">
-              <div className="widget-header">
-                <h3 className="widget-title">Learning Reviews</h3>
-                <button 
-                  className="create-review-btn"
-                  onClick={createLearningReview}
-                  disabled={isCustomizing}
-                >
-                  <Plus className="w-3 h-3" />
-                </button>
-              </div>
-              
-              <div className="review-content">
-                {learningReviews.length > 0 ? (
-                  <>
-                    <div className="review-list">
-                      {learningReviews.slice(0, 3).map((review) => (
-                        <div key={review.id} className="review-item">
-                          <div className="review-header">
-                            <div className="review-title">{review.title}</div>
-                            <div className={`review-status ${review.status}`}>
-                              {review.status === 'completed' ? (
-                                <CheckCircle className="w-3 h-3" />
-                              ) : (
-                                <Clock className="w-3 h-3" />
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="review-stats">
-                            <div className="review-stat">
-                              <span className="stat-label">Score</span>
-                              <span className={`stat-value ${getScoreColor(review.best_score)}`}>
-                                {review.best_score}%
-                              </span>
-                            </div>
-                            <div className="review-stat">
-                              <span className="stat-label">Attempts</span>
-                              <span className="stat-value">{review.attempt_count}</span>
-                            </div>
-                          </div>
-                          
-                          <div className="review-actions">
-                            {review.can_continue && (
-                              <button 
-                                className="continue-btn"
-                                onClick={async () => {
-                                  await endDashboardSession();
-                                  window.location.href = `/learning-review?id=${review.id}`;
-                                }}
-                                disabled={isCustomizing}
-                              >
-                                Continue
-                              </button>
-                            )}
-                            <button 
-                              className="view-btn"
-                              onClick={async () => {
-                                await endDashboardSession();
-                                window.location.href = `/learning-review?id=${review.id}`;
-                              }}
-                              disabled={isCustomizing}
-                            >
-                              View
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+  return (
+    <div className="learning-review-widget">
+      <div className="widget-header">
+        <h3 className="widget-title">Learning Reviews</h3>
+        <button 
+          className="create-review-btn"
+          onClick={createLearningReview}
+          disabled={isCustomizing}
+        >
+          <Plus className="w-3 h-3" />
+        </button>
+      </div>
+      
+      <div className="review-content">
+        {learningReviews.length > 0 ? (
+          <>
+            <div className="review-list">
+              {learningReviews.slice(0, 3).map((review) => (
+                <div key={review.id} className="review-item">
+                  <div className="review-header">
+                    <div className="review-title">{review.title}</div>
+                    <div className={`review-status ${review.status}`}>
+                      {review.status === 'completed' ? (
+                        <CheckCircle className="w-3 h-3" />
+                      ) : (
+                        <Clock className="w-3 h-3" />
+                      )}
                     </div>
-                    
-                    {learningReviews.length > 3 && (
-                      <div className="view-all">
-                        <button 
-                          className="view-all-btn"
-                          onClick={async () => {
-                            await endDashboardSession();
-                            window.location.href = '/learning-review';
-                          }}
-                          disabled={isCustomizing}
-                        >
-                          View All ({learningReviews.length})
-                        </button>
-                      </div>
+                  </div>
+                  
+                  <div className="review-stats">
+                    <div className="review-stat">
+                      <span className="stat-label">Score</span>
+                      <span className={`stat-value ${getScoreColor(review.best_score)}`}>
+                        {review.best_score}%
+                      </span>
+                    </div>
+                    <div className="review-stat">
+                      <span className="stat-label">Attempts</span>
+                      <span className="stat-value">{review.attempt_count}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="review-actions">
+                    {review.can_continue && (
+                      <button 
+                        className="continue-btn"
+                        onClick={async () => {
+                          await endDashboardSession();
+                          window.location.href = `/learning-review?id=${review.id}`;
+                        }}
+                        disabled={isCustomizing}
+                      >
+                        Continue
+                      </button>
                     )}
-                  </>
-                ) : (
-                  <div className="no-reviews">
-                    <p className="no-reviews-text">No learning reviews yet</p>
-                    <p className="no-reviews-subtitle">Test your knowledge from AI chat sessions</p>
                     <button 
-                      className="create-first-btn"
-                      onClick={createLearningReview}
+                      className="view-btn"
+                      onClick={async () => {
+                        await endDashboardSession();
+                        window.location.href = `/learning-review?id=${review.id}`;
+                      }}
                       disabled={isCustomizing}
                     >
-                      <Plus className="w-4 h-4" />
-                      Create First Review
+                      View
+                    </button>
+                    <button 
+                      className="delete-review-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteLearningReview(review.id, review.title);
+                      }}
+                      disabled={isCustomizing}
+                      title="Delete review"
+                    >
+                      <XCircle className="w-3 h-3" />
                     </button>
                   </div>
-                )}
-              </div>
+                </div>
+              ))}
             </div>
-          );
+            
+            {learningReviews.length > 3 && (
+              <div className="view-all">
+                <button 
+                  className="view-all-btn"
+                  onClick={async () => {
+                    await endDashboardSession();
+                    window.location.href = '/learning-review';
+                  }}
+                  disabled={isCustomizing}
+                >
+                  View All ({learningReviews.length})
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="no-reviews">
+            <p className="no-reviews-text">No learning reviews yet</p>
+            <p className="no-reviews-subtitle">Test your knowledge from AI chat sessions</p>
+            <button 
+              className="create-first-btn"
+              onClick={createLearningReview}
+              disabled={isCustomizing}
+            >
+              <Plus className="w-4 h-4" />
+              Create First Review
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
         case 'recent-activity':
           return (
@@ -1244,6 +1255,41 @@ const completeTour = () => {
       </div>
     );
   };
+  const deleteLearningReview = async (reviewId, reviewTitle) => {
+  // Show confirmation dialog
+  const isConfirmed = window.confirm(
+    `Are you sure you want to delete "${reviewTitle}"?\n\nThis action cannot be undone.`
+  );
+  
+  if (!isConfirmed) return;
+  
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`http://localhost:8001/delete_learning_review/${reviewId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.ok) {
+      // Remove the review from the local state
+      setLearningReviews(prev => prev.filter(review => review.id !== reviewId));
+      
+      // Optional: Show success message
+      // You can replace this with a toast notification if you have one
+      alert('Learning review deleted successfully');
+    } else {
+      const errorData = await response.json();
+      alert('Error deleting review: ' + (errorData.detail || 'Unknown error'));
+    }
+  } catch (error) {
+    console.error('Error deleting learning review:', error);
+    alert('Error deleting learning review');
+  }
+};
+
 
   return (
   <div className="dashboard-page">

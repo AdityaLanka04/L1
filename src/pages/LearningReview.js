@@ -257,6 +257,16 @@ const LearningReview = () => {
           </h1>
           <span className="page-subtitle">Learning Review System</span>
         </div>
+
+        <div className="user-info">
+            {userProfile?.picture && (
+              <img 
+                src={userProfile.picture} 
+                alt="Profile" 
+                className="profile-picture"
+              />
+            )}
+          </div>
         
         <div className="header-right">
           <button className="nav-btn" onClick={goToChat}>
@@ -265,18 +275,7 @@ const LearningReview = () => {
           <button className="nav-btn" onClick={goToDashboard}>
             Dashboard
           </button>
-          <div className="user-info">
-            {userProfile?.picture && (
-              <img 
-                src={userProfile.picture} 
-                alt="Profile" 
-                className="profile-picture"
-              />
-            )}
-            {userProfile?.googleUser && (
-              <span className="google-badge">Google</span>
-            )}
-          </div>
+          
           <button className="logout-btn" onClick={handleLogout}>
             LOGOUT
           </button>
