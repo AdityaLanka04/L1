@@ -131,6 +131,20 @@ class Activity(Base):
     
     user = relationship("User", back_populates="activities")
 
+class TrialSession(Base):
+    __tablename__ = "trial_sessions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    fingerprint_hash = Column(String(64), index=True)  # Hashed fingerprint for privacy
+    ip_address = Column(String(45), nullable=True)  # IPv4/IPv6 support
+    user_agent = Column(Text, nullable=True)
+    start_time = Column(DateTime, default=datetime.utcnow)
+    is_blocked = Column(Boolean, default=False)
+    block_reason = Column(String(100), nullable=True)
+    expires_at = Column(DateTime, nullable=True)  # Auto-deletion timestamp
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 # ==================== FLASHCARD SYSTEM ====================
 
 class FlashcardSet(Base):
