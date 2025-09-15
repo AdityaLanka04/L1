@@ -20,9 +20,8 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { Brain, BookOpen, CheckCircle, XCircle, RefreshCw, Clock, Target, TrendingUp, Plus, ArrowLeft, Send, Lightbulb, Award } from 'lucide-react';
 import './Dashboard.css';
-import trialManager from '../utils/trialManager';
 
-const Dashboard = ({ trialMode = false, trialInitialized = false }) => {
+const Dashboard = () => {
   const [userName, setUserName] = useState('');
   const [userProfile, setUserProfile] = useState(null);
   const [stats, setStats] = useState({
@@ -42,11 +41,9 @@ const Dashboard = ({ trialMode = false, trialInitialized = false }) => {
   const [sessionId, setSessionId] = useState(null);
   const [totalTimeToday, setTotalTimeToday] = useState(0);
   const [currentSessionTime, setCurrentSessionTime] = useState(0);
-  
   // Help tour states
-  const [showTour, setShowTour] = useState(false);
-  const [hasSeenTour, setHasSeenTour] = useState(false);
-  
+const [showTour, setShowTour] = useState(false);
+const [hasSeenTour, setHasSeenTour] = useState(false);
   // Learning Review states
   const [learningReviews, setLearningReviews] = useState([]);
   const [activeLearningReview, setActiveLearningReview] = useState(null);
@@ -78,113 +75,62 @@ const Dashboard = ({ trialMode = false, trialInitialized = false }) => {
   const sessionUpdateRef = useRef(null);
   const lastActivityRef = useRef(Date.now());
 
-  // Helper functions for trial support
-  const checkAuthOrTrial = () => {
-    const token = localStorage.getItem('token');
-    const trialStatus = trialManager.getCurrentStatus();
-    
-    // Allow access if user is logged in OR if they have an active trial
-    if (token || (trialStatus.active && !trialStatus.expired)) {
-      return true;
-    }
-    
-    return false;
-  };
-
-  const isTrialUser = () => {
-    const token = localStorage.getItem('token');
-    const trialStatus = trialManager.getCurrentStatus();
-    return !token && trialStatus.active && !trialStatus.expired;
-  };
-
-  // FIXED: Main useEffect with proper authentication check
   useEffect(() => {
-  // Wait for trial initialization before doing any auth checks
-  if (!trialInitialized) {
-    console.log('Waiting for trial initialization...');
-    return;
-  }
+    const token = localStorage.getItem('token');
+    const username = localStorage.getItem('username');
+    const profile = localStorage.getItem('userProfile');
+    const savedWidgets = localStorage.getItem('dashboardWidgets');
 
-  const token = localStorage.getItem('token');
-  const username = localStorage.getItem('username');
-  const profile = localStorage.getItem('userProfile');
-  const savedWidgets = localStorage.getItem('dashboardWidgets');
-
-  // Check authentication or trial status
-  if (!token) {
-    if (trialMode) {
-      console.log('Trial mode active, allowing dashboard access');
-      // For trial users, set a generic username
-      setUserName('TrialUser');
-      setHeatmapLoading(false); // Don't wait for data that won't load
-    } else {
-      console.log('No token and no trial mode, redirecting to login');
+    if (!token) {
       window.location.href = '/login';
       return;
     }
-  } else {
-    // Logged in user
+
     if (username) {
       setUserName(username);
     }
-  }
 
-  if (profile) {
-    try {
-      setUserProfile(JSON.parse(profile));
-    } catch (error) {
-      console.error('Error parsing user profile:', error);
+    if (profile) {
+      try {
+        setUserProfile(JSON.parse(profile));
+      } catch (error) {
+        console.error('Error parsing user profile:', error);
+      }
     }
-  }
 
-  if (savedWidgets) {
-    try {
-      setWidgets(JSON.parse(savedWidgets));
-    } catch (error) {
-      console.error('Error parsing saved widgets:', error);
+    if (savedWidgets) {
+      try {
+        setWidgets(JSON.parse(savedWidgets));
+      } catch (error) {
+        console.error('Error parsing saved widgets:', error);
+      }
     }
-  }
-}, [trialMode, trialInitialized]);
-
-  // FIXED: Separate useEffect for tour
+  }, []);
   useEffect(() => {
-    // Check if user has completed the tour
-    const completedTour = localStorage.getItem('hasCompletedTour');
-    setHasSeenTour(!!completedTour);
+  // Check if user has completed the tour
+  const completedTour = localStorage.getItem('hasCompletedTour');
+  setHasSeenTour(!!completedTour);
+  
+  // Auto-start tour for new users after a short delay
+  if (!completedTour && userName) {
+    const timer = setTimeout(() => {
+      setShowTour(true);
+    }, 2000);
     
-    // Auto-start tour for new users after a short delay
-    if (!completedTour && userName && userName !== 'TrialUser') {
-      const timer = setTimeout(() => {
-        setShowTour(true);
-      }, 2000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [userName]);
+    return () => clearTimeout(timer);
+  }
+}, [userName]);
 
-  // FIXED: Data loading useEffect that handles trial users
   useEffect(() => {
-    if (userName && userName !== 'TrialUser') {
-      // Only load data for logged-in users
+    if (userName) {
       loadUserStats();
       loadHeatmapData();
       loadDashboardData();
       startDashboardSession();
-    } else if (userName === 'TrialUser') {
-      // For trial users, set default data and stop loading
-      setHeatmapLoading(false);
-      setStats({
-        streak: 0,
-        totalQuestions: 0,
-        minutes: 0,
-        totalFlashcards: 0,
-        totalNotes: 0,
-        totalChatSessions: 0
-      });
     }
 
     return () => {
-      if (sessionStartTime && sessionId && userName && userName !== 'TrialUser') {
+      if (sessionStartTime && sessionId && userName) {
         endDashboardSession();
       }
       if (timeIntervalRef.current) {
@@ -197,7 +143,7 @@ const Dashboard = ({ trialMode = false, trialInitialized = false }) => {
   }, [userName]);
 
   const loadLearningReviews = async () => {
-    if (!userName || userName === 'TrialUser') return;
+    if (!userName) return;
     
     try {
       const token = localStorage.getItem('token');
@@ -215,7 +161,7 @@ const Dashboard = ({ trialMode = false, trialInitialized = false }) => {
   };
 
   const createLearningReview = async () => {
-    if (!userName || userName === 'TrialUser') return;
+    if (!userName) return;
     
     try {
       const token = localStorage.getItem('token');
@@ -273,7 +219,7 @@ const Dashboard = ({ trialMode = false, trialInitialized = false }) => {
   };
 
   const loadDashboardData = async () => {
-    if (!userName || userName === 'TrialUser') return;
+    if (!userName) return;
     
     const token = localStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
@@ -418,10 +364,7 @@ const Dashboard = ({ trialMode = false, trialInitialized = false }) => {
   const enabledWidgets = widgets.filter(widget => widget.enabled);
 
   const loadHeatmapData = async () => {
-    if (!userName || userName === 'TrialUser') {
-      setHeatmapLoading(false);
-      return;
-    }
+    if (!userName) return;
     
     try {
       const token = localStorage.getItem('token');
@@ -549,7 +492,7 @@ const Dashboard = ({ trialMode = false, trialInitialized = false }) => {
   };
 
   const startDashboardSession = async () => {
-    if (!userName || userName === 'TrialUser') return;
+    if (!userName) return;
     
     try {
       const token = localStorage.getItem('token');
@@ -620,7 +563,7 @@ const Dashboard = ({ trialMode = false, trialInitialized = false }) => {
   };
 
   const endDashboardSession = async () => {
-    if (!sessionStartTime || !sessionId || !userName || userName === 'TrialUser') return;
+    if (!sessionStartTime || !sessionId || !userName) return;
     
     try {
       const token = localStorage.getItem('token');
@@ -665,23 +608,20 @@ const Dashboard = ({ trialMode = false, trialInitialized = false }) => {
       }
     }
   };
-
   const startTour = () => {
-    setShowTour(true);
-  };
+  setShowTour(true);
+};
 
-  const closeTour = () => {
-    setShowTour(false);
-  };
+const closeTour = () => {
+  setShowTour(false);
+};
 
-  const completeTour = () => {
-    setShowTour(false);
-    setHasSeenTour(true);
-  };
+const completeTour = () => {
+  setShowTour(false);
+  setHasSeenTour(true);
+};
 
   const loadUserStats = async () => {
-    if (!userName || userName === 'TrialUser') return;
-    
     try {
       const token = localStorage.getItem('token');
       
@@ -728,7 +668,7 @@ const Dashboard = ({ trialMode = false, trialInitialized = false }) => {
   };
 
   const handleLogout = async () => {
-    if (sessionStartTime && sessionId && userName && userName !== 'TrialUser') {
+    if (sessionStartTime && sessionId && userName) {
       await endDashboardSession();
     }
     
@@ -752,40 +692,29 @@ const Dashboard = ({ trialMode = false, trialInitialized = false }) => {
 
   const displayName = userProfile?.firstName 
     ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim()
-    : (userName === 'TrialUser' ? 'Trial User' : userName);
+    : userName;
 
   const navigateToAI = async () => {
-    if (userName !== 'TrialUser') {
-      await endDashboardSession();
-    }
+    await endDashboardSession();
     window.location.href = '/ai-chat';
   };
 
   const generateFlashcards = async () => {
-    if (userName !== 'TrialUser') {
-      await endDashboardSession();
-    }
+    await endDashboardSession();
     window.location.href = '/flashcards';
   };
 
   const openNotes = async () => {
-    if (userName !== 'TrialUser') {
-      await endDashboardSession();
-    }
+    await endDashboardSession();
     window.location.href = '/notes';
   };
 
   const openProfile = async () => {
-    if (userName !== 'TrialUser') {
-      await endDashboardSession();
-    }
+    await endDashboardSession();
     window.location.href = '/profile';
   };
 
   const getMotivationalMessage = () => {
-    if (isTrialUser()) {
-      return "Explore Brainwave with your free trial";
-    }
     if (stats.totalQuestions === 0) {
       return "Start your learning journey today";
     } else if (stats.streak === 0) {
@@ -939,120 +868,120 @@ const Dashboard = ({ trialMode = false, trialInitialized = false }) => {
           );
 
         case 'learning-review':
-          return (
-            <div className="learning-review-widget">
-              <div className="widget-header">
-                <h3 className="widget-title">Learning Reviews</h3>
-                <button 
-                  className="create-review-btn"
-                  onClick={createLearningReview}
-                  disabled={isCustomizing}
-                >
-                  <Plus className="w-3 h-3" />
-                </button>
-              </div>
-              
-              <div className="review-content">
-                {learningReviews.length > 0 ? (
-                  <>
-                    <div className="review-list">
-                      {learningReviews.slice(0, 3).map((review) => (
-                        <div key={review.id} className="review-item">
-                          <div className="review-header">
-                            <div className="review-title">{review.title}</div>
-                            <div className={`review-status ${review.status}`}>
-                              {review.status === 'completed' ? (
-                                <CheckCircle className="w-3 h-3" />
-                              ) : (
-                                <Clock className="w-3 h-3" />
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="review-stats">
-                            <div className="review-stat">
-                              <span className="stat-label">Score</span>
-                              <span className={`stat-value ${getScoreColor(review.best_score)}`}>
-                                {review.best_score}%
-                              </span>
-                            </div>
-                            <div className="review-stat">
-                              <span className="stat-label">Attempts</span>
-                              <span className="stat-value">{review.attempt_count}</span>
-                            </div>
-                          </div>
-                          
-                          <div className="review-actions">
-                            {review.can_continue && (
-                              <button 
-                                className="continue-btn"
-                                onClick={async () => {
-                                  await endDashboardSession();
-                                  window.location.href = `/learning-review?id=${review.id}`;
-                                }}
-                                disabled={isCustomizing}
-                              >
-                                Continue
-                              </button>
-                            )}
-                            <button 
-                              className="view-btn"
-                              onClick={async () => {
-                                await endDashboardSession();
-                                window.location.href = `/learning-review?id=${review.id}`;
-                              }}
-                              disabled={isCustomizing}
-                            >
-                              View
-                            </button>
-                            <button 
-                              className="delete-review-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteLearningReview(review.id, review.title);
-                              }}
-                              disabled={isCustomizing}
-                              title="Delete review"
-                            >
-                              <XCircle className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+  return (
+    <div className="learning-review-widget">
+      <div className="widget-header">
+        <h3 className="widget-title">Learning Reviews</h3>
+        <button 
+          className="create-review-btn"
+          onClick={createLearningReview}
+          disabled={isCustomizing}
+        >
+          <Plus className="w-3 h-3" />
+        </button>
+      </div>
+      
+      <div className="review-content">
+        {learningReviews.length > 0 ? (
+          <>
+            <div className="review-list">
+              {learningReviews.slice(0, 3).map((review) => (
+                <div key={review.id} className="review-item">
+                  <div className="review-header">
+                    <div className="review-title">{review.title}</div>
+                    <div className={`review-status ${review.status}`}>
+                      {review.status === 'completed' ? (
+                        <CheckCircle className="w-3 h-3" />
+                      ) : (
+                        <Clock className="w-3 h-3" />
+                      )}
                     </div>
-                    
-                    {learningReviews.length > 3 && (
-                      <div className="view-all">
-                        <button 
-                          className="view-all-btn"
-                          onClick={async () => {
-                            await endDashboardSession();
-                            window.location.href = '/learning-review';
-                          }}
-                          disabled={isCustomizing}
-                        >
-                          View All ({learningReviews.length})
-                        </button>
-                      </div>
+                  </div>
+                  
+                  <div className="review-stats">
+                    <div className="review-stat">
+                      <span className="stat-label">Score</span>
+                      <span className={`stat-value ${getScoreColor(review.best_score)}`}>
+                        {review.best_score}%
+                      </span>
+                    </div>
+                    <div className="review-stat">
+                      <span className="stat-label">Attempts</span>
+                      <span className="stat-value">{review.attempt_count}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="review-actions">
+                    {review.can_continue && (
+                      <button 
+                        className="continue-btn"
+                        onClick={async () => {
+                          await endDashboardSession();
+                          window.location.href = `/learning-review?id=${review.id}`;
+                        }}
+                        disabled={isCustomizing}
+                      >
+                        Continue
+                      </button>
                     )}
-                  </>
-                ) : (
-                  <div className="no-reviews">
-                    <p className="no-reviews-text">No learning reviews yet</p>
-                    <p className="no-reviews-subtitle">Test your knowledge from AI chat sessions</p>
                     <button 
-                      className="create-first-btn"
-                      onClick={createLearningReview}
+                      className="view-btn"
+                      onClick={async () => {
+                        await endDashboardSession();
+                        window.location.href = `/learning-review?id=${review.id}`;
+                      }}
                       disabled={isCustomizing}
                     >
-                      <Plus className="w-4 h-4" />
-                      Create First Review
+                      View
+                    </button>
+                    <button 
+                      className="delete-review-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteLearningReview(review.id, review.title);
+                      }}
+                      disabled={isCustomizing}
+                      title="Delete review"
+                    >
+                      <XCircle className="w-3 h-3" />
                     </button>
                   </div>
-                )}
-              </div>
+                </div>
+              ))}
             </div>
-          );
+            
+            {learningReviews.length > 3 && (
+              <div className="view-all">
+                <button 
+                  className="view-all-btn"
+                  onClick={async () => {
+                    await endDashboardSession();
+                    window.location.href = '/learning-review';
+                  }}
+                  disabled={isCustomizing}
+                >
+                  View All ({learningReviews.length})
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="no-reviews">
+            <p className="no-reviews-text">No learning reviews yet</p>
+            <p className="no-reviews-subtitle">Test your knowledge from AI chat sessions</p>
+            <button 
+              className="create-first-btn"
+              onClick={createLearningReview}
+              disabled={isCustomizing}
+            >
+              <Plus className="w-4 h-4" />
+              Create First Review
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
         case 'recent-activity':
           return (
@@ -1326,181 +1255,169 @@ const Dashboard = ({ trialMode = false, trialInitialized = false }) => {
       </div>
     );
   };
-
   const deleteLearningReview = async (reviewId, reviewTitle) => {
-    // Show confirmation dialog
-    const isConfirmed = window.confirm(
-      `Are you sure you want to delete "${reviewTitle}"?\n\nThis action cannot be undone.`
-    );
-    
-    if (!isConfirmed) return;
-    
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/delete_learning_review/${reviewId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        // Remove the review from the local state
-        setLearningReviews(prev => prev.filter(review => review.id !== reviewId));
-        
-        // Optional: Show success message
-        alert('Learning review deleted successfully');
-      } else {
-        const errorData = await response.json();
-        alert('Error deleting review: ' + (errorData.detail || 'Unknown error'));
+  // Show confirmation dialog
+  const isConfirmed = window.confirm(
+    `Are you sure you want to delete "${reviewTitle}"?\n\nThis action cannot be undone.`
+  );
+  
+  if (!isConfirmed) return;
+  
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`http://localhost:8001/delete_learning_review/${reviewId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
-    } catch (error) {
-      console.error('Error deleting learning review:', error);
-      alert('Error deleting learning review');
+    });
+    
+    if (response.ok) {
+      // Remove the review from the local state
+      setLearningReviews(prev => prev.filter(review => review.id !== reviewId));
+      
+      // Optional: Show success message
+      // You can replace this with a toast notification if you have one
+      alert('Learning review deleted successfully');
+    } else {
+      const errorData = await response.json();
+      alert('Error deleting review: ' + (errorData.detail || 'Unknown error'));
     }
-  };
+  } catch (error) {
+    console.error('Error deleting learning review:', error);
+    alert('Error deleting learning review');
+  }
+};
+
 
   return (
-    <div className="dashboard-page">
-      <header className="dashboard-header">
-        <div className="header-content">
-          <div className="header-left">
-            <h1 className="dashboard-title">brainwave</h1>
-            {isTrialUser() && (
-              <div style={{
-                background: 'rgba(255, 149, 0, 0.1)',
-                border: '1px solid #ff9500',
-                borderRadius: '6px',
-                padding: '4px 8px',
-                fontSize: '12px',
-                color: '#ff9500',
-                fontWeight: '600',
-                marginLeft: '12px'
-              }}>
-                Trial Mode
-              </div>
+  <div className="dashboard-page">
+    <header className="dashboard-header">
+      <div className="header-content">
+        <div className="header-left">
+          <h1 className="dashboard-title">brainwave</h1>
+        </div>
+        <div className="header-right">
+          <div className="user-info">
+            {userProfile?.picture && (
+              <img 
+                src={userProfile.picture} 
+                alt="Profile" 
+                className="profile-picture"
+              />
+            )}
+            <span className="user-name">{displayName}</span>
+          </div>
+
+
+          <button 
+            className={`customize-btn ${isCustomizing ? 'active' : ''}`}
+            onClick={() => {
+              if (isCustomizing) {
+                saveWidgetConfiguration();
+              }
+              setIsCustomizing(!isCustomizing);
+            }}
+          >
+            {isCustomizing ? 'DONE' : 'CUSTOMIZE'}
+          </button>
+          <button className="profile-btn" onClick={openProfile}>
+            PROFILE
+          </button>
+          <button className="logout-btn" onClick={handleLogout}>
+            LOGOUT
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main className="dashboard-main">
+      <div className="welcome-section">
+        <h2 className="welcome-text">
+          {getGreeting()}, {displayName}
+        </h2>
+        <p className="welcome-subtitle">
+          {getMotivationalMessage()}
+        </p>
+        
+        {currentSessionTime > 0 && (
+          <div className="session-info">
+            <span className="session-time">
+              Current session: {currentSessionTime} minutes
+            </span>
+            {totalTimeToday > 0 && (
+              <span className="total-time">
+                • Total today: {Math.round(totalTimeToday)} minutes
+              </span>
             )}
           </div>
-          <div className="header-right">
-            <div className="user-info">
-              {userProfile?.picture && (
-                <img 
-                  src={userProfile.picture} 
-                  alt="Profile" 
-                  className="profile-picture"
-                />
-              )}
-              <span className="user-name">{displayName}</span>
-            </div>
-
-            <button 
-              className={`customize-btn ${isCustomizing ? 'active' : ''}`}
-              onClick={() => {
-                if (isCustomizing) {
-                  saveWidgetConfiguration();
-                }
-                setIsCustomizing(!isCustomizing);
-              }}
-            >
-              {isCustomizing ? 'DONE' : 'CUSTOMIZE'}
-            </button>
-            <button className="profile-btn" onClick={openProfile}>
-              PROFILE
-            </button>
-            <button className="logout-btn" onClick={handleLogout}>
-              LOGOUT
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="dashboard-main">
-        <div className="welcome-section">
-          <h2 className="welcome-text">
-            {getGreeting()}, {displayName}
-          </h2>
-          <p className="welcome-subtitle">
-            {getMotivationalMessage()}
-          </p>
-          
-          {currentSessionTime > 0 && (
-            <div className="session-info">
-              <span className="session-time">
-                Current session: {currentSessionTime} minutes
-              </span>
-              {totalTimeToday > 0 && (
-                <span className="total-time">
-                  • Total today: {Math.round(totalTimeToday)} minutes
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-
-        {isCustomizing && (
-          <div className="customization-panel">
-            <div className="panel-header">
-              <h3>Customize Your Dashboard</h3>
-              <button className="reset-btn" onClick={resetWidgets}>
-                Reset to Default
-              </button>
-            </div>
-            <div className="available-widgets">
-              <h4>Available Widgets</h4>
-              <div className="widget-toggles">
-                {widgets.map(widget => (
-                  <label key={widget.id} className="widget-toggle">
-                    <input
-                      type="checkbox"
-                      checked={widget.enabled}
-                      onChange={() => toggleWidget(widget.id)}
-                    />
-                    <span className="toggle-text">{widget.title}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className="customization-help">
-              <p>Use drag handle (⋮⋮) to reorder • Use S/M/L/F buttons to resize • Toggle widgets on/off</p>
-            </div>
-          </div>
         )}
+      </div>
 
-        <DndContext 
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext 
-            items={enabledWidgets.map(widget => widget.id)}
-            strategy={rectSortingStrategy}
-          >
-            <div className="dashboard-widgets">
-              {enabledWidgets.map((widget) => (
-                <SortableWidget key={widget.id} widget={widget} />
+      {isCustomizing && (
+        <div className="customization-panel">
+          <div className="panel-header">
+            <h3>Customize Your Dashboard</h3>
+            <button className="reset-btn" onClick={resetWidgets}>
+              Reset to Default
+            </button>
+          </div>
+          <div className="available-widgets">
+            <h4>Available Widgets</h4>
+            <div className="widget-toggles">
+              {widgets.map(widget => (
+                <label key={widget.id} className="widget-toggle">
+                  <input
+                    type="checkbox"
+                    checked={widget.enabled}
+                    onChange={() => toggleWidget(widget.id)}
+                  />
+                  <span className="toggle-text">{widget.title}</span>
+                </label>
               ))}
             </div>
-          </SortableContext>
-        </DndContext>
-
-        {heatmapLoading && (
-          <div className="loading-overlay">
-            <div className="loading-spinner">Loading dashboard data...</div>
           </div>
-        )}
-      </main>
+          <div className="customization-help">
+            <p>Use drag handle (⋮⋮) to reorder • Use S/M/L/F buttons to resize • Toggle widgets on/off</p>
+          </div>
+        </div>
+      )}
 
-      {/* Help Tour Components */}
-      <HelpTour 
-        isOpen={showTour}
-        onClose={closeTour}
-        onComplete={completeTour}
-      />
-      
-      <HelpButton onStartTour={startTour} />
-    </div>
-  );
+      <DndContext 
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext 
+          items={enabledWidgets.map(widget => widget.id)}
+          strategy={rectSortingStrategy}
+        >
+          <div className="dashboard-widgets">
+            {enabledWidgets.map((widget) => (
+              <SortableWidget key={widget.id} widget={widget} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+
+      {heatmapLoading && (
+        <div className="loading-overlay">
+          <div className="loading-spinner">Loading dashboard data...</div>
+        </div>
+      )}
+    </main>
+
+    {/* Help Tour Components */}
+    <HelpTour 
+      isOpen={showTour}
+      onClose={closeTour}
+      onComplete={completeTour}
+    />
+    
+    <HelpButton onStartTour={startTour} />
+  </div>
+);
 };
 
 export default Dashboard;
