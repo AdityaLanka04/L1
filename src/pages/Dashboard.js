@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -7,19 +7,264 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { HelpTour, HelpButton } from './HelpTour'; // Adjust path as needed
+import { HelpTour, HelpButton } from './HelpTour';
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
-import {
-  useSortable,
-} from '@dnd-kit/sortable';
+import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Brain, BookOpen, CheckCircle, XCircle, RefreshCw, Clock, Target, TrendingUp, Plus, ArrowLeft, Send, Lightbulb, Award } from 'lucide-react';
+import {
+  CheckCircle, XCircle, Clock, Plus
+} from 'lucide-react';
 import './Dashboard.css';
+
+/* ---------------------------------------------
+   THEME PROFILES (10) — color-theory based
+   Each profile defines tokens that we apply as CSS vars.
+   Your CSS can read them as:
+   var(--bg-top), var(--bg-bottom), var(--panel), var(--border),
+   var(--text-primary), var(--text-secondary),
+   var(--accent), var(--accent-2), var(--success), var(--warning), var(--danger)
+   --------------------------------------------- */
+
+const THEME_PROFILES = [
+  {
+    id: 'gold-monochrome',
+    name: 'Gold Monochrome',
+    family: 'Monochrome',
+    tokens: {
+      '--bg-top': '#0b0b0c',
+      '--bg-bottom': '#0f1012',
+      '--panel': '#16181d',
+      '--border': '#2a2f37',
+      '--text-primary': '#EAECEF',
+      '--text-secondary': '#B8C0CC',
+      '--accent': '#D7B38C',
+      '--accent-2': '#B88F63',
+      '--success': '#4ade80',
+      '--warning': '#f59e0b',
+      '--danger': '#ef4444',
+      '--glow': 'rgba(215,179,140,0.35)',
+    },
+  },
+  {
+    id: 'teal-complementary',
+    name: 'Teal Complementary',
+    family: 'Complementary',
+    tokens: {
+      '--bg-top': '#0b1111',
+      '--bg-bottom': '#0e1516',
+      '--panel': '#141b1d',
+      '--border': '#253033',
+      '--text-primary': '#E8FAFA',
+      '--text-secondary': '#B6D2D2',
+      '--accent': '#14B8A6',      // teal
+      '--accent-2': '#D97706',     // complementary orange-gold
+      '--success': '#34d399',
+      '--warning': '#fbbf24',
+      '--danger': '#f87171',
+      '--glow': 'rgba(20,184,166,0.35)',
+    },
+  },
+  {
+    id: 'gold-split-compl',
+    name: 'Gold Split-Complementary',
+    family: 'Split-Complementary',
+    tokens: {
+      '--bg-top': '#0e1013',
+      '--bg-bottom': '#121418',
+      '--panel': '#171a20',
+      '--border': '#2a3038',
+      '--text-primary': '#F3F4F6',
+      '--text-secondary': '#C8CCD3',
+      '--accent': '#D7B38C',      // gold
+      '--accent-2': '#5CC8FF',    // blue-green side
+      '--success': '#4ade80',
+      '--warning': '#f59e0b',
+      '--danger': '#ef4444',
+      '--glow': 'rgba(92,200,255,0.35)',
+    },
+  },
+  {
+    id: 'triadic-gold-teal-magenta',
+    name: 'Triadic Pop',
+    family: 'Triadic',
+    tokens: {
+      '--bg-top': '#0c0d12',
+      '--bg-bottom': '#11131a',
+      '--panel': '#171923',
+      '--border': '#2b3040',
+      '--text-primary': '#EEF2FF',
+      '--text-secondary': '#C7D2FE',
+      '--accent': '#F59E0B',    // amber/gold
+      '--accent-2': '#06B6D4',  // cyan/teal
+      '--success': '#22c55e',
+      '--warning': '#eab308',
+      '--danger': '#e11d48',
+      '--glow': 'rgba(245,158,11,0.35)', // gold glow
+    },
+  },
+  {
+    id: 'tetradic-gold-teal-crimson-indigo',
+    name: 'Tetradic Luxe',
+    family: 'Tetradic',
+    tokens: {
+      '--bg-top': '#0b0b13',
+      '--bg-bottom': '#10111a',
+      '--panel': '#171826',
+      '--border': '#2b2f46',
+      '--text-primary': '#F5F7FF',
+      '--text-secondary': '#CED6F3',
+      '--accent': '#D7B38C',   // gold
+      '--accent-2': '#0EA5E9', // teal-blue
+      '--success': '#16a34a',
+      '--warning': '#f59e0b',
+      '--danger': '#be123c',   // crimson
+      '--glow': 'rgba(14,165,233,0.35)',
+    },
+  },
+  {
+    id: 'analogous-gold-amber-orange',
+    name: 'Analogous Warm',
+    family: 'Analogous',
+    tokens: {
+      '--bg-top': '#110f0c',
+      '--bg-bottom': '#151310',
+      '--panel': '#1b1915',
+      '--border': '#2f2a20',
+      '--text-primary': '#FFF7ED',
+      '--text-secondary': '#F5E7D0',
+      '--accent': '#D7B38C', // gold
+      '--accent-2': '#EA580C', // orange
+      '--success': '#22c55e',
+      '--warning': '#fb923c',
+      '--danger': '#f97316',
+      '--glow': 'rgba(234,88,12,0.35)',
+    },
+  },
+  {
+    id: 'analogous-cool-teal-cyan-blue',
+    name: 'Analogous Cool',
+    family: 'Analogous',
+    tokens: {
+      '--bg-top': '#0b0f12',
+      '--bg-bottom': '#0e1318',
+      '--panel': '#121821',
+      '--border': '#24303a',
+      '--text-primary': '#E6F6FF',
+      '--text-secondary': '#BBDCF1',
+      '--accent': '#06B6D4', // cyan/teal
+      '--accent-2': '#3B82F6', // blue
+      '--success': '#22c55e',
+      '--warning': '#f59e0b',
+      '--danger': '#ef4444',
+      '--glow': 'rgba(59,130,246,0.35)',
+    },
+  },
+  {
+    id: 'warm',
+    name: 'Warm Sunset',
+    family: 'Warm',
+    tokens: {
+      '--bg-top': '#120e0d',
+      '--bg-bottom': '#171210',
+      '--panel': '#1d1714',
+      '--border': '#352620',
+      '--text-primary': '#FFEFE6',
+      '--text-secondary': '#FFD7C2',
+      '--accent': '#FB923C',    // warm orange
+      '--accent-2': '#F43F5E',  // warm pink
+      '--success': '#84cc16',
+      '--warning': '#f59e0b',
+      '--danger': '#ef4444',
+      '--glow': 'rgba(244,63,94,0.35)',
+    },
+  },
+  {
+    id: 'cool',
+    name: 'Cool Aurora',
+    family: 'Cool',
+    tokens: {
+      '--bg-top': '#0b1012',
+      '--bg-bottom': '#0f1519',
+      '--panel': '#141c22',
+      '--border': '#25323c',
+      '--text-primary': '#E8FAFF',
+      '--text-secondary': '#C6E8F2',
+      '--accent': '#22D3EE',   // light cyan
+      '--accent-2': '#A78BFA', // soft violet
+      '--success': '#10b981',
+      '--warning': '#eab308',
+      '--danger': '#f43f5e',
+      '--glow': 'rgba(167,139,250,0.35)',
+    },
+  },
+  {
+    id: 'high-contrast-neo',
+    name: 'High Contrast Neo',
+    family: 'High Contrast',
+    tokens: {
+      '--bg-top': '#000000',
+      '--bg-bottom': '#050505',
+      '--panel': '#0b0b0b',
+      '--border': '#232323',
+      '--text-primary': '#FFFFFF',
+      '--text-secondary': '#CFCFCF',
+      '--accent': '#22D3EE',    // neon cyan
+      '--accent-2': '#F43F5E',  // neon pink/red
+      '--success': '#22c55e',
+      '--warning': '#fde047',
+      '--danger': '#fb7185',
+      '--glow': 'rgba(34,211,238,0.4)',
+    },
+  },
+  {
+    id: 'pastel',
+    name: 'Pastel Calm',
+    family: 'Pastel',
+    tokens: {
+      '--bg-top': '#0f1114',
+      '--bg-bottom': '#13161a',
+      '--panel': '#181c21',
+      '--border': '#2a323c',
+      '--text-primary': '#F9FAFB',
+      '--text-secondary': '#D1D5DB',
+      '--accent': '#A5B4FC',   // pastel indigo
+      '--accent-2': '#93C5FD', // pastel blue
+      '--success': '#86efac',
+      '--warning': '#fde68a',
+      '--danger': '#fca5a5',
+      '--glow': 'rgba(165,180,252,0.35)',
+    },
+  },
+];
+
+/* Utilities */
+function applyThemeToRoot(tokens) {
+  const root = document.documentElement;
+  Object.entries(tokens).forEach(([k, v]) => {
+    root.style.setProperty(k, v);
+  });
+}
+
+function hexToRgb(hex) {
+  const h = hex.replace('#', '');
+  const bigint = parseInt(h.length === 3
+    ? h.split('').map(c => c + c).join('')
+    : h, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return { r, g, b };
+}
+
+function rgbaFromHex(hex, alpha) {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 const Dashboard = () => {
   const [userName, setUserName] = useState('');
@@ -32,22 +277,33 @@ const Dashboard = () => {
     totalNotes: 0,
     totalChatSessions: 0
   });
-  
+
+  const [selectedThemeId, setSelectedThemeId] = useState(
+    () => localStorage.getItem('themeProfile') || 'gold-monochrome'
+  );
+
+  const selectedTheme = useMemo(
+    () => THEME_PROFILES.find(t => t.id === selectedThemeId) || THEME_PROFILES[0],
+    [selectedThemeId]
+  );
+
   const [heatmapData, setHeatmapData] = useState([]);
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [heatmapLoading, setHeatmapLoading] = useState(true);
-  
+
   const [sessionStartTime, setSessionStartTime] = useState(null);
   const [sessionId, setSessionId] = useState(null);
   const [totalTimeToday, setTotalTimeToday] = useState(0);
   const [currentSessionTime, setCurrentSessionTime] = useState(0);
+
   // Help tour states
-const [showTour, setShowTour] = useState(false);
-const [hasSeenTour, setHasSeenTour] = useState(false);
+  const [showTour, setShowTour] = useState(false);
+  const [hasSeenTour, setHasSeenTour] = useState(false);
+
   // Learning Review states
   const [learningReviews, setLearningReviews] = useState([]);
   const [activeLearningReview, setActiveLearningReview] = useState(null);
-  
+
   // Widget customization states
   const [isCustomizing, setIsCustomizing] = useState(false);
   const [widgets, setWidgets] = useState([
@@ -61,7 +317,7 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
     { id: 'progress-chart', type: 'progress-chart', title: 'Weekly Progress', enabled: false, size: 'medium' },
     { id: 'motivational-quote', type: 'motivational-quote', title: 'Daily Quote', enabled: false, size: 'small' }
   ]);
-  
+
   // Backend data states
   const [recentActivities, setRecentActivities] = useState([]);
   const [weeklyProgress, setWeeklyProgress] = useState([]);
@@ -70,10 +326,16 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
   const [achievements, setAchievements] = useState([]);
   const [learningAnalytics, setLearningAnalytics] = useState(null);
   const [conversationStarters, setConversationStarters] = useState([]);
-  
+
   const timeIntervalRef = useRef(null);
   const sessionUpdateRef = useRef(null);
   const lastActivityRef = useRef(Date.now());
+
+  /* Apply theme on mount & when changed */
+  useEffect(() => {
+    applyThemeToRoot(selectedTheme.tokens);
+    localStorage.setItem('themeProfile', selectedThemeId);
+  }, [selectedTheme, selectedThemeId]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -86,9 +348,7 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
       return;
     }
 
-    if (username) {
-      setUserName(username);
-    }
+    if (username) setUserName(username);
 
     if (profile) {
       try {
@@ -106,20 +366,16 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
       }
     }
   }, []);
+
   useEffect(() => {
-  // Check if user has completed the tour
-  const completedTour = localStorage.getItem('hasCompletedTour');
-  setHasSeenTour(!!completedTour);
-  
-  // Auto-start tour for new users after a short delay
-  if (!completedTour && userName) {
-    const timer = setTimeout(() => {
-      setShowTour(true);
-    }, 2000);
-    
-    return () => clearTimeout(timer);
-  }
-}, [userName]);
+    const completedTour = localStorage.getItem('hasCompletedTour');
+    setHasSeenTour(!!completedTour);
+
+    if (!completedTour && userName) {
+      const timer = setTimeout(() => setShowTour(true), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [userName]);
 
   useEffect(() => {
     if (userName) {
@@ -133,24 +389,18 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
       if (sessionStartTime && sessionId && userName) {
         endDashboardSession();
       }
-      if (timeIntervalRef.current) {
-        clearInterval(timeIntervalRef.current);
-      }
-      if (sessionUpdateRef.current) {
-        clearInterval(sessionUpdateRef.current);
-      }
+      if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
+      if (sessionUpdateRef.current) clearInterval(sessionUpdateRef.current);
     };
   }, [userName]);
 
   const loadLearningReviews = async () => {
     if (!userName) return;
-    
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:8001/get_learning_reviews?user_id=${userName}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
       if (response.ok) {
         const data = await response.json();
         setLearningReviews(data.reviews || []);
@@ -162,23 +412,18 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
 
   const createLearningReview = async () => {
     if (!userName) return;
-    
     try {
       const token = localStorage.getItem('token');
-      
       const sessionsResponse = await fetch(`http://localhost:8001/get_chat_sessions?user_id=${userName}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      
       if (sessionsResponse.ok) {
         const sessionsData = await sessionsResponse.json();
         const recentSessions = sessionsData.sessions?.slice(0, 3) || [];
-        
         if (recentSessions.length === 0) {
           alert('No chat sessions found to create a learning review');
           return;
         }
-        
         const response = await fetch('http://localhost:8001/create_learning_review', {
           method: 'POST',
           headers: {
@@ -192,12 +437,10 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
             review_type: 'comprehensive'
           })
         });
-        
         if (response.ok) {
           const data = await response.json();
           setActiveLearningReview(data);
           loadLearningReviews();
-          
           await endDashboardSession();
           window.location.href = '/learning-review';
         } else {
@@ -220,10 +463,9 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
 
   const loadDashboardData = async () => {
     if (!userName) return;
-    
     const token = localStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
-    
+
     try {
       const activitiesResponse = await fetch(`http://localhost:8001/get_recent_activities?user_id=${userName}&limit=5`, { headers });
       if (activitiesResponse.ok) {
@@ -251,14 +493,14 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
 
       const analyticsResponse = await fetch(`http://localhost:8001/get_learning_analytics?user_id=${userName}&period=week`, { headers });
       if (analyticsResponse.ok) {
-        const analyticsData = await analyticsResponse.json();
+        const analyticsData = await responseToJsonSafely(analyticsResponse);
         setLearningAnalytics(analyticsData);
-        
+
         const today = new Date().toISOString().split('T')[0];
-        const todayData = analyticsData.daily_data?.find(d => d.date === today);
+        const todayData = analyticsData?.daily_data?.find(d => d.date === today);
         const completed = todayData?.questions || 0;
         const target = 20;
-        
+
         setDailyGoal({
           target,
           completed,
@@ -274,11 +516,14 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
 
       loadMotivationalQuote();
       loadLearningReviews();
-
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     }
   };
+
+  async function responseToJsonSafely(resp) {
+    try { return await resp.json(); } catch { return {}; }
+  }
 
   const loadMotivationalQuote = () => {
     const quotes = [
@@ -288,7 +533,6 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
       "The beautiful thing about learning is that no one can take it away from you.",
       "Education is the most powerful weapon which you can use to change the world."
     ];
-    
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
     setMotivationalQuote(quotes[dayOfYear % quotes.length]);
   };
@@ -299,15 +543,12 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
     return 'notes';
   };
 
-  const calculateScore = () => {
-    return Math.floor(Math.random() * 30) + 70;
-  };
+  const calculateScore = () => Math.floor(Math.random() * 30) + 70;
 
   const formatTimeAgo = (timestamp) => {
     const now = new Date();
     const time = new Date(timestamp);
     const diffInHours = Math.floor((now - time) / (1000 * 60 * 60));
-    
     if (diffInHours < 1) return 'Just now';
     if (diffInHours < 24) return `${diffInHours} hours ago`;
     const diffInDays = Math.floor(diffInHours / 24);
@@ -320,7 +561,6 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
-
     if (active.id !== over?.id) {
       setWidgets((widgets) => {
         const oldIndex = widgets.findIndex((widget) => widget.id === active.id);
@@ -331,16 +571,16 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
   };
 
   const toggleWidget = (widgetId) => {
-    setWidgets(widgets.map(widget => 
-      widget.id === widgetId 
+    setWidgets(widgets.map(widget =>
+      widget.id === widgetId
         ? { ...widget, enabled: !widget.enabled }
         : widget
     ));
   };
 
   const changeWidgetSize = (widgetId, newSize) => {
-    setWidgets(widgets.map(widget => 
-      widget.id === widgetId 
+    setWidgets(widgets.map(widget =>
+      widget.id === widgetId
         ? { ...widget, size: newSize }
         : widget
     ));
@@ -365,15 +605,11 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
 
   const loadHeatmapData = async () => {
     if (!userName) return;
-    
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:8001/get_activity_heatmap?user_id=${userName}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      
       if (response.ok) {
         const data = await response.json();
         setHeatmapData(data.heatmap_data || []);
@@ -386,27 +622,25 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
     }
   };
 
+  /* Heatmap uses accent color shades with alpha steps */
   const getActivityColor = (level) => {
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || selectedTheme.tokens['--accent'];
     switch (level) {
-      case 0: return 'rgba(215, 179, 140, 0.1)';
-      case 1: return 'rgba(215, 179, 140, 0.3)';
-      case 2: return 'rgba(215, 179, 140, 0.5)';
-      case 3: return 'rgba(215, 179, 140, 0.7)';
-      case 4: return 'rgba(215, 179, 140, 0.85)';
-      case 5: return '#D7B38C';
-      default: return 'rgba(215, 179, 140, 0.1)';
+      case 0: return rgbaFromHex(accent, 0.10);
+      case 1: return rgbaFromHex(accent, 0.30);
+      case 2: return rgbaFromHex(accent, 0.50);
+      case 3: return rgbaFromHex(accent, 0.70);
+      case 4: return rgbaFromHex(accent, 0.85);
+      case 5: return accent;
+      default: return rgbaFromHex(accent, 0.10);
     }
   };
 
   const getTooltipText = (count, date) => {
     const dateObj = new Date(date);
-    const dateStr = dateObj.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
+    const dateStr = dateObj.toLocaleDateString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
     });
-    
     if (count === 0) return `No questions on ${dateStr}`;
     if (count === 1) return `1 question on ${dateStr}`;
     return `${count} questions on ${dateStr}`;
@@ -419,101 +653,75 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
 
   const organizeDataByWeeks = () => {
     if (!heatmapData.length) return [];
-    
     const startDate = new Date(heatmapData[0].date);
     const endDate = new Date(heatmapData[heatmapData.length - 1].date);
-    
+
     const firstSunday = new Date(startDate);
     firstSunday.setDate(startDate.getDate() - startDate.getDay());
-    
+
     const lastSaturday = new Date(endDate);
     lastSaturday.setDate(endDate.getDate() + (6 - endDate.getDay()));
-    
+
     const weeks = [];
     const dataMap = new Map();
-    
-    heatmapData.forEach(day => {
-      dataMap.set(day.date, day);
-    });
-    
+    heatmapData.forEach(day => dataMap.set(day.date, day));
+
     const currentDate = new Date(firstSunday);
     while (currentDate <= lastSaturday) {
       const week = [];
-      
       for (let i = 0; i < 7; i++) {
         const dateStr = currentDate.toISOString().split('T')[0];
         const dayData = dataMap.get(dateStr);
-        
         if (dayData) {
           week.push(dayData);
         } else if (currentDate >= startDate && currentDate <= endDate) {
-          week.push({
-            date: dateStr,
-            count: 0,
-            level: 0
-          });
+          week.push({ date: dateStr, count: 0, level: 0 });
         } else {
           week.push(null);
         }
-        
         currentDate.setDate(currentDate.getDate() + 1);
       }
-      
       weeks.push(week);
     }
-    
     return weeks;
   };
 
   const getMonthLabels = () => {
     if (!heatmapData.length) return [];
-    
     const labels = [];
     const weeks = organizeDataByWeeks();
     let currentMonth = -1;
-    
     weeks.forEach((week, weekIndex) => {
       const firstValidDay = week.find(day => day !== null);
       if (firstValidDay) {
         const date = new Date(firstValidDay.date);
         const month = date.getMonth();
-        
         if (month !== currentMonth && weekIndex > 0) {
-          labels.push({
-            month: getMonthName(month),
-            position: weekIndex * 18
-          });
+          labels.push({ month: getMonthName(month), position: weekIndex * 18 });
           currentMonth = month;
         }
       }
     });
-    
     return labels;
   };
 
   const startDashboardSession = async () => {
     if (!userName) return;
-    
     try {
       const token = localStorage.getItem('token');
       const formData = new FormData();
       formData.append('user_id', userName);
       formData.append('session_type', 'dashboard');
-      
       const response = await fetch('http://localhost:8001/start_session', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Authorization': `Bearer ${token}` },
         body: formData
       });
-      
       if (response.ok) {
         const data = await response.json();
         setSessionId(data.session_id);
         const startTime = Date.now();
         setSessionStartTime(startTime);
-        
         startTimeTracking();
         startSessionTimeUpdater();
       }
@@ -526,16 +734,12 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
     timeIntervalRef.current = setInterval(() => {
       const now = Date.now();
       const timeSinceLastActivity = now - lastActivityRef.current;
-      
       if (timeSinceLastActivity < 3 * 60 * 1000) {
         lastActivityRef.current = now;
       }
     }, 30000);
 
-    const updateActivity = () => {
-      lastActivityRef.current = Date.now();
-    };
-
+    const updateActivity = () => { lastActivityRef.current = Date.now(); };
     document.addEventListener('mousemove', updateActivity);
     document.addEventListener('click', updateActivity);
     document.addEventListener('keypress', updateActivity);
@@ -549,7 +753,6 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
       document.removeEventListener('scroll', updateActivity);
       document.removeEventListener('focus', updateActivity);
     };
-
     window.dashboardTimeTrackingCleanup = cleanup;
   };
 
@@ -564,118 +767,72 @@ const [hasSeenTour, setHasSeenTour] = useState(false);
 
   const endDashboardSession = async () => {
     if (!sessionStartTime || !sessionId || !userName) return;
-    
     try {
       const token = localStorage.getItem('token');
       const sessionDuration = (Date.now() - sessionStartTime) / (1000 * 60);
-      
       if (sessionDuration >= 0.5) {
         const formData = new FormData();
         formData.append('user_id', userName);
         formData.append('session_id', sessionId);
         formData.append('time_spent_minutes', sessionDuration.toString());
         formData.append('session_type', 'dashboard');
-        
         const response = await fetch('http://localhost:8001/end_session', {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
+          headers: { 'Authorization': `Bearer ${token}` },
           body: formData
         });
-        
         if (response.ok) {
           const data = await response.json();
           setTotalTimeToday(data.total_time_today || 0);
-          
-          setTimeout(() => {
-            loadUserStats();
-          }, 500);
+          setTimeout(() => { loadUserStats(); }, 500);
         }
       }
     } catch (error) {
       console.error('Error ending dashboard session:', error);
     } finally {
-      if (timeIntervalRef.current) {
-        clearInterval(timeIntervalRef.current);
-      }
-      if (sessionUpdateRef.current) {
-        clearInterval(sessionUpdateRef.current);
-      }
-      
-      if (window.dashboardTimeTrackingCleanup) {
-        window.dashboardTimeTrackingCleanup();
-      }
+      if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
+      if (sessionUpdateRef.current) clearInterval(sessionUpdateRef.current);
+      if (window.dashboardTimeTrackingCleanup) window.dashboardTimeTrackingCleanup();
     }
   };
-  const startTour = () => {
-  setShowTour(true);
-};
 
-const closeTour = () => {
-  setShowTour(false);
-};
-
-const completeTour = () => {
-  setShowTour(false);
-  setHasSeenTour(true);
-};
+  const startTour = () => setShowTour(true);
+  const closeTour = () => setShowTour(false);
+  const completeTour = () => {
+    setShowTour(false);
+    setHasSeenTour(true);
+    localStorage.setItem('hasCompletedTour', '1');
+  };
 
   const loadUserStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      
       const response = await fetch(`http://localhost:8001/get_enhanced_user_stats?user_id=${userName}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      
       if (response.ok) {
         const enhancedStats = await response.json();
         setStats({
           streak: enhancedStats.streak || 0,
           totalQuestions: enhancedStats.totalQuestions || 0,
-          minutes: Math.round(enhancedStats.hours * 60) || 0,
+          minutes: Math.round((enhancedStats.hours || 0) * 60) || 0,
           totalFlashcards: enhancedStats.totalFlashcards || 0,
           totalNotes: enhancedStats.totalNotes || 0,
           totalChatSessions: enhancedStats.totalChatSessions || 0
         });
-        
         setTotalTimeToday(enhancedStats.total_time_today || 0);
-        
       } else {
-        setStats({
-          streak: 0,
-          totalQuestions: 0,
-          minutes: 0,
-          totalFlashcards: 0,
-          totalNotes: 0,
-          totalChatSessions: 0
-        });
+        setStats({ streak: 0, totalQuestions: 0, minutes: 0, totalFlashcards: 0, totalNotes: 0, totalChatSessions: 0 });
       }
     } catch (error) {
       console.error('Error loading stats:', error);
-      setStats({
-        streak: 0,
-        totalQuestions: 0,
-        minutes: 0,
-        totalFlashcards: 0,
-        totalNotes: 0,
-        totalChatSessions: 0
-      });
+      setStats({ streak: 0, totalQuestions: 0, minutes: 0, totalFlashcards: 0, totalNotes: 0, totalChatSessions: 0 });
     }
   };
 
   const handleLogout = async () => {
-    if (sessionStartTime && sessionId && userName) {
-      await endDashboardSession();
-    }
-    
-    if (userProfile?.googleUser && window.google) {
-      window.google.accounts.id.disableAutoSelect();
-    }
-    
+    if (sessionStartTime && sessionId && userName) await endDashboardSession();
+    if (userProfile?.googleUser && window.google) window.google.accounts.id.disableAutoSelect();
     localStorage.removeItem('token');
     localStorage.removeItem('username');
     localStorage.removeItem('userProfile');
@@ -690,7 +847,7 @@ const completeTour = () => {
     return 'Good Evening';
   };
 
-  const displayName = userProfile?.firstName 
+  const displayName = userProfile?.firstName
     ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim()
     : userName;
 
@@ -698,44 +855,62 @@ const completeTour = () => {
     await endDashboardSession();
     window.location.href = '/ai-chat';
   };
-
   const generateFlashcards = async () => {
     await endDashboardSession();
     window.location.href = '/flashcards';
   };
-
   const openNotes = async () => {
     await endDashboardSession();
     window.location.href = '/notes';
   };
-
   const openProfile = async () => {
     await endDashboardSession();
     window.location.href = '/profile';
   };
 
   const getMotivationalMessage = () => {
-    if (stats.totalQuestions === 0) {
-      return "Start your learning journey today";
-    } else if (stats.streak === 0) {
-      return "Build your learning streak";
-    } else if (stats.streak < 7) {
-      return `${7 - stats.streak} days to weekly streak`;
-    } else {
-      return `${stats.streak} day learning streak`;
-    }
+    if (stats.totalQuestions === 0) return "Start your learning journey today";
+    if (stats.streak === 0) return "Build your learning streak";
+    if (stats.streak < 7) return `${7 - stats.streak} days to weekly streak`;
+    return `${stats.streak} day learning streak`;
   };
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  /* Theme Switcher UI */
+  const ThemeSwitcher = () => {
+    return (
+      <div className="theme-switcher">
+        <div className="theme-switcher-title">Theme</div>
+        <div className="theme-grid">
+          {THEME_PROFILES.map(theme => (
+            <button
+              key={theme.id}
+              className={`theme-swatch ${selectedThemeId === theme.id ? 'active' : ''}`}
+              onClick={() => setSelectedThemeId(theme.id)}
+              title={`${theme.name} — ${theme.family}`}
+              style={{
+                background: `linear-gradient(135deg, ${theme.tokens['--panel']} 0%, ${theme.tokens['--bg-bottom']} 100%)`,
+                borderColor: theme.tokens['--border']
+              }}
+            >
+              <span
+                className="theme-dot"
+                style={{ background: theme.tokens['--accent'] }}
+              />
+              <span
+                className="theme-dot"
+                style={{ background: theme.tokens['--accent-2'] }}
+              />
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   const SortableWidget = ({ widget }) => {
     const {
@@ -745,10 +920,7 @@ const completeTour = () => {
       transform,
       transition,
       isDragging,
-    } = useSortable({ 
-      id: widget.id, 
-      disabled: !isCustomizing
-    });
+    } = useSortable({ id: widget.id, disabled: !isCustomizing });
 
     const style = {
       transform: CSS.Transform.toString(transform),
@@ -761,6 +933,10 @@ const completeTour = () => {
       e.preventDefault();
       action();
     };
+
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || selectedTheme.tokens['--accent'];
+    const accent2 = getComputedStyle(document.documentElement).getPropertyValue('--accent-2').trim() || selectedTheme.tokens['--accent-2'];
+    const textPrimary = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || selectedTheme.tokens['--text-primary'];
 
     const widgetContent = () => {
       switch (widget.type) {
@@ -806,13 +982,16 @@ const completeTour = () => {
                 <h3 className="card-title">AI Learning Assistant</h3>
                 <div className="status-indicator active">Active</div>
               </div>
-              
+
               <div className="ai-visual-section">
                 <div className="ai-center-content">
-                  <div 
-                    className="ai-icon-display" 
+                  <div
+                    className="ai-icon-display"
                     onClick={!isCustomizing ? navigateToAI : undefined}
-                    style={{ cursor: isCustomizing ? 'default' : 'pointer' }}
+                    style={{
+                      cursor: isCustomizing ? 'default' : 'pointer',
+                      boxShadow: `0 0 25px ${rgbaFromHex(accent, 0.35)}`
+                    }}
                   >
                     AI
                   </div>
@@ -820,10 +999,11 @@ const completeTour = () => {
               </div>
 
               <div className="ai-action-section">
-                <button 
-                  className="ai-chat-btn" 
+                <button
+                  className="ai-chat-btn"
                   onClick={navigateToAI}
                   disabled={isCustomizing}
+                  style={{ background: accent, color: '#0b0b0b' }}
                 >
                   Start AI Session
                 </button>
@@ -844,13 +1024,13 @@ const completeTour = () => {
               <div className="goal-progress">
                 <div className="goal-circle">
                   <svg width="80" height="80">
-                    <circle cx="40" cy="40" r="35" stroke="#2a2a2a" strokeWidth="4" fill="transparent"/>
-                    <circle 
-                      cx="40" 
-                      cy="40" 
-                      r="35" 
-                      stroke="#D7B38C" 
-                      strokeWidth="4" 
+                    <circle cx="40" cy="40" r="35" stroke="var(--border)" strokeWidth="4" fill="transparent"/>
+                    <circle
+                      cx="40"
+                      cy="40"
+                      r="35"
+                      stroke={accent}
+                      strokeWidth="4"
                       fill="transparent"
                       strokeDasharray="220"
                       strokeDashoffset={220 - (220 * dailyGoal.percentage / 100)}
@@ -868,120 +1048,126 @@ const completeTour = () => {
           );
 
         case 'learning-review':
-  return (
-    <div className="learning-review-widget">
-      <div className="widget-header">
-        <h3 className="widget-title">Learning Reviews</h3>
-        <button 
-          className="create-review-btn"
-          onClick={createLearningReview}
-          disabled={isCustomizing}
-        >
-          <Plus className="w-3 h-3" />
-        </button>
-      </div>
-      
-      <div className="review-content">
-        {learningReviews.length > 0 ? (
-          <>
-            <div className="review-list">
-              {learningReviews.slice(0, 3).map((review) => (
-                <div key={review.id} className="review-item">
-                  <div className="review-header">
-                    <div className="review-title">{review.title}</div>
-                    <div className={`review-status ${review.status}`}>
-                      {review.status === 'completed' ? (
-                        <CheckCircle className="w-3 h-3" />
-                      ) : (
-                        <Clock className="w-3 h-3" />
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="review-stats">
-                    <div className="review-stat">
-                      <span className="stat-label">Score</span>
-                      <span className={`stat-value ${getScoreColor(review.best_score)}`}>
-                        {review.best_score}%
-                      </span>
-                    </div>
-                    <div className="review-stat">
-                      <span className="stat-label">Attempts</span>
-                      <span className="stat-value">{review.attempt_count}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="review-actions">
-                    {review.can_continue && (
-                      <button 
-                        className="continue-btn"
-                        onClick={async () => {
-                          await endDashboardSession();
-                          window.location.href = `/learning-review?id=${review.id}`;
-                        }}
-                        disabled={isCustomizing}
-                      >
-                        Continue
-                      </button>
-                    )}
-                    <button 
-                      className="view-btn"
-                      onClick={async () => {
-                        await endDashboardSession();
-                        window.location.href = `/learning-review?id=${review.id}`;
-                      }}
-                      disabled={isCustomizing}
-                    >
-                      View
-                    </button>
-                    <button 
-                      className="delete-review-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteLearningReview(review.id, review.title);
-                      }}
-                      disabled={isCustomizing}
-                      title="Delete review"
-                    >
-                      <XCircle className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            {learningReviews.length > 3 && (
-              <div className="view-all">
-                <button 
-                  className="view-all-btn"
-                  onClick={async () => {
-                    await endDashboardSession();
-                    window.location.href = '/learning-review';
-                  }}
+          return (
+            <div className="learning-review-widget">
+              <div className="widget-header">
+                <h3 className="widget-title">Learning Reviews</h3>
+                <button
+                  className="create-review-btn"
+                  onClick={createLearningReview}
                   disabled={isCustomizing}
+                  style={{ background: accent2, color: '#0b0b0b' }}
+                  title="Create Review"
                 >
-                  View All ({learningReviews.length})
+                  <Plus className="w-3 h-3" />
                 </button>
               </div>
-            )}
-          </>
-        ) : (
-          <div className="no-reviews">
-            <p className="no-reviews-text">No learning reviews yet</p>
-            <p className="no-reviews-subtitle">Test your knowledge from AI chat sessions</p>
-            <button 
-              className="create-first-btn"
-              onClick={createLearningReview}
-              disabled={isCustomizing}
-            >
-              <Plus className="w-4 h-4" />
-              Create First Review
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+
+              <div className="review-content">
+                {learningReviews.length > 0 ? (
+                  <>
+                    <div className="review-list">
+                      {learningReviews.slice(0, 3).map((review) => (
+                        <div key={review.id} className="review-item">
+                          <div className="review-header">
+                            <div className="review-title">{review.title}</div>
+                            <div className={`review-status ${review.status}`}>
+                              {review.status === 'completed'
+                                ? <CheckCircle className="w-3 h-3" />
+                                : <Clock className="w-3 h-3" />}
+                            </div>
+                          </div>
+
+                          <div className="review-stats">
+                            <div className="review-stat">
+                              <span className="stat-label">Score</span>
+                              <span className={`stat-value ${getScoreColor(review.best_score)}`}>
+                                {review.best_score}%
+                              </span>
+                            </div>
+                            <div className="review-stat">
+                              <span className="stat-label">Attempts</span>
+                              <span className="stat-value">{review.attempt_count}</span>
+                            </div>
+                          </div>
+
+                          <div className="review-actions">
+                            {review.can_continue && (
+                              <button
+                                className="continue-btn"
+                                onClick={async () => {
+                                  await endDashboardSession();
+                                  window.location.href = `/learning-review?id=${review.id}`;
+                                }}
+                                disabled={isCustomizing}
+                                style={{ background: accent, color: '#0b0b0b' }}
+                              >
+                                Continue
+                              </button>
+                            )}
+                            <button
+                              className="view-btn"
+                              onClick={async () => {
+                                await endDashboardSession();
+                                window.location.href = `/learning-review?id=${review.id}`;
+                              }}
+                              disabled={isCustomizing}
+                            >
+                              View
+                            </button>
+                            <button
+                              className="delete-review-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteLearningReview(review.id, review.title);
+                              }}
+                              disabled={isCustomizing}
+                              title="Delete review"
+                            >
+                              <XCircle className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {learningReviews.length > 3 && (
+                      <div className="view-all">
+                        <button
+                          className="view-all-btn"
+                          onClick={async () => {
+                            await endDashboardSession();
+                            window.location.href = '/learning-review';
+                          }}
+                          disabled={isCustomizing}
+                          style={{
+                            borderColor: accent,
+                            color: textPrimary
+                          }}
+                        >
+                          View All ({learningReviews.length})
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="no-reviews">
+                    <p className="no-reviews-text">No learning reviews yet</p>
+                    <p className="no-reviews-subtitle">Test your knowledge from AI chat sessions</p>
+                    <button
+                      className="create-first-btn"
+                      onClick={createLearningReview}
+                      disabled={isCustomizing}
+                      style={{ background: accent, color: '#0b0b0b' }}
+                    >
+                      <Plus className="w-4 h-4" />
+                      Create First Review
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
 
         case 'recent-activity':
           return (
@@ -997,7 +1183,7 @@ const completeTour = () => {
                       <div className="activity-details">
                         <div className="activity-subject">{activity.subject}</div>
                         <div className="activity-meta">
-                          {activity.score && `Score: ${activity.score}%`}
+                          {activity.score && `Score: ${activity.score}% `}
                           {activity.question && `${activity.question.substring(0, 30)}...`}
                         </div>
                       </div>
@@ -1007,7 +1193,7 @@ const completeTour = () => {
                 ) : (
                   <div className="no-activity">
                     <p>No recent activity found.</p>
-                    <button onClick={navigateToAI} className="start-learning-btn">
+                    <button onClick={navigateToAI} className="start-learning-btn" style={{ borderColor: accent, color: textPrimary }}>
                       Start Learning
                     </button>
                   </div>
@@ -1023,12 +1209,12 @@ const completeTour = () => {
                 <h3 className="widget-title">Daily Quote</h3>
               </div>
               <div className="quote-content">
-                <div className="quote-mark">"</div>
+                <div className="quote-mark" style={{ color: accent2 }}>“</div>
                 <div className="quote-text">{motivationalQuote}</div>
               </div>
               {achievements.length > 0 && (
                 <div className="recent-achievement">
-                  <div className="achievement-badge">
+                  <div className="achievement-badge" style={{ borderColor: accent2 }}>
                     <span className="achievement-text">
                       Latest: {achievements[0]?.name}
                     </span>
@@ -1052,10 +1238,13 @@ const completeTour = () => {
                       const height = (value / maxValue) * 100;
                       return (
                         <div key={idx} className="chart-bar">
-                          <div 
-                            className="bar-fill" 
-                            style={{ height: `${height}%` }}
-                          ></div>
+                          <div
+                            className="bar-fill"
+                            style={{
+                              height: `${height}%`,
+                              background: `linear-gradient(180deg, ${accent} 0%, ${rgbaFromHex(accent, 0.35)} 100%)`
+                            }}
+                          />
                           <div className="bar-label">
                             {['M', 'T', 'W', 'T', 'F', 'S', 'S'][idx]}
                           </div>
@@ -1096,7 +1285,7 @@ const completeTour = () => {
                   <span className="total-questions">{totalQuestions} questions</span>
                 </div>
               </div>
-              
+
               {heatmapLoading ? (
                 <div className="heatmap-loading">Loading activity data...</div>
               ) : (
@@ -1111,20 +1300,20 @@ const completeTour = () => {
                       <div className="day-label">fri</div>
                       <div className="day-label">sat</div>
                     </div>
-                    
+
                     <div className="heatmap-content">
                       <div className="month-labels">
                         {monthLabels.map((label, index) => (
-                          <div 
-                            key={index} 
-                            className="month-label" 
+                          <div
+                            key={index}
+                            className="month-label"
                             style={{ left: `${label.position}px` }}
                           >
                             {label.month}
                           </div>
                         ))}
                       </div>
-                      
+
                       <div className="heatmap-grid">
                         {weeks.map((week, weekIndex) => (
                           <div key={weekIndex} className="heatmap-week">
@@ -1143,7 +1332,7 @@ const completeTour = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="heatmap-legend">
                     <span className="legend-text">less</span>
                     <div className="legend-colors">
@@ -1180,7 +1369,7 @@ const completeTour = () => {
                   <div className="action-count">Setup</div>
                 </button>
               </div>
-              
+
               {learningAnalytics && (
                 <div className="quick-stats">
                   <div className="quick-stat">
@@ -1189,7 +1378,7 @@ const completeTour = () => {
                   </div>
                   <div className="quick-stat">
                     <span className="quick-stat-label">Total Time:</span>
-                    <span className="quick-stat-value">{Math.round(learningAnalytics.total_time_minutes / 60)} hrs</span>
+                    <span className="quick-stat-value">{Math.round((learningAnalytics.total_time_minutes || 0) / 60)} hrs</span>
                   </div>
                 </div>
               )}
@@ -1210,43 +1399,28 @@ const completeTour = () => {
       >
         {isCustomizing && (
           <div className="widget-controls" onClick={(e) => e.stopPropagation()}>
-            <div className="drag-handle" {...listeners}>
-              ⋮⋮
-            </div>
+            <div className="drag-handle" {...listeners}>⋮⋮</div>
             <div className="size-controls">
-              <button 
+              <button
                 className={`size-btn ${widget.size === 'small' ? 'active' : ''}`}
                 onClick={(e) => handleButtonClick(e, () => changeWidgetSize(widget.id, 'small'))}
-              >
-                S
-              </button>
-              <button 
+              >S</button>
+              <button
                 className={`size-btn ${widget.size === 'medium' ? 'active' : ''}`}
                 onClick={(e) => handleButtonClick(e, () => changeWidgetSize(widget.id, 'medium'))}
-              >
-                M
-              </button>
-              <button 
+              >M</button>
+              <button
                 className={`size-btn ${widget.size === 'large' ? 'active' : ''}`}
                 onClick={(e) => handleButtonClick(e, () => changeWidgetSize(widget.id, 'large'))}
-              >
-                L
-              </button>
+              >L</button>
               {widget.type === 'heatmap' && (
-                <button 
+                <button
                   className={`size-btn ${widget.size === 'full' ? 'active' : ''}`}
                   onClick={(e) => handleButtonClick(e, () => changeWidgetSize(widget.id, 'full'))}
-                >
-                  F
-                </button>
+                >F</button>
               )}
             </div>
-            <button 
-              className="remove-btn"
-              onClick={(e) => handleButtonClick(e, () => toggleWidget(widget.id))}
-            >
-              ×
-            </button>
+            <button className="remove-btn" onClick={(e) => handleButtonClick(e, () => toggleWidget(widget.id))}>×</button>
           </div>
         )}
         <div className={`widget-content ${isCustomizing ? 'customize-mode' : ''}`}>
@@ -1255,169 +1429,154 @@ const completeTour = () => {
       </div>
     );
   };
-  const deleteLearningReview = async (reviewId, reviewTitle) => {
-  // Show confirmation dialog
-  const isConfirmed = window.confirm(
-    `Are you sure you want to delete "${reviewTitle}"?\n\nThis action cannot be undone.`
-  );
-  
-  if (!isConfirmed) return;
-  
-  try {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`http://localhost:8001/delete_learning_review/${reviewId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (response.ok) {
-      // Remove the review from the local state
-      setLearningReviews(prev => prev.filter(review => review.id !== reviewId));
-      
-      // Optional: Show success message
-      // You can replace this with a toast notification if you have one
-      alert('Learning review deleted successfully');
-    } else {
-      const errorData = await response.json();
-      alert('Error deleting review: ' + (errorData.detail || 'Unknown error'));
-    }
-  } catch (error) {
-    console.error('Error deleting learning review:', error);
-    alert('Error deleting learning review');
-  }
-};
 
+  const deleteLearningReview = async (reviewId, reviewTitle) => {
+    const isConfirmed = window.confirm(
+      `Are you sure you want to delete "${reviewTitle}"?\n\nThis action cannot be undone.`
+    );
+    if (!isConfirmed) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8001/delete_learning_review/${reviewId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (response.ok) {
+        setLearningReviews(prev => prev.filter(review => review.id !== reviewId));
+        alert('Learning review deleted successfully');
+      } else {
+        const errorData = await response.json();
+        alert('Error deleting review: ' + (errorData.detail || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error deleting learning review:', error);
+      alert('Error deleting learning review');
+    }
+  };
 
   return (
-  <div className="dashboard-page">
-    <header className="dashboard-header">
-      <div className="header-content">
-        <div className="header-left">
-          <h1 className="dashboard-title">brainwave</h1>
-        </div>
-        <div className="header-right">
-          <div className="user-info">
-            {userProfile?.picture && (
-              <img 
-                src={userProfile.picture} 
-                alt="Profile" 
-                className="profile-picture"
-              />
-            )}
-            <span className="user-name">{displayName}</span>
+    <div className="dashboard-page">
+      <header className="dashboard-header">
+        <div className="header-content">
+          <div className="header-left">
+            <h1 className="dashboard-title">brainwave</h1>
           </div>
+          <div className="header-right">
+            <ThemeSwitcher />
+            <div className="user-info">
+              {userProfile?.picture && (
+                <img
+                  src={userProfile.picture}
+                  alt="Profile"
+                  className="profile-picture"
+                />
+              )}
+              <span className="user-name">{displayName}</span>
+            </div>
 
-
-          <button 
-            className={`customize-btn ${isCustomizing ? 'active' : ''}`}
-            onClick={() => {
-              if (isCustomizing) {
-                saveWidgetConfiguration();
-              }
-              setIsCustomizing(!isCustomizing);
-            }}
-          >
-            {isCustomizing ? 'DONE' : 'CUSTOMIZE'}
-          </button>
-          <button className="profile-btn" onClick={openProfile}>
-            PROFILE
-          </button>
-          <button className="logout-btn" onClick={handleLogout}>
-            LOGOUT
-          </button>
-        </div>
-      </div>
-    </header>
-
-    <main className="dashboard-main">
-      <div className="welcome-section">
-        <h2 className="welcome-text">
-          {getGreeting()}, {displayName}
-        </h2>
-        <p className="welcome-subtitle">
-          {getMotivationalMessage()}
-        </p>
-        
-        {currentSessionTime > 0 && (
-          <div className="session-info">
-            <span className="session-time">
-              Current session: {currentSessionTime} minutes
-            </span>
-            {totalTimeToday > 0 && (
-              <span className="total-time">
-                • Total today: {Math.round(totalTimeToday)} minutes
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {isCustomizing && (
-        <div className="customization-panel">
-          <div className="panel-header">
-            <h3>Customize Your Dashboard</h3>
-            <button className="reset-btn" onClick={resetWidgets}>
-              Reset to Default
+            <button
+              className={`customize-btn ${isCustomizing ? 'active' : ''}`}
+              onClick={() => {
+                if (isCustomizing) saveWidgetConfiguration();
+                setIsCustomizing(!isCustomizing);
+              }}
+            >
+              {isCustomizing ? 'DONE' : 'CUSTOMIZE'}
             </button>
+            <button className="profile-btn" onClick={openProfile}>PROFILE</button>
+            <button className="logout-btn" onClick={handleLogout}>LOGOUT</button>
           </div>
-          <div className="available-widgets">
-            <h4>Available Widgets</h4>
-            <div className="widget-toggles">
-              {widgets.map(widget => (
-                <label key={widget.id} className="widget-toggle">
-                  <input
-                    type="checkbox"
-                    checked={widget.enabled}
-                    onChange={() => toggleWidget(widget.id)}
-                  />
-                  <span className="toggle-text">{widget.title}</span>
-                </label>
-              ))}
+        </div>
+      </header>
+
+      <main className="dashboard-main">
+        <div className="welcome-section">
+          <h2 className="welcome-text">
+            {getGreeting()}, {displayName}
+          </h2>
+          <p className="welcome-subtitle">
+            {getMotivationalMessage()}
+          </p>
+
+          {currentSessionTime > 0 && (
+            <div className="session-info">
+              <span className="session-time">
+                Current session: {currentSessionTime} minutes
+              </span>
+              {totalTimeToday > 0 && (
+                <span className="total-time">
+                  • Total today: {Math.round(totalTimeToday)} minutes
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        {isCustomizing && (
+          <div className="customization-panel">
+            <div className="panel-header">
+              <h3>Customize Your Dashboard</h3>
+              <button className="reset-btn" onClick={resetWidgets}>
+                Reset to Default
+              </button>
+            </div>
+            <div className="available-widgets">
+              <h4>Available Widgets</h4>
+              <div className="widget-toggles">
+                {widgets.map(widget => (
+                  <label key={widget.id} className="widget-toggle">
+                    <input
+                      type="checkbox"
+                      checked={widget.enabled}
+                      onChange={() => toggleWidget(widget.id)}
+                    />
+                    <span className="toggle-text">{widget.title}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="customization-help">
+              <p>Use drag handle (⋮⋮) to reorder • Use S/M/L/F buttons to resize • Toggle widgets on/off</p>
             </div>
           </div>
-          <div className="customization-help">
-            <p>Use drag handle (⋮⋮) to reorder • Use S/M/L/F buttons to resize • Toggle widgets on/off</p>
-          </div>
-        </div>
-      )}
+        )}
 
-      <DndContext 
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext 
-          items={enabledWidgets.map(widget => widget.id)}
-          strategy={rectSortingStrategy}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
         >
-          <div className="dashboard-widgets">
-            {enabledWidgets.map((widget) => (
-              <SortableWidget key={widget.id} widget={widget} />
-            ))}
+          <SortableContext
+            items={enabledWidgets.map(widget => widget.id)}
+            strategy={rectSortingStrategy}
+          >
+            <div className="dashboard-widgets">
+              {enabledWidgets.map((widget) => (
+                <SortableWidget key={widget.id} widget={widget} />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+
+        {heatmapLoading && (
+          <div className="loading-overlay">
+            <div className="loading-spinner">Loading dashboard data...</div>
           </div>
-        </SortableContext>
-      </DndContext>
+        )}
+      </main>
 
-      {heatmapLoading && (
-        <div className="loading-overlay">
-          <div className="loading-spinner">Loading dashboard data...</div>
-        </div>
-      )}
-    </main>
-
-    {/* Help Tour Components */}
-    <HelpTour 
-      isOpen={showTour}
-      onClose={closeTour}
-      onComplete={completeTour}
-    />
-    
-    <HelpButton onStartTour={startTour} />
-  </div>
-);
+      {/* Help Tour Components */}
+      <HelpTour
+        isOpen={showTour}
+        onClose={closeTour}
+        onComplete={completeTour}
+      />
+      <HelpButton onStartTour={startTour} />
+    </div>
+  );
 };
 
 export default Dashboard;

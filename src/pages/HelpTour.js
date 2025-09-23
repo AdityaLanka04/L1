@@ -135,6 +135,7 @@ const HelpTour = ({
         target: '.motivational-quote-widget',
         position: 'right',
       },
+      
     ],
     []
   );
