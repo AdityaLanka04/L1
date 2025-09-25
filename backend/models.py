@@ -1,15 +1,25 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Boolean, Float, JSON, Date
+from sqlalchemy import (
+    create_engine, Column, Integer, String, Text, DateTime, ForeignKey,
+    Boolean, Float, JSON, Date
+)
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, sessionmaker
 from datetime import datetime
-import json
 from typing import Optional, List
 from pydantic import BaseModel
+import os
 
+# ==================== DATABASE CONFIG ====================
+
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./brainwave_tutor.db")
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+# ==================== ORM MODELS ====================
+
 class User(Base):
-    __tablename__ = 'users'
+    __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
     first_name = Column(String(50), nullable=True)
@@ -43,9 +53,10 @@ class User(Base):
     achievements = relationship("UserAchievement", back_populates="user")
     comprehensive_profile = relationship("ComprehensiveUserProfile", back_populates="user", uselist=False)
 
+
 class ChatSession(Base):
     __tablename__ = "chat_sessions"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     title = Column(String(200), default="New Chat")
@@ -54,13 +65,14 @@ class ChatSession(Base):
     session_summary = Column(Text, nullable=True)
     emotional_tone = Column(String(50), nullable=True)
     difficulty_level = Column(String(50), nullable=True)
-    
+
     user = relationship("User", back_populates="chat_sessions")
     messages = relationship("ChatMessage", back_populates="chat_session", cascade="all, delete-orphan")
 
+
 class ChatMessage(Base):
     __tablename__ = "chat_messages"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     chat_session_id = Column(Integer, ForeignKey("chat_sessions.id"))
     user_message = Column(Text)
@@ -72,12 +84,13 @@ class ChatMessage(Base):
     difficulty_level = Column(String(50), nullable=True)
     ai_confidence = Column(Float, nullable=True)
     response_time = Column(Float, nullable=True)
-    
+
     chat_session = relationship("ChatSession", back_populates="messages")
+
 
 class UserStats(Base):
     __tablename__ = "user_stats"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     day_streak = Column(Integer, default=0)
@@ -85,53 +98,59 @@ class UserStats(Base):
     total_hours = Column(Float, default=0.0)
     accuracy_percentage = Column(Float, default=0.0)
     last_activity = Column(DateTime, default=datetime.utcnow)
-    
-    # Enhanced stats
+
     total_concepts_learned = Column(Integer, default=0)
     favorite_learning_time = Column(String(50), nullable=True)
     average_session_rating = Column(Float, default=0.0)
     total_questions_asked = Column(Integer, default=0)
-    
+
     user = relationship("User", back_populates="user_stats")
+
 
 class Note(Base):
     __tablename__ = "notes"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     title = Column(String(200), default="New Note")
     content = Column(Text, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Enhanced note features
+
     ai_generated = Column(Boolean, default=False)
     source_chat_sessions = Column(JSON, nullable=True)
     difficulty_level = Column(String(50), nullable=True)
     estimated_study_time = Column(Integer, nullable=True)
-    
+
     user = relationship("User", back_populates="notes")
+
 
 class Activity(Base):
     __tablename__ = "activities"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     question = Column(Text, nullable=False)
     answer = Column(Text, nullable=False)
     topic = Column(String(200), default="General")
     timestamp = Column(DateTime, default=datetime.utcnow)
-    
-    # Enhanced activity tracking
+
     question_type = Column(String(50), nullable=True)
     difficulty_level = Column(String(50), nullable=True)
     user_satisfaction = Column(Integer, nullable=True)
     time_to_understand = Column(Float, nullable=True)
     follow_up_questions = Column(Integer, default=0)
-    
+
     user = relationship("User", back_populates="activities")
 
-# ==================== FLASHCARD SYSTEM ====================
+# (⚡ Keep your other ORM classes here: FlashcardSet, Flashcard, FlashcardStudySession, 
+# UserPersonalityProfile, LearningPattern, UserPreferences, TopicMastery, 
+# ComprehensiveUserProfile, EnhancedUserStats, DailyLearningMetrics, 
+# Achievement, UserAchievement, GlobalKnowledgeBase, AIResponseImprovement, 
+# CommonMisconceptions, UserFeedback, AILearningMetrics, ConversationMemory, 
+# TopicKnowledgeBase, LearningReview, LearningReviewAttempt, LearningReviewHint, LearningReviewStats)
+
+# ==================== PYDANTIC MODELS ====================
 
 class FlashcardSet(Base):
     __tablename__ = "flashcard_sets"
@@ -752,3 +771,54 @@ class LearningReviewSummary(BaseModel):
     created_at: str
     completed_at: Optional[str]
     can_continue: bool
+
+class ComprehensiveProfileUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+
+    preferred_first_name: Optional[str] = None
+    preferred_last_name: Optional[str] = None
+    study_goals: Optional[str] = None
+    career_goals: Optional[str] = None
+    preferred_subjects: Optional[List[str]] = None
+    difficulty_level: Optional[str] = None
+    study_schedule: Optional[str] = None
+    learning_pace: Optional[str] = None
+    motivation_factors: Optional[List[str]] = None
+    weak_areas: Optional[List[str]] = None
+    strong_areas: Optional[List[str]] = None
+    time_zone: Optional[str] = None
+    study_environment: Optional[str] = None
+    preferred_language: Optional[str] = None
+    preferred_session_length: Optional[str] = None
+    break_frequency: Optional[str] = None
+    best_study_times: Optional[List[str]] = None
+    preferred_content_types: Optional[List[str]] = None
+    learning_challenges: Optional[str] = None
+    device_preferences: Optional[List[str]] = None
+    accessibility_needs: Optional[List[str]] = None
+    notification_preferences: Optional[List[str]] = None
+    contact_method: Optional[str] = None
+    communication_frequency: Optional[str] = None
+    data_consent: Optional[List[str]] = None
+    profile_visibility: Optional[str] = None
+
+    class Config:
+        extra = "ignore"
+
+# ==================== DB HELPERS ====================
+
+def create_tables():
+    Base.metadata.create_all(bind=engine)
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+if __name__ == "__main__":
+    create_tables()
+    print("✅ Database tables created successfully!")
