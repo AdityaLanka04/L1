@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -19,254 +19,15 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   CheckCircle, XCircle, Clock, Plus
 } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
+import { rgbaFromHex } from '../utils/ThemeManager';
+import ThemeSwitcher from '../components/ThemeSwitcher';
 import './Dashboard.css';
-
-/* ---------------------------------------------
-   THEME PROFILES (10) — color-theory based
-   Each profile defines tokens that we apply as CSS vars.
-   Your CSS can read them as:
-   var(--bg-top), var(--bg-bottom), var(--panel), var(--border),
-   var(--text-primary), var(--text-secondary),
-   var(--accent), var(--accent-2), var(--success), var(--warning), var(--danger)
-   --------------------------------------------- */
-
-const THEME_PROFILES = [
-  {
-    id: 'gold-monochrome',
-    name: 'Gold Monochrome',
-    family: 'Monochrome',
-    tokens: {
-      '--bg-top': '#0b0b0c',
-      '--bg-bottom': '#0f1012',
-      '--panel': '#16181d',
-      '--border': '#2a2f37',
-      '--text-primary': '#EAECEF',
-      '--text-secondary': '#B8C0CC',
-      '--accent': '#D7B38C',
-      '--accent-2': '#B88F63',
-      '--success': '#4ade80',
-      '--warning': '#f59e0b',
-      '--danger': '#ef4444',
-      '--glow': 'rgba(215,179,140,0.35)',
-    },
-  },
-  {
-    id: 'teal-complementary',
-    name: 'Teal Complementary',
-    family: 'Complementary',
-    tokens: {
-      '--bg-top': '#0b1111',
-      '--bg-bottom': '#0e1516',
-      '--panel': '#141b1d',
-      '--border': '#253033',
-      '--text-primary': '#E8FAFA',
-      '--text-secondary': '#B6D2D2',
-      '--accent': '#14B8A6',      // teal
-      '--accent-2': '#D97706',     // complementary orange-gold
-      '--success': '#34d399',
-      '--warning': '#fbbf24',
-      '--danger': '#f87171',
-      '--glow': 'rgba(20,184,166,0.35)',
-    },
-  },
-  {
-    id: 'gold-split-compl',
-    name: 'Gold Split-Complementary',
-    family: 'Split-Complementary',
-    tokens: {
-      '--bg-top': '#0e1013',
-      '--bg-bottom': '#121418',
-      '--panel': '#171a20',
-      '--border': '#2a3038',
-      '--text-primary': '#F3F4F6',
-      '--text-secondary': '#C8CCD3',
-      '--accent': '#D7B38C',      // gold
-      '--accent-2': '#5CC8FF',    // blue-green side
-      '--success': '#4ade80',
-      '--warning': '#f59e0b',
-      '--danger': '#ef4444',
-      '--glow': 'rgba(92,200,255,0.35)',
-    },
-  },
-  {
-    id: 'triadic-gold-teal-magenta',
-    name: 'Triadic Pop',
-    family: 'Triadic',
-    tokens: {
-      '--bg-top': '#0c0d12',
-      '--bg-bottom': '#11131a',
-      '--panel': '#171923',
-      '--border': '#2b3040',
-      '--text-primary': '#EEF2FF',
-      '--text-secondary': '#C7D2FE',
-      '--accent': '#F59E0B',    // amber/gold
-      '--accent-2': '#06B6D4',  // cyan/teal
-      '--success': '#22c55e',
-      '--warning': '#eab308',
-      '--danger': '#e11d48',
-      '--glow': 'rgba(245,158,11,0.35)', // gold glow
-    },
-  },
-  {
-    id: 'tetradic-gold-teal-crimson-indigo',
-    name: 'Tetradic Luxe',
-    family: 'Tetradic',
-    tokens: {
-      '--bg-top': '#0b0b13',
-      '--bg-bottom': '#10111a',
-      '--panel': '#171826',
-      '--border': '#2b2f46',
-      '--text-primary': '#F5F7FF',
-      '--text-secondary': '#CED6F3',
-      '--accent': '#D7B38C',   // gold
-      '--accent-2': '#0EA5E9', // teal-blue
-      '--success': '#16a34a',
-      '--warning': '#f59e0b',
-      '--danger': '#be123c',   // crimson
-      '--glow': 'rgba(14,165,233,0.35)',
-    },
-  },
-  {
-    id: 'analogous-gold-amber-orange',
-    name: 'Analogous Warm',
-    family: 'Analogous',
-    tokens: {
-      '--bg-top': '#110f0c',
-      '--bg-bottom': '#151310',
-      '--panel': '#1b1915',
-      '--border': '#2f2a20',
-      '--text-primary': '#FFF7ED',
-      '--text-secondary': '#F5E7D0',
-      '--accent': '#D7B38C', // gold
-      '--accent-2': '#EA580C', // orange
-      '--success': '#22c55e',
-      '--warning': '#fb923c',
-      '--danger': '#f97316',
-      '--glow': 'rgba(234,88,12,0.35)',
-    },
-  },
-  {
-    id: 'analogous-cool-teal-cyan-blue',
-    name: 'Analogous Cool',
-    family: 'Analogous',
-    tokens: {
-      '--bg-top': '#0b0f12',
-      '--bg-bottom': '#0e1318',
-      '--panel': '#121821',
-      '--border': '#24303a',
-      '--text-primary': '#E6F6FF',
-      '--text-secondary': '#BBDCF1',
-      '--accent': '#06B6D4', // cyan/teal
-      '--accent-2': '#3B82F6', // blue
-      '--success': '#22c55e',
-      '--warning': '#f59e0b',
-      '--danger': '#ef4444',
-      '--glow': 'rgba(59,130,246,0.35)',
-    },
-  },
-  {
-    id: 'warm',
-    name: 'Warm Sunset',
-    family: 'Warm',
-    tokens: {
-      '--bg-top': '#120e0d',
-      '--bg-bottom': '#171210',
-      '--panel': '#1d1714',
-      '--border': '#352620',
-      '--text-primary': '#FFEFE6',
-      '--text-secondary': '#FFD7C2',
-      '--accent': '#FB923C',    // warm orange
-      '--accent-2': '#F43F5E',  // warm pink
-      '--success': '#84cc16',
-      '--warning': '#f59e0b',
-      '--danger': '#ef4444',
-      '--glow': 'rgba(244,63,94,0.35)',
-    },
-  },
-  {
-    id: 'cool',
-    name: 'Cool Aurora',
-    family: 'Cool',
-    tokens: {
-      '--bg-top': '#0b1012',
-      '--bg-bottom': '#0f1519',
-      '--panel': '#141c22',
-      '--border': '#25323c',
-      '--text-primary': '#E8FAFF',
-      '--text-secondary': '#C6E8F2',
-      '--accent': '#22D3EE',   // light cyan
-      '--accent-2': '#A78BFA', // soft violet
-      '--success': '#10b981',
-      '--warning': '#eab308',
-      '--danger': '#f43f5e',
-      '--glow': 'rgba(167,139,250,0.35)',
-    },
-  },
-  {
-    id: 'high-contrast-neo',
-    name: 'High Contrast Neo',
-    family: 'High Contrast',
-    tokens: {
-      '--bg-top': '#000000',
-      '--bg-bottom': '#050505',
-      '--panel': '#0b0b0b',
-      '--border': '#232323',
-      '--text-primary': '#FFFFFF',
-      '--text-secondary': '#CFCFCF',
-      '--accent': '#22D3EE',    // neon cyan
-      '--accent-2': '#F43F5E',  // neon pink/red
-      '--success': '#22c55e',
-      '--warning': '#fde047',
-      '--danger': '#fb7185',
-      '--glow': 'rgba(34,211,238,0.4)',
-    },
-  },
-  {
-    id: 'pastel',
-    name: 'Pastel Calm',
-    family: 'Pastel',
-    tokens: {
-      '--bg-top': '#0f1114',
-      '--bg-bottom': '#13161a',
-      '--panel': '#181c21',
-      '--border': '#2a323c',
-      '--text-primary': '#F9FAFB',
-      '--text-secondary': '#D1D5DB',
-      '--accent': '#A5B4FC',   // pastel indigo
-      '--accent-2': '#93C5FD', // pastel blue
-      '--success': '#86efac',
-      '--warning': '#fde68a',
-      '--danger': '#fca5a5',
-      '--glow': 'rgba(165,180,252,0.35)',
-    },
-  },
-];
-
-/* Utilities */
-function applyThemeToRoot(tokens) {
-  const root = document.documentElement;
-  Object.entries(tokens).forEach(([k, v]) => {
-    root.style.setProperty(k, v);
-  });
-}
-
-function hexToRgb(hex) {
-  const h = hex.replace('#', '');
-  const bigint = parseInt(h.length === 3
-    ? h.split('').map(c => c + c).join('')
-    : h, 16);
-  const r = (bigint >> 16) & 255;
-  const g = (bigint >> 8) & 255;
-  const b = bigint & 255;
-  return { r, g, b };
-}
-
-function rgbaFromHex(hex, alpha) {
-  const { r, g, b } = hexToRgb(hex);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
+import './HelpTour.css';
 
 const Dashboard = () => {
+  const { selectedTheme } = useTheme();
+  
   const [userName, setUserName] = useState('');
   const [userProfile, setUserProfile] = useState(null);
   const [stats, setStats] = useState({
@@ -277,15 +38,6 @@ const Dashboard = () => {
     totalNotes: 0,
     totalChatSessions: 0
   });
-
-  const [selectedThemeId, setSelectedThemeId] = useState(
-    () => localStorage.getItem('themeProfile') || 'gold-monochrome'
-  );
-
-  const selectedTheme = useMemo(
-    () => THEME_PROFILES.find(t => t.id === selectedThemeId) || THEME_PROFILES[0],
-    [selectedThemeId]
-  );
 
   const [heatmapData, setHeatmapData] = useState([]);
   const [totalQuestions, setTotalQuestions] = useState(0);
@@ -330,12 +82,6 @@ const Dashboard = () => {
   const timeIntervalRef = useRef(null);
   const sessionUpdateRef = useRef(null);
   const lastActivityRef = useRef(Date.now());
-
-  /* Apply theme on mount & when changed */
-  useEffect(() => {
-    applyThemeToRoot(selectedTheme.tokens);
-    localStorage.setItem('themeProfile', selectedThemeId);
-  }, [selectedTheme, selectedThemeId]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -622,9 +368,8 @@ const Dashboard = () => {
     }
   };
 
-  /* Heatmap uses accent color shades with alpha steps */
   const getActivityColor = (level) => {
-    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || selectedTheme.tokens['--accent'];
+    const accent = selectedTheme.tokens['--accent'];
     switch (level) {
       case 0: return rgbaFromHex(accent, 0.10);
       case 1: return rgbaFromHex(accent, 0.30);
@@ -880,37 +625,40 @@ const Dashboard = () => {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  /* Theme Switcher UI */
-  const ThemeSwitcher = () => {
-    return (
-      <div className="theme-switcher">
-        <div className="theme-switcher-title">Theme</div>
-        <div className="theme-grid">
-          {THEME_PROFILES.map(theme => (
-            <button
-              key={theme.id}
-              className={`theme-swatch ${selectedThemeId === theme.id ? 'active' : ''}`}
-              onClick={() => setSelectedThemeId(theme.id)}
-              title={`${theme.name} — ${theme.family}`}
-              style={{
-                background: `linear-gradient(135deg, ${theme.tokens['--panel']} 0%, ${theme.tokens['--bg-bottom']} 100%)`,
-                borderColor: theme.tokens['--border']
-              }}
-            >
-              <span
-                className="theme-dot"
-                style={{ background: theme.tokens['--accent'] }}
-              />
-              <span
-                className="theme-dot"
-                style={{ background: theme.tokens['--accent-2'] }}
-              />
-            </button>
-          ))}
-        </div>
-      </div>
+  const deleteLearningReview = async (reviewId, reviewTitle) => {
+    const isConfirmed = window.confirm(
+      `Are you sure you want to delete "${reviewTitle}"?\n\nThis action cannot be undone.`
     );
+    if (!isConfirmed) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8001/delete_learning_review/${reviewId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (response.ok) {
+        setLearningReviews(prev => prev.filter(review => review.id !== reviewId));
+        alert('Learning review deleted successfully');
+      } else {
+        const errorData = await response.json();
+        alert('Error deleting review: ' + (errorData.detail || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error deleting learning review:', error);
+      alert('Error deleting learning review');
+    }
   };
+
+  // Debug CSS variables
+  useEffect(() => {
+    console.log('Dashboard - Selected theme:', selectedTheme);
+    console.log('Dashboard - Theme tokens:', selectedTheme.tokens);
+    console.log('Dashboard - CSS --accent:', getComputedStyle(document.documentElement).getPropertyValue('--accent'));
+    console.log('Dashboard - CSS --text-primary:', getComputedStyle(document.documentElement).getPropertyValue('--text-primary'));
+  }, [selectedTheme]);
 
   const SortableWidget = ({ widget }) => {
     const {
@@ -934,9 +682,10 @@ const Dashboard = () => {
       action();
     };
 
-    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || selectedTheme.tokens['--accent'];
-    const accent2 = getComputedStyle(document.documentElement).getPropertyValue('--accent-2').trim() || selectedTheme.tokens['--accent-2'];
-    const textPrimary = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim() || selectedTheme.tokens['--text-primary'];
+    const accent = selectedTheme.tokens['--accent'];
+    const accent2 = selectedTheme.tokens['--accent-2'];
+    const textPrimary = selectedTheme.tokens['--text-primary'];
+    const bgTop = selectedTheme.tokens['--bg-top'];
 
     const widgetContent = () => {
       switch (widget.type) {
@@ -949,25 +698,25 @@ const Dashboard = () => {
               <div className="stat-grid-widget">
                 <div className="stat-card-widget">
                   <div className="stat-content">
-                    <div className="stat-number">{stats.streak}</div>
+                    <div className="stat-number" style={{ color: accent }}>{stats.streak}</div>
                     <div className="stat-label">Day Streak</div>
                   </div>
                 </div>
                 <div className="stat-card-widget">
                   <div className="stat-content">
-                    <div className="stat-number">{stats.totalQuestions}</div>
+                    <div className="stat-number" style={{ color: accent }}>{stats.totalQuestions}</div>
                     <div className="stat-label">Total Questions</div>
                   </div>
                 </div>
                 <div className="stat-card-widget">
                   <div className="stat-content">
-                    <div className="stat-number">{stats.minutes}</div>
+                    <div className="stat-number" style={{ color: accent }}>{stats.minutes}</div>
                     <div className="stat-label">Total Minutes</div>
                   </div>
                 </div>
                 <div className="stat-card-widget">
                   <div className="stat-content">
-                    <div className="stat-number">{stats.totalChatSessions}</div>
+                    <div className="stat-number" style={{ color: accent }}>{stats.totalChatSessions}</div>
                     <div className="stat-label">AI Sessions</div>
                   </div>
                 </div>
@@ -990,7 +739,9 @@ const Dashboard = () => {
                     onClick={!isCustomizing ? navigateToAI : undefined}
                     style={{
                       cursor: isCustomizing ? 'default' : 'pointer',
-                      boxShadow: `0 0 25px ${rgbaFromHex(accent, 0.35)}`
+                      background: accent,
+                      color: bgTop,
+                      boxShadow: `0 8px 32px ${rgbaFromHex(accent, 0.35)}, 0 4px 16px ${rgbaFromHex(accent, 0.35)}`
                     }}
                   >
                     AI
@@ -1000,10 +751,38 @@ const Dashboard = () => {
 
               <div className="ai-action-section">
                 <button
-                  className="ai-chat-btn"
                   onClick={navigateToAI}
                   disabled={isCustomizing}
-                  style={{ background: accent, color: '#0b0b0b' }}
+                  style={{
+                    width: '100%',
+                    background: accent,
+                    color: bgTop,
+                    border: 'none',
+                    padding: '18px 24px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    letterSpacing: '1.2px',
+                    textTransform: 'uppercase',
+                    fontFamily: 'Quicksand, sans-serif',
+                    cursor: isCustomizing ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.3s ease',
+                    minHeight: '50px',
+                    borderRadius: '0'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isCustomizing) {
+                      e.target.style.background = `color-mix(in srgb, ${accent} 85%, white)`;
+                      e.target.style.transform = 'translateY(-2px)';
+                      e.target.style.boxShadow = `0 8px 25px ${rgbaFromHex(accent, 0.4)}`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isCustomizing) {
+                      e.target.style.background = accent;
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = 'none';
+                    }
+                  }}
                 >
                   Start AI Session
                 </button>
@@ -1038,7 +817,7 @@ const Dashboard = () => {
                     />
                   </svg>
                   <div className="goal-text">
-                    <div className="goal-number">{dailyGoal.completed}</div>
+                    <div className="goal-number" style={{ color: accent }}>{dailyGoal.completed}</div>
                     <div className="goal-target">/{dailyGoal.target}</div>
                   </div>
                 </div>
@@ -1056,8 +835,11 @@ const Dashboard = () => {
                   className="create-review-btn"
                   onClick={createLearningReview}
                   disabled={isCustomizing}
-                  style={{ background: accent2, color: '#0b0b0b' }}
                   title="Create Review"
+                  style={{
+                    background: accent,
+                    color: bgTop
+                  }}
                 >
                   <Plus className="w-3 h-3" />
                 </button>
@@ -1100,7 +882,10 @@ const Dashboard = () => {
                                   window.location.href = `/learning-review?id=${review.id}`;
                                 }}
                                 disabled={isCustomizing}
-                                style={{ background: accent, color: '#0b0b0b' }}
+                                style={{
+                                  background: accent,
+                                  color: bgTop
+                                }}
                               >
                                 Continue
                               </button>
@@ -1158,7 +943,7 @@ const Dashboard = () => {
                       className="create-first-btn"
                       onClick={createLearningReview}
                       disabled={isCustomizing}
-                      style={{ background: accent, color: '#0b0b0b' }}
+                      style={{ background: accent, color: bgTop }}
                     >
                       <Plus className="w-4 h-4" />
                       Create First Review
@@ -1209,7 +994,7 @@ const Dashboard = () => {
                 <h3 className="widget-title">Daily Quote</h3>
               </div>
               <div className="quote-content">
-                <div className="quote-mark" style={{ color: accent2 }}>“</div>
+                <div className="quote-mark" style={{ color: accent2 }}>"</div>
                 <div className="quote-text">{motivationalQuote}</div>
               </div>
               {achievements.length > 0 && (
@@ -1356,16 +1141,28 @@ const Dashboard = () => {
             <div className="quick-actions">
               <h3 className="section-title">Quick Actions</h3>
               <div className="action-grid">
-                <button className="action-btn" onClick={generateFlashcards}>
-                  <div className="action-label">Flashcards</div>
+                <button 
+                  className="action-btn" 
+                  onClick={generateFlashcards}
+                  style={{ color: accent, borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
+                >
+                  <div className="action-label" style={{ color: accent }}>Flashcards</div>
                   <div className="action-count">{stats.totalFlashcards}</div>
                 </button>
-                <button className="action-btn" onClick={openNotes}>
-                  <div className="action-label">Study Notes</div>
+                <button 
+                  className="action-btn" 
+                  onClick={openNotes}
+                  style={{ color: accent, borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
+                >
+                  <div className="action-label" style={{ color: accent }}>Study Notes</div>
                   <div className="action-count">{stats.totalNotes}</div>
                 </button>
-                <button className="action-btn" onClick={openProfile}>
-                  <div className="action-label">Profile</div>
+                <button 
+                  className="action-btn" 
+                  onClick={openProfile}
+                  style={{ color: accent, borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
+                >
+                  <div className="action-label" style={{ color: accent }}>Profile</div>
                   <div className="action-count">Setup</div>
                 </button>
               </div>
@@ -1428,33 +1225,6 @@ const Dashboard = () => {
         </div>
       </div>
     );
-  };
-
-  const deleteLearningReview = async (reviewId, reviewTitle) => {
-    const isConfirmed = window.confirm(
-      `Are you sure you want to delete "${reviewTitle}"?\n\nThis action cannot be undone.`
-    );
-    if (!isConfirmed) return;
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/delete_learning_review/${reviewId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      if (response.ok) {
-        setLearningReviews(prev => prev.filter(review => review.id !== reviewId));
-        alert('Learning review deleted successfully');
-      } else {
-        const errorData = await response.json();
-        alert('Error deleting review: ' + (errorData.detail || 'Unknown error'));
-      }
-    } catch (error) {
-      console.error('Error deleting learning review:', error);
-      alert('Error deleting learning review');
-    }
   };
 
   return (
@@ -1568,7 +1338,6 @@ const Dashboard = () => {
         )}
       </main>
 
-      {/* Help Tour Components */}
       <HelpTour
         isOpen={showTour}
         onClose={closeTour}

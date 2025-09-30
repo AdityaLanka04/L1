@@ -1,5 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
 
+.theme-accent-bg { background: var(--accent) !important; }
+.theme-dark-text { color: var(--bg-top) !important; }
+.theme-accent-text { color: var(--accent) !important; }
+.theme-accent-border { border-color: var(--accent) !important; }
+
 /* Base Styles */
 * {
   margin: 0;
@@ -666,6 +671,32 @@ body {
   transform: scale(1);
   animation: aiSparkle 1.5s ease-in-out infinite;
 }
+.ai-icon-display {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  font-family: 'Quicksand', sans-serif;
+  letter-spacing: 2px;
+  color: var(--bg-top); /* Use theme dark color for text */
+  cursor: pointer;
+  position: relative;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  overflow: hidden;
+  
+  /* Use theme accent color */
+  background: var(--accent);
+  box-shadow: 
+    0 8px 32px var(--glow),
+    0 4px 16px var(--glow),
+    inset 0 2px 4px rgba(255, 255, 255, 0.25),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+}
+
 
 @keyframes aiSparkle {
   0%, 100% {
@@ -1035,9 +1066,9 @@ body {
 
 .create-review-btn {
   width: 10%;
-  background: linear-gradient(135deg, #D7B38C 0%, #E8C89A 50%, #D7B38C 100%);
+  background: var(--accent);
   border: none;
-  color: #000000;
+  color: var(--bg-top);
   padding: 8px 12px;
   font-size: 12px;
   font-weight: 500;
@@ -1054,11 +1085,11 @@ body {
   animation: goldShimmer 3s ease-in-out infinite;
 }
 
-.create-review-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #E8C89A 0%, #F5D4B1 50%, #E8C89A 100%);
+.create-review-btn:hover:not(:disabled),
+.create-first-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 90%, var(--bg-bottom));
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(215, 179, 140, 0.4);
-  animation-duration: 1.5s;
+  box-shadow: 0 8px 25px var(--glow);
 }
 
 .create-review-btn:disabled {
@@ -1370,7 +1401,7 @@ body {
 .stat-number {
   font-size: 24px;
   font-weight: 600;
-  color: #D7B38C;
+  color: var(--accent);
   margin-bottom: 6px;
   line-height: 1;
   font-family: 'Quicksand', sans-serif;
@@ -1420,7 +1451,7 @@ body {
 .goal-number {
   font-size: 24px;
   font-weight: bold;
-  color: #D7B38C;
+  color: var(--accent);
   line-height: 1;
 }
 
@@ -3337,19 +3368,23 @@ body {
   grid-auto-flow: column;
   gap: 8px;
 }
-
 .theme-swatch {
   position: relative;
   width: 34px;
   height: 22px;
   border-radius: 6px;
   border: 1px solid var(--border);
+  background: var(--panel);        /* default background */
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 3px;
-  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  transition: transform .15s ease, 
+              box-shadow .15s ease, 
+              border-color .15s ease,
+              background .15s ease, 
+              color .15s ease;
 }
 
 .theme-swatch .theme-dot {
@@ -3357,9 +3392,20 @@ body {
   height: 6px;
   border-radius: 50%;
   display: inline-block;
+  background: var(--accent);      /* default dot color */
+  transition: background .15s ease;
 }
 
-.theme-swatch:hover { transform: translateY(-1px); }
+.theme-swatch:hover {
+  transform: translateY(-1px);
+  background: #ffffff;            /* hover background white */
+  border-color: var(--accent);    /* optional: accent border */
+}
+
+.theme-swatch:hover .theme-dot {
+  background: var(--border);      /* change dot color for visibility */
+}
+
 .theme-swatch.active {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
@@ -3728,24 +3774,28 @@ body {
 /* AI CTA button */
 .ai-chat-btn {
   width: 100%;
-  background: linear-gradient(135deg,
-    var(--accent) 0%,
-    color-mix(in srgb, var(--accent) 60%, #fff) 50%,
-    var(--accent) 100%);
-  border: none; color: #000; padding: 15px 20px; font-size: 12px; font-weight: 500;
-  letter-spacing: 1px; cursor: pointer; transition: all 0.3s ease; text-transform: uppercase;
-  margin: 20px 0 15px 0; position: relative; overflow: hidden; border-radius: 0;
-  background-size: 200% 100%; animation: goldShimmer 3s ease-in-out infinite;
+  background: var(--accent); /* Remove hardcoded gradient */
+  border: none;
+  color: var(--bg-top); /* Use theme dark color */
+  padding: 15px 20px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Quicksand', sans-serif;
+  text-transform: uppercase;
+  margin: 20px 0 15px 0;
+  position: relative;
+  overflow: hidden;
+  border-radius: 0;
 }
 .ai-chat-btn:hover {
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--accent) 70%, #fff) 0%,
-    color-mix(in srgb, var(--accent) 50%, #fff) 50%,
-    color-mix(in srgb, var(--accent) 70%, #fff) 100%);
+  background: color-mix(in srgb, var(--accent) 85%, white);
   transform: translateY(-2px);
   box-shadow: 0 8px 25px var(--glow);
-  animation-duration: 1.5s;
 }
+
 .ai-chat-btn::before {
   content: ''; position: absolute; inset: 0; left: -100%;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,.3), transparent);
@@ -4323,3 +4373,536 @@ input[type="checkbox"]:checked::after {
   .help-progress { margin-bottom: 12px; }
   .help-step-counter { font-size: 11px; min-width: 50px; }
 }
+/* Theme Switcher Dropdown Styles */
+.theme-switcher-dropdown {
+  position: relative;
+  z-index: 1000;
+}
+
+.theme-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 500;
+  min-width: 160px;
+}
+
+.theme-dropdown-trigger:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.theme-preview {
+  display: flex;
+  gap: 3px;
+}
+
+.theme-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.theme-dot.small {
+  width: 6px;
+  height: 6px;
+}
+
+.theme-name {
+  flex: 1;
+  text-align: left;
+}
+
+.dropdown-arrow {
+  transition: transform 0.2s ease;
+  font-size: 10px;
+}
+
+.dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+.dropdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+}
+
+.theme-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 280px;
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  z-index: 1001;
+  animation: dropdownFadeIn 0.2s ease;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dropdown-header {
+  padding: 12px 16px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid;
+  border-radius: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  text-align: left;
+}
+
+.theme-option:first-of-type {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.theme-option:last-of-type {
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.theme-option:hover {
+  background: var(--accent) !important;
+  color: #0b0b0b !important;
+}
+
+.theme-option:hover .theme-option-name,
+.theme-option:hover .theme-option-family {
+  color: #0b0b0b !important;
+}
+
+.theme-option-preview {
+  display: flex;
+  gap: 3px;
+}
+
+.theme-option-info {
+  flex: 1;
+}
+
+.theme-option-name {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.theme-option-family {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.theme-check {
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.theme-option.active {
+  border-left: 3px solid var(--accent) !important;
+}
+
+/* Enhanced background gradients */
+.dashboard-page {
+  background: linear-gradient(
+    135deg,
+    var(--bg-top) 0%,
+    var(--bg-bottom) 100%
+  );
+  min-height: 100vh;
+  transition: background 0.3s ease;
+}
+
+/* Add subtle pattern overlay for more visual interest */
+.dashboard-page::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 25% 25%, var(--glow) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, var(--accent-2) 0%, transparent 50%);
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.continue-btn {
+  background: var(--accent); /* Was hardcoded #D7B38C */
+  border: none;
+  color: var(--bg-top); /* Use theme dark color */
+  padding: 12px 24px;
+  border-radius: 0;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'Quicksand', sans-serif;
+}
+
+.continue-btn:hover {
+  background: color-mix(in srgb, var(--accent) 90%, var(--bg-bottom));
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.bar-fill {
+  width: 100%;
+  background: linear-gradient(to top, var(--accent), color-mix(in srgb, var(--accent) 60%, transparent));
+  border-radius: 3px 3px 0 0;
+  min-height: 15px;
+  transition: height 0.3s ease;
+}
+
+/* 8. Fix daily goal progress circle stroke */
+.goal-circle svg circle[stroke] {
+  stroke: var(--accent) !important; /* Override any hardcoded stroke */
+}
+
+/* 9. Remove any remaining hardcoded gold shimmer animations */
+@keyframes goldShimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Remove gold-specific animation references */
+.ai-chat-btn,
+.create-review-btn {
+  animation: none; /* Remove goldShimmer animation */
+}
+
+/* Add these additional theme utility classes to your CSS file */
+
+/* Enhanced theme utility classes */
+.theme-accent-bg { 
+  background: var(--accent) !important; 
+}
+
+.theme-accent2-bg { 
+  background: var(--accent-2) !important; 
+}
+
+.theme-dark-text { 
+  color: var(--bg-top) !important; 
+}
+
+.theme-accent-text { 
+  color: var(--accent) !important; 
+}
+
+.theme-accent2-text { 
+  color: var(--accent-2) !important; 
+}
+
+.theme-primary-text { 
+  color: var(--text-primary) !important; 
+}
+
+.theme-accent-border { 
+  border-color: var(--accent) !important; 
+}
+
+.theme-accent2-border { 
+  border-color: var(--accent-2) !important; 
+}
+
+.theme-accent-gradient {
+  background: linear-gradient(180deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 35%, transparent) 100%) !important;
+}
+
+/* Override specific button styles to use theme variables */
+.ai-chat-btn.theme-accent-bg {
+  background: var(--accent) !important;
+  color: var(--bg-top) !important;
+}
+
+.ai-chat-btn.theme-accent-bg:hover {
+  background: color-mix(in srgb, var(--accent) 85%, white) !important;
+  color: var(--bg-top) !important;
+}
+
+.create-review-btn.theme-accent-bg,
+.create-first-btn.theme-accent-bg,
+.continue-btn.theme-accent-bg {
+  background: var(--accent) !important;
+  color: var(--bg-top) !important;
+}
+
+.create-review-btn.theme-accent-bg:hover,
+.create-first-btn.theme-accent-bg:hover,
+.continue-btn.theme-accent-bg:hover {
+  background: color-mix(in srgb, var(--accent) 90%, var(--bg-bottom)) !important;
+  color: var(--bg-top) !important;
+}
+
+/* Fix AI icon to use theme colors */
+.ai-icon-display {
+  background: var(--accent) !important;
+  color: var(--bg-top) !important;
+}
+
+.ai-icon-display:hover {
+  background: color-mix(in srgb, var(--accent) 90%, white) !important;
+  color: var(--bg-top) !important;
+}
+
+/* Fix stats numbers */
+.stat-number {
+  color: var(--accent) !important;
+}
+
+/* Fix daily goal numbers */
+.goal-number {
+  color: var(--accent) !important;
+}
+
+/* Remove any hardcoded animations that reference old colors */
+.ai-chat-btn,
+.create-review-btn,
+.create-first-btn {
+  animation: none !important;
+  background-size: auto !important;
+}
+
+/* Fix the AI icon gradients */
+.ai-icon-display {
+  background: var(--accent) !important;
+  background-size: auto !important;
+  animation: none !important;
+}
+
+.ai-icon-display:hover {
+  background: color-mix(in srgb, var(--accent) 90%, white) !important;
+  animation: none !important;
+}
+
+.ai-icon-display::before,
+.ai-icon-display::after {
+  display: none !important;
+}
+
+/* Ensure SVG elements use theme colors */
+.goal-circle svg circle[stroke] {
+  stroke: var(--accent) !important;
+}
+
+/* Make sure heatmap uses theme colors */
+.heatmap-day {
+  border-color: color-mix(in srgb, var(--accent) 10%, transparent) !important;
+}
+
+.heatmap-day:hover {
+  border-color: var(--accent) !important;
+  box-shadow: 0 2px 8px var(--glow) !important;
+}
+
+.legend-color {
+  border-color: color-mix(in srgb, var(--accent) 10%, transparent) !important;
+}
+
+.legend-color:hover {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent) !important;
+}
+/* AI CTA button */
+.ai-chat-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #D7B38C 0%, #E8C89A 50%, #D7B38C 100%);
+  border: none;
+  color: #000000;
+  padding: 15px 20px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Quicksand', sans-serif;
+  text-transform: uppercase;
+  margin: 20px 0 15px 0;
+  position: relative;
+  overflow: hidden;
+  border-radius: 0;
+  background-size: 200% 100%;
+  animation: goldShimmer 3s ease-in-out infinite;
+}
+
+.ai-chat-btn:hover {
+  background: linear-gradient(135deg, #E8C89A 0%, #F5D4B1 50%, #E8C89A 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(215, 179, 140, 0.4);
+  animation-duration: 1.5s;
+}
+
+.ai-chat-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.6s ease;
+  z-index: 1;
+}
+
+.ai-chat-btn:hover::before {
+  left: 100%;
+}
+
+.ai-chat-btn::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+  transform: rotate(45deg);
+  animation: goldFlash 4s ease-in-out infinite;
+  z-index: 0;
+}
+/* Force stats numbers to use theme colors with highest specificity */
+.dashboard-widget .stat-number,
+.stats-overview-widget .stat-number,
+.stat-card-widget .stat-number,
+.dashboard-widget .stat-card-widget .stat-number {
+  color: var(--accent) !important;
+}
+
+/* Force daily goal number to use theme colors */
+.dashboard-widget .goal-number,
+.daily-goal-widget .goal-number {
+  color: var(--accent) !important;
+}
+
+/* Force action labels to use theme colors */
+.dashboard-widget .action-label,
+.quick-actions .action-label {
+  color: var(--accent) !important;
+}
+
+/* Ensure quick action buttons use theme colors */
+.dashboard-widget .action-btn,
+.quick-actions .action-btn {
+  color: var(--accent) !important;
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent) !important;
+}
+
+/* Force button styles to use theme variables - highest specificity */
+.ai-chat-btn.theme-accent-bg,
+.dashboard-widget .ai-chat-btn,
+.ai-assistant-card .ai-chat-btn {
+  background: var(--accent) !important;
+  color: var(--bg-top) !important;
+  padding: 18px 24px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  min-height: 50px !important;
+}
+
+.ai-chat-btn.theme-accent-bg:hover,
+.dashboard-widget .ai-chat-btn:hover,
+.ai-assistant-card .ai-chat-btn:hover {
+  background: color-mix(in srgb, var(--accent) 85%, white) !important;
+  color: var(--bg-top) !important;
+}
+
+.theme-dropdown-menu {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, 10%) !important;
+  width: 80vw !important;
+  max-width: 1000px !important;
+  margin: 0 !important;
+  z-index: 9999 !important;
+}
+/* Make names clearly visible */
+.theme-option {
+  color: var(--text-secondary);
+}
+
+/* Common title/subtitle class coverage */
+.theme-option :is(.theme-title, .theme-name, .title, .label) {
+  color: var(--text-primary);
+  opacity: 1;                     /* ensure not muted */
+}
+
+/* Subtitle/descriptor beneath the name */
+.theme-option :is(.theme-subtitle, .subtitle, .meta, .description) {
+  color: var(--text-secondary);
+  opacity: 0.9;
+}
+
+/* On hover/focus – increase contrast for both lines */
+.theme-option:hover :is(.theme-title, .theme-name, .title, .label),
+.theme-option:focus-visible :is(.theme-title, .theme-name, .title, .label) {
+  color: var(--text-primary) !important;
+  opacity: 1 !important;
+}
+
+.theme-option:hover :is(.theme-subtitle, .subtitle, .meta, .description),
+.theme-option:focus-visible :is(.theme-subtitle, .subtitle, .meta, .description) {
+  color: color-mix(in srgb, var(--text-secondary) 70%, #fff 30%) !important;
+  opacity: 1 !important;
+}
+
+/* Selected/active row – keep text bright */
+.theme-option.active :is(.theme-title, .theme-name, .title, .label) {
+  color: var(--text-primary) !important;
+}
+.theme-option.active :is(.theme-subtitle, .subtitle, .meta, .description) {
+  color: var(--text-secondary) !important;
+}
+
+/* If anything set opacity on the whole row, cancel it */
+.theme-option[style*="opacity"],
+.theme-option.is-muted {
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+/* Ensure the swatch’s visual effects never cover the text */
+.theme-option { position: relative; }
+.theme-option .text, 
+.theme-option :is(.theme-title, .theme-name, .title, .label, .theme-subtitle, .subtitle, .meta, .description) {
+  position: relative;
+  z-index: 1;
+}
+.theme-option-preview { position: relative; z-index: 0; }

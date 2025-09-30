@@ -1,34 +1,9 @@
-// src/components/HelpTour.jsx
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   X, ChevronLeft, ChevronRight, HelpCircle, SkipForward, Play,
   RefreshCw, AlertTriangle
 } from 'lucide-react';
 
-/**
- * Glass UI Theme — tuned for dark dashboards
- * You can tweak ACCENT_* to your brand color.
- */
-const PANEL_BG_TOP = 'rgba(16, 18, 22, 0.35)';
-const PANEL_BG_BOTTOM = 'rgba(18, 20, 25, 0.44)';
-const PANEL_BORDER = 'rgba(255, 255, 255, 0.14)';
-const PANEL_INNER_HAIRLINE = 'rgba(255,255,255,0.06)';
-const PANEL_SHADOW = '0 16px 60px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04)';
-const TEXT_PRIMARY = '#EDEFF3';
-const TEXT_SECONDARY = 'rgba(228,234,244,0.78)';
-const DIM_BG = 'rgba(2, 3, 5, 0.55)';
-
-const ACCENT_START = '#E7B768'; // warm gold
-const ACCENT_END   = '#F5D9B2'; // soft cream
-const ACCENT_BORDER = 'rgba(231,183,104,0.75)';
-
-const PROGRESS_TRACK = 'rgba(255,255,255,0.10)';
-const DOT_ACTIVE_GLOW = '0 0 0 6px rgba(244,199,119,0.22)';
-
-// Spotlight ring around target
-const SPOTLIGHT_BORDER = ACCENT_START; 
-const SPOTLIGHT_GLOW_MAIN = '0 0 0 10px rgba(231,183,104,0.25)'; // warm gold glow
-const SPOTLIGHT_GLOW_SOFT = '0 14px 38px rgba(0,0,0,0.50)';
 const HelpTour = ({
   isOpen,
   onClose,
@@ -110,7 +85,7 @@ const HelpTour = ({
         id: 'customization',
         title: 'Dashboard Customization',
         content:
-          'Click “CUSTOMIZE” to reorder, resize, or toggle widgets to match your flow.',
+          'Click "CUSTOMIZE" to reorder, resize, or toggle widgets to match your flow.',
         target: '.customize-btn',
         position: 'bottom',
       },
@@ -135,7 +110,6 @@ const HelpTour = ({
         target: '.motivational-quote-widget',
         position: 'right',
       },
-      
     ],
     []
   );
@@ -312,7 +286,7 @@ const HelpTour = ({
     arrow.style.right = '';
     arrow.style.bottom = '';
 
-    const arrowColor = 'rgba(18,20,25,0.55)';
+    const arrowColor = 'var(--tour-panel-bg-bottom)';
 
     if (side === 'top') {
       arrow.style.borderWidth = `${size}px ${size}px 0 ${size}px`;
@@ -402,11 +376,11 @@ const HelpTour = ({
       el.style.position = 'absolute';
       el.style.backdropFilter = 'blur(8px) saturate(110%)';
       el.style.WebkitBackdropFilter = 'blur(8px) saturate(110%)';
-      el.style.background = 'rgba(8,10,14,0.35)';
+      el.style.background = 'var(--tour-blur-bg)';
       el.style.pointerEvents = 'auto';
       el.style.zIndex = 10000;
       el.style.transition = 'all .25s ease';
-      el.style.boxShadow = 'inset 0 0 0 1px rgba(255,255,255,0.06)';
+      el.style.boxShadow = 'inset 0 0 0 1px var(--tour-blur-border)';
     };
     const topPane = blurTopRef.current;
     const bottomPane = blurBottomRef.current;
@@ -533,199 +507,88 @@ const HelpTour = ({
   const progressPercentage = ((currentStep + 1) / tourSteps.length) * 100;
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 10000, pointerEvents: 'none' }}>
+    <div className="help-tour-overlay">
       {/* Dim base */}
-      <div style={{ position: 'absolute', inset: 0, background: DIM_BG, pointerEvents: 'auto' }} />
+      <div className="help-tour-dim" />
 
       {/* 4 Blur panes */}
-      <div ref={blurTopRef} />
-      <div ref={blurBottomRef} />
-      <div ref={blurLeftRef} />
-      <div ref={blurRightRef} />
+      <div ref={blurTopRef} className="help-tour-blur-pane" />
+      <div ref={blurBottomRef} className="help-tour-blur-pane" />
+      <div ref={blurLeftRef} className="help-tour-blur-pane" />
+      <div ref={blurRightRef} className="help-tour-blur-pane" />
 
       {/* Spotlight */}
-      <div
-        className="help-tour-spotlight"
-        style={{
-          position: 'absolute',
-          background: 'transparent',
-          border: `1px solid ${SPOTLIGHT_BORDER}`,
-          borderRadius: '14px',
-          boxShadow: `${SPOTLIGHT_GLOW_MAIN}, ${SPOTLIGHT_GLOW_SOFT}`,
-          outline: `1px solid rgba(255,255,255,0.10)`,
-          transition: 'all 0.28s ease',
-          pointerEvents: 'none',
-          zIndex: 10001
-        }}
-      />
+      <div className="help-tour-spotlight" />
 
       {/* Loading / Navigating */}
       {isScrolling && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            background: 'rgba(20,22,26,0.50)',
-            color: TEXT_PRIMARY,
-            padding: '12px 16px',
-            borderRadius: '14px',
-            border: `1px solid ${PANEL_BORDER}`,
-            boxShadow: PANEL_SHADOW,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            zIndex: 10003,
-            pointerEvents: 'auto',
-            backdropFilter: 'blur(12px) saturate(120%)',
-            WebkitBackdropFilter: 'blur(12px) saturate(120%)'
-          }}
-        >
-          <div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.2)', borderTop: `2px solid ${ACCENT_END}`, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: 0.2 }}>Navigating…</span>
+        <div className="help-tour-loading">
+          <div className="help-tour-spinner" />
+          <span className="help-tour-loading-text">Navigating…</span>
         </div>
       )}
 
       {/* Tooltip */}
-      <div
-        ref={tooltipRef}
-        style={{
-          position: 'absolute',
-          background: `linear-gradient(180deg, ${PANEL_BG_TOP}, ${PANEL_BG_BOTTOM})`,
-          border: `1px solid ${PANEL_BORDER}`,
-          borderRadius: 18,
-          boxShadow: PANEL_SHADOW,
-          maxWidth: 460,
-          minWidth: 330,
-          zIndex: 10002,
-          pointerEvents: 'auto',
-          opacity: 0,
-          transform: 'scale(0.96) translateY(8px)',
-          transition: 'opacity .25s ease, transform .25s ease',
-          overflow: 'hidden',
-          color: TEXT_PRIMARY,
-          backdropFilter: 'blur(16px) saturate(140%)',
-          WebkitBackdropFilter: 'blur(16px) saturate(140%)',
-        }}
-      >
+      <div ref={tooltipRef} className="help-tour-tooltip">
         {/* Arrow */}
-        <div
-          ref={arrowRef}
-          style={{
-            position: 'absolute',
-            width: 0,
-            height: 0,
-            borderStyle: 'solid',
-            borderColor: 'transparent',
-            filter: 'drop-shadow(0 8px 18px rgba(0,0,0,0.28))'
-          }}
-        />
+        <div ref={arrowRef} className="help-tour-arrow" />
 
         {/* Header */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '18px 20px 12px 20px',
-          borderBottom: `1px solid ${PANEL_INNER_HAIRLINE}`
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{
-              fontSize: 22, display: 'grid', placeItems: 'center',
-              width: 36, height: 36, borderRadius: 10,
-              background: `linear-gradient(135deg, ${ACCENT_START}, ${ACCENT_END})`,
-              color: '#0f1012',
-              boxShadow: '0 6px 18px rgba(231,183,104,0.25), inset 0 1px 0 rgba(255,255,255,0.35)'
-            }}>
+        <div className="help-tour-header">
+          <div className="help-tour-header-left">
+            <span className="help-tour-icon">
               {currentStepData.icon ?? '•'}
             </span>
-            <h3 style={{ fontSize: 18, fontWeight: 800, margin: 0, lineHeight: 1.2, letterSpacing: .2 }}>
+            <h3 className="help-tour-title">
               {currentStepData.title}
             </h3>
           </div>
           <button
             onClick={completeTour}
             aria-label="Close tour"
-            style={{
-              background: 'rgba(255,255,255,0.02)',
-              border: `1px solid ${PANEL_INNER_HAIRLINE}`,
-              cursor: 'pointer',
-              padding: 8,
-              borderRadius: 10,
-              color: TEXT_SECONDARY,
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
-            }}
+            className="help-tour-close-btn"
           >
             <X style={{ width: 20, height: 20 }} />
           </button>
         </div>
 
         {/* Content */}
-        <div style={{ padding: '10px 20px 10px 20px' }}>
+        <div className="help-tour-content">
           {!missingTarget ? (
-            <p style={{ margin: 0, color: TEXT_SECONDARY, lineHeight: 1.65, fontSize: 15 }}>
+            <p className="help-tour-description">
               {currentStepData.content}
             </p>
           ) : (
-            <div style={{
-              display: 'flex', gap: 10, alignItems: 'flex-start',
-              color: '#FFE7B8',
-              background: 'rgba(73,53,12,0.35)',
-              border: '1px solid rgba(255,214,143,0.25)',
-              padding: 12, borderRadius: 12,
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
-            }}>
+            <div className="help-tour-missing-target">
               <AlertTriangle style={{ width: 18, height: 18, flex: '0 0 auto' }} />
-              <div style={{ fontSize: 14.5, lineHeight: 1.55 }}>
-                <strong>Widget not found. Add it from <span style={{ color: ACCENT_START }}>Customize</span>, or skip ahead.</strong>
+              <div className="help-tour-missing-text">
+                <strong>Widget not found. Add it from <span className="help-tour-accent">Customize</span>, or skip ahead.</strong>
               </div>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            padding: '14px 18px 18px 18px',
-            borderTop: `1px solid ${PANEL_INNER_HAIRLINE}`,
-            background: 'rgba(16,18,22,0.28)'
-          }}
-        >
+        <div className="help-tour-footer">
           {/* Progress */}
-          <div style={{ marginBottom: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontSize: 12, color: TEXT_SECONDARY, fontWeight: 800, letterSpacing: 0.4 }}>
+          <div className="help-tour-progress-section">
+            <div className="help-tour-progress-info">
+              <span className="help-tour-step-counter">
                 {currentStep + 1} of {tourSteps.length}
               </span>
-              <div style={{ flex: 1, height: 6, background: PROGRESS_TRACK, borderRadius: 999, overflow: 'hidden', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.25)' }}>
-                <div style={{
-                  height: '100%',
-                  background: `linear-gradient(90deg, ${ACCENT_START}, ${ACCENT_END})`,
-                  width: `${progressPercentage}%`,
-                  transition: 'width .25s ease',
-                  boxShadow: '0 6px 14px rgba(231,183,104,0.35)'
-                }} />
+              <div className="help-tour-progress-bar">
+                <div 
+                  className="help-tour-progress-fill"
+                  style={{ width: `${progressPercentage}%` }}
+                />
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginTop: 10 }}>
+            <div className="help-tour-dots">
               {tourSteps.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => goToStep(index)}
-                  style={{
-                    width: 9, height: 9, borderRadius: '50%', border: 'none',
-                    background:
-                      index === currentStep
-                        ? ACCENT_START
-                        : index < currentStep
-                          ? 'rgba(231,183,104,0.45)'
-                          : 'rgba(255,255,255,0.20)',
-                    cursor: 'pointer',
-                    transform: index === currentStep ? 'scale(1.25)' : 'scale(1)',
-                    transition: 'transform .2s ease, background .2s ease',
-                    boxShadow: index === currentStep ? DOT_ACTIVE_GLOW : 'none'
-                  }}
+                  className={`help-tour-dot ${index === currentStep ? 'active' : ''} ${index < currentStep ? 'completed' : ''}`}
                   title={`Go to step ${index + 1}`}
                 />
               ))}
@@ -733,48 +596,20 @@ const HelpTour = ({
           </div>
 
           {/* Controls */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+          <div className="help-tour-controls">
             <button
               onClick={skipTour}
-              style={{
-                color: TEXT_SECONDARY,
-                border: `1px solid ${PANEL_INNER_HAIRLINE}`,
-                background: 'rgba(255,255,255,0.02)',
-                padding: '10px 12px',
-                borderRadius: 12,
-                fontSize: 13,
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
-              }}
+              className="help-tour-skip-btn"
             >
               <SkipForward style={{ width: 16, height: 16 }} />
               Skip
             </button>
 
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div className="help-tour-nav-buttons">
               <button
                 onClick={prevStep}
                 disabled={currentStep === 0}
-                style={{
-                  padding: '10px 16px',
-                  border: `1px solid ${PANEL_INNER_HAIRLINE}`,
-                  borderRadius: 12,
-                  background: 'rgba(255,255,255,0.02)',
-                  color: TEXT_PRIMARY,
-                  fontSize: 14,
-                  fontWeight: 800,
-                  cursor: currentStep === 0 ? 'not-allowed' : 'pointer',
-                  opacity: currentStep === 0 ? 0.55 : 1,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  minHeight: 40,
-                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
-                }}
+                className="help-tour-prev-btn"
               >
                 <ChevronLeft style={{ width: 16, height: 16 }} />
                 Previous
@@ -783,21 +618,7 @@ const HelpTour = ({
               {!missingTarget ? (
                 <button
                   onClick={nextStep}
-                  style={{
-                    padding: '10px 18px',
-                    border: `1px solid ${ACCENT_BORDER}`,
-                    borderRadius: 12,
-                    background: `linear-gradient(135deg, ${ACCENT_START}, ${ACCENT_END})`,
-                    color: '#0f1012',
-                    fontSize: 14,
-                    fontWeight: 900,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    minHeight: 40,
-                    boxShadow: '0 14px 28px rgba(231,183,104,0.35), inset 0 1px 0 rgba(255,255,255,0.45)'
-                  }}
+                  className="help-tour-next-btn"
                 >
                   {currentStep === tourSteps.length - 1 ? (
                     <>
@@ -812,45 +633,17 @@ const HelpTour = ({
                   )}
                 </button>
               ) : (
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div className="help-tour-missing-controls">
                   <button
                     onClick={() => schedule(updateHighlight)}
-                    style={{
-                      padding: '10px 14px',
-                      border: `1px solid ${PANEL_INNER_HAIRLINE}`,
-                      borderRadius: 12,
-                      background: 'rgba(255,255,255,0.02)',
-                      color: TEXT_PRIMARY,
-                      fontSize: 13,
-                      fontWeight: 900,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      minHeight: 40,
-                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)'
-                    }}
+                    className="help-tour-retry-btn"
                   >
                     <RefreshCw style={{ width: 16, height: 16 }} />
                     Retry
                   </button>
                   <button
                     onClick={nextStep}
-                    style={{
-                      padding: '10px 18px',
-                      border: `1px solid ${ACCENT_BORDER}`,
-                      borderRadius: 12,
-                      background: `linear-gradient(135deg, ${ACCENT_START}, ${ACCENT_END})`,
-                      color: '#0f1012',
-                      fontSize: 14,
-                      fontWeight: 900,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      minHeight: 40,
-                      boxShadow: '0 14px 28px rgba(231,183,104,0.35), inset 0 1px 0 rgba(255,255,255,0.45)'
-                    }}
+                    className="help-tour-skip-step-btn"
                   >
                     Skip Step
                   </button>
@@ -860,66 +653,30 @@ const HelpTour = ({
           </div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-      `}</style>
     </div>
   );
 };
+
+
 
 const HelpButton = ({ onStartTour }) => {
   const [showTooltip, setShowTooltip] = useState(false);
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div className="help-button-container">
       <button
         onClick={onStartTour}
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
-        style={{
-          position: 'fixed',
-          bottom: 24,
-          right: 24,
-          width: 64,
-          height: 64,
-          borderRadius: '18px',
-          background: `linear-gradient(135deg, ${ACCENT_START}, ${ACCENT_END})`,
-          color: '#0f1012',
-          border: `1px solid ${ACCENT_BORDER}`,
-          cursor: 'pointer',
-          display: 'grid',
-          placeItems: 'center',
-          boxShadow: '0 16px 38px rgba(0,0,0,0.45), 0 8px 18px rgba(231,183,104,0.25)',
-          transition: 'transform .2s ease, box-shadow .2s ease',
-          zIndex: 1000
-        }}
+        className="help-button"
       >
         <HelpCircle style={{ width: 24, height: 24 }} />
       </button>
 
       {showTooltip && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 100,
-            right: 24,
-            background: 'rgba(18,20,25,0.55)',
-            border: `1px solid ${PANEL_BORDER}`,
-            color: TEXT_PRIMARY,
-            padding: '10px 12px',
-            borderRadius: 12,
-            fontSize: 12.5,
-            fontWeight: 700,
-            whiteSpace: 'nowrap',
-            boxShadow: '0 12px 28px rgba(0,0,0,0.45)',
-            zIndex: 1001,
-            backdropFilter: 'blur(12px) saturate(120%)',
-            WebkitBackdropFilter: 'blur(12px) saturate(120%)'
-          }}
-        >
+        <div className="help-button-tooltip">
           Take a tour of the platform
-          <div style={{ position: 'absolute', top: '100%', right: 20, border: '6px solid transparent', borderTopColor: 'rgba(18,20,25,0.55)' }} />
+          <div className="help-button-tooltip-arrow" />
         </div>
       )}
     </div>
