@@ -212,6 +212,18 @@ const Dashboard = () => {
     const token = localStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
 
+      try {
+    // Load daily goal progress
+    const dailyGoalResponse = await fetch(`http://localhost:8001/get_daily_goal_progress?user_id=${userName}`, { headers });
+    if (dailyGoalResponse.ok) {
+      const goalData = await dailyGoalResponse.json();
+      setDailyGoal({
+        target: goalData.daily_goal || 20,
+        completed: goalData.questions_today || 0,
+        percentage: goalData.percentage || 0
+      });
+    }
+
     try {
       const activitiesResponse = await fetch(`http://localhost:8001/get_recent_activities?user_id=${userName}&limit=5`, { headers });
       if (activitiesResponse.ok) {
@@ -224,6 +236,7 @@ const Dashboard = () => {
           question: activity.question
         })));
       }
+
 
       const weeklyResponse = await fetch(`http://localhost:8001/get_weekly_progress?user_id=${userName}`, { headers });
       if (weeklyResponse.ok) {
@@ -265,7 +278,9 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     }
-  };
+  } catch (error) {console.error('Error loading dashboard data:', error);
+  }
+};;
 
   async function responseToJsonSafely(resp) {
     try { return await resp.json(); } catch { return {}; }

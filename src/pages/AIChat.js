@@ -283,47 +283,25 @@ const AIChat = () => {
   };
 
   const loadChatMessages = async (sessionId) => {
-    if (!sessionId) return;
+  if (!sessionId) return;
+  
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`http://localhost:8001/get_chat_messages?chat_id=${sessionId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/get_chat_history/${sessionId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        const convertedMessages = [];
-        
-        if (data.messages && data.messages.length > 0) {
-          data.messages.forEach((msg, index) => {
-            convertedMessages.push({
-              id: `user_${index}`,
-              type: 'user',
-              content: msg.user_message,
-              timestamp: msg.timestamp
-            });
-            
-            convertedMessages.push({
-              id: `ai_${index}`,
-              type: 'ai',
-              content: msg.ai_response,
-              timestamp: msg.timestamp,
-              aiConfidence: msg.ai_confidence || 0.8,
-              shouldRequestFeedback: msg.should_request_feedback || false
-            });
-          });
-        }
-        
-        setMessages(convertedMessages);
-      } else {
-        setMessages([]);
-      }
-    } catch (error) {
-      console.error('Error loading chat messages:', error);
+    if (response.ok) {
+      const messagesArray = await response.json();
+      setMessages(messagesArray);
+    } else {
       setMessages([]);
     }
-  };
+  } catch (error) {
+    console.error('Error loading chat messages:', error);
+    setMessages([]);
+  }
+};
 
   const createNewChat = async () => {
     if (!userName) return null;
@@ -680,32 +658,32 @@ const AIChat = () => {
         </header>
 
         <div className="messages-container">
-          {messages.length === 0 ? (
-            <div className="welcome-message">
-              <div className="welcome-icon"></div>
-              <h2>Welcome to your Enhanced AI Tutor!</h2>
-              <p>{welcomeMessage}</p>
-              <div className="feature-highlights">
-                <div className="feature-item">
-                  <span className="feature-icon">PDF</span>
-                  <span>Upload PDFs</span>
-                </div>
-                <div className="feature-item">
-                  <span className="feature-icon">IMG</span>
-                  <span>Analyze Images</span>
-                </div>
-                <div className="feature-item">
-                  <span className="feature-icon">CHAT</span>
-                  <span>Ask Questions</span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="messages-list">
-              {messages.map((message) => (
-                <div key={message.id} className={`message ${message.type}`}>
-                  <div className="message-content">
-                    {message.content}
+  {messages.length === 0 ? (
+    <div className="welcome-message">
+      <div className="welcome-icon"></div>
+      <h2>Welcome to your Enhanced AI Tutor!</h2>
+      <p>{welcomeMessage}</p>
+      <div className="feature-highlights">
+        <div className="feature-item">
+          <span className="feature-icon">PDF</span>
+          <span>Upload PDFs</span>
+        </div>
+        <div className="feature-item">
+          <span className="feature-icon">IMG</span>
+          <span>Analyze Images</span>
+        </div>
+        <div className="feature-item">
+          <span className="feature-icon">CHAT</span>
+          <span>Ask Questions</span>
+        </div>
+      </div>
+    </div>
+  ) : (
+    <div className="messages-list">
+      {messages.map((message) => (
+        <div key={message.id} className={`message ${message.type}`}>
+          <div className="message-content">
+            {message.content}
                     
                     {/* Display file attachments for user messages */}
                     {message.files && message.files.length > 0 && (
@@ -747,15 +725,15 @@ const AIChat = () => {
                     )}
                   </div>
                   <div className="message-footer">
-                    <div className="message-time">
-                      {new Date(message.timestamp).toLocaleTimeString()}
-                    </div>
-                    
-                    {message.type === 'ai' && message.aiConfidence !== undefined && (
-                      <div className={`ai-confidence-indicator ${getConfidenceClass(message.aiConfidence)}`}>
-                        AI Confidence: {Math.round(message.aiConfidence * 100)}%
-                      </div>
-                    )}
+            <div className="message-time">
+              {new Date(message.timestamp).toLocaleTimeString()}
+            </div>
+            
+            {message.type === 'ai' && message.aiConfidence !== undefined && (
+              <div className={`ai-confidence-indicator ${getConfidenceClass(message.aiConfidence)}`}>
+                AI Confidence: {Math.round(message.aiConfidence * 100)}%
+              </div>
+            )}
                     
                     {message.hasFileContext && (
                       <div className="file-context-indicator">
