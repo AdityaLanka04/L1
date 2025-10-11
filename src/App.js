@@ -21,6 +21,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/ai-chat" element={<AIChat />} />
+          <Route path="/ai-chat/:chatId?" element={<AIChat />} />
           <Route path="/learning-review" element={<LearningReview />} />
           <Route path="/flashcards" element={<Flashcards />} />
           <Route path="/notes" element={<Notes />} />

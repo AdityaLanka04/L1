@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import './AIChat.css';
 
 const AIChat = () => {
+  const { chatId } = useParams();
+  const navigate = useNavigate();
+  
   const [userName, setUserName] = useState('');
   const [userProfile, setUserProfile] = useState(null);
   const [chatSessions, setChatSessions] = useState([]);
@@ -17,11 +20,9 @@ const AIChat = () => {
   const [feedbackText, setFeedbackText] = useState('');
   const [improvementSuggestion, setImprovementSuggestion] = useState('');
   
-  // Delete functionality states
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [chatToDelete, setChatToDelete] = useState(null);
   
-  // File upload states
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [fileProcessing, setFileProcessing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -30,19 +31,17 @@ const AIChat = () => {
   
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
-  const navigate = useNavigate();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // File handling functions
   const handleFileSelect = (files) => {
     const validFiles = Array.from(files).filter(file => {
       const isValidType = file.type.startsWith('image/') || 
                          file.type === 'application/pdf' || 
                          file.name.toLowerCase().endsWith('.pdf');
-      const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB limit
+      const isValidSize = file.size <= 10 * 1024 * 1024;
       
       if (!isValidType) {
         alert(`${file.name} is not a supported file type. Please upload images or PDF files.`);
@@ -131,7 +130,112 @@ const AIChat = () => {
     }
   };
 
-  // Enhanced send message with file support
+  const loadChatSessions = async () => {
+    if (!userName) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8001/get_chat_sessions?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const sessions = data.sessions || [];
+        setChatSessions(sessions);
+        console.log('📋 Loaded', sessions.length, 'chat sessions');
+      }
+    } catch (error) {
+      console.error('Error loading chat sessions:', error);
+    }
+  };
+
+  const loadChatMessages = async (sessionId) => {
+    if (!sessionId) {
+      setMessages([]);
+      return;
+    }
+    
+    console.log('🔄 Loading messages for chat:', sessionId);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8001/get_chat_messages?chat_id=${sessionId}`, {
+        method: 'GET',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const messagesArray = await response.json();
+        console.log('✅ Loaded', messagesArray.length, 'messages');
+        setMessages(messagesArray);
+        setTimeout(scrollToBottom, 100);
+      } else {
+        console.error('❌ Failed to load messages');
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error('❌ Error:', error);
+      setMessages([]);
+    }
+  };
+
+  const createNewChat = async () => {
+    if (!userName) return null;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:8001/create_chat_session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          title: 'New Chat'
+        })
+      });
+
+      if (response.ok) {
+        const newChat = await response.json();
+        const sessionData = {
+          id: newChat.session_id,
+          title: newChat.title,
+          created_at: newChat.created_at,
+          updated_at: newChat.created_at
+        };
+        
+        setChatSessions(prev => [sessionData, ...prev]);
+        return sessionData.id;
+      } else {
+        console.error('Failed to create new chat session');
+        return null;
+      }
+    } catch (error) {
+      console.error('Error creating new chat:', error);
+      return null;
+    }
+  };
+
+  const handleNewChat = async () => {
+    console.log('➕ Creating new chat');
+    const newChatId = await createNewChat();
+    if (newChatId) {
+      navigate(`/ai-chat/${newChatId}`);
+    }
+  };
+
+  const selectChat = (chatSessionId) => {
+  console.log('🎯 CLICK DETECTED - Chat ID:', chatSessionId);
+  console.log('🎯 Current URL:', window.location.pathname);
+  console.log('🎯 Navigating to:', `/ai-chat/${chatSessionId}`);
+  navigate(`/ai-chat/${chatSessionId}`);
+};
+
   const sendMessage = async () => {
     if ((!inputMessage.trim() && selectedFiles.length === 0) || loading || !userName) return;
 
@@ -142,9 +246,9 @@ const AIChat = () => {
         alert('Error: Failed to create new chat. Please try again.');
         return;
       }
+      navigate(`/ai-chat/${currentChatId}`);
     }
 
-    // Create user message
     const userMessage = {
       id: `user_${Date.now()}`,
       type: 'user',
@@ -173,12 +277,10 @@ const AIChat = () => {
       formData.append('question', messageText || 'Please analyze the uploaded files.');
       formData.append('chat_id', currentChatId.toString());
 
-      // Add files if any
       selectedFiles.forEach(file => {
         formData.append('files', file);
       });
 
-      // Use the enhanced endpoint that handles files
       const endpoint = selectedFiles.length > 0 ? 
         'http://localhost:8001/ask_with_files/' : 
         'http://localhost:8001/ask/';
@@ -217,8 +319,6 @@ const AIChat = () => {
       };
 
       setMessages(prev => [...prev, aiMessage]);
-
-      // Clear files after successful send
       clearAllFiles();
 
       try {
@@ -258,122 +358,8 @@ const AIChat = () => {
     }
   };
 
-  const loadChatSessions = async () => {
-    if (!userName) return;
-    
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/get_chat_sessions?user_id=${userName}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        const sessions = data.sessions || [];
-        setChatSessions(sessions);
-        
-        if (sessions.length > 0 && !activeChatId) {
-          setActiveChatId(sessions[0].id);
-          loadChatMessages(sessions[0].id);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading chat sessions:', error);
-    }
-  };
-
-  const loadChatMessages = async (sessionId) => {
-  if (!sessionId) return;
-  
-  try {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`http://localhost:8001/get_chat_messages?chat_id=${sessionId}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    
-    if (response.ok) {
-      const messagesArray = await response.json();
-      setMessages(messagesArray);
-    } else {
-      setMessages([]);
-    }
-  } catch (error) {
-    console.error('Error loading chat messages:', error);
-    setMessages([]);
-  }
-};
-
-  const createNewChat = async () => {
-    if (!userName) return null;
-    
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8001/create_chat_session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          user_id: userName,
-          title: 'New Chat'
-        })
-      });
-
-      if (response.ok) {
-        const newChat = await response.json();
-        const sessionData = {
-          id: newChat.session_id,
-          title: newChat.title,
-          created_at: newChat.created_at,
-          updated_at: newChat.created_at
-        };
-        
-        setChatSessions(prev => [sessionData, ...prev]);
-        setActiveChatId(sessionData.id);
-        setMessages([]);
-        return sessionData.id;
-      } else {
-        console.error('Failed to create new chat session');
-        return null;
-      }
-    } catch (error) {
-      console.error('Error creating new chat:', error);
-      return null;
-    }
-  };
-
-  const handleNewChat = () => {
-    const currentActiveChat = chatSessions.find(chat => chat.id === activeChatId);
-    
-    if (messages.length === 0 && currentActiveChat) {
-      return;
-    }
-    
-    const hasEmptyChat = chatSessions.some(chat => {
-      return chat.title === 'New Chat' && chat.id !== activeChatId;
-    });
-    
-    if (hasEmptyChat) {
-      const emptyChat = chatSessions.find(chat => chat.title === 'New Chat' && chat.id !== activeChatId);
-      if (emptyChat) {
-        selectChat(emptyChat.id);
-        return;
-      }
-    }
-    
-    createNewChat();
-  };
-
-  const selectChat = (chatId) => {
-    setActiveChatId(chatId);
-    loadChatMessages(chatId);
-    // Clear any selected files when switching chats
-    clearAllFiles();
-  };
-
-  const handleDeleteChat = (chatId, chatTitle) => {
-    setChatToDelete({ id: chatId, title: chatTitle });
+  const handleDeleteChat = (chatSessionId, chatTitle) => {
+    setChatToDelete({ id: chatSessionId, title: chatTitle });
     setShowDeleteConfirmation(true);
   };
 
@@ -393,11 +379,9 @@ const AIChat = () => {
         if (activeChatId === chatToDelete.id) {
           const remainingChats = chatSessions.filter(chat => chat.id !== chatToDelete.id);
           if (remainingChats.length > 0) {
-            setActiveChatId(remainingChats[0].id);
-            loadChatMessages(remainingChats[0].id);
+            navigate(`/ai-chat/${remainingChats[0].id}`);
           } else {
-            setActiveChatId(null);
-            setMessages([]);
+            navigate('/ai-chat');
           }
         }
         
@@ -526,6 +510,7 @@ const AIChat = () => {
     return 'FILE';
   };
 
+  // Initialize user data
   useEffect(() => {
     const token = localStorage.getItem('token');
     const username = localStorage.getItem('username');
@@ -563,12 +548,32 @@ const AIChat = () => {
     }
   }, [navigate]);
 
+  // Load chat sessions when user is available
   useEffect(() => {
     if (userName) {
       loadChatSessions();
     }
   }, [userName]);
 
+  // Handle URL chat ID changes
+  useEffect(() => {
+  const numericChatId = chatId ? parseInt(chatId) : null;
+  
+  console.log('🔄 useEffect triggered - chatId:', chatId, 'numeric:', numericChatId);
+  
+  if (numericChatId && !isNaN(numericChatId)) {
+    console.log('📍 Setting active chat to:', numericChatId);
+    setActiveChatId(numericChatId);
+    setMessages([]);
+    loadChatMessages(numericChatId);
+  } else {
+    console.log('📍 No valid chatId, clearing messages');
+    setActiveChatId(null);
+    setMessages([]);
+  }
+}, [chatId]);
+
+  // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -590,31 +595,29 @@ const AIChat = () => {
             </div>
           ) : (
             chatSessions.map((session) => (
-              <div
-                key={session.id}
-                className={`chat-session-item ${activeChatId === session.id ? 'active' : ''}`}
-              >
-                <div 
-                  className="chat-session-content"
-                  onClick={() => selectChat(session.id)}
-                >
-                  <div className="session-title">{session.title}</div>
-                  <div className="session-date">
-                    {new Date(session.created_at).toLocaleDateString()}
-                  </div>
-                </div>
-                <button
-                  className="delete-chat-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteChat(session.id, session.title);
-                  }}
-                  title="Delete chat"
-                >
-                  ×
-                </button>
-              </div>
-            ))
+  <div
+    key={session.id}
+    className={`chat-session-item ${activeChatId === session.id ? 'active' : ''}`}
+    onClick={() => selectChat(session.id)}
+  >
+    <div className="chat-session-content">
+      <div className="session-title">{session.title}</div>
+      <div className="session-date">
+        {new Date(session.created_at).toLocaleDateString()}
+      </div>
+    </div>
+    <button
+      className="delete-chat-btn"
+      onClick={(e) => {
+        e.stopPropagation();
+        handleDeleteChat(session.id, session.title);
+      }}
+      title="Delete chat"
+    >
+      ×
+    </button>
+  </div>
+))
           )}
         </div>
       </div>
@@ -658,34 +661,33 @@ const AIChat = () => {
         </header>
 
         <div className="messages-container">
-  {messages.length === 0 ? (
-    <div className="welcome-message">
-      <div className="welcome-icon"></div>
-      <h2>Welcome to your Enhanced AI Tutor!</h2>
-      <p>{welcomeMessage}</p>
-      <div className="feature-highlights">
-        <div className="feature-item">
-          <span className="feature-icon">PDF</span>
-          <span>Upload PDFs</span>
-        </div>
-        <div className="feature-item">
-          <span className="feature-icon">IMG</span>
-          <span>Analyze Images</span>
-        </div>
-        <div className="feature-item">
-          <span className="feature-icon">CHAT</span>
-          <span>Ask Questions</span>
-        </div>
-      </div>
-    </div>
-  ) : (
-    <div className="messages-list">
-      {messages.map((message) => (
-        <div key={message.id} className={`message ${message.type}`}>
-          <div className="message-content">
-            {message.content}
+          {messages.length === 0 ? (
+            <div className="welcome-message">
+              <div className="welcome-icon"></div>
+              <h2>Welcome to your Enhanced AI Tutor!</h2>
+              <p>{welcomeMessage}</p>
+              <div className="feature-highlights">
+                <div className="feature-item">
+                  <span className="feature-icon">PDF</span>
+                  <span>Upload PDFs</span>
+                </div>
+                <div className="feature-item">
+                  <span className="feature-icon">IMG</span>
+                  <span>Analyze Images</span>
+                </div>
+                <div className="feature-item">
+                  <span className="feature-icon">CHAT</span>
+                  <span>Ask Questions</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="messages-list">
+              {messages.map((message) => (
+                <div key={message.id} className={`message ${message.type}`}>
+                  <div className="message-content">
+                    {message.content}
                     
-                    {/* Display file attachments for user messages */}
                     {message.files && message.files.length > 0 && (
                       <div className="message-files">
                         {message.files.map((file, index) => (
@@ -698,7 +700,6 @@ const AIChat = () => {
                       </div>
                     )}
                     
-                    {/* Display AI file processing results */}
                     {message.type === 'ai' && message.fileSummaries && message.fileSummaries.length > 0 && (
                       <div className="ai-file-analysis">
                         <div className="file-analysis-header">
@@ -725,15 +726,15 @@ const AIChat = () => {
                     )}
                   </div>
                   <div className="message-footer">
-            <div className="message-time">
-              {new Date(message.timestamp).toLocaleTimeString()}
-            </div>
-            
-            {message.type === 'ai' && message.aiConfidence !== undefined && (
-              <div className={`ai-confidence-indicator ${getConfidenceClass(message.aiConfidence)}`}>
-                AI Confidence: {Math.round(message.aiConfidence * 100)}%
-              </div>
-            )}
+                    <div className="message-time">
+                      {new Date(message.timestamp).toLocaleTimeString()}
+                    </div>
+                    
+                    {message.type === 'ai' && message.aiConfidence !== undefined && (
+                      <div className={`ai-confidence-indicator ${getConfidenceClass(message.aiConfidence)}`}>
+                        AI Confidence: {Math.round(message.aiConfidence * 100)}%
+                      </div>
+                    )}
                     
                     {message.hasFileContext && (
                       <div className="file-context-indicator">
@@ -837,7 +838,6 @@ const AIChat = () => {
           )}
         </div>
 
-        {/* File Preview Section */}
         {showFilePreview && selectedFiles.length > 0 && (
           <div className="file-preview-section">
             <div className="file-preview-header">

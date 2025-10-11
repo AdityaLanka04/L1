@@ -211,6 +211,8 @@
   align-items: center;
   overflow: hidden;
   backdrop-filter: blur(10px);
+  user-select: none;
+  pointer-events: auto;
 }
 
 .chat-session-item::before {
@@ -257,6 +259,7 @@
 .chat-session-content {
   flex: 1;
   min-width: 0;
+  pointer-events: none;
 }
 
 .session-title {
