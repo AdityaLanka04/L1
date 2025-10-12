@@ -202,6 +202,30 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
         return username
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+def calculate_day_streak(db: Session, user_id: int) -> int:
+    today = datetime.now(timezone.utc).date()
+    
+    recent_days = db.query(models.DailyLearningMetrics.date).filter(
+        models.DailyLearningMetrics.user_id == user_id,
+        models.DailyLearningMetrics.questions_answered > 0
+    ).order_by(models.DailyLearningMetrics.date.desc()).all()
+    
+    if not recent_days:
+        return 0
+    
+    recent_dates = [day[0] for day in recent_days]
+    
+    if today not in recent_dates and (today - timedelta(days=1)) not in recent_dates:
+        return 0
+    
+    streak = 0
+    check_date = today if today in recent_dates else today - timedelta(days=1)
+    
+    while check_date in recent_dates:
+        streak += 1
+        check_date -= timedelta(days=1)
+    
+    return streak
 
 def get_current_user(db: Session = Depends(get_db), token: str = Depends(verify_token)):
     user = get_user_by_username(db, token)
@@ -409,7 +433,6 @@ async def get_current_user_info(current_user: models.User = Depends(get_current_
         "picture_url": current_user.picture_url,
         "google_user": current_user.google_user
     }
-
 @app.post("/ask/")
 async def ask_ai(
     user_id: str = Form(...),
@@ -491,7 +514,8 @@ async def ask_ai(
             answer=response,
             topic=user.field_of_study or "General",
             question_type="general",
-            difficulty_level="medium"
+            difficulty_level="medium",
+            timestamp=datetime.now(timezone.utc)
         )
         db.add(activity)
         
@@ -507,16 +531,16 @@ async def ask_ai(
             daily_metric = models.DailyLearningMetrics(
                 user_id=user.id,
                 date=today,
-                sessions_completed=0,
+                sessions_completed=1,
                 time_spent_minutes=0,
-                questions_answered=0,
-                correct_answers=0,
+                questions_answered=1,
+                correct_answers=1,
                 topics_studied="[]"
             )
             db.add(daily_metric)
-        
-        daily_metric.questions_answered += 1
-        daily_metric.correct_answers += 1
+        else:
+            daily_metric.questions_answered += 1
+            daily_metric.correct_answers += 1
         
         db.commit()
         
@@ -530,7 +554,21 @@ async def ask_ai(
             "model_used": GROQ_MODEL,
             "ai_provider": "Groq",
             "response_time": 0.5,
-            "profile_enhanced": bool(comprehensive_profile)
+            "profile_enhanced": bool(comprehensive_profile),
+            "questions_today": daily_metric.questions_answered
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in ask_ai: {str(e)}")
+        return {
+            "answer": f"I apologize, but I encountered an error processing your request. Please try again.",
+            "ai_confidence": 0.3,
+            "misconception_detected": False,
+            "should_request_feedback": True,
+            "topics_discussed": ["error"],
+            "query_type": "error",
+            "model_used": "error_handler",
+            "ai_provider": "Groq"
         }
         
     except Exception as e:
@@ -1281,13 +1319,19 @@ def get_enhanced_user_stats(user_id: str = Query(...), db: Session = Depends(get
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        basic_stats = db.query(models.UserStats).filter(
-            models.UserStats.user_id == user.id
-        ).first()
-        
         total_questions = db.query(models.Activity).filter(
             models.Activity.user_id == user.id
         ).count()
+        
+        total_sessions = db.query(models.DailyLearningMetrics.sessions_completed).filter(
+            models.DailyLearningMetrics.user_id == user.id
+        ).all()
+        total_sessions_count = sum(s[0] for s in total_sessions) if total_sessions else 0
+        
+        total_time = db.query(models.DailyLearningMetrics.time_spent_minutes).filter(
+            models.DailyLearningMetrics.user_id == user.id
+        ).all()
+        total_minutes = sum(t[0] for t in total_time) if total_time else 0
         
         total_flashcards = db.query(models.Flashcard).join(models.FlashcardSet).filter(
             models.FlashcardSet.user_id == user.id
@@ -1301,27 +1345,98 @@ def get_enhanced_user_stats(user_id: str = Query(...), db: Session = Depends(get
             models.ChatSession.user_id == user.id
         ).count()
         
+        streak = calculate_day_streak(db, user.id)
+        
+        user_stats = db.query(models.UserStats).filter(
+            models.UserStats.user_id == user.id
+        ).first()
+        
+        if user_stats:
+            user_stats.day_streak = streak
+            user_stats.total_lessons = total_sessions_count
+            user_stats.total_hours = total_minutes / 60
+            db.commit()
+        
         return {
-            "streak": basic_stats.day_streak if basic_stats else 0,
-            "lessons": basic_stats.total_lessons if basic_stats else 0,
-            "hours": basic_stats.total_hours if basic_stats else 0,
-            "accuracy": basic_stats.accuracy_percentage if basic_stats else 0,
+            "streak": streak,
+            "lessons": total_sessions_count,
+            "hours": round(total_minutes / 60, 1),
+            "minutes": total_minutes,
+            "accuracy": user_stats.accuracy_percentage if user_stats else 0,
             "totalQuestions": total_questions,
             "totalFlashcards": total_flashcards,
             "totalNotes": total_notes,
-            "totalChatSessions": total_chat_sessions
+            "totalChatSessions": total_chat_sessions,
+            "total_time_today": 0
         }
         
     except Exception as e:
         logger.error(f"Error getting stats: {str(e)}")
         return {
-            "streak": 0, "lessons": 0, "hours": 0, "accuracy": 0,
+            "streak": 0, "lessons": 0, "hours": 0, "minutes": 0, "accuracy": 0,
             "totalQuestions": 0, "totalFlashcards": 0, "totalNotes": 0, "totalChatSessions": 0
         }
 
 @app.get("/get_activity_heatmap")
 def get_activity_heatmap(user_id: str = Query(...), db: Session = Depends(get_db)):
-    return {"heatmap_data": [], "total_count": 0, "date_range": {"start": "", "end": ""}}
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        end_date = datetime.now(timezone.utc).date()
+        start_date = end_date - timedelta(days=365)
+        
+        activities = db.query(models.Activity).filter(
+            models.Activity.user_id == user.id,
+            models.Activity.timestamp >= start_date
+        ).all()
+        
+        activity_dict = {}
+        for activity in activities:
+            date_str = activity.timestamp.date().isoformat()
+            activity_dict[date_str] = activity_dict.get(date_str, 0) + 1
+        
+        current_date = start_date
+        heatmap_data = []
+        
+        while current_date <= end_date:
+            date_str = current_date.isoformat()
+            count = activity_dict.get(date_str, 0)
+            
+            if count == 0:
+                level = 0
+            elif count == 1:
+                level = 1
+            elif count <= 3:
+                level = 2
+            elif count <= 5:
+                level = 3
+            elif count <= 8:
+                level = 4
+            else:
+                level = 5
+            
+            heatmap_data.append({
+                "date": date_str,
+                "count": count,
+                "level": level
+            })
+            current_date += timedelta(days=1)
+        
+        total_count = sum(activity_dict.values())
+        
+        return {
+            "heatmap_data": heatmap_data,
+            "total_count": total_count,
+            "date_range": {
+                "start": start_date.isoformat(),
+                "end": end_date.isoformat()
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error getting heatmap: {str(e)}")
+        return {"heatmap_data": [], "total_count": 0, "date_range": {"start": "", "end": ""}}
 
 @app.get("/get_recent_activities")
 def get_recent_activities(user_id: str = Query(...), limit: int = Query(5), db: Session = Depends(get_db)):
@@ -1506,21 +1621,33 @@ def get_daily_goal_progress(user_id: str = Query(...), db: Session = Depends(get
             raise HTTPException(status_code=404, detail="User not found")
         
         today = datetime.now(timezone.utc).date()
-        daily_metric = db.query(models.DailyLearningMetrics).filter(
-            and_(
-                models.DailyLearningMetrics.user_id == user.id,
-                models.DailyLearningMetrics.date == today
-            )
-        ).first()
         
-        questions_today = daily_metric.questions_answered if daily_metric else 0
+        questions_today = db.query(models.Activity).filter(
+            models.Activity.user_id == user.id,
+            func.date(models.Activity.timestamp) == today
+        ).count()
+        
         daily_goal = 20
+        
+        activities = db.query(func.date(models.Activity.timestamp)).filter(
+            models.Activity.user_id == user.id
+        ).distinct().order_by(func.date(models.Activity.timestamp).desc()).all()
+        
+        streak = 0
+        if activities:
+            check_date = datetime.now(timezone.utc).date()
+            for activity_date in [a[0] for a in activities]:
+                if activity_date == check_date or activity_date == check_date - timedelta(days=1):
+                    streak += 1
+                    check_date = activity_date - timedelta(days=1)
+                else:
+                    break
         
         return {
             "questions_today": questions_today,
             "daily_goal": daily_goal,
             "percentage": min(int((questions_today / daily_goal) * 100), 100),
-            "streak": db.query(models.UserStats).filter(models.UserStats.user_id == user.id).first().day_streak or 0
+            "streak": streak
         }
     except Exception as e:
         logger.error(f"Error getting daily goal: {str(e)}")

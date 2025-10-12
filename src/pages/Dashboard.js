@@ -124,21 +124,27 @@ const Dashboard = () => {
   }, [userName]);
 
   useEffect(() => {
-    if (userName) {
-      loadUserStats();
-      loadHeatmapData();
+  if (userName) {
+    loadUserStats();
+    loadHeatmapData();
+    loadDashboardData();
+    startDashboardSession();
+    
+    // Poll for daily goal updates every 10 seconds
+    const goalPollInterval = setInterval(() => {
       loadDashboardData();
-      startDashboardSession();
-    }
-
+    }, 10000);
+    
     return () => {
       if (sessionStartTime && sessionId && userName) {
         endDashboardSession();
       }
       if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
       if (sessionUpdateRef.current) clearInterval(sessionUpdateRef.current);
+      clearInterval(goalPollInterval);
     };
-  }, [userName]);
+  }
+}, [userName]);
 
   const loadLearningReviews = async () => {
     if (!userName) return;
@@ -208,12 +214,11 @@ const Dashboard = () => {
   };
 
   const loadDashboardData = async () => {
-    if (!userName) return;
-    const token = localStorage.getItem('token');
-    const headers = { 'Authorization': `Bearer ${token}` };
+  if (!userName) return;
+  const token = localStorage.getItem('token');
+  const headers = { 'Authorization': `Bearer ${token}` };
 
-      try {
-    // Load daily goal progress
+  try {
     const dailyGoalResponse = await fetch(`http://localhost:8001/get_daily_goal_progress?user_id=${userName}`, { headers });
     if (dailyGoalResponse.ok) {
       const goalData = await dailyGoalResponse.json();
@@ -285,7 +290,9 @@ const Dashboard = () => {
   async function responseToJsonSafely(resp) {
     try { return await resp.json(); } catch { return {}; }
   }
+   
 
+  
   const loadMotivationalQuote = () => {
     const quotes = [
       "The expert in anything was once a beginner.",
@@ -384,17 +391,17 @@ const Dashboard = () => {
   };
 
   const getActivityColor = (level) => {
-    const accent = selectedTheme.tokens['--accent'];
-    switch (level) {
-      case 0: return rgbaFromHex(accent, 0.10);
-      case 1: return rgbaFromHex(accent, 0.30);
-      case 2: return rgbaFromHex(accent, 0.50);
-      case 3: return rgbaFromHex(accent, 0.70);
-      case 4: return rgbaFromHex(accent, 0.85);
-      case 5: return accent;
-      default: return rgbaFromHex(accent, 0.10);
-    }
-  };
+  const accent = selectedTheme.tokens['--accent'];
+  switch (level) {
+    case 0: return rgbaFromHex(accent, 0.08);
+    case 1: return rgbaFromHex(accent, 0.25);
+    case 2: return rgbaFromHex(accent, 0.45);
+    case 3: return rgbaFromHex(accent, 0.65);
+    case 4: return rgbaFromHex(accent, 0.85);
+    case 5: return accent;
+    default: return rgbaFromHex(accent, 0.08);
+  }
+};
 
   const getTooltipText = (count, date) => {
     const dateObj = new Date(date);
