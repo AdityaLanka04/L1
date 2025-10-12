@@ -28,7 +28,7 @@ def generate_subject_specific_prompts(field_of_study: str, learning_style: str) 
 """,
         "Science": """
 - Use analogies to explain complex phenomena
-- Connect theory to experimental observations
+- Connect theory to experimoental observations
 - Explain the scientific method and reasoning
 - Provide real-world examples and applications
 - Discuss current research and developments
