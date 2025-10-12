@@ -219,6 +219,7 @@ const Dashboard = () => {
   const headers = { 'Authorization': `Bearer ${token}` };
 
   try {
+    // Daily Goal
     const dailyGoalResponse = await fetch(`http://localhost:8001/get_daily_goal_progress?user_id=${userName}`, { headers });
     if (dailyGoalResponse.ok) {
       const goalData = await dailyGoalResponse.json();
@@ -229,67 +230,45 @@ const Dashboard = () => {
       });
     }
 
-    try {
-      const activitiesResponse = await fetch(`http://localhost:8001/get_recent_activities?user_id=${userName}&limit=5`, { headers });
-      if (activitiesResponse.ok) {
-        const activitiesData = await activitiesResponse.json();
-        setRecentActivities(activitiesData.map(activity => ({
-          type: getActivityType(activity.topic),
-          subject: activity.topic,
-          score: calculateScore(activity),
-          time: formatTimeAgo(activity.timestamp),
-          question: activity.question
-        })));
-      }
-
-
-      const weeklyResponse = await fetch(`http://localhost:8001/get_weekly_progress?user_id=${userName}`, { headers });
-      if (weeklyResponse.ok) {
-        const weeklyData = await weeklyResponse.json();
-        setWeeklyProgress(weeklyData.weekly_data || []);
-      }
-
-      const achievementsResponse = await fetch(`http://localhost:8001/get_user_achievements?user_id=${userName}`, { headers });
-      if (achievementsResponse.ok) {
-        const achievementsData = await achievementsResponse.json();
-        setAchievements(achievementsData.achievements || []);
-      }
-
-      const analyticsResponse = await fetch(`http://localhost:8001/get_learning_analytics?user_id=${userName}&period=week`, { headers });
-if (analyticsResponse.ok) {
-  const analyticsData = await responseToJsonSafely(analyticsResponse);
-  setLearningAnalytics(analyticsData);
-
-  // ✅ Only update dailyGoal if analytics actually has today's data
-  const today = new Date().toISOString().split('T')[0];
-  const todayData = analyticsData?.daily_data?.find(d => d.date === today);
-  if (todayData && todayData.questions > 0) {
-    const completed = todayData.questions;
-    const target = 20;
-    setDailyGoal({
-      target,
-      completed,
-      percentage: Math.round((completed / target) * 100)
-    });
-  }
-}
-
-
-      const startersResponse = await fetch(`http://localhost:8001/conversation_starters?user_id=${userName}`, { headers });
-      if (startersResponse.ok) {
-        const startersData = await startersResponse.json();
-        setConversationStarters(startersData.suggestions || []);
-      }
-
-      loadMotivationalQuote();
-      loadLearningReviews();
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
+    // Weekly Progress
+    const weeklyResponse = await fetch(`http://localhost:8001/get_weekly_progress?user_id=${userName}`, { headers });
+    if (weeklyResponse.ok) {
+      const weeklyData = await weeklyResponse.json();
+      setWeeklyProgress(weeklyData.weekly_data || []);
     }
-  } catch (error) {console.error('Error loading dashboard data:', error);
-  }
-};;
 
+    // Achievements
+    const achievementsResponse = await fetch(`http://localhost:8001/get_user_achievements?user_id=${userName}`, { headers });
+    if (achievementsResponse.ok) {
+      const achievementsData = await achievementsResponse.json();
+      setAchievements(achievementsData.achievements || []);
+    }
+
+    // Learning Analytics
+    const analyticsResponse = await fetch(`http://localhost:8001/get_learning_analytics?user_id=${userName}&period=week`, { headers });
+    if (analyticsResponse.ok) {
+      const analyticsData = await analyticsResponse.json();
+      console.log('📊 Analytics received:', analyticsData);
+      setLearningAnalytics(analyticsData);
+    } else {
+      console.error('❌ Analytics failed');
+      setLearningAnalytics({ total_sessions: 0, total_time_minutes: 0 });
+    }
+
+    // Conversation Starters
+    const startersResponse = await fetch(`http://localhost:8001/conversation_starters?user_id=${userName}`, { headers });
+    if (startersResponse.ok) {
+      const startersData = await startersResponse.json();
+      setConversationStarters(startersData.suggestions || []);
+    }
+
+    loadMotivationalQuote();
+    loadLearningReviews();
+    
+  } catch (error) {
+    console.error('Error loading dashboard data:', error);
+  }
+};
   async function responseToJsonSafely(resp) {
     try { return await resp.json(); } catch { return {}; }
   }
@@ -1162,50 +1141,55 @@ if (analyticsResponse.ok) {
           );
 
         case 'quick-actions':
-          return (
-            <div className="quick-actions">
-              <h3 className="section-title">Quick Actions</h3>
-              <div className="action-grid">
-                <button 
-                  className="action-btn" 
-                  onClick={generateFlashcards}
-                  style={{ color: accent, borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
-                >
-                  <div className="action-label" style={{ color: accent }}>Flashcards</div>
-                  <div className="action-count">{stats.totalFlashcards}</div>
-                </button>
-                <button 
-                  className="action-btn" 
-                  onClick={openNotes}
-                  style={{ color: accent, borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
-                >
-                  <div className="action-label" style={{ color: accent }}>Study Notes</div>
-                  <div className="action-count">{stats.totalNotes}</div>
-                </button>
-                <button 
-                  className="action-btn" 
-                  onClick={openProfile}
-                  style={{ color: accent, borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
-                >
-                  <div className="action-label" style={{ color: accent }}>Profile</div>
-                  <div className="action-count">Setup</div>
-                </button>
-              </div>
+  return (
+    <div className="quick-actions">
+      <h3 className="section-title">Quick Actions</h3>
+      <div className="action-grid">
+        <button 
+          className="action-btn" 
+          onClick={generateFlashcards}
+          disabled={isCustomizing}
+          style={{ color: accent, borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
+        >
+          <div className="action-label" style={{ color: accent }}>Flashcards</div>
+          <div className="action-count">{stats.totalFlashcards}</div>
+        </button>
+        <button 
+          className="action-btn" 
+          onClick={openNotes}
+          disabled={isCustomizing}
+          style={{ color: accent, borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
+        >
+          <div className="action-label" style={{ color: accent }}>Study Notes</div>
+          <div className="action-count">{stats.totalNotes}</div>
+        </button>
+        <button 
+          className="action-btn" 
+          onClick={openProfile}
+          disabled={isCustomizing}
+          style={{ color: accent, borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
+        >
+          <div className="action-label" style={{ color: accent }}>Profile</div>
+          <div className="action-count">Setup</div>
+        </button>
+      </div>
 
-              {learningAnalytics && (
-                <div className="quick-stats">
-                  <div className="quick-stat">
-                    <span className="quick-stat-label">This Week:</span>
-                    <span className="quick-stat-value">{learningAnalytics.total_sessions} sessions</span>
-                  </div>
-                  <div className="quick-stat">
-                    <span className="quick-stat-label">Total Time:</span>
-                    <span className="quick-stat-value">{Math.round((learningAnalytics.total_time_minutes || 0) / 60)} hrs</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
+      <div className="quick-stats">
+        <div className="quick-stat">
+          <span className="quick-stat-label">THIS WEEK:</span>
+          <span className="quick-stat-value">
+            {learningAnalytics?.total_sessions || 0} sessions
+          </span>
+        </div>
+        <div className="quick-stat">
+          <span className="quick-stat-label">TOTAL TIME:</span>
+          <span className="quick-stat-value">
+            {learningAnalytics?.total_time_minutes ? Math.round(learningAnalytics.total_time_minutes / 60) : 0} hrs
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 
         default:
           return <div>Unknown widget type</div>;

@@ -891,18 +891,20 @@ async def ask_ai_enhanced(
         
         if not daily_metric:
             daily_metric = models.DailyLearningMetrics(
-                user_id=user.id,
+                ser_id=user.id,
                 date=today,
-                sessions_completed=1,
+                sessions_completed=1,  # ✅ This creates a session
                 time_spent_minutes=0,
                 questions_answered=1,
                 correct_answers=1,
                 topics_studied=json.dumps([topic_keywords[:50]])
             )
             db.add(daily_metric)
+            logger.info(f"✅ Created new daily metric for {user.email}")
         else:
             daily_metric.questions_answered += 1
             daily_metric.correct_answers += 1
+            logger.info(f"✅ Updated daily metric - Questions: {daily_metric.questions_answered}")
             
             # Update topics studied
             try:
@@ -973,6 +975,48 @@ def create_chat_session(
         "updated_at": chat_session.updated_at.isoformat(),
         "status": "success"
     }
+
+@app.get("/get_user_achievements")
+def get_user_achievements(user_id: str = Query(...), db: Session = Depends(get_db)):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get user's achievements
+        user_achievements = db.query(models.UserAchievement).filter(
+            models.UserAchievement.user_id == user.id
+        ).order_by(models.UserAchievement.earned_at.desc()).all()
+        
+        achievements = []
+        for ua in user_achievements:
+            achievement = db.query(models.Achievement).filter(
+                models.Achievement.id == ua.achievement_id
+            ).first()
+            
+            if achievement:
+                achievements.append({
+                    "id": achievement.id,
+                    "name": achievement.name,
+                    "description": achievement.description,
+                    "icon": achievement.icon,
+                    "points": achievement.points,
+                    "category": achievement.category,
+                    "rarity": achievement.rarity,
+                    "earned_at": ua.earned_at.isoformat()
+                })
+        
+        return {
+            "achievements": achievements,
+            "total_points": sum(a["points"] for a in achievements)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting achievements: {str(e)}")
+        return {
+            "achievements": [],
+            "total_points": 0
+        }
 
 @app.get("/get_chat_sessions")
 def get_chat_sessions(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -1813,14 +1857,87 @@ def get_recent_activities(user_id: str = Query(...), limit: int = Query(5), db: 
 def get_weekly_progress(user_id: str = Query(...), db: Session = Depends(get_db)):
     return {"weekly_data": [0,0,0,0,0,0,0], "total_sessions": 0, "average_per_day": 0}
 
-@app.get("/get_user_achievements")
-def get_user_achievements(user_id: str = Query(...), db: Session = Depends(get_db)):
-    return {"achievements": []}
+@app.get("/get_weekly_progress")
+def get_weekly_progress(user_id: str = Query(...), db: Session = Depends(get_db)):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get last 7 days
+        end_date = datetime.now(timezone.utc).date()
+        start_date = end_date - timedelta(days=6)  # 6 days ago + today = 7 days
+        
+        # Get daily metrics for the week
+        daily_metrics = db.query(models.DailyLearningMetrics).filter(
+            models.DailyLearningMetrics.user_id == user.id,
+            models.DailyLearningMetrics.date >= start_date,
+            models.DailyLearningMetrics.date <= end_date
+        ).order_by(models.DailyLearningMetrics.date.asc()).all()
+        
+        # Create a map of date to sessions
+        metrics_map = {metric.date: metric.sessions_completed for metric in daily_metrics}
+        
+        # Fill in the last 7 days (Monday to Sunday)
+        weekly_data = []
+        total_sessions = 0
+        
+        for i in range(7):
+            current_date = start_date + timedelta(days=i)
+            sessions = metrics_map.get(current_date, 0)
+            weekly_data.append(sessions)
+            total_sessions += sessions
+        
+        average_per_day = total_sessions / 7 if total_sessions > 0 else 0
+        
+        return {
+            "weekly_data": weekly_data,
+            "total_sessions": total_sessions,
+            "average_per_day": round(average_per_day, 1),
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting weekly progress: {str(e)}")
+        return {
+            "weekly_data": [0, 0, 0, 0, 0, 0, 0],
+            "total_sessions": 0,
+            "average_per_day": 0
+        }
+
 
 @app.get("/get_learning_analytics")
 def get_learning_analytics(user_id: str = Query(...), period: str = Query("week"), db: Session = Depends(get_db)):
-    return {"total_sessions": 0, "total_time_minutes": 0}
-
+    user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    end_date = datetime.now(timezone.utc).date()
+    start_date = end_date - timedelta(days=7)
+    
+    daily_metrics = db.query(models.DailyLearningMetrics).filter(
+        models.DailyLearningMetrics.user_id == user.id,
+        models.DailyLearningMetrics.date >= start_date,
+        models.DailyLearningMetrics.date <= end_date
+    ).all()
+    
+    total_sessions = len([m for m in daily_metrics if m.questions_answered > 0 or m.time_spent_minutes > 0])
+    total_time_minutes = sum(m.time_spent_minutes for m in daily_metrics)
+    total_questions = sum(m.questions_answered for m in daily_metrics)
+    
+    return {
+        "period": "week",
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
+        "total_sessions": total_sessions,
+        "total_time_minutes": total_time_minutes,
+        "total_questions": total_questions,
+        "accuracy_percentage": 100,
+        "average_per_day": 0,
+        "days_active": total_sessions,
+        "daily_data": []
+    }
 @app.post("/firebase-auth")
 async def firebase_authentication(request: Request, db: Session = Depends(get_db)):
     try:
@@ -1925,20 +2042,21 @@ def end_session(
         ).first()
         
         if not daily_metric:
+            # New record - start at 1
             daily_metric = models.DailyLearningMetrics(
                 user_id=user.id,
                 date=today,
-                sessions_completed=0,
-                time_spent_minutes=0,
+                sessions_completed=1,
+                time_spent_minutes=time_spent_minutes,
                 questions_answered=0,
                 correct_answers=0,
                 topics_studied="[]"
             )
             db.add(daily_metric)
-        
-        daily_metric.time_spent_minutes += time_spent_minutes
-        if session_type in ['ai-chat', 'flashcards', 'notes']:
-            daily_metric.sessions_completed += 1
+        else:
+            # Existing record - increment from current value (even if 0)
+            daily_metric.time_spent_minutes += time_spent_minutes
+            daily_metric.sessions_completed = (daily_metric.sessions_completed or 0) + 1
         
         user_stats = db.query(models.UserStats).filter(
             models.UserStats.user_id == user.id
@@ -1953,16 +2071,20 @@ def end_session(
         
         db.commit()
         
+        logger.info(f"✅ Session ended: user={user.email}, sessions_today={daily_metric.sessions_completed}, time={daily_metric.time_spent_minutes}")
+        
         return {
             "status": "success",
             "message": f"Ended {session_type} session",
             "time_recorded": time_spent_minutes,
-            "total_time_today": daily_metric.time_spent_minutes
+            "total_time_today": daily_metric.time_spent_minutes,
+            "sessions_today": daily_metric.sessions_completed
         }
         
     except Exception as e:
         logger.error(f"Error ending session: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to end session")
+
 
 @app.get("/conversation_starters")
 def get_conversation_starters(user_id: str = Query(...), db: Session = Depends(get_db)):
