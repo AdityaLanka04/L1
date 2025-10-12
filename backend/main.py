@@ -475,22 +475,325 @@ async def get_current_user_info(current_user: models.User = Depends(get_current_
         "picture_url": current_user.picture_url,
         "google_user": current_user.google_user
     }
+
+#!/usr/bin/env python3
+# Enhanced AI Chat System with Conversation Memory and Context Awareness
+
+import json
+import re
+from datetime import datetime, timezone, timedelta
+from typing import Dict, List, Optional, Any
+import asyncio
+from sqlalchemy import and_, desc, func
+from groq import Groq
+
+# Enhanced helper functions for conversation context
+
+def get_relevant_past_conversations(db, user_id: int, current_topic: str, limit: int = 5) -> List[Dict]:
+    """
+    Retrieve relevant past conversations based on topic similarity
+    """
+    try:
+        # Get recent chat sessions with their messages
+        recent_sessions = db.query(models.ChatSession).filter(
+            models.ChatSession.user_id == user_id
+        ).order_by(models.ChatSession.updated_at.desc()).limit(20).all()
+        
+        relevant_conversations = []
+        
+        for session in recent_sessions:
+            # Get first few messages to understand the topic
+            messages = db.query(models.ChatMessage).filter(
+                models.ChatMessage.chat_session_id == session.id
+            ).order_by(models.ChatMessage.timestamp.asc()).limit(3).all()
+            
+            if messages:
+                # Combine messages to check relevance
+                session_content = " ".join([
+                    f"{m.user_message} {m.ai_response}" for m in messages
+                ])
+                
+                # Simple topic matching (can be enhanced with embeddings)
+                topic_keywords = current_topic.lower().split()
+                relevance_score = sum(
+                    1 for keyword in topic_keywords 
+                    if len(keyword) > 3 and keyword in session_content.lower()
+                )
+                
+                if relevance_score > 0:
+                    relevant_conversations.append({
+                        'session_id': session.id,
+                        'title': session.title,
+                        'relevance_score': relevance_score,
+                        'last_updated': session.updated_at,
+                        'preview': session_content[:200]
+                    })
+        
+        # Sort by relevance and recency
+        relevant_conversations.sort(
+            key=lambda x: (x['relevance_score'], x['last_updated']), 
+            reverse=True
+        )
+        
+        return relevant_conversations[:limit]
+        
+    except Exception as e:
+        logger.error(f"Error getting relevant conversations: {str(e)}")
+        return []
+
+
+def get_user_learning_context(db, user_id: int) -> Dict[str, Any]:
+    """
+    Build comprehensive learning context about the user
+    """
+    try:
+        # Get user's recent topics
+        recent_activities = db.query(models.Activity).filter(
+            models.Activity.user_id == user_id
+        ).order_by(models.Activity.timestamp.desc()).limit(20).all()
+        
+        topics_studied = {}
+        for activity in recent_activities:
+            topic = activity.topic or "General"
+            topics_studied[topic] = topics_studied.get(topic, 0) + 1
+        
+        # Get learning patterns
+        daily_metrics = db.query(models.DailyLearningMetrics).filter(
+            models.DailyLearningMetrics.user_id == user_id
+        ).order_by(models.DailyLearningMetrics.date.desc()).limit(7).all()
+        
+        avg_questions_per_day = (
+            sum(m.questions_answered for m in daily_metrics) / len(daily_metrics)
+            if daily_metrics else 0
+        )
+        
+        avg_accuracy = (
+            sum(m.correct_answers / max(m.questions_answered, 1) for m in daily_metrics) 
+            / len(daily_metrics) * 100
+            if daily_metrics else 0
+        )
+        
+        # Get user's weak and strong areas from profile
+        comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
+            models.ComprehensiveUserProfile.user_id == user_id
+        ).first()
+        
+        weak_areas = []
+        strong_areas = []
+        
+        if comprehensive_profile:
+            try:
+                weak_areas = json.loads(comprehensive_profile.weak_areas or "[]")
+                strong_areas = json.loads(comprehensive_profile.strong_areas or "[]")
+            except:
+                pass
+        
+        return {
+            'topics_studied': topics_studied,
+            'most_frequent_topics': sorted(topics_studied.items(), key=lambda x: x[1], reverse=True)[:3],
+            'avg_questions_per_day': round(avg_questions_per_day, 1),
+            'avg_accuracy': round(avg_accuracy, 1),
+            'weak_areas': weak_areas,
+            'strong_areas': strong_areas,
+            'total_learning_days': len(daily_metrics)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error building learning context: {str(e)}")
+        return {}
+
+
+def build_enhanced_system_prompt(user_profile: Dict, learning_context: Dict, 
+                                 relevant_past_chats: List[Dict]) -> str:
+    """
+    Create a comprehensive system prompt with full context
+    """
+    
+    # Base information
+    prompt_parts = [
+        f"You are an expert AI tutor helping {user_profile.get('first_name', 'a student')}.",
+        f"\n=== STUDENT PROFILE ===",
+        f"Name: {user_profile.get('first_name', 'Student')} {user_profile.get('last_name', '')}",
+        f"Field of Study: {user_profile.get('field_of_study', 'Various subjects')}",
+        f"Learning Style: {user_profile.get('learning_style', 'Mixed')}",
+        f"Difficulty Level: {user_profile.get('difficulty_level', 'intermediate')}",
+        f"Learning Pace: {user_profile.get('learning_pace', 'moderate')}",
+        f"Study Environment: {user_profile.get('study_environment', 'quiet')}",
+    ]
+    
+    # Add goals if available
+    if user_profile.get('study_goals'):
+        prompt_parts.append(f"Study Goals: {user_profile['study_goals']}")
+    if user_profile.get('career_goals'):
+        prompt_parts.append(f"Career Goals: {user_profile['career_goals']}")
+    
+    # Learning context
+    if learning_context:
+        prompt_parts.append(f"\n=== LEARNING HISTORY ===")
+        
+        if learning_context.get('most_frequent_topics'):
+            topics = ", ".join([t[0] for t in learning_context['most_frequent_topics']])
+            prompt_parts.append(f"Recently Studied Topics: {topics}")
+        
+        if learning_context.get('avg_accuracy', 0) > 0:
+            prompt_parts.append(f"Average Accuracy: {learning_context['avg_accuracy']}%")
+        
+        if learning_context.get('weak_areas'):
+            weak = ", ".join(learning_context['weak_areas'][:3])
+            prompt_parts.append(f"Areas Needing Support: {weak}")
+        
+        if learning_context.get('strong_areas'):
+            strong = ", ".join(learning_context['strong_areas'][:3])
+            prompt_parts.append(f"Strong Areas: {strong}")
+    
+    # Relevant past conversations
+    if relevant_past_chats:
+        prompt_parts.append(f"\n=== RELEVANT PAST CONVERSATIONS ===")
+        prompt_parts.append("You have discussed related topics before:")
+        
+        for i, chat in enumerate(relevant_past_chats[:3], 1):
+            prompt_parts.append(
+                f"{i}. '{chat['title']}' (Session {chat['session_id']}) - "
+                f"Last updated: {chat['last_updated'].strftime('%Y-%m-%d')}"
+            )
+            prompt_parts.append(f"   Preview: {chat['preview'][:150]}...")
+    
+    # Teaching instructions
+    prompt_parts.extend([
+        f"\n=== TEACHING APPROACH ===",
+        f"1. PERSONALIZATION: Adapt your teaching to {user_profile.get('first_name', 'the student')}'s learning style and pace",
+        f"2. CONTEXT AWARENESS: Reference previous conversations when relevant, but don't force connections",
+        f"3. DEPTH: Provide detailed, comprehensive explanations with examples and analogies",
+        f"4. ENGAGEMENT: Ask thought-provoking questions to encourage critical thinking",
+        f"5. SCAFFOLDING: Build on previous knowledge and connect new concepts to what they already know",
+        f"6. CLARITY: Break down complex topics into digestible parts",
+        f"7. PRACTICE: Suggest exercises or practice problems when appropriate",
+        f"8. ENCOURAGEMENT: Be supportive and acknowledge progress",
+        f"\n=== RESPONSE GUIDELINES ===",
+        f"- For follow-up questions on previous topics, explicitly acknowledge the continuation",
+        f"- For new topics, start fresh but mention if it relates to something studied before",
+        f"- Use the student's learning style: {user_profile.get('learning_style', 'Mixed')}",
+        f"- Adjust difficulty based on their level: {user_profile.get('difficulty_level', 'intermediate')}",
+        f"- Include relevant examples from {user_profile.get('field_of_study', 'their field')}",
+        f"- Structure responses with clear sections: concept explanation, examples, practice, summary",
+        f"- Use formatting: headings, bullet points, numbered lists for clarity",
+        f"- End with a question or suggestion for further exploration when appropriate"
+    ])
+    
+    return "\n".join(prompt_parts)
+
+
+def extract_topic_keywords(text: str) -> List[str]:
+    """
+    Extract meaningful keywords from a question for context matching
+    """
+    # Remove common words
+    stop_words = {
+        'what', 'when', 'where', 'who', 'why', 'how', 'is', 'are', 'was', 'were',
+        'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+        'can', 'could', 'should', 'would', 'will', 'do', 'does', 'did', 'me',
+        'you', 'my', 'your', 'about', 'explain', 'tell', 'help', 'understand'
+    }
+    
+    words = re.findall(r'\b[a-zA-Z]{4,}\b', text.lower())
+    keywords = [w for w in words if w not in stop_words]
+    
+    return keywords[:10]  # Return top 10 keywords
+
+
+async def generate_enhanced_ai_response(
+    prompt: str, 
+    user_profile: Dict[str, Any],
+    learning_context: Dict[str, Any],
+    conversation_history: List[Dict],
+    relevant_past_chats: List[Dict]
+) -> str:
+    """
+    Generate AI response with full context awareness
+    """
+    try:
+        # Build comprehensive system prompt
+        system_prompt = build_enhanced_system_prompt(
+            user_profile, 
+            learning_context, 
+            relevant_past_chats
+        )
+        
+        # Build conversation messages
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # Add conversation history (last 5 exchanges)
+        for hist in conversation_history[-5:]:
+            messages.append({
+                "role": "user",
+                "content": hist.get('user_message', '')
+            })
+            messages.append({
+                "role": "assistant",
+                "content": hist.get('ai_response', '')
+            })
+        
+        # Add current prompt
+        messages.append({"role": "user", "content": prompt})
+        
+        # Call Groq API
+        chat_completion = groq_client.chat.completions.create(
+            messages=messages,
+            model=GROQ_MODEL,
+            temperature=0.7,
+            max_tokens=3072,  # Increased for more detailed responses
+            top_p=0.9,
+        )
+        
+        response = chat_completion.choices[0].message.content
+        
+        # Post-process response to ensure quality
+        if len(response.split()) < 50:  # If response is too short
+            # Request more detail
+            follow_up_messages = messages + [
+                {"role": "assistant", "content": response},
+                {"role": "user", "content": "Can you provide more detail and examples?"}
+            ]
+            
+            expanded_completion = groq_client.chat.completions.create(
+                messages=follow_up_messages,
+                model=GROQ_MODEL,
+                temperature=0.7,
+                max_tokens=3072,
+                top_p=0.9,
+            )
+            response = expanded_completion.choices[0].message.content
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Groq API error: {e}")
+        return (
+            f"I apologize, but I encountered an error processing your request. "
+            f"However, I'm here to help you learn about {user_profile.get('field_of_study', 'any topic')}. "
+            f"Please try rephrasing your question, and I'll do my best to provide a detailed explanation."
+        )
+
+
+# ENHANCED /ask/ ENDPOINT
 @app.post("/ask/")
-async def ask_ai(
+async def ask_ai_enhanced(
     user_id: str = Form(...),
     question: str = Form(...),
     chat_id: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
-    logger.info(f"Processing AI query for user {user_id}")
+    logger.info(f"Processing enhanced AI query for user {user_id}")
     
     try:
         chat_id_int = int(chat_id) if chat_id else None
         
+        # Get user
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
+        # Validate chat session if provided
         if chat_id_int:
             chat_session = db.query(models.ChatSession).filter(
                 models.ChatSession.id == chat_id_int,
@@ -499,17 +802,22 @@ async def ask_ai(
             if not chat_session:
                 raise HTTPException(status_code=404, detail="Chat session not found")
         
+        # Get comprehensive user profile
         comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
             models.ComprehensiveUserProfile.user_id == user.id
         ).first()
         
         user_profile = build_user_profile_dict(user, comprehensive_profile)
         
+        # Get learning context
+        learning_context = get_user_learning_context(db, user.id)
+        
+        # Get current conversation history
         conversation_history = []
         if chat_id_int:
             recent_messages = db.query(models.ChatMessage).filter(
                 models.ChatMessage.chat_session_id == chat_id_int
-            ).order_by(models.ChatMessage.timestamp.desc()).limit(5).all()
+            ).order_by(models.ChatMessage.timestamp.desc()).limit(10).all()
             
             for msg in reversed(recent_messages):
                 conversation_history.append({
@@ -518,16 +826,24 @@ async def ask_ai(
                     'timestamp': msg.timestamp
                 })
         
-        context = ""
-        if conversation_history:
-            context = "\n\nRecent Conversation Context:\n"
-            for h in conversation_history[-3:]:
-                context += f"Q: {h.get('user_message', '')[:100]}...\n"
-                context += f"A: {h.get('ai_response', '')[:100]}...\n"
+        # Extract topic keywords from the question
+        topic_keywords = " ".join(extract_topic_keywords(question))
         
-        full_prompt = f"{context}\n\nCurrent Question: {question}"
-        response = await generate_ai_response(full_prompt, user_profile)
+        # Get relevant past conversations
+        relevant_past_chats = get_relevant_past_conversations(
+            db, user.id, topic_keywords, limit=5
+        )
         
+        # Generate enhanced AI response
+        response = await generate_enhanced_ai_response(
+            question,
+            user_profile,
+            learning_context,
+            conversation_history,
+            relevant_past_chats
+        )
+        
+        # Save the conversation
         if chat_id_int:
             chat_message = models.ChatMessage(
                 chat_session_id=chat_id_int,
@@ -536,31 +852,35 @@ async def ask_ai(
             )
             db.add(chat_message)
             
+            # Update chat session
             chat_session = db.query(models.ChatSession).filter(
                 models.ChatSession.id == chat_id_int
             ).first()
             chat_session.updated_at = datetime.now(timezone.utc)
             
+            # Auto-generate title for new chats
             message_count = db.query(models.ChatMessage).filter(
                 models.ChatMessage.chat_session_id == chat_id_int
             ).count()
             
             if chat_session.title == "New Chat" and message_count == 0:
-                words = question.strip().split()
-                new_title = " ".join(words[:4]) + ("..." if len(words) > 4 else "")
+                title_keywords = extract_topic_keywords(question)
+                new_title = " ".join(title_keywords[:4]).title()
                 chat_session.title = new_title[:50] if new_title else "New Chat"
         
+        # Record activity
         activity = models.Activity(
             user_id=user.id,
             question=question,
             answer=response,
-            topic=user.field_of_study or "General",
-            question_type="general",
-            difficulty_level="medium",
+            topic=topic_keywords[:50] if topic_keywords else user.field_of_study or "General",
+            question_type="conversational",
+            difficulty_level=user_profile.get('difficulty_level', 'medium'),
             timestamp=datetime.now(timezone.utc)
         )
         db.add(activity)
         
+        # Update daily metrics
         today = datetime.now(timezone.utc).date()
         daily_metric = db.query(models.DailyLearningMetrics).filter(
             and_(
@@ -577,46 +897,51 @@ async def ask_ai(
                 time_spent_minutes=0,
                 questions_answered=1,
                 correct_answers=1,
-                topics_studied="[]"
+                topics_studied=json.dumps([topic_keywords[:50]])
             )
             db.add(daily_metric)
         else:
             daily_metric.questions_answered += 1
             daily_metric.correct_answers += 1
+            
+            # Update topics studied
+            try:
+                topics = json.loads(daily_metric.topics_studied or "[]")
+                if topic_keywords and topic_keywords not in topics:
+                    topics.append(topic_keywords[:50])
+                    daily_metric.topics_studied = json.dumps(topics[-10:])  # Keep last 10
+            except:
+                daily_metric.topics_studied = json.dumps([topic_keywords[:50]])
         
         db.commit()
         
         return {
             "answer": response,
-            "ai_confidence": 0.85,
+            "ai_confidence": 0.92,
             "misconception_detected": False,
-            "should_request_feedback": False,
-            "topics_discussed": [user.field_of_study or "General"],
-            "query_type": "general",
+            "should_request_feedback": len(response.split()) > 200,  # Request feedback for detailed responses
+            "topics_discussed": [topic_keywords] if topic_keywords else ["General"],
+            "query_type": "conversational_learning",
             "model_used": GROQ_MODEL,
             "ai_provider": "Groq",
             "response_time": 0.5,
             "profile_enhanced": bool(comprehensive_profile),
-            "questions_today": daily_metric.questions_answered
+            "questions_today": daily_metric.questions_answered,
+            "context_used": {
+                "conversation_history": len(conversation_history),
+                "relevant_past_chats": len(relevant_past_chats),
+                "learning_context_available": bool(learning_context)
+            }
         }
         
     except Exception as e:
-        logger.error(f"Error in ask_ai: {str(e)}")
+        logger.error(f"Error in enhanced ask_ai: {str(e)}")
         return {
-            "answer": f"I apologize, but I encountered an error processing your request. Please try again.",
-            "ai_confidence": 0.3,
-            "misconception_detected": False,
-            "should_request_feedback": True,
-            "topics_discussed": ["error"],
-            "query_type": "error",
-            "model_used": "error_handler",
-            "ai_provider": "Groq"
-        }
-        
-    except Exception as e:
-        logger.error(f"Error in ask_ai: {str(e)}")
-        return {
-            "answer": f"I apologize, but I encountered an error processing your request. Please try again.",
+            "answer": (
+                f"I apologize, but I encountered an error. However, I'm still here to help! "
+                f"Could you please rephrase your question or let me know what specific aspect "
+                f"you'd like to learn about?"
+            ),
             "ai_confidence": 0.3,
             "misconception_detected": False,
             "should_request_feedback": True,
