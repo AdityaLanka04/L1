@@ -18,6 +18,15 @@ Base = declarative_base()
 
 # ==================== ORM MODELS ====================
 
+class DailyGoal(Base):
+    __tablename__ = "daily_goals"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, index=True)
+    date = Column(Date, default=lambda: datetime.utcnow().date())
+    target = Column(Integer, default=20)
+    progress = Column(Integer, default=0)
+
 class User(Base):
     __tablename__ = "users"
 

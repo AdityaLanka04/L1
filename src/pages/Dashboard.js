@@ -256,21 +256,24 @@ const Dashboard = () => {
       }
 
       const analyticsResponse = await fetch(`http://localhost:8001/get_learning_analytics?user_id=${userName}&period=week`, { headers });
-      if (analyticsResponse.ok) {
-        const analyticsData = await responseToJsonSafely(analyticsResponse);
-        setLearningAnalytics(analyticsData);
+if (analyticsResponse.ok) {
+  const analyticsData = await responseToJsonSafely(analyticsResponse);
+  setLearningAnalytics(analyticsData);
 
-        const today = new Date().toISOString().split('T')[0];
-        const todayData = analyticsData?.daily_data?.find(d => d.date === today);
-        const completed = todayData?.questions || 0;
-        const target = 20;
+  // ✅ Only update dailyGoal if analytics actually has today's data
+  const today = new Date().toISOString().split('T')[0];
+  const todayData = analyticsData?.daily_data?.find(d => d.date === today);
+  if (todayData && todayData.questions > 0) {
+    const completed = todayData.questions;
+    const target = 20;
+    setDailyGoal({
+      target,
+      completed,
+      percentage: Math.round((completed / target) * 100)
+    });
+  }
+}
 
-        setDailyGoal({
-          target,
-          completed,
-          percentage: Math.round((completed / target) * 100)
-        });
-      }
 
       const startersResponse = await fetch(`http://localhost:8001/conversation_starters?user_id=${userName}`, { headers });
       if (startersResponse.ok) {
@@ -1260,12 +1263,14 @@ const Dashboard = () => {
             <ThemeSwitcher />
             <div className="user-info">
               {userProfile?.picture && (
-                <img
-                  src={userProfile.picture}
-                  alt="Profile"
-                  className="profile-picture"
-                />
-              )}
+  <img
+    src={userProfile.picture}
+    alt="Profile"
+    className="profile-picture"
+    referrerPolicy="no-referrer"
+    crossOrigin="anonymous"
+  />
+)}
               <span className="user-name">{displayName}</span>
             </div>
 

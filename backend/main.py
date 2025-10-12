@@ -8,8 +8,9 @@ import json
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
+import asyncio
 
-from fastapi import FastAPI, Form, Depends, HTTPException, status, Query, Request, File, UploadFile
+from fastapi import FastAPI, Form, Depends, HTTPException, status, Query, Request, File, UploadFile, Body
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm, HTTPBearer, HTTPAuthorizationCredentials
@@ -300,6 +301,47 @@ def health_check():
         "ai_provider": "Groq",
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
+
+@app.get("/get_daily_goal_progress")
+def get_daily_goal_progress(user_id: str = Query(...), db: Session = Depends(get_db)):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        today = datetime.now(timezone.utc).date()
+        
+        questions_today = db.query(models.Activity).filter(
+            models.Activity.user_id == user.id,
+            func.date(models.Activity.timestamp) == today
+        ).count()
+        
+        daily_goal = 20
+        
+        activities = db.query(func.date(models.Activity.timestamp)).filter(
+            models.Activity.user_id == user.id
+        ).distinct().order_by(func.date(models.Activity.timestamp).desc()).all()
+        
+        streak = 0
+        if activities:
+            check_date = datetime.now(timezone.utc).date()
+            for activity_date in [a[0] for a in activities]:
+                if activity_date == check_date or activity_date == check_date - timedelta(days=1):
+                    streak += 1
+                    check_date = activity_date - timedelta(days=1)
+                else:
+                    break
+        
+        return {
+            "questions_today": questions_today,
+            "daily_goal": daily_goal,
+            "percentage": min(int((questions_today / daily_goal) * 100), 100),
+            "streak": streak
+        }
+    except Exception as e:
+        logger.error(f"Error getting daily goal: {str(e)}")
+        return {"questions_today": 0, "daily_goal": 20, "percentage": 0, "streak": 0}
+
 
 @app.post("/register")
 async def register(
@@ -1605,6 +1647,89 @@ def get_conversation_starters(user_id: str = Query(...), db: Session = Depends(g
 def get_learning_reviews(user_id: str = Query(...), db: Session = Depends(get_db)):
     return {"reviews": []}
 
+
+
+@app.post("/create_learning_review")
+def create_learning_review(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    try:
+        user_id = payload.get("user_id")
+        chat_session_ids = payload.get("chat_session_ids", [])
+        review_title = payload.get("review_title", "Learning Review")
+        review_type = payload.get("review_type", "comprehensive")
+
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        sessions = db.query(models.ChatSession).filter(
+            models.ChatSession.id.in_(chat_session_ids),
+            models.ChatSession.user_id == user.id
+        ).all()
+
+        if not sessions:
+            raise HTTPException(status_code=404, detail="No chat sessions found")
+
+        session_titles = [s.title for s in sessions]
+        session_ids = [s.id for s in sessions]
+
+        messages = db.query(models.ChatMessage).filter(
+            models.ChatMessage.chat_session_id.in_(session_ids)
+        ).order_by(models.ChatMessage.timestamp.asc()).all()
+
+        combined_text = "\n".join([
+            f"Q: {m.user_message}\nA: {m.ai_response}" for m in messages
+        ])[:8000]
+
+        prompt = f"""
+        You are an intelligent learning assistant.
+        Extract 5-10 key learning points that summarize the following conversation.
+        Return them strictly as a JSON list: ["Point 1", "Point 2", ...].
+
+        Conversation:
+        {combined_text}
+        """
+
+        ai_response = asyncio.run(generate_ai_response(prompt, {"first_name": "Student"}))
+        try:
+            learning_points = json.loads(re.search(r"\[.*\]", ai_response, re.DOTALL).group())
+        except:
+            learning_points = ["Key ideas extracted", "More points will appear after review"]
+
+        review = models.LearningReview(
+            user_id=user.id,
+            title=review_title,
+            source_sessions=json.dumps(session_ids),
+            source_content=combined_text[:4000],
+            expected_points=json.dumps(learning_points),
+            review_type=review_type,
+            total_points=len(learning_points),
+            best_score=0.0,
+            current_attempt=0,
+            status="active",
+            created_at=datetime.now(timezone.utc)
+        )
+
+        db.add(review)
+        db.commit()
+        db.refresh(review)
+
+        return {
+            "status": "success",
+            "review_id": review.id,
+            "title": review.title,
+            "session_titles": session_titles,
+            "learning_points": learning_points
+        }
+
+    except Exception as e:
+        logger.error(f"Error creating review: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create learning review: {str(e)}")
+
+
+
 if __name__ == "__main__":
     import uvicorn
     
@@ -1612,43 +1737,3 @@ if __name__ == "__main__":
     logger.info(f"All API endpoints loaded successfully")
     
     uvicorn.run(app, host="127.0.0.1", port=8001, reload=False)
-
-@app.get("/get_daily_goal_progress")
-def get_daily_goal_progress(user_id: str = Query(...), db: Session = Depends(get_db)):
-    try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        today = datetime.now(timezone.utc).date()
-        
-        questions_today = db.query(models.Activity).filter(
-            models.Activity.user_id == user.id,
-            func.date(models.Activity.timestamp) == today
-        ).count()
-        
-        daily_goal = 20
-        
-        activities = db.query(func.date(models.Activity.timestamp)).filter(
-            models.Activity.user_id == user.id
-        ).distinct().order_by(func.date(models.Activity.timestamp).desc()).all()
-        
-        streak = 0
-        if activities:
-            check_date = datetime.now(timezone.utc).date()
-            for activity_date in [a[0] for a in activities]:
-                if activity_date == check_date or activity_date == check_date - timedelta(days=1):
-                    streak += 1
-                    check_date = activity_date - timedelta(days=1)
-                else:
-                    break
-        
-        return {
-            "questions_today": questions_today,
-            "daily_goal": daily_goal,
-            "percentage": min(int((questions_today / daily_goal) * 100), 100),
-            "streak": streak
-        }
-    except Exception as e:
-        logger.error(f"Error getting daily goal: {str(e)}")
-        return {"questions_today": 0, "daily_goal": 20, "percentage": 0, "streak": 0}

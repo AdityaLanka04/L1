@@ -644,11 +644,13 @@ const AIChat = () => {
           <div className="header-right">
             <div className="user-info">
               {userProfile?.picture && (
-                <img 
-                  src={userProfile.picture} 
-                  alt="Profile" 
-                  className="profile-picture"
-                />
+  <img
+    src={userProfile.picture}
+    alt="Profile"
+    className="profile-picture"
+    referrerPolicy="no-referrer"
+    crossOrigin="anonymous"
+  />
               )}
             </div>
             <button className="back-btn" onClick={goToDashboard}>
