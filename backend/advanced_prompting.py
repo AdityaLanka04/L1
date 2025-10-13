@@ -1,5 +1,8 @@
 # Advanced Prompting Strategies for Enhanced Learning Experience
 
+from typing import Dict, List, Any  
+import re
+from sqlalchemy.orm import Session
 """
 Additional prompt enhancement utilities for the Brainwave AI system
 """
@@ -166,7 +169,7 @@ def detect_learning_opportunity(
     
     # Check for common misconception patterns
     misconception_indicators = [
-        "is it correct that", "i thought", "but isn't", 
+        "is it correct that", "i thought", "but isnt", 
         "does that mean", "so basically", "confused about"
     ]
     
@@ -404,6 +407,116 @@ When detecting confusion or errors:
 Adapt your approach by subject while maintaining rigor and depth across all fields.
 """
 
+def get_archetype_adapted_prompt(primary_archetype: str, secondary_archetype: str = None) -> str:
+    archetype_prompts = {
+        "Logicor": """
+LOGICOR LEARNER - Logical & Systematic:
+- Break down concepts into clear, sequential steps with logical frameworks
+- Use deductive reasoning and structured methodologies
+- Provide analytical breakdowns with cause-and-effect relationships
+- Include formulas, algorithms, or systematic approaches
+- Show logical progressions: "If A, then B, therefore C"
+- Use numbered lists and hierarchical organization
+        """,
+        
+        "Flowist": """
+FLOWIST LEARNER - Dynamic & Hands-On:
+- Provide interactive examples they can try immediately
+- Use iterative, exploratory learning approaches
+- Encourage "learning by doing" rather than pure theory
+- Adapt explanations based on their engagement
+- Suggest real-time experimentation and practice
+- Keep content dynamic and action-oriented
+        """,
+        
+        "Kinetiq": """
+KINETIQ LEARNER - Kinesthetic & Physical:
+- Suggest physical activities or movements related to concepts
+- Use tangible, hands-on examples and demonstrations
+- Relate abstract ideas to body sensations or physical actions
+- Recommend building, creating, or manipulating objects
+- Include "try this yourself" exercises
+- Use action verbs and movement metaphors
+        """,
+        
+        "Synth": """
+SYNTH LEARNER - Integrative & Connective:
+- Show how concepts relate across different domains and subjects
+- Create bridges between disparate areas of knowledge
+- Use interdisciplinary examples and cross-field analogies
+- Highlight patterns and systems thinking
+- Encourage holistic understanding and big-picture connections
+- Reference multiple perspectives and viewpoints
+        """,
+        
+        "Dreamweaver": """
+DREAMWEAVER LEARNER - Visionary & Imaginative:
+- Start with the big vision and overall concept
+- Use visual metaphors, imaginative scenarios, and future possibilities
+- Discuss potential applications and innovative uses
+- Provide creative, non-traditional perspectives
+- Include mind maps, diagrams (described), and visual representations
+- Encourage "what if" thinking and creative exploration
+        """,
+        
+        "Anchor": """
+ANCHOR LEARNER - Structured & Organized:
+- Provide clear outlines and organized frameworks
+- Use step-by-step progressions with defined milestones
+- Include structured study plans and systematic resources
+- Set clear goals with measurable objectives
+- Follow consistent formatting and logical organization
+- Create predictable, stable learning pathways
+        """,
+        
+        "Spark": """
+SPARK LEARNER - Creative & Innovative:
+- Use creative analogies and unexpected connections
+- Encourage brainstorming and divergent thinking
+- Present novel perspectives and alternative approaches
+- Include colorful examples and expressive language
+- Foster curiosity through intriguing questions
+- Celebrate unique insights and creative solutions
+        """,
+        
+        "Empathion": """
+EMPATHION LEARNER - Emotional & Interpersonal:
+- Relate concepts to human experiences and emotions
+- Use storytelling and personal narratives
+- Discuss the human impact and deeper meaning
+- Create empathetic connections to the material
+- Acknowledge feelings and emotional responses to learning
+- Frame learning in terms of personal growth and relationships
+        """,
+        
+        "Seeker": """
+SEEKER LEARNER - Curious & Exploratory:
+- Present intriguing questions and intellectual mysteries
+- Encourage independent research and exploration
+- Share fascinating facts and surprising insights
+- Provide breadth across topics before diving into depth
+- Foster wonder and intellectual curiosity
+- Create "rabbit holes" to explore further
+        """,
+        
+        "Resonant": """
+RESONANT LEARNER - Adaptive & Flexible:
+- Offer multiple explanation styles and learning paths
+- Be highly flexible in pacing and approach
+- Adjust dynamically based on feedback and engagement
+- Provide diverse resources and varied perspectives
+- Support self-directed, personalized learning journeys
+- Mirror and adapt to their current learning state
+        """
+    }
+    
+    primary_prompt = archetype_prompts.get(primary_archetype, "")
+    
+    if secondary_archetype and secondary_archetype != primary_archetype:
+        secondary_prompt = archetype_prompts.get(secondary_archetype, "")
+        return f"{primary_prompt}\n\nSECONDARY LEARNING PREFERENCE:\n{secondary_prompt}"
+    
+    return primary_prompt
 
 def create_dynamic_context_window(
     conversation_history: List[Dict],

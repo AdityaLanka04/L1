@@ -10,13 +10,14 @@ const Profile = () => {
     email: '',
     age: '',
     fieldOfStudy: '',
-    learningStyle: '',
     difficultyLevel: 'intermediate',
     learningPace: 'moderate',
     preferredSubjects: [],
-    timeZone: '',
-    preferredSessionLength: '',
-    bestStudyTimes: []
+    bestStudyTimes: [],
+    primaryArchetype: '',
+    secondaryArchetype: '',
+    archetypeDescription: '',
+    archetypeScores: {}
   });
   
   const [loading, setLoading] = useState(false);
@@ -31,35 +32,71 @@ const Profile = () => {
   const fieldsOfStudy = [
     'Computer Science', 'Mathematics', 'Physics', 'Chemistry', 'Biology',
     'Engineering', 'Medicine', 'Business', 'Economics', 'Psychology',
-    'Literature', 'History', 'Philosophy', 'Art', 'Languages'
-  ];
-
-  const learningStyles = [
-    'Visual', 'Auditory', 'Kinesthetic', 'Reading/Writing', 'Mixed'
+    'Literature', 'History', 'Philosophy', 'Art', 'Languages', 'General Studies'
   ];
 
   const subjects = [
     'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science',
     'History', 'Geography', 'Literature', 'Psychology', 'Economics',
-    'Business', 'Art', 'Languages', 'Engineering'
-  ];
-
-  const timeZones = [
-    { value: 'EST', label: 'Eastern (EST)' },
-    { value: 'CST', label: 'Central (CST)' },
-    { value: 'MST', label: 'Mountain (MST)' },
-    { value: 'PST', label: 'Pacific (PST)' },
-    { value: 'GMT', label: 'Greenwich (GMT)' },
-    { value: 'CET', label: 'Central European (CET)' }
-  ];
-
-  const sessionLengths = [
-    '15 minutes', '30 minutes', '45 minutes', '1 hour', '1.5 hours', '2 hours'
+    'Business', 'Art', 'Languages', 'Engineering', 'Philosophy'
   ];
 
   const studyTimes = [
     'Early Morning', 'Morning', 'Afternoon', 'Evening', 'Night'
   ];
+
+  const archetypeInfo = {
+    Logicor: {
+      icon: '🧠',
+      color: '#4A90E2',
+      description: 'You thrive on logical analysis and systematic problem-solving. You excel at breaking down complex concepts into manageable parts.'
+    },
+    Flowist: {
+      icon: '🌊',
+      color: '#50C878',
+      description: 'You learn best through dynamic, hands-on experiences. You adapt easily and prefer learning by doing.'
+    },
+    Kinetiq: {
+      icon: '⚡',
+      color: '#FF6B6B',
+      description: 'You\'re a kinesthetic learner who needs movement and physical engagement to process information effectively.'
+    },
+    Synth: {
+      icon: '🔗',
+      color: '#9B59B6',
+      description: 'You naturally see connections between ideas and excel at integrating knowledge from different domains.'
+    },
+    Dreamweaver: {
+      icon: '✨',
+      color: '#F39C12',
+      description: 'You think in big pictures and future possibilities. Visual and imaginative approaches resonate with you.'
+    },
+    Anchor: {
+      icon: '⚓',
+      color: '#34495E',
+      description: 'You value structure, organization, and clear systems. You excel with well-defined goals and methodical approaches.'
+    },
+    Spark: {
+      icon: '💡',
+      color: '#E74C3C',
+      description: 'You\'re driven by creativity and innovation. Novel ideas and expressive methods fuel your learning.'
+    },
+    Empathion: {
+      icon: '❤️',
+      color: '#E91E63',
+      description: 'You connect deeply with emotional and interpersonal aspects of learning. You understand through empathy and meaning.'
+    },
+    Seeker: {
+      icon: '🔍',
+      color: '#00BCD4',
+      description: 'You\'re motivated by curiosity and the joy of discovery. You love exploring new topics and expanding knowledge.'
+    },
+    Resonant: {
+      icon: '🎵',
+      color: '#8E44AD',
+      description: 'You\'re highly adaptable and tune into different learning environments. You adjust your approach fluidly.'
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -120,7 +157,11 @@ const Profile = () => {
           ...prev,
           ...data,
           preferredSubjects: Array.isArray(data.preferredSubjects) ? data.preferredSubjects : [],
-          bestStudyTimes: Array.isArray(data.bestStudyTimes) ? data.bestStudyTimes : []
+          bestStudyTimes: Array.isArray(data.bestStudyTimes) ? data.bestStudyTimes : [],
+          primaryArchetype: data.primaryArchetype || '',
+          secondaryArchetype: data.secondaryArchetype || '',
+          archetypeDescription: data.archetypeDescription || '',
+          archetypeScores: {}
         }));
         
         setDataLoaded(true);
@@ -137,11 +178,11 @@ const Profile = () => {
 
   const calculateProfileCompletion = () => {
     const essentialFields = [
-      'firstName', 'lastName', 'email', 'fieldOfStudy', 'learningStyle'
+      'firstName', 'lastName', 'email', 'fieldOfStudy', 'primaryArchetype'
     ];
     
     const additionalFields = [
-      'age', 'difficultyLevel', 'learningPace', 'timeZone', 'preferredSessionLength'
+      'age', 'difficultyLevel', 'learningPace'
     ];
     
     const arrayFields = [
@@ -204,12 +245,9 @@ const Profile = () => {
         email: profileData.email || '',
         age: profileData.age || null,
         fieldOfStudy: profileData.fieldOfStudy || '',
-        learningStyle: profileData.learningStyle || '',
         preferredSubjects: profileData.preferredSubjects || [],
         difficultyLevel: profileData.difficultyLevel || 'intermediate',
         learningPace: profileData.learningPace || 'moderate',
-        timeZone: profileData.timeZone || '',
-        preferredSessionLength: profileData.preferredSessionLength || '',
         bestStudyTimes: profileData.bestStudyTimes || []
       };
       
@@ -229,7 +267,6 @@ const Profile = () => {
           firstName: profileData.firstName,
           lastName: profileData.lastName,
           fieldOfStudy: profileData.fieldOfStudy,
-          learningStyle: profileData.learningStyle,
           difficultyLevel: profileData.difficultyLevel,
           learningPace: profileData.learningPace
         }));
@@ -257,6 +294,10 @@ const Profile = () => {
     navigate('/dashboard');
   };
 
+  const retakeQuiz = () => {
+    navigate('/profile-quiz');
+  };
+
   const getProfileStatus = () => {
     if (profileCompletion < 30) {
       return { status: 'Getting Started', color: '#ff9800', message: 'Complete your basic information to get personalized AI responses' };
@@ -280,6 +321,9 @@ const Profile = () => {
       </div>
     );
   }
+
+  const currentArchetype = profileData.primaryArchetype ? archetypeInfo[profileData.primaryArchetype] : null;
+  const secondaryArchetypeInfo = profileData.secondaryArchetype ? archetypeInfo[profileData.secondaryArchetype] : null;
 
   return (
     <div className="profile-page">
@@ -317,6 +361,47 @@ const Profile = () => {
           </div>
           <div className="status-message">{profileStatus.message}</div>
         </div>
+
+        {profileData.primaryArchetype && (
+          <div className="profile-section archetype-section">
+            <h3 className="section-title">Your Learning Archetype</h3>
+            
+            <div className="archetype-display">
+              <div className="archetype-card primary-archetype">
+                <div className="archetype-badge">PRIMARY</div>
+                <div className="archetype-icon">{currentArchetype?.icon}</div>
+                <div className="archetype-name" style={{ color: currentArchetype?.color }}>
+                  {profileData.primaryArchetype}
+                </div>
+                <div className="archetype-description">
+                  {currentArchetype?.description}
+                </div>
+              </div>
+
+              {profileData.secondaryArchetype && (
+                <div className="archetype-card secondary-archetype">
+                  <div className="archetype-badge secondary">SECONDARY</div>
+                  <div className="archetype-icon">{secondaryArchetypeInfo?.icon}</div>
+                  <div className="archetype-name" style={{ color: secondaryArchetypeInfo?.color }}>
+                    {profileData.secondaryArchetype}
+                  </div>
+                  <div className="archetype-description">
+                    {secondaryArchetypeInfo?.description}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="archetype-actions">
+              <button className="retake-quiz-btn" onClick={retakeQuiz}>
+                Retake Assessment
+              </button>
+              <p className="archetype-note">
+                Your AI tutor adapts its teaching style based on your archetype for personalized learning
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="profile-grid">
           <div className="profile-section essential">
@@ -383,20 +468,6 @@ const Profile = () => {
                 </select>
               </div>
             </div>
-
-            <div className="form-group">
-              <label className="form-label required-field">Learning Style</label>
-              <select
-                className="form-select"
-                value={profileData.learningStyle}
-                onChange={(e) => handleInputChange('learningStyle', e.target.value)}
-              >
-                <option value="">Select your style</option>
-                {learningStyles.map(style => (
-                  <option key={style} value={style}>{style}</option>
-                ))}
-              </select>
-            </div>
           </div>
 
           <div className="profile-section">
@@ -427,35 +498,6 @@ const Profile = () => {
                   <option value="moderate">Moderate</option>
                   <option value="fast">Fast-paced</option>
                   <option value="intensive">Intensive</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Session Length</label>
-                <select
-                  className="form-select"
-                  value={profileData.preferredSessionLength}
-                  onChange={(e) => handleInputChange('preferredSessionLength', e.target.value)}
-                >
-                  <option value="">Select session length</option>
-                  {sessionLengths.map(length => (
-                    <option key={length} value={length}>{length}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Time Zone</label>
-                <select
-                  className="form-select"
-                  value={profileData.timeZone}
-                  onChange={(e) => handleInputChange('timeZone', e.target.value)}
-                >
-                  <option value="">Select timezone</option>
-                  {timeZones.map(tz => (
-                    <option key={tz.value} value={tz.value}>{tz.label}</option>
-                  ))}
                 </select>
               </div>
             </div>

@@ -9,12 +9,14 @@ from typing import Optional, List
 from pydantic import BaseModel
 import os
 
+# At the top of models.py
+from database import SessionLocal, engine, Base  # Import Base from database.py
+
 # ==================== DATABASE CONFIG ====================
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./brainwave_tutor.db")
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
 
 # ==================== ORM MODELS ====================
 
@@ -349,59 +351,6 @@ class TopicMastery(Base):
     user = relationship("User", back_populates="topic_mastery")
 
 # ==================== COMPREHENSIVE USER PROFILE ====================
-
-class ComprehensiveUserProfile(Base):
-    __tablename__ = "comprehensive_user_profiles"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
-    
-    # Basic profile info
-    preferred_first_name = Column(String(50), nullable=True)
-    preferred_last_name = Column(String(50), nullable=True)
-    study_goals = Column(Text, nullable=True)
-    career_goals = Column(Text, nullable=True)
-    
-    # Learning preferences
-    preferred_subjects = Column(Text, nullable=True)  # JSON array
-    difficulty_level = Column(String(50), default="intermediate")
-    study_schedule = Column(String(50), default="flexible")
-    learning_pace = Column(String(50), default="moderate")
-    motivation_factors = Column(Text, nullable=True)  # JSON array
-    weak_areas = Column(Text, nullable=True)  # JSON array
-    strong_areas = Column(Text, nullable=True)  # JSON array
-    
-    # Environment and accessibility
-    time_zone = Column(String(50), nullable=True)
-    study_environment = Column(String(50), default="quiet")
-    preferred_language = Column(String(50), default="english")
-    preferred_session_length = Column(String(20), nullable=True)
-    break_frequency = Column(String(20), nullable=True)
-    best_study_times = Column(Text, nullable=True)  # JSON array
-    preferred_content_types = Column(Text, nullable=True)  # JSON array
-    learning_challenges = Column(Text, nullable=True)
-    device_preferences = Column(Text, nullable=True)  # JSON array
-    accessibility_needs = Column(Text, nullable=True)  # JSON array
-    
-    # Technical preferences
-    internet_speed = Column(String(50), nullable=True)
-    data_usage = Column(String(50), nullable=True)
-    
-    # Communication preferences
-    notification_preferences = Column(Text, nullable=True)  # JSON array
-    contact_method = Column(String(50), nullable=True)
-    communication_frequency = Column(String(50), nullable=True)
-    
-    # Privacy settings
-    data_consent = Column(Text, nullable=True)  # JSON array
-    profile_visibility = Column(String(50), default="private")
-    
-    # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    profile_completion_percentage = Column(Integer, default=0)
-    
-    user = relationship("User", back_populates="comprehensive_profile")
 
 # ==================== ENHANCED STATS AND ANALYTICS ====================
 
@@ -815,8 +764,34 @@ class ComprehensiveProfileUpdate(BaseModel):
 
     class Config:
         extra = "ignore"
+        
+class ComprehensiveUserProfile(Base):
+    __tablename__ = "comprehensive_user_profiles"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
+    
+    # Learning preferences
+    preferred_subjects = Column(Text, nullable=True)
+    difficulty_level = Column(String(50), default="intermediate")
+    learning_pace = Column(String(50), default="moderate")
+    best_study_times = Column(Text, nullable=True)
+    
+    # ADD THESE TWO FIELDS:
+    weak_areas = Column(Text, nullable=True)  # ✅ ADD
+    strong_areas = Column(Text, nullable=True)  # ✅ ADD
+    
+    # Archetype fields
+    primary_archetype = Column(String(50), nullable=True)
+    secondary_archetype = Column(String(50), nullable=True)
+    archetype_scores = Column(Text, nullable=True)
+    archetype_description = Column(Text, nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User", back_populates="comprehensive_profile")
 
-# ==================== DB HELPERS ====================
 
 def create_tables():
     Base.metadata.create_all(bind=engine)

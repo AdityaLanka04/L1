@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from "react-router-dom";  // Remove BrowserRouter import
+import { Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from './pages/Dashboard';
 import AIChat from './pages/AIChat';
 import Homepage from './pages/Homepage';
@@ -9,6 +9,7 @@ import Notes from './pages/Notes';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/profile';
+import ProfileQuiz from './pages/ProfileQuiz';
 import { ThemeProvider } from './contexts/ThemeContext';
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
           <Route path="/" element={<Homepage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/profile-quiz" element={<ProfileQuiz />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/ai-chat" element={<AIChat />} />
           <Route path="/ai-chat/:chatId?" element={<AIChat />} />

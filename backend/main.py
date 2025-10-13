@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 import os
 import sys
 import re
@@ -27,6 +24,8 @@ from groq import Groq
 
 import models
 from database import SessionLocal, engine
+
+from advanced_prompting import get_archetype_adapted_prompt  # ✅ ONLY IMPORT THIS
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv()
@@ -254,7 +253,10 @@ def build_user_profile_dict(user, comprehensive_profile=None) -> Dict[str, Any]:
             "study_environment": getattr(comprehensive_profile, "study_environment", "quiet"),
             "preferred_language": getattr(comprehensive_profile, "preferred_language", "english"),
             "study_goals": getattr(comprehensive_profile, "study_goals", None),
-            "career_goals": getattr(comprehensive_profile, "career_goals", None)
+            "career_goals": getattr(comprehensive_profile, "career_goals", None),
+            "primary_archetype": getattr(comprehensive_profile, "primary_archetype", ""),
+            "secondary_archetype": getattr(comprehensive_profile, "secondary_archetype", ""),
+            "archetype_description": getattr(comprehensive_profile, "archetype_description", "")
         })
     
     return profile
@@ -708,21 +710,23 @@ async def generate_enhanced_ai_response(
     conversation_history: List[Dict],
     relevant_past_chats: List[Dict]
 ) -> str:
-    """
-    Generate AI response with full context awareness
-    """
     try:
-        # Build comprehensive system prompt
         system_prompt = build_enhanced_system_prompt(
             user_profile, 
             learning_context, 
             relevant_past_chats
         )
         
-        # Build conversation messages
+        primary_archetype = user_profile.get('primary_archetype', '')
+        secondary_archetype = user_profile.get('secondary_archetype', '')
+        
+        if primary_archetype:
+            from advanced_prompting import get_archetype_adapted_prompt
+            archetype_adaptation = get_archetype_adapted_prompt(primary_archetype, secondary_archetype)
+            system_prompt += f"\n\n=== ARCHETYPE-ADAPTED TEACHING STYLE ===\n{archetype_adaptation}"
+        
         messages = [{"role": "system", "content": system_prompt}]
         
-        # Add conversation history (last 5 exchanges)
         for hist in conversation_history[-5:]:
             messages.append({
                 "role": "user",
@@ -733,23 +737,19 @@ async def generate_enhanced_ai_response(
                 "content": hist.get('ai_response', '')
             })
         
-        # Add current prompt
         messages.append({"role": "user", "content": prompt})
         
-        # Call Groq API
         chat_completion = groq_client.chat.completions.create(
             messages=messages,
             model=GROQ_MODEL,
             temperature=0.7,
-            max_tokens=3072,  # Increased for more detailed responses
+            max_tokens=3072,
             top_p=0.9,
         )
         
         response = chat_completion.choices[0].message.content
         
-        # Post-process response to ensure quality
-        if len(response.split()) < 50:  # If response is too short
-            # Request more detail
+        if len(response.split()) < 50:
             follow_up_messages = messages + [
                 {"role": "assistant", "content": response},
                 {"role": "user", "content": "Can you provide more detail and examples?"}
@@ -770,8 +770,7 @@ async def generate_enhanced_ai_response(
         logger.error(f"Groq API error: {e}")
         return (
             f"I apologize, but I encountered an error processing your request. "
-            f"However, I'm here to help you learn about {user_profile.get('field_of_study', 'any topic')}. "
-            f"Please try rephrasing your question, and I'll do my best to provide a detailed explanation."
+            f"However, I'm here to help you learn. Please try rephrasing your question."
         )
 
 
@@ -891,7 +890,7 @@ async def ask_ai_enhanced(
         
         if not daily_metric:
             daily_metric = models.DailyLearningMetrics(
-                ser_id=user.id,
+                user_id=user.id,
                 date=today,
                 sessions_completed=1,  # ✅ This creates a session
                 time_spent_minutes=0,
@@ -2174,6 +2173,194 @@ def create_learning_review(
     except Exception as e:
         logger.error(f"Error creating review: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to create learning review: {str(e)}")
+    
+@app.post("/save_archetype_profile")
+async def save_archetype_profile(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    try:
+        user_id = payload.get("user_id")
+        primary_archetype = payload.get("primary_archetype")
+        secondary_archetype = payload.get("secondary_archetype")
+        archetype_scores = payload.get("archetype_scores", {})
+        archetype_description = payload.get("archetype_description", "")
+
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
+            models.ComprehensiveUserProfile.user_id == user.id
+        ).first()
+
+        if not comprehensive_profile:
+            comprehensive_profile = models.ComprehensiveUserProfile(
+                user_id=user.id,
+                primary_archetype=primary_archetype,
+                secondary_archetype=secondary_archetype,
+                archetype_scores=json.dumps(archetype_scores),
+                archetype_description=archetype_description
+            )
+            db.add(comprehensive_profile)
+        else:
+            comprehensive_profile.primary_archetype = primary_archetype
+            comprehensive_profile.secondary_archetype = secondary_archetype
+            comprehensive_profile.archetype_scores = json.dumps(archetype_scores)
+            comprehensive_profile.archetype_description = archetype_description
+
+        db.commit()
+        db.refresh(comprehensive_profile)
+
+        return {
+            "status": "success",
+            "message": "Archetype profile saved successfully",
+            "primary_archetype": primary_archetype,
+            "secondary_archetype": secondary_archetype
+        }
+
+    except Exception as e:
+        logger.error(f"Error saving archetype: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to save archetype: {str(e)}")
+
+
+@app.get("/check_profile_quiz")
+async def check_profile_quiz(user_id: str = Query(...), db: Session = Depends(get_db)):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
+            models.ComprehensiveUserProfile.user_id == user.id
+        ).first()
+
+        has_archetype = (
+            comprehensive_profile is not None and 
+            comprehensive_profile.primary_archetype is not None and 
+            comprehensive_profile.primary_archetype != ""
+        )
+
+        return {
+            "completed": has_archetype,
+            "user_id": user_id
+        }
+
+    except Exception as e:
+        logger.error(f"Error checking quiz: {str(e)}")
+        return {"completed": False}
+
+
+@app.get("/get_comprehensive_profile")
+async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Depends(get_db)):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
+            models.ComprehensiveUserProfile.user_id == user.id
+        ).first()
+
+        result = {
+            "firstName": user.first_name or "",
+            "lastName": user.last_name or "",
+            "email": user.email or "",
+            "age": user.age,
+            "fieldOfStudy": user.field_of_study or "",
+            "difficultyLevel": "intermediate",
+            "learningPace": "moderate",
+            "preferredSubjects": [],
+            "bestStudyTimes": [],
+            "primaryArchetype": "",
+            "secondaryArchetype": "",
+            "archetypeDescription": ""
+        }
+
+        if comprehensive_profile:
+            result.update({
+                "difficultyLevel": comprehensive_profile.difficulty_level or "intermediate",
+                "learningPace": comprehensive_profile.learning_pace or "moderate",
+                "primaryArchetype": comprehensive_profile.primary_archetype or "",
+                "secondaryArchetype": comprehensive_profile.secondary_archetype or "",
+                "archetypeDescription": comprehensive_profile.archetype_description or ""
+            })
+
+            try:
+                if comprehensive_profile.preferred_subjects:
+                    result["preferredSubjects"] = json.loads(comprehensive_profile.preferred_subjects)
+            except:
+                pass
+
+            try:
+                if comprehensive_profile.best_study_times:
+                    result["bestStudyTimes"] = json.loads(comprehensive_profile.best_study_times)
+            except:
+                pass
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Error getting profile: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/update_comprehensive_profile")
+async def update_comprehensive_profile(
+    profile_data: UserProfileUpdate,
+    db: Session = Depends(get_db)
+):
+    try:
+        user = get_user_by_username(db, profile_data.user_id) or get_user_by_email(db, profile_data.user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        if profile_data.firstName:
+            user.first_name = profile_data.firstName
+        if profile_data.lastName:
+            user.last_name = profile_data.lastName
+        if profile_data.email:
+            user.email = profile_data.email
+        if profile_data.age:
+            user.age = profile_data.age
+        if profile_data.fieldOfStudy:
+            user.field_of_study = profile_data.fieldOfStudy
+        if profile_data.learningStyle:
+            user.learning_style = profile_data.learningStyle
+
+        comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
+            models.ComprehensiveUserProfile.user_id == user.id
+        ).first()
+
+        if not comprehensive_profile:
+            comprehensive_profile = models.ComprehensiveUserProfile(user_id=user.id)
+            db.add(comprehensive_profile)
+
+        if profile_data.difficultyLevel:
+            comprehensive_profile.difficulty_level = profile_data.difficultyLevel
+        if profile_data.learningPace:
+            comprehensive_profile.learning_pace = profile_data.learningPace
+        if profile_data.timeZone:
+            comprehensive_profile.time_zone = profile_data.timeZone
+        if profile_data.preferredSessionLength:
+            comprehensive_profile.preferred_session_length = profile_data.preferredSessionLength
+
+        if profile_data.preferredSubjects:
+            comprehensive_profile.preferred_subjects = json.dumps(profile_data.preferredSubjects)
+        if profile_data.bestStudyTimes:
+            comprehensive_profile.best_study_times = json.dumps(profile_data.bestStudyTimes)
+
+        db.commit()
+
+        return {
+            "status": "success",
+            "message": "Profile updated successfully"
+        }
+
+    except Exception as e:
+        logger.error(f"Error updating profile: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
 

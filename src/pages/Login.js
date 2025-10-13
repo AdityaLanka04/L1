@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { signInWithPopup } from 'firebase/auth';
-import { auth, googleProvider } from '../firebase/config'; // Import Firebase config
+import { auth, googleProvider } from '../firebase/config';
 import './Login.css';
 
 function Login() {
@@ -12,19 +12,32 @@ function Login() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
 
+  const checkAndRedirect = async (username) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:8001/check_profile_quiz?user_id=${username}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.data.completed) {
+        navigate('/dashboard');
+      } else {
+        navigate('/profile-quiz');
+      }
+    } catch (error) {
+      console.error('Error checking quiz status:', error);
+      navigate('/profile-quiz');
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     try {
-      // Firebase popup sign-in
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       
-      console.log('Firebase user:', user);
-      
-      // Get the ID token
       const idToken = await user.getIdToken();
       
-      // Send to your backend
       const backendResponse = await axios.post('http://localhost:8001/firebase-auth', {
         idToken: idToken,
         email: user.email,
@@ -35,7 +48,6 @@ function Login() {
 
       const { access_token, user: userData } = backendResponse.data;
       
-      // Store user data
       localStorage.setItem('token', access_token);
       localStorage.setItem('username', userData.email);
       localStorage.setItem('userProfile', JSON.stringify({
@@ -46,16 +58,13 @@ function Login() {
         googleUser: true
       }));
 
-      console.log('Firebase Google sign-in successful');
-      navigate('/dashboard');
+      await checkAndRedirect(userData.email);
     } catch (error) {
       console.error('Firebase Google sign-in error:', error);
       
-      // Handle specific Firebase errors
       if (error.code === 'auth/popup-blocked') {
         alert('Popup was blocked. Please allow popups for this site and try again.');
       } else if (error.code === 'auth/popup-closed-by-user') {
-        // User closed the popup, don't show error
         console.log('User cancelled sign-in');
       } else {
         alert('Google sign-in failed: ' + (error.message || 'Unknown error'));
@@ -89,7 +98,8 @@ function Login() {
       const token = response.data.access_token;
       localStorage.setItem('token', token);
       localStorage.setItem('username', username);
-      navigate('/dashboard');
+      
+      await checkAndRedirect(username);
     } catch (err) {
       console.error(err);
       alert('Login failed: ' + (err.response?.data?.detail || 'Unknown error'));
@@ -107,7 +117,6 @@ function Login() {
         <div className="login-form-container">
           <h2 className="form-title">LOGIN</h2>
           
-          {/* Firebase Google Sign-In Button */}
           <div className="google-signin-container">
             <button
               onClick={handleGoogleSignIn}
@@ -231,7 +240,6 @@ function Login() {
         </div>
       </div>
       
-      {/* Add CSS for spinner animation */}
       <style jsx>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
