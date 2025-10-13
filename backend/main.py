@@ -150,6 +150,8 @@ class UserProfileUpdate(BaseModel):
     timeZone: Optional[str] = None
     studyEnvironment: Optional[str] = "quiet"
     preferredLanguage: Optional[str] = "english"
+    preferredSessionLength: Optional[int] = None  
+    bestStudyTimes: Optional[List[str]] = [] 
 
 def get_db():
     db = SessionLocal()
@@ -1149,8 +1151,34 @@ def delete_chat_session(
     
     return {"message": "Chat session deleted successfully"}
 
+# ==================== NOTES ENDPOINTS ====================
+# Add this helper function BEFORE the notes endpoints
+def clean_conversational_elements(text: str) -> str:
+    """Remove conversational phrases from AI-generated content"""
+    conversational_patterns = [
+        r'^(Hi|Hello|Hey|Greetings)[,!.\s]+.*?\n',
+        r'^(Sure|Of course|Certainly|Absolutely)[,!.\s]+.*?\n',
+        r'^(Here\'s|Here is|Let me)[,\s]+.*?\n',
+        r'^(I\'ll|I will|I can)[,\s]+.*?\n',
+        r'Hope this helps.*$',
+        r'Feel free to.*$',
+        r'Let me know.*$',
+    ]
+    
+    cleaned_text = text
+    for pattern in conversational_patterns:
+        cleaned_text = re.sub(pattern, '', cleaned_text, flags=re.MULTILINE | re.IGNORECASE)
+    
+    # Remove multiple newlines and clean up
+    cleaned_text = re.sub(r'\n{3,}', '\n\n', cleaned_text)
+    return cleaned_text.lstrip('\n\r\t ')
+
+
+# ==================== NOTES ENDPOINTS ====================
+
 @app.get("/get_notes")
 def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """Get all notes for a user"""
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -1169,6 +1197,406 @@ def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
         }
         for note in notes
     ]
+
+
+@app.post("/generate_note_content/")
+async def generate_note_content(
+    user_id: str = Form(...),
+    prompt: str = Form(...),
+    content_type: str = Form("detailed"),
+    db: Session = Depends(get_db)
+):
+    """
+    Generate AI content for notes - returns ONLY content, no conversational elements
+    """
+    try:
+        logger.info(f"📝 Generating note content for user: {user_id}")
+        logger.info(f"📝 Prompt: {prompt[:100]}")
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            logger.error(f"❌ User not found: {user_id}")
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
+            models.ComprehensiveUserProfile.user_id == user.id
+        ).first()
+        
+        user_profile = build_user_profile_dict(user, comprehensive_profile)
+        
+        system_prompt = f"""You are a professional educational content generator.
+
+CRITICAL RULES:
+1. Generate ONLY the content - NO greetings, NO conversational phrases
+2. DO NOT use: "Hi", "Hello", "Sure", "Here's", "Let me", "I'll", "Hope this helps"
+3. Start DIRECTLY with the main content
+4. Use HTML formatting: <h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>
+5. Be educational, clear, and well-structured
+
+Student Level: {user_profile.get('difficulty_level', 'intermediate')}
+Learning Style: {user_profile.get('learning_style', 'Mixed')}
+Field of Study: {user_profile.get('field_of_study', 'General')}
+
+Generate {content_type} educational content about: {prompt}
+
+STRUCTURE:
+- Start with a main heading (h1)
+- Use proper heading hierarchy (h1, h2, h3)
+- Include bullet points for key concepts
+- Add examples where relevant
+- Use paragraphs for explanations
+- NO conversational elements whatsoever
+
+Format everything in HTML. Start immediately with the content."""
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Generate educational content about: {prompt}"}
+        ]
+
+        logger.info("🤖 Calling Groq API...")
+        
+        chat_completion = groq_client.chat.completions.create(
+            messages=messages,
+            model=GROQ_MODEL,
+            temperature=0.7,
+            max_tokens=2048,
+            top_p=0.9,
+        )
+        
+        generated_content = chat_completion.choices[0].message.content
+        logger.info(f"✅ Generated content length: {len(generated_content)} characters")
+        
+        generated_content = clean_conversational_elements(generated_content)
+        
+        if not generated_content.strip().startswith('<'):
+            generated_content = f"<h1>{prompt}</h1>\n<p>{generated_content}</p>"
+        
+        logger.info("✅ Content generation successful")
+        
+        return {
+            "status": "success",
+            "content": generated_content,
+            "content_type": content_type,
+            "word_count": len(generated_content.split()),
+            "model_used": GROQ_MODEL
+        }
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"❌ Error generating note content: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to generate content: {str(e)}"
+        )
+
+
+@app.post("/create_note")
+def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
+    """Create a new note"""
+    try:
+        user = get_user_by_username(db, note_data.user_id) or get_user_by_email(db, note_data.user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        new_note = models.Note(
+            user_id=user.id,
+            title=note_data.title,
+            content=note_data.content
+        )
+        db.add(new_note)
+        db.commit()
+        db.refresh(new_note)
+        
+        return {
+            "id": new_note.id,
+            "title": new_note.title,
+            "content": new_note.content,
+            "user_id": user.id,
+            "created_at": new_note.created_at.isoformat(),
+            "updated_at": new_note.updated_at.isoformat(),
+            "status": "success",
+            "message": "Note created successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error creating note: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create note: {str(e)}")
+
+
+@app.put("/update_note")
+def update_note(note_data: NoteUpdate, db: Session = Depends(get_db)):
+    """Update an existing note"""
+    note = db.query(models.Note).filter(models.Note.id == note_data.note_id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    
+    note.title = note_data.title
+    note.content = note_data.content
+    note.updated_at = datetime.now(timezone.utc)
+    
+    db.commit()
+    db.refresh(note)
+    
+    return {
+        "id": note.id,
+        "title": note.title,
+        "content": note.content,
+        "updated_at": note.updated_at.isoformat()
+    }
+
+
+@app.delete("/delete_note/{note_id}")
+def delete_note(note_id: int, db: Session = Depends(get_db)):
+    """Delete a note"""
+    note = db.query(models.Note).filter(models.Note.id == note_id).first()
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    
+    db.delete(note)
+    db.commit()
+    
+    return {"message": "Note deleted successfully"}
+
+
+@app.post("/generate_note_summary/")
+async def generate_note_summary(
+    user_id: str = Form(...),
+    conversation_data: str = Form(...),
+    session_titles: str = Form(...),
+    import_mode: str = Form("summary"),
+    db: Session = Depends(get_db)
+):
+    """Generate a summary for chat-to-note conversion"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user_profile = build_user_profile_dict(user)
+        
+        if import_mode == "summary":
+            prompt = f"""Create study notes from this conversation. Format with headers, bullet points, and key concepts.
+
+Conversation: {conversation_data[:3000]}
+
+Provide a clear title and well-formatted study notes."""
+        elif import_mode == "exam_prep":
+            prompt = f"""Create an exam preparation guide from this conversation. Include:
+1. Executive Summary
+2. Key Concepts
+3. Study Strategy
+4. Review Checklist
+
+Conversation: {conversation_data[:3000]}
+
+Format as a comprehensive exam prep guide with a clear title."""
+        else:
+            prompt = f"""Create a formatted transcript from this conversation.
+
+Conversation: {conversation_data[:3000]}
+
+Provide a title and formatted content."""
+        
+        response = await generate_ai_response(prompt, user_profile)
+        
+        lines = response.split('\n')
+        title = lines[0].replace('#', '').strip() if lines else "Study Notes"
+        content = '\n'.join(lines[1:]) if len(lines) > 1 else response
+        
+        return {
+            "title": title[:100],
+            "content": content
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating note summary: {str(e)}")
+        return {
+            "title": "Study Notes",
+            "content": f"# Study Notes\n\n{conversation_data[:1000]}"
+        }
+
+# ==================== END NOTES ENDPOINTS ====================# Add this new endpoint to your main.py file
+
+# Add this to your main.py (replace the existing generate_note_content endpoint)
+
+
+
+
+
+
+# Optional: Add endpoint to generate content from existing chat
+@app.post("/convert_chat_to_note_content/")
+async def convert_chat_to_note_content(
+    user_id: str = Form(...),
+    chat_session_id: int = Form(...),
+    format_style: str = Form("comprehensive"),  # comprehensive, summary, key_points
+    db: Session = Depends(get_db)
+):
+    """
+    Convert an existing chat session into formatted note content
+    """
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get chat session
+        chat_session = db.query(models.ChatSession).filter(
+            models.ChatSession.id == chat_session_id,
+            models.ChatSession.user_id == user.id
+        ).first()
+        
+        if not chat_session:
+            raise HTTPException(status_code=404, detail="Chat session not found")
+        
+        # Get all messages from the session
+        messages = db.query(models.ChatMessage).filter(
+            models.ChatMessage.chat_session_id == chat_session_id
+        ).order_by(models.ChatMessage.timestamp.asc()).all()
+        
+        if not messages:
+            raise HTTPException(status_code=404, detail="No messages found in chat session")
+        
+        # Compile conversation data
+        conversation_text = []
+        for msg in messages:
+            conversation_text.append(f"Q: {msg.user_message}")
+            conversation_text.append(f"A: {msg.ai_response}")
+        
+        full_conversation = "\n\n".join(conversation_text)
+        
+        # Generate formatted notes from conversation
+        if format_style == "comprehensive":
+            prompt = f"""Convert this chat conversation into comprehensive study notes.
+
+Conversation:
+{full_conversation[:4000]}
+
+Create well-structured notes with:
+- Clear headings and subheadings
+- Key concepts explained
+- Important points highlighted
+- Examples included
+- Summary at the end
+
+Use HTML formatting. Start directly with content (NO conversational elements)."""
+
+        elif format_style == "summary":
+            prompt = f"""Create a concise summary of this chat conversation:
+
+{full_conversation[:4000]}
+
+Include:
+- Main topics discussed
+- Key takeaways (bullet points)
+- Important conclusions
+
+Use HTML formatting. Start directly with content."""
+
+        elif format_style == "key_points":
+            prompt = f"""Extract the key points from this conversation:
+
+{full_conversation[:4000]}
+
+Format as:
+- Numbered or bulleted list of main points
+- Brief explanations where needed
+- Organized by topic
+
+Use HTML formatting. Start directly with content."""
+        
+        user_profile = build_user_profile_dict(user)
+        
+        system_prompt = f"""You are a notes content generator. Convert the conversation into clean, educational notes.
+CRITICAL: Generate ONLY the content - NO greetings, NO conversational phrases.
+Use HTML formatting tags. Start DIRECTLY with the content."""
+
+        chat_completion = groq_client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt}
+            ],
+            model=GROQ_MODEL,
+            temperature=0.7,
+            max_tokens=2048,
+            top_p=0.9,
+        )
+        
+        generated_content = chat_completion.choices[0].message.content
+        generated_content = clean_conversational_elements(generated_content)
+        
+        return {
+            "status": "success",
+            "content": generated_content,
+            "title": chat_session.title,
+            "format_style": format_style,
+            "original_message_count": len(messages),
+            "word_count": len(generated_content.split())
+        }
+        
+    except Exception as e:
+        logger.error(f"Error converting chat to note: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to convert chat: {str(e)}")
+
+
+# Optional: Endpoint to expand/elaborate on selected text
+@app.post("/expand_note_content/")
+async def expand_note_content(
+    user_id: str = Form(...),
+    selected_text: str = Form(...),
+    expansion_type: str = Form("elaborate"),  # elaborate, explain, add_examples
+    db: Session = Depends(get_db)
+):
+    """
+    Expand or elaborate on selected text in a note
+    """
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user_profile = build_user_profile_dict(user)
+        
+        if expansion_type == "elaborate":
+            instruction = f"Provide a detailed elaboration of this text: {selected_text}\n\nAdd more depth, context, and explanation."
+        elif expansion_type == "explain":
+            instruction = f"Explain this concept in simpler terms: {selected_text}\n\nMake it easy to understand."
+        elif expansion_type == "add_examples":
+            instruction = f"Provide practical examples for: {selected_text}\n\nInclude 2-3 real-world examples."
+        else:
+            instruction = f"Expand on this text with additional information: {selected_text}"
+        
+        system_prompt = f"""You are expanding notes content for a {user_profile.get('difficulty_level', 'intermediate')} level student.
+Generate ONLY the expanded content - NO conversational elements.
+Use HTML formatting. Start DIRECTLY with the content."""
+
+        chat_completion = groq_client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": instruction}
+            ],
+            model=GROQ_MODEL,
+            temperature=0.7,
+            max_tokens=1024,
+            top_p=0.9,
+        )
+        
+        expanded_content = chat_completion.choices[0].message.content
+        expanded_content = clean_conversational_elements(expanded_content)
+        
+        return {
+            "status": "success",
+            "expanded_content": expanded_content,
+            "expansion_type": expansion_type,
+            "original_length": len(selected_text),
+            "expanded_length": len(expanded_content)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error expanding content: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to expand content: {str(e)}")
 
 @app.post("/create_note")
 def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):

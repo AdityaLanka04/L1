@@ -5,7 +5,7 @@ import AIChat from './pages/AIChat';
 import Homepage from './pages/Homepage';
 import LearningReview from './pages/LearningReview';
 import Flashcards from './pages/Flashcards';
-import Notes from './pages/Notes';
+import Notes from './pages/NotesRedesign';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/profile';
