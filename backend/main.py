@@ -153,6 +153,31 @@ class UserProfileUpdate(BaseModel):
     preferredSessionLength: Optional[int] = None  
     bestStudyTimes: Optional[List[str]] = [] 
 
+class FolderCreate(BaseModel):
+    user_id: str
+    name: str
+    color: Optional[str] = "#D7B38C"
+    parent_id: Optional[int] = None
+
+class FolderUpdate(BaseModel):
+    folder_id: int
+    name: str
+    color: Optional[str] = None
+
+class NoteUpdateFolder(BaseModel):
+    note_id: int
+    folder_id: Optional[int] = None
+
+class NoteFavorite(BaseModel):
+    note_id: int
+    is_favorite: bool
+
+class AIWritingAssistRequest(BaseModel):
+    user_id: str
+    content: str
+    action: str  # "continue", "improve", "simplify", "expand", "tone_change"
+    tone: Optional[str] = "professional"
+
 def get_db():
     db = SessionLocal()
     try:
@@ -1153,6 +1178,8 @@ def delete_chat_session(
 
 # ==================== NOTES ENDPOINTS ====================
 # Add this helper function BEFORE the notes endpoints
+
+
 def clean_conversational_elements(text: str) -> str:
     """Remove conversational phrases from AI-generated content"""
     conversational_patterns = [
@@ -1198,6 +1225,98 @@ def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
         for note in notes
     ]
 
+# Add these endpoints to your main.py file
+
+@app.get("/get_folders")
+def get_folders(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """Get all folders for a user"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        folders = db.query(models.Folder).filter(
+            models.Folder.user_id == user.id
+        ).order_by(models.Folder.name.asc()).all()
+        
+        result = []
+        for folder in folders:
+            note_count = db.query(models.Note).filter(
+                models.Note.folder_id == folder.id
+            ).count()
+            
+            result.append({
+                "id": folder.id,
+                "name": folder.name,
+                "color": folder.color,
+                "parent_id": folder.parent_id,
+                "note_count": note_count,
+                "created_at": folder.created_at.isoformat()
+            })
+        
+        return {"folders": result}
+    except Exception as e:
+        logger.error(f"Error getting folders: {str(e)}")
+        return {"folders": []}
+
+
+@app.put("/soft_delete_note/{note_id}")
+def soft_delete_note(note_id: int, db: Session = Depends(get_db)):
+    """Move note to trash (soft delete)"""
+    try:
+        note = db.query(models.Note).filter(
+            models.Note.id == note_id
+        ).first()
+        
+        if not note:
+            raise HTTPException(status_code=404, detail="Note not found")
+        
+        note.is_deleted = True
+        note.deleted_at = datetime.now(timezone.utc)
+        db.commit()
+        
+        return {
+            "message": "Note moved to trash",
+            "note_id": note.id,
+            "status": "success"
+        }
+    except Exception as e:
+        logger.error(f"Error soft deleting note: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/get_trash")
+def get_trash(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """Get all deleted notes (trash)"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get notes deleted within last 30 days
+        thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
+        
+        notes = db.query(models.Note).filter(
+            models.Note.user_id == user.id,
+            models.Note.is_deleted == True,
+            models.Note.deleted_at >= thirty_days_ago
+        ).order_by(models.Note.deleted_at.desc()).all()
+        
+        return {
+            "trash": [
+                {
+                    "id": note.id,
+                    "title": note.title,
+                    "content": note.content,
+                    "deleted_at": note.deleted_at.isoformat(),
+                    "days_remaining": 30 - (datetime.now(timezone.utc) - note.deleted_at).days
+                }
+                for note in notes
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Error getting trash: {str(e)}")
+        return {"trash": []}
 
 @app.post("/generate_note_content/")
 async def generate_note_content(
@@ -1715,6 +1834,285 @@ Provide a title and formatted content."""
             "title": "Study Notes",
             "content": f"# Study Notes\n\n{conversation_data[:1000]}"
         }
+# ==================== NEW MODELS FOR FEATURES ====================
+
+
+
+# ==================== FOLDERS ENDPOINTS ====================
+
+@app.post("/create_folder")
+def create_folder(folder_data: FolderCreate, db: Session = Depends(get_db)):
+    """Create a new folder"""
+    try:
+        user = get_user_by_username(db, folder_data.user_id) or get_user_by_email(db, folder_data.user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        new_folder = models.Folder(
+            user_id=user.id,
+            name=folder_data.name,
+            color=folder_data.color,
+            parent_id=folder_data.parent_id
+        )
+        db.add(new_folder)
+        db.commit()
+        db.refresh(new_folder)
+        
+        return {
+            "id": new_folder.id,
+            "name": new_folder.name,
+            "color": new_folder.color,
+            "parent_id": new_folder.parent_id,
+            "created_at": new_folder.created_at.isoformat(),
+            "status": "success"
+        }
+    except Exception as e:
+        logger.error(f"Error creating folder: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/delete_folder/{folder_id}")
+def delete_folder(folder_id: int, db: Session = Depends(get_db)):
+    """Delete a folder (moves notes to root)"""
+    try:
+        folder = db.query(models.Folder).filter(
+            models.Folder.id == folder_id
+        ).first()
+        
+        if not folder:
+            raise HTTPException(status_code=404, detail="Folder not found")
+        
+        # Move all notes in this folder to root (no folder)
+        db.query(models.Note).filter(
+            models.Note.folder_id == folder_id
+        ).update({"folder_id": None})
+        
+        db.delete(folder)
+        db.commit()
+        
+        return {"message": "Folder deleted successfully", "status": "success"}
+    except Exception as e:
+        logger.error(f"Error deleting folder: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/move_note_to_folder")
+def move_note_to_folder(data: NoteUpdateFolder, db: Session = Depends(get_db)):
+    """Move note to a folder or remove from folder"""
+    try:
+        note = db.query(models.Note).filter(
+            models.Note.id == data.note_id
+        ).first()
+        
+        if not note:
+            raise HTTPException(status_code=404, detail="Note not found")
+        
+        note.folder_id = data.folder_id
+        db.commit()
+        
+        return {
+            "message": "Note moved successfully",
+            "note_id": note.id,
+            "folder_id": data.folder_id,
+            "status": "success"
+        }
+    except Exception as e:
+        logger.error(f"Error moving note: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== FAVORITES ENDPOINT ====================
+
+@app.put("/toggle_favorite")
+def toggle_favorite(data: NoteFavorite, db: Session = Depends(get_db)):
+    """Toggle favorite status of a note"""
+    try:
+        note = db.query(models.Note).filter(
+            models.Note.id == data.note_id
+        ).first()
+        
+        if not note:
+            raise HTTPException(status_code=404, detail="Note not found")
+        
+        note.is_favorite = data.is_favorite
+        note.updated_at = datetime.now(timezone.utc)
+        db.commit()
+        
+        return {
+            "message": "Favorite status updated",
+            "note_id": note.id,
+            "is_favorite": note.is_favorite,
+            "status": "success"
+        }
+    except Exception as e:
+        logger.error(f"Error toggling favorite: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/get_favorite_notes")
+def get_favorite_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """Get all favorite notes"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        notes = db.query(models.Note).filter(
+            models.Note.user_id == user.id,
+            models.Note.is_favorite == True,
+            models.Note.is_deleted == False
+        ).order_by(models.Note.updated_at.desc()).all()
+        
+        return {
+            "favorites": [
+                {
+                    "id": note.id,
+                    "title": note.title,
+                    "content": note.content,
+                    "created_at": note.created_at.isoformat(),
+                    "updated_at": note.updated_at.isoformat()
+                }
+                for note in notes
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Error getting favorites: {str(e)}")
+        return {"favorites": []}
+
+
+# ==================== TRASH/RECYCLE BIN ====================
+
+
+@app.put("/restore_note/{note_id}")
+def restore_note(note_id: int, db: Session = Depends(get_db)):
+    """Restore note from trash"""
+    try:
+        note = db.query(models.Note).filter(
+            models.Note.id == note_id
+        ).first()
+        
+        if not note:
+            raise HTTPException(status_code=404, detail="Note not found")
+        
+        note.is_deleted = False
+        note.deleted_at = None
+        note.updated_at = datetime.now(timezone.utc)
+        db.commit()
+        
+        return {
+            "message": "Note restored successfully",
+            "note_id": note.id,
+            "status": "success"
+        }
+    except Exception as e:
+        logger.error(f"Error restoring note: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/permanent_delete_note/{note_id}")
+def permanent_delete_note(note_id: int, db: Session = Depends(get_db)):
+    """Permanently delete a note"""
+    try:
+        note = db.query(models.Note).filter(
+            models.Note.id == note_id
+        ).first()
+        
+        if not note:
+            raise HTTPException(status_code=404, detail="Note not found")
+        
+        db.delete(note)
+        db.commit()
+        
+        return {
+            "message": "Note permanently deleted",
+            "status": "success"
+        }
+    except Exception as e:
+        logger.error(f"Error permanently deleting note: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== AI WRITING ASSISTANT ====================
+
+@app.post("/ai_writing_assistant/")
+async def ai_writing_assistant(
+    request: AIWritingAssistRequest,
+    db: Session = Depends(get_db)
+):
+    """AI Writing Assistant - multiple actions"""
+    try:
+        user = get_user_by_username(db, request.user_id) or get_user_by_email(db, request.user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user_profile = build_user_profile_dict(user)
+        
+        # Build prompt based on action
+        prompts = {
+            "continue": f"Continue writing this text naturally:\n\n{request.content}\n\nContinue from where it left off:",
+            "improve": f"Improve and enhance this text while keeping the same meaning:\n\n{request.content}\n\nImproved version:",
+            "simplify": f"Simplify this text to make it easier to understand:\n\n{request.content}\n\nSimplified version:",
+            "expand": f"Expand this text with more details and examples:\n\n{request.content}\n\nExpanded version:",
+            "tone_change": f"Rewrite this text in a {request.tone} tone:\n\n{request.content}\n\nRewritten version:",
+            "grammar": f"Fix grammar and spelling errors in this text:\n\n{request.content}\n\nCorrected version:",
+            "summarize": f"Summarize this text concisely:\n\n{request.content}\n\nSummary:"
+        }
+        
+        prompt = prompts.get(request.action, prompts["improve"])
+        
+        # Call Groq AI
+        chat_completion = groq_client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": f"You are a helpful writing assistant for {user_profile.get('first_name', 'the user')}."},
+                {"role": "user", "content": prompt}
+            ],
+            model=GROQ_MODEL,
+            temperature=0.7,
+            max_tokens=2048,
+            top_p=0.9,
+        )
+        
+        result = chat_completion.choices[0].message.content
+        
+        return {
+            "status": "success",
+            "action": request.action,
+            "result": result,
+            "model_used": GROQ_MODEL
+        }
+        
+    except Exception as e:
+        logger.error(f"AI writing assistant error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI assistant failed: {str(e)}")
+
+
+# ==================== UPDATE GET_NOTES TO INCLUDE NEW FIELDS ====================
+
+@app.get("/get_notes")
+def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """Get all notes for a user (excluding deleted)"""
+    user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    notes = db.query(models.Note).filter(
+        models.Note.user_id == user.id,
+        models.Note.is_deleted == False  # Exclude deleted notes
+    ).order_by(models.Note.updated_at.desc()).all()
+    
+    return [
+        {
+            "id": note.id,
+            "title": note.title,
+            "content": note.content,
+            "created_at": note.created_at.isoformat(),
+            "updated_at": note.updated_at.isoformat(),
+            "is_favorite": getattr(note, 'is_favorite', False),
+            "folder_id": getattr(note, 'folder_id', None),
+            "custom_font": getattr(note, 'custom_font', 'Inter')
+        }
+        for note in notes
+    ]
+
 
 @app.post("/create_flashcard_set")
 def create_flashcard_set(set_data: FlashcardSetCreate, db: Session = Depends(get_db)):

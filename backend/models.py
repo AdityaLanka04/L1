@@ -1,6 +1,6 @@
 from sqlalchemy import (
     create_engine, Column, Integer, String, Text, DateTime, ForeignKey,
-    Boolean, Float, JSON, Date
+    Boolean, Float, JSON, Date, func  # ✅ ADD func here
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
@@ -9,14 +9,12 @@ from typing import Optional, List
 from pydantic import BaseModel
 import os
 
-# At the top of models.py
-from database import SessionLocal, engine, Base  # Import Base from database.py
-
 # ==================== DATABASE CONFIG ====================
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./brainwave_tutor.db")
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()  # ✅ Define Base here
 
 # ==================== ORM MODELS ====================
 
@@ -50,7 +48,8 @@ class User(Base):
     # Relationships
     chat_sessions = relationship("ChatSession", back_populates="user")
     user_stats = relationship("UserStats", back_populates="user", uselist=False)
-    notes = relationship("Note", back_populates="user")
+    notes = relationship("Note", back_populates="user")  # ✅ ADD THIS
+    folders = relationship("Folder", back_populates="user")  # ✅ ADD THIS
     activities = relationship("Activity", back_populates="user")
     flashcard_sets = relationship("FlashcardSet", back_populates="user")
     flashcard_study_sessions = relationship("FlashcardStudySession", back_populates="user")
@@ -64,77 +63,41 @@ class User(Base):
     achievements = relationship("UserAchievement", back_populates="user")
     comprehensive_profile = relationship("ComprehensiveUserProfile", back_populates="user", uselist=False)
 
-
-class ChatSession(Base):
-    __tablename__ = "chat_sessions"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    title = Column(String(200), default="New Chat")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    session_summary = Column(Text, nullable=True)
-    emotional_tone = Column(String(50), nullable=True)
-    difficulty_level = Column(String(50), nullable=True)
-
-    user = relationship("User", back_populates="chat_sessions")
-    messages = relationship("ChatMessage", back_populates="chat_session", cascade="all, delete-orphan")
-
-
-class ChatMessage(Base):
-    __tablename__ = "chat_messages"
-
-    id = Column(Integer, primary_key=True, index=True)
-    chat_session_id = Column(Integer, ForeignKey("chat_sessions.id"))
-    user_message = Column(Text)
-    ai_response = Column(Text)
-    timestamp = Column(DateTime, default=datetime.utcnow)
-    user_sentiment = Column(Float, nullable=True)
-    response_rating = Column(Integer, nullable=True)
-    topics_discussed = Column(JSON, nullable=True)
-    difficulty_level = Column(String(50), nullable=True)
-    ai_confidence = Column(Float, nullable=True)
-    response_time = Column(Float, nullable=True)
-
-    chat_session = relationship("ChatSession", back_populates="messages")
-
-
-class UserStats(Base):
-    __tablename__ = "user_stats"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    day_streak = Column(Integer, default=0)
-    total_lessons = Column(Integer, default=0)
-    total_hours = Column(Float, default=0.0)
-    accuracy_percentage = Column(Float, default=0.0)
-    last_activity = Column(DateTime, default=datetime.utcnow)
-
-    total_concepts_learned = Column(Integer, default=0)
-    favorite_learning_time = Column(String(50), nullable=True)
-    average_session_rating = Column(Float, default=0.0)
-    total_questions_asked = Column(Integer, default=0)
-
-    user = relationship("User", back_populates="user_stats")
-
+# ... (ChatSession, ChatMessage, UserStats remain the same)
 
 class Note(Base):
     __tablename__ = "notes"
-
+    
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    title = Column(String(200), default="New Note")
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    folder_id = Column(Integer, ForeignKey("folders.id"), nullable=True)
+    title = Column(String(255), default="Untitled")
     content = Column(Text, default="")
+    is_favorite = Column(Boolean, default=False)
+    is_deleted = Column(Boolean, default=False)
+    deleted_at = Column(DateTime, nullable=True)  # ✅ Remove timezone=True
+    custom_font = Column(String(100), default="Inter")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    ai_generated = Column(Boolean, default=False)
-    source_chat_sessions = Column(JSON, nullable=True)
-    difficulty_level = Column(String(50), nullable=True)
-    estimated_study_time = Column(Integer, nullable=True)
-
+    # ✅ ADD RELATIONSHIPS
     user = relationship("User", back_populates="notes")
+    folder = relationship("Folder", back_populates="notes")
 
+class Folder(Base):
+    __tablename__ = "folders"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    name = Column(String(255), nullable=False)
+    color = Column(String(50), default="#D7B38C")
+    parent_id = Column(Integer, ForeignKey("folders.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # ✅ ADD RELATIONSHIPS
+    user = relationship("User", back_populates="folders")
+    notes = relationship("Note", back_populates="folder")
 
 class Activity(Base):
     __tablename__ = "activities"
