@@ -1225,23 +1225,68 @@ def debug_notes(user_id: str, db: Session = Depends(get_db)):
 
 @app.post("/fix_all_notes")
 def fix_all_notes(db: Session = Depends(get_db)):
-    """Emergency fix - set all NULL is_deleted to False"""
+    """Emergency fix - set all NULL is_deleted to False and ensure data integrity"""
     try:
         # Get all notes
         all_notes = db.query(models.Note).all()
         
         fixed_count = 0
-        for note in all_notes:
-            if note.is_deleted is None:
-                note.is_deleted = False
-                fixed_count += 1
+        verified_count = 0
+        error_count = 0
         
+        for note in all_notes:
+            try:
+                # Fix NULL or None is_deleted values
+                if note.is_deleted is None:
+                    note.is_deleted = False
+                    fixed_count += 1
+                
+                # Fix any integer 1 that should be True (for SQLite compatibility)
+                elif note.is_deleted == 1:
+                    note.is_deleted = True
+                    verified_count += 1
+                
+                # Fix any integer 0 that should be False
+                elif note.is_deleted == 0:
+                    note.is_deleted = False
+                    verified_count += 1
+                
+                # If marked as deleted but no deleted_at timestamp, add one
+                if note.is_deleted and note.deleted_at is None:
+                    note.deleted_at = datetime.now(timezone.utc)
+                    logger.info(f"Added deleted_at timestamp to note {note.id}")
+                
+                # If not deleted but has deleted_at timestamp, clear it
+                if not note.is_deleted and note.deleted_at is not None:
+                    note.deleted_at = None
+                    logger.info(f"Cleared deleted_at timestamp from note {note.id}")
+                    
+            except Exception as e:
+                error_count += 1
+                logger.error(f"Error fixing note {note.id}: {str(e)}")
+                continue
+        
+        # Commit all changes
         db.commit()
+        
+        logger.info(f"✅ Note fix completed: {fixed_count} fixed, {verified_count} verified, {error_count} errors")
         
         return {
             "status": "success",
             "total_notes": len(all_notes),
             "fixed_count": fixed_count,
+            "verified_count": verified_count,
+            "error_count": error_count,
+            "message": f"Successfully fixed {fixed_count} notes with NULL is_deleted values"
+        }
+    
+    except Exception as e:
+        logger.error(f"Critical error in fix_all_notes: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to fix notes: {str(e)}"
+        )
   
 
 @app.get("/get_folders")

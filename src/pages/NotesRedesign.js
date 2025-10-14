@@ -1,3 +1,4 @@
+// src/pages/NotesRedesign.js
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactQuill, { Quill } from "react-quill";
@@ -40,9 +41,9 @@ const NotesRedesign = () => {
   // View Mode
   const [viewMode, setViewMode] = useState("edit");
   
-  // Text selection menu states
-  const [showTextActionMenu, setShowTextActionMenu] = useState(false);
-  const [textActionMenuPosition, setTextActionMenuPosition] = useState({ top: 0, left: 0 });
+  // Text selection - AI Button states
+  const [showAIButton, setShowAIButton] = useState(false);
+  const [aiButtonPosition, setAiButtonPosition] = useState({ top: 0, left: 0 });
   const [selectedRange, setSelectedRange] = useState(null);
 
   // FOLDERS & FEATURES STATE
@@ -113,11 +114,8 @@ const NotesRedesign = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        console.log("Loaded notes:", data);
-        
         const activeNotes = data.filter(n => !n.is_deleted);
         setNotes(activeNotes);
-        
         if (activeNotes.length > 0 && !selectedNote) {
           selectNote(activeNotes[0]);
         }
@@ -128,46 +126,104 @@ const NotesRedesign = () => {
     }
   };
 
-  // HANDLE TEXT SELECTION IN EDITOR
-  const handleTextSelection = useCallback(() => {
-    const quill = quillRef.current?.getEditor();
-    if (!quill) return;
+  // ==================== TEXT SELECTION HANDLING - WITH AI BUTTON ====================
+  
+  // ==================== TEXT SELECTION HANDLING - WITH FLOATING AI BUTTON ====================
+// ==================== TEXT SELECTION HANDLING - WITH FLOATING AI BUTTON ====================
+// ==================== TEXT SELECTION HANDLING - WITH FLOATING AI BUTTON ====================
+const [quillReady, setQuillReady] = useState(false);
 
-    const range = quill.getSelection();
-    
-    if (range && range.length > 0) {
-      const selectedText = quill.getText(range.index, range.length);
-      
-      if (selectedText.trim().length > 0) {
-        setSelectedText(selectedText);
-        setSelectedRange(range);
-        
-        const bounds = quill.getBounds(range.index, range.length);
-        const editorRect = quill.container.getBoundingClientRect();
-        
-        setTextActionMenuPosition({
-          top: editorRect.top + bounds.bottom + window.scrollY + 5,
-          left: editorRect.left + bounds.left + window.scrollX,
-        });
-        
-        setShowTextActionMenu(true);
-      }
-    } else {
-      setShowTextActionMenu(false);
+// ✅ Wait for Quill to be ready after mount
+useEffect(() => {
+  const checkEditorReady = setInterval(() => {
+    const q = quillRef.current?.getEditor?.();
+    if (q) {
+      setQuillReady(true);
+      clearInterval(checkEditorReady);
     }
-  }, []);
+  }, 200);
+  return () => clearInterval(checkEditorReady);
+}, []);
 
-  // Listen for text selection
-  useEffect(() => {
-    const quill = quillRef.current?.getEditor();
-    if (!quill) return;
+const handleTextSelection = useCallback(() => {
+  const quill = quillRef.current?.getEditor();
+  if (!quill) return;
 
-    quill.on('selection-change', handleTextSelection);
+  const selection = quill.getSelection();
+  if (selection && selection.length > 0) {
+    const text = quill.getText(selection.index, selection.length).trim();
 
-    return () => {
-      quill.off('selection-change', handleTextSelection);
-    };
-  }, [handleTextSelection]);
+    if (text.length > 3) {
+      setSelectedText(text);
+      setSelectedRange(selection);
+
+      const bounds = quill.getBounds(selection.index, selection.length);
+      const rect = quill.container.getBoundingClientRect();
+
+      const top = rect.top + bounds.bottom + window.scrollY + 8;
+      const left = rect.left + bounds.left + bounds.width / 2 + window.scrollX;
+
+      setAiButtonPosition({ top, left });
+      setShowAIButton(true);
+      return;
+    }
+  }
+
+  setShowAIButton(false);
+  setSelectedText("");
+  setSelectedRange(null);
+}, []);
+
+useEffect(() => {
+  if (!quillReady) return;
+
+  const quill = quillRef.current?.getEditor();
+  if (!quill || !quill.root) return;
+
+  let debounceTimer = null;
+
+  const onSelectionChange = () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => handleTextSelection(), 150);
+  };
+
+  // ✅ Listeners that survive refresh
+  quill.root.addEventListener("mouseup", onSelectionChange);
+  quill.root.addEventListener("keyup", onSelectionChange);
+  document.addEventListener("selectionchange", onSelectionChange);
+
+  // Hide on outside click or scroll
+  const onHide = (e) => {
+    if (
+      showAIButton &&
+      !e.target.closest(".ai-floating-button") &&
+      !e.target.closest(".ql-editor")
+    ) {
+      setShowAIButton(false);
+    }
+  };
+
+  document.addEventListener("mousedown", onHide);
+  document.addEventListener("scroll", () => setShowAIButton(false));
+
+  return () => {
+    clearTimeout(debounceTimer);
+    quill.root.removeEventListener("mouseup", onSelectionChange);
+    quill.root.removeEventListener("keyup", onSelectionChange);
+    document.removeEventListener("selectionchange", onSelectionChange);
+    document.removeEventListener("mousedown", onHide);
+    document.removeEventListener("scroll", () => setShowAIButton(false));
+  };
+}, [handleTextSelection, showAIButton, quillReady]);
+
+const handleAIButtonClick = () => {
+  setShowAIAssistant(true);
+  setShowAIButton(false);
+};
+// ==================== END TEXT SELECTION HANDLING ====================
+
+
+  // ==================== END TEXT SELECTION HANDLING ====================
 
   // PROCESS SELECTED TEXT WITH AI
   const processSelectedText = async (action) => {
@@ -176,8 +232,8 @@ const NotesRedesign = () => {
       return;
     }
 
+    console.log(`Processing text with action: ${action}`);
     setGeneratingAI(true);
-    setShowTextActionMenu(false);
 
     try {
       const token = localStorage.getItem("token");
@@ -221,8 +277,8 @@ const NotesRedesign = () => {
 
   // QUICK AI ACTION FROM TEXT MENU
   const quickTextAction = async (actionType) => {
+    console.log(`Quick action: ${actionType}`);
     setGeneratingAI(true);
-    setShowTextActionMenu(false);
 
     try {
       const token = localStorage.getItem("token");
@@ -271,7 +327,6 @@ const NotesRedesign = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        console.log("Loaded folders:", data.folders);
         setFolders(data.folders || []);
       }
     } catch (e) {
@@ -287,7 +342,6 @@ const NotesRedesign = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        console.log("Loaded trash:", data.trash);
         setTrashedNotes(data.trash || []);
       }
     } catch (e) {
@@ -424,7 +478,6 @@ const NotesRedesign = () => {
         
         await loadFolders();
         
-        console.log(`Note ${noteId} moved to folder ${folderId}`);
         showPopup("Success", "Note moved to folder");
       }
     } catch (e) {
@@ -497,12 +550,9 @@ const NotesRedesign = () => {
   // MOVE TO TRASH
   const moveToTrash = async (noteId) => {
     try {
-      console.log(`Attempting to move note ${noteId} to trash`);
-      
       if (saveTimeout.current) {
         clearTimeout(saveTimeout.current);
         saveTimeout.current = null;
-        console.log("Auto-save timer cleared");
       }
       
       if (selectedNote?.id === noteId) {
@@ -518,8 +568,6 @@ const NotesRedesign = () => {
       });
 
       if (res.ok) {
-        console.log(`Note ${noteId} moved to trash on backend`);
-        
         setNotes(prevNotes => prevNotes.filter(n => n.id !== noteId));
         
         const remaining = notes.filter(n => n.id !== noteId && !n.is_deleted);
@@ -530,9 +578,6 @@ const NotesRedesign = () => {
         await loadFolders();
         
         showPopup("Moved to Trash", "Note moved to trash (recoverable for 30 days)");
-      } else {
-        console.error("Failed to delete note on backend");
-        showPopup("Error", "Failed to move note to trash");
       }
     } catch (e) {
       console.error("Error moving to trash:", e);
@@ -549,7 +594,6 @@ const NotesRedesign = () => {
       });
 
       if (res.ok) {
-        console.log(`Note ${noteId} restored`);
         await loadNotes();
         await loadTrash();
         await loadFolders();
@@ -658,7 +702,7 @@ const NotesRedesign = () => {
     setNoteTitle(n.title);
     setNoteContent(n.content);
     setViewMode("edit");
-    setCustomFont(n.custom_font || "Inter");
+    
 
     setTimeout(() => {
       const quill = quillRef.current?.getEditor();
@@ -670,23 +714,13 @@ const NotesRedesign = () => {
 
   // AUTO SAVE
   const autoSave = useCallback(async () => {
-    if (!selectedNote) {
-      console.log("No note selected, skipping auto-save");
-      return;
-    }
+    if (!selectedNote) return;
     
     const noteStillExists = notes.find(n => n.id === selectedNote.id);
-    if (!noteStillExists) {
-      console.log("Note no longer exists in notes array, skipping auto-save");
-      return;
-    }
+    if (!noteStillExists) return;
     
-    if (selectedNote.is_deleted || noteStillExists.is_deleted) {
-      console.log("Note is deleted, skipping auto-save");
-      return;
-    }
+    if (selectedNote.is_deleted || noteStillExists.is_deleted) return;
     
-    console.log(`Auto-saving note ${selectedNote.id}...`);
     setSaving(true);
     
     try {
@@ -714,10 +748,7 @@ const NotesRedesign = () => {
             n.id === selectedNote.id ? { ...n, title: noteTitle, content: noteContent } : n
           )
         );
-        
-        console.log(`Note ${selectedNote.id} saved successfully`);
       } else if (res.status === 400) {
-        console.log("Note is deleted on backend, stopping auto-save");
         setSaving(false);
         
         setNotes(prev => prev.filter(n => n.id !== selectedNote.id));
@@ -726,8 +757,6 @@ const NotesRedesign = () => {
         setNoteContent("");
         
         showPopup("Note Deleted", "This note has been moved to trash");
-      } else {
-        throw new Error(`Failed to save: ${res.status}`);
       }
     } catch (error) {
       setSaving(false);
@@ -743,12 +772,9 @@ const NotesRedesign = () => {
     }
     
     if (selectedNote && !selectedNote.is_deleted) {
-      console.log("Setting auto-save timeout for 1.5 seconds...");
       saveTimeout.current = setTimeout(() => {
         if (selectedNote && !selectedNote.is_deleted) {
           autoSave();
-        } else {
-          console.log("Note deleted, canceling scheduled auto-save");
         }
       }, 1500);
     }
@@ -1400,7 +1426,7 @@ const NotesRedesign = () => {
               >
                 <div className="note-item-header">
                   <div className="note-title-small">
-                    {n.is_favorite && <span className="favorite-star">star</span>}
+                    {n.is_favorite && <span className="favorite-star">⭐</span>}
                     {n.title || "Untitled"}
                   </div>
                   <div className="note-actions">
@@ -1412,7 +1438,7 @@ const NotesRedesign = () => {
                       }}
                       title={n.is_favorite ? "Remove from favorites" : "Add to favorites"}
                     >
-                      star
+                      ⭐
                     </button>
                     <button
                       className="note-action-btn duplicate"
@@ -1422,7 +1448,7 @@ const NotesRedesign = () => {
                       }}
                       title="Duplicate note"
                     >
-                      copy
+                      📋
                     </button>
                     <button
                       className="note-action-btn delete"
@@ -1432,7 +1458,7 @@ const NotesRedesign = () => {
                       }}
                       title="Move to trash"
                     >
-                      trash
+                      🗑️
                     </button>
                   </div>
                 </div>
@@ -1475,7 +1501,7 @@ const NotesRedesign = () => {
               className="toggle-sidebar"
               title="Toggle sidebar"
             >
-              {sidebarOpen ? "back" : "menu"}
+              {sidebarOpen ? "←" : "☰"}
             </button>
             <div className="nav-title">Brainwave Notes</div>
           </div>
@@ -1548,21 +1574,8 @@ const NotesRedesign = () => {
                     <span className="last-edited">
                       Last edited: {new Date(selectedNote.updated_at).toLocaleString()}
                     </span>
-                    <span className="font-selector-label">Font:</span>
-                    <select
-                      value={customFont}
-                      onChange={(e) => setCustomFont(e.target.value)}
-                      className="font-selector"
-                    >
-                      <option value="Inter">Inter</option>
-                      <option value="Arial">Arial</option>
-                      <option value="Georgia">Georgia</option>
-                      <option value="Times New Roman">Times New Roman</option>
-                      <option value="Courier New">Courier New</option>
-                      <option value="Verdana">Verdana</option>
-                      <option value="Comic Sans MS">Comic Sans MS</option>
-                      <option value="Trebuchet MS">Trebuchet MS</option>
-                    </select>
+                    
+                    
                   </div>
                 </div>
                 <button
@@ -1570,7 +1583,7 @@ const NotesRedesign = () => {
                   onClick={() => setTitleSectionCollapsed(!titleSectionCollapsed)}
                   title={titleSectionCollapsed ? "Expand title" : "Collapse title"}
                 >
-                  {titleSectionCollapsed ? 'down' : 'up'}
+                  {titleSectionCollapsed ? '▼' : '▲'}
                 </button>
               </div>
             </div>
@@ -1614,7 +1627,7 @@ const NotesRedesign = () => {
                 {saving ? (
                   <span className="saving-indicator">Saving...</span>
                 ) : autoSaved ? (
-                  <span className="saved-indicator">Saved</span>
+                  <span className="saved-indicator">Saved ✓</span>
                 ) : (
                   <span className="unsaved-indicator">Unsaved</span>
                 )}
@@ -1623,7 +1636,7 @@ const NotesRedesign = () => {
           </div>
         ) : (
           <div className="empty-state-new">
-            <div className="empty-icon-large"></div>
+            <div className="empty-icon-large">📝</div>
             <h2>No Note Selected</h2>
             <p>Select a note from the sidebar or create a new one to get started</p>
             <button className="btn-create-empty" onClick={createNewNote}>
@@ -1632,6 +1645,36 @@ const NotesRedesign = () => {
           </div>
         )}
       </div>
+
+      {/* AI FLOATING BUTTON - Shows when text is selected */}
+      {/* ✨ FLOATING AI BUTTON */}
+{showAIButton && (
+  <div
+    className="ai-floating-button"
+    style={{
+      position: "absolute",
+      top: `${aiButtonPosition.top}px`,
+      left: `${aiButtonPosition.left}px`,
+      transform: "translate(-50%, 0)",
+      background: "#D7B38C",
+      color: "#0f1012",
+      padding: "6px 12px",
+      borderRadius: "8px",
+      boxShadow: "0 4px 10px rgba(0,0,0,0.25)",
+      cursor: "pointer",
+      zIndex: 99999,
+      fontFamily: "Quicksand, Inter, sans-serif",
+      fontSize: "14px",
+      fontWeight: 600,
+      opacity: showAIButton ? 1 : 0,
+      transition: "opacity 0.2s ease",
+    }}
+    onClick={handleAIButtonClick}
+  >
+    Ask AI
+  </div>
+)}
+
 
       {/* AI Slash Command Dropdown */}
       {showAIDropdown && (
@@ -1646,7 +1689,7 @@ const NotesRedesign = () => {
             }}
           >
             <div className="ai-dropdown-header">
-              <span className="ai-icon">AI</span>
+              <span className="ai-icon">✨</span>
               <span>AI Content Generator</span>
             </div>
             <input
@@ -1679,7 +1722,7 @@ const NotesRedesign = () => {
                 }}
                 disabled={generatingAI}
               >
-                Key Points
+              Key Points
               </button>
               <button 
                 onClick={() => {
@@ -2023,140 +2066,6 @@ const NotesRedesign = () => {
         title={popup.title}
         message={popup.message}
       />
-
-      {/* TEXT SELECTION ACTION MENU */}
-      {showTextActionMenu && (
-        <>
-          <div 
-            className="text-action-overlay" 
-            onClick={() => setShowTextActionMenu(false)}
-          />
-          <div
-            className="text-action-menu"
-            style={{
-              position: "fixed",
-              top: `${textActionMenuPosition.top}px`,
-              left: `${textActionMenuPosition.left}px`,
-            }}
-          >
-            <div className="text-action-header">
-              <span className="text-action-icon">AI</span>
-              <span>AI Actions for Selected Text</span>
-              <button
-                className="text-action-close"
-                onClick={() => setShowTextActionMenu(false)}
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="text-action-section">
-              <div className="text-action-label">Transform Text:</div>
-              <div className="text-action-buttons">
-                <button
-                  onClick={() => processSelectedText("improve")}
-                  disabled={generatingAI}
-                  className="text-action-btn"
-                >
-                  <span className="btn-icon">+</span>
-                  Improve
-                </button>
-                <button
-                  onClick={() => processSelectedText("simplify")}
-                  disabled={generatingAI}
-                  className="text-action-btn"
-                >
-                  <span className="btn-icon">-</span>
-                  Simplify
-                </button>
-                <button
-                  onClick={() => processSelectedText("expand")}
-                  disabled={generatingAI}
-                  className="text-action-btn"
-                >
-                  <span className="btn-icon">+</span>
-                  Expand
-                </button>
-                <button
-                  onClick={() => processSelectedText("grammar")}
-                  disabled={generatingAI}
-                  className="text-action-btn"
-                >
-                  <span className="btn-icon">✓</span>
-                  Fix Grammar
-                </button>
-              </div>
-            </div>
-
-            <div className="text-action-divider"></div>
-
-            <div className="text-action-section">
-              <div className="text-action-label">Generate Content:</div>
-              <div className="text-action-buttons">
-                <button
-                  onClick={() => quickTextAction("explain")}
-                  disabled={generatingAI}
-                  className="text-action-btn"
-                >
-                  <span className="btn-icon">?</span>
-                  Explain
-                </button>
-                <button
-                  onClick={() => quickTextAction("key_points")}
-                  disabled={generatingAI}
-                  className="text-action-btn"
-                >
-                  <span className="btn-icon">•</span>
-                  Key Points
-                </button>
-                <button
-                  onClick={() => quickTextAction("summary")}
-                  disabled={generatingAI}
-                  className="text-action-btn"
-                >
-                  <span className="btn-icon">=</span>
-                  Summarize
-                </button>
-              </div>
-            </div>
-
-            <div className="text-action-divider"></div>
-
-            <div className="text-action-section">
-              <div className="text-action-label">Change Tone:</div>
-              <div className="text-action-tone-selector">
-                <select
-                  value={aiAssistTone}
-                  onChange={(e) => setAiAssistTone(e.target.value)}
-                  className="tone-select"
-                  disabled={generatingAI}
-                >
-                  <option value="professional">Professional</option>
-                  <option value="casual">Casual</option>
-                  <option value="formal">Formal</option>
-                  <option value="friendly">Friendly</option>
-                  <option value="academic">Academic</option>
-                  <option value="creative">Creative</option>
-                </select>
-                <button
-                  onClick={() => processSelectedText("tone_change")}
-                  disabled={generatingAI}
-                  className="text-action-btn-apply"
-                >
-                  Apply Tone
-                </button>
-              </div>
-            </div>
-
-            {generatingAI && (
-              <div className="text-action-loading">
-                <span className="spinner"></span>
-                <span>Processing...</span>
-              </div>
-            )}
-          </div>
-        </>
-      )}
     </div>
   );
 };
