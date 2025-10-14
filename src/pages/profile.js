@@ -8,22 +8,16 @@ const Profile = () => {
     firstName: '',
     lastName: '',
     email: '',
-    age: '',
     fieldOfStudy: '',
     difficultyLevel: 'intermediate',
     learningPace: 'moderate',
-    preferredSubjects: [],
-    bestStudyTimes: [],
     primaryArchetype: '',
     secondaryArchetype: '',
-    archetypeDescription: '',
-    archetypeScores: {}
+    archetypeDescription: ''
   });
   
-  const [loading, setLoading] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
-  const [profileCompletion, setProfileCompletion] = useState(0);
   const [saveTimer, setSaveTimer] = useState(null);
   const [dataLoaded, setDataLoaded] = useState(false);
   
@@ -33,16 +27,6 @@ const Profile = () => {
     'Computer Science', 'Mathematics', 'Physics', 'Chemistry', 'Biology',
     'Engineering', 'Medicine', 'Business', 'Economics', 'Psychology',
     'Literature', 'History', 'Philosophy', 'Art', 'Languages', 'General Studies'
-  ];
-
-  const subjects = [
-    'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science',
-    'History', 'Geography', 'Literature', 'Psychology', 'Economics',
-    'Business', 'Art', 'Languages', 'Engineering', 'Philosophy'
-  ];
-
-  const studyTimes = [
-    'Early Morning', 'Morning', 'Afternoon', 'Evening', 'Night'
   ];
 
   const archetypeInfo = {
@@ -114,15 +98,13 @@ const Profile = () => {
   }, [navigate]);
 
   useEffect(() => {
-    if (dataLoaded) {
-      calculateProfileCompletion();
-      
+    if (dataLoaded && userName) {
       if (saveTimer) {
         clearTimeout(saveTimer);
       }
       
       const newTimer = setTimeout(() => {
-        if (userName && (profileData.firstName || profileData.lastName || profileData.email)) {
+        if (profileData.firstName || profileData.lastName || profileData.email) {
           autoSaveProfile();
         }
       }, 3000);
@@ -153,16 +135,17 @@ const Profile = () => {
       if (response.ok) {
         const data = await response.json();
         
-        setProfileData(prev => ({
-          ...prev,
-          ...data,
-          preferredSubjects: Array.isArray(data.preferredSubjects) ? data.preferredSubjects : [],
-          bestStudyTimes: Array.isArray(data.bestStudyTimes) ? data.bestStudyTimes : [],
+        setProfileData({
+          firstName: data.firstName || '',
+          lastName: data.lastName || '',
+          email: data.email || '',
+          fieldOfStudy: data.fieldOfStudy || '',
+          difficultyLevel: data.difficultyLevel || 'intermediate',
+          learningPace: data.learningPace || 'moderate',
           primaryArchetype: data.primaryArchetype || '',
           secondaryArchetype: data.secondaryArchetype || '',
-          archetypeDescription: data.archetypeDescription || '',
-          archetypeScores: {}
-        }));
+          archetypeDescription: data.archetypeDescription || ''
+        });
         
         setDataLoaded(true);
         setLastSaved(new Date().toLocaleTimeString());
@@ -176,57 +159,10 @@ const Profile = () => {
     }
   };
 
-  const calculateProfileCompletion = () => {
-    const essentialFields = [
-      'firstName', 'lastName', 'email', 'fieldOfStudy', 'primaryArchetype'
-    ];
-    
-    const additionalFields = [
-      'age', 'difficultyLevel', 'learningPace'
-    ];
-    
-    const arrayFields = [
-      'preferredSubjects', 'bestStudyTimes'
-    ];
-    
-    let completed = 0;
-    const totalWeight = essentialFields.length * 2 + additionalFields.length + arrayFields.length;
-    
-    essentialFields.forEach(field => {
-      if (profileData[field] && profileData[field].toString().trim() !== '') {
-        completed += 2;
-      }
-    });
-    
-    additionalFields.forEach(field => {
-      if (profileData[field] && profileData[field].toString().trim() !== '') {
-        completed += 1;
-      }
-    });
-    
-    arrayFields.forEach(field => {
-      if (profileData[field] && Array.isArray(profileData[field]) && profileData[field].length > 0) {
-        completed += 1;
-      }
-    });
-    
-    const percentage = Math.min(100, Math.round((completed / totalWeight) * 100));
-    setProfileCompletion(percentage);
-  };
-
   const handleInputChange = (field, value) => {
     setProfileData(prev => ({
       ...prev,
       [field]: value
-    }));
-  };
-
-  const handleArrayToggle = (field, value) => {
-    setProfileData(prev => ({
-      ...prev,
-      [field]: prev[field].includes(value)
-        ? prev[field].filter(item => item !== value)
-        : [...prev[field], value]
     }));
   };
 
@@ -243,12 +179,9 @@ const Profile = () => {
         firstName: profileData.firstName || '',
         lastName: profileData.lastName || '',
         email: profileData.email || '',
-        age: profileData.age || null,
         fieldOfStudy: profileData.fieldOfStudy || '',
-        preferredSubjects: profileData.preferredSubjects || [],
         difficultyLevel: profileData.difficultyLevel || 'intermediate',
-        learningPace: profileData.learningPace || 'moderate',
-        bestStudyTimes: profileData.bestStudyTimes || []
+        learningPace: profileData.learningPace || 'moderate'
       };
       
       const response = await fetch('http://localhost:8001/update_comprehensive_profile', {
@@ -278,18 +211,6 @@ const Profile = () => {
     }
   };
 
-  const handleManualSave = async () => {
-    setLoading(true);
-    try {
-      await autoSaveProfile();
-      alert('Profile saved successfully!');
-    } catch (error) {
-      alert('Failed to save profile. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const goBack = () => {
     navigate('/dashboard');
   };
@@ -297,18 +218,6 @@ const Profile = () => {
   const retakeQuiz = () => {
     navigate('/profile-quiz');
   };
-
-  const getProfileStatus = () => {
-    if (profileCompletion < 30) {
-      return { status: 'Getting Started', color: '#ff9800', message: 'Complete your basic information to get personalized AI responses' };
-    } else if (profileCompletion < 70) {
-      return { status: 'In Progress', color: '#D7B38C', message: 'Great progress! Add more details for better personalization' };
-    } else {
-      return { status: 'Complete', color: '#4caf50', message: 'Excellent! Your profile enables full AI personalization' };
-    }
-  };
-
-  const profileStatus = getProfileStatus();
 
   if (!dataLoaded) {
     return (
@@ -327,13 +236,6 @@ const Profile = () => {
 
   return (
     <div className="profile-page">
-      <div className="profile-progress">
-        <div 
-          className="progress-bar" 
-          style={{ width: `${profileCompletion}%`, backgroundColor: profileStatus.color }}
-        ></div>
-      </div>
-
       <div className="profile-container">
         <div className="profile-header">
           <div className="profile-header-left">
@@ -353,13 +255,6 @@ const Profile = () => {
               Back to Dashboard
             </button>
           </div>
-        </div>
-
-        <div className="profile-status">
-          <div className="status-indicator" style={{ backgroundColor: profileStatus.color }}>
-            {profileCompletion}% Complete - {profileStatus.status}
-          </div>
-          <div className="status-message">{profileStatus.message}</div>
         </div>
 
         {profileData.primaryArchetype && (
@@ -441,32 +336,18 @@ const Profile = () => {
               />
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Age</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  value={profileData.age}
-                  onChange={(e) => handleInputChange('age', e.target.value)}
-                  placeholder="Your age"
-                  min="13"
-                  max="100"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label required-field">Field of Study</label>
-                <select
-                  className="form-select"
-                  value={profileData.fieldOfStudy}
-                  onChange={(e) => handleInputChange('fieldOfStudy', e.target.value)}
-                >
-                  <option value="">Select your field</option>
-                  {fieldsOfStudy.map(field => (
-                    <option key={field} value={field}>{field}</option>
-                  ))}
-                </select>
-              </div>
+            <div className="form-group">
+              <label className="form-label required-field">Field of Study</label>
+              <select
+                className="form-select"
+                value={profileData.fieldOfStudy}
+                onChange={(e) => handleInputChange('fieldOfStudy', e.target.value)}
+              >
+                <option value="">Select your field</option>
+                {fieldsOfStudy.map(field => (
+                  <option key={field} value={field}>{field}</option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -502,72 +383,6 @@ const Profile = () => {
               </div>
             </div>
           </div>
-        </div>
-
-        <div className="profile-grid">
-          <div className="profile-section">
-            <h3 className="section-title">Preferred Subjects</h3>
-            <div className="checkbox-grid">
-              {subjects.map(subject => (
-                <label 
-                  key={subject} 
-                  className={`checkbox-item ${profileData.preferredSubjects.includes(subject) ? 'selected' : ''}`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={profileData.preferredSubjects.includes(subject)}
-                    onChange={() => handleArrayToggle('preferredSubjects', subject)}
-                  />
-                  <span>{subject}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="profile-section">
-            <h3 className="section-title">Best Study Times</h3>
-            <div className="checkbox-grid">
-              {studyTimes.map(time => (
-                <label 
-                  key={time} 
-                  className={`checkbox-item ${profileData.bestStudyTimes.includes(time) ? 'selected' : ''}`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={profileData.bestStudyTimes.includes(time)}
-                    onChange={() => handleArrayToggle('bestStudyTimes', time)}
-                  />
-                  <span>{time}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="save-section">
-          <div className="save-status">
-            <div className="auto-save-info">
-              <div className="auto-save-icon">AUTO</div>
-              <div className="auto-save-text">
-                <div className="auto-save-title">Auto-save Enabled</div>
-                <div className="auto-save-subtitle">Changes saved automatically</div>
-              </div>
-            </div>
-            
-            {lastSaved && (
-              <div className="last-saved-info">
-                Last saved at {lastSaved}
-              </div>
-            )}
-          </div>
-
-          <button
-            className={`manual-save-btn ${loading ? 'loading' : ''}`}
-            onClick={handleManualSave}
-            disabled={loading || autoSaving}
-          >
-            {loading ? 'Saving...' : 'Save Profile'}
-          </button>
         </div>
       </div>
     </div>
