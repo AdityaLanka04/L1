@@ -4,9 +4,10 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from pydantic import BaseModel
+
 import os
 
 # ==================== DATABASE CONFIG ====================
@@ -115,17 +116,16 @@ class Note(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    folder_id = Column(Integer, ForeignKey("folders.id"), nullable=True)
-    title = Column(String(255), default="Untitled")
+    title = Column(String(255), default="Untitled Note")
     content = Column(Text, default="")
+    folder_id = Column(Integer, ForeignKey("folders.id"), nullable=True)
     is_favorite = Column(Boolean, default=False)
     is_deleted = Column(Boolean, default=False)
-    deleted_at = Column(DateTime, nullable=True)  # ✅ Remove timezone=True
-    custom_font = Column(String(100), default="Inter")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # ✅ ADD RELATIONSHIPS
+    deleted_at = Column(DateTime, nullable=True)  # ✅ Removed timezone=True
+    created_at = Column(DateTime, default=datetime.utcnow)  # ✅ Changed from lambda
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)  # ✅ Changed from lambda
+    custom_font = Column(String(50), default="Inter")
+    
     user = relationship("User", back_populates="notes")
     folder = relationship("Folder", back_populates="notes")
 
@@ -140,7 +140,6 @@ class Folder(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # ✅ ADD RELATIONSHIPS
     user = relationship("User", back_populates="folders")
     notes = relationship("Note", back_populates="folder")
 

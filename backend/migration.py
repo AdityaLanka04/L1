@@ -1,82 +1,47 @@
-# Create a new file: migrate_db.py
-
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, Float, JSON, Boolean, Date, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
-from database import SessionLocal, engine
+from sqlalchemy import create_engine, Column, Boolean, DateTime
+from sqlalchemy.orm import sessionmaker
+from datetime import datetime, timezone
 import models
-from datetime import datetime
+from database import engine
 
-def create_missing_tables():
-    """Create any missing tables"""
+def upgrade():
+    """Add missing columns to notes table"""
     try:
-        print("Creating all database tables...")
-        models.Base.metadata.create_all(bind=engine)
-        print("✓ All tables created successfully")
-        
-        # Check if we can access each model
-        db = SessionLocal()
-        try:
-            # Test basic models
-            user_count = db.query(models.User).count()
-            print(f"✓ Users table: {user_count} records")
-            
-            stats_count = db.query(models.UserStats).count()
-            print(f"✓ UserStats table: {stats_count} records")
-            
-            # Test enhanced models (create if missing)
+        # Check if columns exist, if not add them
+        with engine.connect() as conn:
+            # Add is_deleted column if it doesn't exist
             try:
-                enhanced_count = db.query(models.EnhancedUserStats).count()
-                print(f"✓ EnhancedUserStats table: {enhanced_count} records")
-            except Exception as e:
-                print(f"✗ EnhancedUserStats table missing: {e}")
-                
+                conn.execute("ALTER TABLE notes ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE")
+                print("✅ Added is_deleted column")
+            except:
+                print("ℹ️ is_deleted column already exists")
+            
+            # Add deleted_at column if it doesn't exist
             try:
-                daily_count = db.query(models.DailyLearningMetrics).count()
-                print(f"✓ DailyLearningMetrics table: {daily_count} records")
-            except Exception as e:
-                print(f"✗ DailyLearningMetrics table missing: {e}")
+                conn.execute("ALTER TABLE notes ADD COLUMN deleted_at TIMESTAMP WITH TIME ZONE")
+                print("✅ Added deleted_at column")
+            except:
+                print("ℹ️ deleted_at column already exists")
             
-        finally:
-            db.close()
+            # Add is_favorite column if it doesn't exist
+            try:
+                conn.execute("ALTER TABLE notes ADD COLUMN is_favorite BOOLEAN DEFAULT FALSE")
+                print("✅ Added is_favorite column")
+            except:
+                print("ℹ️ is_favorite column already exists")
             
+            # Add folder_id column if it doesn't exist
+            try:
+                conn.execute("ALTER TABLE notes ADD COLUMN folder_id INTEGER")
+                print("✅ Added folder_id column")
+            except:
+                print("ℹ️ folder_id column already exists")
+            
+            conn.commit()
+            print("✅ Migration completed successfully")
+    
     except Exception as e:
-        print(f"Migration failed: {e}")
-
-def ensure_user_stats():
-    """Ensure all users have stats records"""
-    db = SessionLocal()
-    try:
-        users = db.query(models.User).all()
-        for user in users:
-            # Check if user has basic stats
-            stats = db.query(models.UserStats).filter(models.UserStats.user_id == user.id).first()
-            if not stats:
-                stats = models.UserStats(user_id=user.id)
-                db.add(stats)
-                print(f"✓ Created UserStats for {user.username}")
-            
-            # Check if user has enhanced stats
-            try:
-                enhanced_stats = db.query(models.EnhancedUserStats).filter(models.EnhancedUserStats.user_id == user.id).first()
-                if not enhanced_stats:
-                    enhanced_stats = models.EnhancedUserStats(user_id=user.id)
-                    db.add(enhanced_stats)
-                    print(f"✓ Created EnhancedUserStats for {user.username}")
-            except Exception as e:
-                print(f"✗ Could not create EnhancedUserStats: {e}")
-        
-        db.commit()
-        print("✓ User stats migration completed")
-        
-    except Exception as e:
-        print(f"User stats migration failed: {e}")
-        db.rollback()
-    finally:
-        db.close()
+        print(f"❌ Migration failed: {str(e)}")
 
 if __name__ == "__main__":
-    print("Starting database migration...")
-    create_missing_tables()
-    ensure_user_stats()
-    print("Migration completed!")
+    upgrade()

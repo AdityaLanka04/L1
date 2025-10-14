@@ -1163,31 +1163,90 @@ def clean_conversational_elements(text: str) -> str:
 
 @app.get("/get_notes")
 def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
-    """Get all notes for a user"""
+    """Get all notes for a user (excluding deleted)"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # CRITICAL: Query with explicit filter for non-deleted notes
+        notes = db.query(models.Note).filter(
+            models.Note.user_id == user.id,
+            models.Note.is_deleted == False  # This line filters out deleted notes
+        ).order_by(models.Note.updated_at.desc()).all()
+        
+        logger.info(f"Retrieved {len(notes)} active notes for user {user.email}")
+        
+        # Double-check: filter again in Python to be absolutely sure
+        result = []
+        for note in notes:
+            if not note.is_deleted:  # Extra safety check
+                result.append({
+                    "id": note.id,
+                    "title": note.title,
+                    "content": note.content,
+                    "created_at": note.created_at.isoformat(),
+                    "updated_at": note.updated_at.isoformat(),
+                    "is_favorite": getattr(note, 'is_favorite', False),
+                    "folder_id": getattr(note, 'folder_id', None),
+                    "custom_font": getattr(note, 'custom_font', 'Inter'),
+                    "is_deleted": False
+                })
+        
+        logger.info(f"Returning {len(result)} notes after filtering")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error getting notes: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+# Add these endpoints to your main.py file
+@app.get("/debug_notes/{user_id}")
+def debug_notes(user_id: str, db: Session = Depends(get_db)):
+    """Debug endpoint to see ALL notes"""
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        return {"error": "User not found"}
     
     notes = db.query(models.Note).filter(
         models.Note.user_id == user.id
-    ).order_by(models.Note.updated_at.desc()).all()
+    ).all()
     
-    return [
-        {
+    result = []
+    for note in notes:
+        result.append({
             "id": note.id,
             "title": note.title,
-            "content": note.content,
-            "created_at": note.created_at.isoformat(),
-            "updated_at": note.updated_at.isoformat()
-        }
-        for note in notes
-    ]
+            "is_deleted": note.is_deleted,
+            "deleted_at": str(note.deleted_at) if note.deleted_at else None,
+        })
+    
+    return {"total_notes": len(notes), "notes": result}
 
-# Add these endpoints to your main.py file
+
+@app.post("/fix_all_notes")
+def fix_all_notes(db: Session = Depends(get_db)):
+    """Emergency fix - set all NULL is_deleted to False"""
+    try:
+        # Get all notes
+        all_notes = db.query(models.Note).all()
+        
+        fixed_count = 0
+        for note in all_notes:
+            if note.is_deleted is None:
+                note.is_deleted = False
+                fixed_count += 1
+        
+        db.commit()
+        
+        return {
+            "status": "success",
+            "total_notes": len(all_notes),
+            "fixed_count": fixed_count,
+  
 
 @app.get("/get_folders")
 def get_folders(user_id: str = Query(...), db: Session = Depends(get_db)):
-    """Get all folders for a user"""
+    """Get all folders for a user with note counts"""
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
@@ -1199,8 +1258,10 @@ def get_folders(user_id: str = Query(...), db: Session = Depends(get_db)):
         
         result = []
         for folder in folders:
+            # ✅ Count only non-deleted notes
             note_count = db.query(models.Note).filter(
-                models.Note.folder_id == folder.id
+                models.Note.folder_id == folder.id,
+                models.Note.is_deleted == False  # ✅ Exclude deleted notes from count
             ).count()
             
             result.append({
@@ -1218,31 +1279,6 @@ def get_folders(user_id: str = Query(...), db: Session = Depends(get_db)):
         return {"folders": []}
 
 
-@app.put("/soft_delete_note/{note_id}")
-def soft_delete_note(note_id: int, db: Session = Depends(get_db)):
-    """Move note to trash (soft delete)"""
-    try:
-        note = db.query(models.Note).filter(
-            models.Note.id == note_id
-        ).first()
-        
-        if not note:
-            raise HTTPException(status_code=404, detail="Note not found")
-        
-        note.is_deleted = True
-        note.deleted_at = datetime.now(timezone.utc)
-        db.commit()
-        
-        return {
-            "message": "Note moved to trash",
-            "note_id": note.id,
-            "status": "success"
-        }
-    except Exception as e:
-        logger.error(f"Error soft deleting note: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @app.get("/get_trash")
 def get_trash(user_id: str = Query(...), db: Session = Depends(get_db)):
     """Get all deleted notes (trash)"""
@@ -1251,48 +1287,65 @@ def get_trash(user_id: str = Query(...), db: Session = Depends(get_db)):
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # Get notes deleted within last 30 days
+        # Get notes deleted within last 30 days (timezone-aware)
         thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
         
         notes = db.query(models.Note).filter(
             models.Note.user_id == user.id,
             models.Note.is_deleted == True,
+            models.Note.deleted_at != None,
             models.Note.deleted_at >= thirty_days_ago
         ).order_by(models.Note.deleted_at.desc()).all()
         
-        return {
-            "trash": [
-                {
-                    "id": note.id,
-                    "title": note.title,
-                    "content": note.content,
-                    "deleted_at": note.deleted_at.isoformat(),
-                    "days_remaining": 30 - (datetime.now(timezone.utc) - note.deleted_at).days
-                }
-                for note in notes
-            ]
-        }
+        logger.info(f"📥 Found {len(notes)} deleted notes for user {user.email}")
+        
+        result = []
+        for note in notes:
+            # Handle timezone-aware datetime safely
+            if note.deleted_at:
+                if note.deleted_at.tzinfo is None:
+                    # If naive, make it aware
+                    deleted_at_aware = note.deleted_at.replace(tzinfo=timezone.utc)
+                else:
+                    deleted_at_aware = note.deleted_at
+                
+                days_since_deletion = (datetime.now(timezone.utc) - deleted_at_aware).days
+                days_remaining = max(0, 30 - days_since_deletion)
+            else:
+                days_remaining = 30
+            
+            result.append({
+                "id": note.id,
+                "title": note.title,
+                "content": note.content,
+                "deleted_at": note.deleted_at.isoformat() if note.deleted_at else None,
+                "days_remaining": days_remaining
+            })
+        
+        return {"trash": result}
+        
     except Exception as e:
-        logger.error(f"Error getting trash: {str(e)}")
+        logger.error(f"Error getting trash: {str(e)}", exc_info=True)
         return {"trash": []}
 
+# ENHANCED AI CONTENT GENERATION WITH SPECIFIC PROMPTS
 @app.post("/generate_note_content/")
 async def generate_note_content(
     user_id: str = Form(...),
     prompt: str = Form(...),
-    content_type: str = Form("detailed"),
+    content_type: str = Form("general"),
+    existing_content: str = Form(""),
     db: Session = Depends(get_db)
 ):
     """
-    Generate AI content for notes - returns ONLY content, no conversational elements
+    Generate AI content for notes with specific prompt templates
     """
     try:
-        logger.info(f"📝 Generating note content for user: {user_id}")
-        logger.info(f"📝 Prompt: {prompt[:100]}")
+        logger.info(f"Generating {content_type} content for user: {user_id}")
         
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
-            logger.error(f"❌ User not found: {user_id}")
+            logger.error(f"User not found: {user_id}")
             raise HTTPException(status_code=404, detail="User not found")
         
         comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
@@ -1301,37 +1354,99 @@ async def generate_note_content(
         
         user_profile = build_user_profile_dict(user, comprehensive_profile)
         
-        system_prompt = f"""You are a professional educational content generator.
+        content_context = existing_content[-500:] if existing_content else ""
+        
+        # DIFFERENT SYSTEM PROMPTS FOR EACH ACTION TYPE
+        action_prompts = {
+            "explain": f"""You are an educational content expert specializing in clear explanations.
 
 CRITICAL RULES:
-1. Generate ONLY the content - NO greetings, NO conversational phrases
-2. DO NOT use: "Hi", "Hello", "Sure", "Here's", "Let me", "I'll", "Hope this helps"
-3. Start DIRECTLY with the main content
-4. Use HTML formatting: <h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>
-5. Be educational, clear, and well-structured
+1. NO greetings, NO conversational phrases
+2. Start DIRECTLY with the explanation
+3. Use HTML formatting: <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>
+4. Break down complex concepts into simple terms
+5. Use analogies and examples
+6. Structure: Definition > How it works > Examples
 
 Student Level: {user_profile.get('difficulty_level', 'intermediate')}
 Learning Style: {user_profile.get('learning_style', 'Mixed')}
-Field of Study: {user_profile.get('field_of_study', 'General')}
 
-Generate {content_type} educational content about: {prompt}
+Topic to explain: {prompt}
 
-STRUCTURE:
-- Start with a main heading (h1)
-- Use proper heading hierarchy (h1, h2, h3)
-- Include bullet points for key concepts
-- Add examples where relevant
-- Use paragraphs for explanations
-- NO conversational elements whatsoever
+Provide a clear, detailed explanation that builds understanding step by step.""",
 
-Format everything in HTML. Start immediately with the content."""
+            "key_points": f"""You are a study guide expert who extracts essential information.
 
+CRITICAL RULES:
+1. NO greetings, NO conversational phrases
+2. Start with <h2>Key Points</h2>
+3. Use numbered list (<ol>) or bullet points (<ul><li>)
+4. Each point should be concise but complete
+5. Include 5-10 key points maximum
+6. Bold important terms with <strong>
+
+Student Level: {user_profile.get('difficulty_level', 'intermediate')}
+
+Topic: {prompt}
+
+Extract and present the most important points clearly.""",
+
+            "guide": f"""You are a comprehensive guide writer for educational content.
+
+CRITICAL RULES:
+1. NO greetings, NO conversational phrases
+2. Start with <h1>Guide: [Topic]</h1>
+3. Use clear section headings (<h2>, <h3>)
+4. Include introduction, main sections, and conclusion
+5. Add practical examples and applications
+6. Use lists, tables, or diagrams where helpful
+
+Student Level: {user_profile.get('difficulty_level', 'intermediate')}
+Field: {user_profile.get('field_of_study', 'General')}
+
+Topic: {prompt}
+
+Create a comprehensive, well-structured guide.""",
+
+            "summary": f"""You are a summarization expert for academic content.
+
+CRITICAL RULES:
+1. NO greetings, NO conversational phrases
+2. Start with <h2>Summary</h2>
+3. Condense to essential information only
+4. Use clear, concise language
+5. Maintain key facts and concepts
+6. Structure with bullet points if needed
+
+Content to summarize: {content_context}
+
+Additional context: {prompt}
+
+Provide a concise, accurate summary.""",
+
+            "general": f"""You are an expert educational content generator.
+
+CRITICAL RULES:
+1. NO greetings, NO conversational phrases
+2. Start DIRECTLY with the main content
+3. Use HTML formatting: <h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>
+4. Be educational, clear, and well-structured
+5. Match student's level and learning style
+
+Student Level: {user_profile.get('difficulty_level', 'intermediate')}
+Learning Style: {user_profile.get('learning_style', 'Mixed')}
+
+Generate educational content about: {prompt}"""
+        }
+        
+        system_prompt = action_prompts.get(content_type, action_prompts["general"])
+        
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Generate educational content about: {prompt}"}
+            {"role": "user", "content": prompt}
         ]
 
-        logger.info("🤖 Calling Groq API...")
+        logger.info("Calling Groq API...")
         
         chat_completion = groq_client.chat.completions.create(
             messages=messages,
@@ -1342,14 +1457,14 @@ Format everything in HTML. Start immediately with the content."""
         )
         
         generated_content = chat_completion.choices[0].message.content
-        logger.info(f"✅ Generated content length: {len(generated_content)} characters")
+        logger.info(f"Generated content length: {len(generated_content)} characters")
         
         generated_content = clean_conversational_elements(generated_content)
         
         if not generated_content.strip().startswith('<'):
-            generated_content = f"<h1>{prompt}</h1>\n<p>{generated_content}</p>"
+            generated_content = f"<h2>{prompt}</h2>\n<p>{generated_content}</p>"
         
-        logger.info("✅ Content generation successful")
+        logger.info("Content generation successful")
         
         return {
             "status": "success",
@@ -1362,12 +1477,164 @@ Format everything in HTML. Start immediately with the content."""
     except HTTPException as he:
         raise he
     except Exception as e:
-        logger.error(f"❌ Error generating note content: {str(e)}", exc_info=True)
+        logger.error(f"Error generating note content: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500, 
             detail=f"Failed to generate content: {str(e)}"
         )
 
+
+# ENHANCED AI WRITING ASSISTANT WITH MORE ACTIONS
+@app.post("/ai_writing_assistant/")
+async def ai_writing_assistant(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """
+    AI Writing Assistant with multiple transformation actions
+    """
+    try:
+        user_id = payload.get("user_id")
+        content = payload.get("content", "")
+        action = payload.get("action", "improve")
+        tone = payload.get("tone", "professional")
+        context = payload.get("context", "")
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user_profile = build_user_profile_dict(user)
+        
+        # DIFFERENT PROMPTS FOR EACH ACTION
+        action_prompts = {
+            "continue": f"""Continue writing this text naturally and coherently.
+
+RULES:
+- Match the existing style and tone
+- Continue logically from where it ends
+- Add 2-3 more sentences or paragraphs
+- Do NOT repeat what's already written
+
+Text to continue:
+{content}
+
+Continue writing:""",
+
+            "improve": f"""Improve and enhance this text while keeping the same meaning.
+
+RULES:
+- Make it more clear and professional
+- Fix awkward phrasing
+- Improve word choice
+- Keep the same structure and meaning
+- Do NOT add new information
+
+Original text:
+{content}
+
+Improved version:""",
+
+            "simplify": f"""Simplify this text to make it easier to understand.
+
+RULES:
+- Use simpler words and shorter sentences
+- Explain technical terms
+- Break down complex ideas
+- Keep all important information
+- Make it accessible to a general audience
+
+Text to simplify:
+{content}
+
+Simplified version:""",
+
+            "expand": f"""Expand this text with more details, examples, and explanations.
+
+RULES:
+- Add relevant details and context
+- Include practical examples
+- Explain concepts more thoroughly
+- Increase depth without redundancy
+- Maintain the original tone
+
+Text to expand:
+{content}
+
+Expanded version:""",
+
+            "tone_change": f"""Rewrite this text in a {tone} tone.
+
+RULES:
+- Change the tone to be {tone}
+- Keep the same information
+- Adjust language and style appropriately
+- Maintain clarity
+
+Original text:
+{content}
+
+Rewritten in {tone} tone:""",
+
+            "grammar": f"""Fix all grammar and spelling errors in this text.
+
+RULES:
+- Correct spelling mistakes
+- Fix grammatical errors
+- Improve punctuation
+- Do NOT change the meaning or style
+- Keep the same tone and voice
+
+Text to correct:
+{content}
+
+Corrected version:""",
+
+            "summarize": f"""Create a concise summary of this text.
+
+RULES:
+- Extract only the most important points
+- Keep it brief but complete
+- Maintain key information
+- Use clear, simple language
+
+Text to summarize:
+{content}
+
+Summary:"""
+        }
+        
+        prompt = action_prompts.get(action, action_prompts["improve"])
+        
+        system_prompt = f"""You are a professional writing assistant for {user_profile.get('first_name', 'a student')}.
+
+CRITICAL: Return ONLY the processed text. NO explanations, NO comments, NO greetings."""
+
+        chat_completion = groq_client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt}
+            ],
+            model=GROQ_MODEL,
+            temperature=0.7,
+            max_tokens=2048,
+            top_p=0.9,
+        )
+        
+        result = chat_completion.choices[0].message.content.strip()
+        
+        return {
+            "status": "success",
+            "action": action,
+            "result": result,
+            "model_used": GROQ_MODEL,
+            "original_length": len(content.split()),
+            "new_length": len(result.split())
+        }
+        
+    except Exception as e:
+        logger.error(f"AI writing assistant error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI assistant failed: {str(e)}")
 
 @app.post("/create_note")
 def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
@@ -1402,27 +1669,112 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to create note: {str(e)}")
 
 
+@app.get("/get_notes")
+def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """Get all notes for a user (excluding deleted)"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # SQLite stores boolean as 0/1, so check for both False and 0
+        notes = db.query(models.Note).filter(
+            models.Note.user_id == user.id,
+            (models.Note.is_deleted == False) | (models.Note.is_deleted == 0) | (models.Note.is_deleted == None)
+        ).order_by(models.Note.updated_at.desc()).all()
+        
+        # Extra Python filter to be absolutely sure
+        active_notes = [n for n in notes if not n.is_deleted and n.deleted_at is None]
+        
+        logger.info(f"Retrieved {len(active_notes)} active notes for user {user.email}")
+        
+        return [
+            {
+                "id": note.id,
+                "title": note.title,
+                "content": note.content,
+                "created_at": note.created_at.isoformat(),
+                "updated_at": note.updated_at.isoformat(),
+                "is_favorite": getattr(note, 'is_favorite', False),
+                "folder_id": getattr(note, 'folder_id', None),
+                "custom_font": getattr(note, 'custom_font', 'Inter'),
+                "is_deleted": False
+            }
+            for note in active_notes
+        ]
+        
+    except Exception as e:
+        logger.error(f"Error getting notes: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/soft_delete_note/{note_id}")
+def soft_delete_note(note_id: int, db: Session = Depends(get_db)):
+    """Move note to trash (soft delete)"""
+    try:
+        note = db.query(models.Note).filter(models.Note.id == note_id).first()
+        
+        if not note:
+            raise HTTPException(status_code=404, detail="Note not found")
+        
+        # Set as integer 1 for SQLite
+        note.is_deleted = 1
+        note.deleted_at = datetime.now(timezone.utc)
+        
+        db.commit()
+        db.refresh(note)
+        
+        logger.info(f"Note {note.id} moved to trash - is_deleted={note.is_deleted}")
+        
+        return {
+            "message": "Note moved to trash successfully",
+            "note_id": note.id,
+            "status": "success"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error deleting note: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.put("/update_note")
 def update_note(note_data: NoteUpdate, db: Session = Depends(get_db)):
     """Update an existing note"""
-    note = db.query(models.Note).filter(models.Note.id == note_data.note_id).first()
-    if not note:
-        raise HTTPException(status_code=404, detail="Note not found")
-    
-    note.title = note_data.title
-    note.content = note_data.content
-    note.updated_at = datetime.now(timezone.utc)
-    
-    db.commit()
-    db.refresh(note)
-    
-    return {
-        "id": note.id,
-        "title": note.title,
-        "content": note.content,
-        "updated_at": note.updated_at.isoformat()
-    }
-
+    try:
+        note = db.query(models.Note).filter(models.Note.id == note_data.note_id).first()
+        if not note:
+            raise HTTPException(status_code=404, detail="Note not found")
+        
+        # Check if deleted (handle both boolean and integer)
+        if note.is_deleted or note.is_deleted == 1 or note.deleted_at is not None:
+            logger.warning(f"Rejected update to deleted note {note.id}")
+            raise HTTPException(status_code=400, detail="Cannot update a deleted note")
+        
+        note.title = note_data.title
+        note.content = note_data.content
+        note.updated_at = datetime.now(timezone.utc)
+        
+        db.commit()
+        db.refresh(note)
+        
+        logger.info(f"Note {note.id} updated successfully")
+        
+        return {
+            "id": note.id,
+            "title": note.title,
+            "content": note.content,
+            "updated_at": note.updated_at.isoformat(),
+            "is_deleted": False,
+            "status": "success"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating note: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/delete_note/{note_id}")
 def delete_note(note_id: int, db: Session = Depends(get_db)):
@@ -1708,24 +2060,43 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
 
 @app.put("/update_note")
 def update_note(note_data: NoteUpdate, db: Session = Depends(get_db)):
-    note = db.query(models.Note).filter(models.Note.id == note_data.note_id).first()
-    if not note:
-        raise HTTPException(status_code=404, detail="Note not found")
-    
-    note.title = note_data.title
-    note.content = note_data.content
-    note.updated_at = datetime.now(timezone.utc)
-    
-    db.commit()
-    db.refresh(note)
-    
-    return {
-        "id": note.id,
-        "title": note.title,
-        "content": note.content,
-        "updated_at": note.updated_at.isoformat()
-    }
+    """Update an existing note"""
+    try:
+        note = db.query(models.Note).filter(models.Note.id == note_data.note_id).first()
+        if not note:
+            raise HTTPException(status_code=404, detail="Note not found")
+        
+        # ✅ CRITICAL: Do not allow updating deleted notes
+        if note.is_deleted:
+            logger.warning(f"⚠️ Attempted to update deleted note {note.id}")
+            raise HTTPException(status_code=400, detail="Cannot update a deleted note")
+        
+        note.title = note_data.title
+        note.content = note_data.content
+        note.updated_at = datetime.now(timezone.utc)
+        
+        db.commit()
+        db.refresh(note)
+        
+        logger.info(f"✅ Note {note.id} updated successfully")
+        
+        return {
+            "id": note.id,
+            "title": note.title,
+            "content": note.content,
+            "updated_at": note.updated_at.isoformat(),
+            "is_deleted": note.is_deleted,
+            "status": "success"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating note: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
+
+     
 @app.delete("/delete_note/{note_id}")
 def delete_note(note_id: int, db: Session = Depends(get_db)):
     note = db.query(models.Note).filter(models.Note.id == note_id).first()
@@ -1908,7 +2279,7 @@ def toggle_favorite(data: NoteFavorite, db: Session = Depends(get_db)):
 
 @app.get("/get_favorite_notes")
 def get_favorite_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
-    """Get all favorite notes"""
+    """Get all favorite notes (excluding deleted)"""
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
@@ -1917,7 +2288,7 @@ def get_favorite_notes(user_id: str = Query(...), db: Session = Depends(get_db))
         notes = db.query(models.Note).filter(
             models.Note.user_id == user.id,
             models.Note.is_favorite == True,
-            models.Note.is_deleted == False
+            models.Note.is_deleted == False  # ✅ Exclude deleted notes
         ).order_by(models.Note.updated_at.desc()).all()
         
         return {
@@ -1935,9 +2306,9 @@ def get_favorite_notes(user_id: str = Query(...), db: Session = Depends(get_db))
     except Exception as e:
         logger.error(f"Error getting favorites: {str(e)}")
         return {"favorites": []}
-
-
-# ==================== TRASH/RECYCLE BIN ====================
+        
+        
+                        # ==================== TRASH/RECYCLE BIN ====================
 
 
 @app.put("/restore_note/{note_id}")
@@ -2044,32 +2415,6 @@ async def ai_writing_assistant(
 
 
 # ==================== UPDATE GET_NOTES TO INCLUDE NEW FIELDS ====================
-
-@app.get("/get_notes")
-def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
-    """Get all notes for a user (excluding deleted)"""
-    user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    notes = db.query(models.Note).filter(
-        models.Note.user_id == user.id,
-        models.Note.is_deleted == False  # Exclude deleted notes
-    ).order_by(models.Note.updated_at.desc()).all()
-    
-    return [
-        {
-            "id": note.id,
-            "title": note.title,
-            "content": note.content,
-            "created_at": note.created_at.isoformat(),
-            "updated_at": note.updated_at.isoformat(),
-            "is_favorite": getattr(note, 'is_favorite', False),
-            "folder_id": getattr(note, 'folder_id', None),
-            "custom_font": getattr(note, 'custom_font', 'Inter')
-        }
-        for note in notes
-    ]
 
 
 @app.post("/create_flashcard_set")
@@ -3170,7 +3515,6 @@ async def update_comprehensive_profile(
     except Exception as e:
         logger.error(f"Error updating profile: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 
 

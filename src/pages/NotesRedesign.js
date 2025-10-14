@@ -16,7 +16,7 @@ Quill.register('modules/tableUI', QuillTableUI);
 window.katex = katex;
 
 const NotesRedesign = () => {
-  // ============== EXISTING STATE ==============
+  // STATE
   const [userName, setUserName] = useState("");
   const [userProfile, setUserProfile] = useState(null);
   const [notes, setNotes] = useState([]);
@@ -39,8 +39,13 @@ const NotesRedesign = () => {
 
   // View Mode
   const [viewMode, setViewMode] = useState("edit");
+  
+  // Text selection menu states
+  const [showTextActionMenu, setShowTextActionMenu] = useState(false);
+  const [textActionMenuPosition, setTextActionMenuPosition] = useState({ top: 0, left: 0 });
+  const [selectedRange, setSelectedRange] = useState(null);
 
-  // ============== FOLDERS & FEATURES STATE ==============
+  // FOLDERS & FEATURES STATE
   const [folders, setFolders] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [showFolderModal, setShowFolderModal] = useState(false);
@@ -55,7 +60,11 @@ const NotesRedesign = () => {
   const [aiAssistTone, setAiAssistTone] = useState("professional");
   const [selectedText, setSelectedText] = useState("");
 
-  // ============== CHAT IMPORT STATE ==============
+  // DRAG & DROP STATE
+  const [draggedNote, setDraggedNote] = useState(null);
+  const [dragOverFolder, setDragOverFolder] = useState(null);
+
+  // CHAT IMPORT STATE
   const [showChatImport, setShowChatImport] = useState(false);
   const [chatSessions, setChatSessions] = useState([]);
   const [selectedSessions, setSelectedSessions] = useState([]);
@@ -72,7 +81,7 @@ const NotesRedesign = () => {
   const showPopup = (title, message) => setPopup({ isOpen: true, title, message });
   const closePopup = () => setPopup({ isOpen: false, title: "", message: "" });
 
-  // ============== AUTH ==============
+  // AUTH
   useEffect(() => {
     const token = localStorage.getItem("token");
     const username = localStorage.getItem("username");
@@ -87,7 +96,7 @@ const NotesRedesign = () => {
     }
   }, [navigate]);
 
-  // ============== LOAD NOTES, FOLDERS & CHAT SESSIONS ==============
+  // LOAD NOTES, FOLDERS & CHAT SESSIONS
   useEffect(() => {
     if (userName) {
       loadNotes();
@@ -104,12 +113,153 @@ const NotesRedesign = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        setNotes(data);
-        if (data.length > 0 && !selectedNote) selectNote(data[0]);
+        console.log("Loaded notes:", data);
+        
+        const activeNotes = data.filter(n => !n.is_deleted);
+        setNotes(activeNotes);
+        
+        if (activeNotes.length > 0 && !selectedNote) {
+          selectNote(activeNotes[0]);
+        }
       }
     } catch (e) {
       console.error("Error loading notes:", e);
       showPopup("Error", "Failed to load notes");
+    }
+  };
+
+  // HANDLE TEXT SELECTION IN EDITOR
+  const handleTextSelection = useCallback(() => {
+    const quill = quillRef.current?.getEditor();
+    if (!quill) return;
+
+    const range = quill.getSelection();
+    
+    if (range && range.length > 0) {
+      const selectedText = quill.getText(range.index, range.length);
+      
+      if (selectedText.trim().length > 0) {
+        setSelectedText(selectedText);
+        setSelectedRange(range);
+        
+        const bounds = quill.getBounds(range.index, range.length);
+        const editorRect = quill.container.getBoundingClientRect();
+        
+        setTextActionMenuPosition({
+          top: editorRect.top + bounds.bottom + window.scrollY + 5,
+          left: editorRect.left + bounds.left + window.scrollX,
+        });
+        
+        setShowTextActionMenu(true);
+      }
+    } else {
+      setShowTextActionMenu(false);
+    }
+  }, []);
+
+  // Listen for text selection
+  useEffect(() => {
+    const quill = quillRef.current?.getEditor();
+    if (!quill) return;
+
+    quill.on('selection-change', handleTextSelection);
+
+    return () => {
+      quill.off('selection-change', handleTextSelection);
+    };
+  }, [handleTextSelection]);
+
+  // PROCESS SELECTED TEXT WITH AI
+  const processSelectedText = async (action) => {
+    if (!selectedText || !selectedText.trim()) {
+      showPopup("No Text Selected", "Please select text first");
+      return;
+    }
+
+    setGeneratingAI(true);
+    setShowTextActionMenu(false);
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:8001/ai_writing_assistant/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          content: selectedText,
+          action: action,
+          tone: aiAssistTone,
+          context: noteContent,
+        }),
+      });
+
+      if (!res.ok) throw new Error("AI processing failed");
+
+      const data = await res.json();
+      const quill = quillRef.current?.getEditor();
+
+      if (quill && selectedRange) {
+        quill.deleteText(selectedRange.index, selectedRange.length);
+        quill.insertText(selectedRange.index, data.result);
+        quill.setSelection(selectedRange.index + data.result.length);
+      }
+
+      setNoteContent(quill.root.innerHTML);
+      showPopup("Success", `Text ${action} completed`);
+    } catch (error) {
+      console.error("AI processing error:", error);
+      showPopup("Error", "Failed to process text");
+    } finally {
+      setGeneratingAI(false);
+      setSelectedText("");
+      setSelectedRange(null);
+    }
+  };
+
+  // QUICK AI ACTION FROM TEXT MENU
+  const quickTextAction = async (actionType) => {
+    setGeneratingAI(true);
+    setShowTextActionMenu(false);
+
+    try {
+      const token = localStorage.getItem("token");
+      
+      const fd = new FormData();
+      fd.append("user_id", userName);
+      fd.append("prompt", selectedText);
+      fd.append("content_type", actionType);
+      fd.append("existing_content", noteContent);
+
+      const res = await fetch("http://localhost:8001/generate_note_content/", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+
+      if (!res.ok) throw new Error("AI generation failed");
+
+      const data = await res.json();
+      const quill = quillRef.current?.getEditor();
+
+      if (quill && selectedRange) {
+        const insertPosition = selectedRange.index + selectedRange.length;
+        quill.insertText(insertPosition, "\n\n");
+        quill.clipboard.dangerouslyPasteHTML(insertPosition + 2, data.content);
+        quill.setSelection(insertPosition + data.content.length + 2);
+      }
+
+      setNoteContent(quill.root.innerHTML);
+      showPopup("Success", `${actionType} content added`);
+    } catch (error) {
+      console.error("AI action error:", error);
+      showPopup("Error", "Failed to generate content");
+    } finally {
+      setGeneratingAI(false);
+      setSelectedText("");
+      setSelectedRange(null);
     }
   };
 
@@ -121,6 +271,7 @@ const NotesRedesign = () => {
       });
       if (res.ok) {
         const data = await res.json();
+        console.log("Loaded folders:", data.folders);
         setFolders(data.folders || []);
       }
     } catch (e) {
@@ -136,6 +287,7 @@ const NotesRedesign = () => {
       });
       if (res.ok) {
         const data = await res.json();
+        console.log("Loaded trash:", data.trash);
         setTrashedNotes(data.trash || []);
       }
     } catch (e) {
@@ -158,7 +310,7 @@ const NotesRedesign = () => {
     }
   };
 
-  // ============== FOLDER MANAGEMENT ==============
+  // FOLDER MANAGEMENT
   const createFolder = async () => {
     if (!newFolderName.trim()) {
       showPopup("Error", "Folder name cannot be empty");
@@ -186,11 +338,50 @@ const NotesRedesign = () => {
         setNewFolderName("");
         setNewFolderColor("#D7B38C");
         setShowFolderModal(false);
+        
+        setSelectedFolder(folder.id);
+        setShowFavorites(false);
+        setShowTrash(false);
+        
         showPopup("Success", "Folder created successfully");
       }
     } catch (e) {
       console.error("Error creating folder:", e);
       showPopup("Error", "Failed to create folder");
+    }
+  };
+
+  const createNoteInFolder = async (folderId) => {
+    const token = localStorage.getItem("token");
+    const res = await fetch("http://localhost:8001/create_note", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        user_id: userName,
+        title: "Untitled Note",
+        content: "",
+        folder_id: folderId,
+      }),
+    });
+    
+    if (res.ok) {
+      const newNote = await res.json();
+      setNotes((p) => [newNote, ...p]);
+      selectNote(newNote);
+      await loadFolders();
+
+      setTimeout(() => {
+        const quill = quillRef.current?.getEditor();
+        if (quill) {
+          quill.focus();
+          quill.setSelection(0, 0);
+        }
+      }, 150);
+
+      showPopup("Created", "New note created in folder");
     }
   };
 
@@ -205,7 +396,8 @@ const NotesRedesign = () => {
       });
 
       setFolders(folders.filter(f => f.id !== folderId));
-      loadNotes();
+      await loadNotes();
+      await loadFolders();
       showPopup("Success", "Folder deleted");
     } catch (e) {
       console.error("Error deleting folder:", e);
@@ -215,33 +407,73 @@ const NotesRedesign = () => {
   const moveNoteToFolder = async (noteId, folderId) => {
     try {
       const token = localStorage.getItem("token");
-      await fetch("http://localhost:8001/move_note_to_folder", {
+      const res = await fetch("http://localhost:8001/move_note_to_folder", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+          Authorization: `Bearer ${token}` },
         body: JSON.stringify({ note_id: noteId, folder_id: folderId }),
       });
 
-      setNotes(notes.map(n => n.id === noteId ? { ...n, folder_id: folderId } : n));
-      if (selectedNote?.id === noteId) {
-        setSelectedNote({ ...selectedNote, folder_id: folderId });
+      if (res.ok) {
+        setNotes(notes.map(n => n.id === noteId ? { ...n, folder_id: folderId } : n));
+        
+        if (selectedNote?.id === noteId) {
+          setSelectedNote({ ...selectedNote, folder_id: folderId });
+        }
+        
+        await loadFolders();
+        
+        console.log(`Note ${noteId} moved to folder ${folderId}`);
+        showPopup("Success", "Note moved to folder");
       }
-      showPopup("Success", "Note moved to folder");
     } catch (e) {
       console.error("Error moving note:", e);
+      showPopup("Error", "Failed to move note");
     }
   };
 
-  // ============== FAVORITES ==============
+  // DRAG & DROP HANDLERS
+  const handleDragStart = (e, note) => {
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggedNote(note);
+    e.target.style.opacity = '0.5';
+  };
+
+  const handleDragEnd = (e) => {
+    e.target.style.opacity = '1';
+    setDraggedNote(null);
+    setDragOverFolder(null);
+  };
+
+  const handleDragOver = (e, folderId) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverFolder(folderId);
+  };
+
+  const handleDragLeave = (e) => {
+    setDragOverFolder(null);
+  };
+
+  const handleDrop = async (e, folderId) => {
+    e.preventDefault();
+    setDragOverFolder(null);
+    
+    if (draggedNote) {
+      await moveNoteToFolder(draggedNote.id, folderId);
+      setDraggedNote(null);
+    }
+  };
+
+  // FAVORITES
   const toggleFavorite = async (noteId) => {
     const note = notes.find(n => n.id === noteId);
     const newFavoriteStatus = !note.is_favorite;
 
     try {
       const token = localStorage.getItem("token");
-      await fetch("http://localhost:8001/toggle_favorite", {
+      const res = await fetch("http://localhost:8001/toggle_favorite", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -250,53 +482,79 @@ const NotesRedesign = () => {
         body: JSON.stringify({ note_id: noteId, is_favorite: newFavoriteStatus }),
       });
 
-      setNotes(notes.map(n => n.id === noteId ? { ...n, is_favorite: newFavoriteStatus } : n));
-      if (selectedNote?.id === noteId) {
-        setSelectedNote({ ...selectedNote, is_favorite: newFavoriteStatus });
+      if (res.ok) {
+        setNotes(notes.map(n => n.id === noteId ? { ...n, is_favorite: newFavoriteStatus } : n));
+        if (selectedNote?.id === noteId) {
+          setSelectedNote({ ...selectedNote, is_favorite: newFavoriteStatus });
+        }
+        showPopup("Success", newFavoriteStatus ? "Added to favorites" : "Removed from favorites");
       }
-      showPopup("Success", newFavoriteStatus ? "Added to favorites" : "Removed from favorites");
     } catch (e) {
       console.error("Error toggling favorite:", e);
     }
   };
 
-  // ============== TRASH/RECYCLE BIN ==============
+  // MOVE TO TRASH
   const moveToTrash = async (noteId) => {
     try {
+      console.log(`Attempting to move note ${noteId} to trash`);
+      
+      if (saveTimeout.current) {
+        clearTimeout(saveTimeout.current);
+        saveTimeout.current = null;
+        console.log("Auto-save timer cleared");
+      }
+      
+      if (selectedNote?.id === noteId) {
+        setSelectedNote(null);
+        setNoteTitle("");
+        setNoteContent("");
+      }
+      
       const token = localStorage.getItem("token");
-      await fetch(`http://localhost:8001/soft_delete_note/${noteId}`, {
+      const res = await fetch(`http://localhost:8001/soft_delete_note/${noteId}`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setNotes(notes.filter(n => n.id !== noteId));
-      if (selectedNote?.id === noteId) {
-        const remaining = notes.filter(n => n.id !== noteId);
+      if (res.ok) {
+        console.log(`Note ${noteId} moved to trash on backend`);
+        
+        setNotes(prevNotes => prevNotes.filter(n => n.id !== noteId));
+        
+        const remaining = notes.filter(n => n.id !== noteId && !n.is_deleted);
         if (remaining.length > 0) {
-          selectNote(remaining[0]);
-        } else {
-          setSelectedNote(null);
-          setNoteTitle("");
-          setNoteContent("");
+          setTimeout(() => selectNote(remaining[0]), 100);
         }
+        
+        await loadFolders();
+        
+        showPopup("Moved to Trash", "Note moved to trash (recoverable for 30 days)");
+      } else {
+        console.error("Failed to delete note on backend");
+        showPopup("Error", "Failed to move note to trash");
       }
-      showPopup("Moved to Trash", "Note moved to trash (recoverable for 30 days)");
     } catch (e) {
       console.error("Error moving to trash:", e);
+      showPopup("Error", "Failed to move note to trash");
     }
   };
 
   const restoreNote = async (noteId) => {
     try {
       const token = localStorage.getItem("token");
-      await fetch(`http://localhost:8001/restore_note/${noteId}`, {
+      const res = await fetch(`http://localhost:8001/restore_note/${noteId}`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      loadNotes();
-      loadTrash();
-      showPopup("Restored", "Note restored successfully");
+      if (res.ok) {
+        console.log(`Note ${noteId} restored`);
+        await loadNotes();
+        await loadTrash();
+        await loadFolders();
+        showPopup("Restored", "Note restored successfully");
+      }
     } catch (e) {
       console.error("Error restoring note:", e);
     }
@@ -307,19 +565,21 @@ const NotesRedesign = () => {
 
     try {
       const token = localStorage.getItem("token");
-      await fetch(`http://localhost:8001/permanent_delete_note/${noteId}`, {
+      const res = await fetch(`http://localhost:8001/permanent_delete_note/${noteId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setTrashedNotes(trashedNotes.filter(n => n.id !== noteId));
-      showPopup("Deleted", "Note permanently deleted");
+      if (res.ok) {
+        setTrashedNotes(trashedNotes.filter(n => n.id !== noteId));
+        showPopup("Deleted", "Note permanently deleted");
+      }
     } catch (e) {
       console.error("Error permanently deleting:", e);
     }
   };
 
-  // ============== WORD & CHAR COUNT ==============
+  // WORD & CHAR COUNT
   useEffect(() => {
     if (noteContent) {
       const text = noteContent.replace(/<[^>]+>/g, "").trim();
@@ -332,9 +592,12 @@ const NotesRedesign = () => {
     }
   }, [noteContent]);
 
-  // ============== CRUD ==============
+  // CRUD
   const createNewNote = async () => {
     const token = localStorage.getItem("token");
+    
+    const folderId = selectedFolder && selectedFolder !== 0 ? selectedFolder : null;
+    
     const res = await fetch("http://localhost:8001/create_note", {
       method: "POST",
       headers: {
@@ -345,13 +608,15 @@ const NotesRedesign = () => {
         user_id: userName,
         title: "Untitled Note",
         content: "",
-        folder_id: selectedFolder,
+        folder_id: folderId,
       }),
     });
+    
     if (res.ok) {
       const newNote = await res.json();
       setNotes((p) => [newNote, ...p]);
       selectNote(newNote);
+      await loadFolders();
 
       setTimeout(() => {
         const quill = quillRef.current?.getEditor();
@@ -361,7 +626,8 @@ const NotesRedesign = () => {
         }
       }, 150);
 
-      showPopup("Created", "New note created successfully");
+      const folderName = folders.find(f => f.id === folderId)?.name;
+      showPopup("Created", folderName ? `New note created in ${folderName}` : "New note created");
     }
   };
 
@@ -402,13 +668,30 @@ const NotesRedesign = () => {
     }, 100);
   };
 
-  // ============== AUTO SAVE ==============
+  // AUTO SAVE
   const autoSave = useCallback(async () => {
-    if (!selectedNote) return;
+    if (!selectedNote) {
+      console.log("No note selected, skipping auto-save");
+      return;
+    }
+    
+    const noteStillExists = notes.find(n => n.id === selectedNote.id);
+    if (!noteStillExists) {
+      console.log("Note no longer exists in notes array, skipping auto-save");
+      return;
+    }
+    
+    if (selectedNote.is_deleted || noteStillExists.is_deleted) {
+      console.log("Note is deleted, skipping auto-save");
+      return;
+    }
+    
+    console.log(`Auto-saving note ${selectedNote.id}...`);
     setSaving(true);
+    
     try {
       const token = localStorage.getItem("token");
-      await fetch("http://localhost:8001/update_note", {
+      const res = await fetch("http://localhost:8001/update_note", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -420,26 +703,65 @@ const NotesRedesign = () => {
           content: noteContent,
         }),
       });
-      setSaving(false);
-      setAutoSaved(true);
-      setTimeout(() => setAutoSaved(false), 2000);
+      
+      if (res.ok) {
+        setSaving(false);
+        setAutoSaved(true);
+        setTimeout(() => setAutoSaved(false), 2000);
 
-      setNotes((prev) =>
-        prev.map((n) =>
-          n.id === selectedNote.id ? { ...n, title: noteTitle, content: noteContent } : n
-        )
-      );
+        setNotes((prev) =>
+          prev.map((n) =>
+            n.id === selectedNote.id ? { ...n, title: noteTitle, content: noteContent } : n
+          )
+        );
+        
+        console.log(`Note ${selectedNote.id} saved successfully`);
+      } else if (res.status === 400) {
+        console.log("Note is deleted on backend, stopping auto-save");
+        setSaving(false);
+        
+        setNotes(prev => prev.filter(n => n.id !== selectedNote.id));
+        setSelectedNote(null);
+        setNoteTitle("");
+        setNoteContent("");
+        
+        showPopup("Note Deleted", "This note has been moved to trash");
+      } else {
+        throw new Error(`Failed to save: ${res.status}`);
+      }
     } catch (error) {
       setSaving(false);
       console.error("Save error:", error);
     }
-  }, [selectedNote, noteTitle, noteContent]);
+  }, [selectedNote, noteTitle, noteContent, notes]);
 
+  // AUTO SAVE TRIGGER
   useEffect(() => {
-    if (saveTimeout.current) clearTimeout(saveTimeout.current);
-    if (selectedNote) saveTimeout.current = setTimeout(autoSave, 1500);
-  }, [noteContent, noteTitle, autoSave, selectedNote]);
+    if (saveTimeout.current) {
+      clearTimeout(saveTimeout.current);
+      saveTimeout.current = null;
+    }
+    
+    if (selectedNote && !selectedNote.is_deleted) {
+      console.log("Setting auto-save timeout for 1.5 seconds...");
+      saveTimeout.current = setTimeout(() => {
+        if (selectedNote && !selectedNote.is_deleted) {
+          autoSave();
+        } else {
+          console.log("Note deleted, canceling scheduled auto-save");
+        }
+      }, 1500);
+    }
+    
+    return () => {
+      if (saveTimeout.current) {
+        clearTimeout(saveTimeout.current);
+        saveTimeout.current = null;
+      }
+    };
+  }, [noteContent, noteTitle, selectedNote, autoSave]);
 
+  // MANUAL SAVE WITH CTRL+S
   useEffect(() => {
     const handleKey = (e) => {
       if (e.ctrlKey && e.key === "s") {
@@ -451,7 +773,7 @@ const NotesRedesign = () => {
     return () => window.removeEventListener("keydown", handleKey);
   }, [autoSave]);
 
-  // ============== HANDLE EDITOR CHANGES ==============
+  // HANDLE EDITOR CHANGES
   const handleEditorChange = (content, delta, source, editor) => {
     setNoteContent(content);
 
@@ -477,7 +799,7 @@ const NotesRedesign = () => {
     }
   };
 
-  // ============== AI GENERATION ==============
+  // AI GENERATION WITH SPECIFIC PROMPTS
   const generateAIContent = async () => {
     if (!aiPrompt.trim()) {
       showPopup("Empty Prompt", "Please enter a prompt for AI generation");
@@ -487,10 +809,21 @@ const NotesRedesign = () => {
     setGeneratingAI(true);
     try {
       const token = localStorage.getItem("token");
+      
+      let actionType = "general";
+      if (aiPrompt.toLowerCase().includes("explain")) {
+        actionType = "explain";
+      } else if (aiPrompt.toLowerCase().includes("key points")) {
+        actionType = "key_points";
+      } else if (aiPrompt.toLowerCase().includes("guide")) {
+        actionType = "guide";
+      }
+
       const fd = new FormData();
       fd.append("user_id", userName);
       fd.append("prompt", aiPrompt);
-      fd.append("content_type", "detailed");
+      fd.append("content_type", actionType);
+      fd.append("existing_content", noteContent);
 
       const res = await fetch("http://localhost:8001/generate_note_content/", {
         method: "POST",
@@ -523,7 +856,49 @@ const NotesRedesign = () => {
     }
   };
 
-  // ============== AI WRITING ASSISTANT ==============
+  // QUICK ACTION BUTTONS FOR AI DROPDOWN
+  const quickAIAction = async (actionType) => {
+    setGeneratingAI(true);
+    try {
+      const token = localStorage.getItem("token");
+      
+      const fd = new FormData();
+      fd.append("user_id", userName);
+      fd.append("prompt", aiPrompt || "Generate content");
+      fd.append("content_type", actionType);
+      fd.append("existing_content", noteContent);
+
+      const res = await fetch("http://localhost:8001/generate_note_content/", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+
+      if (!res.ok) throw new Error("AI generation failed");
+
+      const data = await res.json();
+      const quill = quillRef.current?.getEditor();
+
+      if (quill) {
+        const range = quill.getSelection();
+        const index = range ? range.index : quill.getLength();
+        quill.insertText(index, "\n");
+        quill.clipboard.dangerouslyPasteHTML(index + 1, data.content);
+        quill.setSelection(index + data.content.length + 1);
+      }
+
+      setNoteContent(quillRef.current?.getEditor().root.innerHTML);
+      showPopup("AI Generated", `${actionType} content inserted`);
+    } catch (error) {
+      console.error("AI action error:", error);
+      showPopup("Error", "Failed to generate content");
+    } finally {
+      setGeneratingAI(false);
+      setShowAIDropdown(false);
+    }
+  };
+
+  // ENHANCED AI WRITING ASSISTANT
   const aiWritingAssist = async () => {
     const quill = quillRef.current?.getEditor();
     if (!quill) return;
@@ -531,7 +906,7 @@ const NotesRedesign = () => {
     const range = quill.getSelection();
     let textToProcess = selectedText;
 
-    if (!textToProcess && range) {
+    if (!textToProcess && range && range.length > 0) {
       textToProcess = quill.getText(range.index, range.length);
     }
 
@@ -554,6 +929,7 @@ const NotesRedesign = () => {
           content: textToProcess,
           action: aiAssistAction,
           tone: aiAssistTone,
+          context: noteContent,
         }),
       });
 
@@ -564,14 +940,17 @@ const NotesRedesign = () => {
       if (range && range.length > 0) {
         quill.deleteText(range.index, range.length);
         quill.insertText(range.index, data.result);
+        quill.setSelection(range.index + data.result.length);
       } else {
         const cursorPos = range ? range.index : quill.getLength();
         quill.insertText(cursorPos, "\n\n" + data.result);
+        quill.setSelection(cursorPos + data.result.length + 2);
       }
 
       setNoteContent(quill.root.innerHTML);
       setShowAIAssistant(false);
-      showPopup("AI Assistant", "Text processed successfully");
+      setSelectedText("");
+      showPopup("AI Assistant", `Text ${aiAssistAction} successfully`);
     } catch (error) {
       console.error("AI assistant error:", error);
       showPopup("Error", "Failed to process text");
@@ -580,7 +959,7 @@ const NotesRedesign = () => {
     }
   };
 
-  // ============== CHAT TO NOTE CONVERSION ==============
+  // CHAT TO NOTE CONVERSION
   const handleSessionToggle = (sid) =>
     setSelectedSessions((prev) => (prev.includes(sid) ? prev.filter((id) => id !== sid) : [...prev, sid]));
 
@@ -666,7 +1045,7 @@ const NotesRedesign = () => {
     setImporting(false);
   };
 
-  // ============== EXPORT ==============
+  // EXPORT
   const exportAsPDF = () => {
     const printWindow = window.open('', '_blank');
     const styles = `
@@ -713,7 +1092,7 @@ const NotesRedesign = () => {
           <h1>${noteTitle || 'Untitled Note'}</h1>
           <div class="metadata">
             Last edited: ${new Date(selectedNote.updated_at).toLocaleString()}<br>
-            ${wordCount} words • ${charCount} characters
+            ${wordCount} words - ${charCount} characters
           </div>
           ${noteContent}
         </body>
@@ -740,12 +1119,13 @@ const NotesRedesign = () => {
     showPopup("Exported", "Note exported as text");
   };
 
-  // ============== FILTERED NOTES LIST ==============
+  // FILTERED NOTES LIST
   const getFilteredNotes = () => {
     let filtered = notes.filter(
       (n) =>
-        n.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        n.content.toLowerCase().includes(searchTerm.toLowerCase())
+        !n.is_deleted &&
+        (n.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        n.content.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     if (showFavorites) {
@@ -761,7 +1141,7 @@ const NotesRedesign = () => {
 
   const filteredNotes = getFilteredNotes();
 
-  // ============== ENHANCED QUILL MODULES WITH ALL FEATURES ==============
+  // ENHANCED QUILL MODULES WITH ALL FEATURES
   const modules = {
     toolbar: [
       [{ header: [1, 2, 3, 4, 5, 6, false] }],
@@ -805,7 +1185,7 @@ const NotesRedesign = () => {
     "table",
   ];
 
-  // ============== LOGOUT ==============
+  // LOGOUT
   const handleLogout = () => {
     if (window.confirm("Are you sure you want to logout?")) {
       localStorage.clear();
@@ -813,7 +1193,7 @@ const NotesRedesign = () => {
     }
   };
 
-  // ============== RENDER ==============
+  // RENDER
   return (
     <div className="notes-redesign">
       {/* Sidebar */}
@@ -868,7 +1248,7 @@ const NotesRedesign = () => {
           </button>
         </div>
 
-        {/* Folders Section */}
+        {/* Folders Section with Drag & Drop */}
         <div className="folders-section">
           <div className="folders-header">
             <h3>Folders</h3>
@@ -877,45 +1257,84 @@ const NotesRedesign = () => {
             </button>
           </div>
           <div className="folders-list">
-            <div
-              className={`folder-item ${selectedFolder === 0 ? 'active' : ''}`}
-              onClick={() => {
-                setSelectedFolder(0);
-                setShowFavorites(false);
-                setShowTrash(false);
-              }}
-            >
-              <span>No Folder</span>
-              <span className="folder-count">
-                {notes.filter(n => !n.folder_id).length}
-              </span>
-            </div>
-            {folders.map((folder) => (
+            {folders.length === 0 && (
               <div
-                key={folder.id}
-                className={`folder-item ${selectedFolder === folder.id ? 'active' : ''}`}
+                className={`folder-item ${selectedFolder === 0 ? 'active' : ''} ${dragOverFolder === 0 ? 'drag-over' : ''}`}
                 onClick={() => {
-                  setSelectedFolder(folder.id);
+                  setSelectedFolder(0);
                   setShowFavorites(false);
                   setShowTrash(false);
                 }}
-                style={{ borderLeft: `3px solid ${folder.color}` }}
+                onDragOver={(e) => handleDragOver(e, null)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, null)}
               >
-                <span>📁 {folder.name}</span>
-                <div className="folder-actions">
-                  <span className="folder-count">{folder.note_count || 0}</span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteFolder(folder.id);
-                    }}
-                    className="folder-delete-btn"
-                  >
-                    ×
-                  </button>
+                <span>Notes not in a folder</span>
+                <span className="folder-count">
+                  {notes.filter(n => !n.folder_id).length}
+                </span>
+              </div>
+            )}
+            
+            {folders.map((folder) => (
+              <div key={folder.id} className="folder-item-wrapper">
+                <div
+                  className={`folder-item ${selectedFolder === folder.id ? 'active' : ''} ${dragOverFolder === folder.id ? 'drag-over' : ''}`}
+                  onClick={() => {
+                    setSelectedFolder(folder.id);
+                    setShowFavorites(false);
+                    setShowTrash(false);
+                  }}
+                  onDragOver={(e) => handleDragOver(e, folder.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, folder.id)}
+                  style={{ borderLeft: `3px solid ${folder.color}` }}
+                >
+                  <span>{folder.name}</span>
+                  <div className="folder-actions">
+                    <span className="folder-count">{folder.note_count || 0}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        createNoteInFolder(folder.id);
+                      }}
+                      className="folder-add-note-btn"
+                      title="Add note to this folder"
+                    >
+                      +
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteFolder(folder.id);
+                      }}
+                      className="folder-delete-btn"
+                    >
+                      ×
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
+            
+            {folders.length > 0 && notes.filter(n => !n.folder_id && !n.is_deleted).length > 0 && (
+              <div
+                className={`folder-item unfiled-notes ${selectedFolder === 0 ? 'active' : ''} ${dragOverFolder === 0 ? 'drag-over' : ''}`}
+                onClick={() => {
+                  setSelectedFolder(0);
+                  setShowFavorites(false);
+                  setShowTrash(false);
+                }}
+                onDragOver={(e) => handleDragOver(e, null)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, null)}
+              >
+                <span>Unfiled Notes</span>
+                <span className="folder-count">
+                  {notes.filter(n => !n.folder_id && !n.is_deleted).length}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -929,11 +1348,12 @@ const NotesRedesign = () => {
           />
         </div>
 
+        {/* Notes List with Drag & Drop */}
         <div className="notes-list-new">
           {showTrash ? (
-            // Trash View
             trashedNotes.length === 0 ? (
               <div className="no-notes-new">
+                <div className="empty-icon"></div>
                 <p>Trash is empty</p>
               </div>
             ) : (
@@ -941,7 +1361,7 @@ const NotesRedesign = () => {
                 <div key={n.id} className="note-item-new trash-item">
                   <div className="note-title-small">{n.title || "Untitled"}</div>
                   <div className="note-snippet">
-                    Deleted {n.days_remaining} days ago • {n.days_remaining} days remaining
+                    Deleted {Math.max(0, 30 - (30 - n.days_remaining))} days ago - {n.days_remaining} days remaining
                   </div>
                   <div className="trash-actions">
                     <button
@@ -962,7 +1382,7 @@ const NotesRedesign = () => {
             )
           ) : filteredNotes.length === 0 ? (
             <div className="no-notes-new">
-              <div className="empty-icon">No notes</div>
+              <div className="empty-icon"></div>
               <p>No notes found</p>
               <button onClick={createNewNote} className="create-first-note">
                 Create your first note
@@ -974,10 +1394,13 @@ const NotesRedesign = () => {
                 key={n.id}
                 className={`note-item-new ${selectedNote?.id === n.id ? "active" : ""}`}
                 onClick={() => selectNote(n)}
+                draggable
+                onDragStart={(e) => handleDragStart(e, n)}
+                onDragEnd={handleDragEnd}
               >
                 <div className="note-item-header">
                   <div className="note-title-small">
-                    {n.is_favorite && <span className="favorite-star">★</span>}
+                    {n.is_favorite && <span className="favorite-star">star</span>}
                     {n.title || "Untitled"}
                   </div>
                   <div className="note-actions">
@@ -989,7 +1412,7 @@ const NotesRedesign = () => {
                       }}
                       title={n.is_favorite ? "Remove from favorites" : "Add to favorites"}
                     >
-                      ★
+                      star
                     </button>
                     <button
                       className="note-action-btn duplicate"
@@ -999,7 +1422,7 @@ const NotesRedesign = () => {
                       }}
                       title="Duplicate note"
                     >
-                      Copy
+                      copy
                     </button>
                     <button
                       className="note-action-btn delete"
@@ -1009,7 +1432,7 @@ const NotesRedesign = () => {
                       }}
                       title="Move to trash"
                     >
-                      Trash
+                      trash
                     </button>
                   </div>
                 </div>
@@ -1030,22 +1453,12 @@ const NotesRedesign = () => {
                       minute: "2-digit",
                     })}
                   </span>
+                  {n.folder_id && (
+                    <span className="note-folder-badge">
+                      {folders.find(f => f.id === n.folder_id)?.name || 'Folder'}
+                    </span>
+                  )}
                 </div>
-                {/* Folder dropdown for moving notes */}
-                {folders.length > 0 && (
-                  <div className="note-folder-selector" onClick={(e) => e.stopPropagation()}>
-                    <select
-                      value={n.folder_id || ''}
-                      onChange={(e) => moveNoteToFolder(n.id, e.target.value ? parseInt(e.target.value) : null)}
-                      className="folder-select-dropdown"
-                    >
-                      <option value="">No Folder</option>
-                      {folders.map(f => (
-                        <option key={f.id} value={f.id}>📁 {f.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
               </div>
             ))
           )}
@@ -1062,7 +1475,7 @@ const NotesRedesign = () => {
               className="toggle-sidebar"
               title="Toggle sidebar"
             >
-              {sidebarOpen ? "<" : "="}
+              {sidebarOpen ? "back" : "menu"}
             </button>
             <div className="nav-title">Brainwave Notes</div>
           </div>
@@ -1157,7 +1570,7 @@ const NotesRedesign = () => {
                   onClick={() => setTitleSectionCollapsed(!titleSectionCollapsed)}
                   title={titleSectionCollapsed ? "Expand title" : "Collapse title"}
                 >
-                  {titleSectionCollapsed ? '▼' : '▲'}
+                  {titleSectionCollapsed ? 'down' : 'up'}
                 </button>
               </div>
             </div>
@@ -1192,7 +1605,7 @@ const NotesRedesign = () => {
                 <span className="stat-item">
                   {wordCount} {wordCount === 1 ? "word" : "words"}
                 </span>
-                <span className="stat-divider">•</span>
+                <span className="stat-divider">-</span>
                 <span className="stat-item">
                   {charCount} {charCount === 1 ? "character" : "characters"}
                 </span>
@@ -1210,7 +1623,7 @@ const NotesRedesign = () => {
           </div>
         ) : (
           <div className="empty-state-new">
-            <div className="empty-icon-large">Notes</div>
+            <div className="empty-icon-large"></div>
             <h2>No Note Selected</h2>
             <p>Select a note from the sidebar or create a new one to get started</p>
             <button className="btn-create-empty" onClick={createNewNote}>
@@ -1233,7 +1646,7 @@ const NotesRedesign = () => {
             }}
           >
             <div className="ai-dropdown-header">
-              <span className="ai-icon">✨</span>
+              <span className="ai-icon">AI</span>
               <span>AI Content Generator</span>
             </div>
             <input
@@ -1250,14 +1663,38 @@ const NotesRedesign = () => {
               disabled={generatingAI}
             />
             <div className="ai-examples">
-              <button onClick={() => setAiPrompt("Explain this concept in simple terms")}>
+              <button 
+                onClick={() => {
+                  setAiPrompt("Explain this concept in simple terms");
+                  quickAIAction("explain");
+                }}
+                disabled={generatingAI}
+              >
                 Explain
               </button>
-              <button onClick={() => setAiPrompt("Give me 5 key points about")}>
+              <button 
+                onClick={() => {
+                  setAiPrompt("Give me 5 key points");
+                  quickAIAction("key_points");
+                }}
+                disabled={generatingAI}
+              >
                 Key Points
               </button>
-              <button onClick={() => setAiPrompt("Write a detailed guide on")}>
+              <button 
+                onClick={() => {
+                  setAiPrompt("Write a detailed guide");
+                  quickAIAction("guide");
+                }}
+                disabled={generatingAI}
+              >
                 Guide
+              </button>
+              <button 
+                onClick={() => quickAIAction("summary")}
+                disabled={generatingAI}
+              >
+                Summarize
               </button>
             </div>
             <div className="ai-dropdown-actions">
@@ -1506,79 +1943,220 @@ const NotesRedesign = () => {
                 </div>
               </div>
 
-              <div className="session-selection-section-new">
-                <div className="session-header-new">
-                  <h3>Select Chat Sessions</h3>
-                  <div className="selection-controls-new">
-                    <button className="select-all-btn-new" onClick={selectAllSessions}>
+              <div className="sessions-section-new">
+                <div className="sessions-header-new">
+                  <h3>Select Chat Sessions ({selectedSessions.length} selected)</h3>
+                  <div className="selection-actions-new">
+                    <button onClick={selectAllSessions} className="select-all-btn-new">
                       Select All
                     </button>
-                    <button className="clear-all-btn-new" onClick={clearAllSessions}>
+                    <button onClick={clearAllSessions} className="clear-all-btn-new">
                       Clear All
                     </button>
                   </div>
                 </div>
-                {chatSessions.length === 0 ? (
-                  <div className="no-chats-new">
-                    <p>No chat sessions available.</p>
-                    <button className="go-chat-btn-new" onClick={() => navigate("/ai-chat")}>
-                      Start a Conversation
-                    </button>
-                  </div>
-                ) : (
-                  <div className="chat-sessions-grid-new">
-                    {chatSessions.map((s) => (
-                      <div
-                        key={s.id}
-                        className={`chat-session-card-new ${
-                          selectedSessions.includes(s.id) ? "selected" : ""
-                        }`}
-                        onClick={() => handleSessionToggle(s.id)}
+                <div className="sessions-list-new">
+                  {chatSessions.length === 0 ? (
+                    <div className="no-sessions-new">
+                      <p>No chat sessions available</p>
+                    </div>
+                  ) : (
+                    chatSessions.map((session) => (
+                      <label
+                        key={session.id}
+                        className={`session-item-new ${selectedSessions.includes(session.id) ? "selected" : ""}`}
                       >
-                        <div className="session-checkbox-new">
-                          <input
-                            type="checkbox"
-                            checked={selectedSessions.includes(s.id)}
-                            onChange={() => handleSessionToggle(s.id)}
-                          />
-                        </div>
+                        <input
+                          type="checkbox"
+                          checked={selectedSessions.includes(session.id)}
+                          onChange={() => handleSessionToggle(session.id)}
+                        />
                         <div className="session-info-new">
-                          <div className="session-title-new">{s.title}</div>
+                          <div className="session-title-new">{session.title || "Untitled Session"}</div>
                           <div className="session-date-new">
-                            {new Date(s.created_at).toLocaleDateString()}
+                            {new Date(session.updated_at).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
                           </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      </label>
+                    ))
+                  )}
+                </div>
               </div>
+            </div>
 
-              <div className="modal-actions-new">
-                <button className="cancel-btn-modal" onClick={() => setShowChatImport(false)}>
-                  Cancel
-                </button>
-                <button
-                  className="convert-btn-modal"
-                  onClick={convertChatToNote}
-                  disabled={importing || selectedSessions.length === 0}
-                >
-                  {importing
-                    ? "Converting..."
-                    : `Convert ${selectedSessions.length} Session(s)`}
-                </button>
-              </div>
+            <div className="modal-footer-new">
+              <button
+                className="cancel-btn-new"
+                onClick={() => setShowChatImport(false)}
+                disabled={importing}
+              >
+                Cancel
+              </button>
+              <button
+                className="import-btn-new"
+                onClick={convertChatToNote}
+                disabled={importing || selectedSessions.length === 0}
+              >
+                {importing ? (
+                  <>
+                    <span className="spinner"></span> Converting...
+                  </>
+                ) : (
+                  <>Convert to Note</>
+                )}
+              </button>
             </div>
           </div>
         </>
       )}
 
+      {/* CUSTOM POPUP */}
       <CustomPopup
         isOpen={popup.isOpen}
         onClose={closePopup}
         title={popup.title}
         message={popup.message}
       />
+
+      {/* TEXT SELECTION ACTION MENU */}
+      {showTextActionMenu && (
+        <>
+          <div 
+            className="text-action-overlay" 
+            onClick={() => setShowTextActionMenu(false)}
+          />
+          <div
+            className="text-action-menu"
+            style={{
+              position: "fixed",
+              top: `${textActionMenuPosition.top}px`,
+              left: `${textActionMenuPosition.left}px`,
+            }}
+          >
+            <div className="text-action-header">
+              <span className="text-action-icon">AI</span>
+              <span>AI Actions for Selected Text</span>
+              <button
+                className="text-action-close"
+                onClick={() => setShowTextActionMenu(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="text-action-section">
+              <div className="text-action-label">Transform Text:</div>
+              <div className="text-action-buttons">
+                <button
+                  onClick={() => processSelectedText("improve")}
+                  disabled={generatingAI}
+                  className="text-action-btn"
+                >
+                  <span className="btn-icon">+</span>
+                  Improve
+                </button>
+                <button
+                  onClick={() => processSelectedText("simplify")}
+                  disabled={generatingAI}
+                  className="text-action-btn"
+                >
+                  <span className="btn-icon">-</span>
+                  Simplify
+                </button>
+                <button
+                  onClick={() => processSelectedText("expand")}
+                  disabled={generatingAI}
+                  className="text-action-btn"
+                >
+                  <span className="btn-icon">+</span>
+                  Expand
+                </button>
+                <button
+                  onClick={() => processSelectedText("grammar")}
+                  disabled={generatingAI}
+                  className="text-action-btn"
+                >
+                  <span className="btn-icon">✓</span>
+                  Fix Grammar
+                </button>
+              </div>
+            </div>
+
+            <div className="text-action-divider"></div>
+
+            <div className="text-action-section">
+              <div className="text-action-label">Generate Content:</div>
+              <div className="text-action-buttons">
+                <button
+                  onClick={() => quickTextAction("explain")}
+                  disabled={generatingAI}
+                  className="text-action-btn"
+                >
+                  <span className="btn-icon">?</span>
+                  Explain
+                </button>
+                <button
+                  onClick={() => quickTextAction("key_points")}
+                  disabled={generatingAI}
+                  className="text-action-btn"
+                >
+                  <span className="btn-icon">•</span>
+                  Key Points
+                </button>
+                <button
+                  onClick={() => quickTextAction("summary")}
+                  disabled={generatingAI}
+                  className="text-action-btn"
+                >
+                  <span className="btn-icon">=</span>
+                  Summarize
+                </button>
+              </div>
+            </div>
+
+            <div className="text-action-divider"></div>
+
+            <div className="text-action-section">
+              <div className="text-action-label">Change Tone:</div>
+              <div className="text-action-tone-selector">
+                <select
+                  value={aiAssistTone}
+                  onChange={(e) => setAiAssistTone(e.target.value)}
+                  className="tone-select"
+                  disabled={generatingAI}
+                >
+                  <option value="professional">Professional</option>
+                  <option value="casual">Casual</option>
+                  <option value="formal">Formal</option>
+                  <option value="friendly">Friendly</option>
+                  <option value="academic">Academic</option>
+                  <option value="creative">Creative</option>
+                </select>
+                <button
+                  onClick={() => processSelectedText("tone_change")}
+                  disabled={generatingAI}
+                  className="text-action-btn-apply"
+                >
+                  Apply Tone
+                </button>
+              </div>
+            </div>
+
+            {generatingAI && (
+              <div className="text-action-loading">
+                <span className="spinner"></span>
+                <span>Processing...</span>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };
