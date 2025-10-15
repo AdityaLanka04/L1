@@ -9,7 +9,7 @@
   --panel-bg: rgba(255, 255, 255, 0.02);
   --accent: #D7B38C;
   --accent-2: #B88F63;
-  --text-primary: #EAECEF;
+  --text-primary: #000000;
   --text-secondary: #B8C0CC;
   --glow: rgba(215, 179, 140, 0.35);
   --success: #4ade80;
@@ -19,10 +19,10 @@
   --hover-bg: rgba(255, 255, 255, 0.05);
   --shadow: rgba(0, 0, 0, 0.4);
   --editor-bg: #ffffff;
-  --editor-text: #EAECEF;
+  --editor-text: #000000;
   --editor-placeholder: #666666;
   --scrollbar-track: rgba(255, 255, 255, 0.05);
-  --scrollbar-thumb: rgba(215, 179, 140, 0.3);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.3);
   --scrollbar-thumb-hover: #D7B38C;
   --selection-bg: rgba(215, 179, 140, 0.3);
 }
@@ -3327,4 +3327,561 @@ select {
 .folder-item:not(:hover),
 .filter-btn:not(:hover) {
   will-change: auto;
+}
+
+/* ==================== UI VISIBILITY FIXES ==================== */
+/* Apply these changes to your NotesRedesign.css file */
+/* Uses existing CSS variables for theme support */
+
+/* Fix: AI Dropdown Background - Keep theme support */
+.ai-dropdown-new {
+  background: var(--bg-top);
+  /* Already correct, ensure it uses panel-bg */
+}
+
+/* Fix: AI Prompt Input Text Color */
+.ai-prompt-input {
+  background: var(--hover-bg);
+  color: var(--editor-text);  /* Changed from var(--text-primary) */
+}
+
+.ai-prompt-input::placeholder {
+  color: var(--editor-placeholder);  /* Changed from var(--text-secondary) */
+}
+
+/* Fix: AI Example Buttons - Keep existing */
+.ai-examples button {
+  background: var(--hover-bg);
+  color: var(--accent);
+}
+
+/* Fix: AI Cancel Button - Keep existing */
+.ai-btn-cancel {
+  background: var(--hover-bg);
+  color: var(--accent);
+}
+
+/* Fix: AI Generate Button Text Color */
+.ai-btn-generate {
+  color: var(--bg-top);  /* Changed from var(--panel-bg) to use dark background color */
+  font-weight: 700;  /* Increased from 600 for better visibility */
+}
+
+/* Fix: Spinner Color in Generate Button */
+.spinner {
+  border: 2px solid var(--bg-top);  /* Changed from var(--panel-bg) */
+  border-top-color: transparent;
+}
+
+/* Fix: AI Assistant Modal Background - Keep theme support */
+.ai-assistant-modal,
+.folder-modal {
+  background: var(--panel-bg);
+  /* Already correct */
+}
+
+/* Fix: Modal Header Background - Keep theme support */
+.ai-assistant-header,
+.folder-modal-header {
+  background: var(--bg-bottom);
+  /* Already correct */
+}
+
+/* Fix: Modal Scrollbar Track - Keep theme support */
+.ai-assistant-content::-webkit-scrollbar-track,
+.folder-modal-content::-webkit-scrollbar-track {
+  background: var(--bg-bottom);
+  /* Already correct */
+}
+
+/* Fix: AI Action Buttons Background - Keep theme support */
+.ai-action-btn {
+  background: var(--hover-bg);
+  color: var(--bg-bottom);
+  /* Already correct */
+}
+
+/* Fix: Tone Selector */
+.tone-selector {
+  background: var(--hover-bg);
+  color: var(--editor-text);  /* Changed from var(--text-primary) */
+}
+
+.tone-selector:hover {
+  background: color-mix(in srgb, var(--hover-bg) 120%, transparent);
+  border-color: var(--accent);
+}
+
+.tone-selector option {
+  background: var(--panel-bg);
+  color: var(--editor-text);  /* Changed from var(--text-primary) */
+}
+
+/* Fix: AI Text Input */
+.ai-text-input {
+  background: var(--hover-bg);
+  color: var(--editor-text);  /* Changed from var(--text-primary) */
+}
+
+.ai-text-input:focus {
+  background: color-mix(in srgb, var(--hover-bg) 120%, transparent);
+  border-color: var(--accent);
+  box-shadow: 0 0 20px var(--glow);
+}
+
+.ai-text-input::placeholder {
+  color: var(--editor-placeholder);  /* Changed from var(--text-secondary) */
+}
+
+.ai-floating-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--accent);
+  color: var(--bg-top);  /* Changed from static color to variable */
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 
+    0 4px 15px var(--shadow),
+    0 0 20px var(--glow);
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  animation: fadeInScale 0.2s ease-out;
+  z-index: 9999;
+  pointer-events: all;
+  transform: translate(-50%, 0);
+  backdrop-filter: blur(20px);
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+  will-change: transform;
+}
+
+.ai-floating-button:hover {
+  transform: translate(-50%, -2px) scale(1.05);
+  background: color-mix(in srgb, var(--accent) 90%, white);
+  border-color: var(--accent);
+  color: var(--bg-top);  /* Ensure color stays consistent on hover */
+  box-shadow: 
+    0 8px 25px var(--shadow),
+    0 0 30px var(--glow);
+}
+
+.ai-floating-button:active {
+  transform: translate(-50%, 0) scale(0.98);
+  box-shadow: 
+    0 3px 12px var(--shadow),
+    0 0 15px var(--glow);
+}
+
+.ai-button-icon {
+  font-size: 16px;
+  font-weight: 600;
+  animation: sparkle 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px var(--glow));
+  color: inherit;  /* Inherit color from parent */
+}
+
+.ai-button-text {
+  font-weight: 600;
+  letter-spacing: 1px;
+  font-size: 11px;
+  color: inherit;  /* Inherit color from parent */
+}
+
+/* ==================== CODE EDITOR THEME FIX ==================== */
+/* Add these styles to your NotesRedesign.css file */
+/* This will make the code editor (syntax highlighting) use theme colors */
+
+/* Fix: Code Block Background and Text */
+.quill-editor-enhanced .ql-editor pre.ql-syntax {
+  background: var(--hover-bg) !important;
+  color: var(--editor-text) !important;
+  border-radius: 6px;
+  padding: 16px;
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+}
+
+/* Fix: Code Block Selection */
+.quill-editor-enhanced .ql-editor pre.ql-syntax::selection {
+  background: var(--selection-bg);
+  color: var(--editor-text);
+}
+
+/* Fix: Inline Code */
+.quill-editor-enhanced .ql-editor code {
+  background: var(--hover-bg) !important;
+  color: var(--editor-text) !important;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  border: 1px solid var(--border-color);
+}
+
+/* Fix: Code Block Scrollbar */
+.quill-editor-enhanced .ql-editor pre.ql-syntax::-webkit-scrollbar {
+  height: 8px;
+}
+
+.quill-editor-enhanced .ql-editor pre.ql-syntax::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+.quill-editor-enhanced .ql-editor pre.ql-syntax::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+.quill-editor-enhanced .ql-editor pre.ql-syntax::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* Fix: Quill Toolbar Code Button */
+.quill-editor-enhanced .ql-toolbar button.ql-code-block {
+  color: var(--accent) !important;
+}
+
+.quill-editor-enhanced .ql-toolbar button.ql-code-block:hover {
+  background: var(--hover-bg) !important;
+  border-radius: 4px;
+}
+
+.quill-editor-enhanced .ql-toolbar button.ql-code-block.ql-active {
+  background: color-mix(in srgb, var(--accent) 20%, transparent) !important;
+  border-radius: 4px;
+}
+
+/* Fix: Quill Toolbar Code Button SVG */
+.quill-editor-enhanced .ql-toolbar button.ql-code-block .ql-stroke {
+  stroke: var(--accent) !important;
+}
+
+.quill-editor-enhanced .ql-toolbar button.ql-code-block .ql-fill {
+  fill: var(--accent) !important;
+}
+
+/* ==================== AI BUTTONS DARK THEME FIX ==================== */
+/* Add these styles to your NotesRedesign.css file */
+/* Makes all AI buttons use same styling as AI floating button */
+
+/* Fix: AI Content Generator Buttons (Explain, Key Points, Guide, Summarize) */
+.ai-examples button {
+  padding: 8px 16px;
+  background: var(--accent) !important;
+  border: 1px solid var(--accent) !important;
+  border-radius: 6px;
+  color: var(--bg-top) !important;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+  white-space: nowrap;
+}
+
+.ai-examples button:hover {
+  background: color-mix(in srgb, var(--accent) 90%, white) !important;
+  border-color: var(--accent) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--glow);
+}
+
+/* Fix: AI Assistant Action Buttons (Continue Writing, Improve, etc.) */
+.ai-action-btn {
+  padding: 12px 18px;
+  background: var(--accent) !important;
+  border: 1px solid var(--accent) !important;
+  border-radius: 6px;
+  color: var(--bg-top) !important;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ai-action-btn:hover {
+  background: color-mix(in srgb, var(--accent) 90%, white) !important;
+  border-color: var(--accent) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--glow);
+}
+
+.ai-action-btn.active {
+  background: color-mix(in srgb, var(--accent) 80%, white) !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 15px var(--glow);
+  transform: translateY(-2px);
+}
+
+/* Fix: Text Action Menu Buttons (from selection menu) */
+.text-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 14px;
+  background: var(--accent) !important;
+  border: 1.5px solid var(--accent) !important;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bg-top) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+}
+
+.text-action-btn::before {
+  display: none; /* Remove the gradient overlay */
+}
+
+.text-action-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 90%, white) !important;
+  border-color: var(--accent) !important;
+  color: var(--bg-top) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--glow);
+}
+
+.text-action-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 3px 10px var(--glow);
+}
+
+.text-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--hover-bg) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-secondary) !important;
+}
+
+/* Fix: Text Action Apply Button */
+.text-action-btn-apply {
+  padding: 11px 18px;
+  background: var(--accent) !important;
+  color: var(--bg-top) !important;
+  border: 1px solid var(--accent) !important;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  box-shadow: 0 4px 12px var(--glow);
+}
+
+.text-action-btn-apply:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 90%, white) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--glow);
+}
+
+.text-action-btn-apply:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 3px 10px var(--glow);
+}
+
+.text-action-btn-apply:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Fix: Cancel/Secondary Buttons - Keep them lighter */
+.ai-btn-cancel,
+.cancel-btn-new,
+.text-action-btn.secondary {
+  padding: 10px 20px;
+  background: var(--hover-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 6px;
+  color: var(--accent) !important;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.ai-btn-cancel:hover:not(:disabled),
+.cancel-btn-new:hover,
+.text-action-btn.secondary:hover {
+  background: color-mix(in srgb, var(--hover-bg) 150%, transparent) !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 4px 15px var(--glow);
+}
+
+/* Fix: Generate/Primary Action Buttons */
+.ai-btn-generate,
+.import-btn-new {
+  padding: 10px 24px;
+  background: var(--accent) !important;
+  border: 1px solid var(--accent) !important;
+  border-radius: 6px;
+  color: var(--bg-top) !important;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 20px var(--glow);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-btn-generate:hover:not(:disabled),
+.import-btn-new:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 90%, white) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px var(--glow);
+}
+
+.ai-btn-generate:disabled,
+.import-btn-new:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Fix: Spinner color inside buttons */
+.ai-btn-generate .spinner,
+.import-btn-new .spinner,
+.text-action-btn .spinner {
+  border: 2px solid var(--bg-top) !important;
+  border-top-color: transparent;
+}
+
+/* Fix: Button icon colors */
+.ai-action-btn .btn-icon,
+.text-action-btn .btn-icon {
+  color: inherit;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* ==================== AI ASSISTANT MODAL DARK BACKGROUND FIX ==================== */
+/* Add these styles to your NotesRedesign.css file */
+/* Makes the AI Assistant modal content area dark using CSS variables */
+
+/* Fix: AI Assistant Modal Content Background */
+.ai-assistant-content,
+.folder-modal-content {
+  padding: 24px;
+  max-height: calc(80vh - 80px);
+  overflow-y: auto;
+  background: var(--bg-bottom) !important;  /* Use theme variable */
+}
+
+/* Fix: AI Assistant Section Labels */
+.ai-assistant-section label {
+  display: block;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 10px;
+  text-shadow: 0 0 10px var(--glow);
+}
+
+/* Fix: Text Input Area Background */
+.ai-text-input {
+  width: 100%;
+  padding: 14px;
+  background: var(--hover-bg) !important;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary) !important;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  resize: vertical;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.ai-text-input:focus {
+  background: color-mix(in srgb, var(--hover-bg) 120%, transparent) !important;
+  border-color: var(--accent);
+  box-shadow: 0 0 20px var(--glow);
+}
+
+.ai-text-input::placeholder {
+  color: var(--text-secondary) !important;
+}
+
+/* Fix: Tone Selector Background */
+.tone-selector {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--hover-bg) !important;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary) !important;
+  font-size: 14px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.tone-selector:hover {
+  background: color-mix(in srgb, var(--hover-bg) 120%, transparent) !important;
+  border-color: var(--accent);
+}
+
+.tone-selector option {
+  background: var(--bg-bottom) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Fix: AI Assistant Actions Footer */
+.ai-assistant-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-bottom) !important;
+}
+
+/* Fix: Modal Scrollbar in dark content */
+.ai-assistant-content::-webkit-scrollbar,
+.folder-modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ai-assistant-content::-webkit-scrollbar-track,
+.folder-modal-content::-webkit-scrollbar-track {
+  background: var(--hover-bg);
+}
+
+.ai-assistant-content::-webkit-scrollbar-thumb,
+.folder-modal-content::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 4px;
+}
+
+.ai-assistant-content::-webkit-scrollbar-thumb:hover,
+.folder-modal-content::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Fix: AI Action Buttons Grid Container */
+.ai-action-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+/* Fix: AI Assistant Section Background */
+.ai-assistant-section {
+  margin-bottom: 20px;
+  background: transparent;
 }

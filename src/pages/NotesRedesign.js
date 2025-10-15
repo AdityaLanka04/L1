@@ -1744,7 +1744,7 @@ const convertMarkdownToHTML = (markdown) => {
           </div>
         ) : (
           <div className="empty-state-new">
-            <div className="empty-icon-large">📝</div>
+            <div className="empty-icon-large"></div>
             <h2>No Note Selected</h2>
             <p>Select a note from the sidebar or create a new one to get started</p>
             <button className="btn-create-empty" onClick={createNewNote}>
@@ -1763,26 +1763,14 @@ const convertMarkdownToHTML = (markdown) => {
       position: "absolute",
       top: `${aiButtonPosition.top}px`,
       left: `${aiButtonPosition.left}px`,
-      transform: "translate(-50%, 0)",
-      background: "#D7B38C",
-      color: "#0f1012",
-      padding: "6px 12px",
-      borderRadius: "8px",
-      boxShadow: "0 4px 10px rgba(0,0,0,0.25)",
-      cursor: "pointer",
-      zIndex: 99999,
-      fontFamily: "Quicksand, Inter, sans-serif",
-      fontSize: "14px",
-      fontWeight: 600,
-      opacity: showAIButton ? 1 : 0,
-      transition: "opacity 0.2s ease",
+      opacity: showAIButton ? 2 : 0,
     }}
     onClick={handleAIButtonClick}
   >
-    Ask AI
+    <span className="ai-button-icon"></span>
+    <span className="ai-button-text">Ask AI</span>
   </div>
 )}
-
 
       {/* AI Slash Command Dropdown */}
       {showAIDropdown && (
@@ -1797,7 +1785,7 @@ const convertMarkdownToHTML = (markdown) => {
             }}
           >
             <div className="ai-dropdown-header">
-              <span className="ai-icon">✨</span>
+              <span className="ai-icon"></span>
               <span>AI Content Generator</span>
             </div>
             <input
