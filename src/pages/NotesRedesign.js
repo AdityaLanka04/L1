@@ -5,6 +5,8 @@ import ReactQuill, { Quill } from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import "./NotesRedesign.css";
 import CustomPopup from "./CustomPopup";
+import { useTheme } from '../contexts/ThemeContext';
+import { rgbaFromHex } from '../utils/ThemeManager';
 
 // Import Quill modules for advanced features
 import QuillTableUI from 'quill-table-ui';
@@ -31,6 +33,7 @@ const NotesRedesign = () => {
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
   const [titleSectionCollapsed, setTitleSectionCollapsed] = useState(false);
+  
 
   // AI / Slash Command
   const [showAIDropdown, setShowAIDropdown] = useState(false);
@@ -38,8 +41,35 @@ const NotesRedesign = () => {
   const [aiDropdownPosition, setAiDropdownPosition] = useState({ top: 0, left: 0 });
   const [generatingAI, setGeneratingAI] = useState(false);
 
+  const { selectedTheme } = useTheme();
+  
+  // Debug theme
+  useEffect(() => {
+    console.log('Notes - Selected theme:', selectedTheme);
+    console.log('Notes - Theme tokens:', selectedTheme.tokens);
+  }, [selectedTheme]);
+
+  // ✅ APPLY THEME VARIABLES TO DOM
+  useEffect(() => {
+    if (selectedTheme && selectedTheme.tokens) {
+      const root = document.documentElement;
+      
+      // Apply all theme tokens as CSS variables
+      Object.entries(selectedTheme.tokens).forEach(([key, value]) => {
+        root.style.setProperty(`--${key}`, value);
+      });
+      
+      console.log('Applied theme variables to DOM');
+    }
+  }, [selectedTheme]);
+
   // View Mode
   const [viewMode, setViewMode] = useState("edit");
+  // Register custom fonts with Quill
+// Register custom fonts with Quill (use hyphens instead of spaces)
+const Font = Quill.import('formats/font');
+Font.whitelist = ['inter', 'arial', 'courier', 'georgia', 'times-new-roman', 'verdana'];
+Quill.register(Font, true);
   
   // Text selection - AI Button states
   const [showAIButton, setShowAIButton] = useState(false);
@@ -924,6 +954,80 @@ const handleAIButtonClick = () => {
     }
   };
 
+  // ✅ ENHANCED MARKDOWN TO HTML CONVERTER
+const convertMarkdownToHTML = (markdown) => {
+  let html = markdown;
+
+  // Remove decorative separators (===, ---, ***)
+  html = html.replace(/^[=\-*]{3,}\s*$/gim, '');
+  
+  // Remove multiple consecutive line breaks (more than 2)
+  html = html.replace(/\n{3,}/g, '\n\n');
+
+  // Convert headers (### -> <h3>, ## -> <h2>, # -> <h1>)
+  html = html.replace(/^###\s+(.*$)/gim, '<h3>$1</h3>');
+  html = html.replace(/^##\s+(.*$)/gim, '<h2>$1</h2>');
+  html = html.replace(/^#\s+(.*$)/gim, '<h1>$1</h1>');
+
+  // Convert bold (**text** or __text__)
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
+
+  // Convert italic (*text* or _text_)
+  html = html.replace(/(?<!\*)\*(?!\*)([^\*]+?)\*(?!\*)/g, '<em>$1</em>');
+  html = html.replace(/(?<!_)_(?!_)([^_]+?)_(?!_)/g, '<em>$1</em>');
+
+  // Convert bullet points (- or * at start of line)
+  html = html.replace(/^\s*[-*]\s+(.*)$/gim, '<li>$1</li>');
+  
+  // Wrap consecutive <li> items in <ul>
+  html = html.replace(/(<li>.*?<\/li>\s*)+/gis, (match) => {
+    return `<ul>${match}</ul>`;
+  });
+
+  // Convert numbered lists (1. 2. 3.)
+  html = html.replace(/^\s*(\d+)\.\s+(.*)$/gim, '<li>$2</li>');
+
+  // Convert code blocks (```code```)
+  html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+
+  // Convert inline code (`code`)
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Convert links [text](url)
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+
+  // Split by double line breaks to create paragraphs
+  const blocks = html.split(/\n\n+/);
+  
+  html = blocks.map(block => {
+    block = block.trim();
+    
+    // Skip if empty
+    if (!block) return '';
+    
+    // Skip if already wrapped in block-level tags
+    if (block.startsWith('<h') || 
+        block.startsWith('<ul>') || 
+        block.startsWith('<ol>') || 
+        block.startsWith('<pre>') ||
+        block.startsWith('<blockquote>') ||
+        block === '<li>' ||
+        block.startsWith('<div>')) {
+      return block;
+    }
+    
+    // Wrap in paragraph
+    return `<p>${block.replace(/\n/g, '<br>')}</p>`;
+  }).filter(block => block).join('\n\n');
+
+  // Clean up extra whitespace
+  html = html.replace(/\n{3,}/g, '\n\n');
+  html = html.trim();
+
+  return html;
+};
+
   // ENHANCED AI WRITING ASSISTANT
   const aiWritingAssist = async () => {
     const quill = quillRef.current?.getEditor();
@@ -993,83 +1097,86 @@ const handleAIButtonClick = () => {
   const clearAllSessions = () => setSelectedSessions([]);
 
   const convertChatToNote = async () => {
-    if (selectedSessions.length === 0) {
-      showPopup("No Sessions Selected", "Please select at least one chat session.");
-      return;
-    }
-    setImporting(true);
-    try {
-      const token = localStorage.getItem("token");
-      const allMessages = [];
-      
-      for (const sid of selectedSessions) {
-        const r = await fetch(`http://localhost:8001/get_chat_history/${sid}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (r.ok) {
-          const data = await r.json();
-          const s = chatSessions.find((x) => x.id === sid);
-          allMessages.push({ sessionTitle: s?.title || "Chat Session", messages: data.messages });
-        }
-      }
-
-      const conversationData = allMessages
-        .map((s) => s.messages.map((m) => `Q: ${m.user_message}\nA: ${m.ai_response}`).join("\n\n"))
-        .join("\n\n--- New Session ---\n\n");
-
-      const summaryRes = await fetch("http://localhost:8001/generate_note_summary/", {
-        method: "POST",
+  if (selectedSessions.length === 0) {
+    showPopup("No Sessions Selected", "Please select at least one chat session.");
+    return;
+  }
+  setImporting(true);
+  try {
+    const token = localStorage.getItem("token");
+    const allMessages = [];
+    
+    for (const sid of selectedSessions) {
+      const r = await fetch(`http://localhost:8001/get_chat_history/${sid}`, {
         headers: { Authorization: `Bearer ${token}` },
-        body: (() => {
-          const fd = new FormData();
-          fd.append("user_id", userName);
-          fd.append("conversation_data", conversationData);
-          fd.append("session_titles", JSON.stringify(allMessages.map((s) => s.sessionTitle)));
-          fd.append("import_mode", importMode);
-          return fd;
-        })(),
       });
-
-      let title = "Generated Note from Chat";
-      let content = "";
-      
-      if (summaryRes.ok) {
-        const d = await summaryRes.json();
-        title = d.title;
-        content = d.content;
-      } else {
-        content = allMessages
-          .map(
-            (s, i) =>
-              `<h2>${s.sessionTitle}</h2>` +
-              s.messages.map((m, j) => `<b>Q${j + 1}:</b> ${m.user_message}<br/><b>A:</b> ${m.ai_response}`).join("<br/><br/>")
-          )
-          .join("<hr/>");
+      if (r.ok) {
+        const data = await r.json();
+        const s = chatSessions.find((x) => x.id === sid);
+        allMessages.push({ sessionTitle: s?.title || "Chat Session", messages: data.messages });
       }
-
-      const createRes = await fetch("http://localhost:8001/create_note", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ user_id: userName, title, content }),
-      });
-      
-      if (createRes.ok) {
-        const newNote = await createRes.json();
-        setNotes((p) => [newNote, ...p]);
-        selectNote(newNote);
-        setShowChatImport(false);
-        setSelectedSessions([]);
-        showPopup("Conversion Successful", `"${title}" created successfully.`);
-      }
-    } catch (err) {
-      console.error("Convert error:", err);
-      showPopup("Conversion Failed", "Unable to convert chat to note.");
     }
-    setImporting(false);
-  };
+
+    const conversationData = allMessages
+      .map((s) => s.messages.map((m) => `Q: ${m.user_message}\nA: ${m.ai_response}`).join("\n\n"))
+      .join("\n\n--- New Session ---\n\n");
+
+    const summaryRes = await fetch("http://localhost:8001/generate_note_summary/", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: (() => {
+        const fd = new FormData();
+        fd.append("user_id", userName);
+        fd.append("conversation_data", conversationData);
+        fd.append("session_titles", JSON.stringify(allMessages.map((s) => s.sessionTitle)));
+        fd.append("import_mode", importMode);
+        return fd;
+      })(),
+    });
+
+    let title = "Generated Note from Chat";
+    let content = "";
+    
+    if (summaryRes.ok) {
+      const d = await summaryRes.json();
+      title = d.title;
+      content = d.content;
+      
+      // ✅ CONVERT MARKDOWN TO HTML
+      content = convertMarkdownToHTML(content);
+    } else {
+      content = allMessages
+        .map(
+          (s, i) =>
+            `<h2>${s.sessionTitle}</h2>` +
+            s.messages.map((m, j) => `<b>Q${j + 1}:</b> ${m.user_message}<br/><b>A:</b> ${m.ai_response}`).join("<br/><br/>")
+        )
+        .join("<hr/>");
+    }
+
+    const createRes = await fetch("http://localhost:8001/create_note", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ user_id: userName, title, content }),
+    });
+    
+    if (createRes.ok) {
+      const newNote = await createRes.json();
+      setNotes((p) => [newNote, ...p]);
+      selectNote(newNote);
+      setShowChatImport(false);
+      setSelectedSessions([]);
+      showPopup("Conversion Successful", `"${title}" created successfully.`);
+    }
+  } catch (err) {
+    console.error("Convert error:", err);
+    showPopup("Conversion Failed", "Unable to convert chat to note.");
+  }
+  setImporting(false);
+};
 
   // EXPORT
   const exportAsPDF = () => {
@@ -1169,22 +1276,22 @@ const handleAIButtonClick = () => {
 
   // ENHANCED QUILL MODULES WITH ALL FEATURES
   const modules = {
-    toolbar: [
-      [{ header: [1, 2, 3, 4, 5, 6, false] }],
-      [{ font: ["Inter", "Arial", "Courier", "Georgia", "Times New Roman", "Verdana"] }],
-      [{ size: ["small", false, "large", "huge"] }],
-      ["bold", "italic", "underline", "strike"],
-      [{ color: [] }, { background: [] }],
-      [{ script: "sub" }, { script: "super" }],
-      [{ list: "ordered" }, { list: "bullet" }, { indent: "-1" }, { indent: "+1" }],
-      [{ direction: "rtl" }, { align: [] }],
-      ["blockquote", "code-block"],
-      ["link", "image", "video", "formula"],
-      ["clean"],
-    ],
-    tableUI: true,
-    formula: true,
-  };
+  toolbar: [
+    [{ header: [1, 2, 3, 4, 5, 6, false] }],
+    [{ font: ['inter', 'arial', 'courier', 'georgia', 'times-new-roman', 'verdana'] }],
+    [{ size: ["small", false, "large", "huge"] }],
+    ["bold", "italic", "underline", "strike"],
+    [{ color: [] }, { background: [] }],
+    [{ script: "sub" }, { script: "super" }],
+    [{ list: "ordered" }, { list: "bullet" }, { indent: "-1" }, { indent: "+1" }],
+    [{ direction: "rtl" }, { align: [] }],
+    ["blockquote", "code-block"],
+    ["link", "image", "video", "formula"],
+    ["clean"],
+  ],
+  tableUI: true,
+  formula: true,
+};
 
   const formats = [
     "header",
@@ -1543,6 +1650,7 @@ const handleAIButtonClick = () => {
           </div>
 
           <div className="nav-actions-new">
+            
             <button className="nav-btn" onClick={() => navigate("/dashboard")}>
               Dashboard
             </button>
@@ -1944,8 +2052,8 @@ const handleAIButtonClick = () => {
       {/* CHAT IMPORT MODAL */}
       {showChatImport && (
         <>
-          <div className="ai-overlay" onClick={() => setShowChatImport(false)} />
-          <div className="chat-import-modal-new" onClick={(e) => e.stopPropagation()}>
+          <div className="chat-import-overlay" onClick={() => setShowChatImport(false)} />
+    <div className="chat-import-modal-new" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header-new">
               <h2>Convert Chat to Notes</h2>
               <button className="modal-close-btn" onClick={() => setShowChatImport(false)}>×</button>

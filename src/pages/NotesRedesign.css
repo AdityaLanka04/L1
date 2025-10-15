@@ -1,16 +1,30 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-/* ==================== ROOT VARIABLES ==================== */
+/* ==================== ROOT VARIABLES - USE THEME TOKENS ==================== */
+/* Replace lines 4-24 in NotesRedesign.css with: */
 :root {
-  --bg-top: #000000;
-  --bg-bottom: #141414;
+  /* These will be overridden by ThemeContext - just fallbacks matching Dashboard */
+  --bg-top: #0b0b0c;
+  --bg-bottom: #0f1012;
+  --panel-bg: rgba(255, 255, 255, 0.02);
   --accent: #D7B38C;
-  --text-primary: #D7B38C;
-  --text-secondary: rgba(215, 179, 140, 0.7);
-  --glow: rgba(215, 179, 140, 0.15);
-  --success: #51cf66;
-  --danger: #ff6b6b;
-  --warning: #ffd43b;
+  --accent-2: #B88F63;
+  --text-primary: #EAECEF;
+  --text-secondary: #B8C0CC;
+  --glow: rgba(215, 179, 140, 0.35);
+  --success: #4ade80;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --border-color: #2a2f37;
+  --hover-bg: rgba(255, 255, 255, 0.05);
+  --shadow: rgba(0, 0, 0, 0.4);
+  --editor-bg: #ffffff;
+  --editor-text: #EAECEF;
+  --editor-placeholder: #666666;
+  --scrollbar-track: rgba(255, 255, 255, 0.05);
+  --scrollbar-thumb: rgba(215, 179, 140, 0.3);
+  --scrollbar-thumb-hover: #D7B38C;
+  --selection-bg: rgba(215, 179, 140, 0.3);
 }
 
 /* ==================== GLOBAL RESET ==================== */
@@ -41,7 +55,7 @@ select {
   display: flex;
   height: 100vh;
   width: 100vw;
-  background: var(--bg-top);
+  background: var(--bg-bottom);
   background-image: 
     radial-gradient(ellipse at top left, var(--glow) 0%, transparent 60%),
     linear-gradient(135deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
@@ -52,22 +66,23 @@ select {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* ==================== SIDEBAR ==================== */
 .notes-sidebar-new {
   width: 320px;
   min-width: 320px;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--panel-bg);
   backdrop-filter: blur(20px);
-  border-right: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
   position: relative;
   z-index: 100;
-  box-shadow: 2px 0 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 2px 0 30px var(--shadow);
   overflow: hidden;
   contain: layout style;
 }
@@ -91,8 +106,8 @@ select {
 /* ==================== SIDEBAR HEADER ==================== */
 .sidebar-header-new {
   padding: 20px;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
-  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--panel-bg);
 }
 
 .sidebar-title {
@@ -114,13 +129,13 @@ select {
 }
 
 .notes-count {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--hover-bg);
   color: var(--accent);
   padding: 4px 10px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 600;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border: 1px solid var(--border-color);
   text-shadow: 0 0 8px var(--glow);
 }
 
@@ -134,7 +149,7 @@ select {
 .btn-import-chat {
   width: 100%;
   padding: 12px 16px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 10%, transparent));
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
   color: var(--accent);
   border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   border-radius: 8px;
@@ -152,7 +167,7 @@ select {
 
 .btn-new-note:hover,
 .btn-import-chat:hover {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--accent) 15%, transparent));
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
   border-color: color-mix(in srgb, var(--accent) 70%, transparent);
   transform: translateY(-2px);
   box-shadow: 0 8px 25px var(--glow);
@@ -164,7 +179,7 @@ select {
 }
 
 .btn-import-chat {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent), color-mix(in srgb, var(--accent) 8%, transparent));
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   font-size: 13px;
   font-weight: 500;
@@ -173,29 +188,29 @@ select {
 /* ==================== SEARCH CONTAINER ==================== */
 .search-container {
   padding: 16px 20px;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .search-input-new {
   width: 100%;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
-  color: var(--accent);
+  color: var(--text-primary);
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
   outline: none;
 }
 
 .search-input-new::placeholder {
-  color: color-mix(in srgb, var(--accent) 50%, transparent);
+  color: var(--text-secondary);
 }
 
 .search-input-new:focus {
-  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
-  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--hover-bg) 120%, transparent);
   box-shadow: 0 0 20px var(--glow);
 }
 
@@ -205,16 +220,16 @@ select {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
-  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--panel-bg);
 }
 
 .filter-btn {
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -228,14 +243,14 @@ select {
 }
 
 .filter-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--hover-bg) 150%, transparent);
+  border-color: var(--accent);
   transform: translateX(3px);
   box-shadow: 0 4px 15px var(--glow);
 }
 
 .filter-btn.active {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 10%, transparent));
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
   border-color: color-mix(in srgb, var(--accent) 60%, transparent);
   color: var(--accent);
   box-shadow: 0 0 20px var(--glow);
@@ -245,8 +260,8 @@ select {
 
 .folders-section {
   padding: 20px;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
-  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--panel-bg);
 }
 
 .folders-header {
@@ -268,7 +283,7 @@ select {
 .btn-add-folder {
   width: 28px;
   height: 28px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent), color-mix(in srgb, var(--accent) 8%, transparent));
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   border-radius: 6px;
   color: var(--accent);
@@ -284,7 +299,7 @@ select {
 }
 
 .btn-add-folder:hover {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 25%, transparent), color-mix(in srgb, var(--accent) 12%, transparent));
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
   border-color: color-mix(in srgb, var(--accent) 70%, transparent);
   transform: scale(1.1) rotate(90deg);
   box-shadow: 0 6px 20px var(--glow);
@@ -304,7 +319,7 @@ select {
 }
 
 .folders-list::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--hover-bg);
   border-radius: 3px;
 }
 
@@ -319,7 +334,7 @@ select {
 
 .folder-item {
   padding: 12px 14px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--hover-bg);
   border: 1px solid transparent;
   border-radius: 6px;
   cursor: pointer;
@@ -327,7 +342,7 @@ select {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-size: 13px;
   position: relative;
   backdrop-filter: blur(10px);
@@ -335,14 +350,14 @@ select {
 }
 
 .folder-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  background: color-mix(in srgb, var(--hover-bg) 150%, transparent);
+  border-color: var(--border-color);
   transform: translateX(4px);
   box-shadow: 0 4px 15px var(--glow);
 }
 
 .folder-item.active {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent), color-mix(in srgb, var(--accent) 8%, transparent));
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
   border-color: color-mix(in srgb, var(--accent) 50%, transparent);
   color: var(--accent);
   box-shadow: 0 0 20px var(--glow);
@@ -350,7 +365,7 @@ select {
 }
 
 .folder-item.drag-over {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 10%, transparent)) !important;
+  background: color-mix(in srgb, var(--accent) 20%, transparent) !important;
   border-left-width: 4px !important;
   border-color: var(--accent) !important;
   transform: translateX(6px);
@@ -373,15 +388,15 @@ select {
 }
 
 .folder-item.unfiled-notes {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--hover-bg);
   border-left: 3px solid color-mix(in srgb, var(--accent) 40%, transparent) !important;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
+  border-top: 1px solid var(--border-color);
 }
 
 .folder-item.unfiled-notes:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: color-mix(in srgb, var(--hover-bg) 150%, transparent);
 }
 
 .folder-actions {
@@ -394,8 +409,8 @@ select {
 .folder-count {
   font-size: 11px;
   padding: 3px 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   font-weight: 500;
   text-shadow: 0 0 8px var(--glow);
@@ -408,7 +423,7 @@ select {
 .folder-delete-btn {
   width: 24px;
   height: 24px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 10%, transparent));
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   border-radius: 4px;
   color: var(--accent);
@@ -426,8 +441,8 @@ select {
 }
 
 .folder-delete-btn {
-  background: rgba(220, 53, 69, 0.15);
-  border-color: rgba(220, 53, 69, 0.3);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 30%, transparent);
   color: var(--danger);
 }
 
@@ -437,17 +452,17 @@ select {
 }
 
 .folder-add-note-btn:hover {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--accent) 15%, transparent));
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
   border-color: color-mix(in srgb, var(--accent) 70%, transparent);
   transform: scale(1.15);
   box-shadow: 0 4px 15px var(--glow);
 }
 
 .folder-delete-btn:hover {
-  background: rgba(220, 53, 69, 0.3);
+  background: color-mix(in srgb, var(--danger) 30%, transparent);
   border-color: var(--danger);
   transform: scale(1.15);
-  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--danger) 30%, transparent);
 }
 
 /* ==================== NOTES LIST ==================== */
@@ -462,7 +477,7 @@ select {
 }
 
 .notes-list-new::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--hover-bg);
 }
 
 .notes-list-new::-webkit-scrollbar-thumb {
@@ -485,7 +500,7 @@ select {
   margin-bottom: 20px;
   opacity: 0.6;
   color: var(--text-secondary);
-  text-shadow: 0 0 20px rgba(215, 179, 140, 0.2);
+  text-shadow: 0 0 20px var(--glow);
   animation: float 3s ease-in-out infinite;
 }
 
@@ -497,7 +512,7 @@ select {
 .create-first-note {
   margin-top: 20px;
   padding: 10px 20px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 10%, transparent));
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
   color: var(--accent);
   border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   border-radius: 6px;
@@ -509,7 +524,7 @@ select {
 }
 
 .create-first-note:hover {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--accent) 15%, transparent));
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
   border-color: color-mix(in srgb, var(--accent) 70%, transparent);
   transform: translateY(-2px);
   box-shadow: 0 8px 25px var(--glow);
@@ -524,7 +539,7 @@ select {
   transition: all 0.3s ease;
   position: relative;
   border: 1px solid transparent;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--hover-bg);
   backdrop-filter: blur(10px);
   animation: slideInRight 0.3s ease-out;
   will-change: transform;
@@ -540,21 +555,21 @@ select {
 }
 
 .note-item-new:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  background: color-mix(in srgb, var(--hover-bg) 150%, transparent);
+  border-color: var(--border-color);
   transform: translateX(4px);
   box-shadow: 0 4px 15px var(--glow);
 }
 
 .note-item-new.active {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent), color-mix(in srgb, var(--accent) 8%, transparent));
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
   border-color: color-mix(in srgb, var(--accent) 50%, transparent);
   box-shadow: 0 0 20px var(--glow);
 }
 
 .note-item-new.trash-item {
   border-left: 3px solid var(--danger) !important;
-  background: linear-gradient(135deg, rgba(220, 53, 69, 0.08), rgba(220, 53, 69, 0.03)) !important;
+  background: color-mix(in srgb, var(--danger) 8%, transparent) !important;
   position: relative;
   overflow: hidden;
 }
@@ -589,10 +604,10 @@ select {
 }
 
 .favorite-star {
-  color: #FFD700;
+  color: var(--warning);
   margin-right: 6px;
   font-size: 14px;
-  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--warning) 50%, transparent);
   animation: starTwinkle 2s ease-in-out infinite;
 }
 
@@ -601,7 +616,7 @@ select {
   align-items: center;
   gap: 4px;
   padding: 3px 8px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent), color-mix(in srgb, var(--accent) 8%, transparent));
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
   border-radius: 12px;
   font-size: 10px;
@@ -623,8 +638,8 @@ select {
 }
 
 .note-action-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
   border-radius: 5px;
   width: 30px;
   height: 30px;
@@ -639,7 +654,7 @@ select {
 }
 
 .note-action-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--hover-bg) 150%, transparent);
   transform: scale(1.1);
   box-shadow: 0 4px 12px var(--glow);
 }
@@ -649,16 +664,16 @@ select {
 }
 
 .note-action-btn.favorite.active {
-  color: #FFD700;
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.08));
-  border-color: rgba(255, 215, 0, 0.4);
-  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  border-color: color-mix(in srgb, var(--warning) 40%, transparent);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--warning) 50%, transparent);
 }
 
 .note-action-btn.favorite:hover {
-  color: #FFD700;
-  border-color: rgba(255, 215, 0, 0.5);
-  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning) 50%, transparent);
+  box-shadow: 0 4px 15px color-mix(in srgb, var(--warning) 30%, transparent);
 }
 
 .note-action-btn.duplicate:hover {
@@ -667,15 +682,15 @@ select {
 }
 
 .note-action-btn.delete {
-  background: rgba(220, 53, 69, 0.1);
-  border-color: rgba(220, 53, 69, 0.3);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  border-color: color-mix(in srgb, var(--danger) 30%, transparent);
   color: var(--danger);
 }
 
 .note-action-btn.delete:hover {
-  background: rgba(220, 53, 69, 0.2);
+  background: color-mix(in srgb, var(--danger) 20%, transparent);
   border-color: var(--danger);
-  box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+  box-shadow: 0 4px 15px color-mix(in srgb, var(--danger) 30%, transparent);
 }
 
 .note-snippet {
@@ -695,7 +710,7 @@ select {
   justify-content: space-between;
   align-items: center;
   font-size: 11px;
-  color: color-mix(in srgb, var(--accent) 50%, transparent);
+  color: var(--text-secondary);
 }
 
 .note-date,
@@ -728,31 +743,31 @@ select {
 }
 
 .restore-btn {
-  background: linear-gradient(135deg, rgba(81, 207, 102, 0.2), rgba(81, 207, 102, 0.1));
-  border: 1px solid rgba(81, 207, 102, 0.4);
+  background: color-mix(in srgb, var(--success) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--success) 40%, transparent);
   color: var(--success);
-  text-shadow: 0 0 8px rgba(81, 207, 102, 0.3);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--success) 30%, transparent);
 }
 
 .restore-btn:hover {
-  background: linear-gradient(135deg, rgba(81, 207, 102, 0.3), rgba(81, 207, 102, 0.15));
+  background: color-mix(in srgb, var(--success) 30%, transparent);
   border-color: var(--success);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(81, 207, 102, 0.3);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--success) 30%, transparent);
 }
 
 .permanent-delete-btn {
-  background: linear-gradient(135deg, rgba(220, 53, 69, 0.2), rgba(220, 53, 69, 0.1));
-  border: 1px solid rgba(220, 53, 69, 0.4);
+  background: color-mix(in srgb, var(--danger) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
   color: var(--danger);
-  text-shadow: 0 0 8px rgba(220, 53, 69, 0.3);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--danger) 30%, transparent);
 }
 
 .permanent-delete-btn:hover {
-  background: linear-gradient(135deg, rgba(220, 53, 69, 0.3), rgba(220, 53, 69, 0.15));
+  background: color-mix(in srgb, var(--danger) 30%, transparent);
   border-color: var(--danger);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.3);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--danger) 30%, transparent);
 }
 
 /* ==================== EDITOR AREA ==================== */
@@ -760,7 +775,7 @@ select {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--bg-bottom);
   backdrop-filter: blur(10px);
   min-width: 0;
   overflow: hidden;
@@ -771,11 +786,11 @@ select {
 /* ==================== TOP NAVIGATION ==================== */
 .top-nav-new {
   padding: 16px 24px;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--panel-bg);
   backdrop-filter: blur(20px);
   flex-shrink: 0;
   gap: 20px;
@@ -791,8 +806,8 @@ select {
 
 .toggle-sidebar {
   padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   cursor: pointer;
   font-size: 18px;
@@ -808,8 +823,8 @@ select {
 }
 
 .toggle-sidebar:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  background: color-mix(in srgb, var(--hover-bg) 150%, transparent);
+  border-color: var(--accent);
   box-shadow: 0 4px 15px var(--glow);
   transform: translateY(-1px);
 }
@@ -833,16 +848,16 @@ select {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--panel-bg);
   padding: 6px;
   border-radius: 8px;
-  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border: 1px solid var(--border-color);
 }
 
 .tool-btn {
   padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
@@ -854,13 +869,13 @@ select {
 }
 
 .tool-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-  box-shadow: 0 4px 12px var(--glow);
+  background: color-mix(in srgb, var(--hover-bg) 150%, transparent);
+  border-color: var(--accent);
+  box-shadow: 04px 12px var(--glow);
 }
 
 .tool-btn.active {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 25%, transparent), color-mix(in srgb, var(--accent) 15%, transparent));
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
   border-color: color-mix(in srgb, var(--accent) 60%, transparent);
   box-shadow: 0 0 15px var(--glow);
 }
@@ -868,7 +883,7 @@ select {
 .tool-divider {
   width: 1px;
   height: 24px;
-  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--border-color);
   margin: 0 4px;
 }
 
@@ -882,8 +897,8 @@ select {
 .nav-btn,
 .theme-toggle {
   padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
@@ -896,19 +911,19 @@ select {
 
 .nav-btn:hover,
 .theme-toggle:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  background: color-mix(in srgb, var(--hover-bg) 150%, transparent);
+  border-color: var(--accent);
   box-shadow: 0 4px 15px var(--glow);
 }
 
 .logout-btn-new {
   padding: 8px 16px;
-  background: rgba(220, 53, 69, 0.15) !important;
-  border: 1px solid rgba(220, 53, 69, 0.4) !important;
+  background: color-mix(in srgb, var(--danger) 15%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent) !important;
   border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
-  color: #ff6b6b !important;
+  color: var(--danger) !important;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
   font-weight: 500;
@@ -916,14 +931,10 @@ select {
 }
 
 .logout-btn-new:hover {
-  background: rgba(220, 53, 69, 0.25) !important;
-  border-color: rgba(220, 53, 69, 0.6) !important;
-  box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3) !important;
+  background: color-mix(in srgb, var(--danger) 25%, transparent) !important;
+  border-color: color-mix(in srgb, var(--danger) 60%, transparent) !important;
+  box-shadow: 0 4px 15px color-mix(in srgb, var(--danger) 30%, transparent) !important;
   transform: translateY(-1px);
-}
-
-.logout-btn-new:active {
-  transform: translateY(0);
 }
 
 /* ==================== EDITOR CONTENT ==================== */
@@ -936,9 +947,9 @@ select {
 
 .title-section {
   padding: 16px 60px 12px;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--panel-bg);
   backdrop-filter: blur(15px);
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-bottom: 1px solid var(--border-color);
   width: 100%;
   box-sizing: border-box;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -987,8 +998,8 @@ select {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
@@ -998,8 +1009,8 @@ select {
 }
 
 .title-collapse-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  background: color-mix(in srgb, var(--hover-bg) 150%, transparent);
+  border-color: var(--accent);
   box-shadow: 0 4px 15px var(--glow);
   transform: scale(1.05);
 }
@@ -1024,7 +1035,7 @@ select {
 }
 
 .title-input-new::placeholder {
-  color: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--text-secondary);
 }
 
 .title-meta {
@@ -1058,13 +1069,13 @@ select {
 }
 
 .quill-editor-enhanced .ql-toolbar {
-  background: rgba(0, 0, 0, 0.3) !important;
+  background: var(--panel-bg) !important;
   backdrop-filter: blur(15px);
   border: none !important;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent) !important;
+  border-bottom: 1px solid var(--border-color) !important;
   padding: 0 !important;
   height: 0 !important;
-  overflow: hidden !important;
+  overflow: visible !important;
   position: sticky;
   top: 0;
   z-index: 10;
@@ -1079,6 +1090,7 @@ select {
   height: auto !important;
   opacity: 1;
   pointer-events: all;
+  overflow: visible !important;
 }
 
 .quill-editor-enhanced .ql-toolbar button,
@@ -1089,7 +1101,7 @@ select {
 
 .quill-editor-enhanced .ql-toolbar button:hover,
 .quill-editor-enhanced .ql-toolbar .ql-picker-label:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: var(--hover-bg) !important;
   border-radius: 4px;
 }
 
@@ -1102,36 +1114,37 @@ select {
 }
 
 .quill-editor-enhanced .ql-toolbar .ql-picker-options {
-  background: rgba(0, 0, 0, 0.95) !important;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent) !important;
+  background: var(--panel-bg) !important;
+  border: 1px solid var(--border-color) !important;
   border-radius: 6px !important;
   backdrop-filter: blur(20px);
+  box-shadow: 0 10px 30px var(--shadow);
 }
 
 .quill-editor-enhanced .ql-toolbar .ql-picker-item {
-  color: var(--accent) !important;
+  color: var(--text-primary) !important;
 }
 
 .quill-editor-enhanced .ql-toolbar .ql-picker-item:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: var(--hover-bg) !important;
 }
 
 .quill-editor-enhanced .ql-container {
   flex: 1;
   border: none !important;
-  background: #ffffff !important;
+  background: var(--editor-bg) !important;
   font-family: 'Inter', sans-serif !important;
   font-size: 16px !important;
   line-height: 1.8;
-  color: #1a1a1a;
+  color: var(--editor-text);
   overflow-y: auto;
   width: 100%;
 }
 
 .quill-editor-enhanced .ql-editor {
   padding: 40px 80px;
-  background: #ffffff;
-  color: #1a1a1a;
+  background: var(--editor-bg);
+  color: var(--editor-text);
   direction: ltr !important;
   unicode-bidi: plaintext !important;
   text-align: left !important;
@@ -1140,10 +1153,11 @@ select {
   margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
+  caret-color: #000000 !important; 
 }
 
 .quill-editor-enhanced .ql-editor.ql-blank::before {
-  color: #999 !important;
+  color: var(--editor-placeholder) !important;
   font-style: italic;
   left: 225px !important;
   right: auto !important;
@@ -1156,7 +1170,7 @@ select {
   padding: 0;
   direction: ltr !important;
   text-align: left !important;
-  color: #1a1a1a;
+  color: var(--editor-text);
   line-height: 1.8;
 }
 
@@ -1165,11 +1179,16 @@ select {
   padding-top: 0 !important;
 }
 
+.quill-editor-enhanced .ql-editor h1,
+.quill-editor-enhanced .ql-editor h2,
+.quill-editor-enhanced .ql-editor h3 {
+  color: var(--editor-text);
+}
+
 .quill-editor-enhanced .ql-editor h1 {
   font-size: 36px;
   font-weight: 700;
   margin: 24px 0 16px;
-  color: #1a1a1a;
   line-height: 1.3;
 }
 
@@ -1177,7 +1196,6 @@ select {
   font-size: 30px;
   font-weight: 600;
   margin: 20px 0 12px;
-  color: #1a1a1a;
   line-height: 1.4;
 }
 
@@ -1185,7 +1203,6 @@ select {
   font-size: 24px;
   font-weight: 600;
   margin: 16px 0 10px;
-  color: #1a1a1a;
   line-height: 1.4;
 }
 
@@ -1197,7 +1214,7 @@ select {
 
 .quill-editor-enhanced .ql-editor li {
   margin: 6px 0;
-  color: #1a1a1a;
+  color: var(--editor-text);
   line-height: 1.6;
 }
 
@@ -1206,26 +1223,26 @@ select {
 }
 
 .quill-editor-enhanced .ql-editor::-webkit-scrollbar-track {
-  background: #f5f5f5;
+  background: var(--scrollbar-track);
 }
 
 .quill-editor-enhanced .ql-editor::-webkit-scrollbar-thumb {
-  background: #ccc;
+  background: var(--scrollbar-thumb);
   border-radius: 4px;
 }
 
 .quill-editor-enhanced .ql-editor::-webkit-scrollbar-thumb:hover {
-  background: #999;
+  background: var(--scrollbar-thumb-hover);
 }
 
 .quill-editor-enhanced .ql-editor ::selection {
-  background: rgba(33, 150, 243, 0.3);
-  color: #1a1a1a;
+  background: var(--selection-bg);
+  color: var(--editor-text);
 }
 
 .quill-editor-enhanced .ql-editor ::-moz-selection {
-  background: rgba(33, 150, 243, 0.3);
-  color: #1a1a1a;
+  background: var(--selection-bg);
+  color: var(--editor-text);
 }
 
 .quill-editor-enhanced .ql-editor {
@@ -1242,45 +1259,46 @@ select {
 
 .quill-editor-enhanced .ql-editor table td,
 .quill-editor-enhanced .ql-editor table th {
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   padding: 12px;
   min-width: 50px;
   vertical-align: top;
   text-align: left;
+  color: var(--editor-text);
 }
 
 .quill-editor-enhanced .ql-editor table th {
-  background-color: #f5f5f5;
+  background-color: var(--hover-bg);
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .quill-editor-enhanced .ql-editor table tr:nth-child(even) {
-  background-color: #f9f9f9;
+  background-color: var(--hover-bg);
 }
 
 .quill-editor-enhanced .ql-editor table tr:hover {
-  background-color: #f0f0f0;
+  background-color: color-mix(in srgb, var(--hover-bg) 120%, transparent);
 }
 
 .quill-editor-enhanced .ql-editor pre.ql-syntax {
-  background: #f5f5f5;
-  color: #1a1a1a;
+  background: var(--hover-bg);
+  color: var(--editor-text);
   border-radius: 6px;
   padding: 16px;
   overflow-x: auto;
 }
 
 .quill-editor-enhanced .ql-editor blockquote {
-  border-left: 4px solid #2196f3;
+  border-left: 4px solid var(--accent);
   padding-left: 16px;
   margin: 16px 0;
-  color: #666;
+  color: var(--text-secondary);
   font-style: italic;
 }
 
 .quill-editor-enhanced .ql-editor a {
-  color: #2196f3;
+  color: var(--accent);
   text-decoration: underline;
 }
 
@@ -1292,73 +1310,251 @@ select {
 }
 
 .quill-editor-enhanced .ql-editor .ql-formula {
-  background: #f5f5f5;
+  background: var(--hover-bg);
   padding: 8px 12px;
   border-radius: 4px;
   display: inline-block;
   margin: 4px 2px;
   font-family: 'Courier New', monospace;
-  color: #1a1a1a;
-  border: 1px solid #e0e0e0;
+  color: var(--editor-text);
+  border: 1px solid var(--border-color);
 }
 
 .ql-snow .ql-tooltip {
-  background: rgba(0, 0, 0, 0.95) !important;
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent) !important;
-  color: var(--accent) !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  background: var(--panel-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 10px 30px var(--shadow);
   backdrop-filter: blur(20px);
 }
 
 .ql-snow .ql-tooltip input {
-  background: rgba(255, 255, 255, 0.1) !important;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent) !important;
-  color: var(--accent) !important;
+  background: var(--hover-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--text-primary) !important;
 }
 
 .ql-snow .ql-tooltip a {
   color: var(--accent) !important;
 }
 
+/* ==================== QUILL FONT PICKER STYLING ==================== */
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font {
+  width: 150px !important;
+  position: relative;
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-label {
+  padding: 6px 30px 6px 12px !important;
+  color: var(--accent) !important;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--hover-bg);
+  transition: all 0.2s ease;
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-label::before {
+  content: 'Sans Serif' !important;
+  display: inline-block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-label[data-value="inter"]::before {
+  content: 'Inter' !important;
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-label[data-value="arial"]::before {
+  content: 'Arial' !important;
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-label[data-value="courier"]::before {
+  content: 'Courier' !important;
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-label[data-value="georgia"]::before {
+  content: 'Georgia' !important;
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-label[data-value="times-new-roman"]::before {
+  content: 'Times New Roman' !important;
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-label[data-value="verdana"]::before {
+  content: 'Verdana' !important;
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-label:hover {
+  background: color-mix(in srgb, var(--hover-bg) 120%, transparent);
+  border-color: var(--accent);
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font.ql-expanded .ql-picker-label {
+  border-color: var(--accent);
+  box-shadow: 0 0 15px var(--glow);
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-options {
+  background: var(--panel-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 6px !important;
+  backdrop-filter: blur(20px);
+  max-height: 300px !important;
+  overflow-y: auto !important;
+  z-index: 9999 !important;
+  width: 180px !important;
+  padding: 5px 0 !important;
+  margin-top: 5px !important;
+  box-shadow: 0 10px 30px var(--shadow);
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-item {
+  padding: 8px 15px !important;
+  color: var(--text-primary) !important;
+  transition: all 0.2s ease;
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-item:hover {
+  background: var(--hover-bg) !important;
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-item.ql-selected {
+  background: color-mix(in srgb, var(--hover-bg) 150%, transparent) !important;
+  color: var(--accent) !important;
+}
+
+/* Font item labels */
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-item[data-value="inter"]::before {
+  content: 'Inter' !important;
+  font-family: 'Inter', sans-serif !important;
+  display: block;
+  width: 100%;
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-item[data-value="arial"]::before {
+  content: 'Arial' !important;
+  font-family: 'Arial', sans-serif !important;
+  display: block;
+  width: 100%;
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-item[data-value="courier"]::before {
+  content: 'Courier' !important;
+  font-family: 'Courier', monospace !important;
+  display: block;
+  width: 100%;
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-item[data-value="georgia"]::before {
+  content: 'Georgia' !important;
+  font-family: 'Georgia', serif !important;
+  display: block;
+  width: 100%;
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-item[data-value="times-new-roman"]::before {
+  content: 'Times New Roman' !important;
+  font-family: 'Times New Roman', serif !important;
+  display: block;
+  width: 100%;
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-item[data-value="verdana"]::before {
+  content: 'Verdana' !important;
+  font-family: 'Verdana', sans-serif !important;
+  display: block;
+  width: 100%;
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-options::-webkit-scrollbar {
+  width: 6px;
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-options::-webkit-scrollbar-track {
+  background: var(--hover-bg);
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-options::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 4px;
+}
+
+.quill-editor-enhanced .ql-toolbar .ql-picker.ql-font .ql-picker-options::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Apply fonts to editor content */
+.quill-editor-enhanced .ql-editor .ql-font-inter {
+  font-family: 'Inter', sans-serif !important;
+}
+
+.quill-editor-enhanced .ql-editor .ql-font-arial {
+  font-family: 'Arial', sans-serif !important;
+}
+
+.quill-editor-enhanced .ql-editor .ql-font-courier {
+  font-family: 'Courier', monospace !important;
+}
+
+.quill-editor-enhanced .ql-editor .ql-font-georgia {
+  font-family: 'Georgia', serif !important;
+}
+
+.quill-editor-enhanced .ql-editor .ql-font-times-new-roman {
+  font-family: 'Times New Roman', serif !important;
+}
+
+.quill-editor-enhanced .ql-editor .ql-font-verdana {
+  font-family: 'Verdana', sans-serif !important;
+}
+
 /* ==================== PREVIEW MODE ==================== */
 .preview-mode {
   flex: 1;
   overflow-y: auto;
-  background: #ffffff;
+  background: var(--editor-bg);
 }
 
 .preview-content {
   padding: 40px 80px;
   max-width: 900px;
   margin: 0 auto;
-  color: #1a1a1a;
+  color: var(--editor-text);
   line-height: 1.8;
+}
+
+.preview-content h1,
+.preview-content h2,
+.preview-content h3 {
+  color: var(--editor-text);
 }
 
 .preview-content h1 {
   font-size: 36px;
   font-weight: 700;
   margin: 24px 0 16px;
-  color: #1a1a1a;
 }
 
 .preview-content h2 {
   font-size: 30px;
   font-weight: 600;
   margin: 20px 0 12px;
-  color: #1a1a1a;
 }
 
 .preview-content h3 {
   font-size: 24px;
   font-weight: 600;
   margin: 16px 0 10px;
-  color: #1a1a1a;
 }
 
 .preview-content p {
   margin: 12px 0;
-  color: #1a1a1a;
+  color: var(--editor-text);
 }
 
 .preview-content ul,
@@ -1369,7 +1565,7 @@ select {
 
 .preview-content li {
   margin: 6px 0;
-  color: #1a1a1a;
+  color: var(--editor-text);
 }
 
 .preview-content table {
@@ -1380,18 +1576,18 @@ select {
 
 .preview-content table td,
 .preview-content table th {
-  border: 1px solid #333;
+  border: 1px solid var(--border-color);
   padding: 12px;
-  color: #1a1a1a;
+  color: var(--editor-text);
 }
 
 .preview-content table th {
-  background-color: #e8e8e8;
+  background-color: var(--hover-bg);
   font-weight: 600;
 }
 
 .preview-content .ql-formula {
-  background: #f5f5f5;
+  background: var(--hover-bg);
   padding: 8px 12px;
   border-radius: 4px;
   display: inline-block;
@@ -1401,8 +1597,8 @@ select {
 /* ==================== FOOTER ==================== */
 .note-footer {
   padding: 12px 60px;
-  border-top: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
-  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid var(--border-color);
+  background: var(--panel-bg);
   backdrop-filter: blur(15px);
   display: flex;
   justify-content: space-between;
@@ -1425,7 +1621,7 @@ select {
 }
 
 .stat-divider {
-  color: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--text-secondary);
 }
 
 .footer-right {
@@ -1461,7 +1657,7 @@ select {
   gap: 24px;
   color: var(--text-secondary);
   padding: 60px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--bg-bottom);
   width: 100%;
   box-sizing: border-box;
 }
@@ -1493,7 +1689,7 @@ select {
 
 .btn-create-empty {
   padding: 14px 28px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 10%, transparent));
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
   color: var(--accent);
   border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   border-radius: 8px;
@@ -1507,36 +1703,34 @@ select {
 }
 
 .btn-create-empty:hover {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--accent) 15%, transparent));
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
   border-color: color-mix(in srgb, var(--accent) 70%, transparent);
   transform: translateY(-3px);
   box-shadow: 0 10px 30px var(--glow);
 }
 
-/* ==================== AI FLOATING BUTTON - DARK THEME ==================== */
+/* ==================== AI FLOATING BUTTON ==================== */
 .ai-floating-button {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(20, 20, 20, 0.95) 100%) !important;
-  color: var(--accent) !important;
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent) !important;
+  background: var(--accent);
+  color: var(--bg-top);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
   box-shadow: 
-    0 4px 15px rgba(0, 0, 0, 0.5),
-    0 0 20px var(--glow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    0 4px 15px var(--shadow),
+    0 0 20px var(--glow);
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   animation: fadeInScale 0.2s ease-out;
   z-index: 9999;
   pointer-events: all;
   transform: translate(-50%, 0);
   backdrop-filter: blur(20px);
-  text-shadow: 0 0 15px var(--glow);
   font-family: 'Inter', sans-serif;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -1545,37 +1739,20 @@ select {
   will-change: transform;
 }
 
-.ai-floating-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(215, 179, 140, 0.15), transparent);
-  transition: left 0.6s ease;
-}
-
 .ai-floating-button:hover {
   transform: translate(-50%, -2px) scale(1.05);
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.95) 0%, rgba(30, 30, 30, 0.98) 100%) !important;
-  border-color: color-mix(in srgb, var(--accent) 70%, transparent) !important;
+  background: color-mix(in srgb, var(--accent) 90%, white);
+  border-color: var(--accent);
   box-shadow: 
-    0 8px 25px rgba(0, 0, 0, 0.6),
-    0 0 30px var(--glow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-}
-
-.ai-floating-button:hover::before {
-  left: 100%;
+    0 8px 25px var(--shadow),
+    0 0 30px var(--glow);
 }
 
 .ai-floating-button:active {
   transform: translate(-50%, 0) scale(0.98);
   box-shadow: 
-    0 3px 12px rgba(0, 0, 0, 0.5),
-    0 0 15px var(--glow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    0 3px 12px var(--shadow),
+    0 0 15px var(--glow);
 }
 
 .ai-button-icon {
@@ -1598,7 +1775,7 @@ select {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: color-mix(in srgb, var(--bg-top) 50%, transparent);
   backdrop-filter: blur(4px);
   z-index: 9999;
   animation: fadeIn 0.2s ease;
@@ -1607,14 +1784,14 @@ select {
 .ai-dropdown-new {
   position: fixed;
   z-index: 10000;
-  background: rgba(0, 0, 0, 0.95);
+  background: var(--panel-bg);
   backdrop-filter: blur(25px);
-  border: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  border: 2px solid var(--border-color);
   border-radius: 12px;
   padding: 24px;
   min-width: 450px;
   max-width: 550px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px var(--glow), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 60px var(--shadow), 0 0 40px var(--glow), inset 0 1px 0 color-mix(in srgb, var(--hover-bg) 100%, transparent);
   animation: dropdownSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -1637,11 +1814,11 @@ select {
 .ai-prompt-input {
   width: 100%;
   padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
-  color: var(--accent);
+  color: var(--text-primary);
   outline: none;
   transition: all 0.3s ease;
   font-family: 'Inter', sans-serif;
@@ -1651,12 +1828,12 @@ select {
 }
 
 .ai-prompt-input::placeholder {
-  color: color-mix(in srgb, var(--accent) 50%, transparent);
+  color: var(--text-secondary);
 }
 
 .ai-prompt-input:focus {
-  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
-  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--hover-bg) 120%, transparent);
   box-shadow: 0 0 20px var(--glow);
 }
 
@@ -1674,8 +1851,8 @@ select {
 
 .ai-examples button {
   padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   color: var(--accent);
   cursor: pointer;
@@ -1687,8 +1864,8 @@ select {
 }
 
 .ai-examples button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--hover-bg) 150%, transparent);
+  border-color: var(--accent);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px var(--glow);
 }
@@ -1701,8 +1878,8 @@ select {
 
 .ai-btn-cancel {
   padding: 10px 20px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   color: var(--accent);
   cursor: pointer;
@@ -1713,8 +1890,8 @@ select {
 }
 
 .ai-btn-cancel:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  background: color-mix(in srgb, var(--hover-bg) 150%, transparent);
+  border-color: var(--accent);
   box-shadow: 0 4px 15px var(--glow);
 }
 
@@ -1723,7 +1900,7 @@ select {
   background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 80%, transparent));
   border: 1px solid var(--accent);
   border-radius: 6px;
-  color: var(--bg-top);
+  color: var(--panel-bg);
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
@@ -1750,7 +1927,7 @@ select {
 .spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid var(--bg-top);
+  border: 2px solid var(--panel-bg);
   border-top-color: transparent;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -1764,16 +1941,16 @@ select {
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 10000;
-  background: rgba(0, 0, 0, 0.95);
+  background: var(--panel-bg);
   backdrop-filter: blur(25px);
-  border: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  border: 2px solid var(--border-color);
   border-radius: 12px;
   padding: 0;
   min-width: 600px;
   max-width: 700px;
   max-height: 80vh;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px var(--glow);
+  box-shadow: 0 20px 60px var(--shadow), 0 0 40px var(--glow);
   animation: dropdownSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -1788,8 +1965,8 @@ select {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
-  background: rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--panel-bg);
 }
 
 .ai-assistant-header h3,
@@ -1817,7 +1994,7 @@ select {
 }
 
 .modal-close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--hover-bg);
   transform: rotate(90deg);
 }
 
@@ -1835,7 +2012,7 @@ select {
 
 .ai-assistant-content::-webkit-scrollbar-track,
 .folder-modal-content::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--hover-bg);
 }
 
 .ai-assistant-content::-webkit-scrollbar-thumb,
@@ -1870,8 +2047,8 @@ select {
 
 .ai-action-btn {
   padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   color: var(--accent);
   font-size: 13px;
@@ -1881,14 +2058,14 @@ select {
 }
 
 .ai-action-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--hover-bg) 150%, transparent);
+  border-color: var(--accent);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px var(--glow);
 }
 
 .ai-action-btn.active {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 25%, transparent), color-mix(in srgb, var(--accent) 15%, transparent));
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
   border-color: color-mix(in srgb, var(--accent) 60%, transparent);
   box-shadow: 0 0 15px var(--glow);
 }
@@ -1896,10 +2073,10 @@ select {
 .tone-selector {
   width: 100%;
   padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
-  color: var(--accent);
+  color: var(--text-primary);
   font-size: 14px;
   cursor: pointer;
   outline: none;
@@ -1907,22 +2084,22 @@ select {
 }
 
 .tone-selector:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  background: color-mix(in srgb, var(--hover-bg) 120%, transparent);
+  border-color: var(--accent);
 }
 
 .tone-selector option {
-  background: rgba(0, 0, 0, 0.95);
-  color: var(--accent);
+  background: var(--panel-bg);
+  color: var(--text-primary);
 }
 
 .ai-text-input {
   width: 100%;
   padding: 14px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  color: var(--accent);
+  color: var(--text-primary);
   font-size: 14px;
   font-family: 'Inter', sans-serif;
   resize: vertical;
@@ -1931,13 +2108,13 @@ select {
 }
 
 .ai-text-input:focus {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  background: color-mix(in srgb, var(--hover-bg) 120%, transparent);
+  border-color: var(--accent);
   box-shadow: 0 0 20px var(--glow);
 }
 
 .ai-text-input::placeholder {
-  color: color-mix(in srgb, var(--accent) 50%, transparent);
+  color: var(--text-secondary);
 }
 
 .ai-assistant-actions {
@@ -1946,16 +2123,16 @@ select {
   justify-content: flex-end;
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-top: 1px solid var(--border-color);
 }
 
 .folder-name-input {
   width: 100%;
   padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  color: var(--accent);
+  color: var(--text-primary);
   font-size: 14px;
   outline: none;
   transition: all 0.2s ease;
@@ -1963,13 +2140,13 @@ select {
 }
 
 .folder-name-input:focus {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
+  background: color-mix(in srgb, var(--hover-bg) 120%, transparent);
+  border-color: var(--accent);
   box-shadow: 0 0 20px var(--glow);
 }
 
 .folder-name-input::placeholder {
-  color: color-mix(in srgb, var(--accent) 50%, transparent);
+  color: var(--text-secondary);
 }
 
 .color-picker-section {
@@ -2003,12 +2180,12 @@ select {
 
 .color-option:hover {
   transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px var(--shadow);
 }
 
 .color-option.active {
-  border-color: #fff;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--glow);
   transform: scale(1.15);
 }
 
@@ -2018,10 +2195,10 @@ select {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: #fff;
+  color: var(--panel-bg);
   font-size: 18px;
   font-weight: bold;
-  text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 0 4px var(--shadow);
 }
 
 .folder-modal-actions {
@@ -2030,24 +2207,35 @@ select {
   justify-content: flex-end;
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-top: 1px solid var(--border-color);
 }
 
 /* ==================== CHAT IMPORT MODAL ==================== */
+.chat-import-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--bg-top) 75%, transparent);
+  z-index: 9000;
+  animation: fadeIn 0.2s ease;
+}
+
 .chat-import-modal-new {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.98), rgba(20, 20, 20, 0.98));
-  border: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  background: linear-gradient(135deg, var(--panel-bg) 0%, color-mix(in srgb, var(--panel-bg) 98%, transparent) 100%);
+  border: 2px solid var(--border-color);
   border-radius: 12px;
   width: 90%;
   max-width: 750px;
   max-height: 85vh;
   overflow: hidden;
   backdrop-filter: blur(25px);
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5), 0 0 40px var(--glow), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 25px 60px var(--shadow), 0 0 40px var(--glow), inset 0 1px 0 color-mix(in srgb, var(--hover-bg) 100%, transparent);
   animation: modalSlideIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   z-index: 9001;
   display: flex;
@@ -2056,7 +2244,7 @@ select {
 
 .modal-header-new {
   padding: 25px 35px;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -2084,7 +2272,7 @@ select {
 }
 
 .modal-content-new::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--hover-bg);
 }
 
 .modal-content-new::-webkit-scrollbar-thumb {
@@ -2120,8 +2308,8 @@ select {
   align-items: flex-start;
   gap: 15px;
   padding: 18px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -2129,14 +2317,14 @@ select {
 }
 
 .mode-option-new:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--hover-bg) 150%, transparent);
+  border-color: var(--accent);
   transform: translateY(-2px);
   box-shadow: 0 8px 25px var(--glow);
 }
 
 .mode-option-new.selected {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent), color-mix(in srgb, var(--accent) 8%, transparent));
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
   border-color: color-mix(in srgb, var(--accent) 50%, transparent);
   box-shadow: 0 0 25px var(--glow);
 }
@@ -2170,18 +2358,18 @@ select {
   line-height: 1.5;
 }
 
-.session-selection-section-new {
+.sessions-section-new {
   margin-bottom: 35px;
 }
 
-.session-header-new {
+.sessions-header-new {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
 }
 
-.session-header-new h3 {
+.sessions-header-new h3 {
   color: var(--accent);
   font-size: 18px;
   font-weight: 500;
@@ -2190,7 +2378,7 @@ select {
   text-shadow: 0 0 10px var(--glow);
 }
 
-.selection-controls-new {
+.selection-actions-new {
   display: flex;
   gap: 12px;
 }
@@ -2198,8 +2386,8 @@ select {
 .select-all-btn-new,
 .clear-all-btn-new {
   padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   color: var(--accent);
   cursor: pointer;
@@ -2211,43 +2399,12 @@ select {
 
 .select-all-btn-new:hover,
 .clear-all-btn-new:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  background: color-mix(in srgb, var(--hover-bg) 150%, transparent);
+  border-color: var(--accent);
   box-shadow: 0 4px 15px var(--glow);
 }
 
-.no-chats-new {
-  text-align: center;
-  padding: 50px 25px;
-  color: var(--text-secondary);
-}
-
-.no-chats-new p {
-  font-size: 15px;
-  margin: 0 0 25px 0;
-}
-
-.go-chat-btn-new {
-  padding: 12px 24px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 10%, transparent));
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-  border-radius: 6px;
-  color: var(--accent);
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-}
-
-.go-chat-btn-new:hover {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 30%, transparent), color-mix(in srgb, var(--accent) 15%, transparent));
-  border-color: color-mix(in srgb, var(--accent) 70%, transparent);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px var(--glow);
-}
-
-.chat-sessions-grid-new {
+.sessions-list-new {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -2256,61 +2413,56 @@ select {
   padding-right: 5px;
 }
 
-.chat-sessions-grid-new::-webkit-scrollbar {
+.sessions-list-new::-webkit-scrollbar {
   width: 6px;
 }
 
-.chat-sessions-grid-new::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
+.sessions-list-new::-webkit-scrollbar-track {
+  background: var(--hover-bg);
   border-radius: 3px;
 }
 
-.chat-sessions-grid-new::-webkit-scrollbar-thumb {
+.sessions-list-new::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--accent) 40%, transparent);
   border-radius: 3px;
 }
 
-.chat-sessions-grid-new::-webkit-scrollbar-thumb:hover {
+.sessions-list-new::-webkit-scrollbar-thumb:hover {
   background: var(--accent);
 }
 
-.chat-session-card-new {
+.session-item-new {
   display: flex;
   align-items: center;
   gap: 15px;
   padding: 15px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   backdrop-filter: blur(15px);
 }
 
-.chat-session-card-new:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+.session-item-new:hover {
+  background: color-mix(in srgb, var(--hover-bg) 150%, transparent);
+  border-color: var(--accent);
   transform: translateY(-2px);
   box-shadow: 0 8px 25px var(--glow);
 }
 
-.chat-session-card-new.selected {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 12%, transparent), color-mix(in srgb, var(--accent) 6%, transparent));
+.session-item-new.selected {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
   border-color: color-mix(in srgb, var(--accent) 50%, transparent);
   box-shadow: 0 0 20px var(--glow);
 }
 
-.session-checkbox-new {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.session-checkbox-new input[type="checkbox"] {
+.session-item-new input[type="checkbox"] {
   accent-color: var(--accent);
   width: 18px;
   height: 18px;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .session-info-new {
@@ -2336,20 +2488,31 @@ select {
   letter-spacing: 0.5px;
 }
 
-.modal-actions-new {
+.no-sessions-new {
+  text-align: center;
+  padding: 50px 25px;
+  color: var(--text-secondary);
+}
+
+.no-sessions-new p {
+  font-size: 15px;
+  margin: 0;
+}
+
+.modal-footer-new {
   display: flex;
   justify-content: flex-end;
   gap: 18px;
   padding: 25px 35px;
-  border-top: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
-  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.3));
+  border-top: 1px solid var(--border-color);
+  background: linear-gradient(to bottom, transparent, var(--panel-bg));
   flex-shrink: 0;
 }
 
-.cancel-btn-modal {
+.cancel-btn-new {
   padding: 12px 25px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   color: var(--accent);
   cursor: pointer;
@@ -2359,31 +2522,34 @@ select {
   backdrop-filter: blur(10px);
 }
 
-.cancel-btn-modal:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+.cancel-btn-new:hover {
+  background: color-mix(in srgb, var(--hover-bg) 150%, transparent);
+  border-color: var(--accent);
   box-shadow: 0 6px 20px var(--glow);
 }
 
-.convert-btn-modal {
+.import-btn-new {
   padding: 12px 25px;
   background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 80%, transparent));
   border: 1px solid var(--accent);
   border-radius: 6px;
-  color: var(--bg-top);
+  color: var(--panel-bg);
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
   transition: all 0.3s ease;
   box-shadow: 0 6px 20px var(--glow);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.convert-btn-modal:hover:not(:disabled) {
+.import-btn-new:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 10px 30px var(--glow);
 }
 
-.convert-btn-modal:disabled {
+.import-btn-new:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
@@ -2402,9 +2568,9 @@ select {
 
 .text-action-menu {
   position: fixed;
-  background: white;
+  background: var(--panel-bg);
   border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 40px var(--shadow), 0 0 0 1px var(--border-color);
   padding: 0;
   z-index: 9999;
   min-width: 360px;
@@ -2419,8 +2585,8 @@ select {
   align-items: center;
   gap: 10px;
   padding: 14px 18px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 90%, transparent) 100%);
+  color: var(--panel-bg);
   border-radius: 12px 12px 0 0;
   font-weight: 600;
   font-size: 14px;
@@ -2435,9 +2601,9 @@ select {
 
 .text-action-close {
   margin-left: auto;
-  background: rgba(255, 255, 255, 0.15);
+  background: color-mix(in srgb, var(--panel-bg) 15%, transparent);
   border: none;
-  color: white;
+  color: var(--panel-bg);
   font-size: 20px;
   cursor: pointer;
   padding: 0;
@@ -2452,19 +2618,19 @@ select {
 }
 
 .text-action-close:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: color-mix(in srgb, var(--panel-bg) 25%, transparent);
   transform: rotate(90deg);
 }
 
 .text-action-section {
   padding: 14px 18px;
-  background: white;
+  background: var(--panel-bg);
 }
 
 .text-action-label {
   font-size: 11px;
   font-weight: 700;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 10px;
   text-transform: uppercase;
   letter-spacing: 0.8px;
@@ -2482,13 +2648,13 @@ select {
   justify-content: center;
   gap: 8px;
   padding: 11px 14px;
-  background: #f8f9fa;
-  border: 1.5px solid #e3e4e8;
+  background: var(--hover-bg);
+  border: 1.5px solid var(--border-color);
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
   position: relative;
@@ -2502,7 +2668,7 @@ select {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 90%, transparent) 100%);
   opacity: 0;
   transition: opacity 0.2s;
   z-index: -1;
@@ -2513,15 +2679,15 @@ select {
 }
 
 .text-action-btn:hover:not(:disabled) {
-  color: white;
+  color: var(--panel-bg);
   border-color: transparent;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 6px 20px var(--glow);
 }
 
 .text-action-btn:active:not(:disabled) {
   transform: translateY(0);
-  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.2);
+  box-shadow: 0 3px 10px var(--glow);
 }
 
 .text-action-btn:disabled {
@@ -2536,7 +2702,7 @@ select {
 
 .text-action-divider {
   height: 1px;
-  background: linear-gradient(to right, transparent, #e3e4e8, transparent);
+  background: linear-gradient(to right, transparent, var(--border-color), transparent);
   margin: 4px 18px;
 }
 
@@ -2549,30 +2715,30 @@ select {
 .tone-select {
   flex: 1;
   padding: 11px 14px;
-  border: 1.5px solid #e3e4e8;
+  border: 1.5px solid var(--border-color);
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
-  background: white;
+  background: var(--panel-bg);
   cursor: pointer;
   outline: none;
   transition: all 0.2s;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .tone-select:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--glow);
 }
 
 .tone-select:hover:not(:disabled) {
-  border-color: #667eea;
+  border-color: var(--accent);
 }
 
 .tone-select:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: #f5f5f5;
+  background: var(--hover-bg);
 }
 
 .tone-select option {
@@ -2582,8 +2748,8 @@ select {
 
 .text-action-btn-apply {
   padding: 11px 18px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 90%, transparent) 100%);
+  color: var(--panel-bg);
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -2591,17 +2757,17 @@ select {
   font-weight: 600;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+  box-shadow: 0 4px 12px var(--glow);
 }
 
 .text-action-btn-apply:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
+  box-shadow: 0 6px 20px var(--glow);
 }
 
 .text-action-btn-apply:active:not(:disabled) {
   transform: translateY(0);
-  box-shadow: 0 3px 10px rgba(102, 126, 234, 0.25);
+  box-shadow: 0 3px 10px var(--glow);
 }
 
 .text-action-btn-apply:disabled {
@@ -2616,19 +2782,19 @@ select {
   justify-content: center;
   gap: 12px;
   padding: 14px 18px;
-  background: linear-gradient(135deg, #f8f9fa, #fff);
+  background: linear-gradient(135deg, var(--hover-bg), var(--panel-bg));
   border-radius: 0 0 12px 12px;
   font-size: 13px;
-  color: #667eea;
+  color: var(--accent);
   font-weight: 600;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-color);
 }
 
 .text-action-loading .spinner {
   width: 18px;
   height: 18px;
-  border: 2.5px solid #e3e4e8;
-  border-top-color: #667eea;
+  border: 2.5px solid var(--border-color);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -2642,17 +2808,6 @@ select {
 @keyframes fadeInOut {
   0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
-}
-
-@keyframes slideUpFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
 }
 
 @keyframes dropdownSlideIn {
@@ -2738,76 +2893,15 @@ select {
   to { transform: rotate(360deg); }
 }
 
-/* ==================== UTILITY CLASSES ==================== */
-.truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.line-clamp-3 {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.loading {
-  position: relative;
-  pointer-events: none;
-  opacity: 0.6;
-}
-
-.loading::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 20px;
-  height: 20px;
-  margin: -10px 0 0 -10px;
-  border: 2px solid var(--accent);
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-/* ==================== SELECTION STYLES ==================== */
-::selection {
-  background: color-mix(in srgb, var(--accent) 40%, transparent);
-  color: var(--text-primary);
-}
-
-::-moz-selection {
-  background: color-mix(in srgb, var(--accent) 40%, transparent);
-  color: var(--text-primary);
-}
-
-/* ==================== ACCESSIBILITY ==================== */
-.btn-new-note:focus,
-.search-input-new:focus,
-.toggle-sidebar:focus,
-.nav-btn:focus,
-.theme-toggle:focus,
-.logout-btn-new:focus,
-.title-input-new:focus,
-.tool-btn:focus,
-.note-action-btn:focus,
-.ai-prompt-input:focus,
-.ai-btn-cancel:focus,
-.ai-btn-generate:focus,
-.folder-item:focus-visible,
-.filter-btn:focus-visible,
-.note-item-new:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+@keyframes slideUpFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* ==================== RESPONSIVE DESIGN ==================== */
@@ -2833,7 +2927,7 @@ select {
     top: 0;
     height: 100vh;
     z-index: 1000;
-    box-shadow: 2px 0 30px rgba(0, 0, 0, 0.7);
+    box-shadow: 2px 0 30px var(--shadow);
   }
 
   .notes-sidebar-new.closed {
@@ -3031,7 +3125,7 @@ select {
   }
 
   .editor-area-new {
-    background: white;
+    background: var(--panel-bg);
   }
 
   .quill-editor-enhanced .ql-toolbar {
@@ -3040,17 +3134,17 @@ select {
 
   .quill-editor-enhanced .ql-editor {
     padding: 20px;
-    color: black !important;
-    background: white !important;
+    color: var(--editor-text) !important;
+    background: var(--panel-bg) !important;
   }
 
   .title-input-new {
-    color: black !important;
+    color: var(--editor-text) !important;
     text-shadow: none;
   }
 
   .title-section {
-    background: white !important;
+    background: var(--panel-bg) !important;
     border: none !important;
   }
 
@@ -3077,10 +3171,10 @@ select {
 /* ==================== ERROR & SUCCESS MESSAGES ==================== */
 .error-message {
   padding: 12px 16px;
-  background: rgba(220, 53, 69, 0.15);
-  border: 1px solid rgba(220, 53, 69, 0.3);
+  background: color-mix(in srgb, var(--danger) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
   border-radius: 6px;
-  color: #ff6b6b;
+  color: var(--danger);
   font-size: 13px;
   margin: 12px 0;
   backdrop-filter: blur(10px);
@@ -3088,8 +3182,8 @@ select {
 
 .success-message {
   padding: 12px 16px;
-  background: rgba(81, 207, 102, 0.15);
-  border: 1px solid rgba(81, 207, 102, 0.3);
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
   border-radius: 6px;
   color: var(--success);
   font-size: 13px;
@@ -3103,8 +3197,8 @@ select {
   bottom: 20px;
   right: 20px;
   padding: 8px 12px;
-  background: rgba(0, 0, 0, 0.8);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   color: var(--accent);
   font-size: 11px;
@@ -3117,6 +3211,78 @@ select {
 
 .keyboard-hint.visible {
   opacity: 1;
+}
+
+/* ==================== UTILITY CLASSES ==================== */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.loading {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid var(--accent);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ==================== SELECTION STYLES ==================== */
+::selection {
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--text-primary);
+}
+
+::-moz-selection {
+  background: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--text-primary);
+}
+
+/* ==================== ACCESSIBILITY ==================== */
+.btn-new-note:focus,
+.search-input-new:focus,
+.toggle-sidebar:focus,
+.nav-btn:focus,
+.theme-toggle:focus,
+.logout-btn-new:focus,
+.title-input-new:focus,
+.tool-btn:focus,
+.note-action-btn:focus,
+.ai-prompt-input:focus,
+.ai-btn-cancel:focus,
+.ai-btn-generate:focus,
+.folder-item:focus-visible,
+.filter-btn:focus-visible,
+.note-item-new:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* ==================== PREVENT TEXT SELECTION ON UI ==================== */
