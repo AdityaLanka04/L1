@@ -3474,7 +3474,8 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
             "bestStudyTimes": [],
             "primaryArchetype": "",
             "secondaryArchetype": "",
-            "archetypeDescription": ""
+            "archetypeDescription": "",
+            "quizResponses": {}
         }
 
         if comprehensive_profile:
@@ -3498,6 +3499,12 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
             except:
                 pass
 
+            try:
+                if comprehensive_profile.quiz_responses:
+                    result["quizResponses"] = json.loads(comprehensive_profile.quiz_responses)
+            except:
+                pass
+
         return result
 
     except Exception as e:
@@ -3507,26 +3514,23 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
 
 @app.post("/update_comprehensive_profile")
 async def update_comprehensive_profile(
-    profile_data: UserProfileUpdate,
+    payload: dict = Body(...),
     db: Session = Depends(get_db)
 ):
     try:
-        user = get_user_by_username(db, profile_data.user_id) or get_user_by_email(db, profile_data.user_id)
+        user_id = payload.get("user_id")
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        if profile_data.firstName:
-            user.first_name = profile_data.firstName
-        if profile_data.lastName:
-            user.last_name = profile_data.lastName
-        if profile_data.email:
-            user.email = profile_data.email
-        if profile_data.age:
-            user.age = profile_data.age
-        if profile_data.fieldOfStudy:
-            user.field_of_study = profile_data.fieldOfStudy
-        if profile_data.learningStyle:
-            user.learning_style = profile_data.learningStyle
+        if payload.get("firstName"):
+            user.first_name = payload["firstName"]
+        if payload.get("lastName"):
+            user.last_name = payload["lastName"]
+        if payload.get("email"):
+            user.email = payload["email"]
+        if payload.get("fieldOfStudy"):
+            user.field_of_study = payload["fieldOfStudy"]
 
         comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
             models.ComprehensiveUserProfile.user_id == user.id
@@ -3536,19 +3540,16 @@ async def update_comprehensive_profile(
             comprehensive_profile = models.ComprehensiveUserProfile(user_id=user.id)
             db.add(comprehensive_profile)
 
-        if profile_data.difficultyLevel:
-            comprehensive_profile.difficulty_level = profile_data.difficultyLevel
-        if profile_data.learningPace:
-            comprehensive_profile.learning_pace = profile_data.learningPace
-        if profile_data.timeZone:
-            comprehensive_profile.time_zone = profile_data.timeZone
-        if profile_data.preferredSessionLength:
-            comprehensive_profile.preferred_session_length = profile_data.preferredSessionLength
+        if payload.get("difficultyLevel"):
+            comprehensive_profile.difficulty_level = payload["difficultyLevel"]
+        if payload.get("learningPace"):
+            comprehensive_profile.learning_pace = payload["learningPace"]
 
-        if profile_data.preferredSubjects:
-            comprehensive_profile.preferred_subjects = json.dumps(profile_data.preferredSubjects)
-        if profile_data.bestStudyTimes:
-            comprehensive_profile.best_study_times = json.dumps(profile_data.bestStudyTimes)
+        if "preferredSubjects" in payload:
+            comprehensive_profile.preferred_subjects = json.dumps(payload["preferredSubjects"])
+
+        if "quizResponses" in payload:
+            comprehensive_profile.quiz_responses = json.dumps(payload["quizResponses"])
 
         db.commit()
 

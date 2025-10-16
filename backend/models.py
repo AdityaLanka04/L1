@@ -778,17 +778,15 @@ class ComprehensiveUserProfile(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
     
-    # Learning preferences
     preferred_subjects = Column(Text, nullable=True)
     difficulty_level = Column(String(50), default="intermediate")
     learning_pace = Column(String(50), default="moderate")
     best_study_times = Column(Text, nullable=True)
+    weak_areas = Column(Text, nullable=True)
+    strong_areas = Column(Text, nullable=True)
     
-    # ADD THESE TWO FIELDS:
-    weak_areas = Column(Text, nullable=True)  # ✅ ADD
-    strong_areas = Column(Text, nullable=True)  # ✅ ADD
+    quiz_responses = Column(Text, nullable=True)
     
-    # Archetype fields
     primary_archetype = Column(String(50), nullable=True)
     secondary_archetype = Column(String(50), nullable=True)
     archetype_scores = Column(Text, nullable=True)

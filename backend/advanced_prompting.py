@@ -202,6 +202,8 @@ def build_intelligent_system_prompt(
     difficulty_level = user_profile.get('difficulty_level', 'intermediate')
     primary_archetype = user_profile.get('primary_archetype', '')
     secondary_archetype = user_profile.get('secondary_archetype', '')
+    quiz_responses = user_profile.get('quiz_responses', {})
+    preferred_subjects = user_profile.get('preferred_subjects', [])
     
     if is_first_message:
         base_prompt = f"""You are an expert AI tutor. Welcome {first_name} warmly and let them know you're here to help them with {field_of_study}.
@@ -218,6 +220,21 @@ Be natural and conversational. Reference previous discussions when relevant, but
 
 TEACHING STYLE (use naturally, don't announce it):
 {teaching_style}"""
+    
+    if quiz_responses and not is_first_message:
+        quiz_adaptations = get_quiz_based_teaching_adaptations(quiz_responses)
+        if quiz_adaptations:
+            base_prompt += f"""
+
+PERSONALIZED ADAPTATIONS (based on student's learning preferences):
+{quiz_adaptations}"""
+    
+    if preferred_subjects:
+        subjects_str = ", ".join(preferred_subjects[:5])
+        base_prompt += f"""
+
+STUDENT'S INTERESTS: {subjects_str}
+Connect topics to these interests when naturally relevant."""
     
     base_prompt += f"""
 
@@ -268,6 +285,56 @@ RESPONSE GUIDELINES:
 - Keep your tone warm but professional"""
     
     return base_prompt
+
+def get_quiz_based_teaching_adaptations(quiz_responses: Dict[str, str]) -> str:
+    adaptations = []
+    
+    if quiz_responses.get('learningEnvironment') == 'structured':
+        adaptations.append("Provide clear, organized frameworks and step-by-step guidance")
+    elif quiz_responses.get('learningEnvironment') == 'flexible':
+        adaptations.append("Offer flexible explanations with multiple pathways to understanding")
+    elif quiz_responses.get('learningEnvironment') == 'collaborative':
+        adaptations.append("Include discussion prompts and collaborative learning suggestions")
+    elif quiz_responses.get('learningEnvironment') == 'independent':
+        adaptations.append("Encourage self-discovery with guiding questions")
+    
+    if quiz_responses.get('problemSolving') == 'break_down':
+        adaptations.append("Break complex problems into logical, sequential steps")
+    elif quiz_responses.get('problemSolving') == 'visualize':
+        adaptations.append("Start with big-picture overview before diving into details")
+    elif quiz_responses.get('problemSolving') == 'experiment':
+        adaptations.append("Suggest hands-on experiments and trial-and-error approaches")
+    elif quiz_responses.get('problemSolving') == 'discuss':
+        adaptations.append("Frame concepts as discussion points and thought experiments")
+    
+    if quiz_responses.get('newConcepts') == 'reading':
+        adaptations.append("Provide thorough written explanations with detailed context")
+    elif quiz_responses.get('newConcepts') == 'visual':
+        adaptations.append("Use analogies and describe visual representations")
+    elif quiz_responses.get('newConcepts') == 'hands_on':
+        adaptations.append("Suggest practical exercises and real-world applications")
+    elif quiz_responses.get('newConcepts') == 'discussion':
+        adaptations.append("Present ideas through dialogue and questioning")
+    
+    if quiz_responses.get('informationProcessing') == 'logic':
+        adaptations.append("Use logical reasoning and cause-effect relationships")
+    elif quiz_responses.get('informationProcessing') == 'patterns':
+        adaptations.append("Highlight patterns, connections, and recurring themes")
+    elif quiz_responses.get('informationProcessing') == 'emotion':
+        adaptations.append("Connect concepts to human experiences and real-life meaning")
+    elif quiz_responses.get('informationProcessing') == 'action':
+        adaptations.append("Emphasize physical demonstrations and kinesthetic learning")
+    
+    if quiz_responses.get('feedback') == 'detailed':
+        adaptations.append("Provide detailed analytical feedback with specific examples")
+    elif quiz_responses.get('feedback') == 'encouraging':
+        adaptations.append("Use positive, encouraging language that builds confidence")
+    elif quiz_responses.get('feedback') == 'constructive':
+        adaptations.append("Focus on actionable improvements and next steps")
+    elif quiz_responses.get('feedback') == 'direct':
+        adaptations.append("Be direct and concise in corrections and suggestions")
+    
+    return " ".join(adaptations) if adaptations else ""
 
 
 def should_suggest_weak_topic_review(message_count: int, weak_topics: List[Dict]) -> Optional[str]:

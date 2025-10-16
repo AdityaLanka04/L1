@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -13,26 +14,26 @@ function Login() {
   const navigate = useNavigate();
 
   const checkAndRedirect = async (username) => {
-  try {
-    const token = localStorage.getItem('token');
-    const response = await axios.get(`http://localhost:8001/check_profile_quiz?user_id=${username}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:8001/check_profile_quiz?user_id=${username}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
 
-    console.log('Quiz check response:', response.data);
+      console.log('Quiz check response:', response.data);
 
-    if (response.data.completed) {
-      console.log('Quiz completed - going to dashboard');
+      if (response.data.completed) {
+        console.log('Quiz completed - going to dashboard');
+        navigate('/dashboard');
+      } else {
+        console.log('Quiz not completed - going to dashboard with option to take quiz');
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Error checking quiz status:', error);
       navigate('/dashboard');
-    } else {
-      console.log('Quiz not completed - going to profile quiz');
-      navigate('/profile-quiz');
     }
-  } catch (error) {
-    console.error('Error checking quiz status:', error);
-    navigate('/profile-quiz');
-  }
-};
+  };
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);

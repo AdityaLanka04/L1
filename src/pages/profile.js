@@ -13,7 +13,20 @@ const Profile = () => {
     learningPace: 'moderate',
     primaryArchetype: '',
     secondaryArchetype: '',
-    archetypeDescription: ''
+    archetypeDescription: '',
+    preferredSubjects: [],
+    quizResponses: {
+      learningEnvironment: '',
+      problemSolving: '',
+      newConcepts: '',
+      studyPreference: '',
+      challengeResponse: '',
+      informationProcessing: '',
+      groupWork: '',
+      timeManagement: '',
+      creativity: '',
+      feedback: ''
+    }
   });
   
   const [autoSaving, setAutoSaving] = useState(false);
@@ -28,6 +41,106 @@ const Profile = () => {
     'Engineering', 'Medicine', 'Business', 'Economics', 'Psychology',
     'Literature', 'History', 'Philosophy', 'Art', 'Languages', 'General Studies'
   ];
+
+  const allSubjects = [
+    'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science',
+    'History', 'Geography', 'Literature', 'Languages', 'Art',
+    'Music', 'Economics', 'Business', 'Psychology', 'Philosophy',
+    'Engineering', 'Medicine', 'Law', 'Political Science', 'Sociology'
+  ];
+
+  const quizQuestions = {
+    learningEnvironment: {
+      question: "What type of learning environment helps you focus best?",
+      options: [
+        { value: "structured", label: "Structured with clear guidelines" },
+        { value: "flexible", label: "Flexible and adaptable" },
+        { value: "collaborative", label: "Collaborative and social" },
+        { value: "independent", label: "Independent and self-directed" }
+      ]
+    },
+    problemSolving: {
+      question: "When facing a complex problem, you prefer to:",
+      options: [
+        { value: "break_down", label: "Break it down into logical steps" },
+        { value: "visualize", label: "Visualize the big picture first" },
+        { value: "experiment", label: "Experiment and try different approaches" },
+        { value: "discuss", label: "Discuss with others for insights" }
+      ]
+    },
+    newConcepts: {
+      question: "How do you best absorb new concepts?",
+      options: [
+        { value: "reading", label: "Reading detailed explanations" },
+        { value: "visual", label: "Visual diagrams and charts" },
+        { value: "hands_on", label: "Hands-on practice" },
+        { value: "discussion", label: "Discussion and debate" }
+      ]
+    },
+    studyPreference: {
+      question: "Your ideal study session involves:",
+      options: [
+        { value: "solo_deep", label: "Solo deep-dive into material" },
+        { value: "group_study", label: "Group study sessions" },
+        { value: "mixed_activities", label: "Mixed activities and breaks" },
+        { value: "project_based", label: "Project-based learning" }
+      ]
+    },
+    challengeResponse: {
+      question: "When you encounter a challenging topic:",
+      options: [
+        { value: "systematic", label: "Take a systematic, methodical approach" },
+        { value: "creative", label: "Find creative ways to understand it" },
+        { value: "seek_help", label: "Seek help and guidance" },
+        { value: "persistent", label: "Keep trying until breakthrough" }
+      ]
+    },
+    informationProcessing: {
+      question: "You process information best through:",
+      options: [
+        { value: "logic", label: "Logical analysis" },
+        { value: "patterns", label: "Pattern recognition" },
+        { value: "emotion", label: "Emotional connection" },
+        { value: "action", label: "Action and movement" }
+      ]
+    },
+    groupWork: {
+      question: "In group projects, you naturally:",
+      options: [
+        { value: "organize", label: "Organize and structure the work" },
+        { value: "generate_ideas", label: "Generate creative ideas" },
+        { value: "facilitate", label: "Facilitate communication" },
+        { value: "execute", label: "Execute and complete tasks" }
+      ]
+    },
+    timeManagement: {
+      question: "Your approach to deadlines is:",
+      options: [
+        { value: "plan_ahead", label: "Plan well ahead with schedule" },
+        { value: "flexible", label: "Flexible, adapt as needed" },
+        { value: "steady_pace", label: "Steady consistent pace" },
+        { value: "intense_bursts", label: "Intense focused bursts" }
+      ]
+    },
+    creativity: {
+      question: "When learning, you value:",
+      options: [
+        { value: "accuracy", label: "Accuracy and precision" },
+        { value: "innovation", label: "Innovation and new ideas" },
+        { value: "understanding", label: "Deep understanding" },
+        { value: "application", label: "Practical application" }
+      ]
+    },
+    feedback: {
+      question: "You prefer feedback that is:",
+      options: [
+        { value: "detailed", label: "Detailed and analytical" },
+        { value: "encouraging", label: "Encouraging and positive" },
+        { value: "constructive", label: "Constructive and actionable" },
+        { value: "direct", label: "Direct and to the point" }
+      ]
+    }
+  };
 
   const archetypeInfo = {
     Logicor: {
@@ -144,13 +257,26 @@ const Profile = () => {
           learningPace: data.learningPace || 'moderate',
           primaryArchetype: data.primaryArchetype || '',
           secondaryArchetype: data.secondaryArchetype || '',
-          archetypeDescription: data.archetypeDescription || ''
+          archetypeDescription: data.archetypeDescription || '',
+          preferredSubjects: data.preferredSubjects || [],
+          quizResponses: data.quizResponses || {
+            learningEnvironment: '',
+            problemSolving: '',
+            newConcepts: '',
+            studyPreference: '',
+            challengeResponse: '',
+            informationProcessing: '',
+            groupWork: '',
+            timeManagement: '',
+            creativity: '',
+            feedback: ''
+          }
         });
         
         setDataLoaded(true);
         setLastSaved(new Date().toLocaleTimeString());
       } else {
-        console.error('Failed to load profile:', response.statusText);
+        console.error('Failed to load profile');
         setDataLoaded(true);
       }
     } catch (error) {
@@ -163,6 +289,25 @@ const Profile = () => {
     setProfileData(prev => ({
       ...prev,
       [field]: value
+    }));
+  };
+
+  const handleQuizResponseChange = (question, value) => {
+    setProfileData(prev => ({
+      ...prev,
+      quizResponses: {
+        ...prev.quizResponses,
+        [question]: value
+      }
+    }));
+  };
+
+  const toggleSubject = (subject) => {
+    setProfileData(prev => ({
+      ...prev,
+      preferredSubjects: prev.preferredSubjects.includes(subject)
+        ? prev.preferredSubjects.filter(s => s !== subject)
+        : [...prev.preferredSubjects, subject]
     }));
   };
 
@@ -181,7 +326,9 @@ const Profile = () => {
         email: profileData.email || '',
         fieldOfStudy: profileData.fieldOfStudy || '',
         difficultyLevel: profileData.difficultyLevel || 'intermediate',
-        learningPace: profileData.learningPace || 'moderate'
+        learningPace: profileData.learningPace || 'moderate',
+        preferredSubjects: profileData.preferredSubjects || [],
+        quizResponses: profileData.quizResponses || {}
       };
       
       const response = await fetch('http://localhost:8001/update_comprehensive_profile', {
@@ -195,14 +342,6 @@ const Profile = () => {
       
       if (response.ok) {
         setLastSaved(new Date().toLocaleTimeString());
-        
-        localStorage.setItem('userProfile', JSON.stringify({
-          firstName: profileData.firstName,
-          lastName: profileData.lastName,
-          fieldOfStudy: profileData.fieldOfStudy,
-          difficultyLevel: profileData.difficultyLevel,
-          learningPace: profileData.learningPace
-        }));
       }
     } catch (error) {
       console.error('Error auto-saving profile:', error);
@@ -224,7 +363,12 @@ const Profile = () => {
       <div className="profile-page">
         <div className="profile-container">
           <div style={{ textAlign: 'center', padding: '50px', color: '#D7B38C' }}>
-            Loading your profile...
+            <div className="typing-indicator" style={{ display: 'inline-flex', gap: '8px', marginBottom: '20px' }}>
+              <span style={{ width: '12px', height: '12px', background: '#D7B38C', borderRadius: '50%', animation: 'pulse 1.4s ease-in-out infinite' }}></span>
+              <span style={{ width: '12px', height: '12px', background: '#D7B38C', borderRadius: '50%', animation: 'pulse 1.4s ease-in-out 0.2s infinite' }}></span>
+              <span style={{ width: '12px', height: '12px', background: '#D7B38C', borderRadius: '50%', animation: 'pulse 1.4s ease-in-out 0.4s infinite' }}></span>
+            </div>
+            <div>Loading your profile...</div>
           </div>
         </div>
       </div>
@@ -294,6 +438,20 @@ const Profile = () => {
               <p className="archetype-note">
                 Your AI tutor adapts its teaching style based on your archetype for personalized learning
               </p>
+            </div>
+          </div>
+        )}
+
+        {!profileData.primaryArchetype && (
+          <div className="profile-section archetype-section">
+            <h3 className="section-title">Discover Your Learning Archetype</h3>
+            <p className="section-subtitle" style={{ textAlign: 'center', marginBottom: '20px' }}>
+              Take our quick assessment to unlock personalized AI tutoring tailored to your unique learning style
+            </p>
+            <div className="archetype-actions">
+              <button className="retake-quiz-btn" onClick={retakeQuiz}>
+                Take Learning Archetype Quiz
+              </button>
             </div>
           </div>
         )}
@@ -384,7 +542,59 @@ const Profile = () => {
             </div>
           </div>
         </div>
+
+        <div className="profile-section">
+          <h3 className="section-title">Preferred Subjects</h3>
+          <p className="section-subtitle">Select subjects you're interested in learning</p>
+          
+          <div className="checkbox-grid">
+            {allSubjects.map(subject => (
+              <div
+                key={subject}
+                className={`checkbox-item ${profileData.preferredSubjects.includes(subject) ? 'selected' : ''}`}
+                onClick={() => toggleSubject(subject)}
+              >
+                <input
+                  type="checkbox"
+                  checked={profileData.preferredSubjects.includes(subject)}
+                  onChange={() => {}}
+                />
+                <span>{subject}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="profile-section">
+          <h3 className="section-title">Learning Style Preferences</h3>
+          <p className="section-subtitle">Customize how the AI adapts to your learning style</p>
+          
+          {Object.entries(quizQuestions).map(([key, question]) => (
+            <div key={key} className="form-group">
+              <label className="form-label">{question.question}</label>
+              <select
+                className="form-select"
+                value={profileData.quizResponses[key] || ''}
+                onChange={(e) => handleQuizResponseChange(key, e.target.value)}
+              >
+                <option value="">Select your preference</option>
+                {question.options.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
       </div>
+      
+      <style jsx>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 0.4; transform: scale(0.8); }
+          50% { opacity: 1; transform: scale(1.2); }
+        }
+      `}</style>
     </div>
   );
 };
