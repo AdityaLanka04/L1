@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { User, BookOpen, Target, Brain, Star, Clock, TrendingUp, Award } from 'lucide-react';
 import './profile.css';
 
 const Profile = () => {
@@ -15,9 +16,11 @@ const Profile = () => {
     learningPace: 'moderate',
     primaryArchetype: '',
     secondaryArchetype: '',
-    archetypeDescription: ''
+    archetypeDescription: '',
+    archetypeScores: {}
   });
   
+  const [quizAnswers, setQuizAnswers] = useState({});
   const [autoSaving, setAutoSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
   const [saveTimer, setSaveTimer] = useState(null);
@@ -33,66 +36,76 @@ const Profile = () => {
   ];
 
   const brainwaveGoals = {
-    'exam_prep': 'Prepare for exams and tests',
-    'homework_help': 'Get help with homework and assignments',
-    'concept_mastery': 'Master difficult concepts',
-    'skill_building': 'Build new skills and knowledge',
-    'career_prep': 'Prepare for career and professional growth',
-    'curiosity': 'Learn out of curiosity and interest'
+    'exam_prep': 'Exam Preparation',
+    'homework_help': 'Homework Assistance',
+    'concept_mastery': 'Master Concepts',
+    'skill_building': 'Build Skills',
+    'career_prep': 'Career Development',
+    'curiosity': 'Learn for Fun'
   };
 
   const archetypeInfo = {
-    Logicor: {
-      icon: '🧠',
-      color: '#4A90E2',
-      description: 'You thrive on logical analysis and systematic problem-solving. You excel at breaking down complex concepts into manageable parts.'
-    },
-    Flowist: {
-      icon: '🌊',
-      color: '#50C878',
-      description: 'You learn best through dynamic, hands-on experiences. You adapt easily and prefer learning by doing.'
-    },
-    Kinetiq: {
-      icon: '⚡',
-      color: '#FF6B6B',
-      description: 'You\'re a kinesthetic learner who needs movement and physical engagement to process information effectively.'
-    },
-    Synth: {
-      icon: '🔗',
-      color: '#9B59B6',
-      description: 'You naturally see connections between ideas and excel at integrating knowledge from different domains.'
-    },
-    Dreamweaver: {
-      icon: '✨',
-      color: '#F39C12',
-      description: 'You think in big pictures and future possibilities. Visual and imaginative approaches resonate with you.'
-    },
-    Anchor: {
-      icon: '⚓',
-      color: '#34495E',
-      description: 'You value structure, organization, and clear systems. You excel with well-defined goals and methodical approaches.'
-    },
-    Spark: {
-      icon: '💡',
-      color: '#E74C3C',
-      description: 'You\'re driven by creativity and innovation. Novel ideas and expressive methods fuel your learning.'
-    },
-    Empathion: {
-      icon: '❤️',
-      color: '#E91E63',
-      description: 'You connect deeply with emotional and interpersonal aspects of learning. You understand through empathy and meaning.'
-    },
-    Seeker: {
-      icon: '🔍',
-      color: '#00BCD4',
-      description: 'You\'re motivated by curiosity and the joy of discovery. You love exploring new topics and expanding knowledge.'
-    },
-    Resonant: {
-      icon: '🎵',
-      color: '#8E44AD',
-      description: 'You\'re highly adaptable and tune into different learning environments. You adjust your approach fluidly.'
-    }
-  };
+  Logicor: {
+    icon: '🧩',
+    color: '#4A90E2',
+    tagline: 'The Systematic Thinker',
+    description: 'You excel at logical analysis and breaking down complex problems into manageable parts.'
+  },
+  Flowist: {
+    icon: '⚡',
+    color: '#50C878',
+    tagline: 'The Dynamic Learner',
+    description: 'You thrive through hands-on experiences and adapt easily to new challenges.'
+  },
+  Kinetiq: {
+    icon: '⚙️',
+    color: '#FF6B6B',
+    tagline: 'The Movement Master',
+    description: 'You learn best through physical engagement and kinesthetic experiences.'
+  },
+  Synth: {
+    icon: '🔗',
+    color: '#9B59B6',
+    tagline: 'The Pattern Connector',
+    description: 'You naturally see connections and integrate knowledge across domains.'
+  },
+  Dreamweaver: {
+    icon: '✨',
+    color: '#F39C12',
+    tagline: 'The Visionary',
+    description: 'You think in possibilities and excel with visual and imaginative approaches.'
+  },
+  Anchor: {
+    icon: '⚓',
+    color: '#34495E',
+    tagline: 'The Structured Strategist',
+    description: 'You value organization and thrive with clear systems and methodical approaches.'
+  },
+  Spark: {
+    icon: '💡',
+    color: '#E74C3C',
+    tagline: 'The Creative Innovator',
+    description: 'You\'re driven by creativity and love exploring novel ideas and methods.'
+  },
+  Empathion: {
+    icon: '♥️',
+    color: '#E91E63',
+    tagline: 'The Empathetic Learner',
+    description: 'You connect deeply with meaning and understand through emotional intelligence.'
+  },
+  Seeker: {
+    icon: '🔍',
+    color: '#00BCD4',
+    tagline: 'The Curious Explorer',
+    description: 'You\'re motivated by discovery and love expanding your knowledge horizons.'
+  },
+  Resonant: {
+    icon: '♪',
+    color: '#8E44AD',
+    tagline: 'The Adaptive Mind',
+    description: 'You\'re highly flexible and tune into different learning environments effortlessly.'
+  }
+};
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -111,9 +124,7 @@ const Profile = () => {
 
   useEffect(() => {
     if (dataLoaded && userName) {
-      if (saveTimer) {
-        clearTimeout(saveTimer);
-      }
+      if (saveTimer) clearTimeout(saveTimer);
       
       const newTimer = setTimeout(() => {
         if (profileData.firstName || profileData.lastName || profileData.email) {
@@ -124,9 +135,7 @@ const Profile = () => {
       setSaveTimer(newTimer);
       
       return () => {
-        if (newTimer) {
-          clearTimeout(newTimer);
-        }
+        if (newTimer) clearTimeout(newTimer);
       };
     }
   }, [profileData, userName, dataLoaded]);
@@ -158,8 +167,17 @@ const Profile = () => {
           learningPace: data.learningPace || 'moderate',
           primaryArchetype: data.primaryArchetype || '',
           secondaryArchetype: data.secondaryArchetype || '',
-          archetypeDescription: data.archetypeDescription || ''
+          archetypeDescription: data.archetypeDescription || '',
+          archetypeScores: data.archetypeScores ? JSON.parse(data.archetypeScores) : {}
         });
+
+        if (data.quizResponses) {
+          try {
+            setQuizAnswers(JSON.parse(data.quizResponses));
+          } catch (e) {
+            console.error('Error parsing quiz responses:', e);
+          }
+        }
         
         setDataLoaded(true);
         setLastSaved(new Date().toLocaleTimeString());
@@ -239,12 +257,8 @@ const Profile = () => {
     return (
       <div className="profile-page">
         <div className="profile-container">
-          <div className="loading-container">
-            <div className="typing-indicator">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
+          <div className="loading-state">
+            <div className="loading-spinner"></div>
             <div className="loading-text">Loading your profile...</div>
           </div>
         </div>
@@ -258,127 +272,157 @@ const Profile = () => {
   return (
     <div className="profile-page">
       <div className="profile-container">
-        <div className="profile-header">
-          <div className="profile-header-left">
-            <h1>Learning Profile</h1>
-            <p className="profile-header-subtitle">
-              Personalize your AI learning experience
-            </p>
+        <header className="profile-header">
+          <div className="header-left">
+            <h1 className="page-title">Learning Profile</h1>
+            <p className="page-subtitle">Customize your AI learning experience</p>
           </div>
-          <div className="profile-header-right">
-            <div className="auto-save-indicator">
-              {autoSaving && <span className="saving">Saving...</span>}
-              {lastSaved && !autoSaving && (
-                <span className="last-saved">Last saved: {lastSaved}</span>
-              )}
-            </div>
-            <button className="back-to-dashboard-btn" onClick={goBack}>
+          <div className="header-right">
+            {autoSaving && <span className="save-status saving">Saving...</span>}
+            {lastSaved && !autoSaving && (
+              <span className="save-status saved">Saved at {lastSaved}</span>
+            )}
+            <button className="back-btn" onClick={goBack}>
               Back to Dashboard
             </button>
           </div>
-        </div>
+        </header>
 
-        {profileData.primaryArchetype && (
-          <div className="profile-section archetype-section">
-            <h3 className="section-title">Your Learning Archetype</h3>
-            
-            <div className="archetype-display">
-              <div className="archetype-card primary-archetype">
-                <div className="archetype-badge">PRIMARY</div>
-                <div className="archetype-icon">{currentArchetype?.icon}</div>
-                <div className="archetype-name" style={{ color: currentArchetype?.color }}>
-                  {profileData.primaryArchetype}
+        <div className="profile-grid">
+          {profileData.primaryArchetype && (
+            <section className="profile-card archetype-card full-width">
+              <div className="card-header">
+                <div className="header-content">
+                  <Brain className="header-icon" />
+                  <div>
+                    <h2 className="card-title">Your Learning Archetype</h2>
+                    <p className="card-subtitle">Personalized AI teaching style</p>
+                  </div>
                 </div>
-                <div className="archetype-description">
-                  {currentArchetype?.description}
-                </div>
+                <button className="retake-btn" onClick={retakeQuiz}>
+                  Retake Assessment
+                </button>
               </div>
 
-              {profileData.secondaryArchetype && (
-                <div className="archetype-card secondary-archetype">
-                  <div className="archetype-badge secondary">SECONDARY</div>
-                  <div className="archetype-icon">{secondaryArchetypeInfo?.icon}</div>
-                  <div className="archetype-name" style={{ color: secondaryArchetypeInfo?.color }}>
-                    {profileData.secondaryArchetype}
-                  </div>
-                  <div className="archetype-description">
-                    {secondaryArchetypeInfo?.description}
+              <div className="archetype-display">
+  <div className="archetype-main">
+    <div className="archetype-badge primary">PRIMARY</div>
+    <div className="archetype-icon-large">{currentArchetype?.icon}</div>
+    <h3 className="archetype-name">{profileData.primaryArchetype}</h3>
+    <p className="archetype-tagline">{currentArchetype?.tagline}</p>
+    <p className="archetype-description">{currentArchetype?.description}</p>
+  </div>
+
+  {profileData.secondaryArchetype && (
+    <div className="archetype-secondary">
+      <div className="archetype-badge secondary">SECONDARY</div>
+      <div className="archetype-icon-small">{secondaryArchetypeInfo?.icon}</div>
+      <h4 className="archetype-name-small">{profileData.secondaryArchetype}</h4>
+      <p className="archetype-tagline-small">{secondaryArchetypeInfo?.tagline}</p>
+    </div>
+  )}
+</div>
+
+              {Object.keys(profileData.archetypeScores).length > 0 && (
+                <div className="archetype-scores">
+                  <h4 className="scores-title">Your Archetype Breakdown</h4>
+                  <div className="scores-grid">
+                    {Object.entries(profileData.archetypeScores)
+                      .sort(([,a], [,b]) => b - a)
+                      .slice(0, 5)
+                      .map(([archetype, score]) => (
+                        <div key={archetype} className="score-item">
+                          <div className="score-header">
+                            <span className="score-name">{archetype}</span>
+                            <span className="score-value">{Math.round(score)}%</span>
+                          </div>
+                          <div className="score-bar">
+                            <div className="score-fill" style={{ width: `${score}%` }}></div>
+                          </div>
+                        </div>
+                      ))}
                   </div>
                 </div>
               )}
+            </section>
+          )}
+
+          {!profileData.primaryArchetype && (
+            <section className="profile-card archetype-placeholder full-width">
+              <div className="placeholder-content">
+                <Brain className="placeholder-icon" />
+                <h3 className="placeholder-title">Discover Your Learning Archetype</h3>
+                <p className="placeholder-text">
+                  Take our assessment to unlock personalized AI tutoring tailored to your unique learning style
+                </p>
+                <button className="quiz-btn" onClick={retakeQuiz}>
+                  Take Learning Archetype Quiz
+                </button>
+              </div>
+            </section>
+          )}
+
+          <section className="profile-card">
+            <div className="card-header">
+              <div className="header-content">
+                <User className="header-icon" />
+                <div>
+                  <h2 className="card-title">Personal Information</h2>
+                  <p className="card-subtitle">Your basic details</p>
+                </div>
+              </div>
             </div>
 
-            <div className="archetype-actions">
-              <button className="retake-quiz-btn" onClick={retakeQuiz}>
-                Retake Assessment
-              </button>
-              <p className="archetype-note">
-                Your AI tutor adapts its teaching style based on your archetype for personalized learning
-              </p>
-            </div>
-          </div>
-        )}
+            <div className="form-grid">
+              <div className="form-group">
+                <label className="form-label">First Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={profileData.firstName}
+                  onChange={(e) => handleInputChange('firstName', e.target.value)}
+                  placeholder="Enter your first name"
+                />
+              </div>
 
-        {!profileData.primaryArchetype && (
-          <div className="profile-section archetype-section">
-            <h3 className="section-title">Discover Your Learning Archetype</h3>
-            <p className="section-subtitle">
-              Take our quick assessment to unlock personalized AI tutoring tailored to your unique learning style
-            </p>
-            <div className="archetype-actions">
-              <button className="retake-quiz-btn" onClick={retakeQuiz}>
-                Take Learning Archetype Quiz
-              </button>
-            </div>
-          </div>
-        )}
+              <div className="form-group">
+                <label className="form-label">Last Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={profileData.lastName}
+                  onChange={(e) => handleInputChange('lastName', e.target.value)}
+                  placeholder="Enter your last name"
+                />
+              </div>
 
-        <div className="profile-section">
-          <h3 className="section-title">Personal Information</h3>
-          
-          <div className="profile-info-grid">
-            <div className="info-item">
-              <label className="info-label">First Name</label>
-              <input
-                type="text"
-                className="form-input"
-                value={profileData.firstName}
-                onChange={(e) => handleInputChange('firstName', e.target.value)}
-                placeholder="Enter your first name"
-              />
+              <div className="form-group full-width">
+                <label className="form-label">Email Address</label>
+                <input
+                  type="email"
+                  className="form-input"
+                  value={profileData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  placeholder="your.email@example.com"
+                />
+              </div>
             </div>
+          </section>
 
-            <div className="info-item">
-              <label className="info-label">Last Name</label>
-              <input
-                type="text"
-                className="form-input"
-                value={profileData.lastName}
-                onChange={(e) => handleInputChange('lastName', e.target.value)}
-                placeholder="Enter your last name"
-              />
+          <section className="profile-card">
+            <div className="card-header">
+              <div className="header-content">
+                <Target className="header-icon" />
+                <div>
+                  <h2 className="card-title">Learning Goals</h2>
+                  <p className="card-subtitle">What you want to achieve</p>
+                </div>
+              </div>
             </div>
 
-            <div className="info-item full-width">
-              <label className="info-label">Email Address</label>
-              <input
-                type="email"
-                className="form-input"
-                value={profileData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                placeholder="your.email@example.com"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="profile-section">
-          <h3 className="section-title">Learning Goals & Interests</h3>
-          
-          <div className="profile-info-grid">
-            <div className="info-item">
-              <label className="info-label">Main Subject</label>
-              <div className="select-wrapper">
+            <div className="form-grid">
+              <div className="form-group">
+                <label className="form-label">Main Subject</label>
                 <select
                   className="form-select"
                   value={profileData.fieldOfStudy}
@@ -390,11 +434,9 @@ const Profile = () => {
                   ))}
                 </select>
               </div>
-            </div>
 
-            <div className="info-item">
-              <label className="info-label">Primary Goal</label>
-              <div className="select-wrapper">
+              <div className="form-group">
+                <label className="form-label">Primary Goal</label>
                 <select
                   className="form-select"
                   value={profileData.brainwaveGoal}
@@ -407,52 +449,65 @@ const Profile = () => {
                 </select>
               </div>
             </div>
+          </section>
 
-            <div className="info-item full-width">
-              <label className="info-label">Interested Subjects</label>
-              <div className="subjects-display">
-                {profileData.preferredSubjects.length > 0 ? (
-                  profileData.preferredSubjects.map(subject => (
-                    <span key={subject} className="subject-tag">
-                      {subject}
-                      <button 
-                        className="remove-subject-btn"
-                        onClick={() => toggleSubject(subject)}
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))
-                ) : (
-                  <p className="no-subjects">No subjects selected</p>
-                )}
-              </div>
-              <div className="add-subjects-section">
-                <div className="subject-selection-grid">
-                  {allSubjects
-                    .filter(s => !profileData.preferredSubjects.includes(s))
-                    .map(subject => (
-                      <button
-                        key={subject}
-                        className="add-subject-btn"
-                        onClick={() => toggleSubject(subject)}
-                      >
-                        + {subject}
-                      </button>
-                    ))}
+          <section className="profile-card full-width">
+            <div className="card-header">
+              <div className="header-content">
+                <BookOpen className="header-icon" />
+                <div>
+                  <h2 className="card-title">Interested Subjects</h2>
+                  <p className="card-subtitle">Topics you want to explore</p>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        <div className="profile-section">
-          <h3 className="section-title">Learning Preferences</h3>
-          
-          <div className="profile-info-grid">
-            <div className="info-item">
-              <label className="info-label">Difficulty Level</label>
-              <div className="select-wrapper">
+            <div className="subjects-container">
+              {profileData.preferredSubjects.length > 0 && (
+                <div className="selected-subjects">
+                  {profileData.preferredSubjects.map(subject => (
+                    <button
+                      key={subject}
+                      className="subject-chip selected"
+                      onClick={() => toggleSubject(subject)}
+                    >
+                      {subject}
+                      <span className="remove-icon">×</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="available-subjects">
+                {allSubjects
+                  .filter(s => !profileData.preferredSubjects.includes(s))
+                  .map(subject => (
+                    <button
+                      key={subject}
+                      className="subject-chip available"
+                      onClick={() => toggleSubject(subject)}
+                    >
+                      + {subject}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="profile-card">
+            <div className="card-header">
+              <div className="header-content">
+                <TrendingUp className="header-icon" />
+                <div>
+                  <h2 className="card-title">Learning Preferences</h2>
+                  <p className="card-subtitle">How you like to learn</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="form-grid">
+              <div className="form-group">
+                <label className="form-label">Difficulty Level</label>
                 <select
                   className="form-select"
                   value={profileData.difficultyLevel}
@@ -464,11 +519,9 @@ const Profile = () => {
                   <option value="expert">Expert</option>
                 </select>
               </div>
-            </div>
 
-            <div className="info-item">
-              <label className="info-label">Learning Pace</label>
-              <div className="select-wrapper">
+              <div className="form-group">
+                <label className="form-label">Learning Pace</label>
                 <select
                   className="form-select"
                   value={profileData.learningPace}
@@ -481,11 +534,74 @@ const Profile = () => {
                 </select>
               </div>
             </div>
-          </div>
+          </section>
+
+          {Object.keys(quizAnswers).length > 0 && (
+            <section className="profile-card full-width">
+              <div className="card-header">
+                <div className="header-content">
+                  <Award className="header-icon" />
+                  <div>
+                    <h2 className="card-title">Quiz Responses</h2>
+                    <p className="card-subtitle">Your assessment answers</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="quiz-responses">
+                {Object.entries(quizAnswers).map(([question, answer]) => (
+                  <div key={question} className="quiz-item">
+                    <div className="quiz-question">{formatQuestionText(question)}</div>
+                    <div className="quiz-answer">{formatAnswerText(answer)}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </div>
   );
+};
+
+const formatQuestionText = (key) => {
+  const questions = {
+    learningEnvironment: 'Learning Environment',
+    problemSolving: 'Problem Solving Approach',
+    newConcepts: 'Learning New Concepts',
+    informationProcessing: 'Information Processing',
+    feedback: 'Feedback Preference',
+    studyPreference: 'Study Preference',
+    challengeResponse: 'Response to Challenges',
+    contentType: 'Preferred Content Type'
+  };
+  return questions[key] || key;
+};
+
+const formatAnswerText = (value) => {
+  const answers = {
+    structured: 'Structured & Organized',
+    flexible: 'Flexible & Adaptive',
+    collaborative: 'Collaborative',
+    independent: 'Independent',
+    break_down: 'Break Into Steps',
+    visualize: 'Visualize Big Picture',
+    experiment: 'Hands-on Experimentation',
+    discuss: 'Discussion & Dialogue',
+    reading: 'Reading & Text',
+    visual: 'Visual & Diagrams',
+    hands_on: 'Hands-on Practice',
+    discussion: 'Discussion',
+    logic: 'Logical Analysis',
+    patterns: 'Pattern Recognition',
+    emotion: 'Emotional Connection',
+    action: 'Physical Action',
+    detailed: 'Detailed Analysis',
+    encouraging: 'Encouraging',
+    constructive: 'Constructive',
+    direct: 'Direct & Concise'
+  };
+  return answers[value] || value;
 };
 
 export default Profile;

@@ -773,9 +773,7 @@
   font-weight: 600;
   font-size: 15px;
   margin-bottom: 6px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  display: -webkit-box;  -webkit-box-orient: vertical;
   overflow: hidden;
   line-height: 1.4;
   text-shadow: 0 0 10px var(--glow);
@@ -1842,9 +1840,7 @@
   font-size: 15px;
   line-height: 1.6;
   margin-bottom: 25px;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
+  display: -webkit-box;  -webkit-box-orient: vertical;
   overflow: hidden;
   word-wrap: break-word;
   font-weight: 400;

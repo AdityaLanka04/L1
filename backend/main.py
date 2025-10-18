@@ -3385,6 +3385,7 @@ async def save_archetype_profile(
         secondary_archetype = payload.get("secondary_archetype")
         archetype_scores = payload.get("archetype_scores", {})
         archetype_description = payload.get("archetype_description", "")
+        quiz_responses = payload.get("quiz_responses", {})
 
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
@@ -3400,7 +3401,8 @@ async def save_archetype_profile(
                 primary_archetype=primary_archetype,
                 secondary_archetype=secondary_archetype,
                 archetype_scores=json.dumps(archetype_scores),
-                archetype_description=archetype_description
+                archetype_description=archetype_description,
+                quiz_responses=json.dumps(quiz_responses)
             )
             db.add(comprehensive_profile)
         else:
@@ -3408,6 +3410,7 @@ async def save_archetype_profile(
             comprehensive_profile.secondary_archetype = secondary_archetype
             comprehensive_profile.archetype_scores = json.dumps(archetype_scores)
             comprehensive_profile.archetype_description = archetype_description
+            comprehensive_profile.quiz_responses = json.dumps(quiz_responses)
 
         db.commit()
         db.refresh(comprehensive_profile)
@@ -3423,33 +3426,6 @@ async def save_archetype_profile(
         logger.error(f"Error saving archetype: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to save archetype: {str(e)}")
 
-
-@app.get("/check_profile_quiz")
-async def check_profile_quiz(user_id: str = Query(...), db: Session = Depends(get_db)):
-    try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            return {"completed": False, "user_id": user_id}
-
-        comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
-            models.ComprehensiveUserProfile.user_id == user.id
-        ).first()
-
-        has_archetype = (
-            comprehensive_profile is not None and 
-            comprehensive_profile.primary_archetype is not None and 
-            comprehensive_profile.primary_archetype != ""
-        )
-
-        return {
-            "completed": has_archetype,
-            "user_id": user_id,
-            "has_profile": comprehensive_profile is not None
-        }
-
-    except Exception as e:
-        logger.error(f"Error checking quiz: {str(e)}")
-        return {"completed": False, "user_id": user_id}
 
 
 @app.get("/get_comprehensive_profile")
