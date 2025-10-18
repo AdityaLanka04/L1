@@ -1,4 +1,3 @@
-// src/pages/NotesRedesign.js
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactQuill, { Quill } from "react-quill";
@@ -8,18 +7,15 @@ import CustomPopup from "./CustomPopup";
 import { useTheme } from '../contexts/ThemeContext';
 import { rgbaFromHex } from '../utils/ThemeManager';
 
-// Import Quill modules for advanced features
 import QuillTableUI from 'quill-table-ui';
 import 'quill-table-ui/dist/index.css';
 
-// KaTeX for math equations
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 Quill.register('modules/tableUI', QuillTableUI);
 window.katex = katex;
 
 const NotesRedesign = () => {
-  // STATE
   const [userName, setUserName] = useState("");
   const [userProfile, setUserProfile] = useState(null);
   const [notes, setNotes] = useState([]);
@@ -34,8 +30,6 @@ const NotesRedesign = () => {
   const [charCount, setCharCount] = useState(0);
   const [titleSectionCollapsed, setTitleSectionCollapsed] = useState(false);
   
-
-  // AI / Slash Command
   const [showAIDropdown, setShowAIDropdown] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiDropdownPosition, setAiDropdownPosition] = useState({ top: 0, left: 0 });
@@ -43,18 +37,15 @@ const NotesRedesign = () => {
 
   const { selectedTheme } = useTheme();
   
-  // Debug theme
   useEffect(() => {
     console.log('Notes - Selected theme:', selectedTheme);
     console.log('Notes - Theme tokens:', selectedTheme.tokens);
   }, [selectedTheme]);
 
-  // ✅ APPLY THEME VARIABLES TO DOM
   useEffect(() => {
     if (selectedTheme && selectedTheme.tokens) {
       const root = document.documentElement;
       
-      // Apply all theme tokens as CSS variables
       Object.entries(selectedTheme.tokens).forEach(([key, value]) => {
         root.style.setProperty(`--${key}`, value);
       });
@@ -63,20 +54,16 @@ const NotesRedesign = () => {
     }
   }, [selectedTheme]);
 
-  // View Mode
   const [viewMode, setViewMode] = useState("edit");
-  // Register custom fonts with Quill
-// Register custom fonts with Quill (use hyphens instead of spaces)
-const Font = Quill.import('formats/font');
-Font.whitelist = ['inter', 'arial', 'courier', 'georgia', 'times-new-roman', 'verdana'];
-Quill.register(Font, true);
+
+  const Font = Quill.import('formats/font');
+  Font.whitelist = ['inter', 'arial', 'courier', 'georgia', 'times-new-roman', 'verdana'];
+  Quill.register(Font, true);
   
-  // Text selection - AI Button states
   const [showAIButton, setShowAIButton] = useState(false);
   const [aiButtonPosition, setAiButtonPosition] = useState({ top: 0, left: 0 });
   const [selectedRange, setSelectedRange] = useState(null);
 
-  // FOLDERS & FEATURES STATE
   const [folders, setFolders] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [showFolderModal, setShowFolderModal] = useState(false);
@@ -91,28 +78,30 @@ Quill.register(Font, true);
   const [aiAssistTone, setAiAssistTone] = useState("professional");
   const [selectedText, setSelectedText] = useState("");
 
-  // DRAG & DROP STATE
   const [draggedNote, setDraggedNote] = useState(null);
   const [dragOverFolder, setDragOverFolder] = useState(null);
 
-  // CHAT IMPORT STATE
   const [showChatImport, setShowChatImport] = useState(false);
   const [chatSessions, setChatSessions] = useState([]);
   const [selectedSessions, setSelectedSessions] = useState([]);
   const [importMode, setImportMode] = useState("summary");
   const [importing, setImporting] = useState(false);
 
+  const [isRecording, setIsRecording] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState("");
+  const [processingVoice, setProcessingVoice] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+
   const navigate = useNavigate();
   const quillRef = useRef(null);
   const saveTimeout = useRef(null);
   const aiInputRef = useRef(null);
 
-  // Popup
   const [popup, setPopup] = useState({ isOpen: false, title: "", message: "" });
   const showPopup = (title, message) => setPopup({ isOpen: true, title, message });
   const closePopup = () => setPopup({ isOpen: false, title: "", message: "" });
 
-  // AUTH
   useEffect(() => {
     const token = localStorage.getItem("token");
     const username = localStorage.getItem("username");
@@ -127,7 +116,6 @@ Quill.register(Font, true);
     }
   }, [navigate]);
 
-  // LOAD NOTES, FOLDERS & CHAT SESSIONS
   useEffect(() => {
     if (userName) {
       loadNotes();
@@ -156,106 +144,93 @@ Quill.register(Font, true);
     }
   };
 
-  // ==================== TEXT SELECTION HANDLING - WITH AI BUTTON ====================
-  
-  // ==================== TEXT SELECTION HANDLING - WITH FLOATING AI BUTTON ====================
-// ==================== TEXT SELECTION HANDLING - WITH FLOATING AI BUTTON ====================
-// ==================== TEXT SELECTION HANDLING - WITH FLOATING AI BUTTON ====================
-const [quillReady, setQuillReady] = useState(false);
+  const [quillReady, setQuillReady] = useState(false);
 
-// ✅ Wait for Quill to be ready after mount
-useEffect(() => {
-  const checkEditorReady = setInterval(() => {
-    const q = quillRef.current?.getEditor?.();
-    if (q) {
-      setQuillReady(true);
-      clearInterval(checkEditorReady);
+  useEffect(() => {
+    const checkEditorReady = setInterval(() => {
+      const q = quillRef.current?.getEditor?.();
+      if (q) {
+        setQuillReady(true);
+        clearInterval(checkEditorReady);
+      }
+    }, 200);
+    return () => clearInterval(checkEditorReady);
+  }, []);
+
+  const handleTextSelection = useCallback(() => {
+    const quill = quillRef.current?.getEditor();
+    if (!quill) return;
+
+    const selection = quill.getSelection();
+    if (selection && selection.length > 0) {
+      const text = quill.getText(selection.index, selection.length).trim();
+
+      if (text.length > 3) {
+        setSelectedText(text);
+        setSelectedRange(selection);
+
+        const bounds = quill.getBounds(selection.index, selection.length);
+        const rect = quill.container.getBoundingClientRect();
+
+        const top = rect.top + bounds.bottom + window.scrollY + 8;
+        const left = rect.left + bounds.left + bounds.width / 2 + window.scrollX;
+
+        setAiButtonPosition({ top, left });
+        setShowAIButton(true);
+        return;
+      }
     }
-  }, 200);
-  return () => clearInterval(checkEditorReady);
-}, []);
 
-const handleTextSelection = useCallback(() => {
-  const quill = quillRef.current?.getEditor();
-  if (!quill) return;
+    setShowAIButton(false);
+    setSelectedText("");
+    setSelectedRange(null);
+  }, []);
 
-  const selection = quill.getSelection();
-  if (selection && selection.length > 0) {
-    const text = quill.getText(selection.index, selection.length).trim();
+  useEffect(() => {
+    if (!quillReady) return;
 
-    if (text.length > 3) {
-      setSelectedText(text);
-      setSelectedRange(selection);
+    const quill = quillRef.current?.getEditor();
+    if (!quill || !quill.root) return;
 
-      const bounds = quill.getBounds(selection.index, selection.length);
-      const rect = quill.container.getBoundingClientRect();
+    let debounceTimer = null;
 
-      const top = rect.top + bounds.bottom + window.scrollY + 8;
-      const left = rect.left + bounds.left + bounds.width / 2 + window.scrollX;
+    const onSelectionChange = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => handleTextSelection(), 150);
+    };
 
-      setAiButtonPosition({ top, left });
-      setShowAIButton(true);
-      return;
-    }
-  }
+    quill.root.addEventListener("mouseup", onSelectionChange);
+    quill.root.addEventListener("keyup", onSelectionChange);
+    document.addEventListener("selectionchange", onSelectionChange);
 
-  setShowAIButton(false);
-  setSelectedText("");
-  setSelectedRange(null);
-}, []);
+    const onHide = (e) => {
+      if (
+        showAIButton &&
+        !e.target.closest(".ai-floating-button") &&
+        !e.target.closest(".ql-editor")
+      ) {
+        setShowAIButton(false);
+      }
+    };
 
-useEffect(() => {
-  if (!quillReady) return;
+    document.addEventListener("mousedown", onHide);
+    document.addEventListener("scroll", () => setShowAIButton(false));
 
-  const quill = quillRef.current?.getEditor();
-  if (!quill || !quill.root) return;
+    return () => {
+      clearTimeout(debounceTimer);
+      quill.root.removeEventListener("mouseup", onSelectionChange);
+      quill.root.removeEventListener("keyup", onSelectionChange);
+      document.removeEventListener("selectionchange", onSelectionChange);
+      document.removeEventListener("mousedown", onHide);
+      document.removeEventListener("scroll", () => setShowAIButton(false));
+    };
+  }, [handleTextSelection, showAIButton, quillReady]);
 
-  let debounceTimer = null;
-
-  const onSelectionChange = () => {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => handleTextSelection(), 150);
+  const handleAIButtonClick = () => {
+    setShowAIAssistant(true);
+    setShowAIButton(false);
   };
 
-  // ✅ Listeners that survive refresh
-  quill.root.addEventListener("mouseup", onSelectionChange);
-  quill.root.addEventListener("keyup", onSelectionChange);
-  document.addEventListener("selectionchange", onSelectionChange);
-
-  // Hide on outside click or scroll
-  const onHide = (e) => {
-    if (
-      showAIButton &&
-      !e.target.closest(".ai-floating-button") &&
-      !e.target.closest(".ql-editor")
-    ) {
-      setShowAIButton(false);
-    }
-  };
-
-  document.addEventListener("mousedown", onHide);
-  document.addEventListener("scroll", () => setShowAIButton(false));
-
-  return () => {
-    clearTimeout(debounceTimer);
-    quill.root.removeEventListener("mouseup", onSelectionChange);
-    quill.root.removeEventListener("keyup", onSelectionChange);
-    document.removeEventListener("selectionchange", onSelectionChange);
-    document.removeEventListener("mousedown", onHide);
-    document.removeEventListener("scroll", () => setShowAIButton(false));
-  };
-}, [handleTextSelection, showAIButton, quillReady]);
-
-const handleAIButtonClick = () => {
-  setShowAIAssistant(true);
-  setShowAIButton(false);
-};
-// ==================== END TEXT SELECTION HANDLING ====================
-
-
-  // ==================== END TEXT SELECTION HANDLING ====================
-
-  // PROCESS SELECTED TEXT WITH AI
   const processSelectedText = async (action) => {
     if (!selectedText || !selectedText.trim()) {
       showPopup("No Text Selected", "Please select text first");
@@ -305,7 +280,6 @@ const handleAIButtonClick = () => {
     }
   };
 
-  // QUICK AI ACTION FROM TEXT MENU
   const quickTextAction = async (actionType) => {
     console.log(`Quick action: ${actionType}`);
     setGeneratingAI(true);
@@ -394,7 +368,6 @@ const handleAIButtonClick = () => {
     }
   };
 
-  // FOLDER MANAGEMENT
   const createFolder = async () => {
     if (!newFolderName.trim()) {
       showPopup("Error", "Folder name cannot be empty");
@@ -516,7 +489,6 @@ const handleAIButtonClick = () => {
     }
   };
 
-  // DRAG & DROP HANDLERS
   const handleDragStart = (e, note) => {
     e.dataTransfer.effectAllowed = 'move';
     setDraggedNote(note);
@@ -549,7 +521,6 @@ const handleAIButtonClick = () => {
     }
   };
 
-  // FAVORITES
   const toggleFavorite = async (noteId) => {
     const note = notes.find(n => n.id === noteId);
     const newFavoriteStatus = !note.is_favorite;
@@ -577,7 +548,6 @@ const handleAIButtonClick = () => {
     }
   };
 
-  // MOVE TO TRASH
   const moveToTrash = async (noteId) => {
     try {
       if (saveTimeout.current) {
@@ -653,7 +623,6 @@ const handleAIButtonClick = () => {
     }
   };
 
-  // WORD & CHAR COUNT
   useEffect(() => {
     if (noteContent) {
       const text = noteContent.replace(/<[^>]+>/g, "").trim();
@@ -666,7 +635,6 @@ const handleAIButtonClick = () => {
     }
   }, [noteContent]);
 
-  // CRUD
   const createNewNote = async () => {
     const token = localStorage.getItem("token");
     
@@ -732,7 +700,6 @@ const handleAIButtonClick = () => {
     setNoteTitle(n.title);
     setNoteContent(n.content);
     setViewMode("edit");
-    
 
     setTimeout(() => {
       const quill = quillRef.current?.getEditor();
@@ -742,7 +709,6 @@ const handleAIButtonClick = () => {
     }, 100);
   };
 
-  // AUTO SAVE
   const autoSave = useCallback(async () => {
     if (!selectedNote) return;
     
@@ -794,7 +760,6 @@ const handleAIButtonClick = () => {
     }
   }, [selectedNote, noteTitle, noteContent, notes]);
 
-  // AUTO SAVE TRIGGER
   useEffect(() => {
     if (saveTimeout.current) {
       clearTimeout(saveTimeout.current);
@@ -817,7 +782,6 @@ const handleAIButtonClick = () => {
     };
   }, [noteContent, noteTitle, selectedNote, autoSave]);
 
-  // MANUAL SAVE WITH CTRL+S
   useEffect(() => {
     const handleKey = (e) => {
       if (e.ctrlKey && e.key === "s") {
@@ -829,7 +793,6 @@ const handleAIButtonClick = () => {
     return () => window.removeEventListener("keydown", handleKey);
   }, [autoSave]);
 
-  // HANDLE EDITOR CHANGES
   const handleEditorChange = (content, delta, source, editor) => {
     setNoteContent(content);
 
@@ -855,7 +818,6 @@ const handleAIButtonClick = () => {
     }
   };
 
-  // AI GENERATION WITH SPECIFIC PROMPTS
   const generateAIContent = async () => {
     if (!aiPrompt.trim()) {
       showPopup("Empty Prompt", "Please enter a prompt for AI generation");
@@ -912,7 +874,6 @@ const handleAIButtonClick = () => {
     }
   };
 
-  // QUICK ACTION BUTTONS FOR AI DROPDOWN
   const quickAIAction = async (actionType) => {
     setGeneratingAI(true);
     try {
@@ -954,81 +915,178 @@ const handleAIButtonClick = () => {
     }
   };
 
-  // ✅ ENHANCED MARKDOWN TO HTML CONVERTER
-const convertMarkdownToHTML = (markdown) => {
-  let html = markdown;
+  const convertMarkdownToHTML = (markdown) => {
+    let html = markdown;
 
-  // Remove decorative separators (===, ---, ***)
-  html = html.replace(/^[=\-*]{3,}\s*$/gim, '');
-  
-  // Remove multiple consecutive line breaks (more than 2)
-  html = html.replace(/\n{3,}/g, '\n\n');
+    html = html.replace(/^[=\-*]{3,}\s*$/gim, '');
+    html = html.replace(/\n{3,}/g, '\n\n');
+    html = html.replace(/^###\s+(.*$)/gim, '<h3>$1</h3>');
+    html = html.replace(/^##\s+(.*$)/gim, '<h2>$1</h2>');
+    html = html.replace(/^#\s+(.*$)/gim, '<h1>$1</h1>');
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
+    html = html.replace(/(?<!\*)\*(?!\*)([^\*]+?)\*(?!\*)/g, '<em>$1</em>');
+    html = html.replace(/(?<!_)_(?!_)([^_]+?)_(?!_)/g, '<em>$1</em>');
+    html = html.replace(/^\s*[-*]\s+(.*)$/gim, '<li>$1</li>');
+    html = html.replace(/(<li>.*?<\/li>\s*)+/gis, (match) => {
+      return `<ul>${match}</ul>`;
+    });
+    html = html.replace(/^\s*(\d+)\.\s+(.*)$/gim, '<li>$2</li>');
+    html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
 
-  // Convert headers (### -> <h3>, ## -> <h2>, # -> <h1>)
-  html = html.replace(/^###\s+(.*$)/gim, '<h3>$1</h3>');
-  html = html.replace(/^##\s+(.*$)/gim, '<h2>$1</h2>');
-  html = html.replace(/^#\s+(.*$)/gim, '<h1>$1</h1>');
-
-  // Convert bold (**text** or __text__)
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
-
-  // Convert italic (*text* or _text_)
-  html = html.replace(/(?<!\*)\*(?!\*)([^\*]+?)\*(?!\*)/g, '<em>$1</em>');
-  html = html.replace(/(?<!_)_(?!_)([^_]+?)_(?!_)/g, '<em>$1</em>');
-
-  // Convert bullet points (- or * at start of line)
-  html = html.replace(/^\s*[-*]\s+(.*)$/gim, '<li>$1</li>');
-  
-  // Wrap consecutive <li> items in <ul>
-  html = html.replace(/(<li>.*?<\/li>\s*)+/gis, (match) => {
-    return `<ul>${match}</ul>`;
-  });
-
-  // Convert numbered lists (1. 2. 3.)
-  html = html.replace(/^\s*(\d+)\.\s+(.*)$/gim, '<li>$2</li>');
-
-  // Convert code blocks (```code```)
-  html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
-
-  // Convert inline code (`code`)
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-  // Convert links [text](url)
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-
-  // Split by double line breaks to create paragraphs
-  const blocks = html.split(/\n\n+/);
-  
-  html = blocks.map(block => {
-    block = block.trim();
+    const blocks = html.split(/\n\n+/);
     
-    // Skip if empty
-    if (!block) return '';
-    
-    // Skip if already wrapped in block-level tags
-    if (block.startsWith('<h') || 
-        block.startsWith('<ul>') || 
-        block.startsWith('<ol>') || 
-        block.startsWith('<pre>') ||
-        block.startsWith('<blockquote>') ||
-        block === '<li>' ||
-        block.startsWith('<div>')) {
-      return block;
+    html = blocks.map(block => {
+      block = block.trim();
+      if (!block) return '';
+      if (block.startsWith('<h') || 
+          block.startsWith('<ul>') || 
+          block.startsWith('<ol>') || 
+          block.startsWith('<pre>') ||
+          block.startsWith('<blockquote>') ||
+          block === '<li>' ||
+          block.startsWith('<div>')) {
+        return block;
+      }
+      return `<p>${block.replace(/\n/g, '<br>')}</p>`;
+    }).filter(block => block).join('\n\n');
+
+    html = html.replace(/\n{3,}/g, '\n\n');
+    html = html.trim();
+
+    return html;
+  };
+
+  const startVoiceRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      const options = { mimeType: 'audio/webm' };
+      const mediaRecorder = new MediaRecorder(stream, options);
+      
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          console.log("Audio chunk received:", event.data.size, "bytes");
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        console.log("Recording stopped, total chunks:", audioChunksRef.current.length);
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        console.log("Audio blob created, size:", audioBlob.size, "bytes");
+        
+        if (audioBlob.size === 0) {
+          showPopup("Error", "No audio was recorded. Please try again.");
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
+        
+        await processVoiceToText(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      console.log("Recording started");
+      showPopup("Recording", "Voice recording started");
+    } catch (error) {
+      console.error("Error starting recording:", error);
+      showPopup("Error", "Failed to start recording. Please check microphone permissions.");
     }
-    
-    // Wrap in paragraph
-    return `<p>${block.replace(/\n/g, '<br>')}</p>`;
-  }).filter(block => block).join('\n\n');
+  };
 
-  // Clean up extra whitespace
-  html = html.replace(/\n{3,}/g, '\n\n');
-  html = html.trim();
+  const stopVoiceRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
 
-  return html;
-};
+  const processVoiceToText = async (audioBlob) => {
+    setProcessingVoice(true);
+    try {
+      const token = localStorage.getItem("token");
+      const formData = new FormData();
+      formData.append("audio_file", audioBlob, "recording.webm");
+      formData.append("user_id", userName);
 
-  // ENHANCED AI WRITING ASSISTANT
+      console.log("Sending audio to transcribe endpoint...");
+      console.log("Audio blob size:", audioBlob.size);
+      console.log("User:", userName);
+
+      const transcribeRes = await fetch("http://localhost:8001/transcribe_audio/", {
+        method: "POST",
+        headers: { 
+          Authorization: `Bearer ${token}`
+        },
+        body: formData,
+      });
+
+      console.log("Transcribe response status:", transcribeRes.status);
+
+      if (!transcribeRes.ok) {
+        const errorText = await transcribeRes.text();
+        console.error("Transcription error:", errorText);
+        throw new Error(`Transcription failed: ${transcribeRes.status} - ${errorText}`);
+      }
+
+      const transcribeData = await transcribeRes.json();
+      console.log("Transcription result:", transcribeData);
+      
+      const transcript = transcribeData.transcript;
+      setVoiceTranscript(transcript);
+
+      console.log("Sending transcript to AI:", transcript);
+
+      const aiRes = await fetch("http://localhost:8001/generate_note_content/", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: (() => {
+          const fd = new FormData();
+          fd.append("user_id", userName);
+          fd.append("prompt", transcript);
+          fd.append("content_type", "voice_response");
+          fd.append("existing_content", noteContent);
+          return fd;
+        })(),
+      });
+
+      if (!aiRes.ok) {
+        const errorText = await aiRes.text();
+        console.error("AI generation error:", errorText);
+        throw new Error(`AI response failed: ${aiRes.status}`);
+      }
+
+      const aiData = await aiRes.json();
+      console.log("AI response received");
+      
+      const quill = quillRef.current?.getEditor();
+
+      if (quill) {
+        const range = quill.getSelection();
+        const index = range ? range.index : quill.getLength();
+        quill.insertText(index, "\n\n");
+        quill.clipboard.dangerouslyPasteHTML(index + 2, aiData.content);
+        quill.setSelection(index + aiData.content.length + 2);
+      }
+
+      setNoteContent(quillRef.current?.getEditor().root.innerHTML);
+      showPopup("Success", "Voice transcribed and AI response added to note");
+      setVoiceTranscript("");
+    } catch (error) {
+      console.error("Voice processing error:", error);
+      showPopup("Error", error.message || "Failed to process voice input");
+    } finally {
+      setProcessingVoice(false);
+    }
+  };
+
   const aiWritingAssist = async () => {
     const quill = quillRef.current?.getEditor();
     if (!quill) return;
@@ -1089,7 +1147,6 @@ const convertMarkdownToHTML = (markdown) => {
     }
   };
 
-  // CHAT TO NOTE CONVERSION
   const handleSessionToggle = (sid) =>
     setSelectedSessions((prev) => (prev.includes(sid) ? prev.filter((id) => id !== sid) : [...prev, sid]));
 
@@ -1097,149 +1154,263 @@ const convertMarkdownToHTML = (markdown) => {
   const clearAllSessions = () => setSelectedSessions([]);
 
   const convertChatToNote = async () => {
-  if (selectedSessions.length === 0) {
-    showPopup("No Sessions Selected", "Please select at least one chat session.");
-    return;
-  }
-  setImporting(true);
-  try {
-    const token = localStorage.getItem("token");
-    const allMessages = [];
-    
-    for (const sid of selectedSessions) {
-      const r = await fetch(`http://localhost:8001/get_chat_history/${sid}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (r.ok) {
-        const data = await r.json();
-        const s = chatSessions.find((x) => x.id === sid);
-        allMessages.push({ sessionTitle: s?.title || "Chat Session", messages: data.messages });
-      }
+    if (selectedSessions.length === 0) {
+      showPopup("No Sessions Selected", "Please select at least one chat session.");
+      return;
     }
-
-    const conversationData = allMessages
-      .map((s) => s.messages.map((m) => `Q: ${m.user_message}\nA: ${m.ai_response}`).join("\n\n"))
-      .join("\n\n--- New Session ---\n\n");
-
-    const summaryRes = await fetch("http://localhost:8001/generate_note_summary/", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: (() => {
-        const fd = new FormData();
-        fd.append("user_id", userName);
-        fd.append("conversation_data", conversationData);
-        fd.append("session_titles", JSON.stringify(allMessages.map((s) => s.sessionTitle)));
-        fd.append("import_mode", importMode);
-        return fd;
-      })(),
-    });
-
-    let title = "Generated Note from Chat";
-    let content = "";
-    
-    if (summaryRes.ok) {
-      const d = await summaryRes.json();
-      title = d.title;
-      content = d.content;
+    setImporting(true);
+    try {
+      const token = localStorage.getItem("token");
+      const allMessages = [];
       
-      // ✅ CONVERT MARKDOWN TO HTML
-      content = convertMarkdownToHTML(content);
-    } else {
-      content = allMessages
-        .map(
-          (s, i) =>
-            `<h2>${s.sessionTitle}</h2>` +
-            s.messages.map((m, j) => `<b>Q${j + 1}:</b> ${m.user_message}<br/><b>A:</b> ${m.ai_response}`).join("<br/><br/>")
-        )
-        .join("<hr/>");
+      for (const sid of selectedSessions) {
+        const r = await fetch(`http://localhost:8001/get_chat_history/${sid}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (r.ok) {
+          const data = await r.json();
+          const s = chatSessions.find((x) => x.id === sid);
+          allMessages.push({ sessionTitle: s?.title || "Chat Session", messages: data.messages });
+        }
+      }
+
+      const conversationData = allMessages
+        .map((s) => s.messages.map((m) => `Q: ${m.user_message}\nA: ${m.ai_response}`).join("\n\n"))
+        .join("\n\n--- New Session ---\n\n");
+
+      const summaryRes = await fetch("http://localhost:8001/generate_note_summary/", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: (() => {
+          const fd = new FormData();
+          fd.append("user_id", userName);
+          fd.append("conversation_data", conversationData);
+          fd.append("session_titles", JSON.stringify(allMessages.map((s) => s.sessionTitle)));
+          fd.append("import_mode", importMode);
+          return fd;
+        })(),
+      });
+
+      let title = "Generated Note from Chat";
+      let content = "";
+      
+      if (summaryRes.ok) {
+        const d = await summaryRes.json();
+        title = d.title;
+        content = d.content;
+        content = convertMarkdownToHTML(content);
+      } else {
+        content = allMessages
+          .map(
+            (s, i) =>
+              `<h2>${s.sessionTitle}</h2>` +
+              s.messages.map((m, j) => `<b>Q${j + 1}:</b> ${m.user_message}<br/><b>A:</b> ${m.ai_response}`).join("<br/><br/>")
+          )
+          .join("<hr/>");
+      }
+
+      const createRes = await fetch("http://localhost:8001/create_note", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ user_id: userName, title, content }),
+      });
+      
+      if (createRes.ok) {
+        const newNote = await createRes.json();
+        setNotes((p) => [newNote, ...p]);
+        selectNote(newNote);
+        setShowChatImport(false);
+        setSelectedSessions([]);
+        showPopup("Conversion Successful", `"${title}" created successfully.`);
+      }
+    } catch (err) {
+      console.error("Convert error:", err);
+      showPopup("Conversion Failed", "Unable to convert chat to note.");
     }
-
-    const createRes = await fetch("http://localhost:8001/create_note", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ user_id: userName, title, content }),
-    });
-    
-    if (createRes.ok) {
-      const newNote = await createRes.json();
-      setNotes((p) => [newNote, ...p]);
-      selectNote(newNote);
-      setShowChatImport(false);
-      setSelectedSessions([]);
-      showPopup("Conversion Successful", `"${title}" created successfully.`);
-    }
-  } catch (err) {
-    console.error("Convert error:", err);
-    showPopup("Conversion Failed", "Unable to convert chat to note.");
-  }
-  setImporting(false);
-};
-
-  // EXPORT
-  const exportAsPDF = () => {
-    const printWindow = window.open('', '_blank');
-    const styles = `
-      <style>
-        body {
-          font-family: '${customFont}', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-          padding: 40px;
-          max-width: 800px;
-          margin: 0 auto;
-          color: #1a1a1a;
-          line-height: 1.8;
-        }
-        h1 {
-          font-size: 32px;
-          font-weight: 700;
-          margin-bottom: 20px;
-          color: #000;
-        }
-        .metadata {
-          color: #666;
-          font-size: 12px;
-          margin-bottom: 30px;
-          padding-bottom: 15px;
-          border-bottom: 2px solid #e0e0e0;
-        }
-        img { max-width: 100%; height: auto; }
-        pre { background: #f5f5f5; padding: 15px; border-radius: 5px; overflow-x: auto; }
-        blockquote { border-left: 4px solid #2196f3; padding-left: 15px; color: #666; font-style: italic; }
-        a { color: #2196f3; }
-        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background-color: #f5f5f5; font-weight: 600; }
-      </style>
-    `;
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${noteTitle || 'Note'}</title>
-          ${styles}
-        </head>
-        <body>
-          <h1>${noteTitle || 'Untitled Note'}</h1>
-          <div class="metadata">
-            Last edited: ${new Date(selectedNote.updated_at).toLocaleString()}<br>
-            ${wordCount} words - ${charCount} characters
-          </div>
-          ${noteContent}
-        </body>
-      </html>
-    `);
-
-    printWindow.document.close();
-
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
-
-    showPopup("Export", "Print dialog opened - Save as PDF");
+    setImporting(false);
   };
+
+  const exportAsPDF = () => {
+  const printWindow = window.open('', '_blank');
+  
+  const styles = `
+    <style>
+      body {
+        font-family: '${customFont}', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        padding: 40px;
+        max-width: 800px;
+        margin: 0 auto;
+        color: #1a1a1a;
+        line-height: 1.8;
+        position: relative;
+      }
+      
+      /* Diagonal Centered Watermark */
+      body::before {
+        content: 'BrainWaveAI';
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-45deg);
+        font-size: 120px;
+        font-weight: 900;
+        color: #d3d3d3;
+        opacity: 0.15;
+        z-index: -1;
+        white-space: nowrap;
+        pointer-events: none;
+        letter-spacing: 8px;
+        text-transform: uppercase;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+      
+      h1 {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        color: #000;
+        position: relative;
+        z-index: 1;
+      }
+      
+      .metadata {
+        color: #666;
+        font-size: 12px;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e0e0e0;
+        position: relative;
+        z-index: 1;
+      }
+      
+      .content {
+        position: relative;
+        z-index: 1;
+      }
+      
+      img { 
+        max-width: 100%; 
+        height: auto; 
+      }
+      
+      pre { 
+        background: #f5f5f5; 
+        padding: 15px; 
+        border-radius: 5px; 
+        overflow-x: auto; 
+      }
+      
+      code { 
+        background: #f5f5f5; 
+        padding: 2px 6px; 
+        border-radius: 3px; 
+        font-family: 'Courier New', monospace; 
+      }
+      
+      blockquote { 
+        border-left: 4px solid #2196f3; 
+        padding-left: 15px; 
+        color: #666; 
+        font-style: italic; 
+      }
+      
+      a { 
+        color: #2196f3; 
+      }
+      
+      ul, ol { 
+        margin: 12px 0; 
+        padding-left: 30px; 
+      }
+      
+      li { 
+        margin: 6px 0; 
+        line-height: 1.6; 
+      }
+      
+      table { 
+        border-collapse: collapse; 
+        width: 100%; 
+        margin: 20px 0; 
+      }
+      
+      th, td { 
+        border: 1px solid #ddd; 
+        padding: 12px; 
+        text-align: left; 
+      }
+      
+      th { 
+        background-color: #f5f5f5; 
+        font-weight: 600; 
+      }
+      
+      /* Print Styles */
+      @media print {
+        body::before {
+          content: 'BrainWaveAI';
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%) rotate(-45deg);
+          font-size: 120px;
+          font-weight: 900;
+          color: #d3d3d3;
+          opacity: 0.15;
+          z-index: -1;
+          white-space: nowrap;
+          pointer-events: none;
+          letter-spacing: 8px;
+          text-transform: uppercase;
+        }
+        
+        @page {
+          margin: 0.5in;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+          page-break-after: avoid;
+        }
+        
+        table, pre, blockquote, img {
+          page-break-inside: avoid;
+        }
+      }
+    </style>
+  `;
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>${noteTitle || 'Note'}</title>
+        ${styles}
+      </head>
+      <body>
+        <h1>${noteTitle || 'Untitled Note'}</h1>
+        <div class="metadata">
+          Last edited: ${new Date(selectedNote.updated_at).toLocaleString()}<br>
+          ${wordCount} words - ${charCount} characters
+        </div>
+        <div class="content">
+          ${noteContent}
+        </div>
+      </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+
+  setTimeout(() => {
+    printWindow.print();
+  }, 250);
+
+  showPopup("Export", "Print dialog opened - Save as PDF with BrainWaveAI watermark");
+};
 
   const exportAsText = () => {
     const text = noteContent.replace(/<[^>]+>/g, "");
@@ -1252,7 +1423,6 @@ const convertMarkdownToHTML = (markdown) => {
     showPopup("Exported", "Note exported as text");
   };
 
-  // FILTERED NOTES LIST
   const getFilteredNotes = () => {
     let filtered = notes.filter(
       (n) =>
@@ -1274,24 +1444,23 @@ const convertMarkdownToHTML = (markdown) => {
 
   const filteredNotes = getFilteredNotes();
 
-  // ENHANCED QUILL MODULES WITH ALL FEATURES
   const modules = {
-  toolbar: [
-    [{ header: [1, 2, 3, 4, 5, 6, false] }],
-    [{ font: ['inter', 'arial', 'courier', 'georgia', 'times-new-roman', 'verdana'] }],
-    [{ size: ["small", false, "large", "huge"] }],
-    ["bold", "italic", "underline", "strike"],
-    [{ color: [] }, { background: [] }],
-    [{ script: "sub" }, { script: "super" }],
-    [{ list: "ordered" }, { list: "bullet" }, { indent: "-1" }, { indent: "+1" }],
-    [{ direction: "rtl" }, { align: [] }],
-    ["blockquote", "code-block"],
-    ["link", "image", "video", "formula"],
-    ["clean"],
-  ],
-  tableUI: true,
-  formula: true,
-};
+    toolbar: [
+      [{ header: [1, 2, 3, 4, 5, 6, false] }],
+      [{ font: ['inter', 'arial', 'courier', 'georgia', 'times-new-roman', 'verdana'] }],
+      [{ size: ["small", false, "large", "huge"] }],
+      ["bold", "italic", "underline", "strike"],
+      [{ color: [] }, { background: [] }],
+      [{ script: "sub" }, { script: "super" }],
+      [{ list: "ordered" }, { list: "bullet" }, { indent: "-1" }, { indent: "+1" }],
+      [{ direction: "rtl" }, { align: [] }],
+      ["blockquote", "code-block"],
+      ["link", "image", "video", "formula"],
+      ["clean"],
+    ],
+    tableUI: true,
+    formula: true,
+  };
 
   const formats = [
     "header",
@@ -1318,7 +1487,6 @@ const convertMarkdownToHTML = (markdown) => {
     "table",
   ];
 
-  // LOGOUT
   const handleLogout = () => {
     if (window.confirm("Are you sure you want to logout?")) {
       localStorage.clear();
@@ -1326,10 +1494,8 @@ const convertMarkdownToHTML = (markdown) => {
     }
   };
 
-  // RENDER
   return (
     <div className="notes-redesign">
-      {/* Sidebar */}
       <div className={`notes-sidebar-new ${sidebarOpen ? "open" : "closed"}`}>
         <div className="sidebar-header-new">
           <div className="sidebar-title">
@@ -1346,7 +1512,6 @@ const convertMarkdownToHTML = (markdown) => {
           </div>
         </div>
 
-        {/* Folder & Filter Section */}
         <div className="sidebar-filters">
           <button
             className={`filter-btn ${!showFavorites && !showTrash && !selectedFolder ? 'active' : ''}`}
@@ -1381,7 +1546,6 @@ const convertMarkdownToHTML = (markdown) => {
           </button>
         </div>
 
-        {/* Folders Section with Drag & Drop */}
         <div className="folders-section">
           <div className="folders-header">
             <h3>Folders</h3>
@@ -1481,7 +1645,6 @@ const convertMarkdownToHTML = (markdown) => {
           />
         </div>
 
-        {/* Notes List with Drag & Drop */}
         <div className="notes-list-new">
           {showTrash ? (
             trashedNotes.length === 0 ? (
@@ -1598,9 +1761,7 @@ const convertMarkdownToHTML = (markdown) => {
         </div>
       </div>
 
-      {/* Editor */}
       <div className="editor-area-new">
-        {/* Top Navigation Bar */}
         <div className="top-nav-new">
           <div className="nav-left">
             <button
@@ -1650,7 +1811,6 @@ const convertMarkdownToHTML = (markdown) => {
           </div>
 
           <div className="nav-actions-new">
-            
             <button className="nav-btn" onClick={() => navigate("/dashboard")}>
               Dashboard
             </button>
@@ -1663,10 +1823,8 @@ const convertMarkdownToHTML = (markdown) => {
           </div>
         </div>
 
-        {/* Editor Content */}
         {selectedNote ? (
           <div className="editor-content">
-            {/* Collapsible Title Section */}
             <div className={`title-section ${titleSectionCollapsed ? 'collapsed' : ''}`}>
               <div className="title-section-header">
                 <div className="title-section-content">
@@ -1682,8 +1840,6 @@ const convertMarkdownToHTML = (markdown) => {
                     <span className="last-edited">
                       Last edited: {new Date(selectedNote.updated_at).toLocaleString()}
                     </span>
-                    
-                    
                   </div>
                 </div>
                 <button
@@ -1720,7 +1876,6 @@ const convertMarkdownToHTML = (markdown) => {
               </div>
             )}
 
-            {/* Footer Stats */}
             <div className="note-footer">
               <div className="footer-left">
                 <span className="stat-item">
@@ -1754,25 +1909,22 @@ const convertMarkdownToHTML = (markdown) => {
         )}
       </div>
 
-      {/* AI FLOATING BUTTON - Shows when text is selected */}
-      {/* ✨ FLOATING AI BUTTON */}
-{showAIButton && (
-  <div
-    className="ai-floating-button"
-    style={{
-      position: "absolute",
-      top: `${aiButtonPosition.top}px`,
-      left: `${aiButtonPosition.left}px`,
-      opacity: showAIButton ? 2 : 0,
-    }}
-    onClick={handleAIButtonClick}
-  >
-    <span className="ai-button-icon"></span>
-    <span className="ai-button-text">Ask AI</span>
-  </div>
-)}
+      {showAIButton && (
+        <div
+          className="ai-floating-button"
+          style={{
+            position: "absolute",
+            top: `${aiButtonPosition.top}px`,
+            left: `${aiButtonPosition.left}px`,
+            opacity: showAIButton ? 2 : 0,
+          }}
+          onClick={handleAIButtonClick}
+        >
+          <span className="ai-button-icon"></span>
+          <span className="ai-button-text">Ask AI</span>
+        </div>
+      )}
 
-      {/* AI Slash Command Dropdown */}
       {showAIDropdown && (
         <>
           <div className="ai-overlay" onClick={() => setShowAIDropdown(false)} />
@@ -1818,7 +1970,7 @@ const convertMarkdownToHTML = (markdown) => {
                 }}
                 disabled={generatingAI}
               >
-              Key Points
+                Key Points
               </button>
               <button 
                 onClick={() => {
@@ -1862,7 +2014,6 @@ const convertMarkdownToHTML = (markdown) => {
         </>
       )}
 
-      {/* AI Writing Assistant Modal */}
       {showAIAssistant && (
         <>
           <div className="ai-overlay" onClick={() => setShowAIAssistant(false)} />
@@ -1956,18 +2107,55 @@ const convertMarkdownToHTML = (markdown) => {
                 />
               </div>
 
+              <div className="ai-assistant-section">
+                <label>Voice to Text:</label>
+                <div className="voice-to-text-container">
+                  <button
+                    className={`voice-record-btn ${isRecording ? 'recording' : ''}`}
+                    onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
+                    disabled={processingVoice}
+                  >
+                    {isRecording ? (
+                      <>
+                        <span className="recording-indicator"></span>
+                        Stop Recording
+                      </>
+                    ) : processingVoice ? (
+                      <>
+                        <span className="spinner"></span>
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        
+                        Start Voice Recording
+                      </>
+                    )}
+                  </button>
+                  {voiceTranscript && (
+                    <div className="voice-transcript-preview">
+                      <label>Transcript:</label>
+                      <p>{voiceTranscript}</p>
+                    </div>
+                  )}
+                  <p className="voice-help-text">
+                    Click to record your voice. AI will transcribe and respond to your question.
+                  </p>
+                </div>
+              </div>
+
               <div className="ai-assistant-actions">
                 <button
                   className="ai-btn-cancel"
                   onClick={() => setShowAIAssistant(false)}
-                  disabled={generatingAI}
+                  disabled={generatingAI || processingVoice}
                 >
                   Cancel
                 </button>
                 <button
                   className="ai-btn-generate"
                   onClick={aiWritingAssist}
-                  disabled={generatingAI}
+                  disabled={generatingAI || processingVoice}
                 >
                   {generatingAI ? (
                     <>
@@ -1983,7 +2171,6 @@ const convertMarkdownToHTML = (markdown) => {
         </>
       )}
 
-      {/* Create Folder Modal */}
       {showFolderModal && (
         <>
           <div className="ai-overlay" onClick={() => setShowFolderModal(false)} />
@@ -2037,11 +2224,10 @@ const convertMarkdownToHTML = (markdown) => {
         </>
       )}
 
-      {/* CHAT IMPORT MODAL */}
       {showChatImport && (
         <>
           <div className="chat-import-overlay" onClick={() => setShowChatImport(false)} />
-    <div className="chat-import-modal-new" onClick={(e) => e.stopPropagation()}>
+          <div className="chat-import-modal-new" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header-new">
               <h2>Convert Chat to Notes</h2>
               <button className="modal-close-btn" onClick={() => setShowChatImport(false)}>×</button>
@@ -2155,7 +2341,6 @@ const convertMarkdownToHTML = (markdown) => {
         </>
       )}
 
-      {/* CUSTOM POPUP */}
       <CustomPopup
         isOpen={popup.isOpen}
         onClose={closePopup}

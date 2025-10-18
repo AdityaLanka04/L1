@@ -7,6 +7,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
 import asyncio
 
+import tempfile
 from fastapi import FastAPI, Form, Depends, HTTPException, status, Query, Request, File, UploadFile, Body
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -1222,6 +1223,108 @@ def debug_notes(user_id: str, db: Session = Depends(get_db)):
     
     return {"total_notes": len(notes), "notes": result}
 
+@app.post("/transcribe_audio/")
+async def transcribe_audio(
+    audio_file: UploadFile = File(...),
+    user_id: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    temp_audio_path = None
+    try:
+        logger.info(f"🎤 Transcribing audio for user: {user_id}")
+        logger.info(f"📁 File info - Name: {audio_file.filename}, Type: {audio_file.content_type}")
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        audio_content = await audio_file.read()
+        logger.info(f"📊 Audio size: {len(audio_content)} bytes")
+        
+        if len(audio_content) == 0:
+            raise HTTPException(status_code=400, detail="Empty audio file")
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".webm", mode='wb') as temp_file:
+            temp_file.write(audio_content)
+            temp_audio_path = temp_file.name
+        
+        logger.info(f"💾 Saved to: {temp_audio_path}")
+        
+        try:
+            with open(temp_audio_path, "rb") as f:
+                logger.info("🚀 Calling Groq Whisper API...")
+                transcription = groq_client.audio.transcriptions.create(
+                    file=f,
+                    model="whisper-large-v3-turbo",
+                    response_format="json",
+                    language="en"
+                )
+            
+            transcript_text = transcription.text
+            logger.info(f"✅ Transcription successful: '{transcript_text[:100]}...'")
+            
+            return {
+                "status": "success",
+                "transcript": transcript_text,
+                "length": len(transcript_text),
+                "model_used": "whisper-large-v3-turbo"
+            }
+            
+        except Exception as groq_error:
+            logger.error(f"❌ Groq API error: {str(groq_error)}")
+            logger.error(f"Error type: {type(groq_error).__name__}")
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Transcription failed: {str(groq_error)}"
+            )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Unexpected error: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to transcribe audio: {str(e)}"
+        )
+    finally:
+        if temp_audio_path and os.path.exists(temp_audio_path):
+            try:
+                os.remove(temp_audio_path)
+                logger.info(f"🗑️ Cleaned up temp file: {temp_audio_path}")
+            except Exception as cleanup_error:
+                logger.warning(f"⚠️ Failed to cleanup temp file: {cleanup_error}")
+
+@app.get("/test_transcribe")
+def test_transcribe_endpoint():
+    """Test endpoint to verify transcription route exists"""
+    return {
+        "status": "endpoint exists",
+        "message": "Transcribe audio endpoint is registered",
+        "groq_available": GROQ_API_KEY is not None,
+        "groq_key_prefix": GROQ_API_KEY[:10] if GROQ_API_KEY else "None"
+    }
+
+
+@app.post("/transcribe_audio_test/")
+async def transcribe_audio_test(
+    user_id: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Simplified test version without actual audio file"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        return {
+            "status": "success",
+            "message": "Endpoint working, user found",
+            "user_id": user.id,
+            "groq_configured": GROQ_API_KEY is not None
+        }
+    except Exception as e:
+        logger.error(f"Test endpoint error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/fix_all_notes")
 def fix_all_notes(db: Session = Depends(get_db)):

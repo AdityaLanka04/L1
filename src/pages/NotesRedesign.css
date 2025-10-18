@@ -3885,3 +3885,201 @@ select {
   margin-bottom: 20px;
   background: transparent;
 }
+
+.voice-to-text-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  background: var(--hover-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+}
+
+.voice-record-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 20px;
+  background: var(--accent) !important;
+  border: 1px solid var(--accent) !important;
+  border-radius: 8px;
+  color: var(--bg-top) !important;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px var(--glow);
+}
+
+.voice-record-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 90%, white) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--glow);
+}
+
+.voice-record-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.voice-record-btn.recording {
+  background: var(--danger) !important;
+  border-color: var(--danger) !important;
+  animation: pulseRecording 1.5s ease-in-out infinite;
+}
+
+.recording-indicator {
+  width: 12px;
+  height: 12px;
+  background: var(--bg-top);
+  border-radius: 50%;
+  animation: recordingPulse 1s ease-in-out infinite;
+}
+
+.mic-icon {
+  font-size: 18px;
+}
+
+.voice-transcript-preview {
+  padding: 12px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.voice-transcript-preview label {
+  display: block;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.voice-transcript-preview p {
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.voice-help-text {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin: 0;
+  text-align: center;
+  line-height: 1.4;
+}
+
+@keyframes pulseRecording {
+  0%, 100% {
+    box-shadow: 0 4px 15px color-mix(in srgb, var(--danger) 50%, transparent);
+  }
+  50% {
+    box-shadow: 0 6px 25px color-mix(in srgb, var(--danger) 70%, transparent);
+  }
+}
+
+@keyframes recordingPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.2);
+  }
+}
+
+/* ==================== PRINT STYLES WITH WATERMARK ==================== */
+@media print {
+  .notes-sidebar-new,
+  .top-nav-new,
+  .note-footer,
+  .ai-dropdown-new,
+  .ai-assistant-modal,
+  .folder-modal,
+  .chat-import-modal-new,
+  .text-action-menu {
+    display: none !important;
+  }
+
+  .editor-area-new {
+    background: white;
+    position: relative;
+  }
+
+  /* Diagonal Centered Watermark for PDF Export */
+  .editor-area-new::before {
+    content: 'BrainWaveAI';
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    font-size: 120px;
+    font-weight: 900;
+    color: #d3d3d3;
+    opacity: 0.15;
+    z-index: 0;
+    white-space: nowrap;
+    pointer-events: none;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  .quill-editor-enhanced .ql-toolbar {
+    display: none !important;
+  }
+
+  .quill-editor-enhanced .ql-editor {
+    padding: 40px 80px;
+    color: #1a1a1a !important;
+    background: white !important;
+    position: relative;
+    z-index: 1;
+  }
+
+  .title-input-new {
+    color: #000000 !important;
+    text-shadow: none;
+  }
+
+  .title-section {
+    background: white !important;
+    border: none !important;
+    position: relative;
+    z-index: 1;
+  }
+
+  .quill-editor-enhanced .ql-editor table {
+    page-break-inside: avoid;
+  }
+
+  .quill-editor-enhanced .ql-editor img {
+    page-break-inside: avoid;
+  }
+
+  .quill-editor-enhanced .ql-editor h1,
+  .quill-editor-enhanced .ql-editor h2,
+  .quill-editor-enhanced .ql-editor h3 {
+    color: #000000 !important;
+  }
+
+  .quill-editor-enhanced .ql-editor p,
+  .quill-editor-enhanced .ql-editor li {
+    color: #1a1a1a !important;
+  }
+
+  /* Ensure watermark appears on every page */
+  @page {
+    margin: 0.5in;
+  }
+}
+
