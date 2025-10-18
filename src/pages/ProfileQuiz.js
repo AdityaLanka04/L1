@@ -4,24 +4,56 @@ import './ProfileQuiz.css';
 
 const ProfileQuiz = () => {
   const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState('welcome');
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState({});
-  const [isComplete, setIsComplete] = useState(false);
-  const [userName, setUserName] = useState('');
-  const [archetypeScores, setArchetypeScores] = useState({
-    Logicor: 0,
-    Flowist: 0,
-    Kinetiq: 0,
-    Synth: 0,
-    Dreamweaver: 0,
-    Anchor: 0,
-    Spark: 0,
-    Empathion: 0,
-    Seeker: 0,
-    Resonant: 0
+  const [showSkipWarning, setShowSkipWarning] = useState(false);
+  const [answers, setAnswers] = useState({
+    preferredSubjects: [],
+    mainSubject: '',
+    brainwaveGoal: '',
+    archetypeAnswers: {},
+    archetypeScores: {
+      Logicor: 0,
+      Flowist: 0,
+      Kinetiq: 0,
+      Synth: 0,
+      Dreamweaver: 0,
+      Anchor: 0,
+      Spark: 0,
+      Empathion: 0,
+      Seeker: 0,
+      Resonant: 0
+    }
   });
+  const [userName, setUserName] = useState('');
 
-  const questions = [
+  const inspirationalQuotes = [
+    "The capacity to learn is a gift; the ability to learn is a skill; the willingness to learn is a choice. - Brian Herbert",
+    "Education is not the filling of a pail, but the lighting of a fire. - William Butler Yeats",
+    "Live as if you were to die tomorrow. Learn as if you were to live forever. - Mahatma Gandhi",
+    "The beautiful thing about learning is that no one can take it away from you. - B.B. King",
+    "Learning is not attained by chance, it must be sought for with ardor and attended to with diligence. - Abigail Adams"
+  ];
+
+  const randomQuote = inspirationalQuotes[Math.floor(Math.random() * inspirationalQuotes.length)];
+
+  const allSubjects = [
+    'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science',
+    'History', 'Geography', 'Literature', 'Languages', 'Art',
+    'Music', 'Economics', 'Business', 'Psychology', 'Philosophy',
+    'Engineering', 'Medicine', 'Law', 'Political Science', 'Sociology'
+  ];
+
+  const brainwaveGoals = [
+    { value: 'exam_prep', label: 'Prepare for exams and tests' },
+    { value: 'homework_help', label: 'Get help with homework and assignments' },
+    { value: 'concept_mastery', label: 'Master difficult concepts' },
+    { value: 'skill_building', label: 'Build new skills and knowledge' },
+    { value: 'career_prep', label: 'Prepare for career and professional growth' },
+    { value: 'curiosity', label: 'Learn out of curiosity and interest' }
+  ];
+
+  const archetypeQuestions = [
     {
       id: 1,
       question: "When you're studying for a big exam, which approach do you naturally lean toward?",
@@ -121,63 +153,12 @@ const ProfileQuiz = () => {
         { text: "Nature or outdoor spaces with fresh air", archetypes: { Kinetiq: 2, Resonant: 2 } },
         { text: "Creative spaces with inspiring visuals and atmosphere", archetypes: { Spark: 3, Dreamweaver: 2 } }
       ]
-    },
-    {
-      id: 11,
-      question: "When working on a research paper, you typically:",
-      options: [
-        { text: "Start with a detailed outline and fill in each section", archetypes: { Anchor: 3, Logicor: 2 } },
-        { text: "Write whatever section inspires you and connect later", archetypes: { Spark: 3, Flowist: 2 } },
-        { text: "Draft the whole thing quickly then revise extensively", archetypes: { Kinetiq: 2, Flowist: 2 } },
-        { text: "Research deeply to find surprising connections between sources", archetypes: { Synth: 3, Seeker: 2 } }
-      ]
-    },
-    {
-      id: 12,
-      question: "Your ideal internship or career would involve:",
-      options: [
-        { text: "Clear structure with defined responsibilities and advancement", archetypes: { Anchor: 3, Logicor: 1 } },
-        { text: "Constant learning and exposure to new ideas", archetypes: { Seeker: 3, Spark: 1 } },
-        { text: "Making a positive difference in people's lives", archetypes: { Empathion: 3, Synth: 1 } },
-        { text: "Variety and the ability to work on different projects", archetypes: { Flowist: 3, Resonant: 2 } }
-      ]
-    },
-    {
-      id: 13,
-      question: "When giving a class presentation, you're most comfortable:",
-      options: [
-        { text: "Following prepared notes and a structured format", archetypes: { Anchor: 3, Logicor: 2 } },
-        { text: "Using engaging visuals and storytelling", archetypes: { Dreamweaver: 3, Spark: 2 } },
-        { text: "Including interactive elements or demonstrations", archetypes: { Kinetiq: 3, Empathion: 1 } },
-        { text: "Connecting the topic to broader themes and implications", archetypes: { Synth: 3, Seeker: 1 } }
-      ]
-    },
-    {
-      id: 14,
-      question: "Your ideal Saturday morning involves:",
-      options: [
-        { text: "Catching up on coursework following your weekly schedule", archetypes: { Anchor: 2, Logicor: 1 } },
-        { text: "Exploring something new - a hobby, place, or interest", archetypes: { Seeker: 3, Spark: 2 } },
-        { text: "Physical activity like sports, hiking, or working out", archetypes: { Kinetiq: 3, Flowist: 1 } },
-        { text: "Whatever feels right in the moment without rigid plans", archetypes: { Flowist: 3, Resonant: 2 } }
-      ]
-    },
-    {
-      id: 15,
-      question: "When collaborating with classmates on problem sets, you:",
-      options: [
-        { text: "Work through each problem step-by-step together", archetypes: { Logicor: 3, Anchor: 1 } },
-        { text: "Contribute creative approaches others might not consider", archetypes: { Spark: 3, Dreamweaver: 1 } },
-        { text: "Help connect different people's ideas into solutions", archetypes: { Synth: 3, Empathion: 2 } },
-        { text: "Adapt your approach based on the group's energy", archetypes: { Resonant: 3, Flowist: 2 } }
-      ]
     }
   ];
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     const username = localStorage.getItem('username');
-    const hasCompletedQuiz = localStorage.getItem('hasCompletedProfileQuiz');
 
     if (!token) {
       navigate('/login');
@@ -187,33 +168,50 @@ const ProfileQuiz = () => {
     if (username) {
       setUserName(username);
     }
-
-    if (hasCompletedQuiz) {
-      navigate('/dashboard');
-    }
   }, [navigate]);
 
-  const handleAnswer = (optionIndex) => {
-    const selectedOption = questions[currentQuestion].options[optionIndex];
-    const newAnswers = { ...answers, [currentQuestion]: optionIndex };
-    setAnswers(newAnswers);
+  const handleSubjectToggle = (subject) => {
+    setAnswers(prev => ({
+      ...prev,
+      preferredSubjects: prev.preferredSubjects.includes(subject)
+        ? prev.preferredSubjects.filter(s => s !== subject)
+        : [...prev.preferredSubjects, subject]
+    }));
+  };
 
-    const newScores = { ...archetypeScores };
+  const handleMainSubjectSelect = (subject) => {
+    setAnswers(prev => ({ ...prev, mainSubject: subject }));
+  };
+
+  const handleGoalSelect = (goal) => {
+    setAnswers(prev => ({ ...prev, brainwaveGoal: goal }));
+  };
+
+  const handleArchetypeAnswer = (optionIndex) => {
+    const selectedOption = archetypeQuestions[currentQuestion].options[optionIndex];
+    const newArchetypeAnswers = { ...answers.archetypeAnswers, [currentQuestion]: optionIndex };
+    const newScores = { ...answers.archetypeScores };
+    
     Object.entries(selectedOption.archetypes).forEach(([archetype, points]) => {
       newScores[archetype] = (newScores[archetype] || 0) + points;
     });
-    setArchetypeScores(newScores);
 
-    if (currentQuestion < questions.length - 1) {
+    setAnswers(prev => ({
+      ...prev,
+      archetypeAnswers: newArchetypeAnswers,
+      archetypeScores: newScores
+    }));
+
+    if (currentQuestion < archetypeQuestions.length - 1) {
       setTimeout(() => {
         setCurrentQuestion(currentQuestion + 1);
       }, 300);
     } else {
-      calculateAndSaveArchetype(newScores);
+      completeQuiz(newScores);
     }
   };
 
-  const calculateAndSaveArchetype = async (scores) => {
+  const completeQuiz = async (scores) => {
     const sortedArchetypes = Object.entries(scores)
       .sort(([, a], [, b]) => b - a)
       .map(([archetype]) => archetype);
@@ -236,7 +234,8 @@ const ProfileQuiz = () => {
 
     try {
       const token = localStorage.getItem('token');
-      await fetch('http://localhost:8001/save_archetype_profile', {
+      
+      await fetch('http://localhost:8001/save_complete_profile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -244,28 +243,282 @@ const ProfileQuiz = () => {
         },
         body: JSON.stringify({
           user_id: userName,
+          preferred_subjects: answers.preferredSubjects,
+          main_subject: answers.mainSubject,
+          brainwave_goal: answers.brainwaveGoal,
           primary_archetype: primaryArchetype,
           secondary_archetype: secondaryArchetype,
           archetype_scores: scores,
-          archetype_description: archetypeDescriptions[primaryArchetype]
+          archetype_description: archetypeDescriptions[primaryArchetype],
+          quiz_completed: true
         })
       });
 
-      localStorage.setItem('hasCompletedProfileQuiz', 'true');
-      setIsComplete(true);
-
+      setCurrentStep('complete');
       setTimeout(() => {
         navigate('/dashboard');
       }, 3000);
     } catch (error) {
-      console.error('Error saving archetype:', error);
+      console.error('Error saving profile:', error);
     }
   };
 
-  const progress = ((currentQuestion + 1) / questions.length) * 100;
+  const handleSkip = () => {
+    setShowSkipWarning(true);
+  };
 
-  if (isComplete) {
-    const primaryArchetype = Object.entries(archetypeScores)
+  const confirmSkip = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      await fetch('http://localhost:8001/save_complete_profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          preferred_subjects: answers.preferredSubjects,
+          main_subject: answers.mainSubject,
+          brainwave_goal: answers.brainwaveGoal,
+          quiz_completed: false
+        })
+      });
+
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      navigate('/dashboard');
+    }
+  };
+
+  const cancelSkip = () => {
+    setShowSkipWarning(false);
+  };
+
+  const progressSteps = {
+    'welcome': 0,
+    'subjects': 20,
+    'mainSubject': 40,
+    'goal': 60,
+    'archetype': 80 + (currentQuestion / archetypeQuestions.length) * 20,
+    'complete': 100
+  };
+
+  const progress = progressSteps[currentStep] || 0;
+
+  if (currentStep === 'welcome') {
+    return (
+      <div className="profile-quiz-page">
+        <div className="quiz-container">
+          <div className="welcome-screen">
+            <h1 className="welcome-title">Welcome to Brainwave</h1>
+            <div className="quote-box">
+              <div className="quote-icon">"</div>
+              <p className="quote-text">{randomQuote}</p>
+            </div>
+            <p className="welcome-message">
+              Let's personalize your learning experience. This quick assessment will help us understand your goals and learning style.
+            </p>
+            <button className="start-quiz-btn" onClick={() => setCurrentStep('subjects')}>
+              Begin Assessment
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentStep === 'subjects') {
+    return (
+      <div className="profile-quiz-page">
+        <div className="quiz-container">
+          <div className="quiz-header">
+            <h1 className="quiz-title">Select Your Interests</h1>
+            <div className="quiz-progress-bar">
+              <div className="quiz-progress-fill" style={{ width: `${progress}%` }}></div>
+            </div>
+            <p className="quiz-progress-text">Step 1 of 4</p>
+          </div>
+
+          <div className="quiz-content">
+            <h2 className="question-text">Which subjects are you interested in learning?</h2>
+            <p className="question-subtitle">Select all that apply</p>
+            
+            <div className="subject-grid">
+              {allSubjects.map(subject => (
+                <div
+                  key={subject}
+                  className={`subject-card ${answers.preferredSubjects.includes(subject) ? 'selected' : ''}`}
+                  onClick={() => handleSubjectToggle(subject)}
+                >
+                  {subject}
+                </div>
+              ))}
+            </div>
+
+            <button 
+              className="continue-btn" 
+              onClick={() => setCurrentStep('mainSubject')}
+              disabled={answers.preferredSubjects.length === 0}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentStep === 'mainSubject') {
+    return (
+      <div className="profile-quiz-page">
+        <div className="quiz-container">
+          <div className="quiz-header">
+            <h1 className="quiz-title">Your Main Focus</h1>
+            <div className="quiz-progress-bar">
+              <div className="quiz-progress-fill" style={{ width: `${progress}%` }}></div>
+            </div>
+            <p className="quiz-progress-text">Step 2 of 4</p>
+          </div>
+
+          <div className="quiz-content">
+            <h2 className="question-text">What's your primary subject or field of study?</h2>
+            
+            <div className="options-grid">
+              {allSubjects.map((subject, index) => (
+                <button
+                  key={subject}
+                  className={`option-button ${answers.mainSubject === subject ? 'selected' : ''}`}
+                  onClick={() => handleMainSubjectSelect(subject)}
+                >
+                  <span className="option-number">{String.fromCharCode(65 + index)}</span>
+                  <span className="option-text">{subject}</span>
+                </button>
+              ))}
+            </div>
+
+            <button 
+              className="continue-btn" 
+              onClick={() => setCurrentStep('goal')}
+              disabled={!answers.mainSubject}
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentStep === 'goal') {
+    return (
+      <div className="profile-quiz-page">
+        <div className="quiz-container">
+          <div className="quiz-header">
+            <h1 className="quiz-title">Your Learning Goal</h1>
+            <div className="quiz-progress-bar">
+              <div className="quiz-progress-fill" style={{ width: `${progress}%` }}></div>
+            </div>
+            <p className="quiz-progress-text">Step 3 of 4</p>
+          </div>
+
+          <div className="quiz-content">
+            <h2 className="question-text">What's your main goal with Brainwave?</h2>
+            
+            <div className="options-grid">
+              {brainwaveGoals.map((goal, index) => (
+                <button
+                  key={goal.value}
+                  className={`option-button ${answers.brainwaveGoal === goal.value ? 'selected' : ''}`}
+                  onClick={() => handleGoalSelect(goal.value)}
+                >
+                  <span className="option-number">{String.fromCharCode(65 + index)}</span>
+                  <span className="option-text">{goal.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <button 
+              className="continue-btn" 
+              onClick={() => setCurrentStep('archetype')}
+              disabled={!answers.brainwaveGoal}
+            >
+              Continue to Learning Style Assessment
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentStep === 'archetype') {
+    return (
+      <div className="profile-quiz-page">
+        <div className="quiz-container">
+          <div className="quiz-header">
+            <h1 className="quiz-title">Discover Your Learning Archetype</h1>
+            <div className="quiz-progress-bar">
+              <div className="quiz-progress-fill" style={{ width: `${progress}%` }}></div>
+            </div>
+            <p className="quiz-progress-text">
+              Question {currentQuestion + 1} of {archetypeQuestions.length}
+            </p>
+          </div>
+
+          <div className="quiz-content">
+            <div className="question-card">
+              <h2 className="question-text">{archetypeQuestions[currentQuestion].question}</h2>
+              
+              <div className="options-grid">
+                {archetypeQuestions[currentQuestion].options.map((option, index) => (
+                  <button
+                    key={index}
+                    className={`option-button ${answers.archetypeAnswers[currentQuestion] === index ? 'selected' : ''}`}
+                    onClick={() => handleArchetypeAnswer(index)}
+                  >
+                    <span className="option-number">{String.fromCharCode(65 + index)}</span>
+                    <span className="option-text">{option.text}</span>
+                  </button>
+                ))}
+              </div>
+
+              <button className="skip-quiz-btn" onClick={handleSkip}>
+                Skip Learning Style Assessment
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {showSkipWarning && (
+          <div className="skip-warning-overlay">
+            <div className="skip-warning-modal">
+              <h3>Are you sure you want to skip?</h3>
+              <p>
+                The Learning Archetype Assessment helps us personalize your AI tutor to match your unique learning style. 
+                This significantly enhances your learning experience and makes study sessions more effective.
+              </p>
+              <p className="warning-emphasis">
+                We highly recommend completing this short assessment for the best experience.
+              </p>
+              <div className="warning-actions">
+                <button className="continue-assessment-btn" onClick={cancelSkip}>
+                  Continue Assessment
+                </button>
+                <button className="confirm-skip-btn" onClick={confirmSkip}>
+                  Skip Anyway
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (currentStep === 'complete') {
+    const primaryArchetype = Object.entries(answers.archetypeScores)
       .sort(([, a], [, b]) => b - a)[0][0];
 
     return (
@@ -275,47 +528,15 @@ const ProfileQuiz = () => {
           <h2>Profile Complete!</h2>
           <p>Your learning archetype: <strong>{primaryArchetype}</strong></p>
           <p className="completion-message">
-            Your AI assistant will now adapt to your unique learning style.
+            Your AI tutor is now personalized to your unique learning style.
           </p>
+          <p className="redirect-message">Redirecting to dashboard...</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="profile-quiz-page">
-      <div className="quiz-container">
-        <div className="quiz-header">
-          <h1 className="quiz-title">Discover Your Learning Archetype</h1>
-          <div className="quiz-progress-bar">
-            <div className="quiz-progress-fill" style={{ width: `${progress}%` }}></div>
-          </div>
-          <p className="quiz-progress-text">
-            Question {currentQuestion + 1} of {questions.length}
-          </p>
-        </div>
-
-        <div className="quiz-content">
-          <div className="question-card">
-            <h2 className="question-text">{questions[currentQuestion].question}</h2>
-            
-            <div className="options-grid">
-              {questions[currentQuestion].options.map((option, index) => (
-                <button
-                  key={index}
-                  className={`option-button ${answers[currentQuestion] === index ? 'selected' : ''}`}
-                  onClick={() => handleAnswer(index)}
-                >
-                  <span className="option-number">{String.fromCharCode(65 + index)}</span>
-                  <span className="option-text">{option.text}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return null;
 };
 
 export default ProfileQuiz;

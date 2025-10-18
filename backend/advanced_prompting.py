@@ -202,7 +202,7 @@ def build_intelligent_system_prompt(
     difficulty_level = user_profile.get('difficulty_level', 'intermediate')
     primary_archetype = user_profile.get('primary_archetype', '')
     secondary_archetype = user_profile.get('secondary_archetype', '')
-    quiz_responses = user_profile.get('quiz_responses', {})
+    brainwave_goal = user_profile.get('brainwave_goal', '')
     preferred_subjects = user_profile.get('preferred_subjects', [])
     
     if is_first_message:
@@ -221,15 +221,21 @@ Be natural and conversational. Reference previous discussions when relevant, but
 TEACHING STYLE (use naturally, don't announce it):
 {teaching_style}"""
     
-    if quiz_responses and not is_first_message:
-        quiz_adaptations = get_quiz_based_teaching_adaptations(quiz_responses)
-        if quiz_adaptations:
+    if brainwave_goal and not is_first_message:
+        goal_guidance = {
+            'exam_prep': "Focus on test-taking strategies, key concepts review, and practice problems.",
+            'homework_help': "Provide step-by-step guidance while encouraging independent thinking.",
+            'concept_mastery': "Deep dive into fundamentals with thorough explanations and connections.",
+            'skill_building': "Emphasize practical application and progressive skill development.",
+            'career_prep': "Connect concepts to real-world professional applications.",
+            'curiosity': "Encourage exploration and provide fascinating insights beyond basics."
+        }
+        if brainwave_goal in goal_guidance:
             base_prompt += f"""
 
-PERSONALIZED ADAPTATIONS (based on student's learning preferences):
-{quiz_adaptations}"""
+STUDENT'S GOAL: {goal_guidance[brainwave_goal]}"""
     
-    if preferred_subjects:
+    if preferred_subjects and not is_first_message:
         subjects_str = ", ".join(preferred_subjects[:5])
         base_prompt += f"""
 

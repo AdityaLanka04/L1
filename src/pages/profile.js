@@ -9,24 +9,13 @@ const Profile = () => {
     lastName: '',
     email: '',
     fieldOfStudy: '',
+    brainwaveGoal: '',
+    preferredSubjects: [],
     difficultyLevel: 'intermediate',
     learningPace: 'moderate',
     primaryArchetype: '',
     secondaryArchetype: '',
-    archetypeDescription: '',
-    preferredSubjects: [],
-    quizResponses: {
-      learningEnvironment: '',
-      problemSolving: '',
-      newConcepts: '',
-      studyPreference: '',
-      challengeResponse: '',
-      informationProcessing: '',
-      groupWork: '',
-      timeManagement: '',
-      creativity: '',
-      feedback: ''
-    }
+    archetypeDescription: ''
   });
   
   const [autoSaving, setAutoSaving] = useState(false);
@@ -36,12 +25,6 @@ const Profile = () => {
   
   const navigate = useNavigate();
 
-  const fieldsOfStudy = [
-    'Computer Science', 'Mathematics', 'Physics', 'Chemistry', 'Biology',
-    'Engineering', 'Medicine', 'Business', 'Economics', 'Psychology',
-    'Literature', 'History', 'Philosophy', 'Art', 'Languages', 'General Studies'
-  ];
-
   const allSubjects = [
     'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science',
     'History', 'Geography', 'Literature', 'Languages', 'Art',
@@ -49,97 +32,13 @@ const Profile = () => {
     'Engineering', 'Medicine', 'Law', 'Political Science', 'Sociology'
   ];
 
-  const quizQuestions = {
-    learningEnvironment: {
-      question: "What type of learning environment helps you focus best?",
-      options: [
-        { value: "structured", label: "Structured with clear guidelines" },
-        { value: "flexible", label: "Flexible and adaptable" },
-        { value: "collaborative", label: "Collaborative and social" },
-        { value: "independent", label: "Independent and self-directed" }
-      ]
-    },
-    problemSolving: {
-      question: "When facing a complex problem, you prefer to:",
-      options: [
-        { value: "break_down", label: "Break it down into logical steps" },
-        { value: "visualize", label: "Visualize the big picture first" },
-        { value: "experiment", label: "Experiment and try different approaches" },
-        { value: "discuss", label: "Discuss with others for insights" }
-      ]
-    },
-    newConcepts: {
-      question: "How do you best absorb new concepts?",
-      options: [
-        { value: "reading", label: "Reading detailed explanations" },
-        { value: "visual", label: "Visual diagrams and charts" },
-        { value: "hands_on", label: "Hands-on practice" },
-        { value: "discussion", label: "Discussion and debate" }
-      ]
-    },
-    studyPreference: {
-      question: "Your ideal study session involves:",
-      options: [
-        { value: "solo_deep", label: "Solo deep-dive into material" },
-        { value: "group_study", label: "Group study sessions" },
-        { value: "mixed_activities", label: "Mixed activities and breaks" },
-        { value: "project_based", label: "Project-based learning" }
-      ]
-    },
-    challengeResponse: {
-      question: "When you encounter a challenging topic:",
-      options: [
-        { value: "systematic", label: "Take a systematic, methodical approach" },
-        { value: "creative", label: "Find creative ways to understand it" },
-        { value: "seek_help", label: "Seek help and guidance" },
-        { value: "persistent", label: "Keep trying until breakthrough" }
-      ]
-    },
-    informationProcessing: {
-      question: "You process information best through:",
-      options: [
-        { value: "logic", label: "Logical analysis" },
-        { value: "patterns", label: "Pattern recognition" },
-        { value: "emotion", label: "Emotional connection" },
-        { value: "action", label: "Action and movement" }
-      ]
-    },
-    groupWork: {
-      question: "In group projects, you naturally:",
-      options: [
-        { value: "organize", label: "Organize and structure the work" },
-        { value: "generate_ideas", label: "Generate creative ideas" },
-        { value: "facilitate", label: "Facilitate communication" },
-        { value: "execute", label: "Execute and complete tasks" }
-      ]
-    },
-    timeManagement: {
-      question: "Your approach to deadlines is:",
-      options: [
-        { value: "plan_ahead", label: "Plan well ahead with schedule" },
-        { value: "flexible", label: "Flexible, adapt as needed" },
-        { value: "steady_pace", label: "Steady consistent pace" },
-        { value: "intense_bursts", label: "Intense focused bursts" }
-      ]
-    },
-    creativity: {
-      question: "When learning, you value:",
-      options: [
-        { value: "accuracy", label: "Accuracy and precision" },
-        { value: "innovation", label: "Innovation and new ideas" },
-        { value: "understanding", label: "Deep understanding" },
-        { value: "application", label: "Practical application" }
-      ]
-    },
-    feedback: {
-      question: "You prefer feedback that is:",
-      options: [
-        { value: "detailed", label: "Detailed and analytical" },
-        { value: "encouraging", label: "Encouraging and positive" },
-        { value: "constructive", label: "Constructive and actionable" },
-        { value: "direct", label: "Direct and to the point" }
-      ]
-    }
+  const brainwaveGoals = {
+    'exam_prep': 'Prepare for exams and tests',
+    'homework_help': 'Get help with homework and assignments',
+    'concept_mastery': 'Master difficult concepts',
+    'skill_building': 'Build new skills and knowledge',
+    'career_prep': 'Prepare for career and professional growth',
+    'curiosity': 'Learn out of curiosity and interest'
   };
 
   const archetypeInfo = {
@@ -253,30 +152,18 @@ const Profile = () => {
           lastName: data.lastName || '',
           email: data.email || '',
           fieldOfStudy: data.fieldOfStudy || '',
+          brainwaveGoal: data.brainwaveGoal || '',
+          preferredSubjects: data.preferredSubjects || [],
           difficultyLevel: data.difficultyLevel || 'intermediate',
           learningPace: data.learningPace || 'moderate',
           primaryArchetype: data.primaryArchetype || '',
           secondaryArchetype: data.secondaryArchetype || '',
-          archetypeDescription: data.archetypeDescription || '',
-          preferredSubjects: data.preferredSubjects || [],
-          quizResponses: data.quizResponses || {
-            learningEnvironment: '',
-            problemSolving: '',
-            newConcepts: '',
-            studyPreference: '',
-            challengeResponse: '',
-            informationProcessing: '',
-            groupWork: '',
-            timeManagement: '',
-            creativity: '',
-            feedback: ''
-          }
+          archetypeDescription: data.archetypeDescription || ''
         });
         
         setDataLoaded(true);
         setLastSaved(new Date().toLocaleTimeString());
       } else {
-        console.error('Failed to load profile');
         setDataLoaded(true);
       }
     } catch (error) {
@@ -289,16 +176,6 @@ const Profile = () => {
     setProfileData(prev => ({
       ...prev,
       [field]: value
-    }));
-  };
-
-  const handleQuizResponseChange = (question, value) => {
-    setProfileData(prev => ({
-      ...prev,
-      quizResponses: {
-        ...prev.quizResponses,
-        [question]: value
-      }
     }));
   };
 
@@ -325,10 +202,10 @@ const Profile = () => {
         lastName: profileData.lastName || '',
         email: profileData.email || '',
         fieldOfStudy: profileData.fieldOfStudy || '',
-        difficultyLevel: profileData.difficultyLevel || 'intermediate',
-        learningPace: profileData.learningPace || 'moderate',
+        brainwaveGoal: profileData.brainwaveGoal || '',
         preferredSubjects: profileData.preferredSubjects || [],
-        quizResponses: profileData.quizResponses || {}
+        difficultyLevel: profileData.difficultyLevel || 'intermediate',
+        learningPace: profileData.learningPace || 'moderate'
       };
       
       const response = await fetch('http://localhost:8001/update_comprehensive_profile', {
@@ -362,13 +239,13 @@ const Profile = () => {
     return (
       <div className="profile-page">
         <div className="profile-container">
-          <div style={{ textAlign: 'center', padding: '50px', color: '#D7B38C' }}>
-            <div className="typing-indicator" style={{ display: 'inline-flex', gap: '8px', marginBottom: '20px' }}>
-              <span style={{ width: '12px', height: '12px', background: '#D7B38C', borderRadius: '50%', animation: 'pulse 1.4s ease-in-out infinite' }}></span>
-              <span style={{ width: '12px', height: '12px', background: '#D7B38C', borderRadius: '50%', animation: 'pulse 1.4s ease-in-out 0.2s infinite' }}></span>
-              <span style={{ width: '12px', height: '12px', background: '#D7B38C', borderRadius: '50%', animation: 'pulse 1.4s ease-in-out 0.4s infinite' }}></span>
+          <div className="loading-container">
+            <div className="typing-indicator">
+              <span></span>
+              <span></span>
+              <span></span>
             </div>
-            <div>Loading your profile...</div>
+            <div className="loading-text">Loading your profile...</div>
           </div>
         </div>
       </div>
@@ -445,7 +322,7 @@ const Profile = () => {
         {!profileData.primaryArchetype && (
           <div className="profile-section archetype-section">
             <h3 className="section-title">Discover Your Learning Archetype</h3>
-            <p className="section-subtitle" style={{ textAlign: 'center', marginBottom: '20px' }}>
+            <p className="section-subtitle">
               Take our quick assessment to unlock personalized AI tutoring tailored to your unique learning style
             </p>
             <div className="archetype-actions">
@@ -456,35 +333,34 @@ const Profile = () => {
           </div>
         )}
 
-        <div className="profile-grid">
-          <div className="profile-section essential">
-            <h3 className="section-title">Basic Information</h3>
-            
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label required-field">First Name</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={profileData.firstName}
-                  onChange={(e) => handleInputChange('firstName', e.target.value)}
-                  placeholder="Enter your first name"
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label required-field">Last Name</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={profileData.lastName}
-                  onChange={(e) => handleInputChange('lastName', e.target.value)}
-                  placeholder="Enter your last name"
-                />
-              </div>
+        <div className="profile-section">
+          <h3 className="section-title">Personal Information</h3>
+          
+          <div className="profile-info-grid">
+            <div className="info-item">
+              <label className="info-label">First Name</label>
+              <input
+                type="text"
+                className="form-input"
+                value={profileData.firstName}
+                onChange={(e) => handleInputChange('firstName', e.target.value)}
+                placeholder="Enter your first name"
+              />
             </div>
 
-            <div className="form-group">
-              <label className="form-label required-field">Email Address</label>
+            <div className="info-item">
+              <label className="info-label">Last Name</label>
+              <input
+                type="text"
+                className="form-input"
+                value={profileData.lastName}
+                onChange={(e) => handleInputChange('lastName', e.target.value)}
+                placeholder="Enter your last name"
+              />
+            </div>
+
+            <div className="info-item full-width">
+              <label className="info-label">Email Address</label>
               <input
                 type="email"
                 className="form-input"
@@ -493,28 +369,90 @@ const Profile = () => {
                 placeholder="your.email@example.com"
               />
             </div>
+          </div>
+        </div>
 
-            <div className="form-group">
-              <label className="form-label required-field">Field of Study</label>
-              <select
-                className="form-select"
-                value={profileData.fieldOfStudy}
-                onChange={(e) => handleInputChange('fieldOfStudy', e.target.value)}
-              >
-                <option value="">Select your field</option>
-                {fieldsOfStudy.map(field => (
-                  <option key={field} value={field}>{field}</option>
-                ))}
-              </select>
+        <div className="profile-section">
+          <h3 className="section-title">Learning Goals & Interests</h3>
+          
+          <div className="profile-info-grid">
+            <div className="info-item">
+              <label className="info-label">Main Subject</label>
+              <div className="select-wrapper">
+                <select
+                  className="form-select"
+                  value={profileData.fieldOfStudy}
+                  onChange={(e) => handleInputChange('fieldOfStudy', e.target.value)}
+                >
+                  <option value="">Select your main subject</option>
+                  {allSubjects.map(subject => (
+                    <option key={subject} value={subject}>{subject}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="info-item">
+              <label className="info-label">Primary Goal</label>
+              <div className="select-wrapper">
+                <select
+                  className="form-select"
+                  value={profileData.brainwaveGoal}
+                  onChange={(e) => handleInputChange('brainwaveGoal', e.target.value)}
+                >
+                  <option value="">Select your goal</option>
+                  {Object.entries(brainwaveGoals).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="info-item full-width">
+              <label className="info-label">Interested Subjects</label>
+              <div className="subjects-display">
+                {profileData.preferredSubjects.length > 0 ? (
+                  profileData.preferredSubjects.map(subject => (
+                    <span key={subject} className="subject-tag">
+                      {subject}
+                      <button 
+                        className="remove-subject-btn"
+                        onClick={() => toggleSubject(subject)}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))
+                ) : (
+                  <p className="no-subjects">No subjects selected</p>
+                )}
+              </div>
+              <div className="add-subjects-section">
+                <div className="subject-selection-grid">
+                  {allSubjects
+                    .filter(s => !profileData.preferredSubjects.includes(s))
+                    .map(subject => (
+                      <button
+                        key={subject}
+                        className="add-subject-btn"
+                        onClick={() => toggleSubject(subject)}
+                      >
+                        + {subject}
+                      </button>
+                    ))}
+                </div>
+              </div>
             </div>
           </div>
+        </div>
 
-          <div className="profile-section">
-            <h3 className="section-title">Learning Preferences</h3>
-            
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Difficulty Level</label>
+        <div className="profile-section">
+          <h3 className="section-title">Learning Preferences</h3>
+          
+          <div className="profile-info-grid">
+            <div className="info-item">
+              <label className="info-label">Difficulty Level</label>
+              <div className="select-wrapper">
                 <select
                   className="form-select"
                   value={profileData.difficultyLevel}
@@ -526,8 +464,11 @@ const Profile = () => {
                   <option value="expert">Expert</option>
                 </select>
               </div>
-              <div className="form-group">
-                <label className="form-label">Learning Pace</label>
+            </div>
+
+            <div className="info-item">
+              <label className="info-label">Learning Pace</label>
+              <div className="select-wrapper">
                 <select
                   className="form-select"
                   value={profileData.learningPace}
@@ -542,59 +483,7 @@ const Profile = () => {
             </div>
           </div>
         </div>
-
-        <div className="profile-section">
-          <h3 className="section-title">Preferred Subjects</h3>
-          <p className="section-subtitle">Select subjects you're interested in learning</p>
-          
-          <div className="checkbox-grid">
-            {allSubjects.map(subject => (
-              <div
-                key={subject}
-                className={`checkbox-item ${profileData.preferredSubjects.includes(subject) ? 'selected' : ''}`}
-                onClick={() => toggleSubject(subject)}
-              >
-                <input
-                  type="checkbox"
-                  checked={profileData.preferredSubjects.includes(subject)}
-                  onChange={() => {}}
-                />
-                <span>{subject}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="profile-section">
-          <h3 className="section-title">Learning Style Preferences</h3>
-          <p className="section-subtitle">Customize how the AI adapts to your learning style</p>
-          
-          {Object.entries(quizQuestions).map(([key, question]) => (
-            <div key={key} className="form-group">
-              <label className="form-label">{question.question}</label>
-              <select
-                className="form-select"
-                value={profileData.quizResponses[key] || ''}
-                onChange={(e) => handleQuizResponseChange(key, e.target.value)}
-              >
-                <option value="">Select your preference</option>
-                {question.options.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ))}
-        </div>
       </div>
-      
-      <style jsx>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 0.4; transform: scale(0.8); }
-          50% { opacity: 1; transform: scale(1.2); }
-        }
-      `}</style>
     </div>
   );
 };

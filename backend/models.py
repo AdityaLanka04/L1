@@ -779,6 +779,7 @@ class ComprehensiveUserProfile(Base):
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
     
     preferred_subjects = Column(Text, nullable=True)
+    brainwave_goal = Column(String(100), nullable=True)
     difficulty_level = Column(String(50), default="intermediate")
     learning_pace = Column(String(50), default="moderate")
     best_study_times = Column(Text, nullable=True)
@@ -786,6 +787,7 @@ class ComprehensiveUserProfile(Base):
     strong_areas = Column(Text, nullable=True)
     
     quiz_responses = Column(Text, nullable=True)
+    quiz_completed = Column(Boolean, default=False)
     
     primary_archetype = Column(String(50), nullable=True)
     secondary_archetype = Column(String(50), nullable=True)

@@ -25,12 +25,12 @@ function Login() {
         console.log('Quiz completed - going to dashboard');
         navigate('/dashboard');
       } else {
-        console.log('Quiz not completed - going to dashboard with option to take quiz');
-        navigate('/dashboard');
+        console.log('Quiz not completed - going to profile-quiz');
+        navigate('/profile-quiz');
       }
     } catch (error) {
       console.error('Error checking quiz status:', error);
-      navigate('/dashboard');
+      navigate('/profile-quiz');
     }
   };
 
@@ -126,49 +126,10 @@ function Login() {
               onClick={handleGoogleSignIn}
               disabled={googleLoading || loading}
               className="google-signin-button"
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '12px 16px',
-                border: '1px solid #dadce0',
-                borderRadius: '4px',
-                backgroundColor: 'white',
-                color: '#3c4043',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: googleLoading ? 'not-allowed' : 'pointer',
-                opacity: googleLoading ? 0.6 : 1,
-                transition: 'all 0.2s ease',
-                marginBottom: '16px'
-              }}
-              onMouseOver={(e) => {
-                if (!googleLoading) {
-                  e.target.style.backgroundColor = '#f8f9fa';
-                  e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-                }
-              }}
-              onMouseOut={(e) => {
-                if (!googleLoading) {
-                  e.target.style.backgroundColor = 'white';
-                  e.target.style.boxShadow = 'none';
-                }
-              }}
             >
               {googleLoading ? (
                 <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <div
-                    style={{
-                      width: '18px',
-                      height: '18px',
-                      border: '2px solid #f3f3f3',
-                      borderTop: '2px solid #4285f4',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite',
-                      marginRight: '8px'
-                    }}
-                  ></div>
+                  <div className="google-spinner"></div>
                   Signing in...
                 </div>
               ) : (
@@ -243,13 +204,6 @@ function Login() {
           </div>
         </div>
       </div>
-      
-      <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
     </div>
   );
 }

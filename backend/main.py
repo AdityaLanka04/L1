@@ -3467,22 +3467,21 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
             "firstName": user.first_name or "",
             "lastName": user.last_name or "",
             "email": user.email or "",
-            "age": user.age,
             "fieldOfStudy": user.field_of_study or "",
+            "brainwaveGoal": "",
+            "preferredSubjects": [],
             "difficultyLevel": "intermediate",
             "learningPace": "moderate",
-            "preferredSubjects": [],
-            "bestStudyTimes": [],
             "primaryArchetype": "",
             "secondaryArchetype": "",
-            "archetypeDescription": "",
-            "quizResponses": {}
+            "archetypeDescription": ""
         }
 
         if comprehensive_profile:
             result.update({
                 "difficultyLevel": comprehensive_profile.difficulty_level or "intermediate",
                 "learningPace": comprehensive_profile.learning_pace or "moderate",
+                "brainwaveGoal": comprehensive_profile.brainwave_goal or "",
                 "primaryArchetype": comprehensive_profile.primary_archetype or "",
                 "secondaryArchetype": comprehensive_profile.secondary_archetype or "",
                 "archetypeDescription": comprehensive_profile.archetype_description or ""
@@ -3493,18 +3492,6 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
                     result["preferredSubjects"] = json.loads(comprehensive_profile.preferred_subjects)
             except:
                 result["preferredSubjects"] = []
-
-            try:
-                if comprehensive_profile.best_study_times:
-                    result["bestStudyTimes"] = json.loads(comprehensive_profile.best_study_times)
-            except:
-                result["bestStudyTimes"] = []
-
-            try:
-                if comprehensive_profile.quiz_responses:
-                    result["quizResponses"] = json.loads(comprehensive_profile.quiz_responses)
-            except:
-                result["quizResponses"] = {}
 
         return result
 
@@ -3545,12 +3532,11 @@ async def update_comprehensive_profile(
             comprehensive_profile.difficulty_level = payload["difficultyLevel"]
         if payload.get("learningPace"):
             comprehensive_profile.learning_pace = payload["learningPace"]
+        if payload.get("brainwaveGoal"):
+            comprehensive_profile.brainwave_goal = payload["brainwaveGoal"]
 
         if "preferredSubjects" in payload:
             comprehensive_profile.preferred_subjects = json.dumps(payload["preferredSubjects"])
-
-        if "quizResponses" in payload:
-            comprehensive_profile.quiz_responses = json.dumps(payload["quizResponses"])
 
         comprehensive_profile.updated_at = datetime.now(timezone.utc)
 
@@ -3563,6 +3549,55 @@ async def update_comprehensive_profile(
 
     except Exception as e:
         logger.error(f"Error updating profile: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e)) 
+    
+@app.post("/save_complete_profile")
+async def save_complete_profile(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    try:
+        user_id = payload.get("user_id")
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
+            models.ComprehensiveUserProfile.user_id == user.id
+        ).first()
+
+        if not comprehensive_profile:
+            comprehensive_profile = models.ComprehensiveUserProfile(user_id=user.id)
+            db.add(comprehensive_profile)
+
+        if "preferred_subjects" in payload:
+            comprehensive_profile.preferred_subjects = json.dumps(payload["preferred_subjects"])
+        
+        if "main_subject" in payload:
+            user.field_of_study = payload["main_subject"]
+        
+        if "brainwave_goal" in payload:
+            comprehensive_profile.brainwave_goal = payload["brainwave_goal"]
+        
+        if payload.get("quiz_completed"):
+            comprehensive_profile.primary_archetype = payload.get("primary_archetype")
+            comprehensive_profile.secondary_archetype = payload.get("secondary_archetype")
+            comprehensive_profile.archetype_scores = json.dumps(payload.get("archetype_scores", {}))
+            comprehensive_profile.archetype_description = payload.get("archetype_description")
+
+        comprehensive_profile.quiz_completed = payload.get("quiz_completed", False)
+        comprehensive_profile.updated_at = datetime.now(timezone.utc)
+
+        db.commit()
+
+        return {
+            "status": "success",
+            "message": "Profile saved successfully"
+        }
+
+    except Exception as e:
+        logger.error(f"Error saving complete profile: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
