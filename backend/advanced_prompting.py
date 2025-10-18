@@ -189,6 +189,42 @@ def get_archetype_teaching_style(primary_archetype: str, secondary_archetype: st
     return primary_style
 
 
+def build_user_profile_dict(user, comprehensive_profile=None) -> Dict[str, Any]:
+    profile = {
+        "user_id": getattr(user, "id", "unknown"),
+        "first_name": getattr(user, "first_name", "Student"),
+        "last_name": getattr(user, "last_name", ""),
+        "field_of_study": getattr(user, "field_of_study", "General Studies"),
+        "learning_style": getattr(user, "learning_style", "Mixed"),
+        "school_university": getattr(user, "school_university", "Student"),
+        "age": getattr(user, "age", None),
+        "preferred_subjects": [],
+        "brainwave_goal": ""
+    }
+    
+    if comprehensive_profile:
+        profile.update({
+            "difficulty_level": getattr(comprehensive_profile, "difficulty_level", "intermediate"),
+            "learning_pace": getattr(comprehensive_profile, "learning_pace", "moderate"),
+            "study_environment": getattr(comprehensive_profile, "study_environment", "quiet"),
+            "preferred_language": getattr(comprehensive_profile, "preferred_language", "english"),
+            "study_goals": getattr(comprehensive_profile, "study_goals", None),
+            "career_goals": getattr(comprehensive_profile, "career_goals", None),
+            "primary_archetype": getattr(comprehensive_profile, "primary_archetype", ""),
+            "secondary_archetype": getattr(comprehensive_profile, "secondary_archetype", ""),
+            "archetype_description": getattr(comprehensive_profile, "archetype_description", ""),
+            "brainwave_goal": getattr(comprehensive_profile, "brainwave_goal", "")
+        })
+        
+        try:
+            if comprehensive_profile.preferred_subjects:
+                profile["preferred_subjects"] = json.loads(comprehensive_profile.preferred_subjects)
+        except:
+            profile["preferred_subjects"] = []
+    
+    return profile
+
+
 def build_intelligent_system_prompt(
     user_profile: Dict[str, Any],
     learning_context: Dict[str, Any],
@@ -214,14 +250,19 @@ Keep your greeting natural and brief - don't list all your capabilities."""
 
 Be natural and conversational. Reference previous discussions when relevant, but don't repeat yourself."""
     
-    if primary_archetype and not is_first_message:
-        teaching_style = get_archetype_teaching_style(primary_archetype, secondary_archetype)
+    if primary_archetype:
         base_prompt += f"""
 
-TEACHING STYLE (use naturally, don't announce it):
+STUDENT'S LEARNING ARCHETYPE: {primary_archetype}"""
+        if secondary_archetype:
+            base_prompt += f""" (Secondary: {secondary_archetype})"""
+        
+        teaching_style = get_archetype_teaching_style(primary_archetype, secondary_archetype)
+        if teaching_style:
+            base_prompt += f"""
 {teaching_style}"""
     
-    if brainwave_goal and not is_first_message:
+    if brainwave_goal:
         goal_guidance = {
             'exam_prep': "Focus on test-taking strategies, key concepts review, and practice problems.",
             'homework_help': "Provide step-by-step guidance while encouraging independent thinking.",
@@ -235,7 +276,7 @@ TEACHING STYLE (use naturally, don't announce it):
 
 STUDENT'S GOAL: {goal_guidance[brainwave_goal]}"""
     
-    if preferred_subjects and not is_first_message:
+    if preferred_subjects:
         subjects_str = ", ".join(preferred_subjects[:5])
         base_prompt += f"""
 

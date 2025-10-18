@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, BookOpen, Target, Brain, Star, Clock, TrendingUp, Award } from 'lucide-react';
+import { User, BookOpen, Target, Brain, Award, TrendingUp } from 'lucide-react';
 import './profile.css';
 
 const Profile = () => {
@@ -45,67 +45,67 @@ const Profile = () => {
   };
 
   const archetypeInfo = {
-  Logicor: {
-    icon: '🧩',
-    color: '#4A90E2',
-    tagline: 'The Systematic Thinker',
-    description: 'You excel at logical analysis and breaking down complex problems into manageable parts.'
-  },
-  Flowist: {
-    icon: '⚡',
-    color: '#50C878',
-    tagline: 'The Dynamic Learner',
-    description: 'You thrive through hands-on experiences and adapt easily to new challenges.'
-  },
-  Kinetiq: {
-    icon: '⚙️',
-    color: '#FF6B6B',
-    tagline: 'The Movement Master',
-    description: 'You learn best through physical engagement and kinesthetic experiences.'
-  },
-  Synth: {
-    icon: '🔗',
-    color: '#9B59B6',
-    tagline: 'The Pattern Connector',
-    description: 'You naturally see connections and integrate knowledge across domains.'
-  },
-  Dreamweaver: {
-    icon: '✨',
-    color: '#F39C12',
-    tagline: 'The Visionary',
-    description: 'You think in possibilities and excel with visual and imaginative approaches.'
-  },
-  Anchor: {
-    icon: '⚓',
-    color: '#34495E',
-    tagline: 'The Structured Strategist',
-    description: 'You value organization and thrive with clear systems and methodical approaches.'
-  },
-  Spark: {
-    icon: '💡',
-    color: '#E74C3C',
-    tagline: 'The Creative Innovator',
-    description: 'You\'re driven by creativity and love exploring novel ideas and methods.'
-  },
-  Empathion: {
-    icon: '♥️',
-    color: '#E91E63',
-    tagline: 'The Empathetic Learner',
-    description: 'You connect deeply with meaning and understand through emotional intelligence.'
-  },
-  Seeker: {
-    icon: '🔍',
-    color: '#00BCD4',
-    tagline: 'The Curious Explorer',
-    description: 'You\'re motivated by discovery and love expanding your knowledge horizons.'
-  },
-  Resonant: {
-    icon: '♪',
-    color: '#8E44AD',
-    tagline: 'The Adaptive Mind',
-    description: 'You\'re highly flexible and tune into different learning environments effortlessly.'
-  }
-};
+    Logicor: {
+      icon: '🧩',
+      color: '#4A90E2',
+      tagline: 'The Systematic Thinker',
+      description: 'You excel at logical analysis and breaking down complex problems into manageable parts.'
+    },
+    Flowist: {
+      icon: '⚡',
+      color: '#50C878',
+      tagline: 'The Dynamic Learner',
+      description: 'You thrive through hands-on experiences and adapt easily to new challenges.'
+    },
+    Kinetiq: {
+      icon: '⚙️',
+      color: '#FF6B6B',
+      tagline: 'The Movement Master',
+      description: 'You learn best through physical engagement and kinesthetic experiences.'
+    },
+    Synth: {
+      icon: '🔗',
+      color: '#9B59B6',
+      tagline: 'The Pattern Connector',
+      description: 'You naturally see connections and integrate knowledge across domains.'
+    },
+    Dreamweaver: {
+      icon: '✨',
+      color: '#F39C12',
+      tagline: 'The Visionary',
+      description: 'You think in possibilities and excel with visual and imaginative approaches.'
+    },
+    Anchor: {
+      icon: '⚓',
+      color: '#34495E',
+      tagline: 'The Structured Strategist',
+      description: 'You value organization and thrive with clear systems and methodical approaches.'
+    },
+    Spark: {
+      icon: '💡',
+      color: '#E74C3C',
+      tagline: 'The Creative Innovator',
+      description: 'You\'re driven by creativity and love exploring novel ideas and methods.'
+    },
+    Empathion: {
+      icon: '♥️',
+      color: '#E91E63',
+      tagline: 'The Empathetic Learner',
+      description: 'You connect deeply with meaning and understand through emotional intelligence.'
+    },
+    Seeker: {
+      icon: '🔍',
+      color: '#00BCD4',
+      tagline: 'The Curious Explorer',
+      description: 'You\'re motivated by discovery and love expanding your knowledge horizons.'
+    },
+    Resonant: {
+      icon: '♪',
+      color: '#8E44AD',
+      tagline: 'The Adaptive Mind',
+      description: 'You\'re highly flexible and tune into different learning environments effortlessly.'
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -156,7 +156,7 @@ const Profile = () => {
       if (response.ok) {
         const data = await response.json();
         
-        setProfileData({
+        const newProfileData = {
           firstName: data.firstName || '',
           lastName: data.lastName || '',
           email: data.email || '',
@@ -168,16 +168,33 @@ const Profile = () => {
           primaryArchetype: data.primaryArchetype || '',
           secondaryArchetype: data.secondaryArchetype || '',
           archetypeDescription: data.archetypeDescription || '',
-          archetypeScores: data.archetypeScores ? JSON.parse(data.archetypeScores) : {}
-        });
+          archetypeScores: {}
+        };
+
+        try {
+          if (data.archetypeScores) {
+            newProfileData.archetypeScores = typeof data.archetypeScores === 'string' 
+              ? JSON.parse(data.archetypeScores) 
+              : data.archetypeScores;
+          }
+        } catch (e) {
+          console.error('Error parsing archetype scores:', e);
+        }
+
+        setProfileData(newProfileData);
 
         if (data.quizResponses) {
           try {
-            setQuizAnswers(JSON.parse(data.quizResponses));
+            const parsedQuiz = typeof data.quizResponses === 'string'
+              ? JSON.parse(data.quizResponses)
+              : data.quizResponses;
+            setQuizAnswers(parsedQuiz);
           } catch (e) {
             console.error('Error parsing quiz responses:', e);
           }
         }
+
+        localStorage.setItem('userProfile', JSON.stringify(newProfileData));
         
         setDataLoaded(true);
         setLastSaved(new Date().toLocaleTimeString());
@@ -237,6 +254,7 @@ const Profile = () => {
       
       if (response.ok) {
         setLastSaved(new Date().toLocaleTimeString());
+        localStorage.setItem('userProfile', JSON.stringify(profileData));
       }
     } catch (error) {
       console.error('Error auto-saving profile:', error);
@@ -305,23 +323,23 @@ const Profile = () => {
               </div>
 
               <div className="archetype-display">
-  <div className="archetype-main">
-    <div className="archetype-badge primary">PRIMARY</div>
-    <div className="archetype-icon-large">{currentArchetype?.icon}</div>
-    <h3 className="archetype-name">{profileData.primaryArchetype}</h3>
-    <p className="archetype-tagline">{currentArchetype?.tagline}</p>
-    <p className="archetype-description">{currentArchetype?.description}</p>
-  </div>
+                <div className="archetype-main">
+                  <div className="archetype-badge primary">PRIMARY</div>
+                  <div className="archetype-icon-large">{currentArchetype?.icon}</div>
+                  <h3 className="archetype-name">{profileData.primaryArchetype}</h3>
+                  <p className="archetype-tagline">{currentArchetype?.tagline}</p>
+                  <p className="archetype-description">{currentArchetype?.description}</p>
+                </div>
 
-  {profileData.secondaryArchetype && (
-    <div className="archetype-secondary">
-      <div className="archetype-badge secondary">SECONDARY</div>
-      <div className="archetype-icon-small">{secondaryArchetypeInfo?.icon}</div>
-      <h4 className="archetype-name-small">{profileData.secondaryArchetype}</h4>
-      <p className="archetype-tagline-small">{secondaryArchetypeInfo?.tagline}</p>
-    </div>
-  )}
-</div>
+                {profileData.secondaryArchetype && (
+                  <div className="archetype-secondary">
+                    <div className="archetype-badge secondary">SECONDARY</div>
+                    <div className="archetype-icon-small">{secondaryArchetypeInfo?.icon}</div>
+                    <h4 className="archetype-name-small">{profileData.secondaryArchetype}</h4>
+                    <p className="archetype-tagline-small">{secondaryArchetypeInfo?.tagline}</p>
+                  </div>
+                )}
+              </div>
 
               {Object.keys(profileData.archetypeScores).length > 0 && (
                 <div className="archetype-scores">
@@ -505,8 +523,8 @@ const Profile = () => {
               </div>
             </div>
 
-            <div className="form-grid">
-              <div className="form-group">
+            <div className="learning-preferences-grid">
+              <div className="form-group-centered">
                 <label className="form-label">Difficulty Level</label>
                 <select
                   className="form-select"
@@ -520,7 +538,7 @@ const Profile = () => {
                 </select>
               </div>
 
-              <div className="form-group">
+              <div className="form-group-centered">
                 <label className="form-label">Learning Pace</label>
                 <select
                   className="form-select"
