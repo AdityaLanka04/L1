@@ -3429,7 +3429,7 @@ async def check_profile_quiz(user_id: str = Query(...), db: Session = Depends(ge
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+            return {"completed": False, "user_id": user_id}
 
         comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
             models.ComprehensiveUserProfile.user_id == user.id
@@ -3443,12 +3443,13 @@ async def check_profile_quiz(user_id: str = Query(...), db: Session = Depends(ge
 
         return {
             "completed": has_archetype,
-            "user_id": user_id
+            "user_id": user_id,
+            "has_profile": comprehensive_profile is not None
         }
 
     except Exception as e:
         logger.error(f"Error checking quiz: {str(e)}")
-        return {"completed": False}
+        return {"completed": False, "user_id": user_id}
 
 
 @app.get("/get_comprehensive_profile")
@@ -3491,19 +3492,19 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
                 if comprehensive_profile.preferred_subjects:
                     result["preferredSubjects"] = json.loads(comprehensive_profile.preferred_subjects)
             except:
-                pass
+                result["preferredSubjects"] = []
 
             try:
                 if comprehensive_profile.best_study_times:
                     result["bestStudyTimes"] = json.loads(comprehensive_profile.best_study_times)
             except:
-                pass
+                result["bestStudyTimes"] = []
 
             try:
                 if comprehensive_profile.quiz_responses:
                     result["quizResponses"] = json.loads(comprehensive_profile.quiz_responses)
             except:
-                pass
+                result["quizResponses"] = {}
 
         return result
 
@@ -3551,6 +3552,8 @@ async def update_comprehensive_profile(
         if "quizResponses" in payload:
             comprehensive_profile.quiz_responses = json.dumps(payload["quizResponses"])
 
+        comprehensive_profile.updated_at = datetime.now(timezone.utc)
+
         db.commit()
 
         return {
@@ -3560,6 +3563,7 @@ async def update_comprehensive_profile(
 
     except Exception as e:
         logger.error(f"Error updating profile: {str(e)}")
+        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
 

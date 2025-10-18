@@ -829,6 +829,8 @@
   margin-top: 15px;
 }
 
+
+
 @media (max-width: 768px) {
   .archetype-display {
     grid-template-columns: 1fr;
