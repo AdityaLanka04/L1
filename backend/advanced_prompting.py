@@ -5,14 +5,9 @@ from sqlalchemy import func, and_, desc
 import json
 import re
 import models
-# UTC timezone
-utc_now = datetime.now(timezone.utc)
-print(f"Current UTC time: {utc_now}")
+from ai_personality import PersonalityEngine, AdaptiveLearningModel, build_natural_prompt
+from neural_adaptation import get_rl_agent, ConversationContextAnalyzer
 
-# Custom fixed-offset timezone (e.g., UTC+5)
-plus_five_hours = timezone(timedelta(hours=5))
-custom_tz_now = datetime.now(plus_five_hours)
-print(f"Current time in UTC+5: {custom_tz_now}")
 
 def extract_topic_keywords(text: str, max_keywords: int = 5) -> List[str]:
     stop_words = {
@@ -30,8 +25,6 @@ def extract_topic_keywords(text: str, max_keywords: int = 5) -> List[str]:
 
 def get_relevant_past_conversations(db: Session, user_id: int, current_topic: str, limit: int = 3) -> List[Dict]:
     try:
-        import models
-        
         recent_sessions = db.query(models.ChatSession).filter(
             models.ChatSession.user_id == user_id
         ).order_by(models.ChatSession.updated_at.desc()).limit(15).all()
@@ -77,8 +70,6 @@ def get_relevant_past_conversations(db: Session, user_id: int, current_topic: st
 
 def get_user_learning_context(db: Session, user_id: int) -> Dict[str, Any]:
     try:
-        import models
-        
         recent_activities = db.query(models.Activity).filter(
             models.Activity.user_id == user_id
         ).order_by(models.Activity.timestamp.desc()).limit(20).all()
@@ -128,14 +119,13 @@ def get_user_learning_context(db: Session, user_id: int) -> Dict[str, Any]:
         }
         
     except Exception as e:
-        print(f"Error building learning context: {e}")
+        print(f"Error building learning context: {str(e)}")
         return {}
 
 
 def analyze_weak_topics(db: Session, user_id: int) -> List[Dict[str, Any]]:
     try:
-        import models
-        thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+        thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
         
         activities = db.query(models.Activity).filter(
             models.Activity.user_id == user_id,
@@ -159,7 +149,7 @@ def analyze_weak_topics(db: Session, user_id: int) -> List[Dict[str, Any]]:
         weak_topics = []
         for topic, data in topic_performance.items():
             if data['questions'] >= 3:
-                days_since_last = (datetime.utcnow() - max(data['recent_attempts'])).days
+                days_since_last = (datetime.now(timezone.utc) - max(data['recent_attempts'])).days
                 if days_since_last >= 7:
                     weak_topics.append({
                         'topic': topic,
@@ -195,42 +185,6 @@ def get_archetype_teaching_style(primary_archetype: str, secondary_archetype: st
         return f"{primary_style} Also: {secondary_style}"
     
     return primary_style
-
-
-def build_user_profile_dict(user, comprehensive_profile=None) -> Dict[str, Any]:
-    profile = {
-        "user_id": getattr(user, "id", "unknown"),
-        "first_name": getattr(user, "first_name", "Student"),
-        "last_name": getattr(user, "last_name", ""),
-        "field_of_study": getattr(user, "field_of_study", "General Studies"),
-        "learning_style": getattr(user, "learning_style", "Mixed"),
-        "school_university": getattr(user, "school_university", "Student"),
-        "age": getattr(user, "age", None),
-        "preferred_subjects": [],
-        "brainwave_goal": ""
-    }
-    
-    if comprehensive_profile:
-        profile.update({
-            "difficulty_level": getattr(comprehensive_profile, "difficulty_level", "intermediate"),
-            "learning_pace": getattr(comprehensive_profile, "learning_pace", "moderate"),
-            "study_environment": getattr(comprehensive_profile, "study_environment", "quiet"),
-            "preferred_language": getattr(comprehensive_profile, "preferred_language", "english"),
-            "study_goals": getattr(comprehensive_profile, "study_goals", None),
-            "career_goals": getattr(comprehensive_profile, "career_goals", None),
-            "primary_archetype": getattr(comprehensive_profile, "primary_archetype", ""),
-            "secondary_archetype": getattr(comprehensive_profile, "secondary_archetype", ""),
-            "archetype_description": getattr(comprehensive_profile, "archetype_description", ""),
-            "brainwave_goal": getattr(comprehensive_profile, "brainwave_goal", "")
-        })
-        
-        try:
-            if comprehensive_profile.preferred_subjects:
-                profile["preferred_subjects"] = json.loads(comprehensive_profile.preferred_subjects)
-        except:
-            profile["preferred_subjects"] = []
-    
-    return profile
 
 
 def build_intelligent_system_prompt(
@@ -377,6 +331,31 @@ HOW TO RESPOND:
     return base_prompt
 
 
+def save_conversation_memory(
+    db: Session,
+    user_id: int,
+    question: str,
+    answer: str,
+    topic_tags: List[str]
+):
+    try:
+        memory = models.ConversationMemory(
+            user_id=user_id,
+            question=question,
+            answer=answer,
+            context_summary=f"{question[:100]}...",
+            topic_tags=json.dumps(topic_tags[:5]),
+            question_type="conversational",
+            last_used=datetime.now(timezone.utc),
+            usage_count=1
+        )
+        db.add(memory)
+        db.commit()
+    except Exception as e:
+        print(f"Error saving memory: {e}")
+        db.rollback()
+
+
 async def generate_enhanced_ai_response(
     question: str,
     user_profile: Dict[str, Any],
@@ -388,9 +367,6 @@ async def generate_enhanced_ai_response(
     model: str
 ) -> str:
     try:
-        from ai_personality import PersonalityEngine, AdaptiveLearningModel, build_natural_prompt
-        from neural_adaptation import get_rl_agent, ConversationContextAnalyzer
-        
         user_id = user_profile.get('user_id')
         is_first_message = len(conversation_history) == 0
         
@@ -416,16 +392,17 @@ async def generate_enhanced_ai_response(
         }
         
         state = rl_agent.encode_state(context)
-        
         response_adjustments = rl_agent.get_response_adjustment()
         
-        system_prompt = build_natural_prompt(
+        weak_topics = analyze_weak_topics(db, user_id) if user_id else []
+        
+        system_prompt = build_intelligent_system_prompt(
             user_profile,
+            learning_context,
             conversation_history,
-            db,
-            is_first_message,
-            personality_engine,
-            adaptive_model
+            relevant_past_chats,
+            weak_topics,
+            is_first_message
         )
         
         if response_adjustments['detail_level'] > 0.7:
@@ -476,14 +453,9 @@ async def generate_enhanced_ai_response(
         
         known_mistake = rl_agent.check_for_known_mistakes(response)
         if known_mistake:
-            response = response.replace(
-                [k for k, v in rl_agent.user_corrections.items() 
-                 if v['correction'] == known_mistake][0],
-                known_mistake
-            )
+            response = known_mistake
         
         action = rl_agent.network.predict(state)
-        
         next_context = context.copy()
         next_context['session_length'] += 1
         next_state = rl_agent.encode_state(next_context)
@@ -497,32 +469,6 @@ async def generate_enhanced_ai_response(
     except Exception as e:
         print(f"Error generating response: {e}")
         return "I apologize, but I encountered an error. Could you please rephrase your question?"
-
-def save_conversation_memory(
-    db: Session,
-    user_id: int,
-    question: str,
-    answer: str,
-    topic_tags: List[str]
-):
-    try:
-        import models
-        
-        memory = models.ConversationMemory(
-            user_id=user_id,
-            question=question,
-            answer=answer,
-            context_summary=f"{question[:100]}...",
-            topic_tags=json.dumps(topic_tags[:5]),
-            question_type="conversational",
-            last_used=datetime.now(timezone.utc),
-            usage_count=1
-        )
-        db.add(memory)
-        db.commit()
-    except Exception as e:
-        print(f"Error saving memory: {e}")
-        db.rollback()
 
 
 def get_topic_from_question(question: str) -> str:

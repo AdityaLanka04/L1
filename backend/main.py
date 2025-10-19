@@ -29,13 +29,8 @@ from database import SessionLocal, engine
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv()
 
-from ai_personality import PersonalityEngine, AdaptiveLearningModel, build_natural_prompt
-from neural_adaptation import (
-    get_rl_agent, 
-    ConversationContextAnalyzer,
-    NeuralResponseNetwork,
-    ReinforcementLearningAgent
-)
+from ai_personality import PersonalityEngine, AdaptiveLearningModel
+from neural_adaptation import get_rl_agent, ConversationContextAnalyzer
 import advanced_prompting
 
 logging.basicConfig(level=logging.INFO)

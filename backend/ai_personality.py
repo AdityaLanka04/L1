@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from datetime import datetime, timezone
 import json
 from sqlalchemy.orm import Session
