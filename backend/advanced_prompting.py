@@ -1,10 +1,18 @@
 from typing import Dict, List, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, desc
 import json
 import re
+import models
+# UTC timezone
+utc_now = datetime.now(timezone.utc)
+print(f"Current UTC time: {utc_now}")
 
+# Custom fixed-offset timezone (e.g., UTC+5)
+plus_five_hours = timezone(timedelta(hours=5))
+custom_tz_now = datetime.now(plus_five_hours)
+print(f"Current time in UTC+5: {custom_tz_now}")
 
 def extract_topic_keywords(text: str, max_keywords: int = 5) -> List[str]:
     stop_words = {
@@ -242,157 +250,131 @@ def build_intelligent_system_prompt(
     preferred_subjects = user_profile.get('preferred_subjects', [])
     
     if is_first_message:
-        base_prompt = f"""You are an expert AI tutor. Welcome {first_name} warmly and let them know you're here to help them with {field_of_study}.
-
-Keep your greeting natural and brief - don't list all your capabilities."""
+        greeting = f"Hey {first_name}!"
     else:
-        base_prompt = f"""You are an expert AI tutor helping {first_name} with {field_of_study}.
-
-Be natural and conversational. Reference previous discussions when relevant, but don't repeat yourself."""
+        greeting = ""
     
-    if primary_archetype:
-        base_prompt += f"""
+    base_prompt = f"""{greeting} You're chatting with {first_name}.
 
-STUDENT'S LEARNING ARCHETYPE: {primary_archetype}"""
-        if secondary_archetype:
-            base_prompt += f""" (Secondary: {secondary_archetype})"""
-        
-        teaching_style = get_archetype_teaching_style(primary_archetype, secondary_archetype)
-        if teaching_style:
-            base_prompt += f"""
-{teaching_style}"""
-    
-    if brainwave_goal:
-        goal_guidance = {
-            'exam_prep': "Focus on test-taking strategies, key concepts review, and practice problems.",
-            'homework_help': "Provide step-by-step guidance while encouraging independent thinking.",
-            'concept_mastery': "Deep dive into fundamentals with thorough explanations and connections.",
-            'skill_building': "Emphasize practical application and progressive skill development.",
-            'career_prep': "Connect concepts to real-world professional applications.",
-            'curiosity': "Encourage exploration and provide fascinating insights beyond basics."
-        }
-        if brainwave_goal in goal_guidance:
-            base_prompt += f"""
+CRITICAL CONTEXT YOU MUST REMEMBER:
+- Their main subject: {field_of_study}
+- Current difficulty level: {difficulty_level}"""
 
-STUDENT'S GOAL: {goal_guidance[brainwave_goal]}"""
-    
     if preferred_subjects:
         subjects_str = ", ".join(preferred_subjects[:5])
-        base_prompt += f"""
-
-STUDENT'S INTERESTS: {subjects_str}
-Connect topics to these interests when naturally relevant."""
+        base_prompt += f"\n- Interested in: {subjects_str}"
+    
+    if primary_archetype:
+        base_prompt += f"\n- Learning archetype: {primary_archetype}"
+        if secondary_archetype:
+            base_prompt += f" (with {secondary_archetype} traits)"
+        
+        archetype_teaching = {
+            'Logicor': """They're a Logicor - they excel at logical analysis and systematic thinking.
+- Break down complex problems into clear, logical steps
+- Show cause-effect relationships explicitly
+- Use structured frameworks and methodologies
+- Present information in a well-organized, sequential manner""",
+            
+            'Flowist': """They're a Flowist - they thrive on dynamic, hands-on experiences.
+- Keep things interactive and practical
+- Use real-world examples they can try
+- Encourage learning by doing
+- Be flexible and adapt to their pace""",
+            
+            'Kinetiq': """They're a Kinetiq - they learn through movement and physical engagement.
+- Suggest hands-on activities and experiments
+- Use action-oriented language
+- Provide tangible, practical demonstrations
+- Connect concepts to physical experiences""",
+            
+            'Synth': """They're a Synth - they see patterns and connections naturally.
+- Show how concepts relate across different domains
+- Highlight patterns and relationships
+- Connect new information to what they already know
+- Use analogies that bridge different fields""",
+            
+            'Dreamweaver': """They're a Dreamweaver - they think in big pictures and possibilities.
+- Start with the overall vision before details
+- Use visual metaphors and imaginative scenarios
+- Paint the bigger picture first
+- Encourage creative thinking about applications""",
+            
+            'Anchor': """They're an Anchor - they value structure and clear organization.
+- Provide step-by-step progressions
+- Use clear frameworks and defined goals
+- Be methodical and systematic
+- Give them a roadmap for learning""",
+            
+            'Spark': """They're a Spark - they're driven by creativity and innovation.
+- Use creative analogies and unexpected connections
+- Encourage innovative thinking
+- Present novel approaches
+- Make learning exciting and fresh""",
+            
+            'Empathion': """They're an Empathion - they connect through meaning and emotion.
+- Relate concepts to human experiences
+- Use storytelling when possible
+- Discuss the personal meaning and impact
+- Show the emotional or human side""",
+            
+            'Seeker': """They're a Seeker - they're motivated by curiosity and discovery.
+- Present intriguing questions
+- Share fascinating insights
+- Encourage exploration
+- Make them curious to learn more""",
+            
+            'Resonant': """They're Resonant - highly adaptable and flexible.
+- Adjust your approach based on their responses
+- Offer multiple explanation styles
+- Be dynamic in your teaching
+- Read their reactions and adapt"""
+        }
+        
+        if primary_archetype in archetype_teaching:
+            base_prompt += f"\n\n{archetype_teaching[primary_archetype]}"
+    
+    if brainwave_goal:
+        goal_context = {
+            'exam_prep': "They're preparing for exams - focus on test strategies, key concepts, and practice.",
+            'homework_help': "They need homework help - guide them step-by-step without just giving answers.",
+            'concept_mastery': "They want to master concepts deeply - provide thorough explanations and connections.",
+            'skill_building': "They're building skills - emphasize practical application and progressive development.",
+            'career_prep': "They're preparing for their career - connect to real-world professional applications.",
+            'curiosity': "They're learning for fun - make it fascinating and go beyond basics when they're interested."
+        }
+        if brainwave_goal in goal_context:
+            base_prompt += f"\n{goal_context[brainwave_goal]}"
+    
+    if learning_context and learning_context.get('most_frequent_topics'):
+        topics = [t[0] for t in learning_context['most_frequent_topics']]
+        if topics:
+            base_prompt += f"\n\nRecent topics they've explored: {', '.join(topics)}"
+    
+    if conversation_history and not is_first_message:
+        recent = conversation_history[-3:]
+        if recent:
+            base_prompt += f"\n\nCONVERSATION CONTEXT:"
+            for msg in recent[-2:]:
+                base_prompt += f"\nThem: {msg['user_message'][:80]}..."
+                base_prompt += f"\nYou: {msg['ai_response'][:80]}..."
+    
+    if relevant_past_chats and not is_first_message:
+        base_prompt += f"\n\nYou've discussed similar topics before in: \"{relevant_past_chats[0]['title']}\""
     
     base_prompt += f"""
 
-STUDENT LEVEL: {difficulty_level.title()}
-Adjust your explanations accordingly."""
-    
-    if learning_context and learning_context.get('most_frequent_topics'):
-        topics = ', '.join([t[0] for t in learning_context['most_frequent_topics']])
-        base_prompt += f"""
+HOW TO RESPOND:
+- Be natural and conversational like a real person
+- Don't announce what you're doing ("As a Logicor..." or "Based on your archetype...")
+- Just naturally teach in the way that works for them
+- Reference past conversations when relevant
+- If you don't know something they mentioned, ask them about it
+- Vary your responses - don't use the same structure every time
+- Be warm but not overly formal
+- Use their name occasionally but not every message"""
 
-RECENT FOCUS AREAS: {topics}"""
-    
-    if weak_topics and not is_first_message:
-        topics_list = ', '.join([t['topic'] for t in weak_topics[:2]])
-        base_prompt += f"""
-
-REVIEW OPPORTUNITIES: {topics_list} haven't been reviewed recently.
-If naturally relevant, suggest a quick review."""
-    
-    if conversation_history and not is_first_message:
-        recent_context = ""
-        for msg in conversation_history[-3:]:
-            recent_context += f"Student: {msg['user_message'][:100]}\n"
-            recent_context += f"You: {msg['ai_response'][:100]}...\n\n"
-        
-        base_prompt += f"""
-
-RECENT CONVERSATION:
-{recent_context.strip()}
-Continue naturally from this context."""
-    
-    if relevant_past_chats and not is_first_message:
-        base_prompt += f"""
-
-RELATED PAST DISCUSSIONS:
-{len(relevant_past_chats)} previous conversation(s) touched on similar topics.
-Reference if relevant: "{relevant_past_chats[0]['title']}" """
-    
-    base_prompt += """
-
-RESPONSE GUIDELINES:
-- Be clear, helpful, and thorough
-- Use concrete examples to illustrate concepts
-- Break down complex topics step-by-step when needed
-- Ask clarifying questions if the question is ambiguous
-- Vary your response style - be natural, not formulaic
-- Only suggest next steps or ask follow-up questions when it genuinely helps
-- Keep your tone warm but professional"""
-    
     return base_prompt
-
-def get_quiz_based_teaching_adaptations(quiz_responses: Dict[str, str]) -> str:
-    adaptations = []
-    
-    if quiz_responses.get('learningEnvironment') == 'structured':
-        adaptations.append("Provide clear, organized frameworks and step-by-step guidance")
-    elif quiz_responses.get('learningEnvironment') == 'flexible':
-        adaptations.append("Offer flexible explanations with multiple pathways to understanding")
-    elif quiz_responses.get('learningEnvironment') == 'collaborative':
-        adaptations.append("Include discussion prompts and collaborative learning suggestions")
-    elif quiz_responses.get('learningEnvironment') == 'independent':
-        adaptations.append("Encourage self-discovery with guiding questions")
-    
-    if quiz_responses.get('problemSolving') == 'break_down':
-        adaptations.append("Break complex problems into logical, sequential steps")
-    elif quiz_responses.get('problemSolving') == 'visualize':
-        adaptations.append("Start with big-picture overview before diving into details")
-    elif quiz_responses.get('problemSolving') == 'experiment':
-        adaptations.append("Suggest hands-on experiments and trial-and-error approaches")
-    elif quiz_responses.get('problemSolving') == 'discuss':
-        adaptations.append("Frame concepts as discussion points and thought experiments")
-    
-    if quiz_responses.get('newConcepts') == 'reading':
-        adaptations.append("Provide thorough written explanations with detailed context")
-    elif quiz_responses.get('newConcepts') == 'visual':
-        adaptations.append("Use analogies and describe visual representations")
-    elif quiz_responses.get('newConcepts') == 'hands_on':
-        adaptations.append("Suggest practical exercises and real-world applications")
-    elif quiz_responses.get('newConcepts') == 'discussion':
-        adaptations.append("Present ideas through dialogue and questioning")
-    
-    if quiz_responses.get('informationProcessing') == 'logic':
-        adaptations.append("Use logical reasoning and cause-effect relationships")
-    elif quiz_responses.get('informationProcessing') == 'patterns':
-        adaptations.append("Highlight patterns, connections, and recurring themes")
-    elif quiz_responses.get('informationProcessing') == 'emotion':
-        adaptations.append("Connect concepts to human experiences and real-life meaning")
-    elif quiz_responses.get('informationProcessing') == 'action':
-        adaptations.append("Emphasize physical demonstrations and kinesthetic learning")
-    
-    if quiz_responses.get('feedback') == 'detailed':
-        adaptations.append("Provide detailed analytical feedback with specific examples")
-    elif quiz_responses.get('feedback') == 'encouraging':
-        adaptations.append("Use positive, encouraging language that builds confidence")
-    elif quiz_responses.get('feedback') == 'constructive':
-        adaptations.append("Focus on actionable improvements and next steps")
-    elif quiz_responses.get('feedback') == 'direct':
-        adaptations.append("Be direct and concise in corrections and suggestions")
-    
-    return " ".join(adaptations) if adaptations else ""
-
-
-def should_suggest_weak_topic_review(message_count: int, weak_topics: List[Dict]) -> Optional[str]:
-    if not weak_topics or message_count < 1:
-        return None
-    
-    if message_count % 8 == 0:
-        topic = weak_topics[0]
-        return f"\n\n💡 By the way, it's been {topic['days_since_review']} days since we discussed {topic['topic']}. Would you like a quick refresher?"
-    
-    return None
 
 
 async def generate_enhanced_ai_response(
@@ -406,19 +388,73 @@ async def generate_enhanced_ai_response(
     model: str
 ) -> str:
     try:
+        from ai_personality import PersonalityEngine, AdaptiveLearningModel, build_natural_prompt
+        from neural_adaptation import get_rl_agent, ConversationContextAnalyzer
+        
         user_id = user_profile.get('user_id')
         is_first_message = len(conversation_history) == 0
         
-        weak_topics = analyze_weak_topics(db, user_id) if user_id else []
+        personality_engine = PersonalityEngine()
+        adaptive_model = AdaptiveLearningModel()
+        adaptive_model.load_model_state(db, user_id)
         
-        system_prompt = build_intelligent_system_prompt(
+        rl_agent = get_rl_agent(db, user_id)
+        
+        context = {
+            'message_length': len(question),
+            'question_complexity': ConversationContextAnalyzer.calculate_complexity(question),
+            'archetype': user_profile.get('primary_archetype', ''),
+            'time_of_day': datetime.now(timezone.utc).hour,
+            'session_length': len(conversation_history),
+            'previous_ratings': [
+                msg.get('userRating', 3) for msg in conversation_history[-10:]
+                if msg.get('userRating')
+            ],
+            'topic_keywords': extract_topic_keywords(question),
+            'sentiment': ConversationContextAnalyzer.analyze_sentiment(question),
+            'formality_level': 0.5
+        }
+        
+        state = rl_agent.encode_state(context)
+        
+        response_adjustments = rl_agent.get_response_adjustment()
+        
+        system_prompt = build_natural_prompt(
             user_profile,
-            learning_context,
             conversation_history,
-            relevant_past_chats,
-            weak_topics,
-            is_first_message
+            db,
+            is_first_message,
+            personality_engine,
+            adaptive_model
         )
+        
+        if response_adjustments['detail_level'] > 0.7:
+            system_prompt += "\nProvide detailed, thorough explanations."
+        elif response_adjustments['detail_level'] < 0.4:
+            system_prompt += "\nKeep explanations brief and to the point."
+        
+        if response_adjustments['examples'] > 0.7:
+            system_prompt += "\nInclude multiple practical examples."
+        
+        if response_adjustments['encouragement'] > 0.7:
+            system_prompt += "\nBe especially encouraging and supportive."
+        
+        if rl_agent.user_corrections:
+            system_prompt += "\n\nIMPORTANT - Previous corrections:"
+            for correction_data in list(rl_agent.user_corrections.values())[-5:]:
+                system_prompt += f"\n- Never: {correction_data['mistake']}"
+                system_prompt += f"\n  Always: {correction_data['correction']}"
+        
+        topic_keywords = extract_topic_keywords(question)
+        conversation_memories = personality_engine.get_conversation_memory(
+            db, user_id, ' '.join(topic_keywords)
+        )
+        
+        if conversation_memories and not is_first_message:
+            memory_context = "\n".join([
+                f"You discussed: {m['context']}" for m in conversation_memories[:2]
+            ])
+            system_prompt += f"\n\n{memory_context}"
         
         messages = [{"role": "system", "content": system_prompt}]
         
@@ -431,24 +467,62 @@ async def generate_enhanced_ai_response(
         chat_completion = groq_client.chat.completions.create(
             messages=messages,
             model=model,
-            temperature=0.7,
+            temperature=0.8,
             max_tokens=3072,
-            top_p=0.9,
+            top_p=0.95,
         )
         
         response = chat_completion.choices[0].message.content
         
-        message_count = len(conversation_history) + 1
-        review_suggestion = should_suggest_weak_topic_review(message_count, weak_topics)
+        known_mistake = rl_agent.check_for_known_mistakes(response)
+        if known_mistake:
+            response = response.replace(
+                [k for k, v in rl_agent.user_corrections.items() 
+                 if v['correction'] == known_mistake][0],
+                known_mistake
+            )
         
-        if review_suggestion and not is_first_message:
-            response += review_suggestion
+        action = rl_agent.network.predict(state)
+        
+        next_context = context.copy()
+        next_context['session_length'] += 1
+        next_state = rl_agent.encode_state(next_context)
+        
+        rl_agent.remember(state, action, 0.0, next_state)
+        
+        save_conversation_memory(db, user_id, question, response, topic_keywords)
         
         return response
         
     except Exception as e:
         print(f"Error generating response: {e}")
         return "I apologize, but I encountered an error. Could you please rephrase your question?"
+
+def save_conversation_memory(
+    db: Session,
+    user_id: int,
+    question: str,
+    answer: str,
+    topic_tags: List[str]
+):
+    try:
+        import models
+        
+        memory = models.ConversationMemory(
+            user_id=user_id,
+            question=question,
+            answer=answer,
+            context_summary=f"{question[:100]}...",
+            topic_tags=json.dumps(topic_tags[:5]),
+            question_type="conversational",
+            last_used=datetime.now(timezone.utc),
+            usage_count=1
+        )
+        db.add(memory)
+        db.commit()
+    except Exception as e:
+        print(f"Error saving memory: {e}")
+        db.rollback()
 
 
 def get_topic_from_question(question: str) -> str:

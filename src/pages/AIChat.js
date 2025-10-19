@@ -395,21 +395,26 @@ const AIChat = () => {
     }
   };
 
-  const rateResponse = async (messageId, rating) => {
+const rateResponse = async (messageId, rating) => {
     try {
       const token = localStorage.getItem('token');
+      const message = messages.find(m => m.id === messageId);
+      
       const formData = new FormData();
       formData.append('user_id', userName);
-      formData.append('message_id', messageId.replace('ai_', ''));
       formData.append('rating', rating.toString());
+      formData.append('message_content', message?.content || '');
 
-      const response = await fetch('http://localhost:8001/rate_response', {
+      const response = await fetch('http://localhost:8001/submit_advanced_feedback', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
       });
 
       if (response.ok) {
+        const data = await response.json();
+        console.log('🧠 Neural network updated:', data);
+        
         setMessages(prev => prev.map(msg => 
           msg.id === messageId ? { ...msg, userRating: rating } : msg
         ));
@@ -428,28 +433,35 @@ const AIChat = () => {
 
     try {
       const token = localStorage.getItem('token');
+      const message = messages.find(m => m.id === messageId);
+      
       const formData = new FormData();
       formData.append('user_id', userName);
-      formData.append('message_id', messageId.replace('ai_', ''));
-      formData.append('rating', 
-        messages.find(m => m.id === messageId)?.userRating || 1
-      );
+      formData.append('rating', message?.userRating || 1);
       formData.append('feedback_text', feedbackText);
       formData.append('improvement_suggestion', improvementSuggestion);
+      formData.append('message_content', message?.content || '');
 
-      const response = await fetch('http://localhost:8001/rate_response', {
+      const response = await fetch('http://localhost:8001/submit_advanced_feedback', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
       });
 
       if (response.ok) {
+        const data = await response.json();
+        console.log('🎯 Learning complete:', data);
+        
         setShowFeedbackFor(null);
         setFeedbackText('');
         setImprovementSuggestion('');
         
         setMessages(prev => prev.map(msg => 
-          msg.id === messageId ? { ...msg, feedbackSubmitted: true } : msg
+          msg.id === messageId ? { 
+            ...msg, 
+            feedbackSubmitted: true,
+            neuralNetworkUpdated: true 
+          } : msg
         ));
       }
     } catch (error) {

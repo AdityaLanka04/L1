@@ -29,6 +29,15 @@ from database import SessionLocal, engine
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv()
 
+from ai_personality import PersonalityEngine, AdaptiveLearningModel, build_natural_prompt
+from neural_adaptation import (
+    get_rl_agent, 
+    ConversationContextAnalyzer,
+    NeuralResponseNetwork,
+    ReinforcementLearningAgent
+)
+import advanced_prompting
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -742,7 +751,6 @@ def get_user_learning_context(db, user_id: int) -> Dict[str, Any]:
         return {}
 
 
-# ENHANCED /ask/ ENDPOINT
 @app.post("/ask/")
 async def ask_ai_enhanced(
     user_id: str = Form(...),
@@ -750,7 +758,7 @@ async def ask_ai_enhanced(
     chat_id: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
-    logger.info(f"Processing AI query for user {user_id}")
+    logger.info(f"🤖 Processing AI query for user {user_id}")
     
     try:
         chat_id_int = int(chat_id) if chat_id else None
@@ -780,7 +788,9 @@ async def ask_ai_enhanced(
             "difficulty_level": "intermediate",
             "learning_pace": "moderate",
             "primary_archetype": "",
-            "secondary_archetype": ""
+            "secondary_archetype": "",
+            "brainwave_goal": "",
+            "preferred_subjects": []
         }
         
         if comprehensive_profile:
@@ -788,8 +798,22 @@ async def ask_ai_enhanced(
                 "difficulty_level": comprehensive_profile.difficulty_level or "intermediate",
                 "learning_pace": comprehensive_profile.learning_pace or "moderate",
                 "primary_archetype": comprehensive_profile.primary_archetype or "",
-                "secondary_archetype": comprehensive_profile.secondary_archetype or ""
+                "secondary_archetype": comprehensive_profile.secondary_archetype or "",
+                "brainwave_goal": comprehensive_profile.brainwave_goal or ""
             })
+            
+            try:
+                if comprehensive_profile.preferred_subjects:
+                    subjects_data = comprehensive_profile.preferred_subjects
+                    if isinstance(subjects_data, str):
+                        user_profile["preferred_subjects"] = json.loads(subjects_data)
+                    else:
+                        user_profile["preferred_subjects"] = subjects_data
+            except Exception as e:
+                logger.error(f"Error parsing subjects: {e}")
+                user_profile["preferred_subjects"] = []
+        
+        logger.info(f"📊 Profile: {user_profile['primary_archetype']} | {user_profile['field_of_study']}")
         
         conversation_history = []
         if chat_id_int:
@@ -804,20 +828,36 @@ async def ask_ai_enhanced(
                     'timestamp': msg.timestamp
                 })
         
-        from advanced_prompting import (
-            generate_enhanced_ai_response,
-            get_topic_from_question,
-            extract_topic_keywords,
-            get_relevant_past_conversations,
-            get_user_learning_context
+        learning_context = advanced_prompting.get_user_learning_context(db, user.id)
+        
+        topic_keywords = " ".join(advanced_prompting.extract_topic_keywords(question))
+        relevant_past_chats = advanced_prompting.get_relevant_past_conversations(
+            db, user.id, topic_keywords, limit=3
         )
         
-        learning_context = get_user_learning_context(db, user.id)
+        rl_agent = get_rl_agent(db, user.id)
         
-        topic_keywords = " ".join(extract_topic_keywords(question))
-        relevant_past_chats = get_relevant_past_conversations(db, user.id, topic_keywords, limit=3)
+        context = {
+            'message_length': len(question),
+            'question_complexity': ConversationContextAnalyzer.calculate_complexity(question),
+            'archetype': user_profile.get('primary_archetype', ''),
+            'time_of_day': datetime.now(timezone.utc).hour,
+            'session_length': len(conversation_history),
+            'previous_ratings': [
+                msg.get('userRating', 3) for msg in conversation_history
+                if isinstance(msg, dict) and msg.get('userRating')
+            ],
+            'topic_keywords': advanced_prompting.extract_topic_keywords(question),
+            'sentiment': ConversationContextAnalyzer.analyze_sentiment(question),
+            'formality_level': 0.5
+        }
         
-        response = await generate_enhanced_ai_response(
+        state = rl_agent.encode_state(context)
+        response_adjustments = rl_agent.get_response_adjustment()
+        
+        logger.info(f"🧠 Neural adjustments: {response_adjustments}")
+        
+        response = await advanced_prompting.generate_enhanced_ai_response(
             question,
             user_profile,
             learning_context,
@@ -827,6 +867,11 @@ async def ask_ai_enhanced(
             groq_client,
             GROQ_MODEL
         )
+        
+        known_mistake = rl_agent.check_for_known_mistakes(response)
+        if known_mistake:
+            logger.info(f"🔧 Correcting known mistake")
+            response = known_mistake
         
         if chat_id_int:
             chat_message = models.ChatMessage(
@@ -850,7 +895,7 @@ async def ask_ai_enhanced(
                 new_title = " ".join(title_words)
                 chat_session.title = new_title[:50] if new_title else "New Chat"
         
-        topic = get_topic_from_question(question)
+        topic = advanced_prompting.get_topic_from_question(question)
         
         activity = models.Activity(
             user_id=user.id,
@@ -896,6 +941,12 @@ async def ask_ai_enhanced(
         
         db.commit()
         
+        action = rl_agent.network.predict(state)
+        next_state = rl_agent.encode_state({**context, 'session_length': len(conversation_history) + 1})
+        rl_agent.remember(state, action, 0.0, next_state)
+        
+        advanced_prompting.save_conversation_memory(db, user.id, question, response, context['topic_keywords'])
+        
         return {
             "answer": response,
             "ai_confidence": 0.92,
@@ -908,7 +959,9 @@ async def ask_ai_enhanced(
             "archetype_used": user_profile.get('primary_archetype', 'None'),
             "questions_today": daily_metric.questions_answered,
             "learning_context_used": bool(learning_context),
-            "relevant_past_chats": len(relevant_past_chats)
+            "relevant_past_chats": len(relevant_past_chats),
+            "neural_network_active": True,
+            "response_adjustments": response_adjustments
         }
         
     except HTTPException:
@@ -1028,36 +1081,172 @@ def get_chat_sessions(user_id: str = Query(...), db: Session = Depends(get_db)):
 @app.get("/get_chat_messages")
 def get_chat_messages(chat_id: int = Query(...), db: Session = Depends(get_db)):
     try:
-        logger.info(f"Loading messages for chat_id: {chat_id}")
+        logger.info(f"📥 Loading messages for chat_id: {chat_id}")
         
         messages = db.query(models.ChatMessage).filter(
             models.ChatMessage.chat_session_id == chat_id
         ).order_by(models.ChatMessage.timestamp.asc()).all()
         
-        logger.info(f"Found {len(messages)} messages")
+        logger.info(f"Found {len(messages)} message pairs")
         
         result = []
-        for msg in messages:
-            result.append({
-                "id": f"user_{msg.id}",
-                "type": "user",
-                "content": msg.user_message,
-                "timestamp": msg.timestamp.isoformat()
-            })
-            result.append({
-                "id": f"ai_{msg.id}",
-                "type": "ai",
-                "content": msg.ai_response,
-                "timestamp": msg.timestamp.isoformat(),
-                "aiConfidence": 0.85,
-                "shouldRequestFeedback": False
-            })
+        seen_ids = set()
         
-        logger.info(f"Returning {len(result)} message objects")
+        for msg in messages:
+            user_msg_id = f"user_{msg.id}"
+            ai_msg_id = f"ai_{msg.id}"
+            
+            if user_msg_id not in seen_ids:
+                result.append({
+                    "id": user_msg_id,
+                    "type": "user",
+                    "content": msg.user_message,
+                    "timestamp": msg.timestamp.isoformat()
+                })
+                seen_ids.add(user_msg_id)
+            
+            if ai_msg_id not in seen_ids:
+                result.append({
+                    "id": ai_msg_id,
+                    "type": "ai",
+                    "content": msg.ai_response,
+                    "timestamp": msg.timestamp.isoformat(),
+                    "aiConfidence": 0.85,
+                    "shouldRequestFeedback": False
+                })
+                seen_ids.add(ai_msg_id)
+        
+        logger.info(f"📤 Returning {len(result)} individual messages")
         return result
         
     except Exception as e:
         logger.error(f"Error in get_chat_messages: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/submit_response_feedback")
+async def submit_response_feedback(
+    user_id: str = Form(...),
+    rating: int = Form(...),
+    message_context: str = Form(None),
+    db: Session = Depends(get_db)
+):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        from ai_personality import AdaptiveLearningModel
+        
+        adaptive_model = AdaptiveLearningModel()
+        adaptive_model.load_model_state(db, user.id)
+        adaptive_model.update_from_feedback(rating, 'explanation_depth')
+        adaptive_model.save_model_state(db, user.id)
+        
+        feedback = models.UserFeedback(
+            user_id=user.id,
+            feedback_type="rating",
+            rating=rating,
+            topic_context=message_context,
+            is_processed=False
+        )
+        db.add(feedback)
+        db.commit()
+        
+        return {
+            "status": "success",
+            "message": "Feedback recorded and model updated"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error submitting feedback: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+@app.post("/submit_advanced_feedback")
+async def submit_advanced_feedback(
+    user_id: str = Form(...),
+    rating: int = Form(...),
+    feedback_text: str = Form(None),
+    improvement_suggestion: str = Form(None),
+    message_content: str = Form(None),
+    db: Session = Depends(get_db)
+):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        from ai_personality import AdaptiveLearningModel
+        from neural_adaptation import get_rl_agent, ConversationContextAnalyzer
+        
+        adaptive_model = AdaptiveLearningModel()
+        adaptive_model.load_model_state(db, user.id)
+        adaptive_model.update_from_feedback(rating, 'explanation_depth')
+        adaptive_model.save_model_state(db, user.id)
+        
+        rl_agent = get_rl_agent(db, user.id)
+        
+        reward = rl_agent.get_reward(rating, feedback_text)
+        
+        context = {
+            'message_length': len(message_content or ''),
+            'question_complexity': 0.5,
+            'archetype': '',
+            'time_of_day': datetime.now(timezone.utc).hour,
+            'session_length': 0,
+            'previous_ratings': [],
+            'topic_keywords': [],
+            'sentiment': ConversationContextAnalyzer.analyze_sentiment(feedback_text or ''),
+            'formality_level': 0.5
+        }
+        
+        state = rl_agent.encode_state(context)
+        next_state = state
+        action = rl_agent.network.predict(state)
+        
+        rl_agent.remember(state, action, reward, next_state)
+        rl_agent.learn_from_experience(batch_size=16)
+        
+        if rating >= 4:
+            rl_agent.learn_from_positive_feedback(message_content or '', rating)
+        elif rating <= 2 and feedback_text:
+            rl_agent.learn_from_negative_feedback(
+                message_content or '', rating, feedback_text
+            )
+        
+        if improvement_suggestion:
+            correction_intent = ConversationContextAnalyzer.extract_correction_intent(
+                improvement_suggestion
+            )
+            if correction_intent:
+                rl_agent.save_correction(
+                    message_content or '',
+                    improvement_suggestion,
+                    context
+                )
+        
+        rl_agent.save_model()
+        
+        feedback = models.UserFeedback(
+            user_id=user.id,
+            feedback_type="rating_with_learning",
+            rating=rating,
+            feedback_text=feedback_text,
+            topic_context=message_content,
+            is_processed=True,
+            resulted_in_improvement=True
+        )
+        db.add(feedback)
+        db.commit()
+        
+        return {
+            "status": "success",
+            "message": "Feedback processed with neural network",
+            "reward": float(reward),
+            "model_updated": True,
+            "corrections_learned": len(rl_agent.user_corrections)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in advanced feedback: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/get_chat_history/{session_id}")

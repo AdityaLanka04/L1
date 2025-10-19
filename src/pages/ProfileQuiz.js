@@ -211,7 +211,7 @@ const ProfileQuiz = () => {
     }
   };
 
-  const completeQuiz = async (scores) => {
+const completeQuiz = async (scores) => {
     const sortedArchetypes = Object.entries(scores)
       .sort(([, a], [, b]) => b - a)
       .map(([archetype]) => archetype);
@@ -220,16 +220,16 @@ const ProfileQuiz = () => {
     const secondaryArchetype = sortedArchetypes[1];
 
     const archetypeDescriptions = {
-      Logicor: "You thrive on logical analysis and systematic problem-solving. You excel at breaking down complex concepts into manageable parts.",
-      Flowist: "You learn best through dynamic, hands-on experiences. You adapt easily and prefer learning by doing.",
-      Kinetiq: "You're a kinesthetic learner who needs movement and physical engagement to process information effectively.",
-      Synth: "You naturally see connections between ideas and excel at integrating knowledge from different domains.",
-      Dreamweaver: "You think in big pictures and future possibilities. Visual and imaginative approaches resonate with you.",
-      Anchor: "You value structure, organization, and clear systems. You excel with well-defined goals and methodical approaches.",
-      Spark: "You're driven by creativity and innovation. Novel ideas and expressive methods fuel your learning.",
-      Empathion: "You connect deeply with emotional and interpersonal aspects of learning. You understand through empathy and meaning.",
-      Seeker: "You're motivated by curiosity and the joy of discovery. You love exploring new topics and expanding knowledge.",
-      Resonant: "You're highly adaptable and tune into different learning environments. You adjust your approach fluidly."
+      Logicor: "You thrive on logical analysis and systematic problem-solving.",
+      Flowist: "You learn best through dynamic, hands-on experiences.",
+      Kinetiq: "You're a kinesthetic learner who needs movement.",
+      Synth: "You naturally see connections between ideas.",
+      Dreamweaver: "You think in big pictures and future possibilities.",
+      Anchor: "You value structure and organization.",
+      Spark: "You're driven by creativity and innovation.",
+      Empathion: "You connect deeply with emotional aspects.",
+      Seeker: "You're motivated by curiosity and discovery.",
+      Resonant: "You're highly adaptable and flexible."
     };
 
     try {
@@ -250,7 +250,8 @@ const ProfileQuiz = () => {
           secondary_archetype: secondaryArchetype,
           archetype_scores: scores,
           archetype_description: archetypeDescriptions[primaryArchetype],
-          quiz_completed: true
+          quiz_completed: true,
+          quiz_responses: answers.archetypeAnswers
         })
       });
 
