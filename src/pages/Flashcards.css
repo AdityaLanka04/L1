@@ -261,24 +261,21 @@
 /* Enhanced Tab Navigation */
 .tab-navigation {
   display: flex;
-  justify-content: center;
-  margin-bottom: 50px;
+  gap: 4px;
+  margin-bottom: 30px;
+  border-bottom: 2px solid rgba(215, 179, 140, 0.3);
+  position: relative;
+  padding: 15px;
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--accent) 8%, transparent) 0%,
-    color-mix(in srgb, var(--accent) 3%, transparent) 100%
+    rgba(0, 0, 0, 0.4) 0%,
+    rgba(0, 0, 0, 0.3) 100%
   );
-  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
-  border-radius: 0;
-  padding: 4px;
-  max-width: 400px;
-  margin-left: auto;
-  margin-right: auto;
-  margin-bottom: 50px;
+  border: 2px solid rgba(215, 179, 140, 0.25);
   backdrop-filter: blur(15px);
   box-shadow: 
-    0 8px 25px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    0 8px 25px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .tab-btn {

@@ -63,6 +63,9 @@ class User(Base):
     daily_metrics = relationship("DailyLearningMetrics", back_populates="user")
     achievements = relationship("UserAchievement", back_populates="user")
     comprehensive_profile = relationship("ComprehensiveUserProfile", back_populates="user", uselist=False)
+    uploaded_slides = relationship("UploadedSlide", back_populates="user")
+    question_sets = relationship("QuestionSet", back_populates="user")
+    question_attempts = relationship("QuestionAttempt", back_populates="user")
 
 class ChatSession(Base):
     __tablename__ = "chat_sessions"
@@ -651,14 +654,15 @@ class LearningReview(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     title = Column(String(255), nullable=False)
-    source_sessions = Column(Text)  # JSON array of chat session IDs
-    source_content = Column(Text)  # Truncated conversation content for context
-    expected_points = Column(Text)  # JSON object with categorized learning points
+    source_sessions = Column(Text)
+    source_slides = Column(Text)
+    source_content = Column(Text)
+    expected_points = Column(Text)
     review_type = Column(String(50), default="comprehensive")
     total_points = Column(Integer, default=0)
     best_score = Column(Float, default=0.0)
     current_attempt = Column(Integer, default=0)
-    attempt_count = Column(Integer, default=0)  # ✅ ADD THIS LINE if missing
+    attempt_count = Column(Integer, default=0)
     status = Column(String(20), default="active")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -706,6 +710,114 @@ class LearningReviewStats(Base):
     last_review_date = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class UploadedSlide(Base):
+    __tablename__ = "uploaded_slides"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    filename = Column(String(255), nullable=False)
+    original_filename = Column(String(255), nullable=False)
+    file_path = Column(String(500), nullable=False)
+    file_size = Column(Integer, nullable=False)
+    file_type = Column(String(50), nullable=False)
+    page_count = Column(Integer, default=0)
+    extracted_text = Column(Text, nullable=True)
+    preview_url = Column(String(500), nullable=True)
+    processing_status = Column(String(50), default="pending")
+    uploaded_at = Column(DateTime, default=datetime.utcnow)
+    processed_at = Column(DateTime, nullable=True)
+    
+    user = relationship("User")
+
+class QuestionSet(Base):
+    __tablename__ = "question_sets"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    source_type = Column(String(50), default="mixed")
+    source_chat_sessions = Column(Text, nullable=True)
+    source_slides = Column(Text, nullable=True)
+    question_count = Column(Integer, default=0)
+    easy_count = Column(Integer, default=0)
+    medium_count = Column(Integer, default=0)
+    hard_count = Column(Integer, default=0)
+    best_score = Column(Float, default=0.0)
+    attempt_count = Column(Integer, default=0)
+    status = Column(String(20), default="active")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User")
+    questions = relationship("Question", back_populates="question_set", cascade="all, delete-orphan")
+    attempts = relationship("QuestionAttempt", back_populates="question_set")
+
+class Question(Base):
+    __tablename__ = "questions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    question_set_id = Column(Integer, ForeignKey("question_sets.id"), nullable=False)
+    question_text = Column(Text, nullable=False)
+    question_type = Column(String(50), nullable=False)
+    correct_answer = Column(Text, nullable=False)
+    options = Column(Text, nullable=True)
+    difficulty = Column(String(20), default="medium")
+    explanation = Column(Text, nullable=True)
+    topic = Column(String(100), nullable=True)
+    order_index = Column(Integer, default=0)
+    times_answered = Column(Integer, default=0)
+    times_correct = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    question_set = relationship("QuestionSet", back_populates="questions")
+
+class QuestionAttempt(Base):
+    __tablename__ = "question_attempts"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    question_set_id = Column(Integer, ForeignKey("question_sets.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    attempt_number = Column(Integer, nullable=False)
+    answers = Column(Text, nullable=False)
+    score = Column(Float, default=0.0)
+    correct_count = Column(Integer, default=0)
+    incorrect_count = Column(Integer, default=0)
+    total_questions = Column(Integer, default=0)
+    time_spent_seconds = Column(Integer, nullable=True)
+    feedback = Column(Text, nullable=True)
+    submitted_at = Column(DateTime, default=datetime.utcnow)
+    
+    question_set = relationship("QuestionSet", back_populates="attempts")
+    user = relationship("User")
+
+class QuestionResult(Base):
+    __tablename__ = "question_results"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    attempt_id = Column(Integer, ForeignKey("question_attempts.id"), nullable=False)
+    question_id = Column(Integer, ForeignKey("questions.id"), nullable=False)
+    user_answer = Column(Text, nullable=True)
+    is_correct = Column(Boolean, default=False)
+    time_spent_seconds = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class LearningReviewSlide(Base):
+    __tablename__ = "learning_review_slides"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    review_id = Column(Integer, ForeignKey("learning_reviews.id"), nullable=False)
+    slide_id = Column(Integer, ForeignKey("uploaded_slides.id"), nullable=False)
+    added_at = Column(DateTime, default=datetime.utcnow)
+
+class QuestionSetSlide(Base):
+    __tablename__ = "question_set_slides"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    question_set_id = Column(Integer, ForeignKey("question_sets.id"), nullable=False)
+    slide_id = Column(Integer, ForeignKey("uploaded_slides.id"), nullable=False)
+    added_at = Column(DateTime, default=datetime.utcnow)
 
 # ==================== PYDANTIC MODELS FOR API ====================
 

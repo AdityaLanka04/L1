@@ -26,6 +26,10 @@ from groq import Groq
 import models
 from database import SessionLocal, engine
 
+from pathlib import Path
+import PyPDF2
+import io
+
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv()
 
@@ -3583,13 +3587,14 @@ def get_learning_reviews(user_id: str = Query(...), db: Session = Depends(get_db
 
 
 @app.post("/create_learning_review")
-def create_learning_review(
+async def create_learning_review(
     payload: dict = Body(...),
     db: Session = Depends(get_db)
 ):
     try:
         user_id = payload.get("user_id")
         chat_session_ids = payload.get("chat_session_ids", [])
+        slide_ids = payload.get("slide_ids", [])
         review_title = payload.get("review_title", "Learning Review")
         review_type = payload.get("review_type", "comprehensive")
 
@@ -3597,50 +3602,78 @@ def create_learning_review(
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        sessions = db.query(models.ChatSession).filter(
-            models.ChatSession.id.in_(chat_session_ids),
-            models.ChatSession.user_id == user.id
-        ).all()
+        if not chat_session_ids and not slide_ids:
+            raise HTTPException(status_code=400, detail="At least one source required")
 
-        if not sessions:
-            raise HTTPException(status_code=404, detail="No chat sessions found")
+        session_titles = []
+        slide_filenames = []
+        combined_text = ""
 
-        session_titles = [s.title for s in sessions]
-        session_ids = [s.id for s in sessions]
+        if chat_session_ids:
+            sessions = db.query(models.ChatSession).filter(
+                models.ChatSession.id.in_(chat_session_ids),
+                models.ChatSession.user_id == user.id
+            ).all()
 
-        messages = db.query(models.ChatMessage).filter(
-            models.ChatMessage.chat_session_id.in_(session_ids)
-        ).order_by(models.ChatMessage.timestamp.asc()).all()
+            if sessions:
+                session_titles = [s.title for s in sessions]
+                session_ids = [s.id for s in sessions]
 
-        combined_text = "\n".join([
-            f"Q: {m.user_message}\nA: {m.ai_response}" for m in messages
-        ])[:8000]
+                messages = db.query(models.ChatMessage).filter(
+                    models.ChatMessage.chat_session_id.in_(session_ids)
+                ).order_by(models.ChatMessage.timestamp.asc()).all()
+
+                for msg in messages:
+                    combined_text += f"Q: {msg.user_message}\nA: {msg.ai_response}\n\n"
+
+        if slide_ids:
+            slides = db.query(models.UploadedSlide).filter(
+                models.UploadedSlide.id.in_(slide_ids),
+                models.UploadedSlide.user_id == user.id
+            ).all()
+
+            if slides:
+                slide_filenames = [s.original_filename for s in slides]
+                
+                for slide in slides:
+                    if slide.extracted_text:
+                        combined_text += f"\n\nSlide: {slide.original_filename}\n{slide.extracted_text}\n"
+
+        combined_text = combined_text[:8000]
 
         prompt = f"""
         You are an intelligent learning assistant.
-        Extract 5-10 key learning points that summarize the following conversation.
+        Extract 8-12 key learning points from the following content.
         Return them strictly as a JSON list: ["Point 1", "Point 2", ...].
 
-        Conversation:
+        Content:
         {combined_text}
         """
 
-        ai_response = asyncio.run(generate_ai_response(prompt, {"first_name": "Student"}))
+        user_profile = build_user_profile_dict(user)
+        ai_response = await generate_ai_response(prompt, user_profile)
+        
         try:
-            learning_points = json.loads(re.search(r"\[.*\]", ai_response, re.DOTALL).group())
+            json_match = re.search(r"\[.*\]", ai_response, re.DOTALL)
+            if json_match:
+                learning_points = json.loads(json_match.group())
+            else:
+                learning_points = ["Key concepts covered", "Important principles", "Main ideas"]
         except:
             learning_points = ["Key ideas extracted", "More points will appear after review"]
 
         review = models.LearningReview(
             user_id=user.id,
             title=review_title,
-            source_sessions=json.dumps(session_ids),
+            source_sessions=json.dumps(chat_session_ids) if chat_session_ids else None,
+            source_slides=json.dumps(slide_ids) if slide_ids else None,
             source_content=combined_text[:4000],
             expected_points=json.dumps(learning_points),
             review_type=review_type,
             total_points=len(learning_points),
             best_score=0.0,
             current_attempt=0,
+            attempt_count=0,
             status="active",
             created_at=datetime.now(timezone.utc)
         )
@@ -3652,16 +3685,591 @@ def create_learning_review(
         return {
             "status": "success",
             "review_id": review.id,
+            "id": review.id,
             "title": review.title,
             "session_titles": session_titles,
-            "learning_points": learning_points
+            "slide_filenames": slide_filenames,
+            "learning_points": learning_points,
+            "total_points": len(learning_points)
         }
 
     except Exception as e:
         logger.error(f"Error creating review: {str(e)}")
+        db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to create learning review: {str(e)}")
 
-# Add this endpoint to your main.py file
+
+@app.get("/get_learning_reviews")
+def get_learning_reviews(user_id: str = Query(...), db: Session = Depends(get_db)):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        reviews = db.query(models.LearningReview).filter(
+            models.LearningReview.user_id == user.id
+        ).order_by(models.LearningReview.created_at.desc()).all()
+
+        result = []
+        for review in reviews:
+            session_titles = []
+            slide_filenames = []
+            
+            try:
+                if review.source_sessions:
+                    session_ids = json.loads(review.source_sessions)
+                    sessions = db.query(models.ChatSession).filter(
+                        models.ChatSession.id.in_(session_ids)
+                    ).all()
+                    session_titles = [s.title for s in sessions]
+            except:
+                pass
+            
+            try:
+                if review.source_slides:
+                    slide_ids = json.loads(review.source_slides)
+                    slides = db.query(models.UploadedSlide).filter(
+                        models.UploadedSlide.id.in_(slide_ids)
+                    ).all()
+                    slide_filenames = [s.original_filename for s in slides]
+            except:
+                pass
+
+            result.append({
+                "id": review.id,
+                "title": review.title,
+                "status": review.status,
+                "total_points": review.total_points,
+                "best_score": round(review.best_score, 1),
+                "attempt_count": review.attempt_count,
+                "current_attempt": review.current_attempt,
+                "session_titles": session_titles,
+                "slide_filenames": slide_filenames,
+                "created_at": review.created_at.isoformat(),
+                "updated_at": review.updated_at.isoformat(),
+                "completed_at": review.completed_at.isoformat() if review.completed_at else None,
+                "can_continue": review.status == "active" and review.current_attempt < 5
+            })
+
+        return {"reviews": result}
+
+    except Exception as e:
+        logger.error(f"Error getting learning reviews: {str(e)}")
+        return {"reviews": []}
+
+
+UPLOAD_DIR = Path("uploads/slides")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+@app.post("/upload_slides")
+async def upload_slides(
+    user_id: str = Form(...),
+    files: List[UploadFile] = File(...),
+    db: Session = Depends(get_db)
+):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        uploaded_slides = []
+        
+        for file in files:
+            if not file.filename.lower().endswith(('.pdf', '.ppt', '.pptx')):
+                continue
+            
+            file_content = await file.read()
+            file_size = len(file_content)
+            
+            timestamp = int(datetime.now(timezone.utc).timestamp())
+            safe_filename = f"{user.id}_{timestamp}_{file.filename}"
+            file_path = UPLOAD_DIR / safe_filename
+            
+            with open(file_path, 'wb') as f:
+                f.write(file_content)
+            
+            page_count = 0
+            extracted_text = ""
+            
+            if file.filename.lower().endswith('.pdf'):
+                try:
+                    pdf_reader = PyPDF2.PdfReader(io.BytesIO(file_content))
+                    page_count = len(pdf_reader.pages)
+                    
+                    for page in pdf_reader.pages[:10]:
+                        extracted_text += page.extract_text() + "\n"
+                    
+                    extracted_text = extracted_text[:10000]
+                except Exception as e:
+                    logger.error(f"Error extracting PDF text: {str(e)}")
+            
+            slide = models.UploadedSlide(
+                user_id=user.id,
+                filename=safe_filename,
+                original_filename=file.filename,
+                file_path=str(file_path),
+                file_size=file_size,
+                file_type=file.content_type or "application/pdf",
+                page_count=page_count,
+                extracted_text=extracted_text,
+                processing_status="completed",
+                uploaded_at=datetime.now(timezone.utc),
+                processed_at=datetime.now(timezone.utc)
+            )
+            
+            db.add(slide)
+            uploaded_slides.append(slide)
+        
+        db.commit()
+        
+        return {
+            "status": "success",
+            "uploaded_count": len(uploaded_slides),
+            "message": f"Successfully uploaded {len(uploaded_slides)} slide(s)"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error uploading slides: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to upload slides: {str(e)}")
+
+
+@app.get("/get_uploaded_slides")
+def get_uploaded_slides(user_id: str = Query(...), db: Session = Depends(get_db)):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        slides = db.query(models.UploadedSlide).filter(
+            models.UploadedSlide.user_id == user.id
+        ).order_by(models.UploadedSlide.uploaded_at.desc()).all()
+        
+        return {
+            "slides": [
+                {
+                    "id": slide.id,
+                    "filename": slide.original_filename,
+                    "file_size": slide.file_size,
+                    "file_type": slide.file_type,
+                    "page_count": slide.page_count,
+                    "uploaded_at": slide.uploaded_at.isoformat(),
+                    "preview_url": slide.preview_url,
+                    "processing_status": slide.processing_status
+                }
+                for slide in slides
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting slides: {str(e)}")
+        return {"slides": []}
+
+
+@app.delete("/delete_slide/{slide_id}")
+def delete_slide(slide_id: int, db: Session = Depends(get_db)):
+    try:
+        slide = db.query(models.UploadedSlide).filter(
+            models.UploadedSlide.id == slide_id
+        ).first()
+        
+        if not slide:
+            raise HTTPException(status_code=404, detail="Slide not found")
+        
+        if Path(slide.file_path).exists():
+            Path(slide.file_path).unlink()
+        
+        db.delete(slide)
+        db.commit()
+        
+        return {
+            "status": "success",
+            "message": "Slide deleted successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error deleting slide: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/generate_questions")
+async def generate_questions(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    try:
+        user_id = payload.get("user_id")
+        chat_session_ids = payload.get("chat_session_ids", [])
+        slide_ids = payload.get("slide_ids", [])
+        question_count = payload.get("question_count", 10)
+        difficulty_mix = payload.get("difficulty_mix", {"easy": 3, "medium": 5, "hard": 2})
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        if not chat_session_ids and not slide_ids:
+            raise HTTPException(status_code=400, detail="At least one source required")
+        
+        source_content = ""
+        
+        if chat_session_ids:
+            sessions = db.query(models.ChatSession).filter(
+                models.ChatSession.id.in_(chat_session_ids),
+                models.ChatSession.user_id == user.id
+            ).all()
+            
+            for session in sessions:
+                messages = db.query(models.ChatMessage).filter(
+                    models.ChatMessage.chat_session_id == session.id
+                ).limit(20).all()
+                
+                for msg in messages:
+                    source_content += f"Q: {msg.user_message}\nA: {msg.ai_response}\n\n"
+        
+        if slide_ids:
+            slides = db.query(models.UploadedSlide).filter(
+                models.UploadedSlide.id.in_(slide_ids),
+                models.UploadedSlide.user_id == user.id
+            ).all()
+            
+            for slide in slides:
+                if slide.extracted_text:
+                    source_content += f"\n\nSlide: {slide.original_filename}\n{slide.extracted_text[:2000]}\n"
+        
+        source_content = source_content[:6000]
+        
+        user_profile = build_user_profile_dict(user)
+        
+        prompt = f"""Generate {question_count} educational questions based on this content.
+
+**DIFFICULTY DISTRIBUTION**:
+- Easy: {difficulty_mix.get('easy', 3)} questions
+- Medium: {difficulty_mix.get('medium', 5)} questions  
+- Hard: {difficulty_mix.get('hard', 2)} questions
+
+**QUESTION TYPES**: Mix of multiple choice, true/false, and short answer
+
+**SOURCE CONTENT**:
+{source_content}
+
+**OUTPUT FORMAT** (JSON array only):
+[
+  {{
+    "question_text": "Question here?",
+    "question_type": "multiple_choice|true_false|short_answer",
+    "correct_answer": "Correct answer",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "difficulty": "easy|medium|hard",
+    "explanation": "Why this is correct",
+    "topic": "Topic name"
+  }}
+]
+
+Generate exactly {question_count} questions:"""
+
+        chat_completion = groq_client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are an expert question generator. Return only valid JSON array."},
+                {"role": "user", "content": prompt}
+            ],
+            model=GROQ_MODEL,
+            temperature=0.7,
+            max_tokens=3000,
+        )
+        
+        response_text = chat_completion.choices[0].message.content
+        
+        try:
+            json_match = re.search(r'\[.*\]', response_text, re.DOTALL)
+            if json_match:
+                questions_data = json.loads(json_match.group())
+            else:
+                raise ValueError("No JSON array found")
+        except Exception as e:
+            logger.error(f"Failed to parse questions: {str(e)}")
+            questions_data = []
+        
+        question_set = models.QuestionSet(
+            user_id=user.id,
+            title=f"Questions - {datetime.now().strftime('%Y-%m-%d')}",
+            description="Auto-generated questions",
+            source_type="mixed" if (chat_session_ids and slide_ids) else ("chat" if chat_session_ids else "slides"),
+            source_chat_sessions=json.dumps(chat_session_ids) if chat_session_ids else None,
+            source_slides=json.dumps(slide_ids) if slide_ids else None,
+            question_count=len(questions_data),
+            easy_count=difficulty_mix.get('easy', 0),
+            medium_count=difficulty_mix.get('medium', 0),
+            hard_count=difficulty_mix.get('hard', 0),
+            status="active"
+        )
+        
+        db.add(question_set)
+        db.commit()
+        db.refresh(question_set)
+        
+        for idx, q_data in enumerate(questions_data):
+            question = models.Question(
+                question_set_id=question_set.id,
+                question_text=q_data.get("question_text", ""),
+                question_type=q_data.get("question_type", "multiple_choice"),
+                correct_answer=q_data.get("correct_answer", ""),
+                options=json.dumps(q_data.get("options", [])) if q_data.get("options") else None,
+                difficulty=q_data.get("difficulty", "medium"),
+                explanation=q_data.get("explanation", ""),
+                topic=q_data.get("topic", "General"),
+                order_index=idx
+            )
+            db.add(question)
+        
+        db.commit()
+        db.refresh(question_set)
+        
+        questions = db.query(models.Question).filter(
+            models.Question.question_set_id == question_set.id
+        ).order_by(models.Question.order_index).all()
+        
+        return {
+            "status": "success",
+            "question_set_id": question_set.id,
+            "id": question_set.id,
+            "title": question_set.title,
+            "question_count": len(questions),
+            "questions": [
+                {
+                    "id": q.id,
+                    "question_text": q.question_text,
+                    "question_type": q.question_type,
+                    "difficulty": q.difficulty,
+                    "options": json.loads(q.options) if q.options else []
+                }
+                for q in questions
+            ]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating questions: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to generate questions: {str(e)}")
+
+
+@app.get("/get_question_sets")
+def get_question_sets(user_id: str = Query(...), db: Session = Depends(get_db)):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        question_sets = db.query(models.QuestionSet).filter(
+            models.QuestionSet.user_id == user.id
+        ).order_by(models.QuestionSet.created_at.desc()).all()
+        
+        return {
+            "question_sets": [
+                {
+                    "id": qs.id,
+                    "title": qs.title,
+                    "description": qs.description,
+                    "question_count": qs.question_count,
+                    "easy_count": qs.easy_count,
+                    "medium_count": qs.medium_count,
+                    "hard_count": qs.hard_count,
+                    "best_score": round(qs.best_score, 1),
+                    "attempt_count": qs.attempt_count,
+                    "status": qs.status,
+                    "can_practice": True,
+                    "created_at": qs.created_at.isoformat()
+                }
+                for qs in question_sets
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting question sets: {str(e)}")
+        return {"question_sets": []}
+@app.delete("/delete_question_set/{question_set_id}")
+def delete_question_set(
+    question_set_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    try:
+        question_set = db.query(models.QuestionSet).filter(
+            models.QuestionSet.id == question_set_id,
+            models.QuestionSet.user_id == current_user.id
+        ).first()
+        
+        if not question_set:
+            raise HTTPException(status_code=404, detail="Question set not found")
+        
+        db.query(models.QuestionResult).filter(
+            models.QuestionResult.question_id.in_(
+                db.query(models.Question.id).filter(
+                    models.Question.question_set_id == question_set_id
+                )
+            )
+        ).delete(synchronize_session=False)
+        
+        db.query(models.QuestionAttempt).filter(
+            models.QuestionAttempt.question_set_id == question_set_id
+        ).delete()
+        
+        db.query(models.Question).filter(
+            models.Question.question_set_id == question_set_id
+        ).delete()
+        
+        db.delete(question_set)
+        db.commit()
+        
+        return {
+            "status": "success",
+            "message": "Question set deleted successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting question set: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete question set: {str(e)}")
+        
+@app.post("/submit_question_answers")
+async def submit_question_answers(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    try:
+        question_set_id = payload.get("question_set_id")
+        answers = payload.get("answers", {})
+        
+        question_set = db.query(models.QuestionSet).filter(
+            models.QuestionSet.id == question_set_id
+        ).first()
+        
+        if not question_set:
+            raise HTTPException(status_code=404, detail="Question set not found")
+        
+        questions = db.query(models.Question).filter(
+            models.Question.question_set_id == question_set_id
+        ).all()
+        
+        correct_count = 0
+        incorrect_count = 0
+        question_results = []
+        
+        for question in questions:
+            user_answer = answers.get(str(question.id), "")
+            
+            if question.question_type == "multiple_choice":
+                is_correct = user_answer.strip().lower() == question.correct_answer.strip().lower()
+            elif question.question_type == "true_false":
+                is_correct = user_answer.strip().lower() == question.correct_answer.strip().lower()
+            else:
+                is_correct = user_answer.strip().lower() in question.correct_answer.strip().lower()
+            
+            if is_correct:
+                correct_count += 1
+            else:
+                incorrect_count += 1
+            
+            question_results.append({
+                "question_id": question.id,
+                "question_text": question.question_text,
+                "user_answer": user_answer,
+                "correct_answer": question.correct_answer,
+                "is_correct": is_correct,
+                "explanation": question.explanation
+            })
+        
+        score = (correct_count / len(questions) * 100) if questions else 0
+        
+        attempt = models.QuestionAttempt(
+            question_set_id=question_set_id,
+            user_id=question_set.user_id,
+            attempt_number=question_set.attempt_count + 1,
+            answers=json.dumps(answers),
+            score=score,
+            correct_count=correct_count,
+            incorrect_count=incorrect_count,
+            total_questions=len(questions),
+            submitted_at=datetime.now(timezone.utc)
+        )
+        
+        db.add(attempt)
+        
+        question_set.attempt_count += 1
+        if score > question_set.best_score:
+            question_set.best_score = score
+        
+        db.commit()
+        
+        return {
+            "status": "success",
+            "score": round(score, 1),
+            "correct_count": correct_count,
+            "incorrect_count": incorrect_count,
+            "total_questions": len(questions),
+            "question_results": question_results,
+            "feedback": f"You scored {round(score, 1)}%! {'Excellent work!' if score >= 80 else 'Keep practicing!'}"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error submitting answers: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/update_learning_review")
+async def update_learning_review(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    try:
+        review_id = payload.get("review_id")
+        slide_ids = payload.get("slide_ids", [])
+        
+        review = db.query(models.LearningReview).filter(
+            models.LearningReview.id == review_id
+        ).first()
+        
+        if not review:
+            raise HTTPException(status_code=404, detail="Review not found")
+        
+        if slide_ids:
+            slides = db.query(models.UploadedSlide).filter(
+                models.UploadedSlide.id.in_(slide_ids)
+            ).all()
+            
+            slide_content = ""
+            for slide in slides:
+                if slide.extracted_text:
+                    slide_content += f"\n{slide.extracted_text[:1000]}\n"
+            
+            current_content = review.source_content or ""
+            review.source_content = (current_content + "\n" + slide_content)[:8000]
+            
+            for slide_id in slide_ids:
+                link = models.LearningReviewSlide(
+                    review_id=review_id,
+                    slide_id=slide_id
+                )
+                db.add(link)
+        
+        review.updated_at = datetime.now(timezone.utc)
+        db.commit()
+        
+        return {
+            "status": "success",
+            "message": "Review updated with slides"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error updating review: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/submit_learning_response")
 async def submit_learning_response(
