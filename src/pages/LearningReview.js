@@ -10,18 +10,15 @@ const LearningReview = () => {
   const [activeReview, setActiveReview] = useState(null);
   const [reviewResponse, setReviewResponse] = useState('');
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('create'); // create, reviews, active
+  const [activeTab, setActiveTab] = useState('create');
   const [reviewDetails, setReviewDetails] = useState(null);
   const [hints, setHints] = useState([]);
   const [showHints, setShowHints] = useState(false);
 
-  // Navigation functions - you'll need to adapt these to your routing system
   const navigate = (path) => {
-    // Replace with your navigation logic
     window.location.href = path;
   };
 
-  // Load initial data
   useEffect(() => {
     const token = localStorage.getItem('token');
     const username = localStorage.getItem('username');
@@ -141,7 +138,7 @@ const LearningReview = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          review_id: activeReview.review_id,
+          review_id: activeReview.id || activeReview.review_id,
           user_response: reviewResponse,
           attempt_number: (activeReview.current_attempt || 0) + 1
         })
@@ -151,6 +148,8 @@ const LearningReview = () => {
         const data = await response.json();
         setReviewDetails(data);
         setReviewResponse('');
+        setShowHints(false);
+        setHints([]);
         loadLearningReviews();
       } else {
         const errorData = await response.json();
@@ -177,8 +176,8 @@ const LearningReview = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          review_id: activeReview.review_id,
-          missing_points: missingPoints.slice(0, 3) // Limit to 3 hints
+          review_id: activeReview.id || activeReview.review_id,
+          missing_points: missingPoints.slice(0, 3)
         })
       });
 
@@ -259,16 +258,16 @@ const LearningReview = () => {
         </div>
 
         <div className="user-info">
-            {userProfile?.picture && (
-  <img
-    src={userProfile.picture}
-    alt="Profile"
-    className="profile-picture"
-    referrerPolicy="no-referrer"
-    crossOrigin="anonymous"
-  />
-            )}
-          </div>
+          {userProfile?.picture && (
+            <img
+              src={userProfile.picture}
+              alt="Profile"
+              className="profile-picture"
+              referrerPolicy="no-referrer"
+              crossOrigin="anonymous"
+            />
+          )}
+        </div>
         
         <div className="header-right">
           <button className="nav-btn" onClick={goToChat}>
@@ -566,7 +565,7 @@ const LearningReview = () => {
 
                 {reviewDetails.is_complete && (
                   <div className="completion-message">
-                    <h3>🎉 Review Complete!</h3>
+                    <h3>Review Complete!</h3>
                     <p>You've successfully demonstrated comprehensive understanding of the material.</p>
                   </div>
                 )}

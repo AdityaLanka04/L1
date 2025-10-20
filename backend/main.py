@@ -3660,6 +3660,325 @@ def create_learning_review(
     except Exception as e:
         logger.error(f"Error creating review: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to create learning review: {str(e)}")
+
+# Add this endpoint to your main.py file
+
+@app.post("/submit_learning_response")
+async def submit_learning_response(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Submit and evaluate a learning review response
+    """
+    try:
+        review_id = payload.get("review_id")
+        user_response = payload.get("user_response", "")
+        attempt_number = payload.get("attempt_number", 1)
+
+        if not review_id or not user_response.strip():
+            raise HTTPException(status_code=400, detail="Review ID and response are required")
+
+        # Get the learning review
+        review = db.query(models.LearningReview).filter(
+            models.LearningReview.id == review_id
+        ).first()
+
+        if not review:
+            raise HTTPException(status_code=404, detail="Learning review not found")
+
+        # Parse expected learning points
+        try:
+            expected_points = json.loads(review.expected_points)
+        except:
+            expected_points = []
+
+        if not expected_points:
+            raise HTTPException(status_code=400, detail="No learning points found in review")
+
+        # Get user profile for personalized feedback
+        user = db.query(models.User).filter(models.User.id == review.user_id).first()
+        user_profile = build_user_profile_dict(user)
+
+        # ==================== EVALUATION PROMPT ====================
+        evaluation_prompt = f"""You are an expert educational evaluator assessing a student's learning retention.
+
+**TASK**: Compare the student's response to the expected learning points and determine:
+1. Which points the student covered (even if worded differently)
+2. Which points the student missed completely
+
+**EXPECTED LEARNING POINTS**:
+{chr(10).join([f"{i+1}. {point}" for i, point in enumerate(expected_points)])}
+
+**STUDENT'S RESPONSE**:
+{user_response}
+
+**EVALUATION RULES**:
+1. A point is "covered" if the student demonstrates understanding of the concept, even with different wording
+2. Look for semantic similarity, not exact word matches
+3. Partial explanations count if they show comprehension
+4. Be fair but thorough - don't mark something covered if it's clearly missing
+
+**OUTPUT FORMAT** (JSON only, no other text):
+{{
+  "covered_points": ["Exact text of covered points from the expected list"],
+  "missing_points": ["Exact text of missing points from the expected list"],
+  "coverage_percentage": <number between 0-100>,
+  "understanding_quality": "<poor|fair|good|excellent>",
+  "feedback": "Brief constructive feedback on what was done well and what needs improvement",
+  "next_steps": "Specific actionable advice for improvement"
+}}
+
+Generate evaluation now:"""
+
+        # Call Groq AI for evaluation
+        chat_completion = groq_client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system", 
+                    "content": "You are an expert educational evaluator. Return only valid JSON."
+                },
+                {
+                    "role": "user", 
+                    "content": evaluation_prompt
+                }
+            ],
+            model=GROQ_MODEL,
+            temperature=0.3,  # Lower temperature for more consistent evaluation
+            max_tokens=2048,
+        )
+
+        response_text = chat_completion.choices[0].message.content
+
+        # Parse AI evaluation response
+        try:
+            # Extract JSON from response
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if json_match:
+                evaluation = json.loads(json_match.group())
+            else:
+                raise ValueError("No JSON found in response")
+        except Exception as e:
+            logger.error(f"Failed to parse evaluation JSON: {str(e)}")
+            logger.error(f"Raw response: {response_text}")
+            
+            # Fallback evaluation if JSON parsing fails
+            evaluation = {
+                "covered_points": [],
+                "missing_points": expected_points,
+                "coverage_percentage": 0,
+                "understanding_quality": "fair",
+                "feedback": "Unable to properly evaluate your response. Please try again with more detail.",
+                "next_steps": "Write a more comprehensive response covering all key concepts."
+            }
+
+        covered_points = evaluation.get("covered_points", [])
+        missing_points = evaluation.get("missing_points", [])
+        coverage_percentage = evaluation.get("coverage_percentage", 0)
+        understanding_quality = evaluation.get("understanding_quality", "fair")
+        feedback = evaluation.get("feedback", "")
+        next_steps = evaluation.get("next_steps", "")
+
+        # ==================== SAVE ATTEMPT ====================
+        attempt = models.LearningReviewAttempt(
+            review_id=review.id,
+            attempt_number=attempt_number,
+            user_response=user_response,
+            covered_points=json.dumps(covered_points),
+            missing_points=json.dumps(missing_points),
+            completeness_percentage=coverage_percentage,
+            feedback=feedback,
+            submitted_at=datetime.now(timezone.utc)
+        )
+        db.add(attempt)
+
+        # Update review record
+        review.current_attempt = attempt_number
+        review.attempt_count = max(review.attempt_count, attempt_number)
+        
+        if coverage_percentage > review.best_score:
+            review.best_score = coverage_percentage
+
+        # Check if review is complete (>= 80% coverage or 3+ attempts)
+        is_complete = coverage_percentage >= 80.0 or attempt_number >= 3
+        
+        if is_complete and coverage_percentage >= 80.0:
+            review.status = "completed"
+            review.completed_at = datetime.now(timezone.utc)
+        
+        review.updated_at = datetime.now(timezone.utc)
+
+        db.commit()
+        db.refresh(attempt)
+
+        # ==================== RETURN RESULTS ====================
+        return {
+            "status": "success",
+            "attempt_id": attempt.id,
+            "attempt_number": attempt_number,
+            "covered_points": covered_points,
+            "missing_points": missing_points,
+            "completeness_percentage": round(coverage_percentage, 1),
+            "understanding_quality": understanding_quality,
+            "feedback": feedback,
+            "next_steps": next_steps,
+            "is_complete": is_complete,
+            "can_continue": not is_complete and attempt_number < 5,
+            "best_score": review.best_score,
+            "points_covered_count": len(covered_points),
+            "points_missing_count": len(missing_points),
+            "total_points": len(expected_points)
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error submitting learning response: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to evaluate learning response: {str(e)}"
+        )
+
+
+# ==================== HINTS ENDPOINT ====================
+
+@app.post("/get_learning_hints")
+async def get_learning_hints(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Generate hints for missing learning points
+    """
+    try:
+        review_id = payload.get("review_id")
+        missing_points = payload.get("missing_points", [])
+
+        if not review_id or not missing_points:
+            raise HTTPException(status_code=400, detail="Review ID and missing points required")
+
+        review = db.query(models.LearningReview).filter(
+            models.LearningReview.id == review_id
+        ).first()
+
+        if not review:
+            raise HTTPException(status_code=404, detail="Learning review not found")
+
+        # Get original source content for context
+        source_content = review.source_content[:3000]
+
+        # Limit to first 3 missing points
+        missing_points = missing_points[:3]
+
+        # Generate hints for each missing point
+        hints_list = []
+        
+        for point in missing_points:
+            hint_prompt = f"""You are a helpful learning assistant providing subtle hints.
+
+**CONTEXT** (original learning material):
+{source_content}
+
+**MISSING LEARNING POINT**:
+{point}
+
+**TASK**: Create a helpful hint that guides the student toward remembering this point WITHOUT directly giving away the answer.
+
+**OUTPUT FORMAT** (JSON only):
+{{
+  "missing_point": "{point}",
+  "hint": "A subtle clue that prompts memory without revealing the full answer",
+  "memory_trigger": "A keyword or phrase that might jog their memory",
+  "guiding_question": "A question that leads them to think about this topic"
+}}
+
+Generate hint now:"""
+
+            chat_completion = groq_client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": "You are a helpful learning assistant. Return only valid JSON."},
+                    {"role": "user", "content": hint_prompt}
+                ],
+                model=GROQ_MODEL,
+                temperature=0.7,
+                max_tokens=512,
+            )
+
+            response_text = chat_completion.choices[0].message.content
+
+            try:
+                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                if json_match:
+                    hint_data = json.loads(json_match.group())
+                    hints_list.append(hint_data)
+            except:
+                # Fallback hint if parsing fails
+                hints_list.append({
+                    "missing_point": point,
+                    "hint": f"Think about the key concepts related to: {point[:50]}...",
+                    "memory_trigger": "Review your notes",
+                    "guiding_question": "What do you remember about this topic?"
+                })
+
+        return {
+            "status": "success",
+            "hints": hints_list,
+            "total_hints": len(hints_list)
+        }
+
+    except Exception as e:
+        logger.error(f"Error generating hints: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate hints: {str(e)}")
+
+
+# ==================== GET LEARNING REVIEWS ====================
+
+@app.get("/get_learning_reviews")
+def get_learning_reviews(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """
+    Get all learning reviews for a user
+    """
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        reviews = db.query(models.LearningReview).filter(
+            models.LearningReview.user_id == user.id
+        ).order_by(models.LearningReview.created_at.desc()).all()
+
+        result = []
+        for review in reviews:
+            # Get session titles
+            try:
+                session_ids = json.loads(review.source_sessions)
+                sessions = db.query(models.ChatSession).filter(
+                    models.ChatSession.id.in_(session_ids)
+                ).all()
+                session_titles = [s.title for s in sessions]
+            except:
+                session_titles = []
+
+            result.append({
+                "id": review.id,
+                "title": review.title,
+                "status": review.status,
+                "total_points": review.total_points,
+                "best_score": round(review.best_score, 1),
+                "attempt_count": review.attempt_count,
+                "current_attempt": review.current_attempt,
+                "session_titles": session_titles,
+                "created_at": review.created_at.isoformat(),
+                "updated_at": review.updated_at.isoformat(),
+                "completed_at": review.completed_at.isoformat() if review.completed_at else None,
+                "can_continue": review.status == "active" and review.current_attempt < 5
+            })
+
+        return {"reviews": result}
+
+    except Exception as e:
+        logger.error(f"Error getting learning reviews: {str(e)}")
+        return {"reviews": []}
     
 @app.post("/save_archetype_profile")
 async def save_archetype_profile(

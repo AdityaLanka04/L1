@@ -654,11 +654,12 @@ class LearningReview(Base):
     source_sessions = Column(Text)  # JSON array of chat session IDs
     source_content = Column(Text)  # Truncated conversation content for context
     expected_points = Column(Text)  # JSON object with categorized learning points
-    review_type = Column(String(50), default="comprehensive")  # comprehensive, key_points, summary
-    total_points = Column(Integer, default=0)  # Total number of expected learning points
-    best_score = Column(Float, default=0.0)  # Best completeness percentage achieved
-    current_attempt = Column(Integer, default=0)  # Current attempt number
-    status = Column(String(20), default="active")  # active, completed, archived
+    review_type = Column(String(50), default="comprehensive")
+    total_points = Column(Integer, default=0)
+    best_score = Column(Float, default=0.0)
+    current_attempt = Column(Integer, default=0)
+    attempt_count = Column(Integer, default=0)  # ✅ ADD THIS LINE if missing
+    status = Column(String(20), default="active")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
@@ -672,12 +673,11 @@ class LearningReviewAttempt(Base):
     user_response = Column(Text, nullable=False)
     covered_points = Column(Text)  # JSON array of points the user covered
     missing_points = Column(Text)  # JSON array of points the user missed
-    partially_covered_points = Column(Text)  # JSON array of partially covered points
-    completeness_score = Column(Float, default=0.0)  # Percentage score (0-100)
-    ai_feedback = Column(Text)  # AI-generated feedback on the response
-    time_spent_minutes = Column(Float, default=0.0)  # Time spent on this attempt
+    completeness_percentage = Column(Float, default=0.0)  # ✅ Percentage score
+    feedback = Column(Text)  # ✅ ADD THIS - AI-generated feedback
+    submitted_at = Column(DateTime, default=datetime.utcnow)  # ✅ ADD THIS
     created_at = Column(DateTime, default=datetime.utcnow)
-
+    
 class LearningReviewHint(Base):
     __tablename__ = "learning_review_hints"
     
