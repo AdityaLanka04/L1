@@ -14,7 +14,7 @@ const AIChat = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [welcomeMessage, setWelcomeMessage] = useState('');
+  const [greeting, setGreeting] = useState('');
   
   const [showFeedbackFor, setShowFeedbackFor] = useState(null);
   const [feedbackText, setFeedbackText] = useState('');
@@ -26,11 +26,38 @@ const AIChat = () => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [fileProcessing, setFileProcessing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [showFilePreview, setShowFilePreview] = useState(false);
   const [processedFiles, setProcessedFiles] = useState([]);
   
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+
+  const greetings = [
+    "Hello, {name}! Ready to learn something new?",
+    "Welcome back, {name}! What shall we explore today?",
+    "Hi {name}! I'm here to help you learn",
+    "Good to see you, {name}! Let's dive into your questions",
+    "Hey {name}! What can I help you understand today?",
+    "Greetings, {name}! Ready for an educational journey?",
+    "Nice to see you again, {name}!",
+    "Welcome, {name}! Let's make learning fun",
+    "{name}, let's discover something amazing together",
+    "Hi there, {name}! What's on your mind?",
+    "Hello {name}! I'm excited to help you learn",
+    "{name}, ready to unlock new knowledge?",
+    "Welcome back, {name}! Let's continue your learning",
+    "Hey {name}! What would you like to explore?",
+    "{name}, let's make today a learning adventure",
+    "Good day, {name}! Ready to expand your horizons?",
+    "Hi {name}! Let's tackle your questions together",
+    "Welcome, {name}! Your AI learning companion is here",
+    "{name}, let's turn curiosity into understanding",
+    "Hello {name}! What fascinating topic shall we discuss?"
+  ];
+
+  const getRandomGreeting = (name) => {
+    const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+    return randomGreeting.replace(/{name}/g, name);
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -55,7 +82,6 @@ const AIChat = () => {
     });
 
     setSelectedFiles(prev => [...prev, ...validFiles]);
-    setShowFilePreview(true);
   };
 
   const handleFileInputChange = (e) => {
@@ -84,50 +110,11 @@ const AIChat = () => {
 
   const removeFile = (index) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
-    if (selectedFiles.length === 1) {
-      setShowFilePreview(false);
-    }
   };
 
   const clearAllFiles = () => {
     setSelectedFiles([]);
-    setShowFilePreview(false);
     setProcessedFiles([]);
-  };
-
-  const processFiles = async () => {
-    if (selectedFiles.length === 0) return [];
-
-    setFileProcessing(true);
-    try {
-      const token = localStorage.getItem('token');
-      const formData = new FormData();
-      formData.append('user_id', userName);
-      
-      selectedFiles.forEach(file => {
-        formData.append('files', file);
-      });
-
-      const response = await fetch('http://localhost:8001/upload_and_process_files', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setProcessedFiles(data.processed_files || []);
-        return data.processed_files || [];
-      } else {
-        console.error('File processing failed');
-        return [];
-      }
-    } catch (error) {
-      console.error('Error processing files:', error);
-      return [];
-    } finally {
-      setFileProcessing(false);
-    }
   };
 
   const loadChatSessions = async () => {
@@ -143,7 +130,6 @@ const AIChat = () => {
         const data = await response.json();
         const sessions = data.sessions || [];
         setChatSessions(sessions);
-        console.log('📋 Loaded', sessions.length, 'chat sessions');
       }
     } catch (error) {
       console.error('Error loading chat sessions:', error);
@@ -155,8 +141,6 @@ const AIChat = () => {
       setMessages([]);
       return;
     }
-    
-    console.log('🔄 Loading messages for chat:', sessionId);
     
     try {
       const token = localStorage.getItem('token');
@@ -170,15 +154,13 @@ const AIChat = () => {
       
       if (response.ok) {
         const messagesArray = await response.json();
-        console.log('✅ Loaded', messagesArray.length, 'messages');
         setMessages(messagesArray);
         setTimeout(scrollToBottom, 100);
       } else {
-        console.error('❌ Failed to load messages');
         setMessages([]);
       }
     } catch (error) {
-      console.error('❌ Error:', error);
+      console.error('Error loading messages:', error);
       setMessages([]);
     }
   };
@@ -212,7 +194,6 @@ const AIChat = () => {
         setChatSessions(prev => [sessionData, ...prev]);
         return sessionData.id;
       } else {
-        console.error('Failed to create new chat session');
         return null;
       }
     } catch (error) {
@@ -222,7 +203,6 @@ const AIChat = () => {
   };
 
   const handleNewChat = async () => {
-    console.log('➕ Creating new chat');
     const newChatId = await createNewChat();
     if (newChatId) {
       navigate(`/ai-chat/${newChatId}`);
@@ -230,11 +210,8 @@ const AIChat = () => {
   };
 
   const selectChat = (chatSessionId) => {
-  console.log('🎯 CLICK DETECTED - Chat ID:', chatSessionId);
-  console.log('🎯 Current URL:', window.location.pathname);
-  console.log('🎯 Navigating to:', `/ai-chat/${chatSessionId}`);
-  navigate(`/ai-chat/${chatSessionId}`);
-};
+    navigate(`/ai-chat/${chatSessionId}`);
+  };
 
   const sendMessage = async () => {
     if ((!inputMessage.trim() && selectedFiles.length === 0) || loading || !userName) return;
@@ -387,15 +364,13 @@ const AIChat = () => {
         
         setShowDeleteConfirmation(false);
         setChatToDelete(null);
-      } else {
-        console.error('Failed to delete chat session');
       }
     } catch (error) {
       console.error('Error deleting chat:', error);
     }
   };
 
-const rateResponse = async (messageId, rating) => {
+  const rateResponse = async (messageId, rating) => {
     try {
       const token = localStorage.getItem('token');
       const message = messages.find(m => m.id === messageId);
@@ -412,9 +387,6 @@ const rateResponse = async (messageId, rating) => {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        console.log('🧠 Neural network updated:', data);
-        
         setMessages(prev => prev.map(msg => 
           msg.id === messageId ? { ...msg, userRating: rating } : msg
         ));
@@ -449,9 +421,6 @@ const rateResponse = async (messageId, rating) => {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        console.log('🎯 Learning complete:', data);
-        
         setShowFeedbackFor(null);
         setFeedbackText('');
         setImprovementSuggestion('');
@@ -522,7 +491,6 @@ const rateResponse = async (messageId, rating) => {
     return 'FILE';
   };
 
-  // Initialize user data
   useEffect(() => {
     const token = localStorage.getItem('token');
     const username = localStorage.getItem('username');
@@ -541,51 +509,36 @@ const rateResponse = async (messageId, rating) => {
       try {
         const parsedProfile = JSON.parse(profile);
         setUserProfile(parsedProfile);
-        
         const displayName = parsedProfile?.firstName || username;
-        const welcomeMessages = [
-          `Hello ${displayName}! I can now analyze PDFs and images. Upload files to get started!`,
-          `Hi ${displayName}! I've been enhanced to process documents and images for better learning.`,
-          `Welcome back, ${displayName}! Share your study materials and I'll help you understand them better.`,
-          `Good to see you, ${displayName}! Upload PDFs, images, or just ask questions - I'm here to help!`,
-        ];
-        const randomIndex = Math.floor(Math.random() * welcomeMessages.length);
-        setWelcomeMessage(welcomeMessages[randomIndex]);
+        setGreeting(getRandomGreeting(displayName));
       } catch (error) {
         console.error('Error parsing user profile:', error);
-        setWelcomeMessage('Hello! I\'m your AI tutor, and I can now analyze PDFs and images to help you learn better!');
+        setGreeting(getRandomGreeting(username || 'there'));
       }
     } else {
-      setWelcomeMessage('Hello! I\'m your AI tutor with document analysis capabilities. Upload PDFs or images to get started!');
+      setGreeting(getRandomGreeting(username || 'there'));
     }
   }, [navigate]);
 
-  // Load chat sessions when user is available
   useEffect(() => {
     if (userName) {
       loadChatSessions();
     }
   }, [userName]);
 
-  // Handle URL chat ID changes
   useEffect(() => {
-  const numericChatId = chatId ? parseInt(chatId) : null;
-  
-  console.log('🔄 useEffect triggered - chatId:', chatId, 'numeric:', numericChatId);
-  
-  if (numericChatId && !isNaN(numericChatId)) {
-    console.log('📍 Setting active chat to:', numericChatId);
-    setActiveChatId(numericChatId);
-    setMessages([]);
-    loadChatMessages(numericChatId);
-  } else {
-    console.log('📍 No valid chatId, clearing messages');
-    setActiveChatId(null);
-    setMessages([]);
-  }
-}, [chatId]);
+    const numericChatId = chatId ? parseInt(chatId) : null;
+    
+    if (numericChatId && !isNaN(numericChatId)) {
+      setActiveChatId(numericChatId);
+      setMessages([]);
+      loadChatMessages(numericChatId);
+    } else {
+      setActiveChatId(null);
+      setMessages([]);
+    }
+  }, [chatId]);
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -594,42 +547,52 @@ const rateResponse = async (messageId, rating) => {
     <div className="ai-chat-page">
       <div className={`chat-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
-          <h3 className="sidebar-title">Chat History</h3>
-          <button className="new-chat-btn" onClick={handleNewChat}>
-            + New Chat
-          </button>
+          <div className="sidebar-title-bar">
+            <span className="sidebar-title">CONVERSATIONS</span>
+            <button className="new-chat-btn" onClick={handleNewChat}>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M6 1v10M1 6h10"/>
+              </svg>
+              NEW CHAT
+            </button>
+          </div>
         </div>
         
         <div className="chat-sessions">
           {chatSessions.length === 0 ? (
             <div className="no-chats">
-              <p>No chats yet. Start a conversation!</p>
+              <p>No conversations yet</p>
+              <span>Start a new chat to begin</span>
             </div>
           ) : (
             chatSessions.map((session) => (
-  <div
-    key={session.id}
-    className={`chat-session-item ${activeChatId === session.id ? 'active' : ''}`}
-    onClick={() => selectChat(session.id)}
-  >
-    <div className="chat-session-content">
-      <div className="session-title">{session.title}</div>
-      <div className="session-date">
-        {new Date(session.created_at).toLocaleDateString()}
-      </div>
-    </div>
-    <button
-      className="delete-chat-btn"
-      onClick={(e) => {
-        e.stopPropagation();
-        handleDeleteChat(session.id, session.title);
-      }}
-      title="Delete chat"
-    >
-      ×
-    </button>
-  </div>
-))
+              <div
+                key={session.id}
+                className={`chat-session-item ${activeChatId === session.id ? 'active' : ''}`}
+                onClick={() => selectChat(session.id)}
+              >
+                <div className="chat-session-content">
+                  <div className="session-title">{session.title}</div>
+                  <div className="session-date">
+                    {new Date(session.created_at).toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </div>
+                </div>
+                <button
+                  className="delete-chat-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteChat(session.id, session.title);
+                  }}
+                  title="Delete chat"
+                >
+                  ×
+                </button>
+              </div>
+            ))
           )}
         </div>
       </div>
@@ -640,35 +603,35 @@ const rateResponse = async (messageId, rating) => {
             <button 
               className="sidebar-toggle"
               onClick={() => setSidebarOpen(!sidebarOpen)}
+              title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
             >
-              ☰
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M2 3h12M2 8h12M2 13h12"/>
+              </svg>
             </button>
             <h1 
-              className="chat-title clickable-logo" 
+              className="chat-title" 
               onClick={handleLogoClick}
               title="Go to Dashboard"
-              style={{ cursor: 'pointer' }}
             >
               brainwave
             </h1>
           </div>
           
           <div className="header-right">
-            <div className="user-info">
-              {userProfile?.picture && (
-  <img
-    src={userProfile.picture}
-    alt="Profile"
-    className="profile-picture"
-    referrerPolicy="no-referrer"
-    crossOrigin="anonymous"
-  />
-              )}
-            </div>
-            <button className="back-btn" onClick={goToDashboard}>
-              Dashboard
+            {userProfile?.picture && (
+              <img
+                src={userProfile.picture}
+                alt="Profile"
+                className="profile-picture"
+                referrerPolicy="no-referrer"
+                crossOrigin="anonymous"
+              />
+            )}
+            <button className="header-btn dashboard-btn" onClick={goToDashboard}>
+              DASHBOARD
             </button>
-            <button className="logout-btn" onClick={handleLogout}>
+            <button className="header-btn logout-btn" onClick={handleLogout}>
               LOGOUT
             </button>
           </div>
@@ -676,102 +639,75 @@ const rateResponse = async (messageId, rating) => {
 
         <div className="messages-container">
           {messages.length === 0 ? (
-            <div className="welcome-message">
-              <div className="welcome-icon"></div>
-              <h2>Welcome to your Enhanced AI Tutor!</h2>
-              <p>{welcomeMessage}</p>
-              <div className="feature-highlights">
-                <div className="feature-item">
-                  <span className="feature-icon">PDF</span>
-                  <span>Upload PDFs</span>
-                </div>
-                <div className="feature-item">
-                  <span className="feature-icon">IMG</span>
-                  <span>Analyze Images</span>
-                </div>
-                <div className="feature-item">
-                  <span className="feature-icon">CHAT</span>
-                  <span>Ask Questions</span>
-                </div>
+            <div className="welcome-container">
+              <div className="welcome-content">
+                <h2 className="welcome-title">{greeting}</h2>
+                <p className="welcome-subtitle">
+                  Ready to learn? Upload documents, share images, or ask me anything
+                </p>
               </div>
             </div>
           ) : (
             <div className="messages-list">
               {messages.map((message) => (
                 <div key={message.id} className={`message ${message.type}`}>
-                  <div className="message-content">
-                    {message.content}
+                  <div className="message-bubble">
+                    <div className="message-content">
+                      {message.content}
+                    </div>
                     
                     {message.files && message.files.length > 0 && (
                       <div className="message-files">
                         {message.files.map((file, index) => (
-                          <div key={index} className="message-file-item">
+                          <div key={index} className="message-file-tag">
                             <span className="file-icon">{getFileIcon(file.name, file.type)}</span>
                             <span className="file-name">{file.name}</span>
-                            <span className="file-size">({formatFileSize(file.size)})</span>
                           </div>
                         ))}
                       </div>
                     )}
                     
                     {message.type === 'ai' && message.fileSummaries && message.fileSummaries.length > 0 && (
-                      <div className="ai-file-analysis">
+                      <div className="file-analysis">
                         <div className="file-analysis-header">
-                          Document Analysis Results ({message.filesProcessed} file(s) processed)
+                          {message.filesProcessed} FILE(S) ANALYZED
                         </div>
                         {message.fileSummaries.map((file, index) => (
                           <div key={index} className="file-analysis-item">
                             <div className="file-analysis-name">
                               {getFileIcon(file.file_name, file.file_type)} {file.file_name}
                             </div>
-                            {file.page_count && (
-                              <div className="file-analysis-detail">Pages: {file.page_count}</div>
-                            )}
-                            {file.extracted_text && (
-                              <div className="file-analysis-preview">
-                                Text extracted: {file.extracted_text.length > 100 ? 
-                                  file.extracted_text.substring(0, 100) + '...' : 
-                                  file.extracted_text}
-                              </div>
-                            )}
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
-                  <div className="message-footer">
-                    <div className="message-time">
-                      {new Date(message.timestamp).toLocaleTimeString()}
-                    </div>
+                  
+                  <div className="message-meta">
+                    <span className="message-time">
+                      {new Date(message.timestamp).toLocaleTimeString('en-US', { 
+                        hour: 'numeric', 
+                        minute: '2-digit' 
+                      })}
+                    </span>
                     
                     {message.type === 'ai' && message.aiConfidence !== undefined && (
-                      <div className={`ai-confidence-indicator ${getConfidenceClass(message.aiConfidence)}`}>
-                        AI Confidence: {Math.round(message.aiConfidence * 100)}%
-                      </div>
-                    )}
-                    
-                    {message.hasFileContext && (
-                      <div className="file-context-indicator">
-                        Used document context
-                      </div>
+                      <span className={`confidence-badge ${getConfidenceClass(message.aiConfidence)}`}>
+                        {Math.round(message.aiConfidence * 100)}%
+                      </span>
                     )}
                   </div>
 
                   {message.type === 'ai' && !message.userRating && !message.feedbackSubmitted && (
                     <div className="rating-section">
-                      <span className="rating-prompt">
-                        {message.shouldRequestFeedback ? 
-                          "I'm not very confident about this answer. Please rate to help me improve:" :
-                          "Rate this response:"
-                        }
-                      </span>
+                      <span className="rating-label">RATE THIS RESPONSE</span>
                       <div className="rating-buttons">
                         {[1, 2, 3, 4, 5].map(rating => (
                           <button
                             key={rating}
                             className="rating-btn"
                             onClick={() => rateResponse(message.id, rating)}
-                            title={`Rate ${rating} stars`}
+                            title={`${rating} star${rating > 1 ? 's' : ''}`}
                           >
                             {rating}
                           </button>
@@ -781,97 +717,65 @@ const rateResponse = async (messageId, rating) => {
                   )}
 
                   {showFeedbackFor === message.id && (
-                    <div className="feedback-section visible">
+                    <div className="feedback-form">
                       <textarea
-                        className="feedback-textarea"
-                        placeholder="What could I improve about this response? Your feedback helps me learn for everyone..."
+                        className="feedback-input"
+                        placeholder="What could be improved?"
                         value={feedbackText}
                         onChange={(e) => setFeedbackText(e.target.value)}
                       />
-                      <textarea
-                        className="feedback-textarea"
-                        placeholder="Specific suggestion for improvement (optional)..."
-                        value={improvementSuggestion}
-                        onChange={(e) => setImprovementSuggestion(e.target.value)}
-                      />
                       <div className="feedback-actions">
                         <button 
-                          className="feedback-cancel"
+                          className="btn-secondary"
                           onClick={() => setShowFeedbackFor(null)}
                         >
-                          Cancel
+                          CANCEL
                         </button>
                         <button 
-                          className="feedback-submit"
+                          className="btn-primary"
                           onClick={() => submitFeedback(message.id)}
                         >
-                          Submit Feedback
+                          SUBMIT
                         </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {message.userRating && (
-                    <div className="user-rating">
-                      Your rating: {message.userRating}/5 stars
-                      {message.feedbackSubmitted && " - Thank you for your feedback!"}
-                    </div>
-                  )}
-
-                  {message.misconceptionDetected && (
-                    <div className="misconception-indicator">
-                      <div style={{ 
-                        fontSize: '11px', 
-                        color: 'rgba(255, 193, 7, 0.8)',
-                        fontStyle: 'italic' 
-                      }}>
-                        Corrected a common misconception
                       </div>
                     </div>
                   )}
                 </div>
               ))}
+              
               {loading && (
                 <div className="message ai">
-                  <div className="message-content typing">
+                  <div className="message-bubble">
                     <div className="typing-indicator">
                       <span></span>
                       <span></span>
                       <span></span>
                     </div>
-                    {fileProcessing && (
-                      <div className="processing-files">
-                        Processing uploaded files...
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
+              
               <div ref={messagesEndRef} />
             </div>
           )}
         </div>
 
-        {showFilePreview && selectedFiles.length > 0 && (
-          <div className="file-preview-section">
+        {selectedFiles.length > 0 && (
+          <div className="file-preview-bar">
             <div className="file-preview-header">
-              <span>{selectedFiles.length} file(s) selected</span>
-              <button className="clear-files-btn" onClick={clearAllFiles}>
-                Clear All
+              <span className="file-count">{selectedFiles.length} FILE(S) SELECTED</span>
+              <button className="clear-files" onClick={clearAllFiles}>
+                CLEAR ALL
               </button>
             </div>
             <div className="file-preview-list">
               {selectedFiles.map((file, index) => (
                 <div key={index} className="file-preview-item">
-                  <span className="file-preview-icon">{getFileIcon(file.name, file.type)}</span>
-                  <div className="file-preview-info">
-                    <div className="file-preview-name">{file.name}</div>
-                    <div className="file-preview-size">{formatFileSize(file.size)}</div>
-                  </div>
+                  <span className="file-icon">{getFileIcon(file.name, file.type)}</span>
+                  <span className="file-name">{file.name}</span>
                   <button 
-                    className="file-remove-btn" 
+                    className="remove-file" 
                     onClick={() => removeFile(index)}
-                    title="Remove file"
                   >
                     ×
                   </button>
@@ -888,73 +792,72 @@ const rateResponse = async (messageId, rating) => {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
           >
-            {dragActive && (
-              <div className="drag-overlay">
-                <div className="drag-message">
-                  <div className="drag-icon">UPLOAD</div>
-                  <div>Drop your PDFs or images here</div>
-                </div>
-              </div>
-            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,image/*"
+              onChange={handleFileInputChange}
+              style={{ display: 'none' }}
+            />
             
-            <div className="input-controls">
-              <button
-                className="file-upload-btn"
-                onClick={() => fileInputRef.current?.click()}
-                title="Upload files"
-                disabled={loading}
-              >
-                ATTACH
-              </button>
-              
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept=".pdf,image/*"
-                onChange={handleFileInputChange}
-                style={{ display: 'none' }}
-              />
-              
-              <textarea
-                value={inputMessage}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask about physics, chemistry, history, geography, or upload PDFs/images for analysis..."
-                className="message-input"
-                disabled={loading}
-                rows="1"
-              />
-              
-              <button
-                onClick={sendMessage}
-                disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}
-                className="send-btn"
-              >
-                {loading ? 'SENDING' : 'SEND'}
-              </button>
-            </div>
+            <button
+              className="attach-btn"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading}
+              title="Attach files"
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 3v12M3 9h12"/>
+              </svg>
+            </button>
+            
+            <textarea
+              value={inputMessage}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Type your message or drag files here..."
+              className="message-input"
+              disabled={loading}
+              rows="1"
+            />
+            
+            <button
+              onClick={sendMessage}
+              disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}
+              className="send-btn"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M1 8l14-6-6 14-2-8z"/>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
 
       {showDeleteConfirmation && (
-        <div className="confirmation-overlay">
-          <div className="confirmation-modal">
-            <h3>Delete Chat</h3>
-            <p>Are you sure you want to delete "{chatToDelete?.title}"?</p>
-            <div className="confirmation-actions">
+        <div className="modal-overlay" onClick={() => setShowDeleteConfirmation(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">DELETE CONVERSATION</h3>
+            </div>
+            <div className="modal-body">
+              <p className="modal-text">
+                Are you sure you want to delete "<strong>{chatToDelete?.title}</strong>"? This action cannot be undone.
+              </p>
+            </div>
+            <div className="modal-footer">
               <button
-                className="confirm-delete-btn"
-                onClick={confirmDeleteChat}
-              >
-                DELETE
-              </button>
-              <button
-                className="cancel-delete-btn"
+                className="btn-secondary"
                 onClick={() => setShowDeleteConfirmation(false)}
               >
                 CANCEL
+              </button>
+              <button
+                className="btn-danger"
+                onClick={confirmDeleteChat}
+              >
+                DELETE
               </button>
             </div>
           </div>
