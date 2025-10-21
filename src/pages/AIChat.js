@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTheme } from '../contexts/ThemeContext';
 import './AIChat.css';
 
 const AIChat = () => {
   const { chatId } = useParams();
   const navigate = useNavigate();
+  const { selectedTheme } = useTheme();
   
   const [userName, setUserName] = useState('');
   const [userProfile, setUserProfile] = useState(null);
@@ -527,21 +529,31 @@ const AIChat = () => {
   }, [userName]);
 
   useEffect(() => {
-    const numericChatId = chatId ? parseInt(chatId) : null;
-    
-    if (numericChatId && !isNaN(numericChatId)) {
+  const numericChatId = chatId ? parseInt(chatId) : null;
+  
+  if (numericChatId && !isNaN(numericChatId)) {
+    if (activeChatId !== numericChatId) {  // ADD THIS CHECK
       setActiveChatId(numericChatId);
       setMessages([]);
       loadChatMessages(numericChatId);
-    } else {
-      setActiveChatId(null);
-      setMessages([]);
     }
-  }, [chatId]);
+  } else {
+    setActiveChatId(null);
+    setMessages([]);
+  }
+}, [chatId]);  // Remove activeChatId from dependencies
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    if (selectedTheme && selectedTheme.tokens) {
+      Object.entries(selectedTheme.tokens).forEach(([key, value]) => {
+        document.documentElement.style.setProperty(key, value);
+      });
+    }
+  }, [selectedTheme]);
 
   return (
     <div className="ai-chat-page">

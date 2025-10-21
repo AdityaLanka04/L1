@@ -1,27 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  --bg-primary: #0F0F0F;
-  --bg-secondary: #1A1A1A;
-  --bg-tertiary: #242424;
-  --bg-hover: #2A2A2A;
-  --text-primary: #FFFFFF;
-  --text-secondary: #B8B8B8;
-  --text-tertiary: #808080;
-  --accent: var(--theme-accent, #A78BFA);
-  --accent-hover: var(--theme-accent-hover, #C4B5FD);
-  --accent-dark: var(--theme-accent-dark, #8B5CF6);
-  --accent-glow: var(--theme-accent-glow, rgba(167, 139, 250, 0.15));
-  --border: #2D2D2D;
-  --border-light: #3A3A3A;
-  --border-focus: var(--accent);
+  --bg-top: #0b0b0c;
+  --bg-bottom: #0f1012;
+  --panel: #16181d;
+  --border: #2a2f37;
+  --text-primary: #EAECEF;
+  --text-secondary: #B8C0CC;
+  --accent: #D7B38C;
+  --glow: rgba(215, 179, 140, 0.35);
   --success: #10B981;
   --warning: #F59E0B;
   --danger: #EF4444;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px var(--accent-glow);
+  --shadow-glow: 0 0 20px var(--glow);
 }
 
 * {
@@ -32,7 +26,7 @@
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: var(--bg-primary);
+  background: var(--bg-bottom);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -43,14 +37,14 @@ body {
 .ai-chat-page {
   display: flex;
   height: 100vh;
-  background: var(--bg-primary);
+  background: var(--bg-bottom);
   overflow: hidden;
   position: relative;
 }
 
 .chat-sidebar {
   width: 300px;
-  background: var(--bg-secondary);
+  background: var(--panel);
   border-right: 2px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -74,7 +68,7 @@ body {
 .sidebar-header {
   padding: 20px 16px;
   border-bottom: 2px solid var(--border);
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, rgba(26, 26, 26, 0.8) 100%);
+  background: var(--panel);
 }
 
 .sidebar-title-bar {
@@ -87,14 +81,14 @@ body {
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 1.8px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   text-transform: uppercase;
   padding: 0 4px;
 }
 
 .new-chat-btn {
   width: 100%;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  background: var(--accent);
   border: 1px solid var(--accent);
   color: white;
   padding: 12px 16px;
@@ -129,9 +123,9 @@ body {
 }
 
 .new-chat-btn:hover {
-  background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent) 100%);
+  background: color-mix(in srgb, var(--accent) 85%, white);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md), 0 0 30px var(--accent-glow);
+  box-shadow: var(--shadow-md), 0 0 30px var(--glow);
 }
 
 .new-chat-btn:active {
@@ -142,7 +136,7 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 12px 8px;
-  background: var(--bg-secondary);
+  background: var(--panel);
 }
 
 .chat-sessions::-webkit-scrollbar {
@@ -160,7 +154,7 @@ body {
 }
 
 .chat-sessions::-webkit-scrollbar-thumb:hover {
-  background: var(--border-light);
+  background: var(--accent);
 }
 
 .no-chats {
@@ -178,14 +172,15 @@ body {
 }
 
 .no-chats span {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-size: 12px;
+  opacity: 0.7;
 }
 
 .chat-session-item {
   padding: 14px 12px;
   margin-bottom: 6px;
-  background: var(--bg-tertiary);
+  background: var(--bg-bottom);
   border: 1px solid var(--border);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -203,14 +198,14 @@ body {
   top: 0;
   bottom: 0;
   width: 3px;
-  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%);
+  background: var(--accent);
   transform: scaleY(0);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .chat-session-item:hover {
-  background: var(--bg-hover);
-  border-color: var(--border-light);
+  background: color-mix(in srgb, var(--panel) 80%, var(--accent) 20%);
+  border-color: var(--accent);
   transform: translateX(4px);
   box-shadow: var(--shadow-md);
 }
@@ -220,9 +215,9 @@ body {
 }
 
 .chat-session-item.active {
-  background: linear-gradient(90deg, var(--accent-glow) 0%, var(--bg-tertiary) 100%);
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-bottom));
   border-color: var(--accent);
-  box-shadow: var(--shadow-md), inset 0 0 20px var(--accent-glow);
+  box-shadow: var(--shadow-md), inset 0 0 20px var(--glow);
 }
 
 .chat-session-item.active::before {
@@ -245,7 +240,7 @@ body {
 }
 
 .session-date {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 500;
   text-transform: uppercase;
@@ -255,7 +250,7 @@ body {
 .delete-chat-btn {
   background: transparent;
   border: 1px solid transparent;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-size: 20px;
   cursor: pointer;
   padding: 4px 8px;
@@ -278,13 +273,13 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
+  background: var(--bg-bottom);
   min-width: 0;
   position: relative;
 }
 
 .chat-header {
-  background: var(--bg-secondary);
+  background: var(--panel);
   padding: 16px 28px;
   display: flex;
   align-items: center;
@@ -303,7 +298,7 @@ body {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, var(--accent) 0%, transparent 50%, var(--accent) 100%);
+  background: var(--accent);
   opacity: 0.3;
 }
 
@@ -314,7 +309,7 @@ body {
 }
 
 .sidebar-toggle {
-  background: var(--bg-tertiary);
+  background: var(--bg-bottom);
   border: 1px solid var(--border);
   color: var(--text-secondary);
   padding: 10px;
@@ -327,7 +322,7 @@ body {
 }
 
 .sidebar-toggle:hover {
-  background: var(--bg-hover);
+  background: color-mix(in srgb, var(--panel) 80%, var(--accent) 20%);
   border-color: var(--accent);
   color: var(--accent);
   transform: translateY(-1px);
@@ -338,7 +333,7 @@ body {
   font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.5px;
-  color: var(--text-primary);
+  color: var(--accent);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   text-transform: lowercase;
@@ -352,12 +347,12 @@ body {
   left: 0;
   width: 0;
   height: 2px;
-  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-dark) 100%);
+  background: var(--accent);
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .chat-title:hover {
-  color: var(--accent);
+  color: color-mix(in srgb, var(--accent) 80%, white);
   transform: translateY(-1px);
 }
 
@@ -386,7 +381,7 @@ body {
 }
 
 .header-btn {
-  background: var(--bg-tertiary);
+  background: var(--bg-bottom);
   border: 1px solid var(--border);
   color: var(--text-secondary);
   padding: 10px 18px;
@@ -417,7 +412,7 @@ body {
 }
 
 .header-btn.dashboard-btn:hover {
-  background: var(--bg-hover);
+  background: color-mix(in srgb, var(--panel) 80%, var(--accent) 20%);
   border-color: var(--accent);
   color: var(--accent);
   transform: translateY(-1px);
@@ -438,7 +433,7 @@ body {
   padding: 32px 24px 24px;
   display: flex;
   flex-direction: column;
-  background: var(--bg-primary);
+  background: var(--bg-bottom);
 }
 
 .messages-container::-webkit-scrollbar {
@@ -446,18 +441,18 @@ body {
 }
 
 .messages-container::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  background: var(--panel);
   border-left: 1px solid var(--border);
 }
 
 .messages-container::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%);
+  background: var(--accent);
   border-radius: 4px;
-  border: 2px solid var(--bg-secondary);
+  border: 2px solid var(--panel);
 }
 
 .messages-container::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, var(--accent-hover) 0%, var(--accent) 100%);
+  background: color-mix(in srgb, var(--accent) 80%, white);
 }
 
 .welcome-container {
@@ -482,10 +477,6 @@ body {
   letter-spacing: -0.8px;
   margin-bottom: 20px;
   color: var(--text-primary);
-  background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .welcome-subtitle {
@@ -531,7 +522,7 @@ body {
 }
 
 .message-bubble {
-  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+  background: var(--panel);
   border: 2px solid var(--border);
   padding: 20px 24px;
   box-shadow: var(--shadow-md);
@@ -546,17 +537,17 @@ body {
   left: 0;
   width: 4px;
   height: 100%;
-  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%);
+  background: var(--accent);
 }
 
 .message.user .message-bubble {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  background: var(--accent);
   border-color: var(--accent);
   box-shadow: var(--shadow-md), var(--shadow-glow);
 }
 
 .message.user .message-bubble::before {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 100%);
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .message-content {
@@ -590,7 +581,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--bg-tertiary);
+  background: var(--bg-bottom);
   border: 1px solid var(--border);
   padding: 8px 12px;
   font-size: 12px;
@@ -626,7 +617,7 @@ body {
 .file-analysis-header {
   font-size: 10px;
   font-weight: 800;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin-bottom: 12px;
   text-transform: uppercase;
   letter-spacing: 1.2px;
@@ -654,7 +645,7 @@ body {
 
 .message-time {
   font-size: 11px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.6px;
@@ -671,19 +662,19 @@ body {
 }
 
 .confidence-badge.high {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%);
+  background: rgba(16, 185, 129, 0.15);
   color: var(--success);
   border-color: var(--success);
 }
 
 .confidence-badge.medium {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%);
+  background: rgba(245, 158, 11, 0.15);
   color: var(--warning);
   border-color: var(--warning);
 }
 
 .confidence-badge.low {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.05) 100%);
+  background: rgba(239, 68, 68, 0.15);
   color: var(--danger);
   border-color: var(--danger);
 }
@@ -691,7 +682,7 @@ body {
 .rating-section {
   margin-top: 16px;
   padding: 16px;
-  background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-hover) 100%);
+  background: var(--panel);
   border: 2px solid var(--border);
   display: flex;
   align-items: center;
@@ -715,7 +706,7 @@ body {
 .rating-btn {
   width: 36px;
   height: 36px;
-  background: var(--bg-secondary);
+  background: var(--bg-bottom);
   border: 2px solid var(--border);
   color: var(--text-secondary);
   font-size: 13px;
@@ -729,7 +720,7 @@ body {
 }
 
 .rating-btn:hover {
-  background: var(--bg-primary);
+  background: var(--panel);
   border-color: var(--accent);
   color: var(--accent);
   transform: translateY(-2px);
@@ -739,7 +730,7 @@ body {
 .feedback-form {
   margin-top: 16px;
   padding: 20px;
-  background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-hover) 100%);
+  background: var(--panel);
   border: 2px solid var(--border);
   box-shadow: var(--shadow-md);
 }
@@ -747,7 +738,7 @@ body {
 .feedback-input {
   width: 100%;
   min-height: 100px;
-  background: var(--bg-secondary);
+  background: var(--bg-bottom);
   border: 2px solid var(--border);
   color: var(--text-primary);
   padding: 14px;
@@ -766,7 +757,8 @@ body {
 }
 
 .feedback-input::placeholder {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
+  opacity: 0.6;
 }
 
 .feedback-actions {
@@ -811,39 +803,39 @@ body {
 }
 
 .btn-secondary {
-  background: var(--bg-tertiary);
+  background: var(--bg-bottom);
   border: 2px solid var(--border);
   color: var(--text-secondary);
 }
 
 .btn-secondary:hover {
-  background: var(--bg-hover);
+  background: var(--panel);
   color: var(--text-primary);
-  border-color: var(--border-light);
+  border-color: var(--accent);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  background: var(--accent);
   border: 2px solid var(--accent);
   color: white;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent) 100%);
+  background: color-mix(in srgb, var(--accent) 85%, white);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md), var(--shadow-glow);
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, var(--danger) 0%, #DC2626 100%);
+  background: var(--danger);
   border: 2px solid var(--danger);
   color: white;
 }
 
 .btn-danger:hover {
-  background: linear-gradient(135deg, #F87171 0%, var(--danger) 100%);
+  background: color-mix(in srgb, var(--danger) 85%, white);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md), 0 0 20px rgba(239, 68, 68, 0.3);
 }
@@ -860,7 +852,7 @@ body {
   background: var(--accent);
   border-radius: 50%;
   animation: typing 1.4s infinite ease-in-out;
-  box-shadow: 0 0 10px var(--accent-glow);
+  box-shadow: 0 0 10px var(--glow);
 }
 
 .typing-indicator span:nth-child(1) {
@@ -883,7 +875,7 @@ body {
 }
 
 .file-preview-bar {
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+  background: var(--panel);
   border-top: 2px solid var(--border);
   padding: 16px 24px;
   flex-shrink: 0;
@@ -935,7 +927,7 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: var(--bg-tertiary);
+  background: var(--bg-bottom);
   padding: 10px 14px;
   font-size: 12px;
   border: 2px solid var(--border);
@@ -949,7 +941,7 @@ body {
 }
 
 .file-preview-item .file-icon {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  background: var(--accent);
   color: white;
   padding: 4px 8px;
   font-size: 9px;
@@ -970,7 +962,7 @@ body {
 .remove-file {
   background: transparent;
   border: 1px solid transparent;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-size: 20px;
   cursor: pointer;
   padding: 0 6px;
@@ -985,7 +977,7 @@ body {
 }
 
 .input-container {
-  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+  background: transparent;
   border-top: 2px solid var(--border);
   padding: 20px 24px;
   flex-shrink: 0;
@@ -1000,37 +992,35 @@ body {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent 0%, var(--accent) 50%, transparent 100%);
+  background: var(--accent);
   opacity: 0.3;
 }
 
 .input-wrapper {
   max-width: 900px;
   margin: 0 auto;
-  background: var(--bg-primary);
+  background: transparent;
   border: 2px solid var(--border);
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.3s cubic-bezier(0.2, 0, 0, 1);
   position: relative;
   box-shadow: var(--shadow-md);
 }
 
 .input-wrapper:focus-within {
-  border-color: var(--border);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .input-wrapper.drag-active {
-  border-color: var(--accent);
-  background: linear-gradient(135deg, var(--accent-glow) 0%, var(--bg-primary) 100%);
-  box-shadow: var(--shadow-lg), 0 0 30px var(--accent-glow);
+  background: color-mix(in srgb, var(--accent) 5%, var(--bg-bottom));
+  box-shadow: var(--shadow-lg), 0 0 30px var(--glow);
 }
 
 .attach-btn {
-  background: var(--bg-tertiary);
+  background: var(--bg-bottom);
   border: 2px solid var(--border);
   color: var(--text-secondary);
   padding: 10px;
@@ -1045,7 +1035,7 @@ body {
 
 .attach-btn:hover {
   color: var(--accent);
-  background: var(--bg-hover);
+  background: var(--panel);
   border-color: var(--accent);
   transform: translateY(-1px);
   box-shadow: var(--shadow-md), var(--shadow-glow);
@@ -1074,7 +1064,7 @@ body {
 }
 
 .message-input::placeholder {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-weight: 400;
   text-align: center;
 }
@@ -1085,7 +1075,7 @@ body {
 }
 
 .send-btn {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+  background: var(--accent);
   border: 2px solid var(--accent);
   color: white;
   padding: 10px;
@@ -1116,9 +1106,9 @@ body {
 }
 
 .send-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent) 100%);
+  background: color-mix(in srgb, var(--accent) 85%, white);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md), 0 0 25px var(--accent-glow);
+  box-shadow: var(--shadow-md), 0 0 25px var(--glow);
 }
 
 .send-btn:disabled {
@@ -1152,7 +1142,7 @@ body {
 }
 
 .modal {
-  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+  background: var(--panel);
   border: 2px solid var(--border);
   max-width: 500px;
   width: 90%;
@@ -1180,13 +1170,13 @@ body {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-dark) 100%);
+  background: var(--accent);
 }
 
 .modal-header {
   padding: 24px 28px 20px;
   border-bottom: 2px solid var(--border);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02) 0%, transparent 100%);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .modal-title {
@@ -1219,7 +1209,7 @@ body {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.1) 100%);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 @media (max-width: 1024px) {
@@ -1337,21 +1327,21 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  background: var(--panel);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%);
+  background: var(--accent);
   border-radius: 4px;
-  border: 2px solid var(--bg-secondary);
+  border: 2px solid var(--panel);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, var(--accent-hover) 0%, var(--accent) 100%);
+  background: color-mix(in srgb, var(--accent) 80%, white);
 }
 
 ::selection {
-  background: var(--accent-glow);
+  background: var(--glow);
   color: var(--text-primary);
 }
 
