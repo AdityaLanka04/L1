@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
 import asyncio
-
+import math  
 import tempfile
 from fastapi import FastAPI, Form, Depends, HTTPException, status, Query, Request, File, UploadFile, Body
 from fastapi.responses import JSONResponse
@@ -4328,7 +4328,7 @@ def get_question_set_details(question_set_id: int, db: Session = Depends(get_db)
         logger.error(f"Error getting question set details: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-        
+
 @app.post("/submit_learning_response")
 async def submit_learning_response(
     payload: dict = Body(...),
@@ -4504,9 +4504,630 @@ Generate evaluation now:"""
             status_code=500, 
             detail=f"Failed to evaluate learning response: {str(e)}"
         )
+#=====================Nodes endpoint=====================
 
+# ==================== KNOWLEDGE ROADMAP SYSTEM ====================
+
+@app.post("/create_knowledge_roadmap")
+async def create_knowledge_roadmap(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Create a new knowledge roadmap with ONLY root topic (no initial subtopics)
+    """
+    try:
+        user_id = payload.get("user_id")
+        root_topic = payload.get("root_topic")
+        
+        if not user_id or not root_topic:
+            raise HTTPException(status_code=400, detail="user_id and root_topic required")
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Create ONLY root node (no AI generation yet)
+        root_node = models.KnowledgeNode(
+            user_id=user.id,
+            parent_node_id=None,
+            topic_name=root_topic,
+            description=f"Explore {root_topic} - Click 'Explore' to learn or 'Expand' to see subtopics",
+            depth_level=0,
+            ai_explanation=None,  # Will be generated on explore
+            key_concepts=None,
+            generated_subtopics=None,
+            is_explored=False,
+            exploration_count=0,
+            expansion_status="unexpanded",  # Not expanded initially
+            position_x=0.0,
+            position_y=0.0
+        )
+        
+        db.add(root_node)
+        db.flush()
+        
+        # Create roadmap
+        roadmap = models.KnowledgeRoadmap(
+            user_id=user.id,
+            title=f"Exploring {root_topic}",
+            root_topic=root_topic,
+            root_node_id=root_node.id,
+            total_nodes=1,  # Only root node
+            max_depth_reached=0,
+            status="active",
+            last_accessed=datetime.now(timezone.utc)
+        )
+        
+        db.add(roadmap)
+        db.commit()
+        db.refresh(roadmap)
+        db.refresh(root_node)
+        
+        return {
+            "status": "success",
+            "roadmap_id": roadmap.id,
+            "root_node_id": root_node.id,
+            "root_node": {
+                "id": root_node.id,
+                "topic_name": root_node.topic_name,
+                "description": root_node.description,
+                "depth_level": root_node.depth_level,
+                "ai_explanation": root_node.ai_explanation,
+                "key_concepts": json.loads(root_node.key_concepts) if root_node.key_concepts else [],
+                "is_explored": root_node.is_explored,
+                "expansion_status": root_node.expansion_status,
+                "position": {"x": root_node.position_x, "y": root_node.position_y}
+            },
+            "child_nodes": [],  # No children initially
+            "total_nodes": roadmap.total_nodes
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating roadmap: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to create roadmap: {str(e)}")
+
+
+@app.post("/expand_knowledge_node/{node_id}")
+async def expand_knowledge_node(
+    node_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Expand a node by generating 4-5 subtopics (DOES NOT generate explanations)
+    """
+    try:
+        node = db.query(models.KnowledgeNode).filter(
+            models.KnowledgeNode.id == node_id
+        ).first()
+        
+        if not node:
+            raise HTTPException(status_code=404, detail="Node not found")
+        
+        if node.expansion_status == "expanded":
+            # Already expanded, return existing children
+            children = db.query(models.KnowledgeNode).filter(
+                models.KnowledgeNode.parent_node_id == node_id
+            ).all()
+            
+            return {
+                "status": "already_expanded",
+                "child_nodes": [
+                    {
+                        "id": child.id,
+                        "parent_id": child.parent_node_id,
+                        "topic_name": child.topic_name,
+                        "description": child.description,
+                        "depth_level": child.depth_level,
+                        "is_explored": child.is_explored,
+                        "expansion_status": child.expansion_status,
+                        "position": {"x": child.position_x, "y": child.position_y}
+                    }
+                    for child in children
+                ]
+            }
+        
+        # Get user for personalized generation
+        user = db.query(models.User).filter(models.User.id == node.user_id).first()
+        user_profile = build_user_profile_dict(user)
+        
+        # Build context from parent nodes
+        context_path = []
+        current = node
+        while current:
+            context_path.insert(0, current.topic_name)
+            if current.parent_node_id:
+                current = db.query(models.KnowledgeNode).filter(
+                    models.KnowledgeNode.id == current.parent_node_id
+                ).first()
+            else:
+                current = None
+        
+        context_str = " → ".join(context_path)
+        
+        # Generate ONLY subtopics (no explanations)
+        expansion_prompt = f"""You are a knowledge exploration assistant.
+
+**TOPIC TO EXPAND**: {node.topic_name}
+**CONTEXT PATH**: {context_str}
+**CURRENT DEPTH**: {node.depth_level}
+**STUDENT LEVEL**: {user_profile.get('difficulty_level', 'intermediate')}
+
+**TASK**: Generate 4-5 specific subtopics that dive deeper into "{node.topic_name}".
+
+**RULES**:
+1. Each subtopic should be more specific than the parent
+2. Cover different aspects/dimensions of the topic
+3. Progress from foundational to advanced concepts
+4. Make them concrete and explorable
+5. Avoid being too broad or repetitive
+6. Give SHORT names (2-5 words max)
+7. Give brief one-line descriptions
+
+**OUTPUT FORMAT** (JSON only):
+{{
+  "subtopics": [
+    {{
+      "name": "Specific Subtopic Name (SHORT)",
+      "description": "One-line description (under 100 chars)",
+      "complexity": "beginner|intermediate|advanced"
+    }}
+  ]
+}}
+
+Generate 4-5 subtopics now:"""
+
+        chat_completion = groq_client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are an expert educator. Return only valid JSON with 4-5 subtopics."},
+                {"role": "user", "content": expansion_prompt}
+            ],
+            model=GROQ_MODEL,
+            temperature=0.8,
+            max_tokens=1000,
+        )
+        
+        response_text = chat_completion.choices[0].message.content
+        
+        try:
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if json_match:
+                ai_data = json.loads(json_match.group())
+            else:
+                raise ValueError("No JSON found")
+        except Exception as e:
+            logger.error(f"Failed to parse expansion JSON: {str(e)}")
+            # Fallback subtopics
+            ai_data = {
+                "subtopics": [
+                    {"name": "Fundamentals", "description": "Core concepts and basics", "complexity": "beginner"},
+                    {"name": "Key Principles", "description": "Essential rules and theories", "complexity": "intermediate"},
+                    {"name": "Applications", "description": "Real-world uses", "complexity": "intermediate"},
+                    {"name": "Advanced Topics", "description": "Deep dive into complexity", "complexity": "advanced"}
+                ]
+            }
+        
+        # Create child nodes WITHOUT explanations
+        subtopics = ai_data.get("subtopics", [])[:5]  # Max 5 subtopics
+        child_nodes = []
+        
+        for idx, subtopic in enumerate(subtopics):
+            # Calculate position in a circle around parent
+            angle = (idx * (360 / len(subtopics))) * (3.14159 / 180)
+            radius = 300 + (node.depth_level * 50)  # Increase radius with depth
+            
+            child_node = models.KnowledgeNode(
+                user_id=node.user_id,
+                parent_node_id=node.id,
+                topic_name=subtopic.get("name", ""),
+                description=subtopic.get("description", ""),
+                depth_level=node.depth_level + 1,
+                ai_explanation=None,  # NOT generated yet - only on explore
+                key_concepts=None,
+                generated_subtopics=None,
+                is_explored=False,
+                exploration_count=0,
+                expansion_status="unexpanded",
+                position_x=node.position_x + (radius * float(math.cos(angle))),
+                position_y=node.position_y + (radius * float(math.sin(angle)))
+            )
+            db.add(child_node)
+            child_nodes.append(child_node)
+        
+        # Update parent node
+        node.expansion_status = "expanded"
+        node.generated_subtopics = json.dumps(subtopics)
+        
+        # Update roadmap stats
+        roadmap = db.query(models.KnowledgeRoadmap).filter(
+            models.KnowledgeRoadmap.user_id == node.user_id
+        ).order_by(models.KnowledgeRoadmap.created_at.desc()).first()
+        
+        if roadmap:
+            roadmap.total_nodes += len(child_nodes)
+            roadmap.max_depth_reached = max(roadmap.max_depth_reached, node.depth_level + 1)
+            roadmap.last_accessed = datetime.now(timezone.utc)
+        
+        db.commit()
+        
+        for child in child_nodes:
+            db.refresh(child)
+        
+        return {
+            "status": "success",
+            "message": f"Expanded {node.topic_name} with {len(child_nodes)} subtopics",
+            "child_nodes": [
+                {
+                    "id": child.id,
+                    "parent_id": child.parent_node_id,
+                    "topic_name": child.topic_name,
+                    "description": child.description,
+                    "depth_level": child.depth_level,
+                    "is_explored": child.is_explored,
+                    "expansion_status": child.expansion_status,
+                    "position": {"x": child.position_x, "y": child.position_y}
+                }
+                for child in child_nodes
+            ]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error expanding node: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to expand node: {str(e)}")
+
+
+@app.post("/explore_node/{node_id}")
+async def explore_node(
+    node_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Generate AI explanation for a node (DOES NOT expand or create children)
+    """
+    try:
+        node = db.query(models.KnowledgeNode).filter(
+            models.KnowledgeNode.id == node_id
+        ).first()
+        
+        if not node:
+            raise HTTPException(status_code=404, detail="Node not found")
+        
+        # If already has explanation, just return it
+        if node.ai_explanation and node.key_concepts:
+            node.exploration_count += 1
+            node.last_explored = datetime.now(timezone.utc)
+            db.commit()
+            db.refresh(node)
+            
+            return {
+                "status": "already_generated",
+                "node": {
+                    "id": node.id,
+                    "topic_name": node.topic_name,
+                    "ai_explanation": node.ai_explanation,
+                    "key_concepts": json.loads(node.key_concepts) if node.key_concepts else [],
+                    "is_explored": node.is_explored,
+                    "exploration_count": node.exploration_count
+                }
+            }
+        
+        # Generate explanation
+        user = db.query(models.User).filter(models.User.id == node.user_id).first()
+        user_profile = build_user_profile_dict(user)
+        
+        # Build context
+        context_path = []
+        current = node.parent_node_id
+        while current:
+            parent = db.query(models.KnowledgeNode).filter(
+                models.KnowledgeNode.id == current
+            ).first()
+            if parent:
+                context_path.insert(0, parent.topic_name)
+                current = parent.parent_node_id
+            else:
+                current = None
+        
+        context_str = " → ".join(context_path) if context_path else "Root level"
+        
+        explanation_prompt = f"""You are an expert educator helping {user_profile.get('first_name', 'a student')}.
+
+**TOPIC**: {node.topic_name}
+**CONTEXT PATH**: {context_str}
+**DEPTH LEVEL**: {node.depth_level}
+**STUDENT LEVEL**: {user_profile.get('difficulty_level', 'intermediate')}
+
+**TASK**: Create a comprehensive yet digestible explanation of "{node.topic_name}".
+
+**OUTPUT FORMAT** (JSON only):
+{{
+  "explanation": "Clear, engaging explanation (250-400 words) with examples and analogies",
+  "key_concepts": ["Key Concept 1", "Key Concept 2", "Key Concept 3", "Key Concept 4", "Key Concept 5"],
+  "why_important": "Why this topic matters (2-3 sentences)",
+  "real_world_examples": ["Real example 1 with context", "Real example 2 with context"],
+  "learning_tips": "Practical advice for mastering this topic"
+}}
+
+Generate now:"""
+
+        chat_completion = groq_client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are an expert educator. Return only valid JSON with detailed explanations."},
+                {"role": "user", "content": explanation_prompt}
+            ],
+            model=GROQ_MODEL,
+            temperature=0.7,
+            max_tokens=2048,
+        )
+        
+        response_text = chat_completion.choices[0].message.content
+        
+        try:
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if json_match:
+                ai_data = json.loads(json_match.group())
+            else:
+                raise ValueError("No JSON found")
+        except Exception as e:
+            logger.error(f"Failed to parse explanation JSON: {str(e)}")
+            ai_data = {
+                "explanation": f"An exploration of {node.topic_name}. This topic involves understanding the fundamental concepts and their applications.",
+                "key_concepts": ["Core principles", "Key theories", "Practical applications", "Related fields", "Future directions"],
+                "why_important": "Understanding this topic is essential for building a strong foundation in this domain.",
+                "real_world_examples": ["Used in various industries", "Applied in research and development"],
+                "learning_tips": "Practice regularly, connect concepts to real-world scenarios, and explore related topics."
+            }
+        
+        # Update node with explanation (mark as explored)
+        node.ai_explanation = ai_data.get("explanation", "")
+        node.key_concepts = json.dumps(ai_data.get("key_concepts", []))
+        node.is_explored = True
+        node.exploration_count += 1
+        node.last_explored = datetime.now(timezone.utc)
+        
+        # Create exploration history record
+        history = models.NodeExplorationHistory(
+            node_id=node.id,
+            user_id=node.user_id,
+            exploration_duration=0,
+            explored_at=datetime.now(timezone.utc)
+        )
+        db.add(history)
+        
+        db.commit()
+        db.refresh(node)
+        
+        return {
+            "status": "success",
+            "node": {
+                "id": node.id,
+                "topic_name": node.topic_name,
+                "description": node.description,
+                "ai_explanation": node.ai_explanation,
+                "key_concepts": json.loads(node.key_concepts) if node.key_concepts else [],
+                "why_important": ai_data.get("why_important", ""),
+                "real_world_examples": ai_data.get("real_world_examples", []),
+                "learning_tips": ai_data.get("learning_tips", ""),
+                "is_explored": node.is_explored,
+                "exploration_count": node.exploration_count
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error exploring node: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to explore node: {str(e)}")
+
+@app.get("/get_knowledge_roadmap/{roadmap_id}")
+async def get_knowledge_roadmap(
+    roadmap_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Get complete roadmap structure with all nodes
+    """
+    try:
+        roadmap = db.query(models.KnowledgeRoadmap).filter(
+            models.KnowledgeRoadmap.id == roadmap_id
+        ).first()
+        
+        if not roadmap:
+            raise HTTPException(status_code=404, detail="Roadmap not found")
+        
+        # Get root node
+        root_node = db.query(models.KnowledgeNode).filter(
+            models.KnowledgeNode.id == roadmap.root_node_id
+        ).first()
+        
+        # Get flat list of all nodes in this roadmap tree
+        roadmap_node_ids = set()
+        
+        def collect_node_ids(node_id):
+            roadmap_node_ids.add(node_id)
+            children = db.query(models.KnowledgeNode).filter(
+                models.KnowledgeNode.parent_node_id == node_id
+            ).all()
+            for child in children:
+                collect_node_ids(child.id)
+        
+        if root_node:
+            collect_node_ids(root_node.id)
+        
+        all_nodes = db.query(models.KnowledgeNode).filter(
+            models.KnowledgeNode.id.in_(roadmap_node_ids)
+        ).all()
+        
+        nodes_flat = [
+            {
+                "id": node.id,
+                "parent_id": node.parent_node_id,
+                "topic_name": node.topic_name,
+                "description": node.description,
+                "depth_level": node.depth_level,
+                "ai_explanation": node.ai_explanation,
+                "key_concepts": json.loads(node.key_concepts) if node.key_concepts else [],
+                "is_explored": node.is_explored,
+                "exploration_count": node.exploration_count,
+                "expansion_status": node.expansion_status,
+                "user_notes": node.user_notes,
+                "position": {"x": node.position_x, "y": node.position_y},
+                "created_at": node.created_at.isoformat()
+            }
+            for node in all_nodes
+        ]
+        
+        return {
+            "roadmap": {
+                "id": roadmap.id,
+                "title": roadmap.title,
+                "root_topic": roadmap.root_topic,
+                "total_nodes": roadmap.total_nodes,
+                "max_depth_reached": roadmap.max_depth_reached,
+                "status": roadmap.status,
+                "created_at": roadmap.created_at.isoformat(),
+                "last_accessed": roadmap.last_accessed.isoformat() if roadmap.last_accessed else None
+            },
+            "nodes_flat": nodes_flat
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting roadmap: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to get roadmap: {str(e)}")
+
+
+@app.get("/get_user_roadmaps")
+async def get_user_roadmaps(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all roadmaps for a user
+    """
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        roadmaps = db.query(models.KnowledgeRoadmap).filter(
+            models.KnowledgeRoadmap.user_id == user.id
+        ).order_by(models.KnowledgeRoadmap.created_at.desc()).all()
+        
+        return {
+            "roadmaps": [
+                {
+                    "id": roadmap.id,
+                    "title": roadmap.title,
+                    "root_topic": roadmap.root_topic,
+                    "total_nodes": roadmap.total_nodes,
+                    "max_depth_reached": roadmap.max_depth_reached,
+                    "status": roadmap.status,
+                    "created_at": roadmap.created_at.isoformat(),
+                    "last_accessed": roadmap.last_accessed.isoformat() if roadmap.last_accessed else None
+                }
+                for roadmap in roadmaps
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting user roadmaps: {str(e)}")
+        return {"roadmaps": []}
+
+
+@app.post("/save_node_notes/{node_id}")
+async def save_node_notes(
+    node_id: int,
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Save user notes on a node
+    """
+    try:
+        node = db.query(models.KnowledgeNode).filter(
+            models.KnowledgeNode.id == node_id
+        ).first()
+        
+        if not node:
+            raise HTTPException(status_code=404, detail="Node not found")
+        
+        notes = payload.get("notes", "")
+        node.user_notes = notes
+        
+        db.commit()
+        
+        return {
+            "status": "success",
+            "message": "Notes saved successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error saving notes: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/delete_roadmap/{roadmap_id}")
+async def delete_roadmap(
+    roadmap_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a roadmap and all its nodes
+    """
+    try:
+        roadmap = db.query(models.KnowledgeRoadmap).filter(
+            models.KnowledgeRoadmap.id == roadmap_id
+        ).first()
+        
+        if not roadmap:
+            raise HTTPException(status_code=404, detail="Roadmap not found")
+        
+        # Delete all nodes recursively
+        def delete_node_tree(node_id):
+            children = db.query(models.KnowledgeNode).filter(
+                models.KnowledgeNode.parent_node_id == node_id
+            ).all()
+            
+            for child in children:
+                delete_node_tree(child.id)
+            
+            db.query(models.NodeExplorationHistory).filter(
+                models.NodeExplorationHistory.node_id == node_id
+            ).delete()
+            
+            db.query(models.KnowledgeNode).filter(
+                models.KnowledgeNode.id == node_id
+            ).delete()
+        
+        if roadmap.root_node_id:
+            delete_node_tree(roadmap.root_node_id)
+        
+        db.delete(roadmap)
+        db.commit()
+        
+        return {
+            "status": "success",
+            "message": "Roadmap deleted successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error deleting roadmap: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ==================== HINTS ENDPOINT ====================
+
+
 
 @app.post("/get_learning_hints")
 async def get_learning_hints(
