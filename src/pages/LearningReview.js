@@ -265,6 +265,30 @@ const LearningReview = () => {
       return;
     }
 
+    // ✅ CRITICAL: Filter out questions that weren't answered AT ALL
+    const validAnswers = {};
+    let hasAtLeastOneAnswer = false;
+
+    activeQuestionSet.questions.forEach(question => {
+      const answer = questionAnswers[question.id];
+      
+      // Only include if answer exists AND is not empty
+      if (answer !== undefined && answer !== null && answer !== '') {
+        if (typeof answer === 'string' && answer.trim() !== '') {
+          validAnswers[question.id] = answer.trim();
+          hasAtLeastOneAnswer = true;
+        } else if (typeof answer !== 'string') {
+          validAnswers[question.id] = answer;
+          hasAtLeastOneAnswer = true;
+        }
+      }
+    });
+
+    if (!hasAtLeastOneAnswer) {
+      alert('Please answer at least one question before submitting');
+      return;
+    }
+
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -276,7 +300,7 @@ const LearningReview = () => {
         },
         body: JSON.stringify({
           question_set_id: activeQuestionSet.id || activeQuestionSet.question_set_id,
-          answers: questionAnswers
+          answers: validAnswers
         })
       });
 
@@ -336,6 +360,31 @@ const LearningReview = () => {
       setLoading(false);
     }
   };
+
+  const loadQuestionSetWithQuestions = async (questionSetId) => {
+  setLoading(true);
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`http://localhost:8001/get_question_set_details/${questionSetId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      setActiveQuestionSet(data);
+      setActiveTab('questions');
+      setQuestionAnswers({});
+      setQuestionResults(null);
+    } else {
+      alert('Error loading questions');
+    }
+  } catch (error) {
+    console.error('Error loading question set:', error);
+    alert('Failed to load questions');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const getHints = async (missingPoints) => {
     if (!activeReview || !missingPoints || missingPoints.length === 0) return;
@@ -690,7 +739,7 @@ const LearningReview = () => {
                   style={{ display: 'none' }}
                 />
                 <label htmlFor="slide-upload" className="upload-label">
-                  <div className="upload-icon">UPLOAD</div>
+                  <div className="upload-icon"></div>
                   <h3>Upload Slides</h3>
                   <p>Supported formats: PDF, PPT, PPTX</p>
                   <button className="cta-btn" onClick={() => document.getElementById('slide-upload').click()}>
@@ -753,7 +802,7 @@ const LearningReview = () => {
 
             {learningReviews.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">REVIEW</div>
+                <div className="empty-icon"></div>
                 <h3>No Learning Reviews Yet</h3>
                 <p>Create your first learning review to test your knowledge retention</p>
                 <button className="cta-btn" onClick={() => setActiveTab('create')}>
@@ -846,7 +895,7 @@ const LearningReview = () => {
 
             {generatedQuestions.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">QUESTIONS</div>
+                <div className="empty-icon"></div>
                 <h3>No Question Sets Yet</h3>
                 <p>Generate questions from your chat sessions and slides</p>
                 <button className="cta-btn" onClick={() => setActiveTab('create')}>
@@ -895,16 +944,22 @@ const LearningReview = () => {
 
                     <div className="difficulty-breakdown">
                       <div className="difficulty-item">
+                        <span className="difficulty-label" style={{ color: getDifficultyColor('easy') }}>
+                          Easy
+                        </span>
+                        <span className="difficulty-count">{questionSet.easy_count || 0}</span>
+                      </div>
+                      <div className="difficulty-item">
                         <span className="difficulty-label" style={{ color: getDifficultyColor('medium') }}>
                           Medium
                         </span>
-                        <span className="difficulty-count">{questionSet.medium_count}</span>
+                        <span className="difficulty-count">{questionSet.medium_count || 0}</span>
                       </div>
                       <div className="difficulty-item">
                         <span className="difficulty-label" style={{ color: getDifficultyColor('hard') }}>
                           Hard
                         </span>
-                        <span className="difficulty-count">{questionSet.hard_count}</span>
+                        <span className="difficulty-count">{questionSet.hard_count || 0}</span>
                       </div>
                     </div>
 
@@ -915,12 +970,7 @@ const LearningReview = () => {
                       {questionSet.can_practice && (
                         <button 
                           className="continue-btn"
-                          onClick={() => {
-                            setActiveQuestionSet(questionSet);
-                            setActiveTab('questions');
-                            setQuestionAnswers({});
-                            setQuestionResults(null);
-                          }}
+                          onClick={() => loadQuestionSetWithQuestions(questionSet.id)}
                         >
                           Practice
                         </button>
@@ -1033,6 +1083,12 @@ const LearningReview = () => {
                   >
                     {loading ? 'Submitting...' : 'Submit Answers'}
                   </button>
+                  <div className="answer-progress">
+                    Answered: {Object.keys(questionAnswers).filter(key => {
+                      const answer = questionAnswers[key];
+                      return answer && (typeof answer === 'string' ? answer.trim() !== '' : true);
+                    }).length} / {activeQuestionSet.questions?.length || 0}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -1068,7 +1124,7 @@ const LearningReview = () => {
                       <div className="result-header">
                         <div className="result-number">Question {index + 1}</div>
                         <div className={`result-status ${result.is_correct ? 'correct' : 'incorrect'}`}>
-                          {result.is_correct ? 'Correct' : 'Incorrect'}
+                          {result.is_correct ? '✓ Correct' : '✗ Incorrect'}
                         </div>
                       </div>
                       
@@ -1207,7 +1263,7 @@ const LearningReview = () => {
                     <h4>Points You Covered ({reviewDetails.covered_points?.length || 0})</h4>
                     {reviewDetails.covered_points?.map((point, index) => (
                       <div key={index} className="point-item covered">
-                        {point}
+                        ✓ {point}
                       </div>
                     ))}
                   </div>
@@ -1217,7 +1273,7 @@ const LearningReview = () => {
                       <h4>Missing Points ({reviewDetails.missing_points.length})</h4>
                       {reviewDetails.missing_points.map((point, index) => (
                         <div key={index} className="point-item missing">
-                          {point}
+                          ○ {point}
                         </div>
                       ))}
                       
@@ -1261,7 +1317,7 @@ const LearningReview = () => {
 
                 {reviewDetails.is_complete && (
                   <div className="completion-message">
-                    <h3>Review Complete</h3>
+                    <h3>🎉 Review Complete!</h3>
                     <p>You have successfully demonstrated comprehensive understanding of the material.</p>
                   </div>
                 )}
@@ -1271,7 +1327,7 @@ const LearningReview = () => {
             {showHints && hints.length > 0 && (
               <div className="hints-section">
                 <div className="hints-header">
-                  <h3>Learning Hints</h3>
+                  <h3>💡 Learning Hints</h3>
                   <button 
                     className="close-hints-btn"
                     onClick={() => setShowHints(false)}

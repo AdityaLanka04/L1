@@ -163,48 +163,58 @@ const Dashboard = () => {
   };
 
   const createLearningReview = async () => {
-    if (!userName) return;
-    try {
-      const token = localStorage.getItem('token');
-      const sessionsResponse = await fetch(`http://localhost:8001/get_chat_sessions?user_id=${userName}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (sessionsResponse.ok) {
-        const sessionsData = await sessionsResponse.json();
-        const recentSessions = sessionsData.sessions?.slice(0, 3) || [];
-        if (recentSessions.length === 0) {
-          alert('No chat sessions found to create a learning review');
-          return;
-        }
-        const response = await fetch('http://localhost:8001/create_learning_review', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            user_id: userName,
-            chat_session_ids: recentSessions.map(s => s.id),
-            review_title: `Learning Review - ${new Date().toLocaleDateString()}`,
-            review_type: 'comprehensive'
-          })
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setActiveLearningReview(data);
-          loadLearningReviews();
-          await endDashboardSession();
-          window.location.href = '/learning-review';
-        } else {
-          const errorData = await response.json();
-          alert('Error creating review: ' + (errorData.detail || 'Unknown error'));
-        }
+  if (!userName) return;
+  
+  try {
+    const token = localStorage.getItem('token');
+    const sessionsResponse = await fetch(`http://localhost:8001/get_chat_sessions?user_id=${userName}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (sessionsResponse.ok) {
+      const sessionsData = await sessionsResponse.json();
+      const recentSessions = sessionsData.sessions?.slice(0, 3) || [];
+      
+      // If no sessions, just navigate to the learning review page
+      if (recentSessions.length === 0) {
+        await endDashboardSession();
+        window.location.href = '/learning-review';
+        return;
       }
-    } catch (error) {
-      console.error('Error creating learning review:', error);
-      alert('Error creating learning review');
+      
+      // If sessions exist, create review automatically
+      const response = await fetch('http://localhost:8001/create_learning_review', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          chat_session_ids: recentSessions.map(s => s.id),
+          review_title: `Learning Review - ${new Date().toLocaleDateString()}`,
+          review_type: 'comprehensive'
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setActiveLearningReview(data);
+        loadLearningReviews();
+        await endDashboardSession();
+        window.location.href = '/learning-review';
+      } else {
+        const errorData = await response.json();
+        alert('Error creating review: ' + (errorData.detail || 'Unknown error'));
+      }
     }
-  };
+  } catch (error) {
+    console.error('Error creating learning review:', error);
+    // On error, still navigate to the page
+    await endDashboardSession();
+    window.location.href = '/learning-review';
+  }
+};
 
   const getScoreColor = (score) => {
     if (score >= 90) return 'score-excellent';

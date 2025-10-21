@@ -4161,15 +4161,33 @@ async def submit_question_answers(
         question_results = []
         
         for question in questions:
-            user_answer = answers.get(str(question.id), "")
+            # ✅ CRITICAL FIX: Check if question was answered at all
+            question_id_str = str(question.id)
             
-            if question.question_type == "multiple_choice":
-                is_correct = user_answer.strip().lower() == question.correct_answer.strip().lower()
-            elif question.question_type == "true_false":
-                is_correct = user_answer.strip().lower() == question.correct_answer.strip().lower()
+            # If question ID not in answers dict at all = unanswered
+            if question_id_str not in answers:
+                is_correct = False
+                display_answer = "No answer provided"
             else:
-                is_correct = user_answer.strip().lower() in question.correct_answer.strip().lower()
+                # Question ID exists in answers, get the value
+                user_answer = answers[question_id_str]
+                
+                # Check if the answer is None or empty string
+                if user_answer is None or (isinstance(user_answer, str) and user_answer.strip() == ""):
+                    is_correct = False
+                    display_answer = "No answer provided"
+                else:
+                    # Valid answer provided - now check if it's correct
+                    display_answer = user_answer
+                    
+                    if question.question_type == "multiple_choice":
+                        is_correct = user_answer.strip().lower() == question.correct_answer.strip().lower()
+                    elif question.question_type == "true_false":
+                        is_correct = user_answer.strip().lower() == question.correct_answer.strip().lower()
+                    else:  # short_answer
+                        is_correct = user_answer.strip().lower() in question.correct_answer.strip().lower()
             
+            # Count the result
             if is_correct:
                 correct_count += 1
             else:
@@ -4178,7 +4196,7 @@ async def submit_question_answers(
             question_results.append({
                 "question_id": question.id,
                 "question_text": question.question_text,
-                "user_answer": user_answer,
+                "user_answer": display_answer,
                 "correct_answer": question.correct_answer,
                 "is_correct": is_correct,
                 "explanation": question.explanation
@@ -4220,7 +4238,6 @@ async def submit_question_answers(
         logger.error(f"Error submitting answers: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.put("/update_learning_review")
 async def update_learning_review(
@@ -4271,6 +4288,47 @@ async def update_learning_review(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.get("/get_question_set_details/{question_set_id}")
+def get_question_set_details(question_set_id: int, db: Session = Depends(get_db)):
+    try:
+        question_set = db.query(models.QuestionSet).filter(
+            models.QuestionSet.id == question_set_id
+        ).first()
+        
+        if not question_set:
+            raise HTTPException(status_code=404, detail="Question set not found")
+        
+        questions = db.query(models.Question).filter(
+            models.Question.question_set_id == question_set_id
+        ).order_by(models.Question.order_index).all()
+        
+        return {
+            "id": question_set.id,
+            "title": question_set.title,
+            "description": question_set.description,
+            "question_count": len(questions),
+            "status": question_set.status,
+            "questions": [
+                {
+                    "id": q.id,
+                    "question_text": q.question_text,
+                    "question_type": q.question_type,
+                    "correct_answer": q.correct_answer,
+                    "options": json.loads(q.options) if q.options else [],
+                    "difficulty": q.difficulty,
+                    "explanation": q.explanation,
+                    "topic": q.topic
+                }
+                for q in questions
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting question set details: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+        
 @app.post("/submit_learning_response")
 async def submit_learning_response(
     payload: dict = Body(...),

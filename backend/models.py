@@ -93,7 +93,86 @@ class ChatMessage(Base):
     # Relationships
     chat_session = relationship("ChatSession", back_populates="messages")
 
+class KnowledgeNode(Base):
+    """Represents a knowledge topic node in the exploration tree"""
+    __tablename__ = "knowledge_nodes"
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    parent_node_id = Column(Integer, ForeignKey("knowledge_nodes.id"), nullable=True)
+    
+    # Node content
+    topic_name = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    depth_level = Column(Integer, default=0)  # Root = 0, increases with depth
+    
+    # AI-generated content
+    ai_explanation = Column(Text, nullable=True)
+    key_concepts = Column(Text, nullable=True)  # JSON array
+    generated_subtopics = Column(Text, nullable=True)  # JSON array
+    
+    # User interaction
+    is_explored = Column(Boolean, default=False)
+    exploration_count = Column(Integer, default=0)
+    time_spent_seconds = Column(Integer, default=0)
+    user_notes = Column(Text, nullable=True)
+    
+    # Visual positioning (for frontend)
+    position_x = Column(Float, nullable=True)
+    position_y = Column(Float, nullable=True)
+    
+    # Status
+    expansion_status = Column(String(20), default="unexpanded")  # unexpanded, expanding, expanded
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_explored = Column(DateTime, nullable=True)
+    
+    # Relationships
+    user = relationship("User")
+    parent = relationship("KnowledgeNode", remote_side=[id], backref="children")
 
+class KnowledgeRoadmap(Base):
+    """Represents a complete learning roadmap/exploration session"""
+    __tablename__ = "knowledge_roadmaps"
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    
+    title = Column(String(255), nullable=False)
+    root_topic = Column(String(200), nullable=False)
+    root_node_id = Column(Integer, ForeignKey("knowledge_nodes.id"), nullable=True)
+    
+    # Analytics
+    total_nodes = Column(Integer, default=1)
+    max_depth_reached = Column(Integer, default=0)
+    total_exploration_time = Column(Integer, default=0)
+    completion_percentage = Column(Float, default=0.0)
+    
+    # Status
+    status = Column(String(20), default="active")  # active, paused, completed
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_accessed = Column(DateTime, nullable=True)
+    
+    user = relationship("User")
+
+class NodeExplorationHistory(Base):
+    """Track detailed exploration history"""
+    __tablename__ = "node_exploration_history"
+    
+    id = Column(Integer, primary_key=True)
+    node_id = Column(Integer, ForeignKey("knowledge_nodes.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    roadmap_id = Column(Integer, ForeignKey("knowledge_roadmaps.id"))
+    
+    # Interaction details
+    exploration_duration = Column(Integer, default=0)  # seconds
+    questions_asked = Column(Text, nullable=True)  # JSON array
+    user_understanding_rating = Column(Integer, nullable=True)  # 1-5
+    
+    explored_at = Column(DateTime, default=datetime.utcnow)
+    
 class UserStats(Base):
     __tablename__ = "user_stats"
     
