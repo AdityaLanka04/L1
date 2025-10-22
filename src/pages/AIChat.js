@@ -32,6 +32,7 @@ const AIChat = () => {
   
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const isLoadingRef = useRef(false);
 
   const greetings = [
     "Hello, {name}! Ready to learn something new?",
@@ -140,7 +141,6 @@ const AIChat = () => {
 
   const loadChatMessages = async (sessionId) => {
     if (!sessionId) {
-      setMessages([]);
       return;
     }
     
@@ -164,6 +164,8 @@ const AIChat = () => {
     } catch (error) {
       console.error('Error loading messages:', error);
       setMessages([]);
+    } finally {
+      isLoadingRef.current = false;
     }
   };
 
@@ -207,11 +209,13 @@ const AIChat = () => {
   const handleNewChat = async () => {
     const newChatId = await createNewChat();
     if (newChatId) {
+      isLoadingRef.current = false;
       navigate(`/ai-chat/${newChatId}`);
     }
   };
 
   const selectChat = (chatSessionId) => {
+    isLoadingRef.current = false;
     navigate(`/ai-chat/${chatSessionId}`);
   };
 
@@ -225,6 +229,7 @@ const AIChat = () => {
         alert('Error: Failed to create new chat. Please try again.');
         return;
       }
+      isLoadingRef.current = false;
       navigate(`/ai-chat/${currentChatId}`);
     }
 
@@ -300,27 +305,6 @@ const AIChat = () => {
       setMessages(prev => [...prev, aiMessage]);
       clearAllFiles();
 
-      try {
-        const saveResponse = await fetch('http://localhost:8001/save_chat_message', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            chat_id: parseInt(currentChatId),
-            user_message: messageText || `Uploaded ${selectedFiles.length} file(s)`,
-            ai_response: data.answer
-          })
-        });
-
-        if (saveResponse.ok) {
-          loadChatSessions();
-        }
-      } catch (saveError) {
-        console.error('Error saving message:', saveError);
-      }
-
     } catch (error) {
       console.error('Error in sendMessage:', error);
       const errorMessage = {
@@ -358,8 +342,10 @@ const AIChat = () => {
         if (activeChatId === chatToDelete.id) {
           const remainingChats = chatSessions.filter(chat => chat.id !== chatToDelete.id);
           if (remainingChats.length > 0) {
+            isLoadingRef.current = false;
             navigate(`/ai-chat/${remainingChats[0].id}`);
           } else {
+            isLoadingRef.current = false;
             navigate('/ai-chat');
           }
         }
@@ -529,19 +515,24 @@ const AIChat = () => {
   }, [userName]);
 
   useEffect(() => {
-  const numericChatId = chatId ? parseInt(chatId) : null;
-  
-  if (numericChatId && !isNaN(numericChatId)) {
-    if (activeChatId !== numericChatId) {  // ADD THIS CHECK
-      setActiveChatId(numericChatId);
+    const numericChatId = chatId ? parseInt(chatId) : null;
+    
+    if (numericChatId && !isNaN(numericChatId)) {
+      if (activeChatId !== numericChatId) {
+        setActiveChatId(numericChatId);
+        setMessages([]);
+        
+        if (!isLoadingRef.current) {
+          isLoadingRef.current = true;
+          loadChatMessages(numericChatId);
+        }
+      }
+    } else {
+      setActiveChatId(null);
       setMessages([]);
-      loadChatMessages(numericChatId);
+      isLoadingRef.current = false;
     }
-  } else {
-    setActiveChatId(null);
-    setMessages([]);
-  }
-}, [chatId]);  // Remove activeChatId from dependencies
+  }, [chatId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -557,105 +548,102 @@ const AIChat = () => {
 
   return (
     <div className="ai-chat-page">
-      <div className={`chat-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
-        <div className="sidebar-header">
-          <div className="sidebar-title-bar">
-            <span className="sidebar-title">CONVERSATIONS</span>
-            <button className="new-chat-btn" onClick={handleNewChat}>
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M6 1v10M1 6h10"/>
-              </svg>
-              NEW CHAT
-            </button>
+      {sidebarOpen && (
+        <div className="chat-sidebar open">
+          <div className="sidebar-header">
+            <div className="sidebar-title-bar">
+              <span className="sidebar-title">CONVERSATIONS</span>
+              <button className="new-chat-btn" onClick={handleNewChat}>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M6 1v10M1 6h10"/>
+                </svg>
+                NEW CHAT
+              </button>
+            </div>
+          </div>
+
+          <div className="chat-sessions">
+            {chatSessions.length === 0 ? (
+              <div className="no-chats">
+                <p>No conversations yet</p>
+                <span>Start a new chat to begin</span>
+              </div>
+            ) : (
+              chatSessions.map(session => (
+                <div
+                  key={session.id}
+                  className={`chat-session-item ${activeChatId === session.id ? 'active' : ''}`}
+                  onClick={() => selectChat(session.id)}
+                >
+                  <div className="chat-session-content">
+                    <div className="session-title">{session.title}</div>
+                    <div className="session-date">
+                      {new Date(session.updated_at).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric' 
+                      })}
+                    </div>
+                  </div>
+                  <button
+                    className="delete-chat-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteChat(session.id, session.title);
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </div>
-        
-        <div className="chat-sessions">
-          {chatSessions.length === 0 ? (
-            <div className="no-chats">
-              <p>No conversations yet</p>
-              <span>Start a new chat to begin</span>
-            </div>
-          ) : (
-            chatSessions.map((session) => (
-              <div
-                key={session.id}
-                className={`chat-session-item ${activeChatId === session.id ? 'active' : ''}`}
-                onClick={() => selectChat(session.id)}
-              >
-                <div className="chat-session-content">
-                  <div className="session-title">{session.title}</div>
-                  <div className="session-date">
-                    {new Date(session.created_at).toLocaleDateString('en-US', { 
-                      month: 'short', 
-                      day: 'numeric',
-                      year: 'numeric'
-                    })}
-                  </div>
-                </div>
-                <button
-                  className="delete-chat-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteChat(session.id, session.title);
-                  }}
-                  title="Delete chat"
-                >
-                  ×
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
+      )}
 
-      <div className="chat-main">
-        <header className="chat-header">
+      <div className={`chat-main ${!sidebarOpen ? 'fullscreen' : ''}`}>
+        <div className="chat-header">
           <div className="header-left">
             <button 
-              className="sidebar-toggle"
+              className="sidebar-toggle" 
               onClick={() => setSidebarOpen(!sidebarOpen)}
               title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
             >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M2 3h12M2 8h12M2 13h12"/>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 7h14M3 13h14"/>
               </svg>
             </button>
-            <h1 
-              className="chat-title" 
-              onClick={handleLogoClick}
-              title="Go to Dashboard"
-            >
+            
+            <h1 className="chat-title" onClick={handleLogoClick}>
               brainwave
             </h1>
           </div>
-          
-          <div className="header-right">
-            {userProfile?.picture && (
-              <img
-                src={userProfile.picture}
-                alt="Profile"
-                className="profile-picture"
-                referrerPolicy="no-referrer"
-                crossOrigin="anonymous"
-              />
-            )}
-            <button className="header-btn dashboard-btn" onClick={goToDashboard}>
-              DASHBOARD
-            </button>
-            <button className="header-btn logout-btn" onClick={handleLogout}>
-              LOGOUT
-            </button>
-          </div>
-        </header>
+
+          {sidebarOpen && (
+            <div className="header-right">
+              {userProfile?.profilePicture && (
+                <img 
+                  src={userProfile.profilePicture} 
+                  alt="Profile" 
+                  className="profile-picture" 
+                />
+              )}
+              <button className="header-btn" onClick={goToDashboard}>
+                DASHBOARD
+              </button>
+              <button className="header-btn" onClick={handleLogout}>
+                LOGOUT
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="messages-container">
           {messages.length === 0 ? (
-            <div className="welcome-container">
+            <div className="welcome-screen">
               <div className="welcome-content">
                 <h2 className="welcome-title">{greeting}</h2>
                 <p className="welcome-subtitle">
-                  Ready to learn? Upload documents, share images, or ask me anything
+                  I'm your personal AI tutor. Ask me anything about any subject, and I'll help you learn with detailed explanations and examples.
                 </p>
               </div>
             </div>
@@ -699,8 +687,9 @@ const AIChat = () => {
                     <span className="message-time">
                       {new Date(message.timestamp).toLocaleTimeString('en-US', { 
                         hour: 'numeric', 
-                        minute: '2-digit' 
-                      })}
+                        minute: '2-digit',
+                        hour12: true
+                      }).toUpperCase()}
                     </span>
                     
                     {message.type === 'ai' && message.aiConfidence !== undefined && (
@@ -848,8 +837,8 @@ const AIChat = () => {
       </div>
 
       {showDeleteConfirmation && (
-        <div className="modal-overlay" onClick={() => setShowDeleteConfirmation(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay">
+          <div className="modal">
             <div className="modal-header">
               <h3 className="modal-title">DELETE CONVERSATION</h3>
             </div>

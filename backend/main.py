@@ -1089,31 +1089,25 @@ def get_chat_messages(chat_id: int = Query(...), db: Session = Depends(get_db)):
         logger.info(f"Found {len(messages)} message pairs")
         
         result = []
-        seen_ids = set()
         
         for msg in messages:
-            user_msg_id = f"user_{msg.id}"
-            ai_msg_id = f"ai_{msg.id}"
+            # Add user message
+            result.append({
+                "id": f"user_{msg.id}",
+                "type": "user",
+                "content": msg.user_message,
+                "timestamp": msg.timestamp.isoformat()
+            })
             
-            if user_msg_id not in seen_ids:
-                result.append({
-                    "id": user_msg_id,
-                    "type": "user",
-                    "content": msg.user_message,
-                    "timestamp": msg.timestamp.isoformat()
-                })
-                seen_ids.add(user_msg_id)
-            
-            if ai_msg_id not in seen_ids:
-                result.append({
-                    "id": ai_msg_id,
-                    "type": "ai",
-                    "content": msg.ai_response,
-                    "timestamp": msg.timestamp.isoformat(),
-                    "aiConfidence": 0.85,
-                    "shouldRequestFeedback": False
-                })
-                seen_ids.add(ai_msg_id)
+            # Add AI message
+            result.append({
+                "id": f"ai_{msg.id}",
+                "type": "ai",
+                "content": msg.ai_response,
+                "timestamp": msg.timestamp.isoformat(),
+                "aiConfidence": 0.85,
+                "shouldRequestFeedback": False
+            })
         
         logger.info(f"📤 Returning {len(result)} individual messages")
         return result
