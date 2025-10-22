@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ReactFlow, {
   Background,
   Controls,
   MiniMap,
   useNodesState,
   useEdgesState,
-  MarkerType,
+  Handle,
+  Position,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import './roadmap-styles.css';
@@ -45,6 +46,295 @@ const LearningReview = () => {
     window.location.href = path;
   };
 
+  // FIXED: expandNode with useCallback to prevent stale closures
+  const expandNode = useCallback(async (nodeId) => {
+    console.log('Expanding node:', nodeId);
+    
+    setNodes((nds) => {
+      console.log('Current nodes count:', nds.length);
+      return nds.map(n =>
+        n.data.nodeId === nodeId
+          ? { ...n, data: { ...n.data, isExpanding: true } }
+          : n
+      );
+    });
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8001/expand_knowledge_node/${nodeId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.status === 'already_expanded') {
+          setNodes((nds) =>
+            nds.map(n =>
+              n.data.nodeId === nodeId
+                ? { ...n, data: { ...n.data, expansionStatus: 'expanded', isExpanding: false } }
+                : n
+            )
+          );
+          return;
+        }
+        
+        setNodes((nds) => {
+          const parentNode = nds.find(n => n.data.nodeId === nodeId);
+          
+          if (!parentNode) {
+            console.error('Parent node not found');
+            alert('Error: Parent node not found. Please refresh the page.');
+            return nds.map(n =>
+              n.data.nodeId === nodeId
+                ? { ...n, data: { ...n.data, isExpanding: false } }
+                : n
+            );
+          }
+          
+          const childrenCount = data.child_nodes.length;
+          const horizontalSpacing = 280;
+          const parentDepth = parentNode.data.depth;
+          const baseVerticalSpacing = 250;
+          const depthMultiplier = 1.2;
+          const verticalSpacing = baseVerticalSpacing * Math.pow(depthMultiplier, parentDepth);
+          
+          const totalWidth = (childrenCount - 1) * horizontalSpacing;
+          const startX = parentNode.position.x - (totalWidth / 2);
+
+          const newNodes = data.child_nodes.map((child, index) => ({
+            id: String(child.id),
+            type: 'custom',
+            position: { 
+              x: startX + (index * horizontalSpacing),
+              y: parentNode.position.y + verticalSpacing
+            },
+            data: {
+              label: child.topic_name,
+              description: child.description,
+              depth: child.depth_level,
+              isExplored: child.is_explored,
+              expansionStatus: child.expansion_status,
+              nodeId: child.id,
+              onExpand: expandNode,
+              onExplore: exploreNode,
+            },
+          }));
+
+          return [
+            ...nds.map(n =>
+              n.data.nodeId === nodeId
+                ? { ...n, data: { ...n.data, expansionStatus: 'expanded', isExpanding: false } }
+                : n
+            ),
+            ...newNodes
+          ];
+        });
+        
+        console.log('All nodes after expansion:');
+        setNodes((nds) => {
+          console.log('Node IDs:', nds.map(n => ({ id: n.id, nodeId: n.data.nodeId })));
+          return nds;
+        });
+        
+        const newEdges = data.child_nodes.map(child => ({
+          id: `e${child.parent_id}-${child.id}`,
+          source: String(child.parent_id),
+          target: String(child.id),
+          type: 'smoothstep',
+          animated: true,
+          style: { stroke: '#D7B38C', strokeWidth: 3 },
+          markerEnd: {
+            type: 'arrow',
+            color: '#D7B38C',
+            width: 20,
+            height: 20,
+          },
+        }));
+        
+        console.log('Creating edges:', newEdges);
+        console.log('Edge example:', newEdges[0]);
+        
+        setEdges((eds) => {
+          console.log('Current edges before adding:', eds);
+          const combined = [...eds, ...newEdges];
+          console.log('Combined edges after adding:', combined);
+          return combined;
+        });
+
+        setTimeout(() => {
+          setEdges((eds) =>
+            eds.map(e =>
+              newEdges.some(ne => ne.id === e.id) ? { ...e, animated: false } : e
+            )
+          );
+        }, 2000);
+
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(`Failed to expand node: ${errorData.detail || 'Unknown error'}`);
+        setNodes((nds) =>
+          nds.map(n =>
+            n.data.nodeId === nodeId
+              ? { ...n, data: { ...n.data, isExpanding: false } }
+              : n
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error expanding node:', error);
+      alert('Failed to expand node');
+      setNodes((nds) =>
+        nds.map(n =>
+          n.data.nodeId === nodeId
+            ? { ...n, data: { ...n.data, isExpanding: false } }
+            : n
+        )
+      );
+    }
+  }, [setNodes, setEdges]);
+
+  // FIXED: exploreNode with useCallback
+  const exploreNode = useCallback(async (nodeId) => {
+    setNodes((nds) =>
+      nds.map(n =>
+        n.data.nodeId === nodeId
+          ? { ...n, data: { ...n.data, isExploring: true } }
+          : n
+      )
+    );
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8001/explore_node/${nodeId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Explore node response:', data);
+        
+        const nodeData = data.node || data;
+        setNodeExplanation(nodeData);
+        setShowNodePanel(true);
+        
+        setNodes((nds) =>
+          nds.map(n =>
+            n.data.nodeId === nodeId
+              ? { ...n, data: { ...n.data, isExplored: true, isExploring: false } }
+              : n
+          )
+        );
+      } else {
+        const errorData = await response.json();
+        console.error('Explore node error:', errorData);
+        alert(`Failed to explore node: ${errorData.detail || 'Unknown error'}`);
+        
+        setNodes((nds) =>
+          nds.map(n =>
+            n.data.nodeId === nodeId
+              ? { ...n, data: { ...n.data, isExploring: false } }
+              : n
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error exploring node:', error);
+      alert('Failed to explore node');
+      
+      setNodes((nds) =>
+        nds.map(n =>
+          n.data.nodeId === nodeId
+            ? { ...n, data: { ...n.data, isExploring: false } }
+            : n
+        )
+      );
+    }
+  }, [setNodes]);
+
+  // CustomNode component that uses the callbacks
+  const CustomNode = ({ data }) => {
+    const getStatusColor = () => {
+      if (data.isExplored) return '#4CAF50';
+      if (data.expansionStatus === 'expanded') return '#FF9800';
+      return '#9E9E9E';
+    };
+
+    const getStatusLabel = () => {
+      if (data.isExplored) return 'Explored';
+      if (data.expansionStatus === 'expanded') return 'Expanded';
+      return 'Unexplored';
+    };
+
+    return (
+      <div className="roadmap-node" style={{ borderColor: getStatusColor() }}>
+        {/* Handle for incoming connections (top) */}
+        <Handle
+          type="target"
+          position={Position.Top}
+          style={{
+            background: '#D7B38C',
+            width: '10px',
+            height: '10px',
+            border: '2px solid #1a1a1a',
+          }}
+        />
+        
+        <div className="node-status-badge" style={{ backgroundColor: getStatusColor() }}>
+          {getStatusLabel()}
+        </div>
+        <div className="node-title" style={{ color: getStatusColor() }}>
+          {data.label}
+        </div>
+        {data.description && (
+          <div className="node-description">{data.description}</div>
+        )}
+        <div className="node-actions">
+          <button
+            onClick={() => data.onExplore && data.onExplore(data.nodeId)}
+            disabled={data.isExploring}
+            className="node-btn explore-btn nodrag nopan"
+          >
+            {data.isExploring ? 'Exploring...' : 'Explore'}
+          </button>
+          {data.expansionStatus === 'unexpanded' && (
+            <button
+              onClick={() => data.onExpand && data.onExpand(data.nodeId)}
+              disabled={data.isExpanding}
+              className="node-btn expand-btn nodrag nopan"
+            >
+              {data.isExpanding ? 'Expanding...' : 'Expand'}
+            </button>
+          )}
+        </div>
+        
+        {/* Handle for outgoing connections (bottom) */}
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          style={{
+            background: '#D7B38C',
+            width: '10px',
+            height: '10px',
+            border: '2px solid #1a1a1a',
+          }}
+        />
+      </div>
+    );
+  };
+
+  const nodeTypes = React.useMemo(() => ({
+    custom: CustomNode,
+  }), []);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     const username = localStorage.getItem('username');
@@ -68,17 +358,7 @@ const LearningReview = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (userName) {
-      loadChatSessions();
-      loadUploadedSlides();
-      loadLearningReviews();
-      loadGeneratedQuestions();
-      loadUserRoadmaps();
-    }
-  }, [userName]);
-
-  const loadChatSessions = async () => {
+  const loadChatSessions = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:8001/get_chat_sessions?user_id=${userName}`, {
@@ -92,9 +372,9 @@ const LearningReview = () => {
     } catch (error) {
       console.error('Error loading chat sessions:', error);
     }
-  };
+  }, [userName]);
 
-  const loadUploadedSlides = async () => {
+  const loadUploadedSlides = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:8001/get_uploaded_slides?user_id=${userName}`, {
@@ -108,9 +388,9 @@ const LearningReview = () => {
     } catch (error) {
       console.error('Error loading slides:', error);
     }
-  };
+  }, [userName]);
 
-  const loadLearningReviews = async () => {
+  const loadLearningReviews = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:8001/get_learning_reviews?user_id=${userName}`, {
@@ -124,9 +404,9 @@ const LearningReview = () => {
     } catch (error) {
       console.error('Error loading learning reviews:', error);
     }
-  };
+  }, [userName]);
 
-  const loadGeneratedQuestions = async () => {
+  const loadGeneratedQuestions = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:8001/get_question_sets?user_id=${userName}`, {
@@ -140,7 +420,40 @@ const LearningReview = () => {
     } catch (error) {
       console.error('Error loading question sets:', error);
     }
-  };
+  }, [userName]);
+
+  const loadUserRoadmaps = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8001/get_user_roadmaps?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setRoadmaps(data.roadmaps || []);
+      }
+    } catch (error) {
+      console.error('Error loading roadmaps:', error);
+    }
+  }, [userName]);
+
+  useEffect(() => {
+    if (userName) {
+      loadChatSessions();
+      loadUploadedSlides();
+      loadLearningReviews();
+      loadGeneratedQuestions();
+      loadUserRoadmaps();
+    }
+  }, [userName, loadChatSessions, loadUploadedSlides, loadLearningReviews, loadGeneratedQuestions, loadUserRoadmaps]);
+
+  // Debug: Log edges whenever they change
+  useEffect(() => {
+    console.log('=== EDGES STATE UPDATED ===');
+    console.log('Total edges:', edges.length);
+    console.log('Edges:', edges);
+  }, [edges]);
 
   const handleSlideUpload = async (event) => {
     const files = event.target.files;
@@ -248,13 +561,7 @@ const LearningReview = () => {
         body: JSON.stringify({
           user_id: userName,
           chat_session_ids: selectedSessions.map(s => s.id),
-          slide_ids: selectedSlides.map(s => s.id),
-          question_count: 10,
-          difficulty_mix: {
-            easy: 3,
-            medium: 5,
-            hard: 2
-          }
+          slide_ids: selectedSlides.map(s => s.id)
         })
       });
 
@@ -273,6 +580,106 @@ const LearningReview = () => {
     } catch (error) {
       console.error('Error generating questions:', error);
       alert('Failed to generate questions');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitReviewResponse = async () => {
+    if (!reviewResponse.trim()) {
+      alert('Please provide a response');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:8001/submit_review_response', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          review_id: activeReview.id,
+          user_response: reviewResponse
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setReviewDetails(data);
+        setReviewResponse('');
+      } else {
+        const errorData = await response.json();
+        alert(`Error submitting response: ${errorData.detail}`);
+      }
+    } catch (error) {
+      console.error('Error submitting response:', error);
+      alert('Failed to submit response');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const submitQuestionAnswers = async () => {
+    const unanswered = activeQuestionSet.questions.filter(
+      q => !questionAnswers[q.id] || questionAnswers[q.id].trim() === ''
+    );
+
+    if (unanswered.length > 0) {
+      alert(`Please answer all questions (${unanswered.length} remaining)`);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:8001/submit_question_answers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          question_set_id: activeQuestionSet.id,
+          answers: questionAnswers
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setQuestionResults(data);
+      } else {
+        const errorData = await response.json();
+        alert(`Error submitting answers: ${errorData.detail}`);
+      }
+    } catch (error) {
+      console.error('Error submitting answers:', error);
+      alert('Failed to submit answers');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const requestHint = async (questionId) => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8001/get_hint/${questionId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setHints(prev => [...prev, { questionId, hint: data.hint }]);
+        setShowHints(true);
+      } else {
+        alert('Error getting hint');
+      }
+    } catch (error) {
+      console.error('Error getting hint:', error);
+      alert('Failed to get hint');
     } finally {
       setLoading(false);
     }
@@ -373,22 +780,6 @@ const LearningReview = () => {
     });
   };
 
-  const loadUserRoadmaps = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/get_user_roadmaps?user_id=${userName}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setRoadmaps(data.roadmaps || []);
-      }
-    } catch (error) {
-      console.error('Error loading roadmaps:', error);
-    }
-  };
-
   const createRoadmap = async () => {
     if (!newRoadmapTopic.trim()) {
       alert('Please enter a topic');
@@ -422,7 +813,7 @@ const LearningReview = () => {
         });
         
         const rootNode = {
-          id: data.root_node.id.toString(),
+          id: String(data.root_node.id),
           type: 'custom',
           position: { x: 400, y: 50 },
           data: {
@@ -432,6 +823,8 @@ const LearningReview = () => {
             isExplored: false,
             expansionStatus: 'unexpanded',
             nodeId: data.root_node.id,
+            onExpand: expandNode,
+            onExplore: exploreNode,
           },
         };
         
@@ -454,26 +847,45 @@ const LearningReview = () => {
     }
   };
 
-  const loadRoadmapData = async (roadmapId) => {
+  const openRoadmap = async (roadmap) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/get_knowledge_roadmap/${roadmapId}`, {
+      const response = await fetch(`http://localhost:8001/get_roadmap_graph/${roadmap.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (response.ok) {
         const data = await response.json();
-        setCurrentRoadmap(data.roadmap);
         
-        const allNodes = data.nodes_flat;
-        const rootNode = allNodes.find(n => n.parent_id === null);
+        setCurrentRoadmap(roadmap);
         
-        if (rootNode) {
-          const flowNodes = allNodes.map(node => ({
-            id: node.id.toString(),
+        const nodesByDepth = new Map();
+        data.nodes.forEach(node => {
+          if (!nodesByDepth.has(node.depth_level)) {
+            nodesByDepth.set(node.depth_level, []);
+          }
+          nodesByDepth.get(node.depth_level).push(node);
+        });
+
+        const flowNodes = data.nodes.map(node => {
+          const nodesAtThisDepth = nodesByDepth.get(node.depth_level) || [];
+          const indexAtDepth = nodesAtThisDepth.indexOf(node);
+          const horizontalSpacing = 280;
+          const baseVerticalSpacing = 250;
+          const depthMultiplier = 1.2;
+          const verticalSpacing = baseVerticalSpacing * Math.pow(depthMultiplier, node.depth_level);
+          
+          const totalWidth = (nodesAtThisDepth.length - 1) * horizontalSpacing;
+          const startX = 400 - (totalWidth / 2);
+
+          return {
+            id: String(node.id),
             type: 'custom',
-            position: { x: node.position.x, y: node.position.y },
+            position: {
+              x: startX + (indexAtDepth * horizontalSpacing),
+              y: 50 + (node.depth_level * verticalSpacing)
+            },
             data: {
               label: node.topic_name,
               description: node.description,
@@ -481,209 +893,40 @@ const LearningReview = () => {
               isExplored: node.is_explored,
               expansionStatus: node.expansion_status,
               nodeId: node.id,
+              onExpand: expandNode,
+              onExplore: exploreNode,
             },
-          }));
+          };
+        });
 
-          const flowEdges = allNodes
-            .filter(node => node.parent_id !== null)
-            .map(node => ({
-              id: `e${node.parent_id}-${node.id}`,
-              source: node.parent_id.toString(),
-              target: node.id.toString(),
-              type: 'smoothstep',
-              animated: false,
-              style: { stroke: '#D7B38C', strokeWidth: 2 },
-              markerEnd: {
-                type: MarkerType.ArrowClosed,
-                color: '#D7B38C',
-              },
-            }));
+        const flowEdges = data.edges.map(edge => ({
+          id: `e${edge.parent_id}-${edge.child_id}`,
+          source: String(edge.parent_id),
+          target: String(edge.child_id),
+          type: 'smoothstep',
+          animated: false,
+          style: { stroke: '#D7B38C', strokeWidth: 3 },
+          markerEnd: {
+            type: 'arrow',
+            color: '#D7B38C',
+            width: 20,
+            height: 20,
+          },
+        }));
 
-          setNodes(flowNodes);
-          setEdges(flowEdges);
-        }
+        console.log('Loading roadmap edges:', flowEdges);
+
+        setNodes(flowNodes);
+        setEdges(flowEdges);
+        setActiveTab('roadmap');
+      } else {
+        alert('Failed to load roadmap');
       }
     } catch (error) {
       console.error('Error loading roadmap:', error);
       alert('Failed to load roadmap');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const expandNode = async (nodeId) => {
-    setNodes((nds) =>
-      nds.map(n =>
-        n.data.nodeId === nodeId
-          ? { ...n, data: { ...n.data, isExpanding: true } }
-          : n
-      )
-    );
-    
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/expand_knowledge_node/${nodeId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.status === 'already_expanded') {
-          setNodes((nds) =>
-            nds.map(n =>
-              n.data.nodeId === nodeId
-                ? { ...n, data: { ...n.data, expansionStatus: 'expanded', isExpanding: false } }
-                : n
-            )
-          );
-          return;
-        }
-        
-        const parentNode = nodes.find(n => n.data.nodeId === nodeId);
-        const childrenCount = data.child_nodes.length;
-        const horizontalSpacing = 280;
-        const verticalSpacing = 200;
-        
-        const totalWidth = (childrenCount - 1) * horizontalSpacing;
-        const startX = parentNode.position.x - (totalWidth / 2);
-
-        const newNodes = data.child_nodes.map((child, index) => ({
-          id: child.id.toString(),
-          type: 'custom',
-          position: { 
-            x: startX + (index * horizontalSpacing),
-            y: parentNode.position.y + verticalSpacing
-          },
-          data: {
-            label: child.topic_name,
-            description: child.description,
-            depth: child.depth_level,
-            isExplored: child.is_explored,
-            expansionStatus: child.expansion_status,
-            nodeId: child.id,
-          },
-        }));
-
-        const newEdges = data.child_nodes.map(child => ({
-          id: `e${child.parent_id}-${child.id}`,
-          source: child.parent_id.toString(),
-          target: child.id.toString(),
-          type: 'smoothstep',
-          animated: true,
-          style: { stroke: '#D7B38C', strokeWidth: 2 },
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
-            color: '#D7B38C',
-          },
-        }));
-
-        setNodes((nds) => [
-          ...nds.map(n =>
-            n.data.nodeId === nodeId
-              ? { ...n, data: { ...n.data, expansionStatus: 'expanded', isExpanding: false } }
-              : n
-          ),
-          ...newNodes
-        ]);
-        
-        setEdges((eds) => [...eds, ...newEdges]);
-
-        setTimeout(() => {
-          setEdges((eds) =>
-            eds.map(e =>
-              newEdges.some(ne => ne.id === e.id)
-                ? { ...e, animated: false }
-                : e
-            )
-          );
-        }, 2000);
-
-      } else {
-        const errorData = await response.json();
-        alert(`Failed to expand node: ${errorData.detail || 'Unknown error'}`);
-        
-        setNodes((nds) =>
-          nds.map(n =>
-            n.data.nodeId === nodeId
-              ? { ...n, data: { ...n.data, isExpanding: false } }
-              : n
-          )
-        );
-      }
-    } catch (error) {
-      console.error('Error expanding node:', error);
-      alert('Failed to expand node');
-      
-      setNodes((nds) =>
-        nds.map(n =>
-          n.data.nodeId === nodeId
-            ? { ...n, data: { ...n.data, isExpanding: false } }
-            : n
-        )
-      );
-    }
-  };
-
-  const exploreNode = async (nodeId) => {
-    setNodes((nds) =>
-      nds.map(n =>
-        n.data.nodeId === nodeId
-          ? { ...n, data: { ...n.data, isExploring: true } }
-          : n
-      )
-    );
-    
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/explore_node/${nodeId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        
-        setNodeExplanation(data.node);
-        setShowNodePanel(true);
-        
-        setNodes((nds) =>
-          nds.map(n =>
-            n.data.nodeId === nodeId
-              ? { ...n, data: { ...n.data, isExplored: true, isExploring: false } }
-              : n
-          )
-        );
-      } else {
-        const errorData = await response.json();
-        alert(`Failed to explore node: ${errorData.detail || 'Unknown error'}`);
-        
-        setNodes((nds) =>
-          nds.map(n =>
-            n.data.nodeId === nodeId
-              ? { ...n, data: { ...n.data, isExploring: false } }
-              : n
-          )
-        );
-      }
-    } catch (error) {
-      console.error('Error exploring node:', error);
-      alert('Failed to explore node');
-      
-      setNodes((nds) =>
-        nds.map(n =>
-          n.data.nodeId === nodeId
-            ? { ...n, data: { ...n.data, isExploring: false } }
-            : n
-        )
-      );
     }
   };
 
@@ -699,204 +942,98 @@ const LearningReview = () => {
       });
 
       if (response.ok) {
-        await loadUserRoadmaps();
-        if (currentRoadmap?.id === roadmapId) {
+        loadUserRoadmaps();
+        if (currentRoadmap && currentRoadmap.id === roadmapId) {
           setCurrentRoadmap(null);
-          setNodes([]);
-          setEdges([]);
+          setActiveTab('library');
         }
+      } else {
+        alert('Failed to delete roadmap');
       }
     } catch (error) {
       console.error('Error deleting roadmap:', error);
+      alert('Failed to delete roadmap');
     }
-  };
-
-  const CustomNode = ({ data }) => {
-  const getNodeColor = () => {
-    if (data.isExplored) return '#4CAF50';
-    if (data.expansionStatus === 'expanded') return '#FF9800';
-    return '#D7B38C';
-  };
-
-  const getStatusIndicator = () => {
-    if (data.isExplored && data.expansionStatus === 'expanded') return 'Explored & Expanded';
-    if (data.isExplored) return 'Explored';
-    if (data.expansionStatus === 'expanded') return 'Expanded';
-    return 'Unexplored';
-  };
-
-  return (
-    <div
-      className="roadmap-node"
-      style={{
-        borderColor: getNodeColor(),
-        borderStyle: (data.isExpanding || data.isExploring) ? 'dashed' : 'solid',
-        opacity: (data.isExpanding || data.isExploring) ? 0.7 : 1,
-        pointerEvents: 'all' // 👈 allow clicks inside this node
-      }}
-    >
-      <div
-        className="node-status-badge"
-        style={{ background: getNodeColor() }}
-      >
-        {getStatusIndicator()}
-      </div>
-
-      <div className="node-title" style={{ color: getNodeColor() }}>
-        {data.label}
-      </div>
-
-      {data.description && (
-        <div className="node-description">{data.description}</div>
-      )}
-
-      <div
-  className="node-actions nodrag nopan"
-  style={{
-    display: 'flex',
-    justifyContent: 'center',
-    gap: '8px',
-    marginTop: '8px',
-  }}
->
-  <button
-    onClick={(e) => {
-      e.stopPropagation();
-      e.preventDefault();
-      if (!data.isExploring && !data.isExpanding) {
-        exploreNode(data.nodeId);
-      }
-    }}
-    disabled={data.isExploring || data.isExpanding}
-    className="node-btn explore-btn nodrag nopan"
-  >
-    {data.isExploring ? 'Loading...' : data.isExplored ? 'View Details' : 'Explore Topic'}
-  </button>
-
-  {data.expansionStatus !== 'expanded' && (
-    <button
-      onClick={(e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        if (!data.isExpanding && !data.isExploring) {
-          expandNode(data.nodeId);
-        }
-      }}
-      disabled={data.isExpanding || data.isExploring}
-      className="node-btn expand-btn nodrag nopan"
-    >
-      {data.isExpanding ? 'Expanding...' : 'Expand Topics'}
-    </button>
-  )}
-
-  {data.expansionStatus === 'expanded' && (
-    <div className="node-expanded-indicator">Subtopics Visible</div>
-  )}
-</div>
-
-
-      <div className="node-depth-indicator">Depth Level {data.depth}</div>
-    </div>
-  );
-};
-
-
-  const nodeTypes = {
-    custom: CustomNode,
-  };
-
-  const handleLogout = () => {
-    if (userProfile?.googleUser && window.google) {
-      window.google.accounts.id.disableAutoSelect();
-    }
-    
-    localStorage.removeItem('token');
-    localStorage.removeItem('username');
-    localStorage.removeItem('userProfile');
-    navigate('/');
-  };
-
-  const goToDashboard = () => {
-    navigate('/dashboard');
-  };
-
-  const goToChat = () => {
-    navigate('/ai-chat');
-  };
-
-  const handleLogoClick = () => {
-    navigate('/dashboard');
   };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      day: 'numeric'
     });
   };
 
   return (
     <div className="roadmap-container">
-      <header className="roadmap-header">
+      <div className="roadmap-header">
         <div className="header-content">
           <div className="header-left">
-            <h1 className="app-title" onClick={handleLogoClick}>brainwave</h1>
-            <span className="app-subtitle">Learning Review System</span>
+            <h1 className="app-title" onClick={() => navigate('/dashboard')}>
+              StudyFlow
+            </h1>
+            <span className="app-subtitle">Learning Management</span>
           </div>
           <div className="header-right">
-            {userProfile?.picture && (
-              <img
-                src={userProfile.picture}
-                alt="Profile"
+            {userProfile?.profile_pic && (
+              <img 
+                src={userProfile.profile_pic} 
+                alt="Profile" 
                 className="profile-pic"
-                referrerPolicy="no-referrer"
-                crossOrigin="anonymous"
               />
             )}
-            <button onClick={goToChat} className="header-btn">AI Chat</button>
-            <button onClick={goToDashboard} className="header-btn">Dashboard</button>
-            <button onClick={handleLogout} className="header-btn logout">LOGOUT</button>
+            <button onClick={() => navigate('/chat')} className="header-btn">
+              Chat
+            </button>
+            <button onClick={() => navigate('/dashboard')} className="header-btn">
+              Dashboard
+            </button>
+            <button
+              onClick={() => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('username');
+                localStorage.removeItem('userProfile');
+                navigate('/login');
+              }}
+              className="header-btn logout"
+            >
+              Logout
+            </button>
           </div>
         </div>
-      </header>
+      </div>
 
       <div className="roadmap-content">
         <div className="tab-navigation">
-          <button 
+          {currentRoadmap ? (
+            <button
+              onClick={() => setActiveTab('roadmap')}
+              className={`tab-btn ${activeTab === 'roadmap' ? 'active' : ''}`}
+            >
+              Active Roadmap
+            </button>
+          ) : (
+            <button
+              onClick={() => setActiveTab('library')}
+              className={`tab-btn ${activeTab === 'library' ? 'active' : ''}`}
+            >
+              Roadmap Library
+            </button>
+          )}
+          <button
             onClick={() => setActiveTab('create')}
             className={`tab-btn ${activeTab === 'create' ? 'active' : ''}`}
           >
-            Create Review
+            Create
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('slides')}
             className={`tab-btn ${activeTab === 'slides' ? 'active' : ''}`}
           >
-            Manage Slides
-          </button>
-          <button 
-            onClick={() => setActiveTab('reviews')}
-            className={`tab-btn ${activeTab === 'reviews' ? 'active' : ''}`}
-          >
-            My Reviews
-          </button>
-          <button 
-            onClick={() => setActiveTab('question-library')}
-            className={`tab-btn ${activeTab === 'question-library' ? 'active' : ''}`}
-          >
-            Question Library
-          </button>
-          <button 
-            onClick={() => setActiveTab('roadmap')}
-            className={`tab-btn ${activeTab === 'roadmap' ? 'active' : ''}`}
-          >
-            Knowledge Roadmap
+            Slides
           </button>
           {activeReview && (
-            <button 
+            <button
               onClick={() => setActiveTab('active')}
               className={`tab-btn ${activeTab === 'active' ? 'active' : ''}`}
             >
@@ -904,195 +1041,350 @@ const LearningReview = () => {
             </button>
           )}
           {activeQuestionSet && (
-            <button 
+            <button
               onClick={() => setActiveTab('questions')}
               className={`tab-btn ${activeTab === 'questions' ? 'active' : ''}`}
             >
-              Active Questions
+              Questions
             </button>
           )}
+          <button
+            onClick={() => setActiveTab('reviews')}
+            className={`tab-btn ${activeTab === 'reviews' ? 'active' : ''}`}
+          >
+            Reviews
+          </button>
+          <button
+            onClick={() => setActiveTab('question-library')}
+            className={`tab-btn ${activeTab === 'question-library' ? 'active' : ''}`}
+          >
+            Question Library
+          </button>
         </div>
 
-        {activeTab === 'roadmap' && (
+        {activeTab === 'library' && (
           <div className="tab-content">
-            {!currentRoadmap ? (
-              <div className="roadmap-library">
-                <div className="library-header">
-                  <div>
-                    <h2>Knowledge Roadmap</h2>
-                    <p>Explore topics infinitely deep with AI-powered knowledge trees</p>
-                  </div>
-                  <button
-                    onClick={() => setShowCreateRoadmapModal(true)}
-                    className="create-roadmap-btn"
-                  >
-                    Create New Roadmap
-                  </button>
-                </div>
+            <div className="library-header">
+              <div>
+                <h2>Knowledge Roadmaps</h2>
+                <p>Explore and expand your knowledge through interactive topic maps</p>
+              </div>
+              <button
+                onClick={() => setShowCreateRoadmapModal(true)}
+                className="create-roadmap-btn"
+              >
+                Create New Roadmap
+              </button>
+            </div>
 
-                {roadmaps.length === 0 ? (
-                  <div className="empty-state">
-                    <div className="empty-icon">No Roadmaps</div>
-                    <h3>Start Your Learning Journey</h3>
-                    <p>Create your first knowledge roadmap to begin exploring topics in depth</p>
-                  </div>
-                ) : (
-                  <div className="roadmaps-grid">
-                    {roadmaps.map((roadmap) => (
-                      <div key={roadmap.id} className="roadmap-card">
-                        <div className="roadmap-card-header">
-                          <h3>{roadmap.title}</h3>
-                          <button
-                            onClick={(e) => deleteRoadmap(roadmap.id, e)}
-                            className="delete-btn"
-                          >
-                            ×
-                          </button>
-                        </div>
-                        
-                        <div className="roadmap-stats">
-                          <div className="stat-item">
-                            <span className="stat-label">Total Nodes</span>
-                            <span className="stat-value">{roadmap.total_nodes}</span>
-                          </div>
-                          <div className="stat-item">
-                            <span className="stat-label">Max Depth</span>
-                            <span className="stat-value">{roadmap.max_depth_reached}</span>
-                          </div>
-                        </div>
-
-                        <div className="roadmap-meta">
-                          Created: {formatDate(roadmap.created_at)}
-                        </div>
-                        
-                        <button
-                          onClick={() => loadRoadmapData(roadmap.id)}
-                          className="explore-roadmap-btn"
-                        >
-                          Open Roadmap
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+            {roadmaps.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">No Roadmaps</div>
+                <h3>Start Your Learning Journey</h3>
+                <p>Create your first knowledge roadmap to begin exploring topics in depth</p>
               </div>
             ) : (
-              <div className="active-roadmap">
-                <div className="active-roadmap-header">
-                  <button
-                    onClick={() => {
-                      setCurrentRoadmap(null);
-                      setNodes([]);
-                      setEdges([]);
-                      setShowNodePanel(false);
-                    }}
-                    className="back-btn"
-                  >
-                    ← Back to Library
-                  </button>
-                  
-                  <div className="roadmap-info">
-                    <h2>{currentRoadmap.title}</h2>
-                    <div className="roadmap-meta-inline">
-                      <span>Nodes: {currentRoadmap.total_nodes}</span>
-                      <span>Depth: {currentRoadmap.max_depth_reached}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flow-container">
-                  <ReactFlow
-                    nodes={nodes}
-                    edges={edges}
-                    onNodesChange={onNodesChange}
-                    onEdgesChange={onEdgesChange}
-                    nodeTypes={nodeTypes}
-                    nodesDraggable={true}
-                    nodesConnectable={false}
-                    elementsSelectable={true}
-                    fitView
-                    minZoom={0.3}
-                    maxZoom={1.5}
-                    defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
-                    panOnDrag={[1, 2]} // 👈 allow panning with right or middle mouse only
-                    selectionOnDrag={false} 
-                  >
-                    <Background color="#D7B38C" gap={20} size={1} />
-                    <Controls />
-                    <MiniMap
-                      nodeColor={(node) => {
-                        if (node.data.isExplored) return '#4CAF50';
-                        if (node.data.expansionStatus === 'expanded') return '#FF9800';
-                        return '#D7B38C';
-                      }}
-                      maskColor="rgba(0, 0, 0, 0.8)"
-                    />
-                  </ReactFlow>
-                </div>
-
-                {showNodePanel && nodeExplanation && (
-                  <div className="node-details-panel">
-                    <div className="panel-header">
-                      <div>
-                        <h3>{nodeExplanation.topic_name}</h3>
-                        {nodeExplanation.description && (
-                          <p className="panel-description">{nodeExplanation.description}</p>
-                        )}
-                      </div>
+              <div className="roadmaps-grid">
+                {roadmaps.map((roadmap) => (
+                  <div key={roadmap.id} className="roadmap-card">
+                    <div className="roadmap-card-header">
+                      <h3>{roadmap.title}</h3>
                       <button
-                        onClick={() => setShowNodePanel(false)}
-                        className="close-panel-btn"
+                        onClick={(e) => deleteRoadmap(roadmap.id, e)}
+                        className="delete-btn"
                       >
                         ×
                       </button>
                     </div>
+                    <div className="roadmap-stats">
+                      <div className="stat-item">
+                        <span className="stat-label">Nodes</span>
+                        <span className="stat-value">{roadmap.total_nodes}</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-label">Max Depth</span>
+                        <span className="stat-value">{roadmap.max_depth_reached}</span>
+                      </div>
+                    </div>
+                    <div className="roadmap-meta">
+                      Created {formatDate(roadmap.created_at)}
+                    </div>
+                    <button
+                      onClick={() => openRoadmap(roadmap)}
+                      className="explore-roadmap-btn"
+                    >
+                      Explore Roadmap
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-                    <div className="panel-content">
-                      {nodeExplanation.ai_explanation && (
-                        <div className="panel-section">
-                          <h4>Overview</h4>
-                          <p>{nodeExplanation.ai_explanation}</p>
-                        </div>
-                      )}
+        {activeTab === 'roadmap' && currentRoadmap && (
+          <div className="tab-content">
+            <div className="active-roadmap-header">
+              <button onClick={() => {
+                setCurrentRoadmap(null);
+                setActiveTab('library');
+              }} className="back-btn">
+                ← Back to Library
+              </button>
+              <div className="roadmap-info">
+                <h2>{currentRoadmap.title}</h2>
+                <div className="roadmap-meta-inline">
+                  <span>{nodes.length} Nodes</span>
+                  <span>Max Depth: {currentRoadmap.max_depth_reached}</span>
+                </div>
+              </div>
+            </div>
 
-                      {nodeExplanation.key_concepts && nodeExplanation.key_concepts.length > 0 && (
-                        <div className="panel-section">
-                          <h4>Key Concepts</h4>
-                          <ul>
-                            {nodeExplanation.key_concepts.map((concept, idx) => (
-                              <li key={idx}>{concept}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+            <div className="flow-container">
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                nodeTypes={nodeTypes}
+                fitView
+                minZoom={0.1}
+                maxZoom={1.5}
+                defaultEdgeOptions={{
+                  type: 'smoothstep',
+                  animated: false,
+                  style: { stroke: '#D7B38C', strokeWidth: 3 },
+                  markerEnd: {
+                    type: 'arrow',
+                    color: '#D7B38C',
+                  },
+                }}
+              >
+                <Background color="#D7B38C" gap={16} />
+                <Controls />
+                <MiniMap
+                  nodeColor={(node) => {
+                    if (node.data.isExplored) return '#4CAF50';
+                    if (node.data.expansionStatus === 'expanded') return '#FF9800';
+                    return '#9E9E9E';
+                  }}
+                />
+              </ReactFlow>
+            </div>
 
-                      {nodeExplanation.why_important && (
-                        <div className="panel-section">
-                          <h4>Why This Matters</h4>
-                          <p>{nodeExplanation.why_important}</p>
-                        </div>
-                      )}
+            {showNodePanel && nodeExplanation && (
+              <div className="node-details-panel">
+                <div className="panel-header">
+                  <h3>{nodeExplanation.topic_name || 'Node Details'}</h3>
+                  <button
+                    onClick={() => setShowNodePanel(false)}
+                    className="panel-close-btn"
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="panel-content">
+                  {nodeExplanation.ai_explanation && (
+                    <div style={{ marginBottom: '24px' }}>
+                      <p style={{ lineHeight: '1.8', fontSize: '15px' }}>
+                        {nodeExplanation.ai_explanation}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {nodeExplanation.why_important && (
+                    <div style={{ marginBottom: '24px' }}>
+                      <h4 style={{ color: '#D7B38C', fontSize: '16px', marginBottom: '12px', fontWeight: 600 }}>
+                        Why This Matters
+                      </h4>
+                      <p style={{ lineHeight: '1.7', color: 'rgba(215, 179, 140, 0.9)' }}>
+                        {nodeExplanation.why_important}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {nodeExplanation.key_concepts && Array.isArray(nodeExplanation.key_concepts) && nodeExplanation.key_concepts.length > 0 && (
+                    <div style={{ marginBottom: '24px' }}>
+                      <h4 style={{ color: '#D7B38C', fontSize: '16px', marginBottom: '12px', fontWeight: 600 }}>
+                        Key Concepts
+                      </h4>
+                      <ul style={{ paddingLeft: '20px', lineHeight: '1.7', color: 'rgba(215, 179, 140, 0.9)' }}>
+                        {nodeExplanation.key_concepts.map((concept, idx) => (
+                          <li key={idx} style={{ marginBottom: '8px' }}>{concept}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {nodeExplanation.real_world_examples && Array.isArray(nodeExplanation.real_world_examples) && nodeExplanation.real_world_examples.length > 0 && (
+                    <div style={{ marginBottom: '24px' }}>
+                      <h4 style={{ color: '#D7B38C', fontSize: '16px', marginBottom: '12px', fontWeight: 600 }}>
+                        Real-World Examples
+                      </h4>
+                      <ul style={{ paddingLeft: '20px', lineHeight: '1.7', color: 'rgba(215, 179, 140, 0.9)' }}>
+                        {nodeExplanation.real_world_examples.map((example, idx) => (
+                          <li key={idx} style={{ marginBottom: '8px' }}>{example}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {nodeExplanation.learning_tips && (
+                    <div style={{ marginBottom: '24px' }}>
+                      <h4 style={{ color: '#D7B38C', fontSize: '16px', marginBottom: '12px', fontWeight: 600 }}>
+                        Learning Tips
+                      </h4>
+                      <p style={{ lineHeight: '1.7', color: 'rgba(215, 179, 140, 0.9)', fontStyle: 'italic' }}>
+                        {nodeExplanation.learning_tips}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {!nodeExplanation.ai_explanation && nodeExplanation.description && (
+                    <div style={{ marginBottom: '24px' }}>
+                      <p style={{ lineHeight: '1.8', fontSize: '15px' }}>
+                        {nodeExplanation.description}
+                      </p>
+                      <p style={{ marginTop: '16px', fontStyle: 'italic', color: 'rgba(215, 179, 140, 0.6)', fontSize: '14px' }}>
+                        Click "Explore" again to generate a detailed AI explanation.
+                      </p>
+                    </div>
+                  )}
+                  
+                  {nodeExplanation.exploration_count > 0 && (
+                    <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid rgba(215, 179, 140, 0.2)', fontSize: '13px', color: 'rgba(215, 179, 140, 0.6)' }}>
+                      Explored {nodeExplanation.exploration_count} time{nodeExplanation.exploration_count > 1 ? 's' : ''}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
-                      {nodeExplanation.real_world_examples && nodeExplanation.real_world_examples.length > 0 && (
-                        <div className="panel-section">
-                          <h4>Real-World Applications</h4>
-                          <ul>
-                            {nodeExplanation.real_world_examples.map((example, idx) => (
-                              <li key={idx}>{example}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+        {activeTab === 'active' && activeReview && (
+          <div className="tab-content">
+            <div className="section-header">
+              <h2>{activeReview.title}</h2>
+              <p>Review your learning and identify areas for improvement</p>
+            </div>
 
-                      {nodeExplanation.learning_tips && (
-                        <div className="panel-section">
-                          <h4>Learning Tips</h4>
-                          <p>{nodeExplanation.learning_tips}</p>
-                        </div>
-                      )}
+            <div className="review-content">
+              <div className="review-prompt">
+                <h3>Review Prompt</h3>
+                <p>{activeReview.review_content}</p>
+              </div>
+
+              {!reviewDetails ? (
+                <div className="response-section">
+                  <h3>Your Response</h3>
+                  <textarea
+                    value={reviewResponse}
+                    onChange={(e) => setReviewResponse(e.target.value)}
+                    placeholder="Write your response here..."
+                    rows={10}
+                    className="response-textarea"
+                  />
+                  <button
+                    onClick={submitReviewResponse}
+                    disabled={loading || !reviewResponse.trim()}
+                    className="submit-response-btn"
+                  >
+                    {loading ? 'Submitting...' : 'Submit Response'}
+                  </button>
+                </div>
+              ) : (
+                <div className="feedback-section">
+                  <h3>Feedback</h3>
+                  <div className="feedback-content">
+                    <p>{reviewDetails.feedback}</p>
+                  </div>
+                  <div className="areas-section">
+                    <h4>Areas for Improvement</h4>
+                    <ul className="areas-list">
+                      {reviewDetails.areas_for_improvement.map((area, index) => (
+                        <li key={index}>{area}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'questions' && activeQuestionSet && (
+          <div className="tab-content">
+            <div className="section-header">
+              <h2>Practice Questions</h2>
+              <p>Test your understanding with these generated questions</p>
+            </div>
+
+            {!questionResults ? (
+              <div className="questions-content">
+                {activeQuestionSet.questions.map((question, index) => (
+                  <div key={question.id} className="question-block">
+                    <div className="question-header">
+                      <span className="question-number">Question {index + 1}</span>
+                      <span className="question-difficulty">{question.difficulty}</span>
+                    </div>
+                    <div className="question-text">{question.question}</div>
+                    <textarea
+                      value={questionAnswers[question.id] || ''}
+                      onChange={(e) => setQuestionAnswers(prev => ({
+                        ...prev,
+                        [question.id]: e.target.value
+                      }))}
+                      placeholder="Type your answer here..."
+                      rows={4}
+                      className="answer-textarea"
+                    />
+                    <button
+                      onClick={() => requestHint(question.id)}
+                      className="hint-btn"
+                      disabled={loading}
+                    >
+                      Need a Hint?
+                    </button>
+                    {showHints && hints.find(h => h.questionId === question.id) && (
+                      <div className="hint-box">
+                        <strong>Hint:</strong> {hints.find(h => h.questionId === question.id).hint}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <button
+                  onClick={submitQuestionAnswers}
+                  disabled={loading}
+                  className="submit-answers-btn"
+                >
+                  {loading ? 'Submitting...' : 'Submit All Answers'}
+                </button>
+              </div>
+            ) : (
+              <div className="results-content">
+                <div className="results-summary">
+                  <h3>Your Results</h3>
+                  <div className="score-display">
+                    Score: {questionResults.score}%
+                  </div>
+                </div>
+                {questionResults.question_feedback.map((feedback, index) => (
+                  <div key={index} className="feedback-block">
+                    <div className="feedback-question">
+                      <strong>Question {index + 1}:</strong> {feedback.question}
+                    </div>
+                    <div className="feedback-answer">
+                      <strong>Your Answer:</strong> {feedback.user_answer}
+                    </div>
+                    <div className="feedback-response">
+                      <strong>Feedback:</strong> {feedback.feedback}
+                    </div>
+                    <div className="feedback-correct">
+                      <strong>Correct Answer:</strong> {feedback.correct_answer}
                     </div>
                   </div>
-                )}
+                ))}
               </div>
             )}
           </div>
@@ -1101,61 +1393,60 @@ const LearningReview = () => {
         {activeTab === 'create' && (
           <div className="tab-content">
             <div className="section-header">
-              <h2>Create Learning Review</h2>
-            </div>
-            
-            <div className="session-selection">
-              <div className="selection-header">
-                <h3>Select Chat Sessions</h3>
-              </div>
-              {chatSessions.length === 0 ? (
-                <p className="empty-text">No chat sessions available</p>
-              ) : (
-                <div className="sessions-grid">
-                  {chatSessions.map((session) => (
-                    <div 
-                      key={session.id}
-                      onClick={() => toggleSessionSelection(session)}
-                      className={`session-card ${selectedSessions.find(s => s.id === session.id) ? 'selected' : ''}`}
-                    >
-                      <div className="session-info">
-                        <div className="session-title">{session.title}</div>
-                        <div className="session-date">{formatDate(session.created_at)}</div>
-                      </div>
-                      <div className="selection-indicator">
-                        {selectedSessions.find(s => s.id === session.id) ? '✓' : '○'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <h2>Create Learning Materials</h2>
+              <p>Select chat sessions or slides to create reviews or generate questions</p>
             </div>
 
-            <div className="session-selection">
-              <div className="selection-header">
-                <h3>Select Slides</h3>
+            <div className="selection-sections">
+              <div className="selection-section">
+                <h3>Chat Sessions</h3>
+                {chatSessions.length === 0 ? (
+                  <p className="empty-text">No chat sessions available</p>
+                ) : (
+                  <div className="sessions-list">
+                    {chatSessions.map((session) => (
+                      <div
+                        key={session.id}
+                        onClick={() => toggleSessionSelection(session)}
+                        className={`session-card ${selectedSessions.find(s => s.id === session.id) ? 'selected' : ''}`}
+                      >
+                        <div className="session-info">
+                          <div className="session-title">{session.title}</div>
+                          <div className="session-date">{formatDate(session.created_at)}</div>
+                        </div>
+                        <div className="selection-indicator">
+                          {selectedSessions.find(s => s.id === session.id) ? '✓' : '○'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              {uploadedSlides.length === 0 ? (
-                <p className="empty-text">No slides available</p>
-              ) : (
-                <div className="sessions-grid">
-                  {uploadedSlides.map((slide) => (
-                    <div 
-                      key={slide.id}
-                      onClick={() => toggleSlideSelection(slide)}
-                      className={`session-card ${selectedSlides.find(s => s.id === slide.id) ? 'selected' : ''}`}
-                    >
-                      <div className="session-info">
-                        <div className="session-title">{slide.filename}</div>
-                        <div className="session-date">{formatDate(slide.uploaded_at)}</div>
+
+              <div className="selection-section">
+                <h3>Uploaded Slides</h3>
+                {uploadedSlides.length === 0 ? (
+                  <p className="empty-text">No slides uploaded</p>
+                ) : (
+                  <div className="sessions-list">
+                    {uploadedSlides.map((slide) => (
+                      <div
+                        key={slide.id}
+                        onClick={() => toggleSlideSelection(slide)}
+                        className={`session-card ${selectedSlides.find(s => s.id === slide.id) ? 'selected' : ''}`}
+                      >
+                        <div className="session-info">
+                          <div className="session-title">{slide.filename}</div>
+                          <div className="session-date">{formatDate(slide.uploaded_at)}</div>
+                        </div>
+                        <div className="selection-indicator">
+                          {selectedSlides.find(s => s.id === slide.id) ? '✓' : '○'}
+                        </div>
                       </div>
-                      <div className="selection-indicator">
-                        {selectedSlides.find(s => s.id === slide.id) ? '✓' : '○'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="action-buttons">
