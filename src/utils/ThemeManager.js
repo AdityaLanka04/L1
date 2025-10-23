@@ -819,7 +819,7 @@ export function applyThemeToRoot(tokens) {
 }
 
 export function getStoredTheme() {
-  return localStorage.getItem('themeProfile') || 'gold-monochrome';
+  return localStorage.getItem('themeProfile') || 'minimal-light';
 }
 
 export function setStoredTheme(themeId) {

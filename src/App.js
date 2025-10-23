@@ -15,7 +15,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 function App() {
   return (
     <ThemeProvider>
-      <div className="min-h-screen bg-black">
+      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-top)', color: 'var(--text-primary)' }}>
         <Routes>
           <Route path="/" element={<Homepage />} />
           <Route path="/login" element={<Login />} />

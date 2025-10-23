@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -10,6 +10,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import './roadmap-styles.css';
+import './LearningReview.css';
 
 const LearningReview = () => {
   const [userName, setUserName] = useState('');
@@ -41,9 +42,27 @@ const LearningReview = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [showNodePanel, setShowNodePanel] = useState(false);
   const [nodeExplanation, setNodeExplanation] = useState(null);
+  const [slideSummaries, setSlideSummaries] = useState({});
+  const [selectedSlideForView, setSelectedSlideForView] = useState(null);
+  const [questionGenerationMode, setQuestionGenerationMode] = useState(null);
+  const [selectedSourceType, setSelectedSourceType] = useState('topic'); // 'topic', 'chat', 'slide'
+  const [selectedChatId, setSelectedChatId] = useState(null);
+  const [selectedSlideId, setSelectedSlideId] = useState(null);
+  const [questionTopic, setQuestionTopic] = useState('');
+  const [numberOfQuestions, setNumberOfQuestions] = useState(10);
+  const [questionType, setQuestionType] = useState('Mixed');
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
+  const fileInputRef = useRef(null);
 
   const navigate = (path) => {
     window.location.href = path;
+  };
+
+  const goBackToDashboard = () => {
+    setActiveTab('create');
+    setCurrentRoadmap(null);
+    setSelectedSlideForView(null);
+    setQuestionGenerationMode(null);
   };
 
   // FIXED: expandNode with useCallback to prevent stale closures
@@ -406,29 +425,13 @@ const LearningReview = () => {
     }
   }, [userName]);
 
-  const loadGeneratedQuestions = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/get_question_sets?user_id=${userName}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setGeneratedQuestions(data.question_sets || []);
-      }
-    } catch (error) {
-      console.error('Error loading question sets:', error);
-    }
-  }, [userName]);
-
   const loadUserRoadmaps = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:8001/get_user_roadmaps?user_id=${userName}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-
+      
       if (response.ok) {
         const data = await response.json();
         setRoadmaps(data.roadmaps || []);
@@ -438,347 +441,31 @@ const LearningReview = () => {
     }
   }, [userName]);
 
-  useEffect(() => {
-    if (userName) {
-      loadChatSessions();
-      loadUploadedSlides();
-      loadLearningReviews();
-      loadGeneratedQuestions();
-      loadUserRoadmaps();
-    }
-  }, [userName, loadChatSessions, loadUploadedSlides, loadLearningReviews, loadGeneratedQuestions, loadUserRoadmaps]);
-
-  // Debug: Log edges whenever they change
-  useEffect(() => {
-    console.log('=== EDGES STATE UPDATED ===');
-    console.log('Total edges:', edges.length);
-    console.log('Edges:', edges);
-  }, [edges]);
-
-  const handleSlideUpload = async (event) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    setIsUploading(true);
-    setUploadProgress(0);
-
-    const formData = new FormData();
-    formData.append('user_id', userName);
-    
-    Array.from(files).forEach((file) => {
-      formData.append('files', file);
-    });
-
+  const loadGeneratedQuestions = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8001/upload_slides', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUploadProgress(100);
-        setTimeout(() => {
-          setIsUploading(false);
-          setUploadProgress(0);
-          loadUploadedSlides();
-          alert(`Successfully uploaded ${data.uploaded_count} slide(s)`);
-        }, 500);
-      } else {
-        const errorData = await response.json();
-        alert(`Error uploading slides: ${errorData.detail}`);
-        setIsUploading(false);
-      }
-    } catch (error) {
-      console.error('Error uploading slides:', error);
-      alert('Failed to upload slides');
-      setIsUploading(false);
-    }
-  };
-
-  const createLearningReview = async () => {
-    if (selectedSessions.length === 0 && selectedSlides.length === 0) {
-      alert('Please select at least one chat session or slide');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8001/create_learning_review', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          user_id: userName,
-          chat_session_ids: selectedSessions.map(s => s.id),
-          slide_ids: selectedSlides.map(s => s.id),
-          review_title: `Learning Review - ${new Date().toLocaleDateString()}`,
-          review_type: 'comprehensive'
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setActiveReview(data);
-        setActiveTab('active');
-        loadLearningReviews();
-        setSelectedSessions([]);
-        setSelectedSlides([]);
-      } else {
-        const errorData = await response.json();
-        alert(`Error creating review: ${errorData.detail}`);
-      }
-    } catch (error) {
-      console.error('Error creating learning review:', error);
-      alert('Failed to create learning review');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const generateQuestions = async () => {
-    if (selectedSessions.length === 0 && selectedSlides.length === 0) {
-      alert('Please select at least one chat session or slide');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8001/generate_questions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          user_id: userName,
-          chat_session_ids: selectedSessions.map(s => s.id),
-          slide_ids: selectedSlides.map(s => s.id)
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setActiveQuestionSet(data);
-        setActiveTab('questions');
-        loadGeneratedQuestions();
-        setSelectedSessions([]);
-        setSelectedSlides([]);
-        setQuestionAnswers({});
-      } else {
-        const errorData = await response.json();
-        alert(`Error generating questions: ${errorData.detail}`);
-      }
-    } catch (error) {
-      console.error('Error generating questions:', error);
-      alert('Failed to generate questions');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const submitReviewResponse = async () => {
-    if (!reviewResponse.trim()) {
-      alert('Please provide a response');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8001/submit_review_response', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          review_id: activeReview.id,
-          user_response: reviewResponse
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setReviewDetails(data);
-        setReviewResponse('');
-      } else {
-        const errorData = await response.json();
-        alert(`Error submitting response: ${errorData.detail}`);
-      }
-    } catch (error) {
-      console.error('Error submitting response:', error);
-      alert('Failed to submit response');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const submitQuestionAnswers = async () => {
-    const unanswered = activeQuestionSet.questions.filter(
-      q => !questionAnswers[q.id] || questionAnswers[q.id].trim() === ''
-    );
-
-    if (unanswered.length > 0) {
-      alert(`Please answer all questions (${unanswered.length} remaining)`);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8001/submit_question_answers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          question_set_id: activeQuestionSet.id,
-          answers: questionAnswers
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setQuestionResults(data);
-      } else {
-        const errorData = await response.json();
-        alert(`Error submitting answers: ${errorData.detail}`);
-      }
-    } catch (error) {
-      console.error('Error submitting answers:', error);
-      alert('Failed to submit answers');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const requestHint = async (questionId) => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/get_hint/${questionId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setHints(prev => [...prev, { questionId, hint: data.hint }]);
-        setShowHints(true);
-      } else {
-        alert('Error getting hint');
-      }
-    } catch (error) {
-      console.error('Error getting hint:', error);
-      alert('Failed to get hint');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deleteSlide = async (slideId) => {
-    if (!window.confirm('Are you sure you want to delete this slide?')) return;
-
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/delete_slide/${slideId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        loadUploadedSlides();
-      } else {
-        const errorData = await response.json();
-        alert(`Error deleting slide: ${errorData.detail}`);
-      }
-    } catch (error) {
-      console.error('Error deleting slide:', error);
-      alert('Failed to delete slide');
-    }
-  };
-
-  const deleteQuestionSet = async (questionSetId) => {
-    if (!window.confirm('Are you sure you want to delete this question set?')) return;
-
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/delete_question_set/${questionSetId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        loadGeneratedQuestions();
-        alert('Question set deleted successfully');
-      } else {
-        const errorData = await response.json();
-        alert(`Error deleting question set: ${errorData.detail}`);
-      }
-    } catch (error) {
-      console.error('Error deleting question set:', error);
-      alert('Failed to delete question set');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadQuestionSetWithQuestions = async (questionSetId) => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/get_question_set_details/${questionSetId}`, {
+      const response = await fetch(`http://localhost:8001/get_generated_questions?user_id=${userName}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
       if (response.ok) {
         const data = await response.json();
-        setActiveQuestionSet(data);
-        setActiveTab('questions');
-        setQuestionAnswers({});
-        setQuestionResults(null);
-      } else {
-        alert('Error loading questions');
+        setGeneratedQuestions(data.question_sets || []);
       }
     } catch (error) {
-      console.error('Error loading question set:', error);
-      alert('Failed to load questions');
-    } finally {
-      setLoading(false);
+      console.error('Error loading questions:', error);
     }
-  };
+  }, [userName]);
 
-  const toggleSessionSelection = (session) => {
-    setSelectedSessions(prev => {
-      const isSelected = prev.find(s => s.id === session.id);
-      if (isSelected) {
-        return prev.filter(s => s.id !== session.id);
-      } else {
-        return [...prev, session];
-      }
-    });
-  };
-
-  const toggleSlideSelection = (slide) => {
-    setSelectedSlides(prev => {
-      const isSelected = prev.find(s => s.id === slide.id);
-      if (isSelected) {
-        return prev.filter(s => s.id !== slide.id);
-      } else {
-        return [...prev, slide];
-      }
-    });
-  };
+  useEffect(() => {
+    if (userName) {
+      loadChatSessions();
+      loadUploadedSlides();
+      loadLearningReviews();
+      loadUserRoadmaps();
+      loadGeneratedQuestions();
+    }
+  }, [userName, loadChatSessions, loadUploadedSlides, loadLearningReviews, loadUserRoadmaps, loadGeneratedQuestions]);
 
   const createRoadmap = async () => {
     if (!newRoadmapTopic.trim()) {
@@ -851,7 +538,7 @@ const LearningReview = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/get_roadmap_graph/${roadmap.id}`, {
+      const response = await fetch(`http://localhost:8001/get_knowledge_roadmap/${roadmap.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -860,15 +547,18 @@ const LearningReview = () => {
         
         setCurrentRoadmap(roadmap);
         
+        // Use nodes_flat from backend response
+        const allNodes = data.nodes_flat || [];
+        
         const nodesByDepth = new Map();
-        data.nodes.forEach(node => {
+        allNodes.forEach(node => {
           if (!nodesByDepth.has(node.depth_level)) {
             nodesByDepth.set(node.depth_level, []);
           }
           nodesByDepth.get(node.depth_level).push(node);
         });
 
-        const flowNodes = data.nodes.map(node => {
+        const flowNodes = allNodes.map(node => {
           const nodesAtThisDepth = nodesByDepth.get(node.depth_level) || [];
           const indexAtDepth = nodesAtThisDepth.indexOf(node);
           const horizontalSpacing = 280;
@@ -899,717 +589,1226 @@ const LearningReview = () => {
           };
         });
 
-        const flowEdges = data.edges.map(edge => ({
-          id: `e${edge.parent_id}-${edge.child_id}`,
-          source: String(edge.parent_id),
-          target: String(edge.child_id),
-          type: 'smoothstep',
-          animated: false,
-          style: { stroke: '#D7B38C', strokeWidth: 3 },
-          markerEnd: {
-            type: 'arrow',
-            color: '#D7B38C',
-            width: 20,
-            height: 20,
-          },
-        }));
-
-        console.log('Loading roadmap edges:', flowEdges);
+        // Build edges from parent-child relationships in nodes
+        const flowEdges = [];
+        allNodes.forEach(node => {
+          if (node.parent_id) {
+            flowEdges.push({
+              id: `e${node.parent_id}-${node.id}`,
+              source: String(node.parent_id),
+              target: String(node.id),
+              type: 'smoothstep',
+              style: { stroke: '#D7B38C', strokeWidth: 3 },
+              markerEnd: {
+                type: 'arrow',
+                color: '#D7B38C',
+                width: 20,
+                height: 20,
+              },
+            });
+          }
+        });
 
         setNodes(flowNodes);
         setEdges(flowEdges);
         setActiveTab('roadmap');
-      } else {
-        alert('Failed to load roadmap');
       }
     } catch (error) {
-      console.error('Error loading roadmap:', error);
-      alert('Failed to load roadmap');
+      console.error('Error opening roadmap:', error);
+      alert('Failed to open roadmap');
     } finally {
       setLoading(false);
     }
   };
 
-  const deleteRoadmap = async (roadmapId, e) => {
-    e.stopPropagation();
-    if (!window.confirm('Are you sure you want to delete this roadmap?')) return;
+  const submitReviewResponse = async () => {
+    if (!reviewResponse.trim()) {
+      alert('Please write a response');
+      return;
+    }
 
+    setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/delete_roadmap/${roadmapId}`, {
-        method: 'DELETE',
+      const response = await fetch('http://localhost:8001/submit_review_response', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          review_id: activeReview.id,
+          response_text: reviewResponse
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setReviewDetails(data);
+        setReviewResponse('');
+      } else {
+        alert('Failed to submit response');
+      }
+    } catch (error) {
+      console.error('Error submitting review response:', error);
+      alert('Failed to submit response');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadQuestionSetWithQuestions = async (questionSetId) => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8001/get_question_set/${questionSetId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (response.ok) {
-        loadUserRoadmaps();
-        if (currentRoadmap && currentRoadmap.id === roadmapId) {
-          setCurrentRoadmap(null);
-          setActiveTab('library');
-        }
-      } else {
-        alert('Failed to delete roadmap');
+        const data = await response.json();
+        setActiveQuestionSet(data);
+        setQuestionAnswers({});
+        setQuestionResults(null);
+        setActiveTab('active');
       }
     } catch (error) {
-      console.error('Error deleting roadmap:', error);
-      alert('Failed to delete roadmap');
+      console.error('Error loading question set:', error);
+      alert('Failed to load question set');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+  const submitAnswers = async () => {
+    const answeredCount = Object.values(questionAnswers).filter(Boolean).length;
+    if (answeredCount === 0) {
+      alert('Please answer at least one question');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:8001/submit_answers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          question_set_id: activeQuestionSet.id,
+          answers: questionAnswers
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setQuestionResults(data);
+      }
+    } catch (error) {
+      console.error('Error submitting answers:', error);
+      alert('Failed to submit answers');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getHints = async (questionId) => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8001/get_hints/${questionId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setHints(data.hints || []);
+        setShowHints(true);
+      }
+    } catch (error) {
+      console.error('Error getting hints:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFileUpload = async (files) => {
+    if (!files || files.length === 0) return;
+
+    const allowedFormats = ['application/pdf', 'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'];
+    const maxSize = 50 * 1024 * 1024; // 50MB
+
+    const validFiles = Array.from(files).filter(file => {
+      if (!allowedFormats.includes(file.type) && !file.name.toLowerCase().match(/\.(pdf|ppt|pptx)$/)) {
+        alert(`File ${file.name} is not supported. Please upload PDF or PowerPoint files.`);
+        return false;
+      }
+      if (file.size > maxSize) {
+        alert(`File ${file.name} is too large. Maximum size is 50MB.`);
+        return false;
+      }
+      return true;
     });
+
+    if (validFiles.length === 0) return;
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('user_id', userName);
+      
+      validFiles.forEach(file => {
+        formData.append('files', file);
+      });
+
+      const xhr = new XMLHttpRequest();
+      
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const percentComplete = (e.loaded / e.total) * 100;
+          setUploadProgress(percentComplete);
+        }
+      });
+
+      xhr.addEventListener('load', async () => {
+        if (xhr.status === 200) {
+          const result = JSON.parse(xhr.responseText);
+          alert(`Successfully uploaded ${result.uploaded_count} file(s)!`);
+          await loadUploadedSlides();
+          setUploadProgress(0);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        } else {
+          alert('Failed to upload files. Please try again.');
+        }
+        setIsUploading(false);
+      });
+
+      xhr.addEventListener('error', () => {
+        alert('Upload failed. Please try again.');
+        setIsUploading(false);
+      });
+
+      xhr.open('POST', 'http://localhost:8001/upload_slides');
+      xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      xhr.send(formData);
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      alert('Failed to upload files');
+      setIsUploading(false);
+    }
+  };
+
+  const generateQuestions = async () => {
+    // Validation
+    if (selectedSourceType === 'topic' && !questionTopic.trim()) {
+      alert('Please enter a topic or paste content');
+      return;
+    }
+    if (selectedSourceType === 'chat' && !selectedChatId) {
+      alert('Please select a chat session');
+      return;
+    }
+    if (selectedSourceType === 'slide' && !selectedSlideId) {
+      alert('Please select a slide');
+      return;
+    }
+
+    setIsGeneratingQuestions(true);
+    try {
+      const token = localStorage.getItem('token');
+      
+      let payload = {
+        user_id: userName,
+        source_type: selectedSourceType,
+        num_questions: numberOfQuestions,
+        question_type: questionType
+      };
+
+      if (selectedSourceType === 'topic') {
+        payload.topic = questionTopic;
+      } else if (selectedSourceType === 'chat') {
+        payload.chat_session_id = selectedChatId;
+      } else if (selectedSourceType === 'slide') {
+        payload.slide_id = selectedSlideId;
+      }
+
+      const response = await fetch('http://localhost:8001/generate_questions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setGeneratedQuestions([...generatedQuestions, data]);
+        
+        // Reset form
+        setSelectedSourceType('topic');
+        setSelectedChatId(null);
+        setSelectedSlideId(null);
+        setQuestionTopic('');
+        setNumberOfQuestions(10);
+        setQuestionType('Mixed');
+        
+        alert('Questions generated successfully!');
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to generate questions: ${errorData.detail || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error generating questions:', error);
+      alert('Failed to generate questions');
+    } finally {
+      setIsGeneratingQuestions(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('username');
+    localStorage.removeItem('userProfile');
+    window.location.href = '/';
   };
 
   return (
-    <div className="roadmap-container">
-      <div className="roadmap-header">
-        <div className="header-content">
-          <div className="header-left">
-            <h1 className="app-title" onClick={() => navigate('/dashboard')}>
-              StudyFlow
-            </h1>
-            <span className="app-subtitle">Learning Management</span>
-          </div>
-          <div className="header-right">
+    <div className="learning-review-page">
+      {/* Header */}
+      <header className="lr-header">
+        <div className="lr-header-left">
+          <h1 className="lr-logo">Brainwave</h1>
+          <span className="lr-subtitle">Learning Management</span>
+        </div>
+        <div className="lr-header-right">
+          <div className="lr-user-section">
             {userProfile?.profile_pic && (
-              <img 
-                src={userProfile.profile_pic} 
-                alt="Profile" 
-                className="profile-pic"
-              />
+              <img src={userProfile.profile_pic} alt="Profile" className="lr-profile-pic" />
             )}
-            <button onClick={() => navigate('/chat')} className="header-btn">
-              Chat
-            </button>
-            <button onClick={() => navigate('/dashboard')} className="header-btn">
-              Dashboard
-            </button>
-            <button
-              onClick={() => {
-                localStorage.removeItem('token');
-                localStorage.removeItem('username');
-                localStorage.removeItem('userProfile');
-                navigate('/login');
-              }}
-              className="header-btn logout"
-            >
-              Logout
-            </button>
+            <span>{userName}</span>
           </div>
-        </div>
-      </div>
-
-      <div className="roadmap-content">
-        <div className="tab-navigation">
-          {currentRoadmap ? (
-            <button
-              onClick={() => setActiveTab('roadmap')}
-              className={`tab-btn ${activeTab === 'roadmap' ? 'active' : ''}`}
-            >
-              Active Roadmap
-            </button>
-          ) : (
-            <button
-              onClick={() => setActiveTab('library')}
-              className={`tab-btn ${activeTab === 'library' ? 'active' : ''}`}
-            >
-              Roadmap Library
-            </button>
-          )}
-          <button
-            onClick={() => setActiveTab('create')}
-            className={`tab-btn ${activeTab === 'create' ? 'active' : ''}`}
-          >
-            Create
+          <button className="lr-nav-btn" onClick={() => window.location.href = '/dashboard'}>
+            Back to Dashboard
           </button>
-          <button
-            onClick={() => setActiveTab('slides')}
-            className={`tab-btn ${activeTab === 'slides' ? 'active' : ''}`}
-          >
-            Slides
-          </button>
-          {activeReview && (
-            <button
-              onClick={() => setActiveTab('active')}
-              className={`tab-btn ${activeTab === 'active' ? 'active' : ''}`}
-            >
-              Active Review
-            </button>
-          )}
-          {activeQuestionSet && (
-            <button
-              onClick={() => setActiveTab('questions')}
-              className={`tab-btn ${activeTab === 'questions' ? 'active' : ''}`}
-            >
-              Questions
-            </button>
-          )}
-          <button
-            onClick={() => setActiveTab('reviews')}
-            className={`tab-btn ${activeTab === 'reviews' ? 'active' : ''}`}
-          >
-            Reviews
-          </button>
-          <button
-            onClick={() => setActiveTab('question-library')}
-            className={`tab-btn ${activeTab === 'question-library' ? 'active' : ''}`}
-          >
-            Question Library
+          <button className="lr-nav-btn" onClick={handleLogout}>
+            Logout
           </button>
         </div>
+      </header>
 
-        {activeTab === 'library' && (
-          <div className="tab-content">
-            <div className="library-header">
-              <div>
-                <h2>Knowledge Roadmaps</h2>
-                <p>Explore and expand your knowledge through interactive topic maps</p>
+      {/* Tab Navigation */}
+      <nav className="lr-tabs">
+        <button
+          className={`lr-tab ${activeTab === 'create' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('create');
+            setShowNodePanel(false);
+          }}
+        >
+          Create
+        </button>
+        <button
+          className={`lr-tab ${activeTab === 'questions' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('questions');
+            setShowNodePanel(false);
+          }}
+        >
+          Questions
+        </button>
+        <button
+          className={`lr-tab ${activeTab === 'slides' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('slides');
+            setShowNodePanel(false);
+          }}
+        >
+          Slides
+        </button>
+        <button
+          className={`lr-tab ${activeTab === 'roadmap' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('roadmap');
+            setShowNodePanel(false);
+          }}
+        >
+          Roadmap Explorer
+        </button>
+        <button
+          className={`lr-tab ${activeTab === 'active' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('active');
+            setShowNodePanel(false);
+          }}
+        >
+          Active Review/Questions
+        </button>
+        <button
+          className={`lr-tab ${activeTab === 'history' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('history');
+            setShowNodePanel(false);
+          }}
+        >
+          History
+        </button>
+      </nav>
+
+      {/* Main Content Area */}
+      <div className="lr-content">
+        <div>
+          {activeTab === 'create' && (
+            <div className="tab-content">
+              <div className="section-header">
+                <h2>Create & Explore</h2>
+                <p>Generate learning materials and create your personalized learning pathways</p>
               </div>
-              <button
-                onClick={() => setShowCreateRoadmapModal(true)}
-                className="create-roadmap-btn"
-              >
-                Create New Roadmap
-              </button>
-            </div>
 
-            {roadmaps.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-icon">No Roadmaps</div>
-                <h3>Start Your Learning Journey</h3>
-                <p>Create your first knowledge roadmap to begin exploring topics in depth</p>
-              </div>
-            ) : (
-              <div className="roadmaps-grid">
-                {roadmaps.map((roadmap) => (
-                  <div key={roadmap.id} className="roadmap-card">
-                    <div className="roadmap-card-header">
-                      <h3>{roadmap.title}</h3>
-                      <button
-                        onClick={(e) => deleteRoadmap(roadmap.id, e)}
-                        className="delete-btn"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <div className="roadmap-stats">
-                      <div className="stat-item">
-                        <span className="stat-label">Nodes</span>
-                        <span className="stat-value">{roadmap.total_nodes}</span>
-                      </div>
-                      <div className="stat-item">
-                        <span className="stat-label">Max Depth</span>
-                        <span className="stat-value">{roadmap.max_depth_reached}</span>
-                      </div>
-                    </div>
-                    <div className="roadmap-meta">
-                      Created {formatDate(roadmap.created_at)}
-                    </div>
-                    <button
-                      onClick={() => openRoadmap(roadmap)}
-                      className="explore-roadmap-btn"
-                    >
-                      Explore Roadmap
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'roadmap' && currentRoadmap && (
-          <div className="tab-content">
-            <div className="active-roadmap-header">
-              <button onClick={() => {
-                setCurrentRoadmap(null);
-                setActiveTab('library');
-              }} className="back-btn">
-                ← Back to Library
-              </button>
-              <div className="roadmap-info">
-                <h2>{currentRoadmap.title}</h2>
-                <div className="roadmap-meta-inline">
-                  <span>{nodes.length} Nodes</span>
-                  <span>Max Depth: {currentRoadmap.max_depth_reached}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flow-container">
-              <ReactFlow
-                nodes={nodes}
-                edges={edges}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                nodeTypes={nodeTypes}
-                fitView
-                minZoom={0.1}
-                maxZoom={1.5}
-                defaultEdgeOptions={{
-                  type: 'smoothstep',
-                  animated: false,
-                  style: { stroke: '#D7B38C', strokeWidth: 3 },
-                  markerEnd: {
-                    type: 'arrow',
-                    color: '#D7B38C',
-                  },
-                }}
-              >
-                <Background color="#D7B38C" gap={16} />
-                <Controls />
-                <MiniMap
-                  nodeColor={(node) => {
-                    if (node.data.isExplored) return '#4CAF50';
-                    if (node.data.expansionStatus === 'expanded') return '#FF9800';
-                    return '#9E9E9E';
-                  }}
-                />
-              </ReactFlow>
-            </div>
-
-            {showNodePanel && nodeExplanation && (
-              <div className="node-details-panel">
-                <div className="panel-header">
-                  <h3>{nodeExplanation.topic_name || 'Node Details'}</h3>
+              <div className="create-grid">
+                {/* Create Roadmap Card */}
+                <div className="create-card">
+                  <h3>Create Knowledge Roadmap</h3>
+                  <p>Build an interactive map of a topic with expandable nodes. Navigate through concepts and learn progressively.</p>
                   <button
-                    onClick={() => setShowNodePanel(false)}
-                    className="panel-close-btn"
+                    onClick={() => setShowCreateRoadmapModal(true)}
+                    className="create-card-btn"
                   >
-                    ×
+                    Create New Roadmap
                   </button>
                 </div>
-                <div className="panel-content">
-                  {nodeExplanation.ai_explanation && (
-                    <div style={{ marginBottom: '24px' }}>
-                      <p style={{ lineHeight: '1.8', fontSize: '15px' }}>
-                        {nodeExplanation.ai_explanation}
-                      </p>
-                    </div>
-                  )}
-                  
-                  {nodeExplanation.why_important && (
-                    <div style={{ marginBottom: '24px' }}>
-                      <h4 style={{ color: '#D7B38C', fontSize: '16px', marginBottom: '12px', fontWeight: 600 }}>
-                        Why This Matters
-                      </h4>
-                      <p style={{ lineHeight: '1.7', color: 'rgba(215, 179, 140, 0.9)' }}>
-                        {nodeExplanation.why_important}
-                      </p>
-                    </div>
-                  )}
-                  
-                  {nodeExplanation.key_concepts && Array.isArray(nodeExplanation.key_concepts) && nodeExplanation.key_concepts.length > 0 && (
-                    <div style={{ marginBottom: '24px' }}>
-                      <h4 style={{ color: '#D7B38C', fontSize: '16px', marginBottom: '12px', fontWeight: 600 }}>
-                        Key Concepts
-                      </h4>
-                      <ul style={{ paddingLeft: '20px', lineHeight: '1.7', color: 'rgba(215, 179, 140, 0.9)' }}>
-                        {nodeExplanation.key_concepts.map((concept, idx) => (
-                          <li key={idx} style={{ marginBottom: '8px' }}>{concept}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  
-                  {nodeExplanation.real_world_examples && Array.isArray(nodeExplanation.real_world_examples) && nodeExplanation.real_world_examples.length > 0 && (
-                    <div style={{ marginBottom: '24px' }}>
-                      <h4 style={{ color: '#D7B38C', fontSize: '16px', marginBottom: '12px', fontWeight: 600 }}>
-                        Real-World Examples
-                      </h4>
-                      <ul style={{ paddingLeft: '20px', lineHeight: '1.7', color: 'rgba(215, 179, 140, 0.9)' }}>
-                        {nodeExplanation.real_world_examples.map((example, idx) => (
-                          <li key={idx} style={{ marginBottom: '8px' }}>{example}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  
-                  {nodeExplanation.learning_tips && (
-                    <div style={{ marginBottom: '24px' }}>
-                      <h4 style={{ color: '#D7B38C', fontSize: '16px', marginBottom: '12px', fontWeight: 600 }}>
-                        Learning Tips
-                      </h4>
-                      <p style={{ lineHeight: '1.7', color: 'rgba(215, 179, 140, 0.9)', fontStyle: 'italic' }}>
-                        {nodeExplanation.learning_tips}
-                      </p>
-                    </div>
-                  )}
-                  
-                  {!nodeExplanation.ai_explanation && nodeExplanation.description && (
-                    <div style={{ marginBottom: '24px' }}>
-                      <p style={{ lineHeight: '1.8', fontSize: '15px' }}>
-                        {nodeExplanation.description}
-                      </p>
-                      <p style={{ marginTop: '16px', fontStyle: 'italic', color: 'rgba(215, 179, 140, 0.6)', fontSize: '14px' }}>
-                        Click "Explore" again to generate a detailed AI explanation.
-                      </p>
-                    </div>
-                  )}
-                  
-                  {nodeExplanation.exploration_count > 0 && (
-                    <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid rgba(215, 179, 140, 0.2)', fontSize: '13px', color: 'rgba(215, 179, 140, 0.6)' }}>
-                      Explored {nodeExplanation.exploration_count} time{nodeExplanation.exploration_count > 1 ? 's' : ''}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
-        {activeTab === 'active' && activeReview && (
-          <div className="tab-content">
-            <div className="section-header">
-              <h2>{activeReview.title}</h2>
-              <p>Review your learning and identify areas for improvement</p>
-            </div>
-
-            <div className="review-content">
-              <div className="review-prompt">
-                <h3>Review Prompt</h3>
-                <p>{activeReview.review_content}</p>
-              </div>
-
-              {!reviewDetails ? (
-                <div className="response-section">
-                  <h3>Your Response</h3>
-                  <textarea
-                    value={reviewResponse}
-                    onChange={(e) => setReviewResponse(e.target.value)}
-                    placeholder="Write your response here..."
-                    rows={10}
-                    className="response-textarea"
-                  />
-                  <button
-                    onClick={submitReviewResponse}
-                    disabled={loading || !reviewResponse.trim()}
-                    className="submit-response-btn"
+                {/* Generate Questions Card */}
+                <div className="create-card">
+                  <h3>Generate Questions</h3>
+                  <p>Create custom practice questions based on your notes, slides, or any topic to test your knowledge.</p>
+                  <button 
+                    onClick={() => {
+                      setQuestionGenerationMode('main');
+                      setActiveTab('questions');
+                    }}
+                    className="create-card-btn"
                   >
-                    {loading ? 'Submitting...' : 'Submit Response'}
+                    Generate Questions
                   </button>
                 </div>
-              ) : (
-                <div className="feedback-section">
-                  <h3>Feedback</h3>
-                  <div className="feedback-content">
-                    <p>{reviewDetails.feedback}</p>
-                  </div>
-                  <div className="areas-section">
-                    <h4>Areas for Improvement</h4>
-                    <ul className="areas-list">
-                      {reviewDetails.areas_for_improvement.map((area, index) => (
-                        <li key={index}>{area}</li>
-                      ))}
-                    </ul>
+
+                {/* Create Review Card */}
+                <div className="create-card">
+                  <h3>Create Learning Review</h3>
+                  <p>Submit a learning review prompt and receive AI feedback on your understanding and progress.</p>
+                  <button className="create-card-btn">
+                    Create Review
+                  </button>
+                </div>
+
+                {/* Upload Slides Card */}
+                <div className="create-card">
+                  <h3>Upload Slides</h3>
+                  <p>Upload presentation slides and access them with AI-powered insights and question generation.</p>
+                  <button 
+                    onClick={() => {
+                      setActiveTab('slides');
+                    }}
+                    className="create-card-btn"
+                  >
+                    Upload Slides
+                  </button>
+                </div>
+              </div>
+
+              {/* Your Learning Reviews Section */}
+              {learningReviews.length > 0 && (
+                <div className="section">
+                  <h3>Your Learning Reviews</h3>
+                  <div className="items-grid">
+                    {learningReviews.map((review) => (
+                      <div key={review.id} className="item-card">
+                        <h4>{review.title}</h4>
+                        <p>Status: {review.status}</p>
+                        <button
+                          onClick={() => {
+                            setActiveReview(review);
+                            setReviewResponse('');
+                            setReviewDetails(null);
+                            setActiveTab('active');
+                          }}
+                          className="continue-btn"
+                        >
+                          Continue
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
             </div>
-          </div>
-        )}
+          )}
 
-        {activeTab === 'questions' && activeQuestionSet && (
-          <div className="tab-content">
-            <div className="section-header">
-              <h2>Practice Questions</h2>
-              <p>Test your understanding with these generated questions</p>
+          {activeTab === 'roadmap' && !currentRoadmap && (
+            <div className="tab-content">
+              <div className="section-header">
+                <h2>Knowledge Roadmaps</h2>
+                <p>Explore and manage your interactive learning pathways</p>
+              </div>
+
+              <div className="create-grid">
+                <div className="create-card">
+                  <h3>Create New Roadmap</h3>
+                  <p>Build an interactive map of a topic with expandable nodes. Navigate through concepts and learn progressively.</p>
+                  <button
+                    onClick={() => setShowCreateRoadmapModal(true)}
+                    className="create-card-btn"
+                  >
+                    Create New Roadmap
+                  </button>
+                </div>
+              </div>
+
+              {roadmaps.length > 0 && (
+                <div className="section">
+                  <h3>Your Knowledge Roadmaps</h3>
+                  <div className="items-grid">
+                    {roadmaps.map((roadmap) => (
+                      <div key={roadmap.id} className="item-card">
+                        <h4>{roadmap.root_topic}</h4>
+                        <p>Nodes: {roadmap.total_nodes}</p>
+                        <button
+                          onClick={() => openRoadmap(roadmap)}
+                          className="continue-btn"
+                        >
+                          Explore
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
+          )}
 
-            {!questionResults ? (
-              <div className="questions-content">
-                {activeQuestionSet.questions.map((question, index) => (
-                  <div key={question.id} className="question-block">
-                    <div className="question-header">
-                      <span className="question-number">Question {index + 1}</span>
-                      <span className="question-difficulty">{question.difficulty}</span>
+          {activeTab === 'roadmap' && currentRoadmap && (
+            <div className="tab-content">
+              <div className="roadmap-section">
+                <div className="roadmap-header">
+                  <div>
+                    <h2>{currentRoadmap.title}</h2>
+                    <button
+                      onClick={() => {
+                        setCurrentRoadmap(null);
+                        setNodes([]);
+                        setEdges([]);
+                      }}
+                      className="back-btn"
+                    >
+                      Back to Roadmaps
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => setShowNodePanel(false)}
+                    className="close-panel-btn"
+                  >
+                    Close
+                  </button>
+                </div>
+                <ReactFlow
+                  nodes={nodes}
+                  edges={edges}
+                  onNodesChange={onNodesChange}
+                  onEdgesChange={onEdgesChange}
+                  nodeTypes={nodeTypes}
+                  fitView
+                >
+                  <Background />
+                  <Controls />
+                  <MiniMap />
+                </ReactFlow>
+
+                {showNodePanel && nodeExplanation && (
+                  <div className="node-panel">
+                    <button
+                      onClick={() => setShowNodePanel(false)}
+                      className="close-panel-btn"
+                    >
+                      ✕
+                    </button>
+                    <h3>{nodeExplanation.topic_name}</h3>
+                    <div className="panel-content">
+                      {nodeExplanation.ai_explanation && (
+                        <div style={{ marginBottom: '24px' }}>
+                          <h4 style={{ color: '#D7B38C', fontSize: '16px', marginBottom: '12px', fontWeight: 600 }}>
+                            Explanation
+                          </h4>
+                          <p style={{ lineHeight: '1.7', color: 'rgba(215, 179, 140, 0.9)' }}>
+                            {nodeExplanation.ai_explanation}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {nodeExplanation.why_important && (
+                        <div style={{ marginBottom: '24px' }}>
+                          <h4 style={{ color: '#D7B38C', fontSize: '16px', marginBottom: '12px', fontWeight: 600 }}>
+                            Why It's Important
+                          </h4>
+                          <p style={{ lineHeight: '1.7', color: 'rgba(215, 179, 140, 0.9)' }}>
+                            {nodeExplanation.why_important}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {nodeExplanation.key_concepts && Array.isArray(nodeExplanation.key_concepts) && nodeExplanation.key_concepts.length > 0 && (
+                        <div style={{ marginBottom: '24px' }}>
+                          <h4 style={{ color: '#D7B38C', fontSize: '16px', marginBottom: '12px', fontWeight: 600 }}>
+                            Key Concepts
+                          </h4>
+                          <ul style={{ paddingLeft: '20px', lineHeight: '1.7', color: 'rgba(215, 179, 140, 0.9)' }}>
+                            {nodeExplanation.key_concepts.map((concept, idx) => (
+                              <li key={idx} style={{ marginBottom: '8px' }}>{concept}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {nodeExplanation.real_world_examples && Array.isArray(nodeExplanation.real_world_examples) && nodeExplanation.real_world_examples.length > 0 && (
+                        <div style={{ marginBottom: '24px' }}>
+                          <h4 style={{ color: '#D7B38C', fontSize: '16px', marginBottom: '12px', fontWeight: 600 }}>
+                            Real-World Examples
+                          </h4>
+                          <ul style={{ paddingLeft: '20px', lineHeight: '1.7', color: 'rgba(215, 179, 140, 0.9)' }}>
+                            {nodeExplanation.real_world_examples.map((example, idx) => (
+                              <li key={idx} style={{ marginBottom: '8px' }}>{example}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {nodeExplanation.learning_tips && (
+                        <div style={{ marginBottom: '24px' }}>
+                          <h4 style={{ color: '#D7B38C', fontSize: '16px', marginBottom: '12px', fontWeight: 600 }}>
+                            Learning Tips
+                          </h4>
+                          <p style={{ lineHeight: '1.7', color: 'rgba(215, 179, 140, 0.9)', fontStyle: 'italic' }}>
+                            {nodeExplanation.learning_tips}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {!nodeExplanation.ai_explanation && nodeExplanation.description && (
+                        <div style={{ marginBottom: '24px' }}>
+                          <p style={{ lineHeight: '1.8', fontSize: '15px' }}>
+                            {nodeExplanation.description}
+                          </p>
+                          <p style={{ marginTop: '16px', fontStyle: 'italic', color: 'rgba(215, 179, 140, 0.6)', fontSize: '14px' }}>
+                            Click "Explore" again to generate a detailed AI explanation.
+                          </p>
+                        </div>
+                      )}
+                      
+                      {nodeExplanation.exploration_count > 0 && (
+                        <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid rgba(215, 179, 140, 0.2)', fontSize: '13px', color: 'rgba(215, 179, 140, 0.6)' }}>
+                          Explored {nodeExplanation.exploration_count} time{nodeExplanation.exploration_count > 1 ? 's' : ''}
+                        </div>
+                      )}
                     </div>
-                    <div className="question-text">{question.question}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'active' && activeReview && (
+            <div className="tab-content">
+              <div className="section-header">
+                <h2>{activeReview.title}</h2>
+                <p>Review your learning and identify areas for improvement</p>
+              </div>
+
+              <div className="review-content">
+                <div className="review-prompt">
+                  <h3>Review Prompt</h3>
+                  <p>{activeReview.review_content}</p>
+                </div>
+
+                {!reviewDetails ? (
+                  <div className="response-section">
+                    <h3>Your Response</h3>
                     <textarea
-                      value={questionAnswers[question.id] || ''}
-                      onChange={(e) => setQuestionAnswers(prev => ({
-                        ...prev,
-                        [question.id]: e.target.value
-                      }))}
-                      placeholder="Type your answer here..."
-                      rows={4}
-                      className="answer-textarea"
+                      value={reviewResponse}
+                      onChange={(e) => setReviewResponse(e.target.value)}
+                      placeholder="Write your response here..."
+                      rows={10}
+                      className="response-textarea"
                     />
                     <button
-                      onClick={() => requestHint(question.id)}
-                      className="hint-btn"
-                      disabled={loading}
+                      onClick={submitReviewResponse}
+                      disabled={loading || !reviewResponse.trim()}
+                      className="submit-response-btn"
                     >
-                      Need a Hint?
+                      {loading ? 'Submitting...' : 'Submit Response'}
                     </button>
-                    {showHints && hints.find(h => h.questionId === question.id) && (
-                      <div className="hint-box">
-                        <strong>Hint:</strong> {hints.find(h => h.questionId === question.id).hint}
+                  </div>
+                ) : (
+                  <div className="feedback-section">
+                    <h3>Feedback</h3>
+                    <div className="feedback-content">
+                      <p><strong>Score:</strong> {reviewDetails.score}/10</p>
+                      <p><strong>Feedback:</strong> {reviewDetails.feedback}</p>
+                      {reviewDetails.strengths && (
+                        <div>
+                          <h4>Strengths:</h4>
+                          <ul>
+                            {reviewDetails.strengths.map((s, idx) => (
+                              <li key={idx}>{s}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {reviewDetails.improvements && (
+                        <div>
+                          <h4>Areas for Improvement:</h4>
+                          <ul>
+                            {reviewDetails.improvements.map((i, idx) => (
+                              <li key={idx}>{i}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => {
+                        setReviewResponse('');
+                        setReviewDetails(null);
+                      }}
+                      className="submit-response-btn"
+                    >
+                      Start Over
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'active' && activeQuestionSet && !activeReview && (
+            <div className="tab-content">
+              <div className="section-header">
+                <h2>{activeQuestionSet.title}</h2>
+                <p>Answer the questions to test your knowledge</p>
+              </div>
+
+              {!questionResults ? (
+                <div className="questions-section">
+                  {activeQuestionSet.questions && activeQuestionSet.questions.map((q, idx) => (
+                    <div key={q.id} className="question-item">
+                      <h4>Question {idx + 1}</h4>
+                      <p>{q.question_text}</p>
+                      {q.question_type === 'multiple_choice' && q.options && (
+                        <div className="options">
+                          {q.options.map((opt, optIdx) => (
+                            <label key={optIdx} className="option">
+                              <input
+                                type="radio"
+                                name={`q${q.id}`}
+                                value={opt}
+                                onChange={(e) => setQuestionAnswers({
+                                  ...questionAnswers,
+                                  [q.id]: e.target.value
+                                })}
+                                checked={questionAnswers[q.id] === opt}
+                              />
+                              {opt}
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      {q.question_type === 'short_answer' && (
+                        <input
+                          type="text"
+                          placeholder="Enter your answer..."
+                          value={questionAnswers[q.id] || ''}
+                          onChange={(e) => setQuestionAnswers({
+                            ...questionAnswers,
+                            [q.id]: e.target.value
+                          })}
+                          className="answer-input"
+                        />
+                      )}
+                      <button
+                        onClick={() => getHints(q.id)}
+                        className="hint-btn"
+                      >
+                        Get Hint
+                      </button>
+                      {showHints && hints.length > 0 && (
+                        <div className="hints-display">
+                          {hints.map((hint, idx) => (
+                            <p key={idx}>{hint}</p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    onClick={submitAnswers}
+                    disabled={loading}
+                    className="submit-response-btn"
+                  >
+                    {loading ? 'Submitting...' : 'Submit Answers'}
+                  </button>
+                </div>
+              ) : (
+                <div className="results-section">
+                  <h3>Your Results</h3>
+                  <p><strong>Score:</strong> {questionResults.score}/{activeQuestionSet.questions.length}</p>
+                  <div className="results-details">
+                    {questionResults.details && questionResults.details.map((detail, idx) => (
+                      <div key={idx} className={`result-item ${detail.correct ? 'correct' : 'incorrect'}`}>
+                        <h4>Question {idx + 1}</h4>
+                        <p><strong>Your Answer:</strong> {detail.user_answer}</p>
+                        <p><strong>Correct Answer:</strong> {detail.correct_answer}</p>
+                        {detail.explanation && (
+                          <p><strong>Explanation:</strong> {detail.explanation}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setActiveQuestionSet(null);
+                      setQuestionAnswers({});
+                      setQuestionResults(null);
+                      setActiveTab('create');
+                    }}
+                    className="submit-response-btn"
+                  >
+                    Back to Create
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'history' && (
+            <div className="tab-content">
+              <div className="section-header">
+                <h2>Learning History</h2>
+                <p>View your past learning sessions and progress</p>
+              </div>
+
+              {roadmaps.length > 0 && (
+                <div className="section">
+                  <h3>Knowledge Roadmaps</h3>
+                  <div className="items-grid">
+                    {roadmaps.map((roadmap) => (
+                      <div key={roadmap.id} className="item-card">
+                        <h4>{roadmap.root_topic}</h4>
+                        <p>Nodes: {roadmap.total_nodes}</p>
+                        <button
+                          onClick={() => openRoadmap(roadmap)}
+                          className="continue-btn"
+                        >
+                          Explore
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {learningReviews.length > 0 && (
+                <div className="section">
+                  <h3>Learning Reviews</h3>
+                  <div className="items-grid">
+                    {learningReviews.map((review) => (
+                      <div key={review.id} className="item-card">
+                        <h4>{review.title}</h4>
+                        <p>Status: {review.status}</p>
+                        <button
+                          onClick={() => {
+                            setActiveReview(review);
+                            setReviewResponse('');
+                            setReviewDetails(null);
+                            setActiveTab('active');
+                          }}
+                          className="continue-btn"
+                        >
+                          View
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {generatedQuestions.length > 0 && (
+                <div className="section">
+                  <h3>Question Sets</h3>
+                  <div className="items-grid">
+                    {generatedQuestions.map((qSet) => (
+                      <div key={qSet.id} className="item-card">
+                        <h4>{qSet.title}</h4>
+                        <p>Questions: {qSet.question_count}</p>
+                        <button
+                          onClick={() => loadQuestionSetWithQuestions(qSet.id)}
+                          className="continue-btn"
+                        >
+                          Practice
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'questions' && (
+            <div className="tab-content">
+              <div className="page-header">
+                <div className="header-content">
+                  <h2>Generate Questions</h2>
+                  <p>Create custom practice questions based on your materials</p>
+                </div>
+              </div>
+
+              <div className="page-section">
+                {/* Main Form Card */}
+                <div className="form-card questions-form">
+                  <h3>Create Question Set</h3>
+                  
+                  {/* Source Type Selection */}
+                  <div className="form-group">
+                    <label className="form-label">Select Source Type</label>
+                    <div className="source-type-grid">
+                      <div className="source-type-option">
+                        <input 
+                          type="radio" 
+                          id="source-topic" 
+                          name="sourceType" 
+                          value="topic"
+                          checked={selectedSourceType === 'topic'}
+                          onChange={() => setSelectedSourceType('topic')}
+                        />
+                        <label htmlFor="source-topic" className="option-label">
+                          <div>
+                            <span className="option-title">From Topic</span>
+                            <span className="option-desc">Enter any topic or paste content</span>
+                          </div>
+                        </label>
+                      </div>
+                      
+                      {chatSessions.length > 0 && (
+                        <div className="source-type-option">
+                          <input 
+                            type="radio" 
+                            id="source-chat" 
+                            name="sourceType" 
+                            value="chat"
+                            checked={selectedSourceType === 'chat'}
+                            onChange={() => setSelectedSourceType('chat')}
+                          />
+                          <label htmlFor="source-chat" className="option-label">
+                            <div>
+                              <span className="option-title">From Chat Notes</span>
+                              <span className="option-desc">{chatSessions.length} session(s) available</span>
+                            </div>
+                          </label>
+                        </div>
+                      )}
+                      
+                      {uploadedSlides.length > 0 && (
+                        <div className="source-type-option">
+                          <input 
+                            type="radio" 
+                            id="source-slide" 
+                            name="sourceType" 
+                            value="slide"
+                            checked={selectedSourceType === 'slide'}
+                            onChange={() => setSelectedSourceType('slide')}
+                          />
+                          <label htmlFor="source-slide" className="option-label">
+                            <div>
+                              <span className="option-title">From Uploaded Slides</span>
+                              <span className="option-desc">{uploadedSlides.length} slide(s) available</span>
+                            </div>
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Content based on source type */}
+                  {selectedSourceType === 'topic' && (
+                    <div className="form-group">
+                      <label className="form-label">Topic or Content</label>
+                      <textarea 
+                        value={questionTopic}
+                        onChange={(e) => setQuestionTopic(e.target.value)}
+                        placeholder="Enter a topic or paste the content you want to generate questions from..."
+                        className="form-textarea"
+                        rows="8"
+                      />
+                    </div>
+                  )}
+
+                  {selectedSourceType === 'chat' && (
+                    <div className="form-group">
+                      <label className="form-label">Select Chat Session</label>
+                      <div className="sources-list">
+                        {chatSessions.map((session) => (
+                          <div 
+                            key={session.id} 
+                            className={`source-list-item ${selectedChatId === session.id ? 'selected' : ''}`}
+                            onClick={() => setSelectedChatId(session.id)}
+                          >
+                            <div className="source-list-content">
+                              <h4>{session.title}</h4>
+                              <p>{session.message_count} messages</p>
+                            </div>
+                            <div className="source-list-radio">
+                              <input 
+                                type="radio" 
+                                name="chat" 
+                                checked={selectedChatId === session.id}
+                                onChange={() => setSelectedChatId(session.id)}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedSourceType === 'slide' && (
+                    <div className="form-group">
+                      <label className="form-label">Select Slide</label>
+                      <div className="sources-list">
+                        {uploadedSlides.map((slide) => (
+                          <div 
+                            key={slide.id} 
+                            className={`source-list-item ${selectedSlideId === slide.id ? 'selected' : ''}`}
+                            onClick={() => setSelectedSlideId(slide.id)}
+                          >
+                            <div className="source-list-content">
+                              <h4>{slide.name}</h4>
+                              <p>{slide.page_count} pages</p>
+                            </div>
+                            <div className="source-list-radio">
+                              <input 
+                                type="radio" 
+                                name="slide" 
+                                checked={selectedSlideId === slide.id}
+                                onChange={() => setSelectedSlideId(slide.id)}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Question Settings */}
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label">Number of Questions</label>
+                      <input 
+                        type="number" 
+                        min="1" 
+                        max="50" 
+                        value={numberOfQuestions}
+                        onChange={(e) => setNumberOfQuestions(parseInt(e.target.value) || 10)}
+                        className="form-input" 
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Question Type</label>
+                      <select 
+                        value={questionType}
+                        onChange={(e) => setQuestionType(e.target.value)}
+                        className="form-select"
+                      >
+                        <option>Multiple Choice</option>
+                        <option>Short Answer</option>
+                        <option>Essay</option>
+                        <option>Mixed</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={generateQuestions}
+                    disabled={isGeneratingQuestions}
+                    className="submit-btn"
+                  >
+                    {isGeneratingQuestions ? 'Generating...' : 'Generate Questions'}
+                  </button>
+                </div>
+
+                {/* Generated Question Sets */}
+                {generatedQuestions.length > 0 && (
+                  <div className="section">
+                    <h3>Your Question Sets</h3>
+                    <div className="items-grid">
+                      {generatedQuestions.map((qSet) => (
+                        <div key={qSet.id} className="item-card">
+                          <h4>{qSet.title}</h4>
+                          <p>Questions: {qSet.question_count}</p>
+                          <p className="date">Created: {new Date(qSet.created_at).toLocaleDateString()}</p>
+                          <button
+                            onClick={() => loadQuestionSetWithQuestions(qSet.id)}
+                            className="continue-btn"
+                          >
+                            Practice
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'slides' && (
+            <div className="tab-content">
+              <div className="page-header">
+                <div className="header-content">
+                  <h2>Upload & Manage Slides</h2>
+                  <p>Upload presentation slides and get AI-powered insights</p>
+                </div>
+                <button onClick={goBackToDashboard} className="back-btn">
+                  Back to Dashboard
+                </button>
+              </div>
+
+              <div className="page-section">
+                <div className="upload-card">
+                  <h3>Upload New Slides</h3>
+                  <div 
+                    className="upload-area"
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.style.borderColor = '#ff6b6b';
+                      e.currentTarget.style.backgroundColor = 'rgba(255, 107, 107, 0.05)';
+                    }}
+                    onDragLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#e5e5e5';
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.style.borderColor = '#e5e5e5';
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      handleFileUpload(e.dataTransfer.files);
+                    }}
+                  >
+                    
+                    <p>Drag and drop your PDF or PowerPoint files here</p>
+                    <p className="upload-hint">or</p>
+                    <button 
+                      className="upload-btn"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                    >
+                      {isUploading ? `Uploading... ${Math.round(uploadProgress)}%` : 'Select Files'}
+                    </button>
+                    <p className="upload-note">Supported formats: PDF, PPTX, PPT (Max 50MB)</p>
+                    {uploadProgress > 0 && uploadProgress < 100 && (
+                      <div className="upload-progress-bar" style={{ width: `${uploadProgress}%` }}></div>
+                    )}
+                  </div>
+                  <input 
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept=".pdf,.ppt,.pptx,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                    style={{ display: 'none' }}
+                    onChange={(e) => handleFileUpload(e.target.files)}
+                  />
+                </div>
+
+                {uploadedSlides.length > 0 && (
+                  <div className="section">
+                    <h3>Your Uploaded Slides</h3>
+                    <div className="slides-list">
+                      {uploadedSlides.map((slide) => (
+                        <div key={slide.id} className="slide-card">
+                          <div className="slide-info">
+                            <h4>{slide.name}</h4>
+                            <div className="slide-meta">
+                              <span className="meta-item">{slide.page_count} pages</span>
+                              <span className="meta-item">{new Date(slide.uploaded_at).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                          <div className="slide-actions">
+                            <button 
+                              onClick={() => setSelectedSlideForView(slide.id)}
+                              className="continue-btn"
+                            >
+                              View Summary
+                            </button>
+                            <button className="continue-btn secondary">
+                              Generate Questions
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {selectedSlideForView && (
+                      <div className="summary-section">
+                        <button 
+                          onClick={() => setSelectedSlideForView(null)}
+                          className="close-summary-btn"
+                        >
+                          Close
+                        </button>
+                        <h3>Slide Summary & Key Points</h3>
+                        <div className="summary-content">
+                          <div className="summary-block">
+                            <h4>Overview</h4>
+                            <p>Comprehensive AI-generated summary of all slides with key concepts and learning objectives.</p>
+                          </div>
+                          <div className="summary-block">
+                            <h4>Key Takeaways</h4>
+                            <ul>
+                              <li>Main concept 1 - detailed explanation</li>
+                              <li>Main concept 2 - detailed explanation</li>
+                              <li>Main concept 3 - detailed explanation</li>
+                            </ul>
+                          </div>
+                          <div className="summary-block">
+                            <h4>Learning Objectives</h4>
+                            <ul>
+                              <li>Understand fundamental principles</li>
+                              <li>Apply concepts to real-world scenarios</li>
+                              <li>Master advanced techniques</li>
+                            </ul>
+                          </div>
+                          <div className="summary-block">
+                            <h4>Common Misconceptions</h4>
+                            <p>Students often confuse X with Y. However, the correct understanding is...</p>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
-                ))}
-                <button
-                  onClick={submitQuestionAnswers}
-                  disabled={loading}
-                  className="submit-answers-btn"
-                >
-                  {loading ? 'Submitting...' : 'Submit All Answers'}
-                </button>
-              </div>
-            ) : (
-              <div className="results-content">
-                <div className="results-summary">
-                  <h3>Your Results</h3>
-                  <div className="score-display">
-                    Score: {questionResults.score}%
-                  </div>
-                </div>
-                {questionResults.question_feedback.map((feedback, index) => (
-                  <div key={index} className="feedback-block">
-                    <div className="feedback-question">
-                      <strong>Question {index + 1}:</strong> {feedback.question}
-                    </div>
-                    <div className="feedback-answer">
-                      <strong>Your Answer:</strong> {feedback.user_answer}
-                    </div>
-                    <div className="feedback-response">
-                      <strong>Feedback:</strong> {feedback.feedback}
-                    </div>
-                    <div className="feedback-correct">
-                      <strong>Correct Answer:</strong> {feedback.correct_answer}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'create' && (
-          <div className="tab-content">
-            <div className="section-header">
-              <h2>Create Learning Materials</h2>
-              <p>Select chat sessions or slides to create reviews or generate questions</p>
-            </div>
-
-            <div className="selection-sections">
-              <div className="selection-section">
-                <h3>Chat Sessions</h3>
-                {chatSessions.length === 0 ? (
-                  <p className="empty-text">No chat sessions available</p>
-                ) : (
-                  <div className="sessions-list">
-                    {chatSessions.map((session) => (
-                      <div
-                        key={session.id}
-                        onClick={() => toggleSessionSelection(session)}
-                        className={`session-card ${selectedSessions.find(s => s.id === session.id) ? 'selected' : ''}`}
-                      >
-                        <div className="session-info">
-                          <div className="session-title">{session.title}</div>
-                          <div className="session-date">{formatDate(session.created_at)}</div>
-                        </div>
-                        <div className="selection-indicator">
-                          {selectedSessions.find(s => s.id === session.id) ? '✓' : '○'}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="selection-section">
-                <h3>Uploaded Slides</h3>
-                {uploadedSlides.length === 0 ? (
-                  <p className="empty-text">No slides uploaded</p>
-                ) : (
-                  <div className="sessions-list">
-                    {uploadedSlides.map((slide) => (
-                      <div
-                        key={slide.id}
-                        onClick={() => toggleSlideSelection(slide)}
-                        className={`session-card ${selectedSlides.find(s => s.id === slide.id) ? 'selected' : ''}`}
-                      >
-                        <div className="session-info">
-                          <div className="session-title">{slide.filename}</div>
-                          <div className="session-date">{formatDate(slide.uploaded_at)}</div>
-                        </div>
-                        <div className="selection-indicator">
-                          {selectedSlides.find(s => s.id === slide.id) ? '✓' : '○'}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 )}
               </div>
             </div>
-
-            <div className="action-buttons">
-              <button
-                onClick={createLearningReview}
-                disabled={loading || (selectedSessions.length === 0 && selectedSlides.length === 0)}
-                className="create-btn primary"
-              >
-                {loading ? 'Creating...' : 'Create Learning Review'}
-              </button>
-              
-              <button
-                onClick={generateQuestions}
-                disabled={loading || (selectedSessions.length === 0 && selectedSlides.length === 0)}
-                className="create-btn secondary"
-              >
-                {loading ? 'Generating...' : 'Generate Questions'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'slides' && (
-          <div className="tab-content">
-            <div className="section-header">
-              <h2>Manage Slides</h2>
-            </div>
-            
-            <div className="upload-section">
-              <input
-                type="file"
-                multiple
-                accept=".pdf,.ppt,.pptx"
-                onChange={handleSlideUpload}
-                style={{ display: 'none' }}
-                id="slide-upload"
-              />
-              <label 
-                htmlFor="slide-upload"
-                className="create-roadmap-btn"
-              >
-                Upload Slides
-              </label>
-            </div>
-
-            {isUploading && (
-              <div className="upload-progress">
-                <p>Uploading... {uploadProgress}%</p>
-                <div className="progress-bar">
-                  <div className="progress-fill" style={{ width: `${uploadProgress}%` }} />
-                </div>
-              </div>
-            )}
-
-            {uploadedSlides.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-icon">No Slides</div>
-                <h3>No Slides Uploaded</h3>
-                <p>Upload your first slide to get started</p>
-              </div>
-            ) : (
-              <div className="slides-grid">
-                {uploadedSlides.map((slide) => (
-                  <div key={slide.id} className="slide-card">
-                    <div className="slide-header">
-                      <div className="slide-title">{slide.filename}</div>
-                      <button
-                        onClick={() => deleteSlide(slide.id)}
-                        className="delete-slide-btn"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <div className="slide-date">{formatDate(slide.uploaded_at)}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'reviews' && (
-          <div className="tab-content">
-            <div className="section-header">
-              <h2>My Reviews</h2>
-            </div>
-            
-            {learningReviews.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-icon">No Reviews</div>
-                <h3>No Reviews Created</h3>
-                <p>Create your first learning review to get started</p>
-              </div>
-            ) : (
-              <div className="reviews-grid">
-                {learningReviews.map((review) => (
-                  <div key={review.id} className="review-card">
-                    <div className="review-header">
-                      <div className="review-title">{review.title}</div>
-                    </div>
-                    <div className="review-date">{formatDate(review.created_at)}</div>
-                    <button
-                      onClick={() => {
-                        setActiveReview(review);
-                        setActiveTab('active');
-                      }}
-                      className="continue-btn"
-                    >
-                      Continue Review
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'question-library' && (
-          <div className="tab-content">
-            <div className="section-header">
-              <h2>Question Library</h2>
-            </div>
-            
-            {generatedQuestions.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-icon">No Questions</div>
-                <h3>No Question Sets Created</h3>
-                <p>Generate your first question set to get started</p>
-              </div>
-            ) : (
-              <div className="questions-grid">
-                {generatedQuestions.map((qSet) => (
-                  <div key={qSet.id} className="question-set-card">
-                    <div className="question-set-header">
-                      <div className="question-set-title">Question Set</div>
-                      <button
-                        onClick={() => deleteQuestionSet(qSet.id)}
-                        className="delete-question-set-btn"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <div className="question-set-stats">
-                      <div className="stat">
-                        <span className="stat-label">Questions</span>
-                        <span className="stat-value">{qSet.question_count}</span>
-                      </div>
-                    </div>
-                    <div className="question-set-footer">
-                      <div className="question-set-date">{formatDate(qSet.created_at)}</div>
-                      <button
-                        onClick={() => loadQuestionSetWithQuestions(qSet.id)}
-                        className="continue-btn"
-                      >
-                        Practice
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {showCreateRoadmapModal && (
