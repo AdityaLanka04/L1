@@ -29,8 +29,8 @@ const LearningReview = () => {
   const [activeTab, setActiveTab] = useState('create');
   const [reviewDetails, setReviewDetails] = useState(null);
   const [questionResults, setQuestionResults] = useState(null);
-  const [hints, setHints] = useState([]);
-  const [showHints, setShowHints] = useState(false);
+  const [questionHints, setQuestionHints] = useState({});
+  const [hintLoading, setHintLoading] = useState({});
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   
@@ -53,6 +53,8 @@ const LearningReview = () => {
   const [questionType, setQuestionType] = useState('Mixed');
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const fileInputRef = useRef(null);
+const expandNodeRef = useRef(null);
+const exploreNodeRef = useRef(null);
 
   const navigate = (path) => {
     window.location.href = path;
@@ -66,100 +68,304 @@ const LearningReview = () => {
   };
 
   // FIXED: expandNode with useCallback to prevent stale closures
-  const expandNode = useCallback(async (nodeId) => {
-    console.log('Expanding node:', nodeId);
-    
-    setNodes((nds) => {
-      console.log('Current nodes count:', nds.length);
-      return nds.map(n =>
-        n.data.nodeId === nodeId
-          ? { ...n, data: { ...n.data, isExpanding: true } }
-          : n
-      );
+  // FIXED: expandNode with useCallback to prevent stale closures and handle sibling collapse
+  // FIXED: expandNode with useCallback to prevent stale closures and handle sibling collapse
+  // FIXED: expandNode with useCallback to prevent stale closures
+  // FIXED: expandNode with useCallback to prevent stale closures
+const expandNode = useCallback(async (nodeId) => {
+  console.log('Expanding node:', nodeId);
+  
+  setNodes((nds) => {
+    return nds.map(n =>
+      n.data.nodeId === nodeId
+        ? { ...n, data: { ...n.data, isExpanding: true } }
+        : n
+    );
+  });
+  
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`http://localhost:8001/expand_knowledge_node/${nodeId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
     });
-    
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/expand_knowledge_node/${nodeId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
 
-      if (response.ok) {
-        const data = await response.json();
+    if (response.ok) {
+      const data = await response.json();
+      
+      // Handle "already_expanded" case by fetching from roadmap
+      if (data.status === 'already_expanded') {
+        const childrenExist = edges.some(e => String(e.source) === String(nodeId));
         
-        if (data.status === 'already_expanded') {
-          setNodes((nds) =>
-            nds.map(n =>
-              n.data.nodeId === nodeId
-                ? { ...n, data: { ...n.data, expansionStatus: 'expanded', isExpanding: false } }
-                : n
-            )
-          );
-          return;
+        if (!childrenExist && currentRoadmap) {
+          const roadmapResponse = await fetch(`http://localhost:8001/get_knowledge_roadmap/${currentRoadmap.id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (roadmapResponse.ok) {
+            const roadmapData = await roadmapResponse.json();
+            const allNodes = roadmapData.nodes_flat || [];
+            const children = allNodes.filter(n => n.parent_id === nodeId);
+            
+            if (children.length > 0) {
+              // Store removed node IDs for edge cleanup
+              let removedNodeIds = new Set();
+              
+              // COLLAPSE SIBLINGS FIRST, THEN ADD CHILDREN
+              setNodes((nds) => {
+                const parentNode = nds.find(n => n.data.nodeId === nodeId);
+                if (!parentNode) return nds;
+                
+                const parentDepth = parentNode.data.depth;
+                
+                // Find siblings at same depth that are expanded
+                const siblingsAtSameDepth = nds.filter(n => 
+                  n.data.depth === parentDepth && 
+                  n.data.nodeId !== nodeId &&
+                  n.data.expansionStatus === 'expanded'
+                );
+                
+                let finalNodes = nds;
+                
+                // Collapse siblings if any exist
+                if (siblingsAtSameDepth.length > 0) {
+                  const siblingIds = siblingsAtSameDepth.map(s => String(s.id));
+                  
+                  // Build adjacency map
+                  const adjacencyMap = new Map();
+                  edges.forEach(edge => {
+                    const source = String(edge.source);
+                    if (!adjacencyMap.has(source)) {
+                      adjacencyMap.set(source, []);
+                    }
+                    adjacencyMap.get(source).push(String(edge.target));
+                  });
+                  
+                  // Find all descendants of siblings
+                  const queue = [...siblingIds];
+                  const visited = new Set();
+                  
+                  while (queue.length > 0) {
+                    const currentNodeId = queue.shift();
+                    if (visited.has(currentNodeId)) continue;
+                    visited.add(currentNodeId);
+                    
+                    const nodeChildren = adjacencyMap.get(currentNodeId) || [];
+                    nodeChildren.forEach(childId => {
+                      removedNodeIds.add(childId);
+                      queue.push(childId);
+                    });
+                  }
+                  
+                  // Remove descendant nodes and reset sibling status
+                  finalNodes = nds.filter(n => !removedNodeIds.has(String(n.id))).map(n => {
+                    if (siblingIds.includes(String(n.id))) {
+                      return { ...n, data: { ...n.data, expansionStatus: 'unexpanded' } };
+                    }
+                    return n;
+                  });
+                }
+                
+                // Now add the children
+                const horizontalSpacing = 280;
+                const baseVerticalSpacing = 250;
+                const depthMultiplier = 1.2;
+                const verticalSpacing = parentDepth === 0 
+                  ? 350 
+                  : baseVerticalSpacing * Math.pow(depthMultiplier, parentDepth);
+                
+                const totalWidth = (children.length - 1) * horizontalSpacing;
+                const startX = parentNode.position.x - (totalWidth / 2);
+
+                const newNodes = children.map((child, index) => ({
+                  id: String(child.id),
+                  type: 'custom',
+                  position: { 
+                    x: startX + (index * horizontalSpacing),
+                    y: parentNode.position.y + verticalSpacing
+                  },
+                  data: {
+                    label: child.topic_name,
+                    description: child.description,
+                    depth: child.depth_level,
+                    isExplored: child.is_explored,
+                    expansionStatus: child.expansion_status,
+                    nodeId: child.id,
+                    onExpand: (id) => expandNodeRef.current && expandNodeRef.current(id),
+                    onExplore: (id) => exploreNodeRef.current && exploreNodeRef.current(id),
+                  },
+                }));
+
+                return [
+                  ...finalNodes.map(n =>
+                    n.data.nodeId === nodeId
+                      ? { ...n, data: { ...n.data, expansionStatus: 'expanded', isExpanding: false } }
+                      : n
+                  ),
+                  ...newNodes
+                ];
+              });
+              
+              // FIXED: Clean up edges based on removed nodes only
+              setEdges((eds) => {
+                // Remove edges connected to removed nodes
+                const cleanedEdges = eds.filter(edge => 
+                  !removedNodeIds.has(String(edge.source)) && !removedNodeIds.has(String(edge.target))
+                );
+                
+                // Add new edges for children
+                const newEdges = children.map(child => ({
+                  id: `e${child.parent_id}-${child.id}`,
+                  source: String(child.parent_id),
+                  target: String(child.id),
+                  type: 'smoothstep',
+                  animated: true,
+                  style: { stroke: '#D7B38C', strokeWidth: 3 },
+                  markerEnd: {
+                    type: 'arrow',
+                    color: '#D7B38C',
+                    width: 20,
+                    height: 20,
+                  },
+                }));
+                
+                return [...cleanedEdges, ...newEdges];
+              });
+              
+              setTimeout(() => {
+                setEdges((eds) => eds.map(e => ({ ...e, animated: false })));
+              }, 2000);
+              
+              return;
+            }
+          }
         }
         
-        setNodes((nds) => {
-          const parentNode = nds.find(n => n.data.nodeId === nodeId);
+        setNodes((nds) =>
+          nds.map(n =>
+            n.data.nodeId === nodeId
+              ? { ...n, data: { ...n.data, expansionStatus: 'expanded', isExpanding: false } }
+              : n
+          )
+        );
+        return;
+      }
+      
+      // Normal expansion flow with new child_nodes
+      // Store removed node IDs
+      let removedNodeIds = new Set();
+      
+      setNodes((nds) => {
+        const parentNode = nds.find(n => n.data.nodeId === nodeId);
+        
+        if (!parentNode) {
+          console.error('Parent node not found');
+          return nds.map(n =>
+            n.data.nodeId === nodeId
+              ? { ...n, data: { ...n.data, isExpanding: false } }
+              : n
+          );
+        }
+        
+        const parentDepth = parentNode.data.depth;
+        const siblingsAtSameDepth = nds.filter(n => 
+          n.data.depth === parentDepth && 
+          n.data.nodeId !== nodeId &&
+          n.data.expansionStatus === 'expanded'
+        );
+        
+        let finalNodes;
+        
+        if (siblingsAtSameDepth.length > 0) {
+          const siblingIds = siblingsAtSameDepth.map(s => String(s.id));
           
-          if (!parentNode) {
-            console.error('Parent node not found');
-            alert('Error: Parent node not found. Please refresh the page.');
-            return nds.map(n =>
-              n.data.nodeId === nodeId
-                ? { ...n, data: { ...n.data, isExpanding: false } }
-                : n
-            );
+          // Build adjacency map from edges
+          const adjacencyMap = new Map();
+          edges.forEach(edge => {
+            const source = String(edge.source);
+            if (!adjacencyMap.has(source)) {
+              adjacencyMap.set(source, []);
+            }
+            adjacencyMap.get(source).push(String(edge.target));
+          });
+          
+          const queue = [...siblingIds];
+          const visited = new Set();
+          
+          while (queue.length > 0) {
+            const currentNodeId = queue.shift();
+            if (visited.has(currentNodeId)) continue;
+            visited.add(currentNodeId);
+            
+            const nodeChildren = adjacencyMap.get(currentNodeId) || [];
+            nodeChildren.forEach(childId => {
+              removedNodeIds.add(childId);
+              queue.push(childId);
+            });
           }
           
-          const childrenCount = data.child_nodes.length;
-          const horizontalSpacing = 280;
-          const parentDepth = parentNode.data.depth;
-          const baseVerticalSpacing = 250;
-          const depthMultiplier = 1.2;
-          const verticalSpacing = baseVerticalSpacing * Math.pow(depthMultiplier, parentDepth);
-          
-          const totalWidth = (childrenCount - 1) * horizontalSpacing;
-          const startX = parentNode.position.x - (totalWidth / 2);
-
-          const newNodes = data.child_nodes.map((child, index) => ({
-            id: String(child.id),
-            type: 'custom',
-            position: { 
-              x: startX + (index * horizontalSpacing),
-              y: parentNode.position.y + verticalSpacing
-            },
-            data: {
-              label: child.topic_name,
-              description: child.description,
-              depth: child.depth_level,
-              isExplored: child.is_explored,
-              expansionStatus: child.expansion_status,
-              nodeId: child.id,
-              onExpand: expandNode,
-              onExplore: exploreNode,
-            },
-          }));
-
-          return [
-            ...nds.map(n =>
-              n.data.nodeId === nodeId
-                ? { ...n, data: { ...n.data, expansionStatus: 'expanded', isExpanding: false } }
-                : n
-            ),
-            ...newNodes
-          ];
-        });
+          const filteredNodes = nds.filter(n => !removedNodeIds.has(String(n.id)));
+          finalNodes = filteredNodes.map(n => {
+            if (siblingIds.includes(String(n.id))) {
+              return { ...n, data: { ...n.data, expansionStatus: 'unexpanded' } };
+            }
+            return n;
+          });
+        } else {
+          finalNodes = nds;
+        }
         
-        console.log('All nodes after expansion:');
-        setNodes((nds) => {
-          console.log('Node IDs:', nds.map(n => ({ id: n.id, nodeId: n.data.nodeId })));
-          return nds;
-        });
+        const childrenCount = data.child_nodes.length;
+        const horizontalSpacing = 280;
+        const baseVerticalSpacing = 250;
+        const depthMultiplier = 1.2;
+        const verticalSpacing = parentDepth === 0 
+          ? 350 
+          : baseVerticalSpacing * Math.pow(depthMultiplier, parentDepth);
         
+        const totalWidth = (childrenCount - 1) * horizontalSpacing;
+        const startX = parentNode.position.x - (totalWidth / 2);
+
+        const newNodes = data.child_nodes.map((child, index) => ({
+          id: String(child.id),
+          type: 'custom',
+          position: { 
+            x: startX + (index * horizontalSpacing),
+            y: parentNode.position.y + verticalSpacing
+          },
+          data: {
+            label: child.topic_name,
+            description: child.description,
+            depth: child.depth_level,
+            isExplored: child.is_explored,
+            expansionStatus: child.expansion_status,
+            nodeId: child.id,
+            onExpand: (id) => expandNodeRef.current && expandNodeRef.current(id),
+            onExplore: (id) => exploreNodeRef.current && exploreNodeRef.current(id),
+          },
+        }));
+
+        return [
+          ...finalNodes.map(n =>
+            n.data.nodeId === nodeId
+              ? { ...n, data: { ...n.data, expansionStatus: 'expanded', isExpanding: false } }
+              : n
+          ),
+          ...newNodes
+        ];
+      });
+      
+      // FIXED: Only remove edges for removed nodes
+      setEdges((eds) => {
+        // Remove only edges connected to removed nodes
+        const cleanedEdges = eds.filter(edge => 
+          !removedNodeIds.has(String(edge.source)) && !removedNodeIds.has(String(edge.target))
+        );
+        
+        // Add new edges for the newly expanded children
         const newEdges = data.child_nodes.map(child => ({
           id: `e${child.parent_id}-${child.id}`,
           source: String(child.parent_id),
@@ -175,38 +381,21 @@ const LearningReview = () => {
           },
         }));
         
-        console.log('Creating edges:', newEdges);
-        console.log('Edge example:', newEdges[0]);
-        
+        return [...cleanedEdges, ...newEdges];
+      });
+
+      setTimeout(() => {
         setEdges((eds) => {
-          console.log('Current edges before adding:', eds);
-          const combined = [...eds, ...newEdges];
-          console.log('Combined edges after adding:', combined);
-          return combined;
-        });
-
-        setTimeout(() => {
-          setEdges((eds) =>
-            eds.map(e =>
-              newEdges.some(ne => ne.id === e.id) ? { ...e, animated: false } : e
-            )
+          const newEdgeIds = data.child_nodes.map(child => `e${child.parent_id}-${child.id}`);
+          return eds.map(e =>
+            newEdgeIds.includes(e.id) ? { ...e, animated: false } : e
           );
-        }, 2000);
+        });
+      }, 2000);
 
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        alert(`Failed to expand node: ${errorData.detail || 'Unknown error'}`);
-        setNodes((nds) =>
-          nds.map(n =>
-            n.data.nodeId === nodeId
-              ? { ...n, data: { ...n.data, isExpanding: false } }
-              : n
-          )
-        );
-      }
-    } catch (error) {
-      console.error('Error expanding node:', error);
-      alert('Failed to expand node');
+    } else {
+      const errorData = await response.json().catch(() => ({}));
+      alert(`Failed to expand node: ${errorData.detail || 'Unknown error'}`);
       setNodes((nds) =>
         nds.map(n =>
           n.data.nodeId === nodeId
@@ -215,59 +404,61 @@ const LearningReview = () => {
         )
       );
     }
-  }, [setNodes, setEdges]);
-
-  // FIXED: exploreNode with useCallback
-  const exploreNode = useCallback(async (nodeId) => {
+  } catch (error) {
+    console.error('Error expanding node:', error);
+    alert('Failed to expand node');
     setNodes((nds) =>
       nds.map(n =>
         n.data.nodeId === nodeId
-          ? { ...n, data: { ...n.data, isExploring: true } }
+          ? { ...n, data: { ...n.data, isExpanding: false } }
           : n
       )
     );
-    
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/explore_node/${nodeId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
+  }
+}, [setNodes, setEdges, edges, currentRoadmap]);
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Explore node response:', data);
-        
-        const nodeData = data.node || data;
-        setNodeExplanation(nodeData);
-        setShowNodePanel(true);
-        
-        setNodes((nds) =>
-          nds.map(n =>
-            n.data.nodeId === nodeId
-              ? { ...n, data: { ...n.data, isExplored: true, isExploring: false } }
-              : n
-          )
-        );
-      } else {
-        const errorData = await response.json();
-        console.error('Explore node error:', errorData);
-        alert(`Failed to explore node: ${errorData.detail || 'Unknown error'}`);
-        
-        setNodes((nds) =>
-          nds.map(n =>
-            n.data.nodeId === nodeId
-              ? { ...n, data: { ...n.data, isExploring: false } }
-              : n
-          )
-        );
+// Store expandNode in ref immediately
+expandNodeRef.current = expandNode;
+
+// FIXED: exploreNode with useCallback
+const exploreNode = useCallback(async (nodeId) => {
+  setNodes((nds) =>
+    nds.map(n =>
+      n.data.nodeId === nodeId
+        ? { ...n, data: { ...n.data, isExploring: true } }
+        : n
+    )
+  );
+  
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`http://localhost:8001/explore_node/${nodeId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       }
-    } catch (error) {
-      console.error('Error exploring node:', error);
-      alert('Failed to explore node');
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Explore node response:', data);
+      
+      const nodeData = data.node || data;
+      setNodeExplanation(nodeData);
+      setShowNodePanel(true);
+      
+      setNodes((nds) =>
+        nds.map(n =>
+          n.data.nodeId === nodeId
+            ? { ...n, data: { ...n.data, isExplored: true, isExploring: false } }
+            : n
+        )
+      );
+    } else {
+      const errorData = await response.json();
+      console.error('Explore node error:', errorData);
+      alert(`Failed to explore node: ${errorData.detail || 'Unknown error'}`);
       
       setNodes((nds) =>
         nds.map(n =>
@@ -277,8 +468,22 @@ const LearningReview = () => {
         )
       );
     }
-  }, [setNodes]);
+  } catch (error) {
+    console.error('Error exploring node:', error);
+    alert('Failed to explore node');
+    
+    setNodes((nds) =>
+      nds.map(n =>
+        n.data.nodeId === nodeId
+          ? { ...n, data: { ...n.data, isExploring: false } }
+          : n
+      )
+    );
+  }
+}, [setNodes]);
 
+// Store exploreNode in ref immediately
+exploreNodeRef.current = exploreNode;
   // CustomNode component that uses the callbacks
   const CustomNode = ({ data }) => {
     const getStatusColor = () => {
@@ -392,6 +597,36 @@ const LearningReview = () => {
       console.error('Error loading chat sessions:', error);
     }
   }, [userName]);
+
+  const deleteRoadmap = async (roadmapId, event) => {
+  event.stopPropagation(); // Prevent triggering loadRoadmap when clicking delete
+  
+  if (!window.confirm('Are you sure you want to delete this roadmap? This action cannot be undone.')) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`http://localhost:8001/delete_roadmap/${roadmapId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (response.ok) {
+      // Remove the deleted roadmap from the state
+      setRoadmaps(prev => prev.filter(roadmap => roadmap.id !== roadmapId));
+      alert('Roadmap deleted successfully!');
+    } else {
+      const errorData = await response.json().catch(() => ({}));
+      alert(`Failed to delete roadmap: ${errorData.detail || 'Unknown error'}`);
+    }
+  } catch (error) {
+    console.error('Error deleting roadmap:', error);
+    alert('Error deleting roadmap. Please try again.');
+  }
+};
 
   const loadUploadedSlides = useCallback(async () => {
     try {
@@ -510,8 +745,8 @@ const LearningReview = () => {
             isExplored: false,
             expansionStatus: 'unexpanded',
             nodeId: data.root_node.id,
-            onExpand: expandNode,
-            onExplore: exploreNode,
+            onExpand: (id) => expandNodeRef.current && expandNodeRef.current(id),
+            onExplore: (id) => exploreNodeRef.current && exploreNodeRef.current(id),
           },
         };
         
@@ -583,8 +818,8 @@ const LearningReview = () => {
               isExplored: node.is_explored,
               expansionStatus: node.expansion_status,
               nodeId: node.id,
-              onExpand: expandNode,
-              onExplore: exploreNode,
+              onExpand: (id) => expandNodeRef.current && expandNodeRef.current(id),
+              onExplore: (id) => exploreNodeRef.current && exploreNodeRef.current(id),
             },
           };
         });
@@ -660,6 +895,8 @@ const LearningReview = () => {
 
   const loadQuestionSetWithQuestions = async (questionSetId) => {
     setLoading(true);
+    setQuestionHints({});
+    setHintLoading({});
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:8001/get_question_set/${questionSetId}`, {
@@ -717,7 +954,7 @@ const LearningReview = () => {
   };
 
   const getHints = async (questionId) => {
-    setLoading(true);
+    setHintLoading((prev) => ({ ...prev, [questionId]: true }));
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:8001/get_hints/${questionId}`, {
@@ -726,13 +963,19 @@ const LearningReview = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setHints(data.hints || []);
-        setShowHints(true);
+        setQuestionHints((prev) => ({
+          ...prev,
+          [questionId]: data.hints || [],
+        }));
       }
     } catch (error) {
       console.error('Error getting hints:', error);
     } finally {
-      setLoading(false);
+      setHintLoading((prev) => {
+        const next = { ...prev };
+        next[questionId] = false;
+        return next;
+      });
     }
   };
 
@@ -1080,17 +1323,26 @@ const LearningReview = () => {
                   <h3>Your Knowledge Roadmaps</h3>
                   <div className="items-grid">
                     {roadmaps.map((roadmap) => (
-                      <div key={roadmap.id} className="item-card">
-                        <h4>{roadmap.root_topic}</h4>
-                        <p>Nodes: {roadmap.total_nodes}</p>
-                        <button
-                          onClick={() => openRoadmap(roadmap)}
-                          className="continue-btn"
-                        >
-                          Explore
-                        </button>
-                      </div>
-                    ))}
+  <div key={roadmap.id} className="item-card">
+    <div className="roadmap-card-header">
+      <h4>{roadmap.root_topic}</h4>
+      <button
+        onClick={(e) => deleteRoadmap(roadmap.id, e)}
+        className="delete-btn"
+        title="Delete Roadmap"
+      >
+        ×
+      </button>
+    </div>
+    <p>Nodes: {roadmap.total_nodes}</p>
+    <button
+      onClick={() => openRoadmap(roadmap)}
+      className="continue-btn"
+    >
+      Explore
+    </button>
+  </div>
+))}
                   </div>
                 </div>
               )}
@@ -1308,56 +1560,62 @@ const LearningReview = () => {
 
               {!questionResults ? (
                 <div className="questions-section">
-                  {activeQuestionSet.questions && activeQuestionSet.questions.map((q, idx) => (
-                    <div key={q.id} className="question-item">
-                      <h4>Question {idx + 1}</h4>
-                      <p>{q.question_text}</p>
-                      {q.question_type === 'multiple_choice' && q.options && (
-                        <div className="options">
-                          {q.options.map((opt, optIdx) => (
-                            <label key={optIdx} className="option">
-                              <input
-                                type="radio"
-                                name={`q${q.id}`}
-                                value={opt}
-                                onChange={(e) => setQuestionAnswers({
-                                  ...questionAnswers,
-                                  [q.id]: e.target.value
-                                })}
-                                checked={questionAnswers[q.id] === opt}
-                              />
-                              {opt}
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                      {q.question_type === 'short_answer' && (
-                        <input
-                          type="text"
-                          placeholder="Enter your answer..."
-                          value={questionAnswers[q.id] || ''}
-                          onChange={(e) => setQuestionAnswers({
-                            ...questionAnswers,
-                            [q.id]: e.target.value
-                          })}
-                          className="answer-input"
-                        />
-                      )}
-                      <button
-                        onClick={() => getHints(q.id)}
-                        className="hint-btn"
-                      >
-                        Get Hint
-                      </button>
-                      {showHints && hints.length > 0 && (
-                        <div className="hints-display">
-                          {hints.map((hint, idx) => (
-                            <p key={idx}>{hint}</p>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  {activeQuestionSet.questions && activeQuestionSet.questions.map((q, idx) => {
+                    const hintsForQuestion = questionHints[q.id] || [];
+                    const isHintLoading = hintLoading[q.id];
+
+                    return (
+                      <div key={q.id} className="question-item">
+                        <h4>Question {idx + 1}</h4>
+                        <p>{q.question_text}</p>
+                        {q.question_type === 'multiple_choice' && q.options && (
+                          <div className="options">
+                            {q.options.map((opt, optIdx) => (
+                              <label key={optIdx} className="option">
+                                <input
+                                  type="radio"
+                                  name={`q${q.id}`}
+                                  value={opt}
+                                  onChange={(e) => setQuestionAnswers({
+                                    ...questionAnswers,
+                                    [q.id]: e.target.value
+                                  })}
+                                  checked={questionAnswers[q.id] === opt}
+                                />
+                                {opt}
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                        {q.question_type === 'short_answer' && (
+                          <input
+                            type="text"
+                            placeholder="Enter your answer..."
+                            value={questionAnswers[q.id] || ''}
+                            onChange={(e) => setQuestionAnswers({
+                              ...questionAnswers,
+                              [q.id]: e.target.value
+                            })}
+                            className="answer-input"
+                          />
+                        )}
+                        <button
+                          onClick={() => getHints(q.id)}
+                          className="hint-btn"
+                          disabled={!!isHintLoading}
+                        >
+                          {isHintLoading ? 'Loading...' : 'Get Hint'}
+                        </button>
+                        {hintsForQuestion.length > 0 && (
+                          <div className="hints-display">
+                            {hintsForQuestion.map((hint, hintIdx) => (
+                              <p key={hintIdx}>{hint}</p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                   <button
                     onClick={submitAnswers}
                     disabled={loading}
@@ -1387,6 +1645,8 @@ const LearningReview = () => {
                       setActiveQuestionSet(null);
                       setQuestionAnswers({});
                       setQuestionResults(null);
+                      setQuestionHints({});
+                      setHintLoading({});
                       setActiveTab('create');
                     }}
                     className="submit-response-btn"
@@ -1419,6 +1679,13 @@ const LearningReview = () => {
                         >
                           Explore
                         </button>
+                        <button
+      onClick={(e) => deleteRoadmap(roadmap.id, e)}
+      className="delete-btn"
+      title="Delete Roadmap"
+    >
+      ×
+    </button>
                       </div>
                     ))}
                   </div>

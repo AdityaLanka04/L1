@@ -1357,3 +1357,28 @@
   font-weight: 600;
   margin-top: 0;
 }
+
+.delete-btn {
+  background: transparent;
+  border: none;
+  color: rgba(244, 67, 54, 0.7);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+}
+
+.delete-btn:hover {
+  color: #F44336;
+  transform: scale(1.15);
+}
+
