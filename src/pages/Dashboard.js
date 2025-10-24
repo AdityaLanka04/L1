@@ -25,6 +25,12 @@ import ThemeSwitcher from '../components/ThemeSwitcher';
 import './Dashboard.css';
 import './HelpTour.css';
 
+/* Prevent CSS cascade from other pages */
+if (document.querySelector('link[href*="Flashcards.css"]')) {
+  const link = document.querySelector('link[href*="Flashcards.css"]');
+  if (link) link.remove();
+}
+
 const Dashboard = () => {
   const { selectedTheme } = useTheme();
   
@@ -82,6 +88,34 @@ const Dashboard = () => {
   const timeIntervalRef = useRef(null);
   const sessionUpdateRef = useRef(null);
   const lastActivityRef = useRef(Date.now());
+
+  // Remove Flashcards.css to prevent style cascade
+  useEffect(() => {
+    const removeFlashcardsCSS = () => {
+      const links = document.querySelectorAll('link[href*="Flashcards.css"]');
+      links.forEach(link => link.remove());
+      
+      // Also remove any style elements from Flashcards.css
+      const styles = document.querySelectorAll('style');
+      styles.forEach(style => {
+        if (style.textContent && style.textContent.includes('Flashcards')) {
+          style.remove();
+        }
+      });
+    };
+    
+    // Remove immediately
+    removeFlashcardsCSS();
+    
+    // Check multiple times to catch late-loaded styles
+    const timers = [
+      setTimeout(removeFlashcardsCSS, 100),
+      setTimeout(removeFlashcardsCSS, 300),
+      setTimeout(removeFlashcardsCSS, 500)
+    ];
+    
+    return () => timers.forEach(timer => clearTimeout(timer));
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -951,8 +985,8 @@ const Dashboard = () => {
                   </>
                 ) : (
                   <div className="no-reviews">
-                    <p className="no-reviews-text">No learning reviews yet</p>
-                    <p className="no-reviews-subtitle">Test your knowledge from AI chat sessions</p>
+                    <p className="no-reviews-text">Analyze slides, generate practice questions and view topic roadmaps</p>
+                    <p className="no-reviews-subtitle"></p>
                     <button
                       className="create-first-btn"
                       onClick={createLearningReview}

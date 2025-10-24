@@ -14,7 +14,7 @@ const Flashcards = () => {
   const [generationMode, setGenerationMode] = useState('topic');
   const [chatSessions, setChatSessions] = useState([]);
   const [selectedSessions, setSelectedSessions] = useState([]);
-  const [activeTab, setActiveTab] = useState('generator'); // 'generator' or 'history'
+  const [activePanel, setActivePanel] = useState('cards'); // 'cards', 'generator', or 'statistics'
   const [flashcardHistory, setFlashcardHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [flashcardStats, setFlashcardStats] = useState(null);
@@ -107,49 +107,6 @@ const Flashcards = () => {
     return 'Study Session Cards';
   }
 };
-
-  // Simple keyword extraction function
-  const extractKeywords = (text) => {
-    const stopWords = [
-      'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 
-      'of', 'with', 'by', 'this', 'that', 'these', 'those', 'i', 'you', 
-      'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them',
-      'my', 'your', 'his', 'her', 'its', 'our', 'their', 'am', 'is', 'are',
-      'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 
-      'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might',
-      'can', 'cant', 'cannot', 'wont', 'wouldnt', 'couldnt', 'shouldnt',
-      'what', 'when', 'where', 'why', 'how', 'which', 'who', 'whom'
-    ];
-
-    const words = text.toLowerCase()
-      .replace(/[^\w\s]/g, ' ')
-      .split(/\s+/)
-      .filter(word => 
-        word.length > 2 && 
-        word.length < 15 && 
-        !stopWords.includes(word) &&
-        !word.match(/^\d+$/) // Remove pure numbers
-      );
-
-    // Count frequency
-    const frequency = {};
-    words.forEach(word => {
-      frequency[word] = (frequency[word] || 0) + 1;
-    });
-
-    // Get most frequent words, prioritizing longer and more meaningful ones
-    return Object.keys(frequency)
-      .sort((a, b) => {
-        const freqDiff = frequency[b] - frequency[a];
-        if (freqDiff === 0) {
-          return b.length - a.length; // Prefer longer words if same frequency
-        }
-        return freqDiff;
-      })
-      .slice(0, 6) // Get top 6 to have options
-      .filter(word => word.length > 3) // Prefer longer words for title
-      .slice(0, 4); // Take top 4
-  };
 
   const loadChatSessions = useCallback(async () => {
     if (!userName) return;
@@ -488,7 +445,7 @@ const Flashcards = () => {
           setTitle: data.set_title,
           cardCount: formattedCards.length
         });
-        setActiveTab('generator'); // Switch back to generator tab to show cards
+        setActivePanel('generator'); // Switch back to generator tab to show cards
       }
     } catch (error) {
       console.error('Error loading flashcard set:', error);
@@ -664,12 +621,6 @@ const Flashcards = () => {
       <header className="flashcards-header">
         <div className="header-content">
           <div className="header-left">
-            <button className="back-btn" onClick={goToDashboard}>
-              Dashboard
-            </button>
-            <button className="chat-btn" onClick={goToChat}>
-              AI Chat
-            </button>
             <h1 className="flashcards-title clickable-logo" onClick={goToDashboard}>
               brainwave flashcards
             </h1>
@@ -685,6 +636,12 @@ const Flashcards = () => {
                 />
               )}
             </div>
+            <button className="back-btn" onClick={goToDashboard}>
+              Dashboard
+            </button>
+            <button className="chat-btn" onClick={goToChat}>
+              AI Chat
+            </button>
             <button className="logout-btn" onClick={handleLogout}>
               LOGOUT
             </button>
@@ -692,25 +649,38 @@ const Flashcards = () => {
         </div>
       </header>
 
-      <main className="flashcards-main">
-        {/* Tab Navigation */}
-        <div className="tab-navigation">
-          <button 
-            className={`tab-btn ${activeTab === 'generator' ? 'active' : ''}`}
-            onClick={() => setActiveTab('generator')}
-          >
-            Generator
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
-            onClick={() => setActiveTab('history')}
-          >
-            My Flashcards
-          </button>
-        </div>
+      <main className="flashcards-container">
+        {/* Sidebar Navigation */}
+        <aside className="flashcards-sidebar">
+          <nav className="sidebar-nav">
+            <button 
+              className={`sidebar-item ${activePanel === 'cards' ? 'active' : ''}`}
+              onClick={() => setActivePanel('cards')}
+            >
+              <span className="sidebar-icon">▢</span>
+              <span className="sidebar-label">My Cards</span>
+            </button>
+            <button 
+              className={`sidebar-item ${activePanel === 'generator' ? 'active' : ''}`}
+              onClick={() => setActivePanel('generator')}
+            >
+              <span className="sidebar-icon">▶</span>
+              <span className="sidebar-label">Generator</span>
+            </button>
+            <button 
+              className={`sidebar-item ${activePanel === 'statistics' ? 'active' : ''}`}
+              onClick={() => setActivePanel('statistics')}
+            >
+              <span className="sidebar-icon">▤</span>
+              <span className="sidebar-label">Statistics</span>
+            </button>
+          </nav>
+        </aside>
 
-        {/* Generator Tab */}
-        {activeTab === 'generator' && (
+        {/* Main Content Area */}
+        <div className="flashcards-main">
+        {/* Generator Panel */}
+        {activePanel === 'generator' && (
           <>
             <div className="generator-section">
               <h2 className="section-title">Generate Flashcards</h2>
@@ -836,6 +806,25 @@ const Flashcards = () => {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Tips Section */}
+            <div className="tips-section">
+              <h3>Study Tips</h3>
+              <div className="tips-grid">
+                <div className="tip-card">
+                  <h4>Spaced Repetition</h4>
+                  <p>Review flashcards at increasing intervals to reinforce long-term memory retention and optimize learning efficiency.</p>
+                </div>
+                <div className="tip-card">
+                  <h4>Active Recall</h4>
+                  <p>Test yourself by retrieving information from memory before checking the answer. This strengthens neural pathways and improves recall.</p>
+                </div>
+                <div className="tip-card">
+                  <h4>Consistent Practice</h4>
+                  <p>Study regularly in shorter sessions rather than cramming. Daily 15-20 minute sessions are more effective than occasional long sessions.</p>
+                </div>
+              </div>
             </div>
 
             {flashcards.length > 0 && (
@@ -1019,32 +1008,13 @@ const Flashcards = () => {
               </div>
             )}
 
-            {/* AI Learning Tips */}
-            {flashcards.length === 0 && (
-              <div className="tips-section">
-                <h3>Flashcard Tips</h3>
-                <div className="tips-grid">
-                  <div className="tip-card">
-                    <h4>Topic Mode</h4>
-                    <p>Enter any subject or topic to generate comprehensive flashcards covering key concepts and definitions.</p>
-                  </div>
-                  <div className="tip-card">
-                    <h4>Chat History Mode</h4>
-                    <p>Generate flashcards from your previous AI conversations! Perfect for reviewing topics you've already discussed.</p>
-                  </div>
-                  <div className="tip-card">
-                    <h4>Study Method</h4>
-                    <p>Try to answer each question before flipping. Repeat cards you find difficult until you master them.</p>
-                  </div>
-                </div>
-              </div>
-            )}
+
           </>
         )}
 
-        {/* History Tab */}
-        {activeTab === 'history' && (
-          <div className="history-section">
+        {/* My Cards Panel */}
+        {activePanel === 'cards' && (
+          <div className="cards-section">
             <div className="history-header">
               <h2 className="section-title">My Flashcard History</h2>
               <button 
@@ -1059,33 +1029,7 @@ const Flashcards = () => {
               </button>
             </div>
 
-            {/* Statistics Overview */}
-            {flashcardStats && (
-              <div className="stats-overview">
-                <div className="stats-grid">
-                  <div className="stat-card">
-                    <div className="stat-number">{flashcardStats.total_sets}</div>
-                    <div className="stat-label">Total Sets</div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="stat-number">{flashcardStats.total_cards}</div>
-                    <div className="stat-label">Total Cards</div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="stat-number">{flashcardStats.total_study_sessions}</div>
-                    <div className="stat-label">Study Sessions</div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="stat-number">{flashcardStats.total_study_time_minutes ? formatDuration(flashcardStats.total_study_time_minutes) : '0min'}</div>
-                    <div className="stat-label">Total Study Time</div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="stat-number">{flashcardStats.overall_accuracy}%</div>
-                    <div className="stat-label">Overall Accuracy</div>
-                  </div>
-                </div>
-              </div>
-            )}
+
 
             {/* Flashcard Sets History */}
             <div className="history-content">
@@ -1098,7 +1042,7 @@ const Flashcards = () => {
                   <h3>No Flashcard Sets Yet</h3>
                   <p>Create your first flashcard set using the Generator tab!</p>
                   <button 
-                    onClick={() => setActiveTab('generator')}
+                    onClick={() => setActivePanel('generator')}
                     className="get-started-btn"
                   >
                     Get Started
@@ -1144,7 +1088,7 @@ const Flashcards = () => {
                                 className="rename-btn-small"
                                 title="Rename flashcard set"
                               >
-                                ✏️
+                                ✎
                               </button>
                             </div>
                           )}
@@ -1160,10 +1104,6 @@ const Flashcards = () => {
                         <div className="stat-item">
                           <span className="stat-value">{set.card_count}</span>
                           <span className="stat-text">cards</span>
-                        </div>
-                        <div className="stat-item">
-                          <span className="stat-value">{set.total_sessions}</span>
-                          <span className="stat-text">sessions</span>
                         </div>
                         <div className="stat-item">
                           <span className="stat-value">{set.accuracy_percentage}%</span>
@@ -1212,6 +1152,61 @@ const Flashcards = () => {
             </div>
           </div>
         )}
+
+        {/* Statistics Panel */}
+        {activePanel === 'statistics' && (
+          <div className="statistics-section">
+            <h2 className="section-title">Statistics & Analytics</h2>
+            
+            {flashcardStats ? (
+              <>
+                {/* Main Stats Grid */}
+                <div className="stats-main-grid">
+                  <div className="stat-card-large">
+                    <div className="stat-value">{flashcardStats.total_sets}</div>
+                    <div className="stat-label">Total Sets Created</div>
+                  </div>
+                  <div className="stat-card-large">
+                    <div className="stat-value">{flashcardStats.total_cards}</div>
+                    <div className="stat-label">Total Cards</div>
+                  </div>
+                  <div className="stat-card-large">
+                    <div className="stat-value">{flashcardStats.total_study_time_minutes ? formatDuration(flashcardStats.total_study_time_minutes) : '0 min'}</div>
+                    <div className="stat-label">Time Spent</div>
+                  </div>
+                  <div className="stat-card-large">
+                    <div className="stat-value">{flashcardStats.overall_accuracy}%</div>
+                    <div className="stat-label">Accuracy</div>
+                  </div>
+                  <div className="stat-card-large">
+                    <div className="stat-value">{flashcardStats.total_study_sessions}</div>
+                    <div className="stat-label">Study Sessions</div>
+                  </div>
+                </div>
+
+                {/* Detailed Stats */}
+                <div className="stats-details">
+                  <h3 className="stats-subtitle">Performance Insights</h3>
+                  <div className="stats-info-grid">
+                    <div className="info-item">
+                      <span className="info-label">Average Cards per Set:</span>
+                      <span className="info-value">{flashcardStats.total_sets > 0 ? Math.round(flashcardStats.total_cards / flashcardStats.total_sets) : 0}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">Average Time per Session:</span>
+                      <span className="info-value">{flashcardStats.total_study_sessions > 0 ? formatDuration(Math.round(flashcardStats.total_study_time_minutes / flashcardStats.total_study_sessions)) : '0min'}</span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="empty-state">
+                <p>No statistics yet. Create and study some flashcards to see your analytics!</p>
+              </div>
+            )}
+          </div>
+        )}
+        </div>
       </main>
 
       {/* Custom Popup */}

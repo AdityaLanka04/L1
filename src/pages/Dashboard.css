@@ -558,8 +558,8 @@ body {
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 .widget-title {
-  font-size: 18px; font-weight: 700; color: var(--accent);
-  letter-spacing: 0.3px; text-transform: lowercase; margin: 0;
+  font-size: 18px !important; font-weight: 700 !important; color: var(--accent) !important;
+  letter-spacing: 0.3px !important; text-transform: lowercase !important; margin: 0 !important;
 }
 
 /* ----------------------------------------------------
@@ -573,21 +573,23 @@ body {
 }
 .card-header {
   display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 20px; padding-bottom: 15px;
+  margin-bottom: 15px; padding-bottom: 7px;
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 .card-title { 
-  font-size: 18px; 
-  font-weight: 700; 
-  color: var(--accent); 
-  letter-spacing: 0.3px; 
-  margin: 0; 
-  text-transform: lowercase; 
+  font-size: 18px !important; 
+  font-weight: 700 !important; 
+  color: var(--accent) !important; 
+  letter-spacing: 0.3px !important; 
+  margin: 0 !important; 
+  text-transform: lowercase !important; 
+  line-height: 1 !important;
+  display: block !important;
 }
 
 .status-indicator {
-  padding: 6px 12px; font-size: 10px; font-weight: 700; border-radius: 0;
-  letter-spacing: 1px; text-transform: uppercase;
+  padding: 1px 3px; font-size: 8px; font-weight: 700; border-radius: 0;
+  letter-spacing: 0.5px; text-transform: uppercase;
   box-shadow: var(--shadow-sm);
 }
 .status-indicator.active {
@@ -693,7 +695,7 @@ body {
   display: flex; 
   flex-direction: column; 
   background: transparent; 
-  padding: 0; 
+  padding: 0;
   margin: 0; 
 }
 
@@ -702,27 +704,28 @@ body {
   margin-bottom: 20px; padding-bottom: 15px;
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
-.learning-review-widget .widget-title { 
-  font-size: 18px; 
-  font-weight: 700; 
-  color: var(--accent); 
-  margin: 0; 
-  text-transform: lowercase; 
-  letter-spacing: .3px; 
+.learning-review-widget .widget-title,
+.stats-overview-widget .widget-title { 
+  font-size: 18px !important; 
+  font-weight: 700 !important; 
+  color: var(--accent) !important; 
+  margin: 0 !important; 
+  text-transform: lowercase !important; 
+  letter-spacing: .3px !important; 
 }
 
 .create-review-btn {
-  width: 36px;
-  height: 36px;
+  width: 24px;
+  height: 24px;
   background: var(--accent);
   border: 2px solid var(--accent);
   color: #000;
   padding: 0;
-  font-size: 18px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
-  margin: 1px 0 15px 0;
+  margin: 0;
   border-radius: 0;
   box-shadow: var(--shadow-sm);
   display: flex;
@@ -928,34 +931,36 @@ body {
   padding: 40px 20px; 
 }
 .no-reviews-text { 
-  color: var(--accent); 
-  font-size: 18px; 
-  font-weight: 700; 
-  margin: 0 0 10px 0; 
+  color: var(--text-secondary); 
+  font-size: 16px; 
+  font-weight: 500; 
+  margin: 0;
+  line-height: 1.6;
 }
 .no-reviews-subtitle { 
   font-size: 12px; 
   color: var(--text-secondary); 
-  margin-bottom: 20px; 
+  margin-bottom: 0; 
   line-height: 1.4; 
   font-weight: 500;
+  display: none;
 }
 .create-first-btn {
-  background: var(--accent); 
-  border: 2px solid var(--accent); 
-  color: #000; 
-  padding: 15px 25px; 
+  background: transparent; 
+  border: none; 
+  color: var(--text-secondary); 
+  padding: 0; 
   border-radius: 0; 
   font-size: 12px; 
-  font-weight: 700; 
-  cursor: pointer;
-  transition: all .2s cubic-bezier(0.4, 0, 0.2, 1); 
-  display: flex; 
+  font-weight: 500; 
+  cursor: default;
+  transition: none; 
+  display: none; 
   align-items: center; 
   gap: 8px; 
-  text-transform: uppercase; 
-  letter-spacing: 1px;
-  box-shadow: var(--shadow-sm), var(--shadow-glow);
+  text-transform: none; 
+  letter-spacing: 0;
+  box-shadow: none;
 }
 .create-first-btn:hover:not(:disabled) { 
   background: color-mix(in srgb, var(--accent) 90%, #000); 
@@ -1098,7 +1103,7 @@ body {
   justify-content: center; 
   text-align: center; 
   height: 100%; 
-  padding: 20px; 
+  padding: 0;
 }
 .goal-progress { 
   display: flex; 
@@ -1396,7 +1401,9 @@ body {
   align-items: center; 
   width: 100%; 
   max-width: 1000px; 
-  margin-bottom: 30px; 
+  margin-bottom: 20px; 
+  padding-bottom: 15px;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 }
 .heatmap-container {
   position: relative; 
@@ -1430,12 +1437,12 @@ body {
   font-size: 14px; 
 }
 .heatmap-title { 
-  font-size: 18px; 
-  font-weight: 700; 
-  color: color-mix(in srgb, var(--text-secondary) 80%, var(--text-primary)); 
-  letter-spacing: .4px; 
-  text-transform: lowercase; 
-  margin: 0; 
+  font-size: 18px !important; 
+  font-weight: 700 !important; 
+  color: var(--accent) !important; 
+  letter-spacing: 0.3px !important; 
+  text-transform: lowercase !important; 
+  margin: 0 !important; 
 }
 .heatmap-stats, .total-questions { 
   font-size: 18px; 
@@ -1589,12 +1596,28 @@ body {
   justify-content: space-between; 
 }
 .section-title { 
-  font-size: 1px; 
-  font-weight: 700; 
-  color: color-mix(in srgb, var(--text-secondary) 80%, var(--text-primary)); 
-  margin: 0 0 20px 0; 
-  letter-spacing: .3px; 
-  text-transform: lowercase; 
+  font-size: 18px !important; 
+  font-weight: 700 !important; 
+  color: var(--accent) !important; 
+  margin: 0 0 20px 0 !important;
+  padding-bottom: 15px !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent) !important;
+  letter-spacing: 0.3px !important; 
+  text-transform: lowercase !important;
+  display: block !important;
+  height: auto !important;
+  line-height: 1 !important;
+}
+
+.quick-actions .section-title {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: var(--accent) !important;
+  margin: 0 0 20px 0 !important;
+  padding: 0 0 15px 0 !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent) !important;
+  letter-spacing: 0.3px !important;
+  text-transform: lowercase !important;
 }
 
 .action-grid { 
