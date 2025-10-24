@@ -4959,6 +4959,34 @@ async def get_knowledge_roadmap(
             models.KnowledgeNode.id.in_(roadmap_node_ids)
         ).all()
         
+        # Create a map of nodes for easier lookup
+        node_map = {node.id: node for node in all_nodes}
+        
+        # Build the expansion hierarchy
+        def build_expansion_hierarchy(node_id, expanded_nodes, path=[]):
+            node = node_map.get(node_id)
+            if not node:
+                return
+                
+            # Add this node to the path
+            current_path = path + [node_id]
+            
+            # If this node is expanded, add it to the expanded nodes set
+            if node.expansion_status == 'expanded':
+                expanded_nodes.add(node_id)
+                
+                # Recursively add all children of expanded nodes
+                children = db.query(models.KnowledgeNode).filter(
+                    models.KnowledgeNode.parent_node_id == node_id
+                ).all()
+                for child in children:
+                    build_expansion_hierarchy(child.id, expanded_nodes, current_path)
+        
+        # Get all expanded nodes
+        expanded_nodes = set()
+        if root_node:
+            build_expansion_hierarchy(root_node.id, expanded_nodes)
+        
         nodes_flat = [
             {
                 "id": node.id,
@@ -4989,7 +5017,8 @@ async def get_knowledge_roadmap(
                 "created_at": roadmap.created_at.isoformat(),
                 "last_accessed": roadmap.last_accessed.isoformat() if roadmap.last_accessed else None
             },
-            "nodes_flat": nodes_flat
+            "nodes_flat": nodes_flat,
+            "expanded_nodes": list(expanded_nodes)  # Add this to track which nodes should be expanded
         }
         
     except HTTPException:
@@ -4997,8 +5026,7 @@ async def get_knowledge_roadmap(
     except Exception as e:
         logger.error(f"Error getting roadmap: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to get roadmap: {str(e)}")
-
-
+        
 @app.get("/get_user_roadmaps")
 async def get_user_roadmaps(
     user_id: str = Query(...),

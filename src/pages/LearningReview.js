@@ -53,26 +53,24 @@ const LearningReview = () => {
   const [questionType, setQuestionType] = useState('Mixed');
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false);
   const fileInputRef = useRef(null);
-const expandNodeRef = useRef(null);
-const exploreNodeRef = useRef(null);
+  const expandNodeRef = useRef(null);
+  const exploreNodeRef = useRef(null);
+  const [expandedNodes, setExpandedNodes] = useState(new Set());
+const [roadmapState, setRoadmapState] = useState(null);
+const [roadmapCache, setRoadmapCache] = useState({});
 
   const navigate = (path) => {
-    window.location.href = path;
-  };
+  // Save current roadmap state before navigating
+  if (currentRoadmap) {
+    saveRoadmapToCache(currentRoadmap.id, nodes, edges, expandedNodes);
+  }
+  window.location.href = path;
+};
 
-  const goBackToDashboard = () => {
-    setActiveTab('create');
-    setCurrentRoadmap(null);
-    setSelectedSlideForView(null);
-    setQuestionGenerationMode(null);
-  };
 
+  
   // FIXED: expandNode with useCallback to prevent stale closures
-  // FIXED: expandNode with useCallback to prevent stale closures and handle sibling collapse
-  // FIXED: expandNode with useCallback to prevent stale closures and handle sibling collapse
-  // FIXED: expandNode with useCallback to prevent stale closures
-  // FIXED: expandNode with useCallback to prevent stale closures
-const expandNode = useCallback(async (nodeId) => {
+  const expandNode = useCallback(async (nodeId) => {
   console.log('Expanding node:', nodeId);
   
   setNodes((nds) => {
@@ -417,48 +415,119 @@ const expandNode = useCallback(async (nodeId) => {
   }
 }, [setNodes, setEdges, edges, currentRoadmap]);
 
-// Store expandNode in ref immediately
-expandNodeRef.current = expandNode;
-
-// FIXED: exploreNode with useCallback
-const exploreNode = useCallback(async (nodeId) => {
-  setNodes((nds) =>
-    nds.map(n =>
-      n.data.nodeId === nodeId
-        ? { ...n, data: { ...n.data, isExploring: true } }
-        : n
-    )
-  );
+const saveRoadmapToCache = (roadmapId, nodes, edges, expandedNodes) => {
+  if (!roadmapId) return;
   
+  const cacheData = {
+    nodes,
+    edges,
+    expandedNodes: Array.from(expandedNodes),
+    timestamp: new Date().toISOString()
+  };
+  
+  // Update state cache
+  setRoadmapCache(prev => ({
+    ...prev,
+    [roadmapId]: cacheData
+  }));
+  
+  // Also save to localStorage for persistence across page refreshes
   try {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`http://localhost:8001/explore_node/${nodeId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
-    });
+    const existingCache = JSON.parse(localStorage.getItem('roadmapCache') || '{}');
+    existingCache[roadmapId] = cacheData;
+    localStorage.setItem('roadmapCache', JSON.stringify(existingCache));
+  } catch (error) {
+    console.error('Error saving roadmap to cache:', error);
+  }
+};
 
-    if (response.ok) {
-      const data = await response.json();
-      console.log('Explore node response:', data);
-      
-      const nodeData = data.node || data;
-      setNodeExplanation(nodeData);
-      setShowNodePanel(true);
-      
-      setNodes((nds) =>
-        nds.map(n =>
-          n.data.nodeId === nodeId
-            ? { ...n, data: { ...n.data, isExplored: true, isExploring: false } }
-            : n
-        )
-      );
-    } else {
-      const errorData = await response.json();
-      console.error('Explore node error:', errorData);
-      alert(`Failed to explore node: ${errorData.detail || 'Unknown error'}`);
+// Add this useEffect to load cache from localStorage on component mount
+useEffect(() => {
+  try {
+    const savedCache = JSON.parse(localStorage.getItem('roadmapCache') || '{}');
+    setRoadmapCache(savedCache);
+  } catch (error) {
+    console.error('Error loading roadmap cache:', error);
+  }
+}, []);
+
+// Modify the goBackToDashboard function to save the current state
+const goBackToDashboard = () => {
+  // Save current roadmap state before leaving
+  if (currentRoadmap) {
+    saveRoadmapToCache(currentRoadmap.id, nodes, edges, expandedNodes);
+  }
+  
+  setActiveTab('create');
+  setCurrentRoadmap(null);
+  setSelectedSlideForView(null);
+  setQuestionGenerationMode(null);
+};
+
+// Modify the tab navigation to save state when switching tabs
+const handleTabChange = (tab) => {
+  // Save current roadmap state before switching tabs
+  if (currentRoadmap && activeTab === 'roadmap') {
+    saveRoadmapToCache(currentRoadmap.id, nodes, edges, expandedNodes);
+  }
+  
+  setActiveTab(tab);
+  setShowNodePanel(false);
+};
+  // Store expandNode in ref immediately
+  expandNodeRef.current = expandNode;
+
+  // FIXED: exploreNode with useCallback
+  const exploreNode = useCallback(async (nodeId) => {
+    setNodes((nds) =>
+      nds.map(n =>
+        n.data.nodeId === nodeId
+          ? { ...n, data: { ...n.data, isExploring: true } }
+          : n
+      )
+    );
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8001/explore_node/${nodeId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Explore node response:', data);
+        
+        const nodeData = data.node || data;
+        setNodeExplanation(nodeData);
+        setShowNodePanel(true);
+        
+        setNodes((nds) =>
+          nds.map(n =>
+            n.data.nodeId === nodeId
+              ? { ...n, data: { ...n.data, isExplored: true, isExploring: false } }
+              : n
+          )
+        );
+      } else {
+        const errorData = await response.json();
+        console.error('Explore node error:', errorData);
+        alert(`Failed to explore node: ${errorData.detail || 'Unknown error'}`);
+        
+        setNodes((nds) =>
+          nds.map(n =>
+            n.data.nodeId === nodeId
+              ? { ...n, data: { ...n.data, isExploring: false } }
+              : n
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error exploring node:', error);
+      alert('Failed to explore node');
       
       setNodes((nds) =>
         nds.map(n =>
@@ -468,22 +537,11 @@ const exploreNode = useCallback(async (nodeId) => {
         )
       );
     }
-  } catch (error) {
-    console.error('Error exploring node:', error);
-    alert('Failed to explore node');
-    
-    setNodes((nds) =>
-      nds.map(n =>
-        n.data.nodeId === nodeId
-          ? { ...n, data: { ...n.data, isExploring: false } }
-          : n
-      )
-    );
-  }
-}, [setNodes]);
+  }, [setNodes]);
 
-// Store exploreNode in ref immediately
-exploreNodeRef.current = exploreNode;
+  // Store exploreNode in ref immediately
+  exploreNodeRef.current = exploreNode;
+
   // CustomNode component that uses the callbacks
   const CustomNode = ({ data }) => {
     const getStatusColor = () => {
@@ -599,34 +657,34 @@ exploreNodeRef.current = exploreNode;
   }, [userName]);
 
   const deleteRoadmap = async (roadmapId, event) => {
-  event.stopPropagation(); // Prevent triggering loadRoadmap when clicking delete
-  
-  if (!window.confirm('Are you sure you want to delete this roadmap? This action cannot be undone.')) {
-    return;
-  }
-
-  try {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`http://localhost:8001/delete_roadmap/${roadmapId}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    if (response.ok) {
-      // Remove the deleted roadmap from the state
-      setRoadmaps(prev => prev.filter(roadmap => roadmap.id !== roadmapId));
-      alert('Roadmap deleted successfully!');
-    } else {
-      const errorData = await response.json().catch(() => ({}));
-      alert(`Failed to delete roadmap: ${errorData.detail || 'Unknown error'}`);
+    event.stopPropagation(); // Prevent triggering loadRoadmap when clicking delete
+    
+    if (!window.confirm('Are you sure you want to delete this roadmap? This action cannot be undone.')) {
+      return;
     }
-  } catch (error) {
-    console.error('Error deleting roadmap:', error);
-    alert('Error deleting roadmap. Please try again.');
-  }
-};
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8001/delete_roadmap/${roadmapId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        // Remove the deleted roadmap from the state
+        setRoadmaps(prev => prev.filter(roadmap => roadmap.id !== roadmapId));
+        alert('Roadmap deleted successfully!');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(`Failed to delete roadmap: ${errorData.detail || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting roadmap:', error);
+      alert('Error deleting roadmap. Please try again.');
+    }
+  };
 
   const loadUploadedSlides = useCallback(async () => {
     try {
@@ -708,6 +766,7 @@ exploreNodeRef.current = exploreNode;
       return;
     }
 
+    
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -724,6 +783,10 @@ exploreNodeRef.current = exploreNode;
       });
 
       if (response.ok) {
+    // Save current roadmap state before creating a new one
+    if (currentRoadmap) {
+      saveRoadmapToCache(currentRoadmap.id, nodes, edges, expandedNodes);
+    }
         const data = await response.json();
         
         setCurrentRoadmap({
@@ -770,91 +833,182 @@ exploreNodeRef.current = exploreNode;
   };
 
   const openRoadmap = async (roadmap) => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/get_knowledge_roadmap/${roadmap.id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+  setLoading(true);
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`http://localhost:8001/get_knowledge_roadmap/${roadmap.id}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (currentRoadmap && currentRoadmap.id !== roadmap.id) {
+    saveRoadmapToCache(currentRoadmap.id, nodes, edges, expandedNodes);
+  }
+    if (response.ok) {
+      const data = await response.json();
+      
+      setCurrentRoadmap(roadmap);
+      setRoadmapState(data); // Store the full roadmap state
+      
+      // Check if we have a cached state for this roadmap
+      const cachedState = roadmapCache[roadmap.id];
+      let useCachedState = false;
+      
+      // If we have cached state and it's newer than the backend data, use it
+      if (cachedState && cachedState.timestamp) {
+        const backendTimestamp = new Date(data.roadmap.last_accessed || data.roadmap.created_at);
+        const cacheTimestamp = new Date(cachedState.timestamp);
+        
+        if (cacheTimestamp >= backendTimestamp) {
+          useCachedState = true;
+          console.log('Using cached roadmap state');
+          
+          // Restore the cached state
+          setNodes(cachedState.nodes);
+          setEdges(cachedState.edges);
+          setExpandedNodes(new Set(cachedState.expandedNodes));
+          setActiveTab('roadmap');
+          setLoading(false);
+          return;
+        }
+      }
+      
+      // If we're not using cached state, proceed with normal logic
+      // Use nodes_flat from backend response
+      const allNodes = data.nodes_flat || [];
+      
+      // Get the expanded nodes from the backend
+      const backendExpandedNodes = new Set(data.expanded_nodes || []);
+      
+      // Build a map of nodes and their relationships
+      const nodeMap = new Map();
+      const childMap = new Map(); // Maps parent_id to array of children
+      
+      allNodes.forEach(node => {
+        nodeMap.set(node.id, node);
+        if (node.parent_id) {
+          if (!childMap.has(node.parent_id)) {
+            childMap.set(node.parent_id, []);
+          }
+          childMap.get(node.parent_id).push(node);
+        }
+      });
+      
+      // Find root nodes (nodes without parents)
+      const rootNodes = allNodes.filter(node => !node.parent_id);
+      
+      // Initialize expanded nodes with the ones from the backend
+      const newExpandedNodes = new Set(backendExpandedNodes);
+      
+      // Ensure that if a node is expanded, all its ancestors are also expanded
+      const ensureAncestorsExpanded = (nodeId) => {
+        const node = nodeMap.get(nodeId);
+        if (!node || !node.parent_id) return;
+        
+        const parent = nodeMap.get(node.parent_id);
+        if (parent) {
+          newExpandedNodes.add(parent.id);
+          ensureAncestorsExpanded(parent.id);
+        }
+      };
+      
+      // Ensure all ancestors of expanded nodes are also expanded
+      newExpandedNodes.forEach(nodeId => {
+        ensureAncestorsExpanded(nodeId);
+      });
+      
+      // Track visible nodes starting from roots
+      const visibleNodes = new Set();
+      const nodesToProcess = [...rootNodes];
+      
+      while (nodesToProcess.length > 0) {
+        const currentNode = nodesToProcess.shift();
+        visibleNodes.add(currentNode.id);
+        
+        // If this node is in our expanded set, add its children to the processing queue
+        if (newExpandedNodes.has(currentNode.id)) {
+          const children = childMap.get(currentNode.id) || [];
+          nodesToProcess.push(...children);
+        }
+      }
+      
+      // Update the expanded nodes state
+      setExpandedNodes(newExpandedNodes);
+      
+      // Filter nodes that are visible
+      const filteredNodes = allNodes.filter(node => visibleNodes.has(node.id));
+      
+      // Group visible nodes by depth for positioning
+      const nodesByDepth = new Map();
+      filteredNodes.forEach(node => {
+        if (!nodesByDepth.has(node.depth_level)) {
+          nodesByDepth.set(node.depth_level, []);
+        }
+        nodesByDepth.get(node.depth_level).push(node);
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      const flowNodes = filteredNodes.map(node => {
+        const nodesAtThisDepth = nodesByDepth.get(node.depth_level) || [];
+        const indexAtDepth = nodesAtThisDepth.indexOf(node);
+        const horizontalSpacing = 280;
+        const baseVerticalSpacing = 250;
+        const depthMultiplier = 1.2;
+        const verticalSpacing = baseVerticalSpacing * Math.pow(depthMultiplier, node.depth_level);
         
-        setCurrentRoadmap(roadmap);
-        
-        // Use nodes_flat from backend response
-        const allNodes = data.nodes_flat || [];
-        
-        const nodesByDepth = new Map();
-        allNodes.forEach(node => {
-          if (!nodesByDepth.has(node.depth_level)) {
-            nodesByDepth.set(node.depth_level, []);
-          }
-          nodesByDepth.get(node.depth_level).push(node);
-        });
+        const totalWidth = (nodesAtThisDepth.length - 1) * horizontalSpacing;
+        const startX = 400 - (totalWidth / 2);
 
-        const flowNodes = allNodes.map(node => {
-          const nodesAtThisDepth = nodesByDepth.get(node.depth_level) || [];
-          const indexAtDepth = nodesAtThisDepth.indexOf(node);
-          const horizontalSpacing = 280;
-          const baseVerticalSpacing = 250;
-          const depthMultiplier = 1.2;
-          const verticalSpacing = baseVerticalSpacing * Math.pow(depthMultiplier, node.depth_level);
-          
-          const totalWidth = (nodesAtThisDepth.length - 1) * horizontalSpacing;
-          const startX = 400 - (totalWidth / 2);
+        return {
+          id: String(node.id),
+          type: 'custom',
+          position: {
+            x: startX + (indexAtDepth * horizontalSpacing),
+            y: 50 + (node.depth_level * verticalSpacing)
+          },
+          data: {
+            label: node.topic_name,
+            description: node.description,
+            depth: node.depth_level,
+            isExplored: node.is_explored,
+            expansionStatus: newExpandedNodes.has(node.id) ? 'expanded' : 'unexpanded',
+            nodeId: node.id,
+            onExpand: (id) => expandNodeRef.current && expandNodeRef.current(id),
+            onExplore: (id) => exploreNodeRef.current && exploreNodeRef.current(id),
+          },
+        };
+      });
 
-          return {
-            id: String(node.id),
-            type: 'custom',
-            position: {
-              x: startX + (indexAtDepth * horizontalSpacing),
-              y: 50 + (node.depth_level * verticalSpacing)
+      // Build edges only for visible nodes
+      const flowEdges = [];
+      filteredNodes.forEach(node => {
+        if (node.parent_id && visibleNodes.has(node.parent_id)) {
+          flowEdges.push({
+            id: `e${node.parent_id}-${node.id}`,
+            source: String(node.parent_id),
+            target: String(node.id),
+            type: 'smoothstep',
+            style: { stroke: '#D7B38C', strokeWidth: 3 },
+            markerEnd: {
+              type: 'arrow',
+              color: '#D7B38C',
+              width: 20,
+              height: 20,
             },
-            data: {
-              label: node.topic_name,
-              description: node.description,
-              depth: node.depth_level,
-              isExplored: node.is_explored,
-              expansionStatus: node.expansion_status,
-              nodeId: node.id,
-              onExpand: (id) => expandNodeRef.current && expandNodeRef.current(id),
-              onExplore: (id) => exploreNodeRef.current && exploreNodeRef.current(id),
-            },
-          };
-        });
+          });
+        }
+      });
 
-        // Build edges from parent-child relationships in nodes
-        const flowEdges = [];
-        allNodes.forEach(node => {
-          if (node.parent_id) {
-            flowEdges.push({
-              id: `e${node.parent_id}-${node.id}`,
-              source: String(node.parent_id),
-              target: String(node.id),
-              type: 'smoothstep',
-              style: { stroke: '#D7B38C', strokeWidth: 3 },
-              markerEnd: {
-                type: 'arrow',
-                color: '#D7B38C',
-                width: 20,
-                height: 20,
-              },
-            });
-          }
-        });
-
-        setNodes(flowNodes);
-        setEdges(flowEdges);
-        setActiveTab('roadmap');
-      }
-    } catch (error) {
-      console.error('Error opening roadmap:', error);
-      alert('Failed to open roadmap');
-    } finally {
-      setLoading(false);
+      setNodes(flowNodes);
+      setEdges(flowEdges);
+      setActiveTab('roadmap');
     }
-  };
+  } catch (error) {
+    console.error('Error opening roadmap:', error);
+    alert('Failed to open roadmap');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const submitReviewResponse = async () => {
     if (!reviewResponse.trim()) {
@@ -1119,12 +1273,18 @@ exploreNodeRef.current = exploreNode;
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('username');
-    localStorage.removeItem('userProfile');
-    window.location.href = '/';
-  };
+  // Save current roadmap state before logging out
+  if (currentRoadmap) {
+    saveRoadmapToCache(currentRoadmap.id, nodes, edges, expandedNodes);
+  }
+  
+  localStorage.removeItem('token');
+  localStorage.removeItem('userName');
+  localStorage.removeItem('username');
+  localStorage.removeItem('userProfile');
+  window.location.href = '/';
+};
+
 
   return (
     <div className="learning-review-page">
@@ -1141,7 +1301,13 @@ exploreNodeRef.current = exploreNode;
             )}
             <span>{userName}</span>
           </div>
-          <button className="lr-nav-btn" onClick={() => window.location.href = '/dashboard'}>
+          <button className="lr-nav-btn" onClick={() => {
+  // Save current roadmap state before navigating
+  if (currentRoadmap) {
+    saveRoadmapToCache(currentRoadmap.id, nodes, edges, expandedNodes);
+  }
+  window.location.href = '/dashboard';
+}}>
             Back to Dashboard
           </button>
           <button className="lr-nav-btn" onClick={handleLogout}>
@@ -1151,63 +1317,45 @@ exploreNodeRef.current = exploreNode;
       </header>
 
       {/* Tab Navigation */}
-      <nav className="lr-tabs">
-        <button
-          className={`lr-tab ${activeTab === 'create' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('create');
-            setShowNodePanel(false);
-          }}
-        >
-          Create
-        </button>
-        <button
-          className={`lr-tab ${activeTab === 'questions' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('questions');
-            setShowNodePanel(false);
-          }}
-        >
-          Questions
-        </button>
-        <button
-          className={`lr-tab ${activeTab === 'slides' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('slides');
-            setShowNodePanel(false);
-          }}
-        >
-          Slides
-        </button>
-        <button
-          className={`lr-tab ${activeTab === 'roadmap' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('roadmap');
-            setShowNodePanel(false);
-          }}
-        >
-          Roadmap Explorer
-        </button>
-        <button
-          className={`lr-tab ${activeTab === 'active' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('active');
-            setShowNodePanel(false);
-          }}
-        >
-          Active Review/Questions
-        </button>
-        <button
-          className={`lr-tab ${activeTab === 'history' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('history');
-            setShowNodePanel(false);
-          }}
-        >
-          History
-        </button>
-      </nav>
-
+      {/* Tab Navigation */}
+<nav className="lr-tabs">
+  <button
+    className={`lr-tab ${activeTab === 'create' ? 'active' : ''}`}
+    onClick={() => handleTabChange('create')}
+  >
+    Create
+  </button>
+  <button
+    className={`lr-tab ${activeTab === 'questions' ? 'active' : ''}`}
+    onClick={() => handleTabChange('questions')}
+  >
+    Questions
+  </button>
+  <button
+    className={`lr-tab ${activeTab === 'slides' ? 'active' : ''}`}
+    onClick={() => handleTabChange('slides')}
+  >
+    Slides
+  </button>
+  <button
+    className={`lr-tab ${activeTab === 'roadmap' ? 'active' : ''}`}
+    onClick={() => handleTabChange('roadmap')}
+  >
+    Roadmap Explorer
+  </button>
+  <button
+    className={`lr-tab ${activeTab === 'active' ? 'active' : ''}`}
+    onClick={() => handleTabChange('active')}
+  >
+    Active Review/Questions
+  </button>
+  <button
+    className={`lr-tab ${activeTab === 'history' ? 'active' : ''}`}
+    onClick={() => handleTabChange('history')}
+  >
+    History
+  </button>
+</nav>
       {/* Main Content Area */}
       <div className="lr-content">
         <div>
@@ -1323,26 +1471,26 @@ exploreNodeRef.current = exploreNode;
                   <h3>Your Knowledge Roadmaps</h3>
                   <div className="items-grid">
                     {roadmaps.map((roadmap) => (
-  <div key={roadmap.id} className="item-card">
-    <div className="roadmap-card-header">
-      <h4>{roadmap.root_topic}</h4>
-      <button
-        onClick={(e) => deleteRoadmap(roadmap.id, e)}
-        className="delete-btn"
-        title="Delete Roadmap"
-      >
-        ×
-      </button>
-    </div>
-    <p>Nodes: {roadmap.total_nodes}</p>
-    <button
-      onClick={() => openRoadmap(roadmap)}
-      className="continue-btn"
-    >
-      Explore
-    </button>
-  </div>
-))}
+                      <div key={roadmap.id} className="item-card">
+                        <div className="roadmap-card-header">
+                          <h4>{roadmap.root_topic}</h4>
+                          <button
+                            onClick={(e) => deleteRoadmap(roadmap.id, e)}
+                            className="delete-btn"
+                            title="Delete Roadmap"
+                          >
+                            ×
+                          </button>
+                        </div>
+                        <p>Nodes: {roadmap.total_nodes}</p>
+                        <button
+                          onClick={() => openRoadmap(roadmap)}
+                          className="continue-btn"
+                        >
+                          Explore
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -1356,22 +1504,29 @@ exploreNodeRef.current = exploreNode;
                   <div>
                     <h2>{currentRoadmap.title}</h2>
                     <button
-                      onClick={() => {
-                        setCurrentRoadmap(null);
-                        setNodes([]);
-                        setEdges([]);
-                      }}
-                      className="back-btn"
-                    >
+  onClick={() => {
+    // Save current roadmap state before leaving
+    if (currentRoadmap) {
+      saveRoadmapToCache(currentRoadmap.id, nodes, edges, expandedNodes);
+    }
+    setCurrentRoadmap(null);
+    setNodes([]);
+    setEdges([]);
+    setShowNodePanel(false);
+  }}
+  className="back-btn"
+>
                       Back to Roadmaps
                     </button>
                   </div>
-                  <button
-                    onClick={() => setShowNodePanel(false)}
-                    className="close-panel-btn"
-                  >
-                    Close
-                  </button>
+                  {showNodePanel && (
+                    <button
+                      onClick={() => setShowNodePanel(false)}
+                      className="close-panel-btn"
+                    >
+                      Close Panel
+                    </button>
+                  )}
                 </div>
                 <ReactFlow
                   nodes={nodes}
@@ -1388,13 +1543,15 @@ exploreNodeRef.current = exploreNode;
 
                 {showNodePanel && nodeExplanation && (
                   <div className="node-panel">
-                    <button
-                      onClick={() => setShowNodePanel(false)}
-                      className="close-panel-btn"
-                    >
-                      ✕
-                    </button>
-                    <h3>{nodeExplanation.topic_name}</h3>
+                    <div className="node-panel-header">
+                      <h3>{nodeExplanation.topic_name}</h3>
+                      <button
+                        onClick={() => setShowNodePanel(false)}
+                        className="close-panel-btn"
+                      >
+                        ✕
+                      </button>
+                    </div>
                     <div className="panel-content">
                       {nodeExplanation.ai_explanation && (
                         <div style={{ marginBottom: '24px' }}>

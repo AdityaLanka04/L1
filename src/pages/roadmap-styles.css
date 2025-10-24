@@ -1382,3 +1382,33 @@
   transform: scale(1.15);
 }
 
+.node-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(215, 179, 140, 0.2);
+}
+
+.node-panel-header h3 {
+  margin: 0;
+  color: #D7B38C;
+}
+
+.roadmap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.roadmap-header > div {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.roadmap-header h2 {
+  margin: 0;
+}
