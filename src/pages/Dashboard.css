@@ -712,31 +712,34 @@ body {
 }
 
 .create-review-btn {
-  width: 10%;
+  width: 36px;
+  height: 36px;
   background: var(--accent);
   border: 2px solid var(--accent);
-  color: #000; 
-  padding: 12px 16px; 
-  font-size: 12px; 
-  font-weight: 700; 
-  letter-spacing: 1px;
-  cursor: pointer; 
-  transition: all .2s cubic-bezier(0.4, 0, 0.2, 1); 
-  text-transform: uppercase; 
-  margin: 1px 0 15px 0; 
-  position: relative; 
-  overflow: hidden;
-  border-radius: 0; 
-  box-shadow: var(--shadow-sm), var(--shadow-glow);
+  color: #000;
+  padding: 0;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+  margin: 1px 0 15px 0;
+  border-radius: 0;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
+
 .create-review-btn:hover:not(:disabled) {
   background: color-mix(in srgb, var(--accent) 90%, #000);
-  transform: translateY(-2px); 
-  box-shadow: var(--shadow-md), 0 0 25px var(--glow);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
-.create-review-btn:disabled { 
-  opacity: .5; 
-  cursor: not-allowed; 
+
+.create-review-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
 }
 
 .review-content { 
@@ -2150,29 +2153,29 @@ input[type="checkbox"]:checked::after {
 }
 
 .theme-dropdown-trigger {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    font-size: 14px;
-    font-weight: 600;
-    min-width: 160px;
-    background: var(--bg-bottom);
-    color: var(--accent);
-    box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--border) !important;
+  border-radius: 0;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 160px;
+  background: var(--panel) !important;
+  color: var(--accent);
+  box-shadow: var(--shadow-sm);
 }
 
 .theme-dropdown-trigger:hover {
+  background: color-mix(in srgb, var(--accent) 90%, #000) !important;
+  border-color: color-mix(in srgb, var(--accent) 90%, #000) !important;
+  color: #000 !important;
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
-  background: var(--accent);
-  border-color: var(--accent);
 }
-
 .theme-preview {
   display: flex;
   gap: 3px;
@@ -2761,3 +2764,4 @@ body {
   outline-offset: 2px;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
 }
+
