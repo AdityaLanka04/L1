@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './Flashcards.css';
 import CustomPopup from './CustomPopup'; 
+import './Flashcards.css';
 
 const Flashcards = () => {
   const [userName, setUserName] = useState('');
@@ -809,72 +809,75 @@ const Flashcards = () => {
             </div>
 
             {flashcards.length > 0 && (
-              <div className="flashcards-section">
-                <div className="flashcard-header">
-                  <div className="flashcard-title-section">
-                    {currentSetInfo && currentSetInfo.saved && editingSetId === currentSetInfo.setId ? (
-                      <div className="rename-input-container">
-                        <input
-                          type="text"
-                          value={editingTitle}
-                          onChange={(e) => setEditingTitle(e.target.value)}
-                          onKeyDown={(e) => handleRenameKeyPress(e, currentSetInfo.setId)}
-                          onBlur={() => handleRenameSubmit(currentSetInfo.setId)}
-                          className="rename-input"
-                          autoFocus
-                        />
-                        <div className="rename-controls">
-                          <button 
-                            onClick={() => handleRenameSubmit(currentSetInfo.setId)}
-                            className="rename-save-btn"
-                          >
-                            ✓
-                          </button>
-                          <button 
-                            onClick={cancelRenaming}
-                            className="rename-cancel-btn"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flashcard-title-display">
-                        <h3 className="flashcard-title">
-                          {currentSetInfo?.setTitle || (generationMode === 'topic' 
-                            ? `Flashcards for: ${topic}` 
-                            : `Flashcards from Your Chat History (${selectedSessions.length} sessions)`
-                          )}
-                        </h3>
-                        {currentSetInfo && currentSetInfo.saved && (
-                          <button
-                            onClick={() => startRenaming(currentSetInfo.setId, currentSetInfo.setTitle)}
-                            className="rename-btn"
-                            title="Rename flashcard set"
-                          >
-                            rename
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="card-counter">
-                    {currentCard + 1} / {flashcards.length}
-                  </div>
-                </div>
+  <div className="flashcards-section">
+    <div className="flashcard-header">
+      <div className="flashcard-title-section">
+        {currentSetInfo && currentSetInfo.saved && editingSetId === currentSetInfo.setId ? (
+          <div className="rename-input-container">
+            <input
+              type="text"
+              value={editingTitle}
+              onChange={(e) => setEditingTitle(e.target.value)}
+              onKeyDown={(e) => handleRenameKeyPress(e, currentSetInfo.setId)}
+              onBlur={() => handleRenameSubmit(currentSetInfo.setId)}
+              className="rename-input"
+              autoFocus
+            />
+            <div className="rename-controls">
+              <button 
+                onClick={() => handleRenameSubmit(currentSetInfo.setId)}
+                className="rename-save-btn"
+              >
+                ✓
+              </button>
+              <button 
+                onClick={cancelRenaming}
+                className="rename-cancel-btn"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flashcard-title-display">
+            <h3 className="flashcard-title">
+              {currentSetInfo?.setTitle || (generationMode === 'topic' 
+                ? `Flashcards for: ${topic}` 
+                : `Flashcards from Your Chat History (${selectedSessions.length} sessions)`
+              )}
+            </h3>
+            {currentSetInfo && currentSetInfo.saved && (
+              <button
+                onClick={() => startRenaming(currentSetInfo.setId, currentSetInfo.setTitle)}
+                className="rename-btn"
+                title="Rename flashcard set"
+              >
+                rename
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="card-counter">
+        {currentCard + 1} / {flashcards.length}
+      </div>
+    </div>
 
-                {/* Save status indicator */}
-                {currentSetInfo && (
-                  <div className={`save-status ${currentSetInfo.saved ? 'saved' : 'unsaved'}`}>
-                    {currentSetInfo.saved ? (
-                      <span> Saved as "{currentSetInfo.setTitle}" ({currentSetInfo.cardCount} cards)</span>
-                    ) : (
-                      <span>Not saved yet - Click "Save Set" to add to your collection</span>
-                    )}
-                  </div>
-                )}
+    {/* Save status indicator - MOVED TO BETTER POSITION */}
+    <div className="flashcard-info-container">
+      {currentSetInfo && (
+  <div className={`save-status ${currentSetInfo.saved ? 'saved flex-position' : 'unsaved'}`}>
+    {currentSetInfo.saved ? (
+      <span>✓ Saved as "{currentSetInfo.setTitle}" ({currentSetInfo.cardCount} cards)</span>
+    ) : (
+      <span>⚠ Not saved yet - Click "Save Set" to add to your collection</span>
+    )}
+  </div>
+)}
+    </div>
 
-                <div className="flashcard-container">
+    <div className="flashcard-container">
+      
                   <div className={`flashcard ${isFlipped ? 'flipped' : ''}`}>
                     {/* Left navigation zone */}
                     <div 
@@ -1125,18 +1128,18 @@ const Flashcards = () => {
                       )}
 
                       <div className="set-actions">
-                        <button 
-                          onClick={() => loadFlashcardSet(set.id)}
-                          className="study-btn"
-                        >
-                          Study Set
-                        </button>
-                        <button 
-                          onClick={() => deleteFlashcardSet(set.id)}
-                          className="delete-btn"
-                        >
-                          Delete
-                        </button>
+    <button 
+      onClick={() => deleteFlashcardSet(set.id)}
+      className="delete-btn"
+    >
+      Delete
+    </button>
+    <button 
+      onClick={() => loadFlashcardSet(set.id)}
+      className="study-btn"
+    >
+      Study Set
+    </button>
                       </div>
 
                       {set.source_type && (

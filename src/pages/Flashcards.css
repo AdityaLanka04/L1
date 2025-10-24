@@ -1900,8 +1900,10 @@ body {
   gap: 12px;
   width: 100%;
   margin-top: 12px;
-  justify-content: space-between;
+  justify-content: flex-end; /* Changed from space-between to flex-end */
+  padding-right: 0; /* Ensure no extra padding */
 }
+
 
 .study-btn {
   background: var(--accent);
@@ -1925,24 +1927,6 @@ body {
   background: color-mix(in srgb, var(--accent) 85%, white);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md), var(--shadow-glow);
-}
-
-.delete-btn {
-  background: var(--danger);
-  border: 1px solid var(--danger);
-  color: white;
-  padding: 11px 24px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: 'Inter', sans-serif;
-  text-align: center;
-  box-shadow: var(--shadow-sm);
-  flex: 0 1 auto;
-  min-width: 100px;
 }
 
 .delete-btn:hover {
@@ -2269,35 +2253,45 @@ body {
 }
 
 /* Enhanced Save status indicator */
+/* Enhanced Save status indicator - FIXED POSITION */
 .save-status {
   text-align: center;
   padding: 15px 25px;
-  margin-bottom: 25px;
+  margin: 20px auto 30px auto; /* Changed from 0 auto to 20px auto */
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.5px;
   backdrop-filter: blur(15px);
-}
-
-.save-status.saved {
-  background: var(--panel);
-  border: 1px solid var(--success);
-  color: var(--success);
+  max-width: 600px;
+  position: relative;
+  z-index: 5; /* Reduced from 10 to prevent overlapping */
+  border: 1px solid;
   box-shadow: var(--shadow-md);
+  clear: both; /* Add this to prevent floating issues */
 }
 
-.save-status.unsaved {
-  background: var(--panel);
-  border: 1px solid var(--warning);
-  color: var(--warning);
-  box-shadow: var(--shadow-md);
+.save-status.banner-style {
+  margin: 20px auto 30px auto; /* Changed from -20px to 20px */
+  width: 100%;
+  max-width: 800px;
+  animation: slideInFromTop 0.3s ease-out;
 }
 
-/* Enhanced Flashcard Container */
+/* Add this to ensure proper spacing in the flashcard section */
+.flashcard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px; /* Reduced from 30px to prevent overlapping */
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+/* Add this to ensure the flashcard container has proper spacing */
 .flashcard-container {
   display: flex;
   justify-content: center;
-  margin-bottom: 50px;
+  margin: 30px 0; /* Added explicit margin */
   perspective: 1200px;
 }
 
@@ -2433,4 +2427,368 @@ body {
 ::selection {
   background: var(--glow);
   color: var(--text-primary);
+}
+
+/* === TOP POSITIONING FOR SAVED STATUS === */
+
+/* Container setup with proper positioning context */
+.flashcard-info-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: 15px;
+    margin-bottom: 20px;
+    position: relative; /* Important for absolute positioning of children */
+    min-height: 60px; /* Ensure container has height */
+}
+
+/* Base save status styling - SAME FOR BOTH */
+.save-status {
+    text-align: center;
+    padding: 10px 18px; /* Same padding for both */
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    max-width: 450px; /* Same max-width for both */
+    width: auto;
+    height: auto; /* Let height be determined by content */
+    min-height: 40px; /* Ensure minimum height is the same */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    position: relative;
+    z-index: 5;
+    border: 1px solid;
+    box-shadow: var(--shadow-sm);
+    border-radius: 4px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    line-height: 1.4; /* Same line-height for consistent height */
+}
+
+/* UNSAVED status - SAME POSITION AS SAVED */
+.save-status.unsaved {
+    background: color-mix(in srgb, var(--warning) 10%, var(--panel));
+    border-color: var(--warning);
+    color: var(--warning);
+    position: absolute; /* Changed from relative to absolute */
+    top: 0; /* Same as saved */
+    right: 20px; /* Same as saved */
+    margin: 0; /* Same as saved */
+    z-index: 9; /* Slightly lower than saved to avoid overlap */
+    animation: slideInFromTop 0.3s ease-out; /* Same animation as saved */
+}
+
+/* SAVED status - positioned at TOP and right */
+.save-status.saved {
+    background: color-mix(in srgb, var(--success) 10%, var(--panel));
+    border-color: var(--success);
+    color: var(--success);
+    position: absolute;
+    top: 0; /* Position at the very top */
+    right: 20px; /* Move right */
+    margin: 0;
+    z-index: 10;
+    animation: slideInFromTop 0.3s ease-out;
+}
+
+/* Alternative: Position in flashcard header */
+.flashcard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 20px;
+    width: 100%;
+    position: relative;
+}
+
+/* Saved status in header */
+.flashcard-header .save-status.saved {
+    position: absolute;
+    top: -40px; /* Position above the header */
+    right: 0;
+    margin: 0;
+    z-index: 15;
+}
+
+/* Unsaved status in header - SAME POSITION AS SAVED */
+.flashcard-header .save-status.unsaved {
+    position: absolute; /* Changed from relative to absolute */
+    top: -40px; /* Same as saved */
+    right: 0; /* Same as saved */
+    margin: 0; /* Same as saved */
+    z-index: 14; /* Slightly lower than saved */
+}
+
+/* Alternative: Top of flashcards section */
+.flashcards-section {
+    background: var(--panel);
+    backdrop-filter: blur(20px) saturate(1.2);
+    border: 1px solid var(--border);
+    border-radius: 0;
+    padding: 50px;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+/* Saved status at very top of section */
+.flashcards-section .save-status.saved {
+    position: absolute;
+    top: 15px; /* Position at top of section */
+    left: 280px;
+    margin: 0;
+    z-index: 20;
+}
+
+/* Unsaved status at very top of section - SAME POSITION AS SAVED */
+.flashcards-section .save-status.unsaved {
+    position: absolute; /* Changed from relative to absolute */
+    top: 15px; /* Same as saved */
+    left: 280px; /* Same as saved */
+    margin: 0; /* Same as saved */
+    z-index: 19; /* Slightly lower than saved */
+}
+
+/* Banner style modifications */
+.save-status.banner-style {
+    width: auto;
+    max-width: 500px;
+    padding: 10px 18px; /* Same padding as base */
+    min-height: 40px; /* Same minimum height */
+}
+
+.save-status.banner-style.unsaved {
+    position: absolute; /* Changed from relative to absolute */
+    top: 0; /* Same as saved */
+    right: 20px; /* Same as saved */
+    margin: 0; /* Same as saved */
+    z-index: 9; /* Slightly lower than saved */
+}
+
+.save-status.banner-style.saved {
+    position: absolute;
+    top: 0; /* Top of container */
+    right: 20px;
+    margin: 0;
+    width: auto;
+    z-index: 10;
+}
+
+/* Status wrapper for better control */
+.status-wrapper {
+    position: relative;
+    width: 100%;
+    min-height: 50px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.status-wrapper .save-status.saved {
+    position: absolute;
+    top: 0; /* Top of wrapper */
+    right: 0;
+    margin: 0;
+    z-index: 10;
+}
+
+.status-wrapper .save-status.unsaved {
+    position: absolute; /* Changed from relative to absolute */
+    top: 0; /* Same as saved */
+    right: 0; /* Same as saved */
+    margin: 0; /* Same as saved */
+    z-index: 9; /* Slightly lower than saved */
+}
+
+/* Animations */
+@keyframes slideInFromTop {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInFromRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .save-status.saved {
+        position: relative;
+        top: auto;
+        right: auto;
+        margin: 10px auto 0 auto;
+        align-self: center;
+    }
+    
+    .save-status.unsaved {
+        position: relative; /* Changed to match saved */
+        top: auto;
+        right: auto;
+        margin: 10px auto 0 auto; /* Changed to match saved */
+        align-self: center;
+    }
+    
+    .flashcard-header .save-status.saved {
+        position: relative;
+        top: auto;
+        right: auto;
+        margin: 10px auto;
+    }
+    
+    .flashcard-header .save-status.unsaved {
+        position: relative; /* Changed to match saved */
+        top: auto;
+        right: auto;
+        margin: 10px auto; /* Changed to match saved */
+    }
+    
+    .flashcards-section .save-status.saved {
+        position: relative;
+        top: auto;
+        right: auto;
+        margin: 10px auto;
+    }
+    
+    .flashcards-section .save-status.unsaved {
+        position: relative; /* Changed to match saved */
+        top: auto;
+        right: auto;
+        margin: 10px auto; /* Changed to match saved */
+    }
+}
+
+.delete-btn {
+  background: var(--danger);
+  border: 1px solid var(--danger);
+  color: white;
+  padding: 11px 24px; /* Same as study-btn */
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', sans-serif;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  flex: 0 0 auto;
+  min-width: 120px; /* Same as study-btn */
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+}
+
+.study-btn {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: var(--bg-top);
+  padding: 11px 24px; /* Same as delete-btn */
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', sans-serif;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  flex: 0 0 auto;
+  min-width: 120px; /* Same as delete-btn */
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+}
+
+/* Ensure both buttons have identical sizing */
+.study-btn, .delete-btn {
+  padding: 11px 24px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', sans-serif;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  flex: 0 0 auto;
+  min-width: 120px;
+  height: auto;
+  line-height: 1.4;
+  border-radius: 0;
+}
+
+/* Ensure the parent container has relative positioning */
+.history-card {
+  background: color-mix(in srgb, var(--panel) 8%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: 24px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative; /* Important for absolute positioning of buttons */
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 70px; /* Added space for buttons at bottom */
+}
+
+/* Alternative: Using flexbox for positioning */
+.set-actions {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between; /* This pushes buttons to opposite ends */
+  align-items: center;
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  width: calc(100% - 40px); /* Account for padding */
+}
+
+/* Remove individual positioning when using set-actions container */
+.set-actions .delete-btn {
+  position: static; /* Override absolute positioning */
+  margin: 0;
+}
+
+.set-actions .study-btn {
+  position: static; /* Override absolute positioning */
+  margin: 0;
+}
+
+/* Hover effects for both buttons */
+.study-btn:hover {
+  background: color-mix(in srgb, var(--accent) 85%, white);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+}
+
+.delete-btn:hover {
+  background: color-mix(in srgb, var(--danger) 85%, white);
+  border-color: var(--danger);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md), 0 0 20px rgba(239, 68, 68, 0.4);
 }
