@@ -808,25 +808,6 @@ const Flashcards = () => {
               )}
             </div>
 
-            {/* Tips Section */}
-            <div className="tips-section">
-              <h3>Study Tips</h3>
-              <div className="tips-grid">
-                <div className="tip-card">
-                  <h4>Spaced Repetition</h4>
-                  <p>Review flashcards at increasing intervals to reinforce long-term memory retention and optimize learning efficiency.</p>
-                </div>
-                <div className="tip-card">
-                  <h4>Active Recall</h4>
-                  <p>Test yourself by retrieving information from memory before checking the answer. This strengthens neural pathways and improves recall.</p>
-                </div>
-                <div className="tip-card">
-                  <h4>Consistent Practice</h4>
-                  <p>Study regularly in shorter sessions rather than cramming. Daily 15-20 minute sessions are more effective than occasional long sessions.</p>
-                </div>
-              </div>
-            </div>
-
             {flashcards.length > 0 && (
               <div className="flashcards-section">
                 <div className="flashcard-header">
@@ -1008,6 +989,26 @@ const Flashcards = () => {
               </div>
             )}
 
+            {/* Tips Section - Below Flashcards */}
+            {flashcards.length > 0 && (
+              <div className="tips-section">
+                <h3>Study Tips</h3>
+                <div className="tips-grid">
+                  <div className="tip-card">
+                    <h4>Spaced Repetition</h4>
+                    <p>Review flashcards at increasing intervals to reinforce long-term memory retention and optimize learning efficiency.</p>
+                  </div>
+                  <div className="tip-card">
+                    <h4>Active Recall</h4>
+                    <p>Test yourself by retrieving information from memory before checking the answer. This strengthens neural pathways and improves recall.</p>
+                  </div>
+                  <div className="tip-card">
+                    <h4>Consistent Practice</h4>
+                    <p>Study regularly in shorter sessions rather than cramming. Daily 15-20 minute sessions are more effective than occasional long sessions.</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
           </>
         )}

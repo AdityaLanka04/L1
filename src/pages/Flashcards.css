@@ -1127,8 +1127,11 @@ body {
 
 /* Enhanced Tips Section */
 .tips-section {
-  margin-top: 4rem;
+  margin-top: 8rem;
+  margin-bottom: 4rem;
   text-align: center;
+  padding-top: 4rem;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .tips-section h3 {
