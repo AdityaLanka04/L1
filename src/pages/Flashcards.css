@@ -2295,17 +2295,83 @@ body {
   perspective: 1200px;
 }
 
+/* FIXED FLASHCARD STYLES - SIMPLIFIED FLIP LOGIC */
 .flashcard {
   width: 600px;
   height: 350px;
   position: relative;
   transform-style: preserve-3d;
-  transition: transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: transform 0.6s ease;
   cursor: pointer;
 }
 
 .flashcard.flipped {
   transform: rotateY(180deg);
+}
+
+.flashcard-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+
+.flashcard-front,
+.flashcard-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 40px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+}
+
+.flashcard-front {
+  transform: rotateY(0deg);
+}
+
+.flashcard-back {
+  transform: rotateY(180deg);
+  background: color-mix(in srgb, var(--accent) 15%, var(--panel));
+  border-color: var(--accent);
+}
+
+.card-label {
+  position: absolute;
+  top: 18px;
+  left: 25px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.card-content {
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  text-align: center;
+  width: 100%;
+  word-wrap: break-word;
+  font-weight: 500;
+}
+
+.flip-hint {
+  position: absolute;
+  bottom: 18px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-style: italic;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
 }
 
 /* Enhanced Navigation zones */
@@ -2356,51 +2422,6 @@ body {
 
 .nav-zone:hover .nav-arrow {
   transform: scale(1.2);
-}
-
-/* Enhanced Flashcard content */
-.flashcard-content {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  transform-style: preserve-3d;
-  cursor: pointer;
-}
-
-.flashcard-front,
-.flashcard-back {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  backface-visibility: hidden;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  padding: 40px;
-  border-radius: 0;
-  backdrop-filter: blur(20px);
-  box-shadow: var(--shadow-lg);
-}
-
-.flashcard-back {
-  transform: rotateY(180deg);
-  background: color-mix(in srgb, var(--accent) 15%, var(--panel));
-  border-color: var(--accent);
-}
-
-.card-label {
-  position: absolute;
-  top: 18px;
-  left: 25px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 1.2px;
-  color: var(--text-secondary);
-  text-transform: uppercase;
 }
 
 /* Scrollbar Styling */
@@ -2792,3 +2813,912 @@ body {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md), 0 0 20px rgba(239, 68, 68, 0.4);
 }
+
+/* ============================================================================
+   CSS ADDITIONS TO Flashcards.css
+   Add these styles to the END of your existing Flashcards.css file
+   ============================================================================ */
+
+
+
+/* ============================================================================
+   ADDITIONAL CSS FIXES FOR FLASHCARDS
+   Add these styles to your Flashcards.css file (after the previous additions)
+   ============================================================================ */
+
+/* Panel Switcher Styles (for My Cards | Generator | Statistics tabs) */
+.panel-switcher {
+  display: flex;
+  background: var(--panel);
+  border: 2px solid var(--border);
+  padding: 4px;
+  gap: 4px;
+  max-width: 550px;
+  margin: 0 auto 50px auto;
+  box-shadow: var(--shadow-md);
+}
+
+.panel-btn {
+  flex: 1;
+  padding: 14px 26px;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+}
+
+.panel-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.panel-btn:hover {
+  background: color-mix(in srgb, var(--panel) 80%, var(--accent) 20%);
+  transform: translateY(-2px);
+}
+
+.panel-btn:hover::before {
+  left: 100%;
+}
+
+.panel-btn.active {
+  background: var(--accent);
+  color: var(--bg-top);
+  font-weight: 700;
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+}
+
+/* Fix for Section Title in Cards/Statistics Panels */
+.cards-section .section-title,
+.statistics-section .section-title {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin-bottom: 0;
+  color: var(--accent);
+  text-transform: lowercase;
+}
+
+/* Fix History Header */
+.cards-section .history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+  margin-top: 0;
+  flex-wrap: wrap;
+  gap: 20px;
+  width: 100%;
+}
+
+.history-header .section-title {
+  margin-bottom: 0;
+}
+
+/* Ensure Generator Section Title is Styled */
+.generator-section .section-title {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin-bottom: 30px;
+  color: var(--accent);
+  text-transform: lowercase;
+  text-align: center;
+}
+
+/* Content Wrapper Spacing */
+.content-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 50px 40px;
+}
+
+/* Cards Section Container */
+.cards-section {
+  width: 100%;
+}
+
+/* Statistics Section Container */
+.statistics-section {
+  width: 100%;
+}
+
+/* Generator Section Container */
+.generator-section {
+  width: 100%;
+  margin-bottom: 40px;
+}
+
+/* Fix spacing between generator section and mode tabs */
+.generator-section + .mode-tabs {
+  margin-top: 30px;
+}
+
+/* Page Title Styles */
+.page-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  color: var(--accent);
+  text-transform: lowercase;
+  margin: 0;
+}
+
+.page-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Responsive Adjustments for Panel Switcher */
+@media (max-width: 768px) {
+  .panel-switcher {
+    max-width: 100%;
+    flex-direction: column;
+  }
+
+  .panel-btn {
+    padding: 12px 20px;
+    font-size: 13px;
+  }
+
+  .cards-section .section-title,
+  .statistics-section .section-title,
+  .generator-section .section-title {
+    font-size: 28px;
+  }
+
+  .content-wrapper {
+    padding: 30px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .panel-switcher {
+    padding: 3px;
+    gap: 3px;
+  }
+
+  .panel-btn {
+    padding: 10px 16px;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+  }
+
+  .cards-section .section-title,
+  .statistics-section .section-title,
+  .generator-section .section-title {
+    font-size: 24px;
+  }
+
+  .page-title {
+    font-size: 24px;
+  }
+
+  .page-subtitle {
+    font-size: 10px;
+  }
+}
+
+/* ============================================================================
+   CLEAN FLASHCARD CONFIGURATION STYLES - NO EMOJIS
+   Replace the previous emoji-filled styles with this clean, professional design
+   Matches your Learning Review quiz configuration style
+   ============================================================================ */
+
+/* Remove all the previous emoji-based styles and use these instead */
+
+/* Configuration Container */
+.flashcard-config-section {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: 32px;
+  margin: 30px auto;
+  max-width: 900px;
+  box-shadow: var(--shadow-md);
+}
+
+/* Form Row - Side by Side Layout */
+.flashcard-form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+/* Form Group */
+.flashcard-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.flashcard-form-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+/* Card Count Input */
+.card-count-input {
+  background: var(--bg-bottom);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  font-weight: 600;
+}
+
+.card-count-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--glow);
+  background: var(--panel);
+}
+
+.card-count-input:hover {
+  border-color: var(--accent);
+}
+
+/* Difficulty Select Dropdown */
+.difficulty-select {
+  background: var(--bg-bottom);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B8C0CC' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 40px;
+  font-weight: 600;
+}
+
+.difficulty-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--glow);
+  background-color: var(--panel);
+}
+
+.difficulty-select:hover {
+  border-color: var(--accent);
+}
+
+/* Depth Select Dropdown */
+.depth-select {
+  background: var(--bg-bottom);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B8C0CC' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 40px;
+  font-weight: 600;
+}
+
+.depth-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--glow);
+  background-color: var(--panel);
+}
+
+.depth-select:hover {
+  border-color: var(--accent);
+}
+
+/* Focus Areas Section */
+.focus-areas-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.focus-areas-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.focus-areas-helper {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  display: block;
+}
+
+.focus-input-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.focus-input {
+  flex: 1;
+  background: var(--bg-bottom);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.focus-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--glow);
+  background: var(--panel);
+}
+
+.focus-input:hover {
+  border-color: var(--accent);
+}
+
+.focus-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.add-focus-button {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  padding: 12px 24px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+}
+
+.add-focus-button:hover {
+  background: var(--accent);
+  color: var(--bg-top);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+}
+
+/* Focus Tags Container */
+.focus-tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.focus-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.focus-tag:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, var(--panel));
+}
+
+.remove-focus-button {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+  margin-left: 4px;
+  transition: all 0.2s;
+  font-weight: 700;
+}
+
+.remove-focus-button:hover {
+  color: var(--danger);
+  transform: scale(1.1);
+}
+
+/* Helper Text */
+.config-helper-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+/* Range Input Styling (for card count slider if you want to add it) */
+input[type="range"].card-range {
+  width: 100%;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+  -webkit-appearance: none;
+  margin: 12px 0;
+}
+
+input[type="range"].card-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--accent);
+  cursor: pointer;
+  border-radius: 0;
+  transition: all 0.2s;
+}
+
+input[type="range"].card-range::-webkit-slider-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 85%, white);
+  transform: scale(1.2);
+}
+
+input[type="range"].card-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--accent);
+  cursor: pointer;
+  border-radius: 0;
+  border: none;
+  transition: all 0.2s;
+}
+
+input[type="range"].card-range::-moz-range-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 85%, white);
+  transform: scale(1.2);
+}
+
+.range-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* Current Value Display */
+.current-value {
+  display: inline-block;
+  margin-left: 8px;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .flashcard-config-section {
+    padding: 24px;
+  }
+
+  .flashcard-form-row {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .focus-input-row {
+    flex-direction: column;
+  }
+
+  .add-focus-button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .flashcard-config-section {
+    padding: 20px;
+    margin: 20px auto;
+  }
+
+  .flashcard-form-label {
+    font-size: 13px;
+  }
+
+  .card-count-input,
+  .difficulty-select,
+  .depth-select,
+  .focus-input {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+}
+
+/* ============================================================================
+   FIXED HORIZONTAL LAYOUT CSS FOR FLASHCARDS
+   Add this to the END of your Flashcards.css (after all other styles)
+   ============================================================================ */
+
+/* Generation Form Container */
+.generation-form-container {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 40px;
+  margin: 40px auto;
+  max-width: 1000px;
+  box-shadow: var(--shadow-md);
+}
+
+/* Form Section */
+.form-section {
+  margin-bottom: 32px;
+}
+
+/* Form Row - Horizontal Layout */
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+/* Form Group */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Form Label */
+.form-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+/* Form Input */
+.form-input {
+  background: var(--bg-bottom);
+  border: 1px solid var(--border);
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--glow);
+  background: var(--panel);
+}
+
+.form-input:hover {
+  border-color: var(--accent);
+}
+
+.form-input::placeholder {
+  color: var(--text-secondary);
+}
+
+/* Form Select */
+.form-select {
+  background: var(--bg-bottom);
+  border: 1px solid var(--border);
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B8C0CC' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--glow);
+  background-color: var(--panel);
+}
+
+.form-select:hover {
+  border-color: var(--accent);
+}
+
+/* Focus Input Row */
+.focus-input-row {
+  display: flex;
+  gap: 12px;
+}
+
+.focus-input-row .form-input {
+  flex: 1;
+}
+
+/* Add Button */
+.add-btn {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  padding: 12px 24px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+}
+
+.add-btn:hover {
+  background: var(--accent);
+  color: var(--bg-top);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+}
+
+/* Focus Tags Container */
+.focus-tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.focus-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.remove-tag-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0;
+  margin-left: 4px;
+  transition: all 0.2s;
+  font-weight: 700;
+}
+
+.remove-tag-btn:hover {
+  color: var(--danger);
+  transform: scale(1.2);
+}
+
+/* Submit Button */
+.submit-btn {
+  background: var(--accent);
+  border: 2px solid var(--accent);
+  color: var(--bg-top);
+  padding: 16px 32px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', sans-serif;
+  width: 100%;
+  margin-top: 12px;
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 85%, white);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg), 0 0 30px var(--glow);
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Flashcard Display Section */
+.flashcards-display-section {
+  max-width: 900px;
+  margin: 60px auto;
+}
+
+/* Flashcard Header */
+.flashcard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.flashcard-set-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 0;
+}
+
+.card-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Flashcard Container - Centered */
+.flashcard-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  margin-bottom: 30px;
+}
+
+/* Navigation Controls */
+.navigation-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 30px;
+}
+
+.nav-btn {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  padding: 12px 24px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', sans-serif;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--bg-top);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+}
+
+.nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .form-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .generation-form-container {
+    padding: 30px 20px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .flashcard-container {
+    min-height: 350px;
+  }
+
+  .navigation-controls {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .nav-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .generation-form-container {
+    padding: 20px 15px;
+  }
+
+  .form-label {
+    font-size: 11px;
+  }
+
+  .form-input,
+  .form-select {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .submit-btn {
+    padding: 14px 24px;
+    font-size: 13px;
+  }
+}
+
+/* ============================================================================
+   END OF CSS ADDITIONS
+   ============================================================================ */
