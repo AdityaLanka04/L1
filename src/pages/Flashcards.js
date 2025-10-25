@@ -435,12 +435,12 @@ const Flashcards = () => {
 
 <div className="header-left">
   <h1 className="page-title clickable-logo" onClick={() => navigate('/dashboard')}>
-    Flashcards
+    BRAINWAVE
   </h1>
-  <p className="page-subtitle">AI-Powered Learning System</p>
+  <p className="page-subtitle">flashcards</p>
 </div>
           <div className="header-right">
-            <button onClick={() => navigate('/dashboard')} className="back-btn">← Dashboard</button>
+            <button onClick={() => navigate('/dashboard')} className="back-btn">Dashboard</button>
           </div>
         </div>
       </header>
