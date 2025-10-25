@@ -464,6 +464,122 @@ const goBackToDashboard = () => {
   setQuestionGenerationMode(null);
 };
 
+const deleteLearningReview = async (reviewId, event) => {
+  event.stopPropagation();
+  
+  if (!window.confirm('Are you sure you want to delete this learning review?')) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`http://localhost:8001/delete_learning_review/${reviewId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (response.ok) {
+      setLearningReviews(prev => prev.filter(review => review.id !== reviewId));
+      alert('Learning review deleted successfully!');
+    } else {
+      const errorData = await response.json().catch(() => ({}));
+      alert(`Failed to delete learning review: ${errorData.detail || 'Unknown error'}`);
+    }
+  } catch (error) {
+    console.error('Error deleting learning review:', error);
+    alert('Error deleting learning review. Please try again.');
+  }
+};
+
+const deleteQuestionSet = async (questionSetId, event) => {
+  event.stopPropagation();
+  
+  if (!window.confirm('Are you sure you want to delete this question set?')) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`http://localhost:8001/delete_question_set/${questionSetId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (response.ok) {
+      setGeneratedQuestions(prev => prev.filter(qSet => qSet.id !== questionSetId));
+      alert('Question set deleted successfully!');
+    } else {
+      const errorData = await response.json().catch(() => ({}));
+      alert(`Failed to delete question set: ${errorData.detail || 'Unknown error'}`);
+    }
+  } catch (error) {
+    console.error('Error deleting question set:', error);
+    alert('Error deleting question set. Please try again.');
+  }
+};
+
+const deleteSlide = async (slideId, event) => {
+  event.stopPropagation();
+  
+  if (!window.confirm('Are you sure you want to delete this slide?')) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`http://localhost:8001/delete_slide/${slideId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (response.ok) {
+      setUploadedSlides(prev => prev.filter(slide => slide.id !== slideId));
+      alert('Slide deleted successfully!');
+    } else {
+      const errorData = await response.json().catch(() => ({}));
+      alert(`Failed to delete slide: ${errorData.detail || 'Unknown error'}`);
+    }
+  } catch (error) {
+    console.error('Error deleting slide:', error);
+    alert('Error deleting slide. Please try again.');
+  }
+};
+
+const deleteChatSession = async (sessionId, event) => {
+  event.stopPropagation();
+  
+  if (!window.confirm('Are you sure you want to delete this chat session?')) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`http://localhost:8001/delete_chat_session/${sessionId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (response.ok) {
+      setChatSessions(prev => prev.filter(session => session.id !== sessionId));
+      alert('Chat session deleted successfully!');
+    } else {
+      const errorData = await response.json().catch(() => ({}));
+      alert(`Failed to delete chat session: ${errorData.detail || 'Unknown error'}`);
+    }
+  } catch (error) {
+    console.error('Error deleting chat session:', error);
+    alert('Error deleting chat session. Please try again.');
+  }
+};
+
 // Modify the tab navigation to save state when switching tabs
 const handleTabChange = (tab) => {
   // Save current roadmap state before switching tabs
@@ -1205,73 +1321,79 @@ const handleTabChange = (tab) => {
   };
 
   const generateQuestions = async () => {
-    // Validation
-    if (selectedSourceType === 'topic' && !questionTopic.trim()) {
-      alert('Please enter a topic or paste content');
-      return;
-    }
-    if (selectedSourceType === 'chat' && !selectedChatId) {
-      alert('Please select a chat session');
-      return;
-    }
-    if (selectedSourceType === 'slide' && !selectedSlideId) {
-      alert('Please select a slide');
-      return;
+  // Validation
+  if (selectedSourceType === 'topic' && !questionTopic.trim()) {
+    alert('Please enter a topic or paste content');
+    return;
+  }
+  if (selectedSourceType === 'chat' && !selectedChatId) {
+    alert('Please select a chat session');
+    return;
+  }
+  if (selectedSourceType === 'slide' && !selectedSlideId) {
+    alert('Please select a slide');
+    return;
+  }
+
+  setIsGeneratingQuestions(true);
+  try {
+    const token = localStorage.getItem('token');
+    
+    let payload = {
+      user_id: userName,
+      source_type: selectedSourceType,
+      num_questions: numberOfQuestions,
+      question_type: questionType
+    };
+
+    // ADD THIS: Properly format the source parameters
+    if (selectedSourceType === 'topic') {
+      payload.topic = questionTopic;
+      // For topic-based generation, we need to use a different approach
+      // since the backend expects chat_session_ids or slide_ids
+      payload.chat_session_ids = []; // Empty array for topic mode
+      payload.slide_ids = []; // Empty array for topic mode
+    } else if (selectedSourceType === 'chat') {
+      payload.chat_session_ids = [selectedChatId]; // Wrap in array
+      payload.slide_ids = [];
+    } else if (selectedSourceType === 'slide') {
+      payload.chat_session_ids = [];
+      payload.slide_ids = [selectedSlideId]; // Wrap in array
     }
 
-    setIsGeneratingQuestions(true);
-    try {
-      const token = localStorage.getItem('token');
+    const response = await fetch('http://localhost:8001/generate_questions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      setGeneratedQuestions([...generatedQuestions, data]);
       
-      let payload = {
-        user_id: userName,
-        source_type: selectedSourceType,
-        num_questions: numberOfQuestions,
-        question_type: questionType
-      };
-
-      if (selectedSourceType === 'topic') {
-        payload.topic = questionTopic;
-      } else if (selectedSourceType === 'chat') {
-        payload.chat_session_id = selectedChatId;
-      } else if (selectedSourceType === 'slide') {
-        payload.slide_id = selectedSlideId;
-      }
-
-      const response = await fetch('http://localhost:8001/generate_questions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setGeneratedQuestions([...generatedQuestions, data]);
-        
-        // Reset form
-        setSelectedSourceType('topic');
-        setSelectedChatId(null);
-        setSelectedSlideId(null);
-        setQuestionTopic('');
-        setNumberOfQuestions(10);
-        setQuestionType('Mixed');
-        
-        alert('Questions generated successfully!');
-      } else {
-        const errorData = await response.json();
-        alert(`Failed to generate questions: ${errorData.detail || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error('Error generating questions:', error);
-      alert('Failed to generate questions');
-    } finally {
-      setIsGeneratingQuestions(false);
+      // Reset form
+      setSelectedSourceType('topic');
+      setSelectedChatId(null);
+      setSelectedSlideId(null);
+      setQuestionTopic('');
+      setNumberOfQuestions(10);
+      setQuestionType('Mixed');
+      
+      alert('Questions generated successfully!');
+    } else {
+      const errorData = await response.json();
+      alert(`Failed to generate questions: ${errorData.detail || 'Unknown error'}`);
     }
-  };
-
+  } catch (error) {
+    console.error('Error generating questions:', error);
+    alert('Failed to generate questions');
+  } finally {
+    setIsGeneratingQuestions(false);
+  }
+};
   const handleLogout = () => {
   // Save current roadmap state before logging out
   if (currentRoadmap) {
@@ -1447,56 +1569,51 @@ const handleTabChange = (tab) => {
           )}
 
           {activeTab === 'roadmap' && !currentRoadmap && (
-            <div className="tab-content">
-              <div className="section-header">
-                <h2>Knowledge Roadmaps</h2>
-                <p>Explore and manage your interactive learning pathways</p>
-              </div>
+  <div className="tab-content">
+    <div className="section-header">
+      <h2>Knowledge Roadmaps</h2>
+      <p>Build interactive learning pathways with expandable concept nodes</p>
+    </div>
 
-              <div className="create-grid">
-                <div className="create-card">
-                  <h3>Create New Roadmap</h3>
-                  <p>Build an interactive map of a topic with expandable nodes. Navigate through concepts and learn progressively.</p>
-                  <button
-                    onClick={() => setShowCreateRoadmapModal(true)}
-                    className="create-card-btn"
-                  >
-                    Create New Roadmap
-                  </button>
-                </div>
-              </div>
+    <div className="create-grid">
+      {/* Only showing the Create Roadmap card */}
+      <div className="create-card">
+        <h3>Create New Roadmap</h3>
+        <p>Build an interactive map of a topic with expandable nodes. Navigate through concepts and learn progressively.</p>
+        <button
+          onClick={() => setShowCreateRoadmapModal(true)}
+          className="go-inside-btn"
+        >
+          GO INSIDE
+        </button>
+      </div>
+    </div>
 
-              {roadmaps.length > 0 && (
-                <div className="section">
-                  <h3>Your Knowledge Roadmaps</h3>
-                  <div className="items-grid">
-                    {roadmaps.map((roadmap) => (
-                      <div key={roadmap.id} className="item-card">
-                        <div className="roadmap-card-header">
-                          <h4>{roadmap.root_topic}</h4>
-                          <button
-                            onClick={(e) => deleteRoadmap(roadmap.id, e)}
-                            className="delete-btn"
-                            title="Delete Roadmap"
-                          >
-                            ×
-                          </button>
-                        </div>
-                        <p>Nodes: {roadmap.total_nodes}</p>
-                        <button
-                          onClick={() => openRoadmap(roadmap)}
-                          className="continue-btn"
-                        >
-                          Explore
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+    {/* Remove the other sections (templates, existing roadmaps, analytics) */}
+    
+    {/* Empty state when no roadmaps exist - MOVED THIS INSIDE THE CORRECT BLOCK */}
+    {roadmaps.length === 0 && (
+      <div className="section">
+        <div className="lr-empty-state">
+          <div className="lr-empty-icon"></div>
+          <h3 className="lr-empty-title">No Roadmaps Yet</h3>
+          <p className="lr-empty-text">
+            Create your first knowledge roadmap to start exploring topics interactively. 
+            Build connections between concepts and track your learning journey.
+          </p>
+          <button
+            onClick={() => setShowCreateRoadmapModal(true)}
+            className="lr-empty-action"
+          >
+            Create Your First Roadmap
+          </button>
+        </div>
+      </div>
+    )}
+  </div>
+)}
 
+    
           {activeTab === 'roadmap' && currentRoadmap && (
             <div className="tab-content">
               <div className="roadmap-section">
@@ -1816,86 +1933,130 @@ const handleTabChange = (tab) => {
           )}
 
           {activeTab === 'history' && (
-            <div className="tab-content">
-              <div className="section-header">
-                <h2>Learning History</h2>
-                <p>View your past learning sessions and progress</p>
-              </div>
+  <div className="tab-content">
+    <div className="section-header">
+      <h2>Learning History</h2>
+      <p>View your past learning sessions and progress</p>
+    </div>
 
-              {roadmaps.length > 0 && (
-                <div className="section">
-                  <h3>Knowledge Roadmaps</h3>
-                  <div className="items-grid">
-                    {roadmaps.map((roadmap) => (
-                      <div key={roadmap.id} className="item-card">
-                        <h4>{roadmap.root_topic}</h4>
-                        <p>Nodes: {roadmap.total_nodes}</p>
-                        <button
-                          onClick={() => openRoadmap(roadmap)}
-                          className="continue-btn"
-                        >
-                          Explore
-                        </button>
-                        <button
-      onClick={(e) => deleteRoadmap(roadmap.id, e)}
-      className="delete-btn"
-      title="Delete Roadmap"
-    >
-      ×
-    </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {learningReviews.length > 0 && (
-                <div className="section">
-                  <h3>Learning Reviews</h3>
-                  <div className="items-grid">
-                    {learningReviews.map((review) => (
-                      <div key={review.id} className="item-card">
-                        <h4>{review.title}</h4>
-                        <p>Status: {review.status}</p>
-                        <button
-                          onClick={() => {
-                            setActiveReview(review);
-                            setReviewResponse('');
-                            setReviewDetails(null);
-                            setActiveTab('active');
-                          }}
-                          className="continue-btn"
-                        >
-                          View
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {generatedQuestions.length > 0 && (
-                <div className="section">
-                  <h3>Question Sets</h3>
-                  <div className="items-grid">
-                    {generatedQuestions.map((qSet) => (
-                      <div key={qSet.id} className="item-card">
-                        <h4>{qSet.title}</h4>
-                        <p>Questions: {qSet.question_count}</p>
-                        <button
-                          onClick={() => loadQuestionSetWithQuestions(qSet.id)}
-                          className="continue-btn"
-                        >
-                          Practice
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+    {roadmaps.length > 0 && (
+      <div className="section">
+        <h3>Knowledge Roadmaps</h3>
+        <div className="items-grid">
+          {roadmaps.map((roadmap) => (
+            <div key={roadmap.id} className="item-card">
+              <button
+                onClick={(e) => deleteRoadmap(roadmap.id, e)}
+                className="lr-delete-btn"
+                title="Delete Roadmap"
+              >
+                ×
+              </button>
+              <h4>{roadmap.root_topic}</h4>
+              <p>Nodes: {roadmap.total_nodes}</p>
+              <button
+                onClick={() => openRoadmap(roadmap)}
+                className="continue-btn"
+              >
+                Explore
+              </button>
             </div>
-          )}
+          ))}
+        </div>
+      </div>
+    )}
 
+    {learningReviews.length > 0 && (
+      <div className="section">
+        <h3>Learning Reviews</h3>
+        <div className="items-grid">
+          {learningReviews.map((review) => (
+            <div key={review.id} className="item-card">
+              <button
+                onClick={(e) => deleteLearningReview(review.id, e)}
+                className="lr-delete-btn"
+                title="Delete Learning Review"
+              >
+                ×
+              </button>
+              <h4>{review.title}</h4>
+              <p>Status: {review.status}</p>
+              <button
+                onClick={() => {
+                  setActiveReview(review);
+                  setReviewResponse('');
+                  setReviewDetails(null);
+                  setActiveTab('active');
+                }}
+                className="continue-btn"
+              >
+                View
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {generatedQuestions.length > 0 && (
+      <div className="section">
+        <h3>Question Sets</h3>
+        <div className="items-grid">
+          {generatedQuestions.map((qSet) => (
+            <div key={qSet.id} className="item-card">
+              <button
+                onClick={(e) => deleteQuestionSet(qSet.id, e)}
+                className="lr-delete-btn"
+                title="Delete Question Set"
+              >
+                ×
+              </button>
+              <h4>{qSet.title}</h4>
+              <p>Questions: {qSet.question_count}</p>
+              <p className="date">Created: {new Date(qSet.created_at).toLocaleDateString()}</p>
+              <button
+                onClick={() => loadQuestionSetWithQuestions(qSet.id)}
+                className="continue-btn"
+              >
+                Practice
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {uploadedSlides.length > 0 && (
+      <div className="section">
+        <h3>Uploaded Slides</h3>
+        <div className="items-grid">
+          {uploadedSlides.map((slide) => (
+            <div key={slide.id} className="item-card">
+              <button
+                onClick={(e) => deleteSlide(slide.id, e)}
+                className="lr-delete-btn"
+                title="Delete Slide"
+              >
+                ×
+              </button>
+              <h4>{slide.name}</h4>
+              <p>{slide.page_count} pages</p>
+              <p className="date">Uploaded: {new Date(slide.uploaded_at).toLocaleDateString()}</p>
+              <button
+                onClick={() => setSelectedSlideForView(slide.id)}
+                className="continue-btn"
+              >
+                View Summary
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    
+  </div>
+)}
           {activeTab === 'questions' && (
             <div className="tab-content">
               <div className="page-header">

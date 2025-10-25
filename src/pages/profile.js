@@ -296,9 +296,9 @@ const Profile = () => {
             <p className="page-subtitle">Customize your AI learning experience</p>
           </div>
           <div className="header-right">
-            {autoSaving && <span className="save-status saving">Saving...</span>}
+            {autoSaving && <span className="profile-save-status saving">Saving...</span>}
             {lastSaved && !autoSaving && (
-              <span className="save-status saved">Saved at {lastSaved}</span>
+              <span className="profile-save-status saved">Saved at {lastSaved}</span>
             )}
             <button className="back-btn" onClick={goBack}>
               Back to Dashboard

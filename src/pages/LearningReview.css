@@ -3220,3 +3220,48 @@ body {
     margin-left: 0;
   }
 }
+
+
+/* ==================== DELETE BUTTON ==================== */
+.lr-delete-btn {
+  position: absolute !important;
+  top: 18px !important;
+  right: 12px !important;
+  background: var(--danger) !important;
+  color: white;
+  border: none !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 0;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  opacity: 1 !important;
+  box-shadow: var(--shadow-sm) !important;
+  z-index: 100 !important;
+  padding: 40 !important;
+  line-height: 1 !important;
+}
+
+.lr-delete-btn:hover {
+  background: var(--accent-dark);
+  transform: scale(1.1);
+  box-shadow: var(--shadow-md);
+}
+
+.lr-delete-btn:active {
+  transform: scale(0.95);
+}
+
+/* Ensure ALL cards have relative positioning for absolute positioning of delete button */
+.lr-card,
+.item-card,
+.slide-card,
+.lr-overview-card,
+.create-card {
+  position: relative;
+}

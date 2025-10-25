@@ -5026,7 +5026,292 @@ async def get_knowledge_roadmap(
     except Exception as e:
         logger.error(f"Error getting roadmap: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to get roadmap: {str(e)}")
+ # ==================== MISSING ENDPOINTS FOR LEARNING REVIEW ====================
+
+@app.get("/get_generated_questions")
+def get_generated_questions(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """Get all generated question sets for a user"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
         
+        question_sets = db.query(models.QuestionSet).filter(
+            models.QuestionSet.user_id == user.id
+        ).order_by(models.QuestionSet.created_at.desc()).all()
+        
+        return {
+            "question_sets": [
+                {
+                    "id": qs.id,
+                    "title": qs.title,
+                    "question_count": qs.question_count,
+                    "created_at": qs.created_at.isoformat(),
+                    "status": qs.status,
+                    "best_score": round(qs.best_score, 1),
+                    "attempt_count": qs.attempt_count
+                }
+                for qs in question_sets
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting generated questions: {str(e)}")
+        return {"question_sets": []}
+
+@app.get("/get_question_set/{question_set_id}")
+def get_question_set_with_questions(question_set_id: int, db: Session = Depends(get_db)):
+    """Get a specific question set with all its questions"""
+    try:
+        question_set = db.query(models.QuestionSet).filter(
+            models.QuestionSet.id == question_set_id
+        ).first()
+        
+        if not question_set:
+            raise HTTPException(status_code=404, detail="Question set not found")
+        
+        questions = db.query(models.Question).filter(
+            models.Question.question_set_id == question_set_id
+        ).order_by(models.Question.order_index).all()
+        
+        return {
+            "id": question_set.id,
+            "title": question_set.title,
+            "description": question_set.description,
+            "questions": [
+                {
+                    "id": q.id,
+                    "question_text": q.question_text,
+                    "question_type": q.question_type,
+                    "options": json.loads(q.options) if q.options else [],
+                    "difficulty": q.difficulty,
+                    "explanation": q.explanation,
+                    "topic": q.topic
+                }
+                for q in questions
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting question set: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/submit_answers")
+async def submit_answers(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """Submit answers for a question set and get results"""
+    try:
+        user_id = payload.get("user_id")
+        question_set_id = payload.get("question_set_id")
+        answers = payload.get("answers", {})
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        question_set = db.query(models.QuestionSet).filter(
+            models.QuestionSet.id == question_set_id
+        ).first()
+        
+        if not question_set:
+            raise HTTPException(status_code=404, detail="Question set not found")
+        
+        questions = db.query(models.Question).filter(
+            models.Question.question_set_id == question_set_id
+        ).all()
+        
+        results = []
+        correct_count = 0
+        
+        for question in questions:
+            user_answer = answers.get(str(question.id), "").strip()
+            is_correct = False
+            
+            if question.question_type == "multiple_choice":
+                is_correct = user_answer.lower() == question.correct_answer.lower()
+            elif question.question_type == "true_false":
+                is_correct = user_answer.lower() == question.correct_answer.lower()
+            else:  # short_answer
+                # For short answer, check if user's answer contains key phrases
+                is_correct = any(keyword in user_answer.lower() 
+                               for keyword in question.correct_answer.lower().split()[:3])
+            
+            if is_correct:
+                correct_count += 1
+            
+            results.append({
+                "question_id": question.id,
+                "user_answer": user_answer,
+                "correct_answer": question.correct_answer,
+                "is_correct": is_correct,
+                "explanation": question.explanation
+            })
+        
+        score = (correct_count / len(questions)) * 100 if questions else 0
+        
+        # Update question set stats
+        question_set.attempt_count += 1
+        if score > question_set.best_score:
+            question_set.best_score = score
+        
+        # Record the attempt
+        attempt = models.QuestionAttempt(
+            question_set_id=question_set_id,
+            user_id=user.id,
+            attempt_number=question_set.attempt_count,
+            answers=json.dumps(answers),
+            score=score,
+            correct_count=correct_count,
+            incorrect_count=len(questions) - correct_count,
+            total_questions=len(questions),
+            submitted_at=datetime.now(timezone.utc)
+        )
+        db.add(attempt)
+        db.commit()
+        
+        return {
+            "status": "success",
+            "score": round(score, 1),
+            "correct_count": correct_count,
+            "total_questions": len(questions),
+            "details": results
+        }
+        
+    except Exception as e:
+        logger.error(f"Error submitting answers: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/get_hints/{question_id}")
+def get_hints_for_question(question_id: int, db: Session = Depends(get_db)):
+    """Get hints for a specific question"""
+    try:
+        question = db.query(models.Question).filter(
+            models.Question.id == question_id
+        ).first()
+        
+        if not question:
+            raise HTTPException(status_code=404, detail="Question not found")
+        
+        # Generate hints based on question content
+        hints = []
+        
+        if question.question_type == "multiple_choice":
+            options = json.loads(question.options) if question.options else []
+            if len(options) >= 2:
+                hints.append(f"Consider the options carefully. Eliminate obviously wrong answers first.")
+                hints.append(f"The correct answer relates to: {question.topic}")
+        
+        elif question.question_type == "true_false":
+            hints.append(f"Think about the fundamental concepts of {question.topic}")
+            hints.append(f"Consider real-world applications of this concept")
+        
+        else:  # short_answer
+            hints.append(f"Focus on the key terms related to {question.topic}")
+            hints.append(f"Think about how this concept is applied in practice")
+        
+        hints.append(f"Review your notes on {question.topic} if you're unsure")
+        
+        return {
+            "question_id": question_id,
+            "hints": hints[:3]  # Return max 3 hints
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting hints: {str(e)}")
+        return {"question_id": question_id, "hints": ["Think about the main concepts covered in this topic."]}
+
+@app.post("/submit_review_response")
+async def submit_review_response(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """Submit a response for a learning review"""
+    try:
+        user_id = payload.get("user_id")
+        review_id = payload.get("review_id")
+        response_text = payload.get("response_text", "")
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        review = db.query(models.LearningReview).filter(
+            models.LearningReview.id == review_id
+        ).first()
+        
+        if not review:
+            raise HTTPException(status_code=404, detail="Learning review not found")
+        
+        # Parse expected points
+        try:
+            expected_points = json.loads(review.expected_points)
+        except:
+            expected_points = []
+        
+        # Simple evaluation - count how many points are mentioned
+        covered_points = []
+        for point in expected_points:
+            if any(keyword in response_text.lower() for keyword in point.lower().split()[:3]):
+                covered_points.append(point)
+        
+        coverage_percentage = (len(covered_points) / len(expected_points)) * 100 if expected_points else 0
+        
+        # Generate feedback
+        if coverage_percentage >= 80:
+            feedback = "Excellent! You've covered most of the key concepts thoroughly."
+            strengths = ["Comprehensive understanding", "Good recall of main points"]
+            improvements = ["Consider adding more specific examples"]
+        elif coverage_percentage >= 60:
+            feedback = "Good effort! You've captured the main ideas but missed some details."
+            strengths = ["Solid grasp of core concepts", "Clear expression"]
+            improvements = ["Add more specific details", "Expand on the applications"]
+        else:
+            feedback = "You're on the right track but missed several key concepts. Review the material and try again."
+            strengths = ["Good attempt at explaining what you remember"]
+            improvements = ["Review the main concepts more thoroughly", "Focus on key definitions and applications"]
+        
+        # Save the attempt
+        attempt = models.LearningReviewAttempt(
+            review_id=review_id,
+            attempt_number=review.current_attempt + 1,
+            user_response=response_text,
+            covered_points=json.dumps(covered_points),
+            missing_points=json.dumps([p for p in expected_points if p not in covered_points]),
+            completeness_percentage=coverage_percentage,
+            feedback=feedback,
+            submitted_at=datetime.now(timezone.utc)
+        )
+        db.add(attempt)
+        
+        # Update review
+        review.current_attempt += 1
+        if coverage_percentage > review.best_score:
+            review.best_score = coverage_percentage
+        
+        if coverage_percentage >= 80:
+            review.status = "completed"
+            review.completed_at = datetime.now(timezone.utc)
+        
+        db.commit()
+        
+        return {
+            "status": "success",
+            "score": round(coverage_percentage, 1),
+            "feedback": feedback,
+            "strengths": strengths,
+            "improvements": improvements,
+            "covered_points": covered_points,
+            "total_points": len(expected_points)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error submitting review response: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+               
 @app.get("/get_user_roadmaps")
 async def get_user_roadmaps(
     user_id: str = Query(...),
