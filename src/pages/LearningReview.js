@@ -1369,13 +1369,13 @@ const handleTabChange = (tab) => {
               <div className="create-grid">
                 {/* Create Roadmap Card */}
                 <div className="create-card">
-                  <h3>Create Knowledge Roadmap</h3>
+                  <h3>Knowledge Roadmap</h3>
                   <p>Build an interactive map of a topic with expandable nodes. Navigate through concepts and learn progressively.</p>
                   <button
                     onClick={() => setShowCreateRoadmapModal(true)}
-                    className="create-card-btn"
+                    className="go-inside-btn"
                   >
-                    Create New Roadmap
+                    Go Inside
                   </button>
                 </div>
 
@@ -1388,9 +1388,9 @@ const handleTabChange = (tab) => {
                       setQuestionGenerationMode('main');
                       setActiveTab('questions');
                     }}
-                    className="create-card-btn"
+                    className="go-inside-btn"
                   >
-                    Generate Questions
+                    Go Inside
                   </button>
                 </div>
 
@@ -1398,8 +1398,8 @@ const handleTabChange = (tab) => {
                 <div className="create-card">
                   <h3>Create Learning Review</h3>
                   <p>Submit a learning review prompt and receive AI feedback on your understanding and progress.</p>
-                  <button className="create-card-btn">
-                    Create Review
+                  <button className="go-inside-btn">
+                    Go Inside
                   </button>
                 </div>
 
@@ -1411,9 +1411,9 @@ const handleTabChange = (tab) => {
                     onClick={() => {
                       setActiveTab('slides');
                     }}
-                    className="create-card-btn"
+                    className="go-inside-btn"
                   >
-                    Upload Slides
+                    Go Inside
                   </button>
                 </div>
               </div>

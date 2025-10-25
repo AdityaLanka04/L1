@@ -18,6 +18,8 @@
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.15);
   --shadow-glow: 0 0 20px var(--glow);
+  
+
 }
 
 * {
@@ -751,16 +753,29 @@ body {
 
 /* ==================== TAB CONTENT ==================== */
 .tab-content {
-  padding: 40px 32px;
-  max-width: 1400px;
-  margin: 0 auto;
+  padding: 0;
+  max-width: 100%;
+  margin: 0;
   width: 100%;
   flex: 1;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-content > .create-grid {
+  flex: 1;
+}
+
+.tab-content > .section {
+  padding: 40px 32px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 /* ==================== SECTION STYLING ==================== */
 .section-header {
+  display: none;
   margin-bottom: 40px;
   padding-bottom: 24px;
   border-bottom: 2px solid var(--border);
@@ -810,24 +825,51 @@ body {
 /* ==================== CREATE GRID ==================== */
 .create-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 24px;
-  margin-bottom: 48px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  margin-bottom: 0;
+  width: 100%;
+  min-height: 100vh;
 }
 
 .create-card {
   background: var(--panel);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 0;
-  padding: 28px;
+  padding: 60px 50px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  box-shadow: var(--shadow-md);
-  min-height: 260px;
+  box-shadow: none;
+  min-height: 0;
+  cursor: pointer;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+/* Alternating primary and accent colors for each card */
+.create-card:nth-child(1) {
+  background: var(--panel);
+  color: var(--accent);
+}
+
+.create-card:nth-child(2) {
+  background: var(--accent);
+  color: var(--panel);
+}
+
+.create-card:nth-child(3) {
+  background: var(--panel);
+  color: var(--accent);
+}
+
+.create-card:nth-child(4) {
+  background: var(--accent);
+  color: var(--panel);
 }
 
 .create-card::before {
@@ -837,9 +879,9 @@ body {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: var(--glow);
+  background: rgba(255, 255, 255, 0.15);
   transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: -1;
+  z-index: 0;
 }
 
 .create-card::after {
@@ -848,8 +890,8 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--accent), transparent);
+  height: 0;
+  background: transparent;
   transition: background 0.3s;
 }
 
@@ -857,26 +899,35 @@ body {
   left: 100%;
 }
 
-.create-card:hover {
-  border-color: var(--accent);
-  transform: translateY(-6px);
-  box-shadow: var(--shadow-lg), 0 0 30px var(--glow);
-}
 
 .create-card h3 {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-size: 32px;
+  font-weight: 800;
+  color: inherit;
   margin: 0;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.5px;
+  position: relative;
+  z-index: 1;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .create-card p {
-  font-size: 14px;
-  color: var(--text-secondary);
+  font-size: 16px;
+  color: inherit;
   line-height: 1.6;
-  flex: 1;
+  flex: 0 0 auto;
   margin: 0;
+  position: relative;
+  z-index: 1;
+  max-width: 280px;
+  opacity: 0.9;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .create-card-icon {
@@ -885,29 +936,80 @@ body {
 }
 
 .create-card-btn {
-  background: var(--accent);
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  font-size: 13px;
-  font-weight: 600;
+  background: transparent;
+  color: inherit;
+  border: 2px solid currentColor;
+  padding: 12px 24px;
+  font-size: 12px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 1px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 0;
-  box-shadow: var(--shadow-sm);
-  margin-top: auto;
-  align-self: flex-start;
+  box-shadow: none;
+  margin-top: 20px;
+  position: relative;
+  z-index: 1;
+  display: none;
 }
 
 .create-card-btn:hover {
-  background: var(--accent-dark);
+  background: currentColor;
+  color: #ffffff;
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.create-card:nth-child(2) .create-card-btn:hover,
+.create-card:nth-child(4) .create-card-btn:hover {
+  background: rgba(0, 0, 0, 0.2);
+  color: inherit;
 }
 
 .create-card-btn:active {
+  transform: translateY(0);
+}
+
+/* GO INSIDE Button */
+.go-inside-btn {
+  background: transparent;
+  color: inherit;
+  border: 2px solid currentColor;
+  padding: 12px 28px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 2px;
+  box-shadow: none;
+  margin-top: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.go-inside-btn:hover {
+  background: currentColor;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.create-card:nth-child(2) .go-inside-btn,
+.create-card:nth-child(4) .go-inside-btn {
+  border-color: var(--panel);
+  color: var(--panel);
+}
+
+.create-card:nth-child(2) .go-inside-btn:hover,
+.create-card:nth-child(4) .go-inside-btn:hover {
+  background: var(--accent);
+  color: var(--panel);
+}
+
+.go-inside-btn:active {
   transform: translateY(0);
 }
 
@@ -1846,7 +1948,19 @@ body {
 /* ==================== RESPONSIVE DESIGN ==================== */
 @media (max-width: 1024px) {
   .create-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .create-card {
+    padding: 50px 40px;
+  }
+
+  .create-card h3 {
+    font-size: 28px;
+  }
+
+  .create-card p {
+    font-size: 15px;
   }
 
   .items-grid {
@@ -1876,7 +1990,7 @@ body {
   }
 
   .tab-content {
-    padding: 24px 16px;
+    padding: 0;
   }
 
   .lr-section-header {
@@ -1892,12 +2006,22 @@ body {
   }
 
   .create-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+    min-height: auto;
   }
 
   .create-card {
-    min-height: 220px;
+    min-height: 50vh;
+    padding: 40px 24px;
+  }
+
+  .create-card h3 {
+    font-size: 24px;
+  }
+
+  .create-card p {
+    font-size: 14px;
   }
 
   .items-grid {
@@ -1976,20 +2100,26 @@ body {
   }
 
   .tab-content {
-    padding: 16px 12px;
+    padding: 0;
   }
 
   .create-grid {
-    gap: 12px;
+    gap: 0;
+    grid-template-columns: 1fr;
+    min-height: auto;
   }
 
   .create-card {
-    padding: 20px;
-    min-height: 200px;
+    padding: 30px 20px;
+    min-height: 60vh;
   }
 
   .create-card h3 {
-    font-size: 16px;
+    font-size: 20px;
+  }
+
+  .create-card p {
+    font-size: 13px;
   }
 
   .items-grid {
