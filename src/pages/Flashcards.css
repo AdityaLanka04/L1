@@ -3719,6 +3719,63 @@ input[type="range"].card-range::-moz-range-thumb:hover {
   }
 }
 
+/* Add these styles to your existing Flashcards.css */
+
+/* Make the page title clickable like brainwave in AI Chat */
+.page-title.clickable-logo {
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 10px 15px;
+  user-select: none;
+  position: relative;
+}
+
+.page-title.clickable-logo::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  opacity: 0;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.page-title.clickable-logo:hover::before {
+  opacity: 1;
+}
+
+.page-title.clickable-logo:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+}
+
+/* Add the underline animation like in AI Chat */
+.page-title.clickable-logo::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--accent);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.page-title.clickable-logo:hover::after {
+  width: 100%;
+}
+
+/* Update the existing page-title styles if needed */
+.page-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  color: var(--accent);
+  text-transform: lowercase;
+  margin: 0;
+}
 /* ============================================================================
    END OF CSS ADDITIONS
    ============================================================================ */

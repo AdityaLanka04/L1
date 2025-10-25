@@ -431,10 +431,14 @@ const Flashcards = () => {
     <div className="flashcards-page">
       <header className="flashcards-header">
         <div className="header-content">
-          <div className="header-left">
-            <h1 className="page-title">Flashcards</h1>
-            <p className="page-subtitle">AI-Powered Learning System</p>
-          </div>
+          
+
+<div className="header-left">
+  <h1 className="page-title clickable-logo" onClick={() => navigate('/dashboard')}>
+    Flashcards
+  </h1>
+  <p className="page-subtitle">AI-Powered Learning System</p>
+</div>
           <div className="header-right">
             <button onClick={() => navigate('/dashboard')} className="back-btn">← Dashboard</button>
           </div>
@@ -483,166 +487,214 @@ const Flashcards = () => {
                     From Chat History
                   </button>
                 </div>
-              </div>
 
-              {generationMode === 'topic' && (
-                <div className="generation-form-container">
-                  {/* Topic Input */}
-                  <div className="form-section">
-                    <label className="form-label">Topic</label>
-                    <input
-                      type="text"
-                      placeholder="Enter a topic (e.g., 'Physics - Newton's Laws')"
-                      value={topic}
-                      onChange={(e) => setTopic(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && !generating && generateFlashcards()}
-                      className="form-input"
-                      disabled={generating}
-                    />
-                  </div>
-
-                  {/* Configuration Grid - Horizontal Layout */}
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label className="form-label">Number of Cards</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="50"
-                        value={cardCount}
-                        onChange={(e) => setCardCount(parseInt(e.target.value) || 10)}
-                        className="form-input"
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label">Difficulty Level</label>
-                      <select
-                        value={difficultyLevel}
-                        onChange={(e) => setDifficultyLevel(e.target.value)}
-                        className="form-select"
-                      >
-                        <option value="easy">Easy - Basic Recall</option>
-                        <option value="medium">Medium - Application</option>
-                        <option value="hard">Hard - Critical Analysis</option>
-                        <option value="mixed">Mixed - All Levels</option>
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label">Answer Depth</label>
-                      <select
-                        value={depthLevel}
-                        onChange={(e) => setDepthLevel(e.target.value)}
-                        className="form-select"
-                      >
-                        <option value="surface">Surface (1-2 sentences)</option>
-                        <option value="standard">Standard (2-4 sentences)</option>
-                        <option value="deep">Deep (4-6 sentences)</option>
-                        <option value="comprehensive">Comprehensive (6+ sentences)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Focus Areas */}
-                  <div className="form-section">
-                    <label className="form-label">Focus Areas (Optional)</label>
-                    <div className="focus-input-row">
+                {/* BY TOPIC SECTION */}
+                {generationMode === 'topic' && (
+                  <div className="generation-form-container">
+                    {/* Topic Input */}
+                    <div className="form-section">
+                      <label className="form-label">Topic</label>
                       <input
                         type="text"
-                        value={focusInput}
-                        onChange={(e) => setFocusInput(e.target.value)}
-                        onKeyPress={handleFocusKeyPress}
-                        placeholder="e.g., quantum mechanics"
+                        placeholder="Enter a topic (e.g., 'Physics - Newton's Laws')"
+                        value={topic}
+                        onChange={(e) => setTopic(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && !generating && generateFlashcards()}
                         className="form-input"
+                        disabled={generating}
                       />
-                      <button type="button" onClick={addFocusArea} className="add-btn">
-                        Add
-                      </button>
                     </div>
-                    {focusAreas.length > 0 && (
-                      <div className="focus-tags-container">
-                        {focusAreas.map((area, index) => (
-                          <div key={index} className="focus-tag">
-                            {area}
-                            <button
-                              type="button"
-                              onClick={() => removeFocusArea(index)}
-                              className="remove-tag-btn"
-                            >
-                              ×
-                            </button>
+
+                    {/* Configuration Grid - Horizontal Layout */}
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label className="form-label">Number of Cards</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="50"
+                          value={cardCount}
+                          onChange={(e) => setCardCount(parseInt(e.target.value) || 10)}
+                          className="form-input"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Difficulty Level</label>
+                        <select
+                          value={difficultyLevel}
+                          onChange={(e) => setDifficultyLevel(e.target.value)}
+                          className="form-select"
+                        >
+                          <option value="easy">Easy - Basic Recall</option>
+                          <option value="medium">Medium - Application</option>
+                          <option value="hard">Hard - Critical Analysis</option>
+                          <option value="mixed">Mixed - All Levels</option>
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Answer Depth</label>
+                        <select
+                          value={depthLevel}
+                          onChange={(e) => setDepthLevel(e.target.value)}
+                          className="form-select"
+                        >
+                          <option value="surface">Surface (1-2 sentences)</option>
+                          <option value="standard">Standard (2-4 sentences)</option>
+                          <option value="deep">Deep (4-6 sentences)</option>
+                          <option value="comprehensive">Comprehensive (6+ sentences)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Focus Areas */}
+                    <div className="form-section">
+                      <label className="form-label">Focus Areas (Optional)</label>
+                      <div className="focus-input-row">
+                        <input
+                          type="text"
+                          value={focusInput}
+                          onChange={(e) => setFocusInput(e.target.value)}
+                          onKeyPress={handleFocusKeyPress}
+                          placeholder="e.g., quantum mechanics"
+                          className="form-input"
+                        />
+                        <button type="button" onClick={addFocusArea} className="add-btn">
+                          Add
+                        </button>
+                      </div>
+                      {focusAreas.length > 0 && (
+                        <div className="focus-tags-container">
+                          {focusAreas.map((area, index) => (
+                            <div key={index} className="focus-tag">
+                              {area}
+                              <button
+                                type="button"
+                                onClick={() => removeFocusArea(index)}
+                                className="remove-tag-btn"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Generate Button */}
+                    <button
+                      onClick={generateFlashcards}
+                      disabled={generating || !topic.trim()}
+                      className="submit-btn"
+                    >
+                      {generating ? 'Generating...' : 'Generate Flashcards'}
+                    </button>
+                  </div>
+                )}
+
+                {/* CHAT HISTORY SECTION */}
+                {generationMode === 'chat_history' && (
+                  <div className="chat-history-section">
+                    <div className="chat-history-header">
+                      <h3>Select Chat Sessions:</h3>
+                      <div className="selection-controls">
+                        <button onClick={selectAllSessions} className="select-all-btn" disabled={chatSessions.length === 0}>
+                          Select All
+                        </button>
+                        <button onClick={clearAllSessions} className="clear-all-btn" disabled={selectedSessions.length === 0}>
+                          Clear All
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label className="form-label">Number of Cards</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="50"
+                          value={cardCount}
+                          onChange={(e) => setCardCount(parseInt(e.target.value) || 10)}
+                          className="form-input"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Difficulty Level</label>
+                        <select
+                          value={difficultyLevel}
+                          onChange={(e) => setDifficultyLevel(e.target.value)}
+                          className="form-select"
+                        >
+                          <option value="easy">Easy - Basic Recall</option>
+                          <option value="medium">Medium - Application</option>
+                          <option value="hard">Hard - Critical Analysis</option>
+                          <option value="mixed">Mixed - All Levels</option>
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Answer Depth</label>
+                        <select
+                          value={depthLevel}
+                          onChange={(e) => setDepthLevel(e.target.value)}
+                          className="form-select"
+                        >
+                          <option value="surface">Surface (1-2 sentences)</option>
+                          <option value="standard">Standard (2-4 sentences)</option>
+                          <option value="deep">Deep (4-6 sentences)</option>
+                          <option value="comprehensive">Comprehensive (6+ sentences)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Focus Areas */}
+                    
+                    
+                    {chatSessions.length === 0 ? (
+                      <div className="no-chats">
+                        <p>No chat sessions found. Start a conversation in <button onClick={goToChat} className="link-btn">AI Chat</button> first!</p>
+                      </div>
+                    ) : (
+                      <div className="chat-sessions-grid">
+                        {chatSessions.map((session) => (
+                          <div
+                            key={session.id}
+                            className={`chat-session-card ${selectedSessions.includes(session.id) ? 'selected' : ''}`}
+                            onClick={() => handleSessionToggle(session.id)}
+                          >
+                            <div className="session-checkbox">
+                              <input 
+                                type="checkbox" 
+                                checked={selectedSessions.includes(session.id)}
+                                onChange={() => handleSessionToggle(session.id)}
+                              />
+                            </div>
+                            <div className="session-info">
+                              <div className="session-title">{session.title}</div>
+                              <div className="session-date">{new Date(session.created_at).toLocaleDateString()}</div>
+                            </div>
                           </div>
                         ))}
                       </div>
                     )}
-                  </div>
-
-                  {/* Generate Button */}
-                  <button
-                    onClick={generateFlashcards}
-                    disabled={generating || !topic.trim()}
-                    className="submit-btn"
-                  >
-                    {generating ? 'Generating...' : 'Generate Flashcards'}
-                  </button>
-                </div>
-              )}
-
-              {generationMode === 'chat_history' && (
-                <div className="chat-history-section">
-                  <div className="chat-history-header">
-                    <h3>Select Chat Sessions:</h3>
-                    <div className="selection-controls">
-                      <button onClick={selectAllSessions} className="select-all-btn" disabled={chatSessions.length === 0}>
-                        Select All
-                      </button>
-                      <button onClick={clearAllSessions} className="clear-all-btn" disabled={selectedSessions.length === 0}>
-                        Clear All
+                    
+                    <div className="chat-generate-section">
+                      <button
+                        onClick={generateFlashcards}
+                        disabled={generating || selectedSessions.length === 0}
+                        className="submit-btn"
+                      >
+                        {generating ? 'Generating...' : `Generate from ${selectedSessions.length} Session(s)`}
                       </button>
                     </div>
                   </div>
-                  
-                  {chatSessions.length === 0 ? (
-                    <div className="no-chats">
-                      <p>No chat sessions found. Start a conversation in <button onClick={goToChat} className="link-btn">AI Chat</button> first!</p>
-                    </div>
-                  ) : (
-                    <div className="chat-sessions-grid">
-                      {chatSessions.map((session) => (
-                        <div
-                          key={session.id}
-                          className={`chat-session-card ${selectedSessions.includes(session.id) ? 'selected' : ''}`}
-                          onClick={() => handleSessionToggle(session.id)}
-                        >
-                          <div className="session-checkbox">
-                            <input 
-                              type="checkbox" 
-                              checked={selectedSessions.includes(session.id)}
-                              onChange={() => handleSessionToggle(session.id)}
-                            />
-                          </div>
-                          <div className="session-info">
-                            <div className="session-title">{session.title}</div>
-                            <div className="session-date">{new Date(session.created_at).toLocaleDateString()}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  <div className="chat-generate-section">
-                    <button
-                      onClick={generateFlashcards}
-                      disabled={generating || selectedSessions.length === 0}
-                      className="submit-btn"
-                    >
-                      {generating ? 'Generating...' : `Generate from ${selectedSessions.length} Session(s)`}
-                    </button>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
 
+              {/* FLASHCARDS DISPLAY SECTION */}
               {flashcards.length > 0 && (
                 <div className="flashcards-display-section">
                   <div className="flashcard-header">
@@ -653,28 +705,28 @@ const Flashcards = () => {
                   </div>
 
                   <div className="flashcard-container">
-  <div 
-    className={`flashcard ${isFlipped ? 'flipped' : ''}`}
-    onClick={() => setIsFlipped(!isFlipped)}
-  >
-    <div className="flashcard-inner">
-      <div className="flashcard-front">
-        <div className="card-label">Question</div>
-        <div className="card-content">
-          {flashcards[currentCard]?.question}
-        </div>
-        <div className="flip-hint">Click to flip</div>
-      </div>
-      <div className="flashcard-back">
-        <div className="card-label">Answer</div>
-        <div className="card-content">
-          {flashcards[currentCard]?.answer}
-        </div>
-        <div className="flip-hint">Click to flip back</div>
-      </div>
-    </div>
-  </div>
-</div>
+                    <div 
+                      className={`flashcard ${isFlipped ? 'flipped' : ''}`}
+                      onClick={() => setIsFlipped(!isFlipped)}
+                    >
+                      <div className="flashcard-inner">
+                        <div className="flashcard-front">
+                          <div className="card-label">Question</div>
+                          <div className="card-content">
+                            {flashcards[currentCard]?.question}
+                          </div>
+                          <div className="flip-hint">Click to flip</div>
+                        </div>
+                        <div className="flashcard-back">
+                          <div className="card-label">Answer</div>
+                          <div className="card-content">
+                            {flashcards[currentCard]?.answer}
+                          </div>
+                          <div className="flip-hint">Click to flip back</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   <div className="navigation-controls">
                     <button 
                       onClick={handlePrevious} 
