@@ -3776,12 +3776,7 @@ input[type="range"].card-range::-moz-range-thumb:hover {
   text-transform: lowercase;
   margin: 0;
 }
-.clickable-logo {
-  text-transform: uppercase !important;
-  font-size: 2rem; 
-  font-weight: bold;
-  letter-spacing: 2px; 
-}
+
 /* ============================================================================
    END OF CSS ADDITIONS
    ============================================================================ */
