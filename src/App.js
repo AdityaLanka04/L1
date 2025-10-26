@@ -3,7 +3,11 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from './pages/Dashboard';
 import AIChat from './pages/AIChat';
 import Homepage from './pages/Homepage';
-import LearningReview from './pages/LearningReview';
+import LearningReviewHub from './pages/LearningReviewHub';
+import KnowledgeRoadmap from './pages/KnowledgeRoadmap';
+import QuestionBank from './pages/QuestionBank';
+import SlideExplorer from './pages/SlideExplorer';
+import Statistics from './pages/Statistics';
 import Flashcards from './pages/Flashcards';
 import Notes from './pages/NotesRedesign';
 import Login from './pages/Login';
@@ -24,7 +28,11 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/ai-chat" element={<AIChat />} />
           <Route path="/ai-chat/:chatId?" element={<AIChat />} />
-          <Route path="/learning-review" element={<LearningReview />} />
+          <Route path="/learning-review" element={<LearningReviewHub />} />
+          <Route path="/knowledge-roadmap" element={<KnowledgeRoadmap />} />
+          <Route path="/question-bank" element={<QuestionBank />} />
+          <Route path="/slide-explorer" element={<SlideExplorer />} />
+          <Route path="/statistics" element={<Statistics />} />
           <Route path="/flashcards" element={<Flashcards />} />
           <Route path="/notes" element={<Notes />} />
           <Route path="/profile" element={<Profile />} />
