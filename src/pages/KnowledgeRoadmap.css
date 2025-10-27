@@ -1283,3 +1283,56 @@ body {
     border-top: 2px solid var(--border);
   }
 }
+/* ==================== DELETE BUTTON - EXACT QUESTION BANK STYLES ==================== */
+.kr-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.kr-card-icon {
+  width: 56px !important;
+  height: 56px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-bottom)) !important;
+  border-radius: 0;
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-bottom: 0 !important;
+}
+
+.kr-delete-btn {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-secondary) !important;
+  cursor: pointer !important;
+  padding: 6px !important;
+  border-radius: 0 !important;
+  transition: all 0.2s !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+  opacity: 0.7;
+}
+
+.kr-delete-btn:hover {
+  background: color-mix(in srgb, var(--danger) 8%, transparent) !important;
+  color: var(--danger) !important;
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+/* Ensure card content is clickable */
+.kr-card-content {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 20px;
+  cursor: pointer;
+}

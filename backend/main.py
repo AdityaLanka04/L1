@@ -4186,14 +4186,15 @@ async def expand_knowledge_node(
         if not node:
             raise HTTPException(status_code=404, detail="Node not found")
         
+        # Check if already expanded to avoid duplicate work
         if node.expansion_status == "expanded":
-            # Already expanded, return existing children
             children = db.query(models.KnowledgeNode).filter(
                 models.KnowledgeNode.parent_node_id == node_id
             ).all()
             
             return {
-                "status": "already_expanded",
+                "status": "success",
+                "message": "Node already expanded",
                 "child_nodes": [
                     {
                         "id": child.id,
@@ -4208,6 +4209,10 @@ async def expand_knowledge_node(
                     for child in children
                 ]
             }
+        
+        # Update expansion status immediately to prevent duplicate requests
+        node.expansion_status = "expanding"
+        db.commit()
         
         # Get user for personalized generation
         user = db.query(models.User).filter(models.User.id == node.user_id).first()
@@ -4316,7 +4321,7 @@ Generate 4-5 subtopics now:"""
             db.add(child_node)
             child_nodes.append(child_node)
         
-        # Update parent node
+        # Update parent node status to expanded
         node.expansion_status = "expanded"
         node.generated_subtopics = json.dumps(subtopics)
         
@@ -4354,12 +4359,16 @@ Generate 4-5 subtopics now:"""
         }
         
     except HTTPException:
+        db.rollback()
         raise
     except Exception as e:
         logger.error(f"Error expanding node: {str(e)}", exc_info=True)
+        # Reset expansion status on error
+        if node:
+            node.expansion_status = "unexpanded"
+            db.commit()
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to expand node: {str(e)}")
-
 
 @app.post("/explore_node/{node_id}")
 async def explore_node(
@@ -4611,6 +4620,53 @@ async def get_knowledge_roadmap(
     except Exception as e:
         logger.error(f"Error getting roadmap: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to get roadmap: {str(e)}")
+
+@app.get("/get_user_roadmaps")
+async def get_user_roadmaps(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Get all knowledge roadmaps for a user
+    """
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        roadmaps = db.query(models.KnowledgeRoadmap).filter(
+            models.KnowledgeRoadmap.user_id == user.id
+        ).order_by(models.KnowledgeRoadmap.last_accessed.desc()).all()
+        
+        roadmap_data = []
+        for roadmap in roadmaps:
+            # Get root node info
+            root_node = db.query(models.KnowledgeNode).filter(
+                models.KnowledgeNode.id == roadmap.root_node_id
+            ).first()
+            
+            roadmap_data.append({
+                "id": roadmap.id,
+                "title": roadmap.title,
+                "root_topic": roadmap.root_topic,
+                "total_nodes": roadmap.total_nodes,
+                "max_depth_reached": roadmap.max_depth_reached,
+                "status": roadmap.status,
+                "created_at": roadmap.created_at.isoformat(),
+                "last_accessed": roadmap.last_accessed.isoformat() if roadmap.last_accessed else roadmap.created_at.isoformat()
+            })
+        
+        return {
+            "status": "success",
+            "roadmaps": roadmap_data
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting user roadmaps: {str(e)}")
+        return {
+            "status": "error",
+            "roadmaps": []
+        }
  # ==================== MISSING ENDPOINTS FOR LEARNING REVIEW ====================
 
 @app.get("/get_generated_questions")

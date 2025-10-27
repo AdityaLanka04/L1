@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReactFlow, {
   Background,
@@ -10,7 +10,7 @@ import ReactFlow, {
   Position,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Plus, Loader, MapPin, Book, Sparkles } from 'lucide-react';
+import { Plus, Loader, MapPin, Book, Sparkles, Trash2 } from 'lucide-react';
 import './KnowledgeRoadmap.css';
 
 const CustomNode = ({ data }) => {
@@ -39,18 +39,25 @@ const CustomNode = ({ data }) => {
       <div className="kr-node-actions-flow">
         <button 
           className="kr-node-btn-flow kr-explore-btn nodrag nopan"
-          onClick={(e) => { e.stopPropagation(); data.onExplore && data.onExplore(data.nodeId); }}
-          disabled={data.isExploring}
+          onClick={(e) => { 
+            e.stopPropagation(); 
+            data.onExplore && data.onExplore(data.nodeId); 
+          }}
+          disabled={data.isExploring || data.isExpanding}
         >
           <Book size={14} />
           {data.isExploring ? 'Exploring...' : 'Explore'}
         </button>
-        {data.expansionStatus === 'unexpanded' && (
+        {(data.expansionStatus === 'unexpanded' || !data.expansionStatus) && (
           <button 
             className="kr-node-btn-flow kr-expand-btn nodrag nopan"
-            onClick={(e) => { e.stopPropagation(); data.onExpand && data.onExpand(data.nodeId); }}
-            disabled={data.isExpanding}
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              data.onExpand && data.onExpand(data.nodeId); 
+            }}
+            disabled={data.isExpanding || data.isExploring}
           >
+            <Plus size={14} />
             {data.isExpanding ? 'Expanding...' : 'Expand'}
           </button>
         )}
@@ -78,9 +85,52 @@ const KnowledgeRoadmap = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [expandedNodes, setExpandedNodes] = useState(new Set());
+  const [exploredNodesCache, setExploredNodesCache] = useState(new Map()); // Cache for explored nodes
 
+  // Save the current UI state (which nodes are actually expanded in the current view)
+  useEffect(() => {
+    if (currentRoadmap && currentRoadmap.id && nodes.length > 0) {
+      const roadmapState = {
+        expandedNodes: Array.from(expandedNodes),
+        exploredNodesCache: Array.from(exploredNodesCache.entries()),
+        timestamp: Date.now()
+      };
+      localStorage.setItem(`roadmap_state_${currentRoadmap.id}`, JSON.stringify(roadmapState));
+      console.log('Saved roadmap UI state:', roadmapState);
+    }
+  }, [expandedNodes, exploredNodesCache, currentRoadmap, nodes]);
+
+  // Load the saved UI state
+  const loadRoadmapState = useCallback((roadmapId) => {
+    const savedState = localStorage.getItem(`roadmap_state_${roadmapId}`);
+    if (savedState) {
+      try {
+        const state = JSON.parse(savedState);
+        console.log('Loading saved roadmap UI state:', state);
+        return state;
+      } catch (error) {
+        console.error('Error loading roadmap state:', error);
+      }
+    }
+    return null;
+  }, []);
+
+  // Clear roadmap state
+  const clearRoadmapState = useCallback((roadmapId) => {
+    if (roadmapId) {
+      localStorage.removeItem(`roadmap_state_${roadmapId}`);
+    }
+    setExpandedNodes(new Set());
+    setExploredNodesCache(new Map());
+  }, []);
+
+  // Create refs for callbacks to prevent stale closures
   const expandNodeRef = useRef(null);
   const exploreNodeRef = useRef(null);
+
+  // Layout constants
+  const HORIZONTAL_SPACING = 280;
+  const VERTICAL_SPACING = 250;
 
   const nodeTypes = useMemo(() => ({
     custom: CustomNode,
@@ -99,6 +149,8 @@ const KnowledgeRoadmap = () => {
       if (response.ok) {
         const data = await response.json();
         setRoadmaps(data.roadmaps || []);
+      } else {
+        console.error('Failed to fetch roadmaps:', response.status);
       }
     } catch (error) {
       console.error('Error fetching roadmaps:', error);
@@ -131,6 +183,10 @@ const KnowledgeRoadmap = () => {
         const data = await response.json();
         setShowCreateModal(false);
         setRootTopic('');
+        
+        // Clear any existing state for new roadmap
+        clearRoadmapState(data.roadmap_id);
+        
         await fetchRoadmaps();
         viewRoadmap(data.roadmap_id);
       } else {
@@ -144,136 +200,45 @@ const KnowledgeRoadmap = () => {
     }
   };
 
-  const viewRoadmap = async (roadmapId) => {
+  const deleteRoadmap = async (roadmapId) => {
+    if (!window.confirm('Are you sure you want to delete this roadmap? This action cannot be undone.')) {
+      return;
+    }
+
     try {
-      setLoading(true);
-      const response = await fetch(`http://localhost:8001/get_knowledge_roadmap/${roadmapId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const response = await fetch(`http://localhost:8001/delete_roadmap/${roadmapId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setCurrentRoadmap(data.roadmap);
+        // Remove the deleted roadmap from state
+        setRoadmaps(prev => prev.filter(roadmap => roadmap.id !== roadmapId));
         
-        const allNodes = data.nodes_flat || [];
-        const backendExpandedNodes = new Set(data.expanded_nodes || []);
+        // Clear saved state for this roadmap
+        clearRoadmapState(roadmapId);
         
-        const nodeMap = new Map();
-        const childMap = new Map();
-        
-        allNodes.forEach(node => {
-          nodeMap.set(node.id, node);
-          if (node.parent_id) {
-            if (!childMap.has(node.parent_id)) {
-              childMap.set(node.parent_id, []);
-            }
-            childMap.get(node.parent_id).push(node);
-          }
-        });
-        
-        const rootNodes = allNodes.filter(node => !node.parent_id);
-        const newExpandedNodes = new Set(backendExpandedNodes);
-        
-        const ensureAncestorsExpanded = (nodeId) => {
-          const node = nodeMap.get(nodeId);
-          if (!node || !node.parent_id) return;
-          const parent = nodeMap.get(node.parent_id);
-          if (parent) {
-            newExpandedNodes.add(parent.id);
-            ensureAncestorsExpanded(parent.id);
-          }
-        };
-        
-        newExpandedNodes.forEach(nodeId => {
-          ensureAncestorsExpanded(nodeId);
-        });
-        
-        const visibleNodes = new Set();
-        const nodesToProcess = [...rootNodes];
-        
-        while (nodesToProcess.length > 0) {
-          const currentNode = nodesToProcess.shift();
-          visibleNodes.add(currentNode.id);
-          
-          if (newExpandedNodes.has(currentNode.id)) {
-            const children = childMap.get(currentNode.id) || [];
-            nodesToProcess.push(...children);
-          }
+        // If the current roadmap is being viewed, clear it
+        if (currentRoadmap && currentRoadmap.id === roadmapId) {
+          setCurrentRoadmap(null);
+          setNodes([]);
+          setEdges([]);
+          setNodeExplanation(null);
         }
         
-        setExpandedNodes(newExpandedNodes);
-        
-        const filteredNodes = allNodes.filter(node => visibleNodes.has(node.id));
-        
-        const nodesByDepth = new Map();
-        filteredNodes.forEach(node => {
-          if (!nodesByDepth.has(node.depth_level)) {
-            nodesByDepth.set(node.depth_level, []);
-          }
-          nodesByDepth.get(node.depth_level).push(node);
-        });
-
-        const flowNodes = filteredNodes.map(node => {
-          const nodesAtThisDepth = nodesByDepth.get(node.depth_level) || [];
-          const indexAtDepth = nodesAtThisDepth.indexOf(node);
-          const horizontalSpacing = 280;
-          const baseVerticalSpacing = 250;
-          const depthMultiplier = 1.2;
-          const verticalSpacing = baseVerticalSpacing * Math.pow(depthMultiplier, node.depth_level);
-          
-          const totalWidth = (nodesAtThisDepth.length - 1) * horizontalSpacing;
-          const startX = 400 - (totalWidth / 2);
-
-          return {
-            id: String(node.id),
-            type: 'custom',
-            position: {
-              x: startX + (indexAtDepth * horizontalSpacing),
-              y: 50 + (node.depth_level * verticalSpacing)
-            },
-            data: {
-              label: node.topic_name,
-              description: node.description,
-              depth: node.depth_level,
-              isExplored: node.is_explored,
-              expansionStatus: node.expansion_status,
-              nodeId: node.id,
-              onExpand: expandNode,
-              onExplore: exploreNode,
-            },
-          };
-        });
-
-        const flowEdges = [];
-        filteredNodes.forEach(node => {
-          if (node.parent_id && visibleNodes.has(node.parent_id)) {
-            flowEdges.push({
-              id: `e${node.parent_id}-${node.id}`,
-              source: String(node.parent_id),
-              target: String(node.id),
-              type: 'smoothstep',
-              animated: false,
-              style: { stroke: '#D7B38C', strokeWidth: 3 },
-              markerEnd: {
-                type: 'arrow',
-                color: '#D7B38C',
-                width: 20,
-                height: 20,
-              },
-            });
-          }
-        });
-
-        setNodes(flowNodes);
-        setEdges(flowEdges);
+        alert('Roadmap deleted successfully');
+      } else {
+        alert('Failed to delete roadmap');
       }
     } catch (error) {
-      console.error('Error viewing roadmap:', error);
-    } finally {
-      setLoading(false);
+      console.error('Error deleting roadmap:', error);
+      alert('Error deleting roadmap');
     }
   };
 
+  // FIXED: expandNode with useCallback to prevent stale closures and handle sibling collapse
   const expandNode = useCallback(async (nodeId) => {
     console.log('Expanding node:', nodeId);
     
@@ -296,34 +261,367 @@ const KnowledgeRoadmap = () => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Expand response:', data);
         
-        if (currentRoadmap) {
-          await viewRoadmap(currentRoadmap.id);
+        // Handle "already_expanded" case by fetching from roadmap
+        if (data.status === 'already_expanded') {
+          const childrenExist = edges.some(e => String(e.source) === String(nodeId));
+          
+          if (!childrenExist && currentRoadmap) {
+            const roadmapResponse = await fetch(`http://localhost:8001/get_knowledge_roadmap/${currentRoadmap.id}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (roadmapResponse.ok) {
+              const roadmapData = await roadmapResponse.json();
+              const allNodes = roadmapData.nodes_flat || [];
+              const children = allNodes.filter(n => n.parent_id === nodeId);
+              
+              if (children.length > 0) {
+                // Store removed node IDs for edge cleanup
+                let removedNodeIds = new Set();
+                
+                // COLLAPSE SIBLINGS FIRST, THEN ADD CHILDREN
+                setNodes((nds) => {
+                  const parentNode = nds.find(n => n.data.nodeId === nodeId);
+                  if (!parentNode) return nds;
+                  
+                  const parentDepth = parentNode.data.depth;
+                  
+                  // Find siblings at same depth that are expanded
+                  const siblingsAtSameDepth = nds.filter(n => 
+                    n.data.depth === parentDepth && 
+                    n.data.nodeId !== nodeId &&
+                    n.data.expansionStatus === 'expanded'
+                  );
+                  
+                  let finalNodes = nds;
+                  
+                  // Collapse siblings if any exist
+                  if (siblingsAtSameDepth.length > 0) {
+                    const siblingIds = siblingsAtSameDepth.map(s => String(s.id));
+                    
+                    // Build adjacency map
+                    const adjacencyMap = new Map();
+                    edges.forEach(edge => {
+                      const source = String(edge.source);
+                      if (!adjacencyMap.has(source)) {
+                        adjacencyMap.set(source, []);
+                      }
+                      adjacencyMap.get(source).push(String(edge.target));
+                    });
+                    
+                    // Find all descendants of siblings
+                    const queue = [...siblingIds];
+                    const visited = new Set();
+                    
+                    while (queue.length > 0) {
+                      const currentNodeId = queue.shift();
+                      if (visited.has(currentNodeId)) continue;
+                      visited.add(currentNodeId);
+                      
+                      const nodeChildren = adjacencyMap.get(currentNodeId) || [];
+                      nodeChildren.forEach(childId => {
+                        removedNodeIds.add(childId);
+                        queue.push(childId);
+                      });
+                    }
+                    
+                    // Remove descendant nodes and reset sibling status
+                    finalNodes = nds.filter(n => !removedNodeIds.has(String(n.id))).map(n => {
+                      if (siblingIds.includes(String(n.id))) {
+                        // Remove from expanded nodes when collapsing
+                        setExpandedNodes(prev => {
+                          const newSet = new Set(prev);
+                          newSet.delete(n.data.nodeId);
+                          return newSet;
+                        });
+                        return { ...n, data: { ...n.data, expansionStatus: 'unexpanded' } };
+                      }
+                      return n;
+                    });
+                  }
+                  
+                  // Now add the children
+                  const horizontalSpacing = 280;
+                  const baseVerticalSpacing = 250;
+                  const depthMultiplier = 1.2;
+                  const verticalSpacing = parentDepth === 0 
+                    ? 350 
+                    : baseVerticalSpacing * Math.pow(depthMultiplier, parentDepth);
+                  
+                  const totalWidth = (children.length - 1) * horizontalSpacing;
+                  const startX = parentNode.position.x - (totalWidth / 2);
+
+                  const newNodes = children.map((child, index) => ({
+                    id: String(child.id),
+                    type: 'custom',
+                    position: { 
+                      x: startX + (index * horizontalSpacing),
+                      y: parentNode.position.y + verticalSpacing
+                    },
+                    data: {
+                      label: child.topic_name,
+                      description: child.description,
+                      depth: child.depth_level,
+                      isExplored: child.is_explored,
+                      expansionStatus: child.expansion_status,
+                      nodeId: child.id,
+                      onExpand: (id) => expandNodeRef.current && expandNodeRef.current(id),
+                      onExplore: (id) => exploreNodeRef.current && exploreNodeRef.current(id),
+                    },
+                  }));
+
+                  return [
+                    ...finalNodes.map(n =>
+                      n.data.nodeId === nodeId
+                        ? { ...n, data: { ...n.data, expansionStatus: 'expanded', isExpanding: false } }
+                        : n
+                    ),
+                    ...newNodes
+                  ];
+                });
+                
+                // Add to expanded nodes
+                setExpandedNodes(prev => new Set(prev).add(nodeId));
+                
+                // FIXED: Only remove edges for removed nodes
+                setEdges((eds) => {
+                  const cleanedEdges = eds.filter(edge => 
+                    !removedNodeIds.has(String(edge.source)) && !removedNodeIds.has(String(edge.target))
+                  );
+                  
+                  const newEdges = children.map(child => ({
+                    id: `e${child.parent_id}-${child.id}`,
+                    source: String(child.parent_id),
+                    target: String(child.id),
+                    type: 'smoothstep',
+                    animated: true,
+                    style: { stroke: '#D7B38C', strokeWidth: 3 },
+                    markerEnd: {
+                      type: 'arrow',
+                      color: '#D7B38C',
+                      width: 20,
+                      height: 20,
+                    },
+                  }));
+                  
+                  return [...cleanedEdges, ...newEdges];
+                });
+                
+                setTimeout(() => {
+                  setEdges((eds) => eds.map(e => ({ ...e, animated: false })));
+                }, 2000);
+                
+                return;
+              }
+            }
+          }
+          
+          setNodes((nds) =>
+            nds.map(n =>
+              n.data.nodeId === nodeId
+                ? { ...n, data: { ...n.data, expansionStatus: 'expanded', isExpanding: false } }
+                : n
+            )
+          );
+          // Add to expanded nodes even if already expanded
+          setExpandedNodes(prev => new Set(prev).add(nodeId));
+          return;
         }
+        
+        // Normal expansion flow with new child_nodes
+        if (data.child_nodes && data.child_nodes.length > 0) {
+          // Store removed node IDs
+          let removedNodeIds = new Set();
+          
+          setNodes((nds) => {
+            const parentNode = nds.find(n => n.data.nodeId === nodeId);
+            
+            if (!parentNode) {
+              console.error('Parent node not found');
+              return nds.map(n =>
+                n.data.nodeId === nodeId
+                  ? { ...n, data: { ...n.data, isExpanding: false } }
+                  : n
+              );
+            }
+            
+            const parentDepth = parentNode.data.depth;
+            const siblingsAtSameDepth = nds.filter(n => 
+              n.data.depth === parentDepth && 
+              n.data.nodeId !== nodeId &&
+              n.data.expansionStatus === 'expanded'
+            );
+            
+            let finalNodes;
+            
+            if (siblingsAtSameDepth.length > 0) {
+              const siblingIds = siblingsAtSameDepth.map(s => String(s.id));
+              
+              // Build adjacency map from edges
+              const adjacencyMap = new Map();
+              edges.forEach(edge => {
+                const source = String(edge.source);
+                if (!adjacencyMap.has(source)) {
+                  adjacencyMap.set(source, []);
+                }
+                adjacencyMap.get(source).push(String(edge.target));
+              });
+              
+              const queue = [...siblingIds];
+              const visited = new Set();
+              
+              while (queue.length > 0) {
+                const currentNodeId = queue.shift();
+                if (visited.has(currentNodeId)) continue;
+                visited.add(currentNodeId);
+                
+                const nodeChildren = adjacencyMap.get(currentNodeId) || [];
+                nodeChildren.forEach(childId => {
+                  removedNodeIds.add(childId);
+                  queue.push(childId);
+                });
+              }
+              
+              const filteredNodes = nds.filter(n => !removedNodeIds.has(String(n.id)));
+              finalNodes = filteredNodes.map(n => {
+                if (siblingIds.includes(String(n.id))) {
+                  // Remove from expanded nodes when collapsing
+                  setExpandedNodes(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(n.data.nodeId);
+                    return newSet;
+                  });
+                  return { ...n, data: { ...n.data, expansionStatus: 'unexpanded' } };
+                }
+                return n;
+              });
+            } else {
+              finalNodes = nds;
+            }
+            
+            const childrenCount = data.child_nodes.length;
+            const horizontalSpacing = 280;
+            const baseVerticalSpacing = 250;
+            const depthMultiplier = 1.2;
+            const verticalSpacing = parentDepth === 0 
+              ? 350 
+              : baseVerticalSpacing * Math.pow(depthMultiplier, parentDepth);
+            
+            const totalWidth = (childrenCount - 1) * horizontalSpacing;
+            const startX = parentNode.position.x - (totalWidth / 2);
+
+            const newNodes = data.child_nodes.map((child, index) => ({
+              id: String(child.id),
+              type: 'custom',
+              position: { 
+                x: startX + (index * horizontalSpacing),
+                y: parentNode.position.y + verticalSpacing
+              },
+              data: {
+                label: child.topic_name,
+                description: child.description,
+                depth: child.depth_level,
+                isExplored: child.is_explored,
+                expansionStatus: child.expansion_status,
+                nodeId: child.id,
+                onExpand: (id) => expandNodeRef.current && expandNodeRef.current(id),
+                onExplore: (id) => exploreNodeRef.current && exploreNodeRef.current(id),
+              },
+            }));
+
+            return [
+              ...finalNodes.map(n =>
+                n.data.nodeId === nodeId
+                  ? { ...n, data: { ...n.data, expansionStatus: 'expanded', isExpanding: false } }
+                  : n
+              ),
+              ...newNodes
+            ];
+          });
+          
+          // Add to expanded nodes
+          setExpandedNodes(prev => new Set(prev).add(nodeId));
+          
+          // FIXED: Only remove edges for removed nodes
+          setEdges((eds) => {
+            // Remove only edges connected to removed nodes
+            const cleanedEdges = eds.filter(edge => 
+              !removedNodeIds.has(String(edge.source)) && !removedNodeIds.has(String(edge.target))
+            );
+            
+            // Add new edges for the newly expanded children
+            const newEdges = data.child_nodes.map(child => ({
+              id: `e${child.parent_id}-${child.id}`,
+              source: String(child.parent_id),
+              target: String(child.id),
+              type: 'smoothstep',
+              animated: true,
+              style: { stroke: '#D7B38C', strokeWidth: 3 },
+              markerEnd: {
+                type: 'arrow',
+                color: '#D7B38C',
+                width: 20,
+                height: 20,
+              },
+            }));
+            
+            return [...cleanedEdges, ...newEdges];
+          });
+
+          setTimeout(() => {
+            setEdges((eds) => {
+              const newEdgeIds = data.child_nodes.map(child => `e${child.parent_id}-${child.id}`);
+              return eds.map(e =>
+                newEdgeIds.includes(e.id) ? { ...e, animated: false } : e
+              );
+            });
+          }, 2000);
+        }
+      } else {
+        console.error('Failed to expand node:', response.status);
+        setNodes((nds) =>
+          nds.map(n =>
+            n.data.nodeId === nodeId
+              ? { ...n, data: { ...n.data, isExpanding: false } }
+              : n
+          )
+        );
       }
     } catch (error) {
       console.error('Error expanding node:', error);
-      setNodes((nds) => {
-        return nds.map(n =>
+      setNodes((nds) =>
+        nds.map(n =>
           n.data.nodeId === nodeId
             ? { ...n, data: { ...n.data, isExpanding: false } }
             : n
-        );
-      });
+        )
+      );
     }
-  }, [currentRoadmap, token]);
+  }, [setNodes, setEdges, edges, currentRoadmap, token]);
 
+  // Store expandNode in ref immediately
+  expandNodeRef.current = expandNode;
+
+  // FIXED: exploreNode with useCallback to prevent stale closures and caching
   const exploreNode = useCallback(async (nodeId) => {
     console.log('Exploring node:', nodeId);
     
-    setNodes((nds) => {
-      return nds.map(n =>
+    // Check if we have cached data for this node
+    if (exploredNodesCache.has(nodeId)) {
+      console.log('Loading cached exploration data for node:', nodeId);
+      const cachedData = exploredNodesCache.get(nodeId);
+      setNodeExplanation(cachedData);
+      return;
+    }
+    
+    setNodes((nds) =>
+      nds.map(n =>
         n.data.nodeId === nodeId
           ? { ...n, data: { ...n.data, isExploring: true } }
           : n
-      );
-    });
+      )
+    );
     
     try {
       const response = await fetch(`http://localhost:8001/explore_node/${nodeId}`, {
@@ -336,30 +634,209 @@ const KnowledgeRoadmap = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setNodeExplanation(data.node);
+        console.log('Explore node response - Full data:', JSON.stringify(data, null, 2));
         
-        setNodes((nds) => {
-          return nds.map(n =>
+        // Extract the node data - could be directly in data or in data.node
+        const nodeData = data.node || data;
+        console.log('Setting node explanation with:', nodeData);
+        
+        // Ensure we're setting the complete node data
+        const completeNodeData = {
+          ...nodeData,
+          topic_name: nodeData.topic_name,
+          ai_explanation: nodeData.ai_explanation,
+          key_concepts: nodeData.key_concepts || [],
+          why_important: nodeData.why_important,
+          real_world_examples: nodeData.real_world_examples || [],
+          learning_tips: nodeData.learning_tips
+        };
+        
+        // Cache the exploration data
+        setExploredNodesCache(prev => new Map(prev).set(nodeId, completeNodeData));
+        
+        setNodeExplanation(completeNodeData);
+        
+        setNodes((nds) =>
+          nds.map(n =>
             n.data.nodeId === nodeId
               ? { ...n, data: { ...n.data, isExplored: true, isExploring: false } }
               : n
-          );
-        });
+          )
+        );
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Explore node error:', errorData);
+        alert(`Failed to explore node: ${errorData.detail || 'Unknown error'}`);
+        
+        setNodes((nds) =>
+          nds.map(n =>
+            n.data.nodeId === nodeId
+              ? { ...n, data: { ...n.data, isExploring: false } }
+              : n
+          )
+        );
       }
     } catch (error) {
       console.error('Error exploring node:', error);
-      setNodes((nds) => {
-        return nds.map(n =>
+      alert('Failed to explore node');
+      
+      setNodes((nds) =>
+        nds.map(n =>
           n.data.nodeId === nodeId
             ? { ...n, data: { ...n.data, isExploring: false } }
             : n
-        );
-      });
+        )
+      );
     }
-  }, [token]);
+  }, [setNodes, token, exploredNodesCache]);
 
-  expandNodeRef.current = expandNode;
+  // Store exploreNode in ref immediately
   exploreNodeRef.current = exploreNode;
+
+  // FIXED: viewRoadmap using saved UI state as source of truth for what user was viewing
+  const viewRoadmap = async (roadmapId) => {
+    try {
+      setLoading(true);
+      
+      // Load saved UI state
+      const savedState = loadRoadmapState(roadmapId);
+      
+      const response = await fetch(`http://localhost:8001/get_knowledge_roadmap/${roadmapId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Roadmap data:', data);
+        setCurrentRoadmap(data.roadmap);
+        
+        // Use nodes_flat from backend response
+        const allNodes = data.nodes_flat || [];
+        console.log('All nodes from backend:', allNodes.length);
+        
+        // Use saved expanded nodes if available, otherwise start with empty (only root visible)
+        const savedExpandedNodes = savedState ? new Set(savedState.expandedNodes) : new Set();
+        console.log('Saved UI expanded nodes:', Array.from(savedExpandedNodes));
+        
+        // Restore explored nodes cache
+        if (savedState && savedState.exploredNodesCache) {
+          setExploredNodesCache(new Map(savedState.exploredNodesCache));
+        }
+        
+        // Build parent-child map
+        const childrenMap = new Map();
+        allNodes.forEach(node => {
+          if (node.parent_id) {
+            if (!childrenMap.has(node.parent_id)) {
+              childrenMap.set(node.parent_id, []);
+            }
+            childrenMap.get(node.parent_id).push(node);
+          }
+        });
+        
+        // Find root nodes (no parent)
+        const rootNodes = allNodes.filter(node => !node.parent_id);
+        console.log('Root nodes:', rootNodes.length);
+        
+        // BFS to find visible nodes based on SAVED UI state (not backend expansion_status)
+        // A node is visible if:
+        // 1. It's a root node, OR
+        // 2. Its parent is visible AND parent is in savedExpandedNodes
+        const visibleNodeIds = new Set();
+        const queue = [...rootNodes.map(n => n.id)];
+        
+        while (queue.length > 0) {
+          const currentNodeId = queue.shift();
+          visibleNodeIds.add(currentNodeId);
+          
+          // Check if THIS node was expanded in the saved UI state
+          if (savedExpandedNodes.has(currentNodeId)) {
+            const children = childrenMap.get(currentNodeId) || [];
+            children.forEach(child => queue.push(child.id));
+          }
+        }
+        
+        console.log('Visible node IDs based on saved state:', Array.from(visibleNodeIds));
+        
+        // Update expandedNodes state to match saved state
+        setExpandedNodes(savedExpandedNodes);
+        
+        // Filter to only visible nodes
+        const visibleNodes = allNodes.filter(node => visibleNodeIds.has(node.id));
+        console.log('Visible nodes count:', visibleNodes.length);
+        
+        // Group nodes by depth for positioning
+        const nodesByDepth = new Map();
+        visibleNodes.forEach(node => {
+          if (!nodesByDepth.has(node.depth_level)) {
+            nodesByDepth.set(node.depth_level, []);
+          }
+          nodesByDepth.get(node.depth_level).push(node);
+        });
+
+        // Create flow nodes with proper positioning
+        const flowNodes = visibleNodes.map(node => {
+          const nodesAtThisDepth = nodesByDepth.get(node.depth_level) || [];
+          const indexAtDepth = nodesAtThisDepth.indexOf(node);
+          const horizontalSpacing = 280;
+          const baseVerticalSpacing = 250;
+          const depthMultiplier = 1.2;
+          const verticalSpacing = baseVerticalSpacing * Math.pow(depthMultiplier, node.depth_level);
+          
+          const totalWidth = (nodesAtThisDepth.length - 1) * horizontalSpacing;
+          const startX = 400 - (totalWidth / 2);
+
+          return {
+            id: String(node.id),
+            type: 'custom',
+            position: {
+              x: startX + (indexAtDepth * horizontalSpacing),
+              y: 50 + (node.depth_level * verticalSpacing)
+            },
+            data: {
+              label: node.topic_name,
+              description: node.description,
+              depth: node.depth_level,
+              isExplored: node.is_explored,
+              // Use saved state to determine expansion status
+              expansionStatus: savedExpandedNodes.has(node.id) ? 'expanded' : 'unexpanded',
+              nodeId: node.id,
+              onExpand: (id) => expandNodeRef.current && expandNodeRef.current(id),
+              onExplore: (id) => exploreNodeRef.current && exploreNodeRef.current(id),
+            },
+          };
+        });
+
+        // Build edges only between visible nodes
+        const flowEdges = [];
+        visibleNodes.forEach(node => {
+          if (node.parent_id && visibleNodeIds.has(node.parent_id)) {
+            flowEdges.push({
+              id: `e${node.parent_id}-${node.id}`,
+              source: String(node.parent_id),
+              target: String(node.id),
+              type: 'smoothstep',
+              style: { stroke: '#D7B38C', strokeWidth: 3 },
+              markerEnd: {
+                type: 'arrow',
+                color: '#D7B38C',
+                width: 20,
+                height: 20,
+              },
+            });
+          }
+        });
+
+        console.log('Setting nodes:', flowNodes.length, 'edges:', flowEdges.length);
+        setNodes(flowNodes);
+        setEdges(flowEdges);
+      }
+    } catch (error) {
+      console.error('Error viewing roadmap:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="kr-page">
@@ -408,44 +885,66 @@ const KnowledgeRoadmap = () => {
                 </div>
               ) : (
                 <div className="kr-grid">
-                  {roadmaps.map(roadmap => (
-                    <div 
-                      key={roadmap.id} 
-                      className="kr-card"
-                      onClick={() => viewRoadmap(roadmap.id)}
-                    >
-                      <div className="kr-card-icon">
-                        <MapPin size={28} />
-                      </div>
-                      <div className="kr-card-content">
-                        <h3 className="kr-card-title">{roadmap.title}</h3>
-                        <p className="kr-card-topic">{roadmap.root_topic}</p>
-                        <div className="kr-card-stats">
-                          <div className="kr-stat">
-                            <span className="kr-stat-value">{roadmap.total_nodes}</span>
-                            <span className="kr-stat-label">Nodes</span>
-                          </div>
-                          <div className="kr-stat">
-                            <span className="kr-stat-value">{roadmap.max_depth_reached}</span>
-                            <span className="kr-stat-label">Depth</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="kr-card-footer">
-                        <span className="kr-card-date">
-                          Last accessed: {new Date(roadmap.last_accessed).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+  {roadmaps.map(roadmap => (
+    <div 
+      key={roadmap.id} 
+      className="kr-card"
+    >
+      {/* Delete Button - Similar to QuestionBank */}
+      <div className="kr-card-header">
+        <div className="kr-card-icon">
+          <MapPin size={28} />
+        </div>
+        <button 
+          className="kr-delete-btn"
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent card click event
+            deleteRoadmap(roadmap.id);
+          }}
+          title="Delete Roadmap"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+
+      <div 
+        className="kr-card-content" 
+        onClick={() => viewRoadmap(roadmap.id)}
+      >
+        <h3 className="kr-card-title">{roadmap.title}</h3>
+        <p className="kr-card-topic">{roadmap.root_topic}</p>
+        <div className="kr-card-stats">
+          <div className="kr-stat">
+            <span className="kr-stat-value">{roadmap.total_nodes}</span>
+            <span className="kr-stat-label">Nodes</span>
+          </div>
+          <div className="kr-stat">
+            <span className="kr-stat-value">{roadmap.max_depth_reached}</span>
+            <span className="kr-stat-label">Depth</span>
+          </div>
+        </div>
+      </div>
+      <div className="kr-card-footer">
+        <span className="kr-card-date">
+          Last accessed: {new Date(roadmap.last_accessed).toLocaleDateString()}
+        </span>
+      </div>
+    </div>
+  ))}
+</div>
               )}
             </div>
           </>
         ) : (
           <div className="kr-viewer-fullscreen">
             <div className="kr-viewer-header-compact">
-              <button className="kr-back-to-list-compact" onClick={() => { setCurrentRoadmap(null); setNodes([]); setEdges([]); setNodeExplanation(null); }}>
+              <button className="kr-back-to-list-compact" onClick={() => { 
+                setCurrentRoadmap(null); 
+                setNodes([]); 
+                setEdges([]); 
+                setNodeExplanation(null);
+                // Don't clear cache or expanded nodes - keep them for when user returns
+              }}>
                 Back to Roadmaps
               </button>
               <div className="kr-viewer-title-section">
