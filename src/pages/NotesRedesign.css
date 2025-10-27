@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@300;400;600;700&family=Lato:wght@300;400;700&family=Montserrat:wght@300;400;600;700&family=Source+Sans+3:wght@300;400;600;700&family=Merriweather:wght@300;400;700&family=Playfair+Display:wght@400;600;700&family=EB+Garamond:wght@400;600;700&display=swap');
 
 /* ==================== ROOT VARIABLES - AI CHAT THEME ==================== */
 :root {
@@ -136,7 +136,7 @@ select {
   background: var(--hover-bg);
   color: var(--accent);
   padding: 4px 10px;
-  border-radius: 12px;
+  border-radius: 0;
   font-size: 12px;
   font-weight: 700;
   border: 1px solid var(--border);
@@ -155,7 +155,7 @@ select {
   background: var(--accent);
   color: var(--bg-top);
   border: 2px solid var(--accent);
-  border-radius: 6px;
+  border-radius: 0;
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
@@ -227,7 +227,7 @@ select {
   padding: 12px 16px;
   background: var(--bg-bottom);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   font-size: 14px;
   color: var(--text-primary);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -260,7 +260,7 @@ select {
   padding: 12px 16px;
   background: var(--bg-bottom);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   color: var(--text-primary);
   font-size: 12px;
   font-weight: 600;
@@ -338,7 +338,7 @@ select {
   height: 28px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   color: var(--accent);
   font-size: 18px;
   font-weight: 700;
@@ -377,7 +377,7 @@ select {
 
 .folders-list::-webkit-scrollbar-thumb {
   background: var(--accent);
-  border-radius: 3px;
+  border-radius: 0;
   border: 2px solid var(--bg-bottom);
 }
 
@@ -389,7 +389,7 @@ select {
   padding: 12px 14px;
   background: var(--bg-bottom);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
@@ -456,7 +456,7 @@ select {
   padding: 3px 8px;
   background: var(--bg-bottom);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 0;
   font-weight: 600;
   min-width: 32px;
   text-align: center;
@@ -464,28 +464,35 @@ select {
 
 .folder-add-note-btn,
 .folder-delete-btn {
+  background: color-mix(in srgb, var(--danger) 15%, var(--panel));
+  border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+  color: var(--danger);
   width: 24px;
   height: 24px;
-  background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--accent);
+  border-radius: 0;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   backdrop-filter: blur(10px);
   opacity: 0;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.folder-delete-btn {
-  background: color-mix(in srgb, var(--danger) 15%, var(--panel));
-  border-color: color-mix(in srgb, var(--danger) 30%, transparent);
-  color: var(--danger);
+
+.folder-item:hover .folder-delete-btn {
+  opacity: 1;
+}
+
+.folder-delete-btn:hover {
+  background: color-mix(in srgb, var(--danger) 30%, var(--panel));
+  border-color: var(--danger);
+  transform: scale(1.15);
+  box-shadow: var(--shadow-md);
 }
 
 .folder-item:hover .folder-add-note-btn,
@@ -524,7 +531,7 @@ select {
 
 .notes-list-new::-webkit-scrollbar-thumb {
   background: var(--accent);
-  border-radius: 4px;
+  border-radius: 0;
   border: 2px solid var(--bg-bottom);
 }
 
@@ -557,7 +564,7 @@ select {
   background: var(--accent);
   color: var(--bg-top);
   border: 2px solid var(--accent);
-  border-radius: 6px;
+  border-radius: 0;
   cursor: pointer;
   font-size: 11px;
   font-weight: 700;
@@ -578,7 +585,7 @@ select {
 .note-item-new {
   padding: 14px;
   margin-bottom: 10px;
-  border-radius: 8px;
+  border-radius: 0;
   cursor: grab;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -658,7 +665,7 @@ select {
   padding: 3px 8px;
   background: color-mix(in srgb, var(--accent) 15%, var(--bg-bottom));
   border: 1px solid var(--accent);
-  border-radius: 12px;
+  border-radius: 0;
   font-size: 10px;
   color: var(--accent);
   font-weight: 600;
@@ -679,7 +686,7 @@ select {
 .note-action-btn {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 5px;
+  border-radius: 0;
   width: 30px;
   height: 30px;
   display: flex;
@@ -745,6 +752,29 @@ select {
   font-weight: 500;
 }
 
+.note-delete-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 0;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  opacity: 0.7;
+  font-size: 14px;
+}
+.note-delete-btn:hover {
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  color: var(--danger);
+  opacity: 1;
+  transform: scale(1.05);
+}
+
 .note-meta {
   display: flex;
   justify-content: space-between;
@@ -769,9 +799,12 @@ select {
 
 .restore-btn,
 .permanent-delete-btn {
-  flex: 1;
+  background: var(--danger);
+  border: 2px solid var(--danger);
+  color: white;
+  box-shadow: var(--shadow-md);
   padding: 8px 12px;
-  border-radius: 6px;
+  border-radius: 0;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -784,6 +817,13 @@ select {
   text-transform: uppercase;
   letter-spacing: 0.8px;
 }
+
+.permanent-delete-btn:hover {
+  background: color-mix(in srgb, var(--danger) 85%, white);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
 
 .restore-btn {
   background: var(--success);
@@ -861,7 +901,7 @@ select {
   padding: 10px 14px;
   background: var(--bg-bottom);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   cursor: pointer;
   font-size: 18px;
   color: var(--accent);
@@ -903,7 +943,7 @@ select {
   gap: 8px;
   background: var(--bg-bottom);
   padding: 6px;
-  border-radius: 8px;
+  border-radius: 0;
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
 }
@@ -912,7 +952,7 @@ select {
   padding: 8px 16px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   cursor: pointer;
   font-size: 11px;
   color: var(--accent);
@@ -955,7 +995,7 @@ select {
   padding: 8px 16px;
   background: var(--bg-bottom);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   cursor: pointer;
   font-size: 11px;
   color: var(--accent);
@@ -979,7 +1019,7 @@ select {
   padding: 8px 16px;
   background: color-mix(in srgb, var(--danger) 15%, var(--panel)) !important;
   border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent) !important;
-  border-radius: 6px;
+  border-radius: 0;
   cursor: pointer;
   font-size: 11px;
   color: var(--danger) !important;
@@ -1062,7 +1102,7 @@ select {
   justify-content: center;
   background: var(--bg-bottom);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   cursor: pointer;
   font-size: 14px;
   color: var(--accent);
@@ -1165,7 +1205,7 @@ select {
 .quill-editor-enhanced .ql-toolbar button:hover,
 .quill-editor-enhanced .ql-toolbar .ql-picker-label:hover {
   background: var(--hover-bg) !important;
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 .quill-editor-enhanced .ql-toolbar .ql-stroke {
@@ -1179,7 +1219,7 @@ select {
 .quill-editor-enhanced .ql-toolbar .ql-picker-options {
   background: var(--panel) !important;
   border: 1px solid var(--border) !important;
-  border-radius: 6px !important;
+  border-radius: 0 !important;
   backdrop-filter: blur(20px);
   box-shadow: var(--shadow-lg);
 }
@@ -1291,7 +1331,7 @@ select {
 
 .quill-editor-enhanced .ql-editor::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 .quill-editor-enhanced .ql-editor::-webkit-scrollbar-thumb:hover {
@@ -1345,9 +1385,9 @@ select {
 }
 
 .quill-editor-enhanced .ql-editor pre.ql-syntax {
-  background: var(--hover-bg);
+  background: #D3D3D3;
   color: var(--editor-text);
-  border-radius: 6px;
+  border-radius: 0;
   padding: 16px;
   overflow-x: auto;
 }
@@ -1368,14 +1408,14 @@ select {
 .quill-editor-enhanced .ql-editor img {
   max-width: 100%;
   height: auto;
-  border-radius: 8px;
+  border-radius: 0;
   margin: 16px 0;
 }
 
 .quill-editor-enhanced .ql-editor .ql-formula {
   background: var(--hover-bg);
   padding: 8px 12px;
-  border-radius: 4px;
+  border-radius: 0;
   display: inline-block;
   margin: 4px 2px;
   font-family: 'Courier New', monospace;
@@ -1498,7 +1538,7 @@ select {
   background: var(--accent);
   color: var(--bg-top);
   border: 2px solid var(--accent);
-  border-radius: 6px;
+  border-radius: 0;
   cursor: pointer;
   font-size: 12px;
   font-weight: 700;
@@ -1524,7 +1564,7 @@ select {
   background: var(--accent);
   color: var(--bg-top);
   border: 2px solid var(--accent);
-  border-radius: 8px;
+  border-radius: 0;
   cursor: pointer;
   font-size: 11px;
   font-weight: 700;
@@ -1600,7 +1640,7 @@ select {
   background: var(--panel);
   backdrop-filter: blur(25px);
   border: 2px solid var(--border);
-  border-radius: 12px;
+  border-radius: 0;
   padding: 24px;
   min-width: 450px;
   max-width: 550px;
@@ -1637,7 +1677,7 @@ select {
   padding: 14px 16px;
   background: var(--bg-bottom);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 0;
   font-size: 14px;
   color: var(--text-primary);
   outline: none;
@@ -1675,7 +1715,7 @@ select {
   padding: 6px 12px;
   background: var(--accent);
   border: 1px solid var(--accent);
-  border-radius: 6px;
+  border-radius: 0;
   color: var(--bg-top);
   cursor: pointer;
   font-size: 10px;
@@ -1703,7 +1743,7 @@ select {
   padding: 10px 20px;
   background: var(--bg-bottom);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   color: var(--accent);
   cursor: pointer;
   font-size: 11px;
@@ -1724,7 +1764,7 @@ select {
   padding: 10px 24px;
   background: var(--accent);
   border: 2px solid var(--accent);
-  border-radius: 6px;
+  border-radius: 0;
   color: var(--bg-top);
   cursor: pointer;
   font-size: 11px;
@@ -1756,7 +1796,7 @@ select {
   height: 14px;
   border: 2px solid var(--bg-top);
   border-top-color: transparent;
-  border-radius: 50%;
+  border-radius: 0;
   animation: spin 0.8s linear infinite;
 }
 
@@ -1771,7 +1811,7 @@ select {
   background: var(--panel);
   backdrop-filter: blur(25px);
   border: 2px solid var(--border);
-  border-radius: 12px;
+  border-radius: 0;
   padding: 0;
   min-width: 600px;
   max-width: 700px;
@@ -1826,7 +1866,7 @@ select {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
+  border-radius: 0;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1856,7 +1896,7 @@ select {
 .ai-assistant-content::-webkit-scrollbar-thumb,
 .folder-modal-content::-webkit-scrollbar-thumb {
   background: var(--accent);
-  border-radius: 4px;
+  border-radius: 0;
   border: 2px solid var(--bg-bottom);
 }
 
@@ -1889,7 +1929,7 @@ select {
   padding: 10px 16px;
   background: var(--accent);
   border: 1px solid var(--accent);
-  border-radius: 6px;
+  border-radius: 0;
   color: var(--bg-top);
   font-size: 11px;
   font-weight: 600;
@@ -1915,7 +1955,7 @@ select {
   padding: 10px 14px;
   background: var(--bg-bottom);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 0;
   color: var(--text-primary);
   font-size: 14px;
   cursor: pointer;
@@ -1939,7 +1979,7 @@ select {
   padding: 14px;
   background: var(--bg-bottom);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 0;
   color: var(--text-primary);
   font-size: 14px;
   font-family: 'Inter', sans-serif;
@@ -1949,9 +1989,33 @@ select {
   font-weight: 500;
 }
 
+/* Code mode styling - light secondary color background */
+.ai-text-input.code-mode {
+  /* Light grey-blue tint - using text-secondary color at 25% */
+  background: color-mix(in srgb, #B8C0CC 25%, #0f1012) !important;
+  background: color-mix(in srgb, var(--text-secondary) 25%, var(--bg-bottom)) !important;
+  font-family: 'Courier New', 'Monaco', 'Consolas', monospace !important;
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+  tab-size: 4;
+  border-color: color-mix(in srgb, var(--text-secondary) 30%, var(--border)) !important;
+  /* Extra visual indicator */
+  border-left: 3px solid var(--text-secondary) !important;
+  padding-left: 12px !important;
+}
+
 .ai-text-input:focus {
   background: var(--panel);
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+/* Code mode focus styling */
+.ai-text-input.code-mode:focus {
+  background: color-mix(in srgb, #B8C0CC 30%, #16181d) !important;
+  background: color-mix(in srgb, var(--text-secondary) 30%, var(--panel)) !important;
+  border-color: var(--accent) !important;
+  border-left: 3px solid var(--accent) !important;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
@@ -1973,7 +2037,7 @@ select {
   padding: 12px 16px;
   background: var(--bg-bottom);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 0;
   color: var(--text-primary);
   font-size: 14px;
   outline: none;
@@ -2016,7 +2080,7 @@ select {
   width: 40px;
   height: 40px;
   border: 2px solid transparent;
-  border-radius: 8px;
+  border-radius: 0;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -2329,12 +2393,176 @@ select {
   }
 }
 
+/* ==================== QUILL FONT FAMILY DEFINITIONS ==================== */
+/* Rotated Chevron */
+.rotated {
+  transform: rotate(180deg);
+  transition: transform 0.3s ease;
+}
+
+/* Sans-Serif Fonts */
+.ql-font-inter,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="inter"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="inter"]::before {
+  font-family: 'Inter', sans-serif !important;
+  content: 'Inter' !important;
+}
+
+.ql-font-arial,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="arial"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="arial"]::before {
+  font-family: Arial, sans-serif !important;
+  content: 'Arial' !important;
+}
+
+.ql-font-helvetica,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="helvetica"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="helvetica"]::before {
+  font-family: Helvetica, sans-serif !important;
+  content: 'Helvetica' !important;
+}
+
+.ql-font-verdana,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="verdana"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="verdana"]::before {
+  font-family: Verdana, sans-serif !important;
+  content: 'Verdana' !important;
+}
+
+.ql-font-trebuchet,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="trebuchet"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="trebuchet"]::before {
+  font-family: 'Trebuchet MS', sans-serif !important;
+  content: 'Trebuchet MS' !important;
+}
+
+.ql-font-comic-sans,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="comic-sans"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="comic-sans"]::before {
+  font-family: 'Comic Sans MS', cursive !important;
+  content: 'Comic Sans' !important;
+}
+
+.ql-font-impact,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="impact"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="impact"]::before {
+  font-family: Impact, sans-serif !important;
+  content: 'Impact' !important;
+}
+
+.ql-font-avant-garde,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="avant-garde"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="avant-garde"]::before {
+  font-family: 'Avant Garde', sans-serif !important;
+  content: 'Avant Garde' !important;
+}
+
+.ql-font-roboto,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="roboto"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="roboto"]::before {
+  font-family: 'Roboto', sans-serif !important;
+  content: 'Roboto' !important;
+}
+
+.ql-font-open-sans,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="open-sans"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="open-sans"]::before {
+  font-family: 'Open Sans', sans-serif !important;
+  content: 'Open Sans' !important;
+}
+
+.ql-font-lato,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="lato"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="lato"]::before {
+  font-family: 'Lato', sans-serif !important;
+  content: 'Lato' !important;
+}
+
+.ql-font-montserrat,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="montserrat"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="montserrat"]::before {
+  font-family: 'Montserrat', sans-serif !important;
+  content: 'Montserrat' !important;
+}
+
+.ql-font-source-sans,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="source-sans"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="source-sans"]::before {
+  font-family: 'Source Sans 3', sans-serif !important;
+  content: 'Source Sans' !important;
+}
+
+/* Serif Fonts */
+.ql-font-times-new-roman,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="times-new-roman"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="times-new-roman"]::before {
+  font-family: 'Times New Roman', serif !important;
+  content: 'Times New Roman' !important;
+}
+
+.ql-font-georgia,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="georgia"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="georgia"]::before {
+  font-family: Georgia, serif !important;
+  content: 'Georgia' !important;
+}
+
+.ql-font-palatino,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="palatino"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="palatino"]::before {
+  font-family: 'Palatino Linotype', serif !important;
+  content: 'Palatino' !important;
+}
+
+.ql-font-garamond,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="garamond"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="garamond"]::before {
+  font-family: Garamond, serif !important;
+  content: 'Garamond' !important;
+}
+
+.ql-font-bookman,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="bookman"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="bookman"]::before {
+  font-family: 'Bookman Old Style', serif !important;
+  content: 'Bookman' !important;
+}
+
+.ql-font-merriweather,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="merriweather"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="merriweather"]::before {
+  font-family: 'Merriweather', serif !important;
+  content: 'Merriweather' !important;
+}
+
+.ql-font-playfair,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="playfair"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="playfair"]::before {
+  font-family: 'Playfair Display', serif !important;
+  content: 'Playfair Display' !important;
+}
+
+.ql-font-eb-garamond,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="eb-garamond"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="eb-garamond"]::before {
+  font-family: 'EB Garamond', serif !important;
+  content: 'EB Garamond' !important;
+}
+
+/* Monospace Fonts */
+.ql-font-courier,
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="courier"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="courier"]::before {
+  font-family: 'Courier New', monospace !important;
+  content: 'Courier' !important;
+}
+
 /* ==================== ERROR & SUCCESS MESSAGES ==================== */
 .error-message {
   padding: 12px 16px;
   background: color-mix(in srgb, var(--danger) 15%, var(--panel));
   border: 1px solid var(--danger);
-  border-radius: 6px;
+  border-radius: 0;
   color: var(--danger);
   font-size: 12px;
   margin: 12px 0;
@@ -2345,7 +2573,7 @@ select {
   padding: 12px 16px;
   background: color-mix(in srgb, var(--success) 15%, var(--panel));
   border: 1px solid var(--success);
-  border-radius: 6px;
+  border-radius: 0;
   color: var(--success);
   font-size: 12px;
   margin: 12px 0;
@@ -2409,7 +2637,7 @@ select {
   margin: -10px 0 0 -10px;
   border: 2px solid var(--accent);
   border-top-color: transparent;
-  border-radius: 50%;
+  border-radius: 0;
   animation: spin 0.8s linear infinite;
 }
 
@@ -2432,15 +2660,737 @@ select {
 
 ::-webkit-scrollbar-track {
   background: var(--panel);
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--accent);
-  border-radius: 4px;
+  border-radius: 0;
   border: 2px solid var(--panel);
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: color-mix(in srgb, var(--accent) 80%, white);
+}
+
+.note-item-new.trash-item {
+    border-left: 3px solid var(--border) !important;
+    background: var(--panel) !important;
+    position: relative;
+    overflow: hidden;
+    border-radius: 0;
+    border: 2px solid var(--border);
+    padding: 20px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-sm);
+    color: var(--text-secondary);
+}
+
+.note-item-new.trash-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--text-secondary);
+    opacity: 0.5;
+}
+
+.note-item-new.trash-item:hover {
+    background: color-mix(in srgb, var(--panel) 90%, var(--bg-bottom)) !important;
+    border-color: var(--text-secondary);
+    transform: translateX(4px);
+    box-shadow: var(--shadow-md);
+}
+
+.trash-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.restore-btn,
+.permanent-delete-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border-radius: 0;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    border: 1px solid var(--border);
+    background: var(--bg-bottom);
+    color: var(--text-primary);
+}
+
+/* Restore button - light green on hover */
+.restore-btn:hover {
+    background: color-mix(in srgb, var(--success) 8%, var(--bg-bottom));
+    border-color: color-mix(in srgb, var(--success) 30%, transparent);
+    color: var(--success);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Delete forever button - light red on hover */
+.permanent-delete-btn:hover {
+    background: color-mix(in srgb, var(--danger) 8%, var(--bg-bottom));
+    border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+    color: var(--danger);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Regular note items */
+.note-item-new {
+    padding: 20px;
+    margin-bottom: 16px;
+    border-radius: 0;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    border: 2px solid var(--border);
+    background: var(--panel);
+    backdrop-filter: blur(10px);
+    font-weight: 500;
+    box-shadow: var(--shadow-sm);
+}
+
+.note-item-new:hover {
+    background: color-mix(in srgb, var(--panel) 80%, var(--accent) 20%);
+    border-color: var(--accent);
+    transform: translateX(4px);
+    box-shadow: var(--shadow-md);
+}
+
+.note-item-new.active {
+    background: color-mix(in srgb, var(--accent) 15%, var(--panel));
+    border-color: var(--accent);
+    box-shadow: var(--shadow-md), inset 0 0 20px var(--glow);
+}
+/* ==================== TABLE DIALOG MODAL ==================== */
+.table-dialog-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--panel);
+  border: 2px solid var(--border);
+  border-radius: 0;
+  padding: 0;
+  z-index: 10002;
+  box-shadow: var(--shadow-lg), 0 0 40px var(--glow);
+  backdrop-filter: blur(20px);
+  min-width: 400px;
+  max-width: 500px;
+  animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.table-dialog-header {
+  padding: 20px;
+  border-bottom: 2px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--panel);
+}
+
+.table-dialog-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.table-dialog-content {
+  padding: 24px;
+}
+
+.table-size-inputs {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.table-input-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.table-input-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table-size-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg-bottom);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  font-size: 16px;
+  color: var(--text-primary);
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+}
+
+.table-size-input:focus {
+  border-color: var(--accent);
+  background: var(--panel);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+  outline: none;
+}
+
+.table-preview-info {
+  padding: 16px;
+  background: var(--bg-bottom);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.table-dialog-actions {
+  padding: 20px;
+  border-top: 2px solid var(--border);
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  background: var(--panel);
+}
+
+/* Custom table button in Quill toolbar */
+.ql-table-custom {
+  width: 28px !important;
+  height: 28px !important;
+  padding: 4px !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 0 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.ql-table-custom:hover {
+  background: var(--hover-bg) !important;
+  border-color: var(--accent) !important;
+}
+
+.ql-table-custom svg {
+  width: 18px;
+  height: 18px;
+}
+
+.ql-table-custom .ql-stroke {
+  stroke: var(--text-primary);
+  stroke-width: 1;
+  fill: none;
+}
+
+.ql-table-custom .ql-fill {
+  fill: var(--accent);
+}
+
+.ql-table-custom:hover .ql-stroke {
+  stroke: var(--accent);
+}
+
+/* Better table styles */
+.quill-editor-enhanced table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 16px 0;
+  background: var(--panel);
+}
+
+.quill-editor-enhanced table td,
+.quill-editor-enhanced table th {
+  border: 2px solid var(--border);
+  padding: 12px;
+  min-width: 100px;
+  position: relative;
+  background: var(--bg-bottom);
+}
+
+.quill-editor-enhanced table th {
+  background: var(--panel);
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.quill-editor-enhanced table tr:hover td {
+  background: color-mix(in srgb, var(--panel) 80%, var(--accent) 20%);
+}
+
+.quill-editor-enhanced table td:hover {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+/* Preview mode table styles */
+.preview-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 16px 0;
+}
+
+.preview-content table td,
+.preview-content table th {
+  border: 2px solid var(--border);
+  padding: 12px;
+  background: var(--panel);
+}
+
+.preview-content table th {
+  background: var(--accent);
+  color: var(--bg-top);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.preview-content table tr:nth-child(even) td {
+  background: var(--bg-bottom);
+}
+
+/* Enhanced table editing */
+.ql-editor table td p {
+  margin: 0;
+  padding: 0;
+  min-height: 1em;
+}
+
+.ql-editor table td {
+  cursor: text;
+  vertical-align: top;
+}
+
+.ql-editor table td:focus,
+.ql-editor table td:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Table context menu placeholder */
+.ql-editor table {
+  position: relative;
+}
+
+/* Make empty cells visible and editable */
+.ql-editor table td:empty::before {
+  content: '\00a0';
+  color: transparent;
+}
+
+/* Better table cell interaction */
+.ql-editor table td {
+  transition: all 0.2s ease;
+}
+
+.ql-editor table tr:hover {
+  background: color-mix(in srgb, var(--panel) 95%, var(--accent) 5%);
+}
+.note-action-btn.delete {
+  background: var(--panel);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+
+.note-action-btn.delete:hover {
+  background: color-mix(in srgb, var(--danger) 8%, var(--panel));
+  border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+  color: var(--danger);
+  box-shadow: var(--shadow-md);
+}
+
+/* ==================== VOICE RECORDING BUTTON ==================== */
+.voice-record-btn {
+  padding: 12px 20px;
+  background: var(--accent);
+  border: 2px solid var(--accent);
+  border-radius: 0;
+  color: var(--bg-top);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+}
+
+.voice-record-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.voice-record-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 85%, white);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg), 0 0 30px var(--glow);
+}
+
+.voice-record-btn:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+.voice-record-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.voice-record-btn:disabled:hover::before {
+  left: -100%;
+}
+
+.voice-record-btn.recording {
+  background: color-mix(in srgb, var(--danger) 85%, var(--accent));
+  border-color: var(--danger);
+  animation: pulse-glow 1.5s ease-in-out infinite;
+  box-shadow: var(--shadow-lg), 0 0 20px color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
+.voice-record-btn.recording:hover {
+  background: color-mix(in srgb, var(--danger) 70%, var(--accent));
+  border-color: var(--danger);
+}
+
+.recording-indicator {
+  width: 8px;
+  height: 8px;
+  background: var(--danger);
+  border-radius: 50%;
+  animation: recording-pulse 1s ease-in-out infinite;
+  margin-right: 4px;
+}
+
+@keyframes recording-pulse {
+  0%, 100% { 
+    opacity: 1; 
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.7; 
+    transform: scale(1.2);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: var(--shadow-lg), 0 0 20px color-mix(in srgb, var(--danger) 40%, transparent);
+  }
+  50% { 
+    box-shadow: var(--shadow-lg), 0 0 30px color-mix(in srgb, var(--danger) 60%, transparent);
+  }
+}
+
+.voice-to-text-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.voice-transcript-preview {
+  padding: 16px;
+  background: var(--bg-bottom);
+  border: 1px solid var(--border);
+  border-radius: 0;
+}
+
+.voice-transcript-preview label {
+  display: block;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.voice-transcript-preview p {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.voice-help-text {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-align: center;
+  margin: 0;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.ai-assistant-modal {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 10000 !important;
+  background: var(--panel);
+  backdrop-filter: blur(25px);
+  border: 2px solid var(--border);
+  border-radius: 0;
+  padding: 0;
+  min-width: 600px;
+  max-width: 700px;
+  width: 90vw;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg), 0 0 40px rgba(0, 0, 0, 0.5);
+  animation: modalCenterFadeIn 0.15s ease-out !important;
+  margin: 0 !important;
+}
+
+.ai-assistant-modal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent);
+  z-index: 1;
+}
+
+@keyframes modalCenterFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* Cleanup old duplicate animation */
+@keyframes dropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ==================== QUILL TOOLBAR MATCHING FILTER BUTTONS ==================== */
+/* Force toolbar to be always visible and properly styled */
+.quill-editor-enhanced .ql-toolbar.ql-snow,
+.ql-snow .ql-toolbar,
+.ql-toolbar.ql-snow {
+    background: var(--panel) !important;
+    backdrop-filter: blur(15px) !important;
+    border: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    padding: 12px 16px !important;
+    height: auto !important;
+    min-height: 52px !important;
+    overflow: visible !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+    opacity: 1 !important;
+    pointer-events: all !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-sizing: border-box !important;
+}
+
+/* TOOLBAR BUTTONS - MATCHING FILTER BUTTON STYLE */
+.quill-editor-enhanced .ql-toolbar.ql-snow button,
+.ql-snow .ql-toolbar button,
+.ql-toolbar.ql-snow button,
+.quill-editor-enhanced .ql-toolbar.ql-snow .ql-picker-label,
+.ql-snow .ql-toolbar .ql-picker-label,
+.ql-toolbar.ql-snow .ql-picker-label {
+    background: var(--bg-bottom) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 0 !important;
+    color: var(--text-primary) !important;
+    cursor: pointer !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    backdrop-filter: blur(10px) !important;
+    position: relative !important;
+    overflow: hidden !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+}
+
+/* ACTIVE STATES - MATCHING FILTER BUTTON ACTIVE STYLE */
+.quill-editor-enhanced .ql-toolbar.ql-snow button.ql-active,
+.quill-editor-enhanced .ql-snow .ql-toolbar button.ql-active,
+.ql-snow .ql-toolbar button.ql-active,
+.ql-toolbar.ql-snow button.ql-active,
+.quill-editor-enhanced .ql-toolbar.ql-snow .ql-picker-label.ql-active,
+.quill-editor-enhanced .ql-snow .ql-toolbar .ql-picker-label.ql-active,
+.ql-snow .ql-toolbar .ql-picker-label.ql-active,
+.ql-toolbar.ql-snow .ql-picker-label.ql-active {
+    background: color-mix(in srgb, var(--accent) 15%, var(--bg-bottom)) !important;
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+    box-shadow: var(--shadow-md), inset 0 0 20px var(--glow) !important;
+}
+
+/* ACTIVE ICONS - MATCHING ACCENT COLOR */
+.quill-editor-enhanced .ql-toolbar.ql-snow button.ql-active .ql-stroke,
+.quill-editor-enhanced .ql-snow .ql-toolbar button.ql-active .ql-stroke,
+.ql-snow .ql-toolbar button.ql-active .ql-stroke,
+.ql-toolbar.ql-snow button.ql-active .ql-stroke {
+    stroke: var(--accent) !important;
+}
+
+.quill-editor-enhanced .ql-toolbar.ql-snow button.ql-active .ql-fill,
+.quill-editor-enhanced .ql-snow .ql-toolbar button.ql-active .ql-fill,
+.ql-snow .ql-toolbar button.ql-active .ql-fill,
+.ql-toolbar.ql-snow button.ql-active .ql-fill {
+    fill: var(--accent) !important;
+}
+
+/* HOVER STATES - MATCHING FILTER BUTTON HOVER */
+.quill-editor-enhanced .ql-toolbar.ql-snow button:hover,
+.ql-snow .ql-toolbar button:hover,
+.quill-editor-enhanced .ql-toolbar.ql-snow .ql-picker-label:hover,
+.ql-snow .ql-toolbar .ql-picker-label:hover {
+    background: color-mix(in srgb, var(--panel) 80%, var(--accent) 20%) !important;
+    border-color: var(--accent) !important;
+    transform: translateX(0px) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+/* PICKER ACTIVE STATES - MATCHING STYLE */
+.quill-editor-enhanced .ql-toolbar.ql-snow .ql-picker.ql-expanded .ql-picker-label,
+.ql-snow .ql-toolbar .ql-picker.ql-expanded .ql-picker-label {
+    background: color-mix(in srgb, var(--accent) 15%, var(--bg-bottom)) !important;
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+    box-shadow: var(--shadow-md), inset 0 0 20px var(--glow) !important;
+}
+
+.quill-editor-enhanced .ql-toolbar.ql-snow .ql-picker-options .ql-picker-item.ql-selected,
+.ql-snow .ql-toolbar .ql-picker-options .ql-picker-item.ql-selected {
+    background: color-mix(in srgb, var(--accent) 15%, var(--bg-bottom)) !important;
+    color: var(--accent) !important;
+    border-left: 3px solid var(--accent) !important;
+    box-shadow: inset 0 0 15px var(--glow) !important;
+}
+
+/* PICKER DROPDOWN */
+.quill-editor-enhanced .ql-toolbar.ql-snow .ql-picker-options,
+.ql-snow .ql-toolbar .ql-picker-options {
+    background: var(--panel) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: var(--shadow-lg) !important;
+    padding: 8px !important;
+    backdrop-filter: blur(20px) !important;
+}
+
+.quill-editor-enhanced .ql-toolbar.ql-snow .ql-picker-options .ql-picker-item,
+.ql-snow .ql-toolbar .ql-picker-options .ql-picker-item {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    padding: 6px 12px !important;
+    margin: 1px 0 !important;
+    border-radius: 0 !important;
+    color: var(--text-primary) !important;
+}
+
+.quill-editor-enhanced .ql-toolbar.ql-snow .ql-picker-options .ql-picker-item:hover,
+.ql-snow .ql-toolbar .ql-picker-options .ql-picker-item:hover {
+    background: color-mix(in srgb, var(--panel) 80%, var(--accent) 20%) !important;
+    color: var(--accent) !important;
+    transform: translateX(0px) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+/* FIX SVG ICON POSITIONING */
+.quill-editor-enhanced .ql-toolbar.ql-snow button svg,
+.ql-snow .ql-toolbar button svg {
+    float: none !important;
+    height: 16px !important;
+    width: 16px !important;
+    display: block !important;
+    margin: 0 auto !important;
+}
+
+/* REMOVE ANY HOVER/FOCUS EFFECTS THAT HIDE TOOLBAR */
+.quill-container:hover .ql-toolbar,
+.quill-container:focus-within .ql-toolbar,
+.quill-editor-enhanced:hover .ql-toolbar,
+.quill-editor-enhanced:focus-within .ql-toolbar {
+    opacity: 1 !important;
+    height: auto !important;
+    padding: 12px 16px !important;
+}
+
+/* Ensure dropdown appears above content */
+.ql-snow .ql-picker-options {
+    z-index: 10000 !important;
+    position: absolute !important;
+    top: 100% !important;
+    left: 0 !important;
+}
+
+/* Fix for specific picker types */
+.ql-snow .ql-toolbar .ql-picker.ql-expanded .ql-picker-options {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(0) !important;
 }

@@ -5,15 +5,36 @@ import "react-quill/dist/quill.snow.css";
 import "./NotesRedesign.css";
 import CustomPopup from "./CustomPopup";
 import { useTheme } from '../contexts/ThemeContext';
-import { rgbaFromHex } from '../utils/ThemeManager';
+import { 
+  Plus, FileText, Upload, Search, Star, Trash2, 
+  FolderPlus, Folder, Download, FileDown, Printer, 
+  Eye, Edit3, Maximize2, Minimize2, Menu, X, 
+  ChevronDown, Check, Sparkles, Mic, MicOff, 
+  MoreVertical, Archive, RefreshCw, Save, Clock,
+  AlignLeft, Bold, Italic, Underline, 
+  List, ListOrdered, Link2, Image, Code
+} from 'lucide-react';
 
-import QuillTableUI from 'quill-table-ui';
-import 'quill-table-ui/dist/index.css';
+// Remove problematic imports and register them conditionally
+let QuillTableUI;
+try {
+  QuillTableUI = require('quill-table-ui');
+  if (QuillTableUI && QuillTableUI.default) {
+    Quill.register('modules/tableUI', QuillTableUI.default);
+  }
+} catch (error) {
+  console.warn('Quill Table UI not available:', error);
+}
 
-import katex from 'katex';
-import 'katex/dist/katex.min.css';
-Quill.register('modules/tableUI', QuillTableUI);
-window.katex = katex;
+let katex;
+try {
+  katex = require('katex');
+  if (katex) {
+    window.katex = katex;
+  }
+} catch (error) {
+  console.warn('KaTeX not available:', error);
+}
 
 const NotesRedesign = () => {
   const [userName, setUserName] = useState("");
@@ -39,7 +60,7 @@ const NotesRedesign = () => {
   
   useEffect(() => {
     console.log('Notes - Selected theme:', selectedTheme);
-    console.log('Notes - Theme tokens:', selectedTheme.tokens);
+    console.log('Notes - Theme tokens:', selectedTheme?.tokens);
   }, [selectedTheme]);
 
   useEffect(() => {
@@ -56,9 +77,41 @@ const NotesRedesign = () => {
 
   const [viewMode, setViewMode] = useState("edit");
 
-  const Font = Quill.import('formats/font');
-  Font.whitelist = ['inter', 'arial', 'courier', 'georgia', 'times-new-roman', 'verdana'];
-  Quill.register(Font, true);
+  // Fix Font registration - check if Quill is available
+  useEffect(() => {
+    if (typeof Quill !== 'undefined') {
+      try {
+        const Font = Quill.import('formats/font');
+        Font.whitelist = [
+          'inter',
+          'arial', 
+          'times-new-roman',
+          'georgia',
+          'courier',
+          'verdana',
+          'helvetica',
+          'comic-sans',
+          'impact',
+          'trebuchet',
+          'palatino',
+          'garamond',
+          'bookman',
+          'avant-garde',
+          'roboto',
+          'open-sans',
+          'lato',
+          'montserrat',
+          'source-sans',
+          'merriweather',
+          'playfair',
+          'eb-garamond'
+        ];
+        Quill.register(Font, true);
+      } catch (error) {
+        console.warn('Font registration failed:', error);
+      }
+    }
+  }, []);
   
   const [showAIButton, setShowAIButton] = useState(false);
   const [aiButtonPosition, setAiButtonPosition] = useState({ top: 0, left: 0 });
@@ -107,12 +160,17 @@ const NotesRedesign = () => {
     const username = localStorage.getItem("username");
     const profile = localStorage.getItem("userProfile");
 
-    if (!token) navigate("/login");
+    if (!token) {
+      navigate("/login");
+      return;
+    }
     if (username) setUserName(username);
     if (profile) {
       try {
         setUserProfile(JSON.parse(profile));
-      } catch {}
+      } catch (error) {
+        console.error("Error parsing user profile:", error);
+      }
     }
   }, [navigate]);
 
@@ -137,6 +195,8 @@ const NotesRedesign = () => {
         if (activeNotes.length > 0 && !selectedNote) {
           selectNote(activeNotes[0]);
         }
+      } else {
+        throw new Error(`Failed to load notes: ${res.status}`);
       }
     } catch (e) {
       console.error("Error loading notes:", e);
@@ -218,8 +278,10 @@ const NotesRedesign = () => {
 
     return () => {
       clearTimeout(debounceTimer);
-      quill.root.removeEventListener("mouseup", onSelectionChange);
-      quill.root.removeEventListener("keyup", onSelectionChange);
+      if (quill.root) {
+        quill.root.removeEventListener("mouseup", onSelectionChange);
+        quill.root.removeEventListener("keyup", onSelectionChange);
+      }
       document.removeEventListener("selectionchange", onSelectionChange);
       document.removeEventListener("mousedown", onHide);
       document.removeEventListener("scroll", () => setShowAIButton(false));
@@ -391,7 +453,7 @@ const NotesRedesign = () => {
 
       if (res.ok) {
         const folder = await res.json();
-        setFolders([...folders, folder]);
+        setFolders(prev => [...prev, folder]);
         setNewFolderName("");
         setNewFolderColor("#D7B38C");
         setShowFolderModal(false);
@@ -401,6 +463,8 @@ const NotesRedesign = () => {
         setShowTrash(false);
         
         showPopup("Success", "Folder created successfully");
+      } else {
+        throw new Error(`Failed to create folder: ${res.status}`);
       }
     } catch (e) {
       console.error("Error creating folder:", e);
@@ -409,36 +473,43 @@ const NotesRedesign = () => {
   };
 
   const createNoteInFolder = async (folderId) => {
-    const token = localStorage.getItem("token");
-    const res = await fetch("http://localhost:8001/create_note", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        user_id: userName,
-        title: "Untitled Note",
-        content: "",
-        folder_id: folderId,
-      }),
-    });
-    
-    if (res.ok) {
-      const newNote = await res.json();
-      setNotes((p) => [newNote, ...p]);
-      selectNote(newNote);
-      await loadFolders();
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:8001/create_note", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          title: "Untitled Note",
+          content: "",
+          folder_id: folderId,
+        }),
+      });
+      
+      if (res.ok) {
+        const newNote = await res.json();
+        setNotes(prev => [newNote, ...prev]);
+        selectNote(newNote);
+        await loadFolders();
 
-      setTimeout(() => {
-        const quill = quillRef.current?.getEditor();
-        if (quill) {
-          quill.focus();
-          quill.setSelection(0, 0);
-        }
-      }, 150);
+        setTimeout(() => {
+          const quill = quillRef.current?.getEditor();
+          if (quill) {
+            quill.focus();
+            quill.setSelection(0, 0);
+          }
+        }, 150);
 
-      showPopup("Created", "New note created in folder");
+        showPopup("Created", "New note created in folder");
+      } else {
+        throw new Error(`Failed to create note: ${res.status}`);
+      }
+    } catch (error) {
+      console.error("Error creating note in folder:", error);
+      showPopup("Error", "Failed to create note");
     }
   };
 
@@ -447,17 +518,22 @@ const NotesRedesign = () => {
 
     try {
       const token = localStorage.getItem("token");
-      await fetch(`http://localhost:8001/delete_folder/${folderId}`, {
+      const res = await fetch(`http://localhost:8001/delete_folder/${folderId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setFolders(folders.filter(f => f.id !== folderId));
-      await loadNotes();
-      await loadFolders();
-      showPopup("Success", "Folder deleted");
+      if (res.ok) {
+        setFolders(prev => prev.filter(f => f.id !== folderId));
+        await loadNotes();
+        await loadFolders();
+        showPopup("Success", "Folder deleted");
+      } else {
+        throw new Error(`Failed to delete folder: ${res.status}`);
+      }
     } catch (e) {
       console.error("Error deleting folder:", e);
+      showPopup("Error", "Failed to delete folder");
     }
   };
 
@@ -473,15 +549,17 @@ const NotesRedesign = () => {
       });
 
       if (res.ok) {
-        setNotes(notes.map(n => n.id === noteId ? { ...n, folder_id: folderId } : n));
+        setNotes(prev => prev.map(n => n.id === noteId ? { ...n, folder_id: folderId } : n));
         
         if (selectedNote?.id === noteId) {
-          setSelectedNote({ ...selectedNote, folder_id: folderId });
+          setSelectedNote(prev => ({ ...prev, folder_id: folderId }));
         }
         
         await loadFolders();
         
         showPopup("Success", "Note moved to folder");
+      } else {
+        throw new Error(`Failed to move note: ${res.status}`);
       }
     } catch (e) {
       console.error("Error moving note:", e);
@@ -496,7 +574,9 @@ const NotesRedesign = () => {
   };
 
   const handleDragEnd = (e) => {
-    e.target.style.opacity = '1';
+    if (e.target) {
+      e.target.style.opacity = '1';
+    }
     setDraggedNote(null);
     setDragOverFolder(null);
   };
@@ -523,6 +603,8 @@ const NotesRedesign = () => {
 
   const toggleFavorite = async (noteId) => {
     const note = notes.find(n => n.id === noteId);
+    if (!note) return;
+
     const newFavoriteStatus = !note.is_favorite;
 
     try {
@@ -537,9 +619,9 @@ const NotesRedesign = () => {
       });
 
       if (res.ok) {
-        setNotes(notes.map(n => n.id === noteId ? { ...n, is_favorite: newFavoriteStatus } : n));
+        setNotes(prev => prev.map(n => n.id === noteId ? { ...n, is_favorite: newFavoriteStatus } : n));
         if (selectedNote?.id === noteId) {
-          setSelectedNote({ ...selectedNote, is_favorite: newFavoriteStatus });
+          setSelectedNote(prev => ({ ...prev, is_favorite: newFavoriteStatus }));
         }
         showPopup("Success", newFavoriteStatus ? "Added to favorites" : "Removed from favorites");
       }
@@ -568,7 +650,7 @@ const NotesRedesign = () => {
       });
 
       if (res.ok) {
-        setNotes(prevNotes => prevNotes.filter(n => n.id !== noteId));
+        setNotes(prev => prev.filter(n => n.id !== noteId));
         
         const remaining = notes.filter(n => n.id !== noteId && !n.is_deleted);
         if (remaining.length > 0) {
@@ -578,6 +660,8 @@ const NotesRedesign = () => {
         await loadFolders();
         
         showPopup("Moved to Trash", "Note moved to trash (recoverable for 30 days)");
+      } else {
+        throw new Error(`Failed to move to trash: ${res.status}`);
       }
     } catch (e) {
       console.error("Error moving to trash:", e);
@@ -598,9 +682,12 @@ const NotesRedesign = () => {
         await loadTrash();
         await loadFolders();
         showPopup("Restored", "Note restored successfully");
+      } else {
+        throw new Error(`Failed to restore note: ${res.status}`);
       }
     } catch (e) {
       console.error("Error restoring note:", e);
+      showPopup("Error", "Failed to restore note");
     }
   };
 
@@ -615,11 +702,14 @@ const NotesRedesign = () => {
       });
 
       if (res.ok) {
-        setTrashedNotes(trashedNotes.filter(n => n.id !== noteId));
+        setTrashedNotes(prev => prev.filter(n => n.id !== noteId));
         showPopup("Deleted", "Note permanently deleted");
+      } else {
+        throw new Error(`Failed to delete note: ${res.status}`);
       }
     } catch (e) {
       console.error("Error permanently deleting:", e);
+      showPopup("Error", "Failed to delete note");
     }
   };
 
@@ -636,62 +726,76 @@ const NotesRedesign = () => {
   }, [noteContent]);
 
   const createNewNote = async () => {
-    const token = localStorage.getItem("token");
-    
-    const folderId = selectedFolder && selectedFolder !== 0 ? selectedFolder : null;
-    
-    const res = await fetch("http://localhost:8001/create_note", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        user_id: userName,
-        title: "Untitled Note",
-        content: "",
-        folder_id: folderId,
-      }),
-    });
-    
-    if (res.ok) {
-      const newNote = await res.json();
-      setNotes((p) => [newNote, ...p]);
-      selectNote(newNote);
-      await loadFolders();
+    try {
+      const token = localStorage.getItem("token");
+      
+      const folderId = selectedFolder && selectedFolder !== 0 ? selectedFolder : null;
+      
+      const res = await fetch("http://localhost:8001/create_note", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          title: "Untitled Note",
+          content: "",
+          folder_id: folderId,
+        }),
+      });
+      
+      if (res.ok) {
+        const newNote = await res.json();
+        setNotes(prev => [newNote, ...prev]);
+        selectNote(newNote);
+        await loadFolders();
 
-      setTimeout(() => {
-        const quill = quillRef.current?.getEditor();
-        if (quill) {
-          quill.focus();
-          quill.setSelection(0, 0);
-        }
-      }, 150);
+        setTimeout(() => {
+          const quill = quillRef.current?.getEditor();
+          if (quill) {
+            quill.focus();
+            quill.setSelection(0, 0);
+          }
+        }, 150);
 
-      const folderName = folders.find(f => f.id === folderId)?.name;
-      showPopup("Created", folderName ? `New note created in ${folderName}` : "New note created");
+        const folderName = folders.find(f => f.id === folderId)?.name;
+        showPopup("Created", folderName ? `New note created in ${folderName}` : "New note created");
+      } else {
+        throw new Error(`Failed to create note: ${res.status}`);
+      }
+    } catch (error) {
+      console.error("Error creating new note:", error);
+      showPopup("Error", "Failed to create note");
     }
   };
 
   const duplicateNote = async (note) => {
-    const token = localStorage.getItem("token");
-    const res = await fetch("http://localhost:8001/create_note", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        user_id: userName,
-        title: `${note.title} (Copy)`,
-        content: note.content,
-      }),
-    });
-    if (res.ok) {
-      const newNote = await res.json();
-      setNotes((p) => [newNote, ...p]);
-      selectNote(newNote);
-      showPopup("Duplicated", "Note duplicated successfully");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:8001/create_note", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          title: `${note.title} (Copy)`,
+          content: note.content,
+        }),
+      });
+      if (res.ok) {
+        const newNote = await res.json();
+        setNotes(prev => [newNote, ...prev]);
+        selectNote(newNote);
+        showPopup("Duplicated", "Note duplicated successfully");
+      } else {
+        throw new Error(`Failed to duplicate note: ${res.status}`);
+      }
+    } catch (error) {
+      console.error("Error duplicating note:", error);
+      showPopup("Error", "Failed to duplicate note");
     }
   };
 
@@ -753,6 +857,8 @@ const NotesRedesign = () => {
         setNoteContent("");
         
         showPopup("Note Deleted", "This note has been moved to trash");
+      } else {
+        throw new Error(`Save failed: ${res.status}`);
       }
     } catch (error) {
       setSaving(false);
@@ -796,23 +902,25 @@ const NotesRedesign = () => {
   const handleEditorChange = (content, delta, source, editor) => {
     setNoteContent(content);
 
-    if (source === "user" && delta.ops) {
+    if (source === "user" && delta && delta.ops) {
       const lastOp = delta.ops[delta.ops.length - 1];
       if (lastOp.insert === "/") {
         const quill = quillRef.current?.getEditor();
         if (quill) {
           const selection = quill.getSelection();
-          const bounds = quill.getBounds(selection.index);
-          const editorRect = quill.container.getBoundingClientRect();
-          setAiDropdownPosition({
-            top: editorRect.top + bounds.top + 30,
-            left: editorRect.left + bounds.left,
-          });
-          setShowAIDropdown(true);
-          setAiPrompt("");
-          quill.deleteText(selection.index - 1, 1);
+          if (selection) {
+            const bounds = quill.getBounds(selection.index);
+            const editorRect = quill.container.getBoundingClientRect();
+            setAiDropdownPosition({
+              top: editorRect.top + bounds.top + 30,
+              left: editorRect.left + bounds.left,
+            });
+            setShowAIDropdown(true);
+            setAiPrompt("");
+            quill.deleteText(selection.index - 1, 1);
 
-          setTimeout(() => aiInputRef.current?.focus(), 100);
+            setTimeout(() => aiInputRef.current?.focus(), 100);
+          }
         }
       }
     }
@@ -1220,11 +1328,13 @@ const NotesRedesign = () => {
       
       if (createRes.ok) {
         const newNote = await createRes.json();
-        setNotes((p) => [newNote, ...p]);
+        setNotes(prev => [newNote, ...prev]);
         selectNote(newNote);
         setShowChatImport(false);
         setSelectedSessions([]);
         showPopup("Conversion Successful", `"${title}" created successfully.`);
+      } else {
+        throw new Error(`Failed to create note: ${createRes.status}`);
       }
     } catch (err) {
       console.error("Convert error:", err);
@@ -1234,122 +1344,21 @@ const NotesRedesign = () => {
   };
 
   const exportAsPDF = () => {
-  const printWindow = window.open('', '_blank');
-  
-  const styles = `
-    <style>
-      body {
-        font-family: '${customFont}', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        padding: 40px;
-        max-width: 800px;
-        margin: 0 auto;
-        color: #1a1a1a;
-        line-height: 1.8;
-        position: relative;
-      }
-      
-      /* Diagonal Centered Watermark */
-      body::before {
-        content: 'BrainWaveAI';
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) rotate(-45deg);
-        font-size: 120px;
-        font-weight: 900;
-        color: #d3d3d3;
-        opacity: 0.15;
-        z-index: -1;
-        white-space: nowrap;
-        pointer-events: none;
-        letter-spacing: 8px;
-        text-transform: uppercase;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      }
-      
-      h1 {
-        font-size: 32px;
-        font-weight: 700;
-        margin-bottom: 20px;
-        color: #000;
-        position: relative;
-        z-index: 1;
-      }
-      
-      .metadata {
-        color: #666;
-        font-size: 12px;
-        margin-bottom: 30px;
-        padding-bottom: 15px;
-        border-bottom: 2px solid #e0e0e0;
-        position: relative;
-        z-index: 1;
-      }
-      
-      .content {
-        position: relative;
-        z-index: 1;
-      }
-      
-      img { 
-        max-width: 100%; 
-        height: auto; 
-      }
-      
-      pre { 
-        background: #f5f5f5; 
-        padding: 15px; 
-        border-radius: 5px; 
-        overflow-x: auto; 
-      }
-      
-      code { 
-        background: #f5f5f5; 
-        padding: 2px 6px; 
-        border-radius: 3px; 
-        font-family: 'Courier New', monospace; 
-      }
-      
-      blockquote { 
-        border-left: 4px solid #2196f3; 
-        padding-left: 15px; 
-        color: #666; 
-        font-style: italic; 
-      }
-      
-      a { 
-        color: #2196f3; 
-      }
-      
-      ul, ol { 
-        margin: 12px 0; 
-        padding-left: 30px; 
-      }
-      
-      li { 
-        margin: 6px 0; 
-        line-height: 1.6; 
-      }
-      
-      table { 
-        border-collapse: collapse; 
-        width: 100%; 
-        margin: 20px 0; 
-      }
-      
-      th, td { 
-        border: 1px solid #ddd; 
-        padding: 12px; 
-        text-align: left; 
-      }
-      
-      th { 
-        background-color: #f5f5f5; 
-        font-weight: 600; 
-      }
-      
-      /* Print Styles */
-      @media print {
+    const printWindow = window.open('', '_blank');
+    
+    const styles = `
+      <style>
+        body {
+          font-family: '${customFont}', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          padding: 40px;
+          max-width: 800px;
+          margin: 0 auto;
+          color: #1a1a1a;
+          line-height: 1.8;
+          position: relative;
+        }
+        
+        /* Diagonal Centered Watermark */
         body::before {
           content: 'BrainWaveAI';
           position: fixed;
@@ -1365,52 +1374,153 @@ const NotesRedesign = () => {
           pointer-events: none;
           letter-spacing: 8px;
           text-transform: uppercase;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
         
-        @page {
-          margin: 0.5in;
+        h1 {
+          font-size: 32px;
+          font-weight: 700;
+          margin-bottom: 20px;
+          color: #000;
+          position: relative;
+          z-index: 1;
         }
         
-        h1, h2, h3, h4, h5, h6 {
-          page-break-after: avoid;
+        .metadata {
+          color: #666;
+          font-size: 12px;
+          margin-bottom: 30px;
+          padding-bottom: 15px;
+          border-bottom: 2px solid #e0e0e0;
+          position: relative;
+          z-index: 1;
         }
         
-        table, pre, blockquote, img {
-          page-break-inside: avoid;
+        .content {
+          position: relative;
+          z-index: 1;
         }
-      }
-    </style>
-  `;
+        
+        img { 
+          max-width: 100%; 
+          height: auto; 
+        }
+        
+        pre { 
+          background: #f5f5f5; 
+          padding: 15px; 
+          border-radius: 0; 
+          overflow-x: auto; 
+        }
+        
+        code { 
+          background: #f5f5f5; 
+          padding: 2px 6px; 
+          border-radius: 0; 
+          font-family: 'Courier New', monospace; 
+        }
+        
+        blockquote { 
+          border-left: 4px solid #2196f3; 
+          padding-left: 15px; 
+          color: #666; 
+          font-style: italic; 
+        }
+        
+        a { 
+          color: #2196f3; 
+        }
+        
+        ul, ol { 
+          margin: 12px 0; 
+          padding-left: 30px; 
+        }
+        
+        li { 
+          margin: 6px 0; 
+          line-height: 1.6; 
+        }
+        
+        table { 
+          border-collapse: collapse; 
+          width: 100%; 
+          margin: 20px 0; 
+        }
+        
+        th, td { 
+          border: 1px solid #ddd; 
+          padding: 12px; 
+          text-align: left; 
+        }
+        
+        th { 
+          background-color: #f5f5f5; 
+          font-weight: 600; 
+        }
+        
+        /* Print Styles */
+        @media print {
+          body::before {
+            content: 'BrainWaveAI';
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 120px;
+            font-weight: 900;
+            color: #d3d3d3;
+            opacity: 0.15;
+            z-index: -1;
+            white-space: nowrap;
+            pointer-events: none;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+          }
+          
+          @page {
+            margin: 0.5in;
+          }
+          
+          h1, h2, h3, h4, h5, h6 {
+            page-break-after: avoid;
+          }
+          
+          table, pre, blockquote, img {
+            page-break-inside: avoid;
+          }
+        }
+      </style>
+    `;
 
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>${noteTitle || 'Note'}</title>
-        ${styles}
-      </head>
-      <body>
-        <h1>${noteTitle || 'Untitled Note'}</h1>
-        <div class="metadata">
-          Last edited: ${new Date(selectedNote.updated_at).toLocaleString()}<br>
-          ${wordCount} words - ${charCount} characters
-        </div>
-        <div class="content">
-          ${noteContent}
-        </div>
-      </body>
-    </html>
-  `);
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>${noteTitle || 'Note'}</title>
+          ${styles}
+        </head>
+        <body>
+          <h1>${noteTitle || 'Untitled Note'}</h1>
+          <div class="metadata">
+            Last edited: ${new Date(selectedNote.updated_at).toLocaleString()}<br>
+            ${wordCount} words - ${charCount} characters
+          </div>
+          <div class="content">
+            ${noteContent}
+          </div>
+        </body>
+      </html>
+    `);
 
-  printWindow.document.close();
+    printWindow.document.close();
 
-  setTimeout(() => {
-    printWindow.print();
-  }, 250);
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
 
-  showPopup("Export", "Print dialog opened - Save as PDF with BrainWaveAI watermark");
-};
+    showPopup("Export", "Print dialog opened - Save as PDF with BrainWaveAI watermark");
+  };
 
   const exportAsText = () => {
     const text = noteContent.replace(/<[^>]+>/g, "");
@@ -1445,20 +1555,26 @@ const NotesRedesign = () => {
   const filteredNotes = getFilteredNotes();
 
   const modules = {
-    toolbar: [
-      [{ header: [1, 2, 3, 4, 5, 6, false] }],
-      [{ font: ['inter', 'arial', 'courier', 'georgia', 'times-new-roman', 'verdana'] }],
-      [{ size: ["small", false, "large", "huge"] }],
-      ["bold", "italic", "underline", "strike"],
-      [{ color: [] }, { background: [] }],
-      [{ script: "sub" }, { script: "super" }],
-      [{ list: "ordered" }, { list: "bullet" }, { indent: "-1" }, { indent: "+1" }],
-      [{ direction: "rtl" }, { align: [] }],
-      ["blockquote", "code-block"],
-      ["link", "image", "video", "formula"],
-      ["clean"],
-    ],
-    tableUI: true,
+    toolbar: {
+      container: [
+        [{ header: [1, 2, 3, 4, 5, 6, false] }],
+        [{ font: [
+          'inter', 'arial', 'times-new-roman', 'georgia', 'courier', 'verdana',
+          'helvetica', 'comic-sans', 'impact', 'trebuchet', 'palatino', 'garamond',
+          'bookman', 'avant-garde', 'roboto', 'open-sans', 'lato', 'montserrat',
+          'source-sans', 'merriweather', 'playfair', 'eb-garamond'
+        ] }],
+        [{ size: ["small", false, "large", "huge"] }],
+        ["bold", "italic", "underline", "strike"],
+        [{ color: [] }, { background: [] }],
+        [{ script: "sub" }, { script: "super" }],
+        [{ list: "ordered" }, { list: "bullet" }, { indent: "-1" }, { indent: "+1" }],
+        [{ direction: "rtl" }],
+        ["blockquote", "code-block"],
+        ["link", "image", "video", "formula"],
+        ["clean"],
+      ]
+    },
     formula: true,
   };
 
@@ -1477,7 +1593,6 @@ const NotesRedesign = () => {
     "bullet",
     "indent",
     "direction",
-    "align",
     "blockquote",
     "code-block",
     "link",
@@ -1504,10 +1619,10 @@ const NotesRedesign = () => {
           </div>
           <div className="sidebar-actions">
             <button onClick={createNewNote} className="btn-new-note" title="Create new note">
-              <span>+</span> New Note
+              <Plus size={18} /> New Note
             </button>
             <button onClick={() => setShowChatImport(true)} className="btn-import-chat" title="Import from AI Chat">
-              From Chat
+              <Upload size={16} /> From Chat
             </button>
           </div>
         </div>
@@ -1521,7 +1636,7 @@ const NotesRedesign = () => {
               setSelectedFolder(null);
             }}
           >
-            All Notes
+            <FileText size={16} /> All Notes
           </button>
           <button
             className={`filter-btn ${showFavorites ? 'active' : ''}`}
@@ -1531,7 +1646,7 @@ const NotesRedesign = () => {
               setSelectedFolder(null);
             }}
           >
-            Favorites
+            <Star size={16} /> Favorites
           </button>
           <button
             className={`filter-btn ${showTrash ? 'active' : ''}`}
@@ -1542,7 +1657,7 @@ const NotesRedesign = () => {
               if (!showTrash) loadTrash();
             }}
           >
-            Trash
+            <Trash2 size={16} /> Trash
           </button>
         </div>
 
@@ -1550,7 +1665,7 @@ const NotesRedesign = () => {
           <div className="folders-header">
             <h3>Folders</h3>
             <button onClick={() => setShowFolderModal(true)} className="btn-add-folder">
-              +
+              <FolderPlus size={18} />
             </button>
           </div>
           <div className="folders-list">
@@ -1598,7 +1713,7 @@ const NotesRedesign = () => {
                       className="folder-add-note-btn"
                       title="Add note to this folder"
                     >
-                      +
+                      <Plus size={14} />
                     </button>
                     <button
                       onClick={(e) => {
@@ -1607,7 +1722,7 @@ const NotesRedesign = () => {
                       }}
                       className="folder-delete-btn"
                     >
-                      ×
+                      <X size={14} />
                     </button>
                   </div>
                 </div>
@@ -1696,7 +1811,7 @@ const NotesRedesign = () => {
               >
                 <div className="note-item-header">
                   <div className="note-title-small">
-                    {n.is_favorite && <span className="favorite-star">⭐</span>}
+                    {n.is_favorite && <span className="favorite-star"><Star size={14} fill="currentColor" /></span>}
                     {n.title || "Untitled"}
                   </div>
                   <div className="note-actions">
@@ -1708,7 +1823,7 @@ const NotesRedesign = () => {
                       }}
                       title={n.is_favorite ? "Remove from favorites" : "Add to favorites"}
                     >
-                      ⭐
+                      {n.is_favorite ? <Star size={14} fill="currentColor" /> : <Star size={14} />}
                     </button>
                     <button
                       className="note-action-btn duplicate"
@@ -1718,18 +1833,18 @@ const NotesRedesign = () => {
                       }}
                       title="Duplicate note"
                     >
-                      📋
+                      <Archive size={14} />
                     </button>
                     <button
-                      className="note-action-btn delete"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        moveToTrash(n.id);
-                      }}
-                      title="Move to trash"
-                    >
-                      🗑️
-                    </button>
+  className="note-action-btn delete"
+  onClick={(e) => {
+    e.stopPropagation();
+    moveToTrash(n.id);
+  }}
+  title="Move to trash"
+>
+  <Trash2 size={14} />
+</button>
                   </div>
                 </div>
                 <div className="note-snippet">
@@ -1769,7 +1884,7 @@ const NotesRedesign = () => {
               className="toggle-sidebar"
               title="Toggle sidebar"
             >
-              {sidebarOpen ? "←" : "☰"}
+              {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
             <div className="nav-title">Brainwave Notes</div>
           </div>
@@ -1782,21 +1897,21 @@ const NotesRedesign = () => {
                   onClick={() => setViewMode("edit")}
                   title="Edit mode"
                 >
-                  Edit
+                  <Edit3 size={16} /> Edit
                 </button>
                 <button
                   className={`tool-btn ${viewMode === "preview" ? "active" : ""}`}
                   onClick={() => setViewMode("preview")}
                   title="Preview mode"
                 >
-                  Preview
+                  <Eye size={16} /> Preview
                 </button>
                 <div className="tool-divider"></div>
                 <button className="tool-btn" onClick={exportAsPDF} title="Export as PDF">
-                  PDF
+                  <FileDown size={16} /> PDF
                 </button>
                 <button className="tool-btn" onClick={exportAsText} title="Export as Text">
-                  TXT
+                  <Download size={16} /> TXT
                 </button>
                 <div className="tool-divider"></div>
                 <button
@@ -1804,7 +1919,7 @@ const NotesRedesign = () => {
                   onClick={() => setShowAIAssistant(true)}
                   title="AI Writing Assistant"
                 >
-                  AI Assist
+                  <Sparkles size={16} /> AI Assist
                 </button>
               </div>
             )}
@@ -1847,34 +1962,38 @@ const NotesRedesign = () => {
                   onClick={() => setTitleSectionCollapsed(!titleSectionCollapsed)}
                   title={titleSectionCollapsed ? "Expand title" : "Collapse title"}
                 >
-                  {titleSectionCollapsed ? '▼' : '▲'}
+                  <ChevronDown size={16} className={titleSectionCollapsed ? '' : 'rotated'} />
                 </button>
               </div>
             </div>
 
             {viewMode === "edit" ? (
-              <div className="quill-container">
-                <ReactQuill
-                  ref={quillRef}
-                  theme="snow"
-                  value={noteContent}
-                  onChange={handleEditorChange}
-                  modules={modules}
-                  formats={formats}
-                  placeholder="Start typing your notes here... (Press '/' for AI assistance)"
-                  className="quill-editor-enhanced"
-                  style={{ fontFamily: customFont }}
-                />
-              </div>
-            ) : (
-              <div className="preview-mode">
-                <div
-                  className="preview-content"
-                  dangerouslySetInnerHTML={{ __html: noteContent }}
-                  style={{ fontFamily: customFont }}
-                />
-              </div>
-            )}
+  <div className="quill-container">
+    <ReactQuill
+      ref={quillRef}
+      theme="snow"
+      value={noteContent}
+      onChange={handleEditorChange}
+      modules={modules}
+      formats={formats}
+      placeholder="Start typing your notes here... (Press '/' for AI assistance)"
+      className="quill-editor-enhanced"
+      style={{ fontFamily: customFont }}
+    />
+  </div>
+) : (
+  <div className="quill-container">
+    <ReactQuill
+      theme="snow"
+      value={noteContent}
+      readOnly={true}
+      modules={modules}
+      formats={formats}
+      className="quill-editor-enhanced"
+      style={{ fontFamily: customFont }}
+    />
+  </div>
+)}
 
             <div className="note-footer">
               <div className="footer-left">
@@ -1890,7 +2009,7 @@ const NotesRedesign = () => {
                 {saving ? (
                   <span className="saving-indicator">Saving...</span>
                 ) : autoSaved ? (
-                  <span className="saved-indicator">Saved ✓</span>
+                  <span className="saved-indicator">Saved <Check size={14} /></span>
                 ) : (
                   <span className="unsaved-indicator">Unsaved</span>
                 )}
@@ -1916,7 +2035,7 @@ const NotesRedesign = () => {
             position: "absolute",
             top: `${aiButtonPosition.top}px`,
             left: `${aiButtonPosition.left}px`,
-            opacity: showAIButton ? 2 : 0,
+            opacity: showAIButton ? 1 : 0,
           }}
           onClick={handleAIButtonClick}
         >
@@ -2024,7 +2143,7 @@ const NotesRedesign = () => {
                 className="modal-close-btn"
                 onClick={() => setShowAIAssistant(false)}
               >
-                ×
+                <X size={20} />
               </button>
             </div>
 
@@ -2074,6 +2193,13 @@ const NotesRedesign = () => {
                   >
                     Change Tone
                   </button>
+                  <button
+                    className={`ai-action-btn ${aiAssistAction === 'code' ? 'active' : ''}`}
+                    onClick={() => setAiAssistAction('code')}
+                  >
+                    <Code size={14} style={{ marginRight: '4px', display: 'inline' }} />
+                    Code
+                  </button>
                 </div>
               </div>
 
@@ -2099,8 +2225,8 @@ const NotesRedesign = () => {
               <div className="ai-assistant-section">
                 <label>Text to Process:</label>
                 <textarea
-                  className="ai-text-input"
-                  placeholder="Enter text or select text in the editor..."
+                  className={`ai-text-input ${aiAssistAction === 'code' ? 'code-mode' : ''}`}
+                  placeholder={aiAssistAction === 'code' ? 'Enter or paste your code here...' : 'Enter text or select text in the editor...'}
                   value={selectedText}
                   onChange={(e) => setSelectedText(e.target.value)}
                   rows={8}
@@ -2117,6 +2243,7 @@ const NotesRedesign = () => {
                   >
                     {isRecording ? (
                       <>
+                        <MicOff size={18} />
                         <span className="recording-indicator"></span>
                         Stop Recording
                       </>
@@ -2127,7 +2254,7 @@ const NotesRedesign = () => {
                       </>
                     ) : (
                       <>
-                        
+                        <Mic size={18} />
                         Start Voice Recording
                       </>
                     )}
@@ -2181,7 +2308,7 @@ const NotesRedesign = () => {
                 className="modal-close-btn"
                 onClick={() => setShowFolderModal(false)}
               >
-                ×
+                <X size={20} />
               </button>
             </div>
             <div className="folder-modal-content">
@@ -2230,7 +2357,7 @@ const NotesRedesign = () => {
           <div className="chat-import-modal-new" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header-new">
               <h2>Convert Chat to Notes</h2>
-              <button className="modal-close-btn" onClick={() => setShowChatImport(false)}>×</button>
+              <button className="modal-close-btn" onClick={() => setShowChatImport(false)}><X size={20} /></button>
             </div>
             <div className="modal-content-new">
               <div className="import-mode-section-new">
@@ -2340,6 +2467,7 @@ const NotesRedesign = () => {
           </div>
         </>
       )}
+
 
       <CustomPopup
         isOpen={popup.isOpen}
