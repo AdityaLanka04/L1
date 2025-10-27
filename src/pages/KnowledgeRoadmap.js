@@ -1,22 +1,90 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Loader, MapPin, Book, Sparkles, ChevronRight } from 'lucide-react';
+import ReactFlow, {
+  Background,
+  Controls,
+  MiniMap,
+  useNodesState,
+  useEdgesState,
+  Handle,
+  Position,
+} from 'reactflow';
+import 'reactflow/dist/style.css';
+import { Plus, Loader, MapPin, Book, Sparkles } from 'lucide-react';
 import './KnowledgeRoadmap.css';
+
+const CustomNode = ({ data }) => {
+  return (
+    <div className={`custom-kr-node ${data.isExplored ? 'kr-explored' : ''} ${data.expansionStatus === 'expanded' ? 'kr-expanded' : ''}`}>
+      <Handle 
+        type="target" 
+        position={Position.Top}
+        style={{ background: '#D7B38C', width: '10px', height: '10px', border: '2px solid #1a1a1a' }}
+      />
+      <div className="kr-node-content-flow">
+        <div className="kr-node-icon-flow">
+          <MapPin size={18} />
+        </div>
+        <div className="kr-node-text-flow">
+          <h4>{data.label}</h4>
+          <p>{data.description}</p>
+          {data.isExplored && (
+            <span className="kr-explored-badge-flow">
+              <Sparkles size={12} />
+              Explored
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="kr-node-actions-flow">
+        <button 
+          className="kr-node-btn-flow kr-explore-btn nodrag nopan"
+          onClick={(e) => { e.stopPropagation(); data.onExplore && data.onExplore(data.nodeId); }}
+          disabled={data.isExploring}
+        >
+          <Book size={14} />
+          {data.isExploring ? 'Exploring...' : 'Explore'}
+        </button>
+        {data.expansionStatus === 'unexpanded' && (
+          <button 
+            className="kr-node-btn-flow kr-expand-btn nodrag nopan"
+            onClick={(e) => { e.stopPropagation(); data.onExpand && data.onExpand(data.nodeId); }}
+            disabled={data.isExpanding}
+          >
+            {data.isExpanding ? 'Expanding...' : 'Expand'}
+          </button>
+        )}
+      </div>
+      <Handle 
+        type="source" 
+        position={Position.Bottom}
+        style={{ background: '#D7B38C', width: '10px', height: '10px', border: '2px solid #1a1a1a' }}
+      />
+    </div>
+  );
+};
 
 const KnowledgeRoadmap = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
   const userId = localStorage.getItem('user_id') || localStorage.getItem('username');
 
-  // State
   const [roadmaps, setRoadmaps] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [rootTopic, setRootTopic] = useState('');
   const [currentRoadmap, setCurrentRoadmap] = useState(null);
-  const [nodes, setNodes] = useState([]);
-  const [selectedNode, setSelectedNode] = useState(null);
   const [nodeExplanation, setNodeExplanation] = useState(null);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [expandedNodes, setExpandedNodes] = useState(new Set());
+
+  const expandNodeRef = useRef(null);
+  const exploreNodeRef = useRef(null);
+
+  const nodeTypes = useMemo(() => ({
+    custom: CustomNode,
+  }), []);
 
   useEffect(() => {
     fetchRoadmaps();
@@ -25,7 +93,7 @@ const KnowledgeRoadmap = () => {
   const fetchRoadmaps = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8001/get_knowledge_roadmaps?user_id=${userId}`, {
+      const response = await fetch(`http://localhost:8001/get_user_roadmaps?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -64,7 +132,6 @@ const KnowledgeRoadmap = () => {
         setShowCreateModal(false);
         setRootTopic('');
         await fetchRoadmaps();
-        // Open the newly created roadmap
         viewRoadmap(data.roadmap_id);
       } else {
         alert('Failed to create roadmap');
@@ -86,8 +153,119 @@ const KnowledgeRoadmap = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setCurrentRoadmap(data);
-        setNodes(data.nodes || []);
+        setCurrentRoadmap(data.roadmap);
+        
+        const allNodes = data.nodes_flat || [];
+        const backendExpandedNodes = new Set(data.expanded_nodes || []);
+        
+        const nodeMap = new Map();
+        const childMap = new Map();
+        
+        allNodes.forEach(node => {
+          nodeMap.set(node.id, node);
+          if (node.parent_id) {
+            if (!childMap.has(node.parent_id)) {
+              childMap.set(node.parent_id, []);
+            }
+            childMap.get(node.parent_id).push(node);
+          }
+        });
+        
+        const rootNodes = allNodes.filter(node => !node.parent_id);
+        const newExpandedNodes = new Set(backendExpandedNodes);
+        
+        const ensureAncestorsExpanded = (nodeId) => {
+          const node = nodeMap.get(nodeId);
+          if (!node || !node.parent_id) return;
+          const parent = nodeMap.get(node.parent_id);
+          if (parent) {
+            newExpandedNodes.add(parent.id);
+            ensureAncestorsExpanded(parent.id);
+          }
+        };
+        
+        newExpandedNodes.forEach(nodeId => {
+          ensureAncestorsExpanded(nodeId);
+        });
+        
+        const visibleNodes = new Set();
+        const nodesToProcess = [...rootNodes];
+        
+        while (nodesToProcess.length > 0) {
+          const currentNode = nodesToProcess.shift();
+          visibleNodes.add(currentNode.id);
+          
+          if (newExpandedNodes.has(currentNode.id)) {
+            const children = childMap.get(currentNode.id) || [];
+            nodesToProcess.push(...children);
+          }
+        }
+        
+        setExpandedNodes(newExpandedNodes);
+        
+        const filteredNodes = allNodes.filter(node => visibleNodes.has(node.id));
+        
+        const nodesByDepth = new Map();
+        filteredNodes.forEach(node => {
+          if (!nodesByDepth.has(node.depth_level)) {
+            nodesByDepth.set(node.depth_level, []);
+          }
+          nodesByDepth.get(node.depth_level).push(node);
+        });
+
+        const flowNodes = filteredNodes.map(node => {
+          const nodesAtThisDepth = nodesByDepth.get(node.depth_level) || [];
+          const indexAtDepth = nodesAtThisDepth.indexOf(node);
+          const horizontalSpacing = 280;
+          const baseVerticalSpacing = 250;
+          const depthMultiplier = 1.2;
+          const verticalSpacing = baseVerticalSpacing * Math.pow(depthMultiplier, node.depth_level);
+          
+          const totalWidth = (nodesAtThisDepth.length - 1) * horizontalSpacing;
+          const startX = 400 - (totalWidth / 2);
+
+          return {
+            id: String(node.id),
+            type: 'custom',
+            position: {
+              x: startX + (indexAtDepth * horizontalSpacing),
+              y: 50 + (node.depth_level * verticalSpacing)
+            },
+            data: {
+              label: node.topic_name,
+              description: node.description,
+              depth: node.depth_level,
+              isExplored: node.is_explored,
+              expansionStatus: node.expansion_status,
+              nodeId: node.id,
+              onExpand: expandNode,
+              onExplore: exploreNode,
+            },
+          };
+        });
+
+        const flowEdges = [];
+        filteredNodes.forEach(node => {
+          if (node.parent_id && visibleNodes.has(node.parent_id)) {
+            flowEdges.push({
+              id: `e${node.parent_id}-${node.id}`,
+              source: String(node.parent_id),
+              target: String(node.id),
+              type: 'smoothstep',
+              animated: false,
+              style: { stroke: '#D7B38C', strokeWidth: 3 },
+              markerEnd: {
+                type: 'arrow',
+                color: '#D7B38C',
+                width: 20,
+                height: 20,
+              },
+            });
+          }
+        });
+
+        setNodes(flowNodes);
+        setEdges(flowEdges);
       }
     } catch (error) {
       console.error('Error viewing roadmap:', error);
@@ -96,9 +274,18 @@ const KnowledgeRoadmap = () => {
     }
   };
 
-  const expandNode = async (nodeId) => {
+  const expandNode = useCallback(async (nodeId) => {
+    console.log('Expanding node:', nodeId);
+    
+    setNodes((nds) => {
+      return nds.map(n =>
+        n.data.nodeId === nodeId
+          ? { ...n, data: { ...n.data, isExpanding: true } }
+          : n
+      );
+    });
+    
     try {
-      setLoading(true);
       const response = await fetch(`http://localhost:8001/expand_knowledge_node/${nodeId}`, {
         method: 'POST',
         headers: {
@@ -109,21 +296,36 @@ const KnowledgeRoadmap = () => {
 
       if (response.ok) {
         const data = await response.json();
-        // Refresh the roadmap to get updated nodes
+        console.log('Expand response:', data);
+        
         if (currentRoadmap) {
-          await viewRoadmap(currentRoadmap.roadmap_id);
+          await viewRoadmap(currentRoadmap.id);
         }
       }
     } catch (error) {
       console.error('Error expanding node:', error);
-    } finally {
-      setLoading(false);
+      setNodes((nds) => {
+        return nds.map(n =>
+          n.data.nodeId === nodeId
+            ? { ...n, data: { ...n.data, isExpanding: false } }
+            : n
+        );
+      });
     }
-  };
+  }, [currentRoadmap, token]);
 
-  const exploreNode = async (nodeId) => {
+  const exploreNode = useCallback(async (nodeId) => {
+    console.log('Exploring node:', nodeId);
+    
+    setNodes((nds) => {
+      return nds.map(n =>
+        n.data.nodeId === nodeId
+          ? { ...n, data: { ...n.data, isExploring: true } }
+          : n
+      );
+    });
+    
     try {
-      setLoading(true);
       const response = await fetch(`http://localhost:8001/explore_node/${nodeId}`, {
         method: 'POST',
         headers: {
@@ -135,99 +337,51 @@ const KnowledgeRoadmap = () => {
       if (response.ok) {
         const data = await response.json();
         setNodeExplanation(data.node);
-        setSelectedNode(nodeId);
+        
+        setNodes((nds) => {
+          return nds.map(n =>
+            n.data.nodeId === nodeId
+              ? { ...n, data: { ...n.data, isExplored: true, isExploring: false } }
+              : n
+          );
+        });
       }
     } catch (error) {
       console.error('Error exploring node:', error);
-    } finally {
-      setLoading(false);
+      setNodes((nds) => {
+        return nds.map(n =>
+          n.data.nodeId === nodeId
+            ? { ...n, data: { ...n.data, isExploring: false } }
+            : n
+        );
+      });
     }
-  };
+  }, [token]);
 
-  const renderNodeTree = (parentId = null, depth = 0) => {
-    const childNodes = nodes.filter(node => node.parent_id === parentId);
-    
-    if (childNodes.length === 0) return null;
-
-    return (
-      <div className="kr-node-level" style={{ marginLeft: `${depth * 40}px` }}>
-        {childNodes.map(node => (
-          <div key={node.id} className="kr-node-wrapper">
-            <div 
-              className={`kr-node ${node.is_explored ? 'explored' : ''} ${node.expansion_status === 'expanded' ? 'expanded' : ''}`}
-              onClick={() => setSelectedNode(node.id)}
-            >
-              <div className="kr-node-header">
-                <div className="kr-node-icon">
-                  <MapPin size={20} />
-                </div>
-                <div className="kr-node-content">
-                  <h4 className="kr-node-title">{node.topic_name}</h4>
-                  <p className="kr-node-description">{node.description}</p>
-                  {node.is_explored && (
-                    <span className="kr-explored-badge">
-                      <Sparkles size={14} />
-                      Explored
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="kr-node-actions">
-                <button 
-                  className="kr-node-btn explore"
-                  onClick={(e) => { e.stopPropagation(); exploreNode(node.id); }}
-                  title="Learn about this topic"
-                >
-                  <Book size={16} />
-                  <span>Explore</span>
-                </button>
-                {node.expansion_status !== 'expanded' && (
-                  <button 
-                    className="kr-node-btn expand"
-                    onClick={(e) => { e.stopPropagation(); expandNode(node.id); }}
-                    title="See subtopics"
-                  >
-                    <ChevronRight size={16} />
-                    <span>Expand</span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Recursively render child nodes */}
-            {renderNodeTree(node.id, depth + 1)}
-          </div>
-        ))}
-      </div>
-    );
-  };
+  expandNodeRef.current = expandNode;
+  exploreNodeRef.current = exploreNode;
 
   return (
     <div className="kr-page">
-      {/* Header */}
       <header className="kr-header">
-        <div className="kr-header-left">
-          <button className="kr-back-btn" onClick={() => navigate('/learning-review')}>
-            <ArrowLeft size={20} />
-            <span>BACK</span>
-          </button>
-          <div className="kr-header-title-group">
-            <h1 className="kr-logo">brainwave</h1>
-            <span className="kr-subtitle">KNOWLEDGE ROADMAP</span>
+        <div className="kr-header-container">
+          <div className="kr-header-left">
+            <div className="kr-header-title-group">
+              <h1 className="kr-logo">brainwave</h1>
+              <span className="kr-subtitle">KNOWLEDGE ROADMAP</span>
+            </div>
           </div>
-        </div>
-        <div className="kr-header-right">
-          <button className="kr-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
-          <button className="kr-nav-btn logout" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>Logout</button>
+          <div className="kr-header-right">
+            <button className="kr-nav-btn" onClick={() => navigate('/learning-review')}>LEARNING REVIEW</button>
+            <button className="kr-nav-btn" onClick={() => navigate('/dashboard')}>DASHBOARD</button>
+            <button className="kr-nav-btn kr-logout" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>LOGOUT</button>
+          </div>
         </div>
       </header>
 
-      {/* Main Content */}
       <div className="kr-content">
         {!currentRoadmap ? (
           <>
-            {/* Section Header */}
             <div className="kr-section-header">
               <div className="kr-header-content">
                 <div>
@@ -241,7 +395,6 @@ const KnowledgeRoadmap = () => {
               </div>
             </div>
 
-            {/* Roadmaps Grid */}
             <div className="kr-main">
               {loading && roadmaps.length === 0 ? (
                 <div className="kr-loading">
@@ -290,48 +443,67 @@ const KnowledgeRoadmap = () => {
             </div>
           </>
         ) : (
-          /* Roadmap Viewer */
-          <div className="kr-viewer">
-            <div className="kr-viewer-header">
-              <button className="kr-back-to-list" onClick={() => { setCurrentRoadmap(null); setNodes([]); }}>
-                <ArrowLeft size={18} />
-                <span>Back to Roadmaps</span>
+          <div className="kr-viewer-fullscreen">
+            <div className="kr-viewer-header-compact">
+              <button className="kr-back-to-list-compact" onClick={() => { setCurrentRoadmap(null); setNodes([]); setEdges([]); setNodeExplanation(null); }}>
+                Back to Roadmaps
               </button>
-              <h2 className="kr-viewer-title">{currentRoadmap.title}</h2>
-              <div className="kr-viewer-stats">
-                <span>{currentRoadmap.total_nodes} nodes</span>
-                <span>•</span>
-                <span>Depth: {currentRoadmap.max_depth_reached}</span>
+              <div className="kr-viewer-title-section">
+                <h2 className="kr-viewer-title-compact">{currentRoadmap.title || `Exploring ${currentRoadmap.root_topic}`}</h2>
+                <div className="kr-viewer-stats-compact">
+                  <span>{currentRoadmap.total_nodes || nodes.length} nodes</span>
+                  <span>•</span>
+                  <span>Depth: {currentRoadmap.max_depth_reached || 0}</span>
+                </div>
               </div>
             </div>
 
-            <div className="kr-viewer-content">
-              <div className="kr-tree-panel">
-                <div className="kr-tree-container">
-                  {loading && nodes.length === 0 ? (
-                    <div className="kr-loading">
-                      <Loader size={32} className="kr-spinner" />
-                    </div>
-                  ) : (
-                    renderNodeTree()
-                  )}
-                </div>
+            <div className="kr-flow-wrapper">
+              <div className="kr-flow-container-fullscreen">
+                {loading && nodes.length === 0 ? (
+                  <div className="kr-loading">
+                    <Loader size={32} className="kr-spinner" />
+                  </div>
+                ) : (
+                  <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    nodeTypes={nodeTypes}
+                    fitView
+                    minZoom={0.1}
+                    maxZoom={2}
+                    defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+                    attributionPosition="bottom-left"
+                  >
+                    <Background color="var(--border)" gap={16} />
+                    <Controls />
+                    <MiniMap 
+                      nodeColor={(node) => {
+                        if (node.data.isExplored) return '#10B981';
+                        if (node.data.expansionStatus === 'expanded') return '#D7B38C';
+                        return '#B8C0CC';
+                      }}
+                      maskColor="rgba(0, 0, 0, 0.7)"
+                    />
+                  </ReactFlow>
+                )}
               </div>
 
-              {/* Explanation Panel */}
               {nodeExplanation && (
-                <div className="kr-explanation-panel">
-                  <div className="kr-explanation-header">
+                <div className="kr-explanation-sidebar">
+                  <div className="kr-explanation-header-sticky">
                     <h3>{nodeExplanation.topic_name}</h3>
                     <button 
                       className="kr-close-explanation"
-                      onClick={() => { setNodeExplanation(null); setSelectedNode(null); }}
+                      onClick={() => setNodeExplanation(null)}
                     >
                       ×
                     </button>
                   </div>
 
-                  <div className="kr-explanation-content">
+                  <div className="kr-explanation-scrollable">
                     {nodeExplanation.ai_explanation && (
                       <div className="kr-explanation-section">
                         <h4>Overview</h4>
@@ -382,7 +554,6 @@ const KnowledgeRoadmap = () => {
         )}
       </div>
 
-      {/* Create Roadmap Modal */}
       {showCreateModal && (
         <div className="kr-modal-overlay" onClick={() => setShowCreateModal(false)}>
           <div className="kr-modal" onClick={e => e.stopPropagation()}>

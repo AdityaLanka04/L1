@@ -4897,8 +4897,8 @@ async def submit_review_response(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
                
-@app.get("/get_user_roadmaps")
-async def get_user_roadmaps(
+@app.get("/get_knowledge_roadmaps")
+async def get_knowledge_roadmaps(
     user_id: str = Query(...),
     db: Session = Depends(get_db)
 ):
