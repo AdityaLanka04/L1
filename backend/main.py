@@ -5831,6 +5831,581 @@ async def remove_friend(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ==================== FRIEND ACTIVITY FEED ====================
+
+@app.get("/friend_activity_feed")
+async def get_friend_activity_feed(
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db),
+    limit: int = Query(50, le=100)
+):
+    """Get activity feed of friends' achievements and milestones"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get friend IDs
+        friendships = db.query(models.Friendship).filter(
+            models.Friendship.user_id == current_user.id
+        ).all()
+        friend_ids = [f.friend_id for f in friendships]
+        
+        if not friend_ids:
+            return {"activities": []}
+        
+        # Get friend activities
+        activities = db.query(models.FriendActivity).filter(
+            models.FriendActivity.user_id.in_(friend_ids)
+        ).order_by(models.FriendActivity.created_at.desc()).limit(limit).all()
+        
+        result = []
+        for activity in activities:
+            # Get kudos count and check if current user gave kudos
+            kudos_count = db.query(models.Kudos).filter(
+                models.Kudos.activity_id == activity.id
+            ).count()
+            
+            user_gave_kudos = db.query(models.Kudos).filter(
+                and_(
+                    models.Kudos.activity_id == activity.id,
+                    models.Kudos.user_id == current_user.id
+                )
+            ).first() is not None
+            
+            result.append({
+                "id": activity.id,
+                "user": {
+                    "id": activity.user.id,
+                    "username": activity.user.username,
+                    "first_name": activity.user.first_name or "",
+                    "last_name": activity.user.last_name or "",
+                    "picture_url": activity.user.picture_url or ""
+                },
+                "activity_type": activity.activity_type,
+                "title": activity.title,
+                "description": activity.description or "",
+                "icon": activity.icon or "Trophy",
+                "metadata": json.loads(activity.activity_data) if activity.activity_data else {},
+                "kudos_count": kudos_count,
+                "user_gave_kudos": user_gave_kudos,
+                "created_at": activity.created_at.isoformat()
+            })
+        
+        return {"activities": result}
+    
+    except Exception as e:
+        logger.error(f"Error fetching friend activity feed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/give_kudos")
+async def give_kudos(
+    payload: dict = Body(...),
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Give kudos to a friend's activity"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        activity_id = payload.get("activity_id")
+        reaction_type = payload.get("reaction_type", "👏")
+        
+        if not activity_id:
+            raise HTTPException(status_code=400, detail="activity_id is required")
+        
+        # Check if already gave kudos
+        existing = db.query(models.Kudos).filter(
+            and_(
+                models.Kudos.activity_id == activity_id,
+                models.Kudos.user_id == current_user.id
+            )
+        ).first()
+        
+        if existing:
+            # Remove kudos
+            db.delete(existing)
+            db.commit()
+            return {"status": "removed", "message": "Kudos removed"}
+        else:
+            # Add kudos
+            kudos = models.Kudos(
+                activity_id=activity_id,
+                user_id=current_user.id,
+                reaction_type=reaction_type
+            )
+            db.add(kudos)
+            db.commit()
+            return {"status": "added", "message": "Kudos given"}
+    
+    except Exception as e:
+        logger.error(f"Error giving kudos: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/create_activity")
+async def create_activity(
+    payload: dict = Body(...),
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Create a new activity (used internally when user achieves something)"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        activity = models.FriendActivity(
+            user_id=current_user.id,
+            activity_type=payload.get("activity_type"),
+            title=payload.get("title"),
+            description=payload.get("description", ""),
+            icon=payload.get("icon", "Trophy"),
+            activity_data=json.dumps(payload.get("metadata", {}))
+        )
+        
+        db.add(activity)
+        db.commit()
+        
+        return {"status": "success", "activity_id": activity.id}
+    
+    except Exception as e:
+        logger.error(f"Error creating activity: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== LEADERBOARDS ====================
+
+@app.get("/leaderboard")
+async def get_leaderboard(
+    category: str = Query("global", regex="^(global|friends|subject|archetype)$"),
+    metric: str = Query("total_hours", regex="^(total_hours|accuracy|streak|lessons)$"),
+    period: str = Query("all_time", regex="^(weekly|monthly|all_time)$"),
+    subject: Optional[str] = Query(None),
+    limit: int = Query(50, le=100),
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Get leaderboard rankings"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Determine user pool based on category
+        if category == "friends":
+            friendships = db.query(models.Friendship).filter(
+                models.Friendship.user_id == current_user.id
+            ).all()
+            user_ids = [f.friend_id for f in friendships] + [current_user.id]
+        else:
+            user_ids = None  # All users
+        
+        # Get user stats
+        query = db.query(models.UserStats, models.User).join(
+            models.User, models.UserStats.user_id == models.User.id
+        )
+        
+        if user_ids:
+            query = query.filter(models.UserStats.user_id.in_(user_ids))
+        
+        # Order by metric
+        if metric == "total_hours":
+            query = query.order_by(models.UserStats.total_hours.desc())
+            score_field = "total_hours"
+        elif metric == "accuracy":
+            query = query.order_by(models.UserStats.accuracy_percentage.desc())
+            score_field = "accuracy_percentage"
+        elif metric == "streak":
+            query = query.order_by(models.UserStats.day_streak.desc())
+            score_field = "day_streak"
+        else:  # lessons
+            query = query.order_by(models.UserStats.total_lessons.desc())
+            score_field = "total_lessons"
+        
+        results = query.limit(limit).all()
+        
+        leaderboard = []
+        for rank, (stats, user) in enumerate(results, start=1):
+            score = getattr(stats, score_field)
+            leaderboard.append({
+                "rank": rank,
+                "user_id": user.id,
+                "username": user.username,
+                "first_name": user.first_name or "",
+                "last_name": user.last_name or "",
+                "picture_url": user.picture_url or "",
+                "score": round(score, 1) if isinstance(score, float) else score,
+                "metric": metric,
+                "is_current_user": user.id == current_user.id
+            })
+        
+        # Find current user's rank if not in top results
+        current_user_rank = next((item for item in leaderboard if item["is_current_user"]), None)
+        
+        return {
+            "leaderboard": leaderboard,
+            "current_user_rank": current_user_rank,
+            "category": category,
+            "metric": metric,
+            "period": period
+        }
+    
+    except Exception as e:
+        logger.error(f"Error fetching leaderboard: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== QUIZ BATTLES ====================
+
+@app.post("/create_quiz_battle")
+async def create_quiz_battle(
+    payload: dict = Body(...),
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Create a new quiz battle challenge"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        opponent_id = payload.get("opponent_id")
+        subject = payload.get("subject")
+        difficulty = payload.get("difficulty", "intermediate")
+        question_count = payload.get("question_count", 10)
+        time_limit = payload.get("time_limit_seconds", 300)
+        
+        if not opponent_id or not subject:
+            raise HTTPException(status_code=400, detail="opponent_id and subject are required")
+        
+        # Check if opponent is a friend
+        friendship = db.query(models.Friendship).filter(
+            and_(
+                models.Friendship.user_id == current_user.id,
+                models.Friendship.friend_id == opponent_id
+            )
+        ).first()
+        
+        if not friendship:
+            raise HTTPException(status_code=400, detail="Can only battle with friends")
+        
+        # Create battle
+        battle = models.QuizBattle(
+            challenger_id=current_user.id,
+            opponent_id=opponent_id,
+            subject=subject,
+            difficulty=difficulty,
+            question_count=question_count,
+            time_limit_seconds=time_limit,
+            expires_at=datetime.now(timezone.utc) + timedelta(days=7)
+        )
+        
+        db.add(battle)
+        db.commit()
+        
+        return {
+            "status": "success",
+            "battle_id": battle.id,
+            "message": "Quiz battle created"
+        }
+    
+    except Exception as e:
+        logger.error(f"Error creating quiz battle: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/quiz_battles")
+async def get_quiz_battles(
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db),
+    status: str = Query("active", regex="^(pending|active|completed|all)$")
+):
+    """Get user's quiz battles"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get battles where user is challenger or opponent
+        query = db.query(models.QuizBattle).filter(
+            (models.QuizBattle.challenger_id == current_user.id) |
+            (models.QuizBattle.opponent_id == current_user.id)
+        )
+        
+        if status != "all":
+            query = query.filter(models.QuizBattle.status == status)
+        
+        battles = query.order_by(models.QuizBattle.created_at.desc()).all()
+        
+        result = []
+        for battle in battles:
+            is_challenger = battle.challenger_id == current_user.id
+            opponent = battle.opponent if is_challenger else battle.challenger
+            
+            result.append({
+                "id": battle.id,
+                "opponent": {
+                    "id": opponent.id,
+                    "username": opponent.username,
+                    "first_name": opponent.first_name or "",
+                    "last_name": opponent.last_name or "",
+                    "picture_url": opponent.picture_url or ""
+                },
+                "subject": battle.subject,
+                "difficulty": battle.difficulty,
+                "status": battle.status,
+                "question_count": battle.question_count,
+                "time_limit_seconds": battle.time_limit_seconds,
+                "your_score": battle.challenger_score if is_challenger else battle.opponent_score,
+                "opponent_score": battle.opponent_score if is_challenger else battle.challenger_score,
+                "your_completed": battle.challenger_completed if is_challenger else battle.opponent_completed,
+                "opponent_completed": battle.opponent_completed if is_challenger else battle.challenger_completed,
+                "is_challenger": is_challenger,
+                "created_at": battle.created_at.isoformat(),
+                "expires_at": battle.expires_at.isoformat() if battle.expires_at else None
+            })
+        
+        return {"battles": result}
+    
+    except Exception as e:
+        logger.error(f"Error fetching quiz battles: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/complete_quiz_battle")
+async def complete_quiz_battle(
+    payload: dict = Body(...),
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Complete a quiz battle with score"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        battle_id = payload.get("battle_id")
+        score = payload.get("score")
+        
+        if not battle_id or score is None:
+            raise HTTPException(status_code=400, detail="battle_id and score are required")
+        
+        battle = db.query(models.QuizBattle).filter(
+            models.QuizBattle.id == battle_id
+        ).first()
+        
+        if not battle:
+            raise HTTPException(status_code=404, detail="Battle not found")
+        
+        # Update score
+        is_challenger = battle.challenger_id == current_user.id
+        if is_challenger:
+            battle.challenger_score = score
+            battle.challenger_completed = True
+        else:
+            battle.opponent_score = score
+            battle.opponent_completed = True
+        
+        # Check if both completed
+        if battle.challenger_completed and battle.opponent_completed:
+            battle.status = "completed"
+            battle.completed_at = datetime.now(timezone.utc)
+            
+            # Create activity for winner
+            winner_id = battle.challenger_id if battle.challenger_score > battle.opponent_score else battle.opponent_id
+            winner = battle.challenger if winner_id == battle.challenger_id else battle.opponent
+            loser = battle.opponent if winner_id == battle.challenger_id else battle.challenger
+            
+            activity = models.FriendActivity(
+                user_id=winner_id,
+                activity_type="quiz_battle_won",
+                title=f"Won Quiz Battle!",
+                description=f"Defeated {loser.username} in {battle.subject}",
+                icon="Swords",
+                activity_data=json.dumps({
+                    "winner_score": battle.challenger_score if winner_id == battle.challenger_id else battle.opponent_score,
+                    "loser_score": battle.opponent_score if winner_id == battle.challenger_id else battle.challenger_score,
+                    "subject": battle.subject
+                })
+            )
+            db.add(activity)
+        elif battle.status == "pending":
+            battle.status = "active"
+            battle.started_at = datetime.now(timezone.utc)
+        
+        db.commit()
+        
+        return {
+            "status": "success",
+            "battle_status": battle.status,
+            "message": "Score submitted"
+        }
+    
+    except Exception as e:
+        logger.error(f"Error completing quiz battle: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== CHALLENGES ====================
+
+@app.post("/create_challenge")
+async def create_challenge(
+    payload: dict = Body(...),
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Create a new challenge"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        challenge = models.Challenge(
+            creator_id=current_user.id,
+            title=payload.get("title"),
+            description=payload.get("description", ""),
+            challenge_type=payload.get("challenge_type"),
+            subject=payload.get("subject"),
+            target_metric=payload.get("target_metric"),
+            target_value=payload.get("target_value"),
+            time_limit_minutes=payload.get("time_limit_minutes"),
+            starts_at=datetime.now(timezone.utc),
+            ends_at=datetime.now(timezone.utc) + timedelta(minutes=payload.get("time_limit_minutes", 60))
+        )
+        
+        db.add(challenge)
+        db.commit()
+        
+        return {
+            "status": "success",
+            "challenge_id": challenge.id
+        }
+    
+    except Exception as e:
+        logger.error(f"Error creating challenge: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/challenges")
+async def get_challenges(
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db),
+    filter_type: str = Query("active", regex="^(active|completed|my_challenges|all)$")
+):
+    """Get available challenges"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        query = db.query(models.Challenge)
+        
+        if filter_type == "my_challenges":
+            query = query.filter(models.Challenge.creator_id == current_user.id)
+        elif filter_type != "all":
+            query = query.filter(models.Challenge.status == filter_type)
+        
+        challenges = query.order_by(models.Challenge.created_at.desc()).all()
+        
+        result = []
+        for challenge in challenges:
+            # Check if user is participating
+            participation = db.query(models.ChallengeParticipation).filter(
+                and_(
+                    models.ChallengeParticipation.challenge_id == challenge.id,
+                    models.ChallengeParticipation.user_id == current_user.id
+                )
+            ).first()
+            
+            result.append({
+                "id": challenge.id,
+                "creator": {
+                    "id": challenge.creator.id,
+                    "username": challenge.creator.username,
+                    "first_name": challenge.creator.first_name or "",
+                    "last_name": challenge.creator.last_name or ""
+                },
+                "title": challenge.title,
+                "description": challenge.description or "",
+                "challenge_type": challenge.challenge_type,
+                "subject": challenge.subject or "",
+                "target_metric": challenge.target_metric,
+                "target_value": challenge.target_value,
+                "time_limit_minutes": challenge.time_limit_minutes,
+                "status": challenge.status,
+                "participant_count": challenge.participant_count,
+                "is_participating": participation is not None,
+                "user_progress": participation.progress if participation else 0,
+                "user_completed": participation.completed if participation else False,
+                "created_at": challenge.created_at.isoformat(),
+                "ends_at": challenge.ends_at.isoformat() if challenge.ends_at else None
+            })
+        
+        return {"challenges": result}
+    
+    except Exception as e:
+        logger.error(f"Error fetching challenges: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/join_challenge")
+async def join_challenge(
+    payload: dict = Body(...),
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Join a challenge"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        challenge_id = payload.get("challenge_id")
+        if not challenge_id:
+            raise HTTPException(status_code=400, detail="challenge_id is required")
+        
+        # Check if already participating
+        existing = db.query(models.ChallengeParticipation).filter(
+            and_(
+                models.ChallengeParticipation.challenge_id == challenge_id,
+                models.ChallengeParticipation.user_id == current_user.id
+            )
+        ).first()
+        
+        if existing:
+            raise HTTPException(status_code=400, detail="Already participating in this challenge")
+        
+        participation = models.ChallengeParticipation(
+            challenge_id=challenge_id,
+            user_id=current_user.id
+        )
+        
+        db.add(participation)
+        
+        # Update participant count
+        challenge = db.query(models.Challenge).filter(models.Challenge.id == challenge_id).first()
+        if challenge:
+            challenge.participant_count += 1
+        
+        db.commit()
+        
+        return {"status": "success", "message": "Joined challenge"}
+    
+    except Exception as e:
+        logger.error(f"Error joining challenge: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
     import uvicorn
     

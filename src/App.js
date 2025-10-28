@@ -5,6 +5,10 @@ import AIChat from './pages/AIChat';
 import Homepage from './pages/Homepage';
 import LearningReviewHub from './pages/LearningReviewHub';
 import Social from './pages/Social';
+import ActivityFeed from './pages/ActivityFeed';
+import Leaderboards from './pages/Leaderboards';
+import QuizBattle from './pages/QuizBattle';
+import Challenges from './pages/Challenges';
 import KnowledgeRoadmap from './pages/KnowledgeRoadmap';
 import QuestionBank from './pages/QuestionBank';
 import SlideExplorer from './pages/SlideExplorer';
@@ -31,6 +35,10 @@ function App() {
           <Route path="/ai-chat/:chatId?" element={<AIChat />} />
           <Route path="/learning-review" element={<LearningReviewHub />} />
           <Route path="/social" element={<Social />} />
+          <Route path="/activity-feed" element={<ActivityFeed />} />
+          <Route path="/leaderboards" element={<Leaderboards />} />
+          <Route path="/quiz-battles" element={<QuizBattle />} />
+          <Route path="/challenges" element={<Challenges />} />
           <Route path="/knowledge-roadmap" element={<KnowledgeRoadmap />} />
           <Route path="/question-bank" element={<QuestionBank />} />
           <Route path="/slide-explorer" element={<SlideExplorer />} />

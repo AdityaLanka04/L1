@@ -152,24 +152,10 @@ const Social = () => {
   const tools = [
     {
       icon: Users,
-      title: 'Study Groups',
-      description: 'Join or create study groups with peers. Collaborate on learning materials and share progress.',
-      path: '/study-groups',
-      id: 'groups'
-    },
-    {
-      icon: MessageSquare,
-      title: 'Discussion Forums',
-      description: 'Engage in topic-based discussions. Ask questions, share insights, and learn from the community.',
-      path: '/forums',
-      id: 'forums'
-    },
-    {
-      icon: Share2,
-      title: 'Share & Collaborate',
-      description: 'Share your notes, flashcards, and study materials with friends or the community.',
-      path: '/share',
-      id: 'share'
+      title: 'Friend Activity',
+      description: 'See what your friends are achieving. View their milestones, achievements, and give kudos.',
+      path: '/activity-feed',
+      id: 'activity'
     },
     {
       icon: TrendingUp,
@@ -177,6 +163,20 @@ const Social = () => {
       description: 'Compete with friends and track your ranking. See who\'s leading in study streaks and achievements.',
       path: '/leaderboards',
       id: 'leaderboards'
+    },
+    {
+      icon: MessageSquare,
+      title: 'Quiz Battles',
+      description: 'Challenge your friends to 1v1 quiz battles. Test your knowledge and compete for the top score.',
+      path: '/quiz-battles',
+      id: 'battles'
+    },
+    {
+      icon: Share2,
+      title: 'Challenges',
+      description: 'Join time-limited challenges. Complete goals and compete with the community.',
+      path: '/challenges',
+      id: 'challenges'
     }
   ];
 

@@ -988,6 +988,128 @@ class FriendRequest(Base):
     sender = relationship("User", foreign_keys=[sender_id])
     receiver = relationship("User", foreign_keys=[receiver_id])
 
+class FriendActivity(Base):
+    """Tracks friend achievements and milestones for activity feed"""
+    __tablename__ = "friend_activities"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    activity_type = Column(String(50), nullable=False)  # achievement, milestone, streak, quiz_completed
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    icon = Column(String(50), nullable=True)  # Icon name for frontend
+    activity_data = Column(Text, nullable=True)  # JSON for additional data (renamed from metadata to avoid SQLAlchemy conflict)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", foreign_keys=[user_id])
+
+class Kudos(Base):
+    """Reactions/kudos for friend achievements"""
+    __tablename__ = "kudos"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    activity_id = Column(Integer, ForeignKey("friend_activities.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    reaction_type = Column(String(20), default="👏")  # emoji reaction
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    activity = relationship("FriendActivity", foreign_keys=[activity_id])
+    user = relationship("User", foreign_keys=[user_id])
+
+class Leaderboard(Base):
+    """Leaderboard entries for different categories"""
+    __tablename__ = "leaderboards"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    category = Column(String(50), nullable=False)  # global, friends, subject, archetype
+    metric = Column(String(50), nullable=False)  # total_hours, accuracy, streak, lessons
+    period = Column(String(20), default="all_time")  # weekly, monthly, all_time
+    score = Column(Float, default=0.0)
+    rank = Column(Integer, nullable=True)
+    subject_filter = Column(String(100), nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User", foreign_keys=[user_id])
+
+class QuizBattle(Base):
+    """1v1 quiz battles between users"""
+    __tablename__ = "quiz_battles"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    challenger_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    opponent_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    subject = Column(String(100), nullable=False)
+    difficulty = Column(String(20), default="intermediate")
+    status = Column(String(20), default="pending")  # pending, active, completed, expired
+    
+    # Battle details
+    question_count = Column(Integer, default=10)
+    time_limit_seconds = Column(Integer, default=300)  # 5 minutes
+    
+    # Scores
+    challenger_score = Column(Integer, default=0)
+    opponent_score = Column(Integer, default=0)
+    challenger_completed = Column(Boolean, default=False)
+    opponent_completed = Column(Boolean, default=False)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    expires_at = Column(DateTime, nullable=True)
+    
+    challenger = relationship("User", foreign_keys=[challenger_id])
+    opponent = relationship("User", foreign_keys=[opponent_id])
+
+class Challenge(Base):
+    """Time-limited challenges for users"""
+    __tablename__ = "challenges"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    challenge_type = Column(String(50), nullable=False)  # speed, accuracy, topic_mastery, streak
+    subject = Column(String(100), nullable=True)
+    
+    # Challenge parameters
+    target_metric = Column(String(50), nullable=False)
+    target_value = Column(Float, nullable=False)
+    time_limit_minutes = Column(Integer, nullable=True)
+    
+    # Status
+    status = Column(String(20), default="active")  # active, completed, expired
+    participant_count = Column(Integer, default=0)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    starts_at = Column(DateTime, nullable=True)
+    ends_at = Column(DateTime, nullable=True)
+    
+    creator = relationship("User", foreign_keys=[creator_id])
+
+class ChallengeParticipation(Base):
+    """User participation in challenges"""
+    __tablename__ = "challenge_participations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    challenge_id = Column(Integer, ForeignKey("challenges.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    # Performance
+    score = Column(Float, default=0.0)
+    progress = Column(Float, default=0.0)  # Percentage
+    completed = Column(Boolean, default=False)
+    rank = Column(Integer, nullable=True)
+    
+    # Timestamps
+    joined_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+    
+    challenge = relationship("Challenge", foreign_keys=[challenge_id])
+    user = relationship("User", foreign_keys=[user_id])
+
 
 def create_tables():
     Base.metadata.create_all(bind=engine)
