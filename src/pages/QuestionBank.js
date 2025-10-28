@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Play, FileText, MessageSquare, Loader, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Play, FileText, MessageSquare, Loader, CheckCircle, XCircle, Upload, Brain, TrendingUp, Target, Zap, FileUp, Sparkles } from 'lucide-react';
 import './QuestionBank.css';
 
 const QuestionBank = () => {
@@ -8,29 +8,38 @@ const QuestionBank = () => {
   const token = localStorage.getItem('token');
   const userId = localStorage.getItem('user_id') || localStorage.getItem('username');
 
-  // State
   const [questionSets, setQuestionSets] = useState([]);
   const [chatSessions, setChatSessions] = useState([]);
   const [uploadedSlides, setUploadedSlides] = useState([]);
+  const [uploadedDocuments, setUploadedDocuments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showPracticeModal, setShowPracticeModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showCustomGenerateModal, setShowCustomGenerateModal] = useState(false);
   const [selectedQuestionSet, setSelectedQuestionSet] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [userAnswers, setUserAnswers] = useState({});
   const [showResults, setShowResults] = useState(false);
   const [results, setResults] = useState(null);
+  const [adaptiveRecommendations, setAdaptiveRecommendations] = useState(null);
 
-  // Generation form state
   const [selectedChats, setSelectedChats] = useState([]);
   const [selectedSlides, setSelectedSlides] = useState([]);
   const [questionCount, setQuestionCount] = useState(10);
   const [difficultyMix, setDifficultyMix] = useState({ easy: 3, medium: 5, hard: 2 });
+  const [questionTypes, setQuestionTypes] = useState(['multiple_choice', 'true_false', 'short_answer']);
+
+  const [selectedDocument, setSelectedDocument] = useState(null);
+  const [customContent, setCustomContent] = useState('');
+  const [generationMode, setGenerationMode] = useState('pdf');
 
   useEffect(() => {
     fetchQuestionSets();
     fetchChatSessions();
     fetchUploadedSlides();
+    fetchUploadedDocuments();
+    fetchAdaptiveRecommendations();
   }, []);
 
   const fetchQuestionSets = async () => {
@@ -78,6 +87,105 @@ const QuestionBank = () => {
     }
   };
 
+  const fetchUploadedDocuments = async () => {
+    try {
+      const response = await fetch(`http://localhost:8001/qb/get_uploaded_documents?user_id=${userId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUploadedDocuments(data.documents || []);
+      }
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+    }
+  };
+
+  const fetchAdaptiveRecommendations = async () => {
+    try {
+      const response = await fetch(`http://localhost:8001/qb/get_adaptive_recommendations?user_id=${userId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAdaptiveRecommendations(data);
+      }
+    } catch (error) {
+      console.error('Error fetching recommendations:', error);
+    }
+  };
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      setLoading(true);
+      const response = await fetch(`http://localhost:8001/qb/upload_pdf?user_id=${userId}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`PDF uploaded successfully! Detected topics: ${data.analysis.main_topics.join(', ')}`);
+        await fetchUploadedDocuments();
+        setShowUploadModal(false);
+      } else {
+        alert('Failed to upload PDF');
+      }
+    } catch (error) {
+      console.error('Error uploading PDF:', error);
+      alert('Error uploading PDF');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateFromPDF = async () => {
+    if (!selectedDocument && !customContent) {
+      alert('Please select a document or enter custom content');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:8001/qb/generate_from_pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          pdf_id: selectedDocument,
+          content: customContent || null,
+          question_count: questionCount,
+          difficulty_mix: difficultyMix,
+          question_types: questionTypes
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setShowCustomGenerateModal(false);
+        await fetchQuestionSets();
+        alert(`Successfully generated ${data.question_count} questions!`);
+      } else {
+        alert('Failed to generate questions');
+      }
+    } catch (error) {
+      console.error('Error generating questions:', error);
+      alert('Error generating questions');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGenerateQuestions = async () => {
     if (selectedChats.length === 0 && selectedSlides.length === 0) {
       alert('Please select at least one source (chat or slide)');
@@ -119,26 +227,8 @@ const QuestionBank = () => {
     }
   };
 
-  const startPractice = async (questionSetId) => {
-    try {
-      setLoading(true);
-      const response = await fetch(`http://localhost:8001/get_question_set/${questionSetId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSelectedQuestionSet(data);
-        setCurrentQuestion(0);
-        setUserAnswers({});
-        setShowResults(false);
-        setShowPracticeModal(true);
-      }
-    } catch (error) {
-      console.error('Error starting practice:', error);
-    } finally {
-      setLoading(false);
-    }
+  const startPractice = (questionSetId) => {
+    navigate(`/question-bank/${questionSetId}`);
   };
 
   const handleAnswerChange = (questionId, answer) => {
@@ -151,7 +241,7 @@ const QuestionBank = () => {
   const submitAnswers = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8001/submit_answers', {
+      const response = await fetch('http://localhost:8001/qb/submit_answers_adaptive', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -168,9 +258,38 @@ const QuestionBank = () => {
         const data = await response.json();
         setResults(data);
         setShowResults(true);
+        await fetchAdaptiveRecommendations();
       }
     } catch (error) {
       console.error('Error submitting answers:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateSimilarQuestion = async (questionId) => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:8001/qb/generate_similar_question', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          question_set_id: selectedQuestionSet.id,
+          question_id: questionId,
+          difficulty: null
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert('Similar question generated! Refresh to see it.');
+      }
+    } catch (error) {
+      console.error('Error generating similar question:', error);
     } finally {
       setLoading(false);
     }
@@ -193,52 +312,110 @@ const QuestionBank = () => {
     }
   };
 
+  const toggleQuestionType = (type) => {
+    setQuestionTypes(prev => 
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
+
   return (
     <div className="qb-page">
-      {/* Header */}
       <header className="qb-header">
-        <div className="qb-header-left">
-          <button className="qb-back-btn" onClick={() => navigate('/learning-review')}>
-            <ArrowLeft size={20} />
-            <span>BACK</span>
-          </button>
-          <div className="qb-header-title-group">
-            <h1 className="qb-logo">brainwave</h1>
-            <span className="qb-subtitle">QUESTION BANK</span>
+        <div className="qb-header-container">
+          <div className="qb-header-left">
+            <button className="qb-back-btn" onClick={() => navigate('/learning-review')}>
+              <ArrowLeft size={20} />
+              <span>BACK</span>
+            </button>
+            <div className="qb-header-title-group">
+              <h1 className="qb-logo">brainwave</h1>
+              <span className="qb-subtitle">QUESTION BANK</span>
+            </div>
           </div>
-        </div>
-        <div className="qb-header-right">
-          <button className="qb-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
-          <button className="qb-nav-btn logout" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>Logout</button>
+          <div className="qb-header-right">
+            <button className="qb-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
+            <button className="qb-nav-btn logout" onClick={() => { localStorage.clear(); navigate('/login'); }}>Logout</button>
+          </div>
         </div>
       </header>
 
-      {/* Main Content */}
       <div className="qb-content">
-        {/* Header Section */}
-        <div className="qb-section-header">
+        <section className="qb-section-header">
           <div className="qb-header-content">
             <div>
-              <h2 className="qb-section-title">Question Bank</h2>
-              <p className="qb-section-subtitle">Generate practice questions from your chats and slides</p>
+              <h2 className="qb-section-title">Intelligent Question Bank</h2>
+              <p className="qb-section-subtitle">AI-powered adaptive learning with smart question generation</p>
             </div>
-            <button className="qb-generate-btn" onClick={() => setShowGenerateModal(true)}>
-              <Plus size={20} />
-              <span>Generate Questions</span>
-            </button>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="qb-generate-btn" onClick={() => setShowUploadModal(true)}>
+                <Upload size={18} />
+                Upload PDF
+              </button>
+              <button className="qb-generate-btn" onClick={() => setShowCustomGenerateModal(true)}>
+                <Sparkles size={18} />
+                Generate Custom
+              </button>
+              <button className="qb-generate-btn" onClick={() => setShowGenerateModal(true)}>
+                <Plus size={18} />
+                From Chats/Slides
+              </button>
+            </div>
           </div>
-        </div>
+        </section>
 
-        {/* Question Sets Grid */}
-        <div className="qb-main">
+        {adaptiveRecommendations && (
+          <div className="qb-adaptive-banner">
+            <div className="qb-adaptive-header">
+              <Brain size={24} />
+              <h3>AI Performance Insights</h3>
+            </div>
+            <div className="qb-adaptive-stats">
+              <div className="qb-adaptive-stat">
+                <TrendingUp size={20} />
+                <div>
+                  <span className="qb-stat-label">Recommended Level</span>
+                  <span className="qb-stat-value">{adaptiveRecommendations.performance_analysis?.recommended_difficulty || 'Medium'}</span>
+                </div>
+              </div>
+              <div className="qb-adaptive-stat">
+                <Target size={20} />
+                <div>
+                  <span className="qb-stat-label">Focus</span>
+                  <span className="qb-stat-value">{adaptiveRecommendations.performance_analysis?.reason || 'Building skills'}</span>
+                </div>
+              </div>
+              <div className="qb-adaptive-stat">
+                <Zap size={20} />
+                <div>
+                  <span className="qb-stat-label">Sessions Analyzed</span>
+                  <span className="qb-stat-value">{adaptiveRecommendations.recent_sessions || 0}</span>
+                </div>
+              </div>
+            </div>
+            {adaptiveRecommendations.recommended_topics && adaptiveRecommendations.recommended_topics.length > 0 && (
+              <div className="qb-recommended-topics">
+                <span className="qb-topics-label">Recommended Topics:</span>
+                <div className="qb-topics-list">
+                  {adaptiveRecommendations.recommended_topics.map((topic, idx) => (
+                    <span key={idx} className="qb-topic-chip">{topic}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <main className="qb-main">
           {loading && questionSets.length === 0 ? (
             <div className="qb-loading">
-              <Loader size={40} className="qb-spinner" />
+              <Loader className="qb-spinner" size={48} />
               <p>Loading question sets...</p>
             </div>
           ) : questionSets.length === 0 ? (
             <div className="qb-empty">
-              <p>No question sets yet. Generate your first set to get started!</p>
+              <FileText size={64} style={{ opacity: 0.3 }} />
+              <h3>No Question Sets Yet</h3>
+              <p>Upload a PDF, generate from your content, or create custom questions to get started!</p>
             </div>
           ) : (
             <div className="qb-grid">
@@ -246,141 +423,284 @@ const QuestionBank = () => {
                 <div key={set.id} className="qb-card">
                   <div className="qb-card-header">
                     <div className="qb-card-icon">
-                      <FileText size={24} />
+                      <FileText size={28} />
                     </div>
-                    <button 
-                      className="qb-delete-btn"
-                      onClick={() => deleteQuestionSet(set.id)}
-                      title="Delete"
-                    >
-                      <Trash2 size={16} />
+                    <button className="qb-delete-btn" onClick={() => deleteQuestionSet(set.id)}>
+                      <Trash2 size={18} />
                     </button>
                   </div>
-
                   <div className="qb-card-content">
                     <h3 className="qb-card-title">{set.title}</h3>
                     <p className="qb-card-description">{set.description}</p>
-                    
                     <div className="qb-card-stats">
                       <div className="qb-stat-item">
-                        <span className="qb-stat-label">Questions:</span>
-                        <span className="qb-stat-value">{set.question_count}</span>
+                        <span className="qb-stat-label">Questions</span>
+                        <span className="qb-stat-value">{set.total_questions}</span>
                       </div>
                       <div className="qb-stat-item">
-                        <span className="qb-stat-label">Best Score:</span>
-                        <span className="qb-stat-value">{set.best_score}%</span>
+                        <span className="qb-stat-label">Best Score</span>
+                        <span className="qb-stat-value">{set.best_score || 0}%</span>
                       </div>
                       <div className="qb-stat-item">
-                        <span className="qb-stat-label">Attempts:</span>
-                        <span className="qb-stat-value">{set.attempt_count}</span>
-                      </div>
-                    </div>
-
-                    <div className="qb-difficulty-bars">
-                      <div className="qb-difficulty-bar easy" style={{ width: `${(set.easy_count / set.question_count) * 100}%` }}>
-                        {set.easy_count > 0 && <span>{set.easy_count}</span>}
-                      </div>
-                      <div className="qb-difficulty-bar medium" style={{ width: `${(set.medium_count / set.question_count) * 100}%` }}>
-                        {set.medium_count > 0 && <span>{set.medium_count}</span>}
-                      </div>
-                      <div className="qb-difficulty-bar hard" style={{ width: `${(set.hard_count / set.question_count) * 100}%` }}>
-                        {set.hard_count > 0 && <span>{set.hard_count}</span>}
+                        <span className="qb-stat-label">Attempts</span>
+                        <span className="qb-stat-value">{set.attempts || 0}</span>
                       </div>
                     </div>
                   </div>
-
                   <div className="qb-card-footer">
-                    <button 
-                      className="qb-practice-btn"
-                      onClick={() => startPractice(set.id)}
-                    >
+                    <button className="qb-start-btn" onClick={() => startPractice(set.id)}>
                       <Play size={16} />
-                      <span>Start Practice</span>
+                      Start Practice
                     </button>
                   </div>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </main>
       </div>
 
-      {/* Generate Questions Modal */}
-      {showGenerateModal && (
-        <div className="qb-modal-overlay" onClick={() => setShowGenerateModal(false)}>
-          <div className="qb-modal" onClick={e => e.stopPropagation()}>
+      {showUploadModal && (
+        <div className="qb-modal-overlay" onClick={() => setShowUploadModal(false)}>
+          <div className="qb-modal qb-upload-modal" onClick={e => e.stopPropagation()}>
             <div className="qb-modal-header">
-              <h3>Generate Questions</h3>
-              <button className="qb-modal-close" onClick={() => setShowGenerateModal(false)}>×</button>
+              <h3>Upload PDF for Question Generation</h3>
+              <button className="qb-modal-close" onClick={() => setShowUploadModal(false)}>×</button>
             </div>
-
             <div className="qb-modal-content">
-              {/* Chat Sessions */}
-              <div className="qb-source-section">
-                <h4 className="qb-source-title">
-                  <MessageSquare size={18} />
-                  <span>Select Chat Sessions</span>
-                </h4>
-                <div className="qb-source-list">
-                  {chatSessions.slice(0, 10).map(chat => (
-                    <label key={chat.id} className="qb-checkbox-item">
-                      <input
-                        type="checkbox"
-                        checked={selectedChats.includes(chat.id)}
-                        onChange={e => {
-                          if (e.target.checked) {
-                            setSelectedChats([...selectedChats, chat.id]);
-                          } else {
-                            setSelectedChats(selectedChats.filter(id => id !== chat.id));
-                          }
-                        }}
-                      />
-                      <span>{chat.title}</span>
-                    </label>
+              <div className="qb-upload-area">
+                <FileUp size={48} />
+                <p>Select a PDF document to analyze and generate questions from</p>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  onChange={handleFileUpload}
+                  style={{ marginTop: '20px' }}
+                />
+              </div>
+              {uploadedDocuments.length > 0 && (
+                <div className="qb-documents-list">
+                  <h4>Previously Uploaded Documents</h4>
+                  {uploadedDocuments.map(doc => (
+                    <div key={doc.id} className="qb-document-item">
+                      <FileText size={20} />
+                      <div>
+                        <span>{doc.filename}</span>
+                        <span className="qb-doc-date">{new Date(doc.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
-              {/* Slides */}
-              <div className="qb-source-section">
-                <h4 className="qb-source-title">
+      {showCustomGenerateModal && (
+        <div className="qb-modal-overlay" onClick={() => setShowCustomGenerateModal(false)}>
+          <div className="qb-modal qb-generate-modal" onClick={e => e.stopPropagation()}>
+            <div className="qb-modal-header">
+              <h3>Generate Custom Questions</h3>
+              <button className="qb-modal-close" onClick={() => setShowCustomGenerateModal(false)}>×</button>
+            </div>
+            <div className="qb-modal-content">
+              <div className="qb-source-tabs">
+                <button
+                  className={`qb-source-tab ${generationMode === 'pdf' ? 'active' : ''}`}
+                  onClick={() => setGenerationMode('pdf')}
+                >
                   <FileText size={18} />
-                  <span>Select Slides</span>
-                </h4>
-                <div className="qb-source-list">
-                  {uploadedSlides.slice(0, 10).map(slide => (
-                    <label key={slide.id} className="qb-checkbox-item">
-                      <input
-                        type="checkbox"
-                        checked={selectedSlides.includes(slide.id)}
-                        onChange={e => {
-                          if (e.target.checked) {
-                            setSelectedSlides([...selectedSlides, slide.id]);
-                          } else {
-                            setSelectedSlides(selectedSlides.filter(id => id !== slide.id));
-                          }
-                        }}
-                      />
-                      <span>{slide.filename}</span>
-                    </label>
-                  ))}
-                </div>
+                  From PDF
+                </button>
+                <button
+                  className={`qb-source-tab ${generationMode === 'custom' ? 'active' : ''}`}
+                  onClick={() => setGenerationMode('custom')}
+                >
+                  <MessageSquare size={18} />
+                  Custom Content
+                </button>
               </div>
 
-              {/* Question Count */}
+              {generationMode === 'pdf' ? (
+                <div className="qb-form-group">
+                  <label>Select Document:</label>
+                  <select
+                    value={selectedDocument || ''}
+                    onChange={e => setSelectedDocument(parseInt(e.target.value))}
+                    className="qb-select"
+                  >
+                    <option value="">Choose a document...</option>
+                    {uploadedDocuments.map(doc => (
+                      <option key={doc.id} value={doc.id}>{doc.filename}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="qb-form-group">
+                  <label>Enter Content:</label>
+                  <textarea
+                    value={customContent}
+                    onChange={e => setCustomContent(e.target.value)}
+                    className="qb-textarea"
+                    rows={6}
+                    placeholder="Paste your study material, notes, or any content here..."
+                  />
+                </div>
+              )}
+
               <div className="qb-form-group">
                 <label>Number of Questions: {questionCount}</label>
                 <input
                   type="range"
                   min="5"
-                  max="30"
+                  max="50"
                   value={questionCount}
                   onChange={e => setQuestionCount(parseInt(e.target.value))}
                   className="qb-slider"
                 />
               </div>
 
-              {/* Difficulty Mix */}
+              <div className="qb-form-group">
+                <label>Question Types:</label>
+                <div className="qb-question-types">
+                  {[
+                    { value: 'multiple_choice', label: 'Multiple Choice' },
+                    { value: 'true_false', label: 'True/False' },
+                    { value: 'short_answer', label: 'Short Answer' },
+                    { value: 'fill_blank', label: 'Fill in the Blank' }
+                  ].map(type => (
+                    <label key={type.value} className="qb-checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={questionTypes.includes(type.value)}
+                        onChange={() => toggleQuestionType(type.value)}
+                      />
+                      <span>{type.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="qb-form-group">
+                <label>Difficulty Distribution:</label>
+                <div className="qb-difficulty-inputs">
+                  <div className="qb-difficulty-input">
+                    <label>Easy:</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max={questionCount}
+                      value={difficultyMix.easy}
+                      onChange={e => setDifficultyMix({ ...difficultyMix, easy: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="qb-difficulty-input">
+                    <label>Medium:</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max={questionCount}
+                      value={difficultyMix.medium}
+                      onChange={e => setDifficultyMix({ ...difficultyMix, medium: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="qb-difficulty-input">
+                    <label>Hard:</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max={questionCount}
+                      value={difficultyMix.hard}
+                      onChange={e => setDifficultyMix({ ...difficultyMix, hard: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="qb-modal-footer">
+              <button className="qb-btn-cancel" onClick={() => setShowCustomGenerateModal(false)}>Cancel</button>
+              <button className="qb-btn-generate" onClick={handleGenerateFromPDF} disabled={loading}>
+                {loading ? 'Generating...' : 'Generate Questions'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showGenerateModal && (
+        <div className="qb-modal-overlay" onClick={() => setShowGenerateModal(false)}>
+          <div className="qb-modal qb-generate-modal" onClick={e => e.stopPropagation()}>
+            <div className="qb-modal-header">
+              <h3>Generate Questions from Your Content</h3>
+              <button className="qb-modal-close" onClick={() => setShowGenerateModal(false)}>×</button>
+            </div>
+            <div className="qb-modal-content">
+              <div className="qb-form-group">
+                <label>Select Chat Sessions:</label>
+                {chatSessions.length === 0 ? (
+                  <p className="qb-empty-message">No chat sessions available</p>
+                ) : (
+                  <div className="qb-selection-list">
+                    {chatSessions.map(session => (
+                      <label key={session.id} className="qb-checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={selectedChats.includes(session.id)}
+                          onChange={() => {
+                            setSelectedChats(prev =>
+                              prev.includes(session.id)
+                                ? prev.filter(id => id !== session.id)
+                                : [...prev, session.id]
+                            );
+                          }}
+                        />
+                        <span>{session.title}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="qb-form-group">
+                <label>Select Slides:</label>
+                {uploadedSlides.length === 0 ? (
+                  <p className="qb-empty-message">No slides available</p>
+                ) : (
+                  <div className="qb-selection-list">
+                    {uploadedSlides.map(slide => (
+                      <label key={slide.id} className="qb-checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={selectedSlides.includes(slide.id)}
+                          onChange={() => {
+                            setSelectedSlides(prev =>
+                              prev.includes(slide.id)
+                                ? prev.filter(id => id !== slide.id)
+                                : [...prev, slide.id]
+                            );
+                          }}
+                        />
+                        <span>{slide.filename}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="qb-form-group">
+                <label>Number of Questions: {questionCount}</label>
+                <input
+                  type="range"
+                  min="5"
+                  max="50"
+                  value={questionCount}
+                  onChange={e => setQuestionCount(parseInt(e.target.value))}
+                  className="qb-slider"
+                />
+              </div>
+
               <div className="qb-form-group">
                 <label>Difficulty Distribution:</label>
                 <div className="qb-difficulty-inputs">
@@ -428,7 +748,6 @@ const QuestionBank = () => {
         </div>
       )}
 
-      {/* Practice Modal */}
       {showPracticeModal && selectedQuestionSet && (
         <div className="qb-modal-overlay" onClick={() => setShowPracticeModal(false)}>
           <div className="qb-modal qb-practice-modal" onClick={e => e.stopPropagation()}>
@@ -459,6 +778,13 @@ const QuestionBank = () => {
                       <div className="qb-question-header">
                         <span className={`qb-difficulty-badge ${q.difficulty}`}>{q.difficulty}</span>
                         <span className="qb-topic-badge">{q.topic}</span>
+                        <button 
+                          className="qb-similar-btn"
+                          onClick={() => generateSimilarQuestion(q.id)}
+                          title="Generate similar question"
+                        >
+                          <Sparkles size={16} />
+                        </button>
                       </div>
 
                       <p className="qb-question-text">{q.question_text}</p>
@@ -505,7 +831,7 @@ const QuestionBank = () => {
                         </div>
                       )}
 
-                      {q.question_type === 'short_answer' && (
+                      {(q.question_type === 'short_answer' || q.question_type === 'fill_blank') && (
                         <textarea
                           className="qb-textarea"
                           value={userAnswers[q.id] || ''}
@@ -562,6 +888,20 @@ const QuestionBank = () => {
                     </div>
                   </div>
 
+                  {results.adaptation && (
+                    <div className="qb-adaptation-box">
+                      <h4>AI Recommendation</h4>
+                      <p><strong>Next Difficulty:</strong> {results.adaptation.recommended_difficulty}</p>
+                      <p>{results.adaptation.reason}</p>
+                      <div className="qb-suggested-distribution">
+                        <span>Suggested Mix:</span>
+                        <span>Easy: {results.adaptation.suggested_distribution.easy}</span>
+                        <span>Medium: {results.adaptation.suggested_distribution.medium}</span>
+                        <span>Hard: {results.adaptation.suggested_distribution.hard}</span>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="qb-results-details">
                     <h4>Review Your Answers</h4>
                     {results.details.map((detail, idx) => (
@@ -570,6 +910,7 @@ const QuestionBank = () => {
                           {detail.is_correct ? <CheckCircle size={20} /> : <XCircle size={20} />}
                         </div>
                         <div className="qb-result-content">
+                          <p className="qb-result-question"><strong>Q{idx + 1}:</strong> {detail.topic}</p>
                           <p className="qb-result-answer">
                             <strong>Your answer:</strong> {detail.user_answer || 'No answer'}
                           </p>

@@ -1,0 +1,327 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Loader, CheckCircle, XCircle, Sparkles } from 'lucide-react';
+import './QuestionBank.css';
+
+const QuestionSetPractice = () => {
+  const navigate = useNavigate();
+  const { setId } = useParams();
+  const token = localStorage.getItem('token');
+  const userId = localStorage.getItem('user_id') || localStorage.getItem('username');
+
+  const [questionSet, setQuestionSet] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [userAnswers, setUserAnswers] = useState({});
+  const [showResults, setShowResults] = useState(false);
+  const [results, setResults] = useState(null);
+
+  useEffect(() => {
+    fetchQuestionSet();
+  }, [setId]);
+
+  const fetchQuestionSet = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`http://localhost:8001/get_question_set/${setId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setQuestionSet(data);
+      } else {
+        alert('Question set not found');
+        navigate('/question-bank');
+      }
+    } catch (error) {
+      console.error('Error fetching question set:', error);
+      navigate('/question-bank');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAnswerChange = (questionId, answer) => {
+    setUserAnswers(prev => ({
+      ...prev,
+      [questionId]: answer
+    }));
+  };
+
+  const submitAnswers = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:8001/qb/submit_answers_adaptive', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          question_set_id: parseInt(setId),
+          answers: userAnswers
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setResults(data);
+        setShowResults(true);
+      }
+    } catch (error) {
+      console.error('Error submitting answers:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateSimilarQuestion = async (questionId) => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:8001/qb/generate_similar_question', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          question_set_id: parseInt(setId),
+          question_id: questionId,
+          difficulty: null
+        })
+      });
+
+      if (response.ok) {
+        alert('Similar question generated! Refreshing...');
+        await fetchQuestionSet();
+      }
+    } catch (error) {
+      console.error('Error generating similar question:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading && !questionSet) {
+    return (
+      <div className="qb-page">
+        <div className="qb-loading">
+          <Loader className="qb-spinner" size={48} />
+          <p>Loading question set...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!questionSet) {
+    return null;
+  }
+
+  return (
+    <div className="qb-page">
+      <header className="qb-header">
+        <div className="qb-header-container">
+          <div className="qb-header-left">
+            <button className="qb-back-btn" onClick={() => navigate('/question-bank')}>
+              <ArrowLeft size={20} />
+              <span>BACK TO QUESTION BANK</span>
+            </button>
+            <div className="qb-header-title-group">
+              <h1 className="qb-logo">brainwave</h1>
+              <span className="qb-subtitle">{questionSet.title}</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="qb-content">
+        <div className="qb-practice-container">
+          {!showResults ? (
+            <>
+              <div className="qb-progress">
+                <span>Question {currentQuestion + 1} of {questionSet.questions.length}</span>
+                <div className="qb-progress-bar">
+                  <div 
+                    className="qb-progress-fill" 
+                    style={{ width: `${((currentQuestion + 1) / questionSet.questions.length) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              {questionSet.questions.map((q, idx) => (
+                <div 
+                  key={q.id} 
+                  className={`qb-question-container ${idx === currentQuestion ? 'active' : ''}`}
+                  style={{ display: idx === currentQuestion ? 'block' : 'none' }}
+                >
+                  <div className="qb-question-header">
+                    <span className={`qb-difficulty-badge ${q.difficulty}`}>{q.difficulty}</span>
+                    <span className="qb-topic-badge">{q.topic}</span>
+                    <button 
+                      className="qb-similar-btn"
+                      onClick={() => generateSimilarQuestion(q.id)}
+                      title="Generate similar question"
+                    >
+                      <Sparkles size={16} />
+                      Similar
+                    </button>
+                  </div>
+
+                  <p className="qb-question-text">{q.question_text}</p>
+
+                  {q.question_type === 'multiple_choice' && (
+                    <div className="qb-options">
+                      {q.options.map((option, optIdx) => (
+                        <label key={optIdx} className="qb-option">
+                          <input
+                            type="radio"
+                            name={`question-${q.id}`}
+                            value={option}
+                            checked={userAnswers[q.id] === option}
+                            onChange={() => handleAnswerChange(q.id, option)}
+                          />
+                          <span>{option}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  {q.question_type === 'true_false' && (
+                    <div className="qb-options">
+                      <label className="qb-option">
+                        <input
+                          type="radio"
+                          name={`question-${q.id}`}
+                          value="true"
+                          checked={userAnswers[q.id] === 'true'}
+                          onChange={() => handleAnswerChange(q.id, 'true')}
+                        />
+                        <span>True</span>
+                      </label>
+                      <label className="qb-option">
+                        <input
+                          type="radio"
+                          name={`question-${q.id}`}
+                          value="false"
+                          checked={userAnswers[q.id] === 'false'}
+                          onChange={() => handleAnswerChange(q.id, 'false')}
+                        />
+                        <span>False</span>
+                      </label>
+                    </div>
+                  )}
+
+                  {(q.question_type === 'short_answer' || q.question_type === 'fill_blank') && (
+                    <textarea
+                      className="qb-textarea"
+                      value={userAnswers[q.id] || ''}
+                      onChange={e => handleAnswerChange(q.id, e.target.value)}
+                      placeholder="Type your answer here..."
+                      rows={4}
+                    />
+                  )}
+                </div>
+              ))}
+
+              <div className="qb-navigation-btns">
+                <button 
+                  className="qb-nav-prev"
+                  onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
+                  disabled={currentQuestion === 0}
+                >
+                  Previous
+                </button>
+                {currentQuestion < questionSet.questions.length - 1 ? (
+                  <button 
+                    className="qb-nav-next"
+                    onClick={() => setCurrentQuestion(currentQuestion + 1)}
+                  >
+                    Next
+                  </button>
+                ) : (
+                  <button 
+                    className="qb-submit-btn"
+                    onClick={submitAnswers}
+                    disabled={loading}
+                  >
+                    {loading ? 'Submitting...' : 'Submit Answers'}
+                  </button>
+                )}
+              </div>
+            </>
+          ) : results && (
+            <div className="qb-results">
+              <div className="qb-results-header">
+                <div className="qb-score-circle">
+                  <span className="qb-score-value">{results.score}%</span>
+                  <span className="qb-score-label">Score</span>
+                </div>
+                <div className="qb-results-stats">
+                  <div className="qb-result-stat correct">
+                    <CheckCircle size={24} />
+                    <span>{results.correct_count} Correct</span>
+                  </div>
+                  <div className="qb-result-stat incorrect">
+                    <XCircle size={24} />
+                    <span>{results.total_questions - results.correct_count} Incorrect</span>
+                  </div>
+                </div>
+              </div>
+
+              {results.adaptation && (
+                <div className="qb-adaptation-box">
+                  <h4>AI Recommendation</h4>
+                  <p><strong>Next Difficulty:</strong> {results.adaptation.recommended_difficulty}</p>
+                  <p>{results.adaptation.reason}</p>
+                  <div className="qb-suggested-distribution">
+                    <span>Suggested Mix:</span>
+                    <span>Easy: {results.adaptation.suggested_distribution.easy}</span>
+                    <span>Medium: {results.adaptation.suggested_distribution.medium}</span>
+                    <span>Hard: {results.adaptation.suggested_distribution.hard}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="qb-results-details">
+                <h4>Review Your Answers</h4>
+                {results.details.map((detail, idx) => (
+                  <div key={idx} className={`qb-result-item ${detail.is_correct ? 'correct' : 'incorrect'}`}>
+                    <div className="qb-result-indicator">
+                      {detail.is_correct ? <CheckCircle size={20} /> : <XCircle size={20} />}
+                    </div>
+                    <div className="qb-result-content">
+                      <p className="qb-result-question"><strong>Q{idx + 1}:</strong> {detail.topic}</p>
+                      <p className="qb-result-answer">
+                        <strong>Your answer:</strong> {detail.user_answer || 'No answer'}
+                      </p>
+                      {!detail.is_correct && (
+                        <p className="qb-result-correct">
+                          <strong>Correct answer:</strong> {detail.correct_answer}
+                        </p>
+                      )}
+                      {detail.explanation && (
+                        <p className="qb-result-explanation">{detail.explanation}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button 
+                className="qb-btn-close-results"
+                onClick={() => navigate('/question-bank')}
+              >
+                Back to Question Bank
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default QuestionSetPractice;

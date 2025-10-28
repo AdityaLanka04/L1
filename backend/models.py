@@ -10,14 +10,17 @@ from pydantic import BaseModel
 
 import os
 
+from question_bank_models import create_question_bank_models
+
 # ==================== DATABASE CONFIG ====================
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./brainwave_tutor.db")
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()  # ✅ Define Base here
+Base = declarative_base()  
+UploadedDocument, QuestionSet, Question, QuestionSession, UserPerformanceMetrics = create_question_bank_models(Base)
 
-# ==================== ORM MODELS ====================
+
 
 class DailyGoal(Base):
     __tablename__ = "daily_goals"
@@ -64,8 +67,11 @@ class User(Base):
     achievements = relationship("UserAchievement", back_populates="user")
     comprehensive_profile = relationship("ComprehensiveUserProfile", back_populates="user", uselist=False)
     uploaded_slides = relationship("UploadedSlide", back_populates="user")
-    question_sets = relationship("QuestionSet", back_populates="user")
-    question_attempts = relationship("QuestionAttempt", back_populates="user")
+    uploaded_documents = relationship("UploadedDocument", back_populates="user")
+    question_sets_new = relationship("QuestionSet", back_populates="user")
+    question_sessions_new = relationship("QuestionSession", back_populates="user")
+    performance_metrics = relationship("UserPerformanceMetrics", back_populates="user")
+
 
 class ChatSession(Base):
     __tablename__ = "chat_sessions"
