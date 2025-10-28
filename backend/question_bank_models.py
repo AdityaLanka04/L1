@@ -12,7 +12,7 @@ def create_question_bank_models(Base):
         filename = Column(String(255))
         document_type = Column(String(50))
         content = Column(Text)
-        metadata = Column(Text)
+        meta_data = Column(Text)
         created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
         
         user = relationship("User", back_populates="uploaded_documents")
@@ -35,6 +35,7 @@ def create_question_bank_models(Base):
         user = relationship("User", back_populates="question_sets_new")
         questions = relationship("Question", back_populates="question_set", cascade="all, delete-orphan")
         sessions = relationship("QuestionSession", back_populates="question_set", cascade="all, delete-orphan")
+        attempt_records = relationship("QuestionAttempt", back_populates="question_set", cascade="all, delete-orphan")
 
     class Question(Base):
         __tablename__ = "questions"

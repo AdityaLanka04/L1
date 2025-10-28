@@ -815,48 +815,9 @@ class UploadedSlide(Base):
     
     user = relationship("User")
 
-class QuestionSet(Base):
-    __tablename__ = "question_sets"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    title = Column(String(255), nullable=False)
-    description = Column(Text, nullable=True)
-    source_type = Column(String(50), default="mixed")
-    source_chat_sessions = Column(Text, nullable=True)
-    source_slides = Column(Text, nullable=True)
-    question_count = Column(Integer, default=0)
-    easy_count = Column(Integer, default=0)
-    medium_count = Column(Integer, default=0)
-    hard_count = Column(Integer, default=0)
-    best_score = Column(Float, default=0.0)
-    attempt_count = Column(Integer, default=0)
-    status = Column(String(20), default="active")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    user = relationship("User")
-    questions = relationship("Question", back_populates="question_set", cascade="all, delete-orphan")
-    attempts = relationship("QuestionAttempt", back_populates="question_set")
 
-class Question(Base):
-    __tablename__ = "questions"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    question_set_id = Column(Integer, ForeignKey("question_sets.id"), nullable=False)
-    question_text = Column(Text, nullable=False)
-    question_type = Column(String(50), nullable=False)
-    correct_answer = Column(Text, nullable=False)
-    options = Column(Text, nullable=True)
-    difficulty = Column(String(20), default="medium")
-    explanation = Column(Text, nullable=True)
-    topic = Column(String(100), nullable=True)
-    order_index = Column(Integer, default=0)
-    times_answered = Column(Integer, default=0)
-    times_correct = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    
-    question_set = relationship("QuestionSet", back_populates="questions")
+
+
 
 class QuestionAttempt(Base):
     __tablename__ = "question_attempts"
@@ -874,8 +835,12 @@ class QuestionAttempt(Base):
     feedback = Column(Text, nullable=True)
     submitted_at = Column(DateTime, default=datetime.utcnow)
     
-    question_set = relationship("QuestionSet", back_populates="attempts")
+    
     user = relationship("User")
+    question_set_id = Column(Integer, ForeignKey("question_sets.id"))
+    
+    question_set = relationship("QuestionSet", back_populates="attempt_records")
+    
 
 class QuestionResult(Base):
     __tablename__ = "question_results"
@@ -995,6 +960,33 @@ class ComprehensiveUserProfile(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     user = relationship("User", back_populates="comprehensive_profile")
+
+class Friendship(Base):
+    """Represents a friendship between two users"""
+    __tablename__ = "friendships"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    friend_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    status = Column(String(20), default="active")  # active, blocked
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", foreign_keys=[user_id])
+    friend = relationship("User", foreign_keys=[friend_id])
+
+class FriendRequest(Base):
+    """Represents a friend request from one user to another"""
+    __tablename__ = "friend_requests"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    receiver_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    status = Column(String(20), default="pending")  # pending, accepted, rejected
+    created_at = Column(DateTime, default=datetime.utcnow)
+    responded_at = Column(DateTime, nullable=True)
+    
+    sender = relationship("User", foreign_keys=[sender_id])
+    receiver = relationship("User", foreign_keys=[receiver_id])
 
 
 def create_tables():

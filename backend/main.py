@@ -5425,6 +5425,411 @@ async def save_complete_profile(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ==================== FRIEND SYSTEM ENDPOINTS ====================
+
+@app.get("/search_users")
+async def search_users(
+    query: str = Query(..., min_length=1),
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Search for users by username or email"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="Current user not found")
+        
+        # Search for users (excluding current user)
+        search_pattern = f"%{query}%"
+        users = db.query(models.User).filter(
+            and_(
+                models.User.id != current_user.id,
+                (models.User.username.ilike(search_pattern) | models.User.email.ilike(search_pattern))
+            )
+        ).limit(20).all()
+        
+        result = []
+        for user in users:
+            # Get comprehensive profile for preferred subjects
+            comp_profile = db.query(models.ComprehensiveUserProfile).filter(
+                models.ComprehensiveUserProfile.user_id == user.id
+            ).first()
+            
+            # Get user stats
+            user_stats = db.query(models.UserStats).filter(
+                models.UserStats.user_id == user.id
+            ).first()
+            
+            # Check friendship status
+            friendship = db.query(models.Friendship).filter(
+                and_(
+                    models.Friendship.user_id == current_user.id,
+                    models.Friendship.friend_id == user.id
+                )
+            ).first()
+            
+            # Check if there's a pending friend request
+            pending_request_sent = db.query(models.FriendRequest).filter(
+                and_(
+                    models.FriendRequest.sender_id == current_user.id,
+                    models.FriendRequest.receiver_id == user.id,
+                    models.FriendRequest.status == "pending"
+                )
+            ).first()
+            
+            pending_request_received = db.query(models.FriendRequest).filter(
+                and_(
+                    models.FriendRequest.sender_id == user.id,
+                    models.FriendRequest.receiver_id == current_user.id,
+                    models.FriendRequest.status == "pending"
+                )
+            ).first()
+            
+            preferred_subjects = []
+            if comp_profile and comp_profile.preferred_subjects:
+                try:
+                    preferred_subjects = json.loads(comp_profile.preferred_subjects)
+                except:
+                    preferred_subjects = []
+            
+            result.append({
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "first_name": user.first_name or "",
+                "last_name": user.last_name or "",
+                "picture_url": user.picture_url or "",
+                "field_of_study": user.field_of_study or "",
+                "preferred_subjects": preferred_subjects,
+                "stats": {
+                    "total_lessons": user_stats.total_lessons if user_stats else 0,
+                    "total_hours": round(user_stats.total_hours, 1) if user_stats else 0,
+                    "day_streak": user_stats.day_streak if user_stats else 0,
+                    "accuracy_percentage": round(user_stats.accuracy_percentage, 1) if user_stats else 0
+                },
+                "is_friend": friendship is not None,
+                "request_sent": pending_request_sent is not None,
+                "request_received": pending_request_received is not None
+            })
+        
+        return {"users": result}
+    
+    except Exception as e:
+        logger.error(f"Error searching users: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/send_friend_request")
+async def send_friend_request(
+    payload: dict = Body(...),
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Send a friend request to another user"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="Current user not found")
+        
+        receiver_id = payload.get("receiver_id")
+        if not receiver_id:
+            raise HTTPException(status_code=400, detail="receiver_id is required")
+        
+        # Check if receiver exists
+        receiver = db.query(models.User).filter(models.User.id == receiver_id).first()
+        if not receiver:
+            raise HTTPException(status_code=404, detail="Receiver not found")
+        
+        # Check if they're already friends
+        existing_friendship = db.query(models.Friendship).filter(
+            and_(
+                models.Friendship.user_id == current_user.id,
+                models.Friendship.friend_id == receiver_id
+            )
+        ).first()
+        
+        if existing_friendship:
+            raise HTTPException(status_code=400, detail="Already friends")
+        
+        # Check if there's already a pending request
+        existing_request = db.query(models.FriendRequest).filter(
+            and_(
+                models.FriendRequest.sender_id == current_user.id,
+                models.FriendRequest.receiver_id == receiver_id,
+                models.FriendRequest.status == "pending"
+            )
+        ).first()
+        
+        if existing_request:
+            raise HTTPException(status_code=400, detail="Friend request already sent")
+        
+        # Create friend request
+        friend_request = models.FriendRequest(
+            sender_id=current_user.id,
+            receiver_id=receiver_id,
+            status="pending"
+        )
+        db.add(friend_request)
+        db.commit()
+        
+        return {
+            "status": "success",
+            "message": "Friend request sent successfully"
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error sending friend request: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/friend_requests")
+async def get_friend_requests(
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Get all pending friend requests for the current user"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="Current user not found")
+        
+        # Get received requests
+        received_requests = db.query(models.FriendRequest).filter(
+            and_(
+                models.FriendRequest.receiver_id == current_user.id,
+                models.FriendRequest.status == "pending"
+            )
+        ).all()
+        
+        # Get sent requests
+        sent_requests = db.query(models.FriendRequest).filter(
+            and_(
+                models.FriendRequest.sender_id == current_user.id,
+                models.FriendRequest.status == "pending"
+            )
+        ).all()
+        
+        received_result = []
+        for req in received_requests:
+            sender = req.sender
+            received_result.append({
+                "request_id": req.id,
+                "user_id": sender.id,
+                "username": sender.username,
+                "email": sender.email,
+                "first_name": sender.first_name or "",
+                "last_name": sender.last_name or "",
+                "picture_url": sender.picture_url or "",
+                "created_at": req.created_at.isoformat()
+            })
+        
+        sent_result = []
+        for req in sent_requests:
+            receiver = req.receiver
+            sent_result.append({
+                "request_id": req.id,
+                "user_id": receiver.id,
+                "username": receiver.username,
+                "email": receiver.email,
+                "first_name": receiver.first_name or "",
+                "last_name": receiver.last_name or "",
+                "picture_url": receiver.picture_url or "",
+                "created_at": req.created_at.isoformat()
+            })
+        
+        return {
+            "received": received_result,
+            "sent": sent_result
+        }
+    
+    except Exception as e:
+        logger.error(f"Error getting friend requests: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/respond_friend_request")
+async def respond_friend_request(
+    payload: dict = Body(...),
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Accept or reject a friend request"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="Current user not found")
+        
+        request_id = payload.get("request_id")
+        action = payload.get("action")  # "accept" or "reject"
+        
+        if not request_id or not action:
+            raise HTTPException(status_code=400, detail="request_id and action are required")
+        
+        # Get the friend request
+        friend_request = db.query(models.FriendRequest).filter(
+            and_(
+                models.FriendRequest.id == request_id,
+                models.FriendRequest.receiver_id == current_user.id,
+                models.FriendRequest.status == "pending"
+            )
+        ).first()
+        
+        if not friend_request:
+            raise HTTPException(status_code=404, detail="Friend request not found")
+        
+        if action == "accept":
+            # Update request status
+            friend_request.status = "accepted"
+            friend_request.responded_at = datetime.now(timezone.utc)
+            
+            # Create friendship (bidirectional)
+            friendship1 = models.Friendship(
+                user_id=current_user.id,
+                friend_id=friend_request.sender_id
+            )
+            friendship2 = models.Friendship(
+                user_id=friend_request.sender_id,
+                friend_id=current_user.id
+            )
+            
+            db.add(friendship1)
+            db.add(friendship2)
+            db.commit()
+            
+            return {
+                "status": "success",
+                "message": "Friend request accepted"
+            }
+        
+        elif action == "reject":
+            friend_request.status = "rejected"
+            friend_request.responded_at = datetime.now(timezone.utc)
+            db.commit()
+            
+            return {
+                "status": "success",
+                "message": "Friend request rejected"
+            }
+        
+        else:
+            raise HTTPException(status_code=400, detail="Invalid action")
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error responding to friend request: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/friends")
+async def get_friends(
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Get all friends of the current user"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="Current user not found")
+        
+        # Get all friendships
+        friendships = db.query(models.Friendship).filter(
+            models.Friendship.user_id == current_user.id
+        ).all()
+        
+        result = []
+        for friendship in friendships:
+            friend = friendship.friend
+            
+            # Get comprehensive profile
+            comp_profile = db.query(models.ComprehensiveUserProfile).filter(
+                models.ComprehensiveUserProfile.user_id == friend.id
+            ).first()
+            
+            # Get user stats
+            user_stats = db.query(models.UserStats).filter(
+                models.UserStats.user_id == friend.id
+            ).first()
+            
+            preferred_subjects = []
+            if comp_profile and comp_profile.preferred_subjects:
+                try:
+                    preferred_subjects = json.loads(comp_profile.preferred_subjects)
+                except:
+                    preferred_subjects = []
+            
+            result.append({
+                "id": friend.id,
+                "username": friend.username,
+                "email": friend.email,
+                "first_name": friend.first_name or "",
+                "last_name": friend.last_name or "",
+                "picture_url": friend.picture_url or "",
+                "field_of_study": friend.field_of_study or "",
+                "preferred_subjects": preferred_subjects,
+                "stats": {
+                    "total_lessons": user_stats.total_lessons if user_stats else 0,
+                    "total_hours": round(user_stats.total_hours, 1) if user_stats else 0,
+                    "day_streak": user_stats.day_streak if user_stats else 0,
+                    "accuracy_percentage": round(user_stats.accuracy_percentage, 1) if user_stats else 0
+                },
+                "friends_since": friendship.created_at.isoformat()
+            })
+        
+        return {"friends": result}
+    
+    except Exception as e:
+        logger.error(f"Error getting friends: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/remove_friend")
+async def remove_friend(
+    payload: dict = Body(...),
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Remove a friend"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="Current user not found")
+        
+        friend_id = payload.get("friend_id")
+        if not friend_id:
+            raise HTTPException(status_code=400, detail="friend_id is required")
+        
+        # Delete both friendship records
+        db.query(models.Friendship).filter(
+            and_(
+                models.Friendship.user_id == current_user.id,
+                models.Friendship.friend_id == friend_id
+            )
+        ).delete()
+        
+        db.query(models.Friendship).filter(
+            and_(
+                models.Friendship.user_id == friend_id,
+                models.Friendship.friend_id == current_user.id
+            )
+        ).delete()
+        
+        db.commit()
+        
+        return {
+            "status": "success",
+            "message": "Friend removed successfully"
+        }
+    
+    except Exception as e:
+        logger.error(f"Error removing friend: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     import uvicorn

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   DndContext,
   closestCenter,
@@ -17,7 +18,7 @@ import {
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  CheckCircle, XCircle, Clock, Plus
+  CheckCircle, XCircle, Clock, Plus, Users
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { rgbaFromHex } from '../utils/ThemeManager';
@@ -32,6 +33,7 @@ if (document.querySelector('link[href*="Flashcards.css"]')) {
 }
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { selectedTheme } = useTheme();
   
   const [userName, setUserName] = useState('');
@@ -69,7 +71,7 @@ const Dashboard = () => {
     { id: 'ai-assistant', type: 'ai-assistant', title: 'AI Learning Assistant', enabled: true, size: 'large' },
     { id: 'learning-review', type: 'learning-review', title: 'Learning Reviews', enabled: true, size: 'medium' },
     { id: 'stats', type: 'stats', title: 'Learning Stats', enabled: true, size: 'medium' },
-    { id: 'daily-goal', type: 'daily-goal', title: 'Daily Goal', enabled: true, size: 'medium' },
+    { id: 'social', type: 'social', title: 'Social Hub', enabled: true, size: 'medium' },
     { id: 'recent-activity', type: 'recent-activity', title: 'Recent Activity', enabled: false, size: 'medium' },
     { id: 'heatmap', type: 'heatmap', title: 'Activity Heatmap', enabled: true, size: 'full' },
     { id: 'progress-chart', type: 'progress-chart', title: 'Weekly Progress', enabled: false, size: 'medium' },
@@ -79,7 +81,6 @@ const Dashboard = () => {
   // Backend data states
   const [recentActivities, setRecentActivities] = useState([]);
   const [weeklyProgress, setWeeklyProgress] = useState([]);
-  const [dailyGoal, setDailyGoal] = useState({ target: 20, completed: 0, percentage: 0 });
   const [motivationalQuote, setMotivationalQuote] = useState('');
   const [achievements, setAchievements] = useState([]);
   const [learningAnalytics, setLearningAnalytics] = useState(null);
@@ -140,7 +141,17 @@ const Dashboard = () => {
 
     if (savedWidgets) {
       try {
-        setWidgets(JSON.parse(savedWidgets));
+        let parsedWidgets = JSON.parse(savedWidgets);
+        // Migration: Replace daily-goal with social widget
+        parsedWidgets = parsedWidgets.map(widget => {
+          if (widget.id === 'daily-goal' || widget.type === 'daily-goal') {
+            return { id: 'social', type: 'social', title: 'Social Hub', enabled: widget.enabled, size: widget.size };
+          }
+          return widget;
+        });
+        setWidgets(parsedWidgets);
+        // Save the migrated widgets back to localStorage
+        localStorage.setItem('dashboardWidgets', JSON.stringify(parsedWidgets));
       } catch (error) {
         console.error('Error parsing saved widgets:', error);
       }
@@ -263,17 +274,6 @@ const Dashboard = () => {
   const headers = { 'Authorization': `Bearer ${token}` };
 
   try {
-    // Daily Goal
-    const dailyGoalResponse = await fetch(`http://localhost:8001/get_daily_goal_progress?user_id=${userName}`, { headers });
-    if (dailyGoalResponse.ok) {
-      const goalData = await dailyGoalResponse.json();
-      setDailyGoal({
-        target: goalData.daily_goal || 20,
-        completed: goalData.questions_today || 0,
-        percentage: goalData.percentage || 0
-      });
-    }
-
     // Weekly Progress
     const weeklyResponse = await fetch(`http://localhost:8001/get_weekly_progress?user_id=${userName}`, { headers });
     if (weeklyResponse.ok) {
@@ -842,38 +842,6 @@ const Dashboard = () => {
             </div>
           );
 
-        case 'daily-goal':
-          return (
-            <div className="daily-goal-widget">
-              <div className="widget-header">
-                <h3 className="widget-title">Daily Goal</h3>
-              </div>
-              <div className="goal-progress">
-                <div className="goal-circle">
-                  <svg width="80" height="80">
-                    <circle cx="40" cy="40" r="35" stroke="var(--border)" strokeWidth="4" fill="transparent"/>
-                    <circle
-                      cx="40"
-                      cy="40"
-                      r="35"
-                      stroke={accent}
-                      strokeWidth="4"
-                      fill="transparent"
-                      strokeDasharray="220"
-                      strokeDashoffset={220 - (220 * dailyGoal.percentage / 100)}
-                      transform="rotate(-90 40 40)"
-                    />
-                  </svg>
-                  <div className="goal-text">
-                    <div className="goal-number" style={{ color: accent }}>{dailyGoal.completed}</div>
-                    <div className="goal-target">/{dailyGoal.target}</div>
-                  </div>
-                </div>
-                <div className="goal-label">Questions Today</div>
-              </div>
-            </div>
-          );
-
         case 'learning-review':
           return (
             <div className="learning-review-widget">
@@ -998,6 +966,47 @@ const Dashboard = () => {
                     </button>
                   </div>
                 )}
+              </div>
+            </div>
+          );
+
+        case 'social':
+          return (
+            <div className="social-widget">
+              <div className="widget-header">
+                <h3 className="widget-title">Social</h3>
+              </div>
+              <div className="social-content">
+                <div className="social-icon-container">
+                  <Users size={64} strokeWidth={1.5} style={{ color: accent }} />
+                </div>
+                <p>
+                  Connect with fellow learners, join study groups, and collaborate.
+                </p>
+                <button
+                  className="social-explore-btn"
+                  onClick={async () => {
+                    await endDashboardSession();
+                    navigate('/social');
+                  }}
+                  disabled={isCustomizing}
+                  style={{
+                    background: accent,
+                    color: bgTop
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isCustomizing) {
+                      e.target.style.background = `color-mix(in srgb, ${accent} 85%, white)`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isCustomizing) {
+                      e.target.style.background = accent;
+                    }
+                  }}
+                >
+                  Go to Social
+                </button>
               </div>
             </div>
           );
@@ -1236,7 +1245,49 @@ const Dashboard = () => {
   );
 
         default:
-          return <div>Unknown widget type</div>;
+          // Handle legacy daily-goal widget by redirecting to social
+          if (widget.type === 'daily-goal') {
+            return (
+              <div className="social-widget">
+                <div className="widget-header">
+                  <h3 className="widget-title">Social</h3>
+                </div>
+                <div className="social-content">
+                  <div className="social-icon-container">
+                    <Users size={64} strokeWidth={1.5} style={{ color: accent }} />
+                  </div>
+                  <p>
+                    Connect with fellow learners, join study groups, and collaborate.
+                  </p>
+                  <button
+                    className="social-explore-btn"
+                    onClick={async () => {
+                      await endDashboardSession();
+                      navigate('/social');
+                    }}
+                    disabled={isCustomizing}
+                    style={{
+                      background: accent,
+                      color: bgTop
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isCustomizing) {
+                        e.target.style.background = `color-mix(in srgb, ${accent} 85%, white)`;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isCustomizing) {
+                        e.target.style.background = accent;
+                      }
+                    }}
+                  >
+                    Go to Social
+                  </button>
+                </div>
+              </div>
+            );
+          }
+          return <div>Unknown widget type: {widget.type}</div>;
       }
     };
 
