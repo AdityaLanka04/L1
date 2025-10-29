@@ -8,7 +8,9 @@ import Social from './pages/Social';
 import ActivityFeed from './pages/ActivityFeed';
 import Leaderboards from './pages/Leaderboards';
 import QuizBattle from './pages/QuizBattle';
+import QuizBattleSession from './pages/QuizBattleSession';
 import Challenges from './pages/Challenges';
+import ChallengeSession from './pages/ChallengeSession';
 import KnowledgeRoadmap from './pages/KnowledgeRoadmap';
 import QuestionBank from './pages/QuestionBank';
 import SlideExplorer from './pages/SlideExplorer';
@@ -38,7 +40,9 @@ function App() {
           <Route path="/activity-feed" element={<ActivityFeed />} />
           <Route path="/leaderboards" element={<Leaderboards />} />
           <Route path="/quiz-battles" element={<QuizBattle />} />
+          <Route path="/quiz-battle/:battleId" element={<QuizBattleSession />} />
           <Route path="/challenges" element={<Challenges />} />
+          <Route path="/challenge/:challengeId" element={<ChallengeSession />} />
           <Route path="/knowledge-roadmap" element={<KnowledgeRoadmap />} />
           <Route path="/question-bank" element={<QuestionBank />} />
           <Route path="/slide-explorer" element={<SlideExplorer />} />

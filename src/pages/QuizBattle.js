@@ -233,12 +233,18 @@ const QuizBattle = () => {
                   </div>
 
                   {battle.status === 'pending' && !battle.is_challenger && (
-                    <button className="start-battle-btn">
+                    <button 
+                      className="start-battle-btn"
+                      onClick={() => navigate(`/quiz-battle/${battle.id}`)}
+                    >
                       Accept Challenge
                     </button>
                   )}
                   {battle.status === 'active' && !battle.your_completed && (
-                    <button className="start-battle-btn">
+                    <button 
+                      className="start-battle-btn"
+                      onClick={() => navigate(`/quiz-battle/${battle.id}`)}
+                    >
                       Continue Battle
                     </button>
                   )}

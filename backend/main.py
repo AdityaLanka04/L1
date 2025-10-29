@@ -6405,6 +6405,485 @@ async def join_challenge(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/quiz_battle/{battle_id}")
+async def get_quiz_battle_detail(
+    battle_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get detailed information about a specific battle"""
+    try:
+        battle = db.query(models.QuizBattle).filter(
+            models.QuizBattle.id == battle_id
+        ).first()
+        
+        if not battle:
+            raise HTTPException(status_code=404, detail="Battle not found")
+        
+        # Check if user is part of this battle
+        if battle.challenger_id != current_user.id and battle.opponent_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized to view this battle")
+        
+        # Get existing questions if any
+        questions = db.query(models.BattleQuestion).filter(
+            models.BattleQuestion.battle_id == battle_id
+        ).all()
+        
+        question_list = []
+        for q in questions:
+            question_list.append({
+                "id": q.id,
+                "question": q.question,
+                "options": json.loads(q.options),
+                "correct_answer": q.correct_answer,
+                "explanation": q.explanation
+            })
+        
+        is_challenger = battle.challenger_id == current_user.id
+        
+        return {
+            "battle": {
+                "id": battle.id,
+                "subject": battle.subject,
+                "difficulty": battle.difficulty,
+                "status": battle.status,
+                "question_count": battle.question_count,
+                "time_limit_seconds": battle.time_limit_seconds,
+                "your_score": battle.challenger_score if is_challenger else battle.opponent_score,
+                "opponent_score": battle.opponent_score if is_challenger else battle.challenger_score,
+                "your_completed": battle.challenger_completed if is_challenger else battle.opponent_completed,
+                "is_challenger": is_challenger
+            },
+            "questions": question_list
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting battle detail: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/generate_battle_questions")
+async def generate_battle_questions(
+    payload: dict,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Generate AI questions for a quiz battle"""
+    try:
+        battle_id = payload.get("battle_id")
+        subject = payload.get("subject")
+        difficulty = payload.get("difficulty", "intermediate")
+        question_count = payload.get("question_count", 10)
+        
+        # Verify battle exists and user is participant
+        battle = db.query(models.QuizBattle).filter(
+            models.QuizBattle.id == battle_id
+        ).first()
+        
+        if not battle:
+            raise HTTPException(status_code=404, detail="Battle not found")
+        
+        if battle.challenger_id != current_user.id and battle.opponent_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        # Check if questions already exist
+        existing = db.query(models.BattleQuestion).filter(
+            models.BattleQuestion.battle_id == battle_id
+        ).first()
+        
+        if existing:
+            # Return existing questions
+            questions = db.query(models.BattleQuestion).filter(
+                models.BattleQuestion.battle_id == battle_id
+            ).all()
+            
+            return {
+                "questions": [{
+                    "id": q.id,
+                    "question": q.question,
+                    "options": json.loads(q.options),
+                    "correct_answer": q.correct_answer,
+                    "explanation": q.explanation
+                } for q in questions]
+            }
+        
+        # Generate new questions using AI
+        difficulty_map = {
+            "beginner": "easy, suitable for beginners",
+            "intermediate": "moderate difficulty",
+            "advanced": "challenging, advanced level"
+        }
+        
+        prompt = f"""Generate exactly {question_count} multiple choice questions about {subject}.
+Difficulty level: {difficulty_map.get(difficulty, 'moderate')}.
+
+Return ONLY a valid JSON array with this exact structure:
+[
+  {{
+    "question": "Question text here?",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correct_answer": 0,
+    "explanation": "Brief explanation of the correct answer"
+  }}
+]
+
+Requirements:
+- Each question must have exactly 4 options
+- correct_answer must be 0, 1, 2, or 3 (index of the correct option)
+- Questions should be clear and unambiguous
+- Explanations should be concise (1-2 sentences)
+- Make questions engaging and educational
+- Return ONLY the JSON array, no additional text"""
+
+        response = groq_client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=4000
+        )
+        
+        content = response.choices[0].message.content.strip()
+        
+        # Clean the response
+        if content.startswith("```json"):
+            content = content[7:]
+        if content.startswith("```"):
+            content = content[3:]
+        if content.endswith("```"):
+            content = content[:-3]
+        content = content.strip()
+        
+        questions_data = json.loads(content)
+        
+        # Save questions to database
+        saved_questions = []
+        for q_data in questions_data:
+            battle_question = models.BattleQuestion(
+                battle_id=battle_id,
+                question=q_data["question"],
+                options=json.dumps(q_data["options"]),
+                correct_answer=q_data["correct_answer"],
+                explanation=q_data.get("explanation", "")
+            )
+            db.add(battle_question)
+            db.flush()
+            
+            saved_questions.append({
+                "id": battle_question.id,
+                "question": battle_question.question,
+                "options": q_data["options"],
+                "correct_answer": battle_question.correct_answer,
+                "explanation": battle_question.explanation
+            })
+        
+        # Update battle status to active
+        if battle.status == "pending":
+            battle.status = "active"
+            battle.started_at = datetime.utcnow()
+        
+        db.commit()
+        
+        return {"questions": saved_questions}
+    
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON decode error: {str(e)}, Content: {content}")
+        raise HTTPException(status_code=500, detail="Failed to parse AI response")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error generating battle questions: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== CHALLENGE ENDPOINTS ====================
+
+@app.get("/challenge/{challenge_id}")
+async def get_challenge_detail(
+    challenge_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get detailed information about a specific challenge"""
+    try:
+        challenge = db.query(models.Challenge).filter(
+            models.Challenge.id == challenge_id
+        ).first()
+        
+        if not challenge:
+            raise HTTPException(status_code=404, detail="Challenge not found")
+        
+        # Get user's participation
+        participation = db.query(models.ChallengeParticipation).filter(
+            and_(
+                models.ChallengeParticipation.challenge_id == challenge_id,
+                models.ChallengeParticipation.user_id == current_user.id
+            )
+        ).first()
+        
+        if not participation:
+            raise HTTPException(status_code=403, detail="Not participating in this challenge")
+        
+        # Get existing questions if any
+        questions = db.query(models.ChallengeQuestion).filter(
+            models.ChallengeQuestion.challenge_id == challenge_id
+        ).all()
+        
+        question_list = []
+        for q in questions:
+            question_list.append({
+                "id": q.id,
+                "question": q.question,
+                "options": json.loads(q.options),
+                "correct_answer": q.correct_answer,
+                "explanation": q.explanation
+            })
+        
+        return {
+            "challenge": {
+                "id": challenge.id,
+                "title": challenge.title,
+                "description": challenge.description,
+                "challenge_type": challenge.challenge_type,
+                "subject": challenge.subject,
+                "target_metric": challenge.target_metric,
+                "target_value": challenge.target_value,
+                "time_limit_minutes": challenge.time_limit_minutes,
+                "status": challenge.status,
+                "progress": participation.progress,
+                "completed": participation.completed
+            },
+            "questions": question_list
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting challenge detail: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/generate_challenge_questions")
+async def generate_challenge_questions(
+    payload: dict,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Generate AI questions for a challenge"""
+    try:
+        challenge_id = payload.get("challenge_id")
+        subject = payload.get("subject", "General Knowledge")
+        challenge_type = payload.get("challenge_type", "speed")
+        question_count = payload.get("question_count", 10)
+        
+        # Verify challenge exists and user is participant
+        challenge = db.query(models.Challenge).filter(
+            models.Challenge.id == challenge_id
+        ).first()
+        
+        if not challenge:
+            raise HTTPException(status_code=404, detail="Challenge not found")
+        
+        participation = db.query(models.ChallengeParticipation).filter(
+            and_(
+                models.ChallengeParticipation.challenge_id == challenge_id,
+                models.ChallengeParticipation.user_id == current_user.id
+            )
+        ).first()
+        
+        if not participation:
+            raise HTTPException(status_code=403, detail="Not participating in this challenge")
+        
+        # Check if questions already exist
+        existing = db.query(models.ChallengeQuestion).filter(
+            models.ChallengeQuestion.challenge_id == challenge_id
+        ).first()
+        
+        if existing:
+            # Return existing questions
+            questions = db.query(models.ChallengeQuestion).filter(
+                models.ChallengeQuestion.challenge_id == challenge_id
+            ).all()
+            
+            return {
+                "questions": [{
+                    "id": q.id,
+                    "question": q.question,
+                    "options": json.loads(q.options),
+                    "correct_answer": q.correct_answer,
+                    "explanation": q.explanation
+                } for q in questions]
+            }
+        
+        # Generate questions based on challenge type
+        type_descriptions = {
+            "speed": "fast-paced questions that can be answered quickly",
+            "accuracy": "precise questions requiring careful consideration",
+            "topic_mastery": "comprehensive questions testing deep understanding",
+            "streak": "progressively challenging questions"
+        }
+        
+        prompt = f"""Generate exactly {question_count} multiple choice questions about {subject}.
+Challenge type: {challenge_type} - {type_descriptions.get(challenge_type, '')}.
+
+Return ONLY a valid JSON array with this exact structure:
+[
+  {{
+    "question": "Question text here?",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correct_answer": 0,
+    "explanation": "Brief explanation of the correct answer"
+  }}
+]
+
+Requirements:
+- Each question must have exactly 4 options
+- correct_answer must be 0, 1, 2, or 3 (index of the correct option)
+- Questions should be clear and educational
+- Explanations should be concise (1-2 sentences)
+- Return ONLY the JSON array, no additional text"""
+
+        response = groq_client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=4000
+        )
+        
+        content = response.choices[0].message.content.strip()
+        
+        # Clean the response
+        if content.startswith("```json"):
+            content = content[7:]
+        if content.startswith("```"):
+            content = content[3:]
+        if content.endswith("```"):
+            content = content[:-3]
+        content = content.strip()
+        
+        questions_data = json.loads(content)
+        
+        # Save questions to database
+        saved_questions = []
+        for q_data in questions_data:
+            challenge_question = models.ChallengeQuestion(
+                challenge_id=challenge_id,
+                question=q_data["question"],
+                options=json.dumps(q_data["options"]),
+                correct_answer=q_data["correct_answer"],
+                explanation=q_data.get("explanation", "")
+            )
+            db.add(challenge_question)
+            db.flush()
+            
+            saved_questions.append({
+                "id": challenge_question.id,
+                "question": challenge_question.question,
+                "options": q_data["options"],
+                "correct_answer": challenge_question.correct_answer,
+                "explanation": challenge_question.explanation
+            })
+        
+        db.commit()
+        
+        return {"questions": saved_questions}
+    
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON decode error: {str(e)}, Content: {content}")
+        raise HTTPException(status_code=500, detail="Failed to parse AI response")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error generating challenge questions: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/update_challenge_progress")
+async def update_challenge_progress(
+    payload: dict,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update user's progress in a challenge"""
+    try:
+        challenge_id = payload.get("challenge_id")
+        questions_answered = payload.get("questions_answered", 0)
+        accuracy_percentage = payload.get("accuracy_percentage", 0)
+        answers = payload.get("answers", [])
+        
+        # Get challenge and participation
+        challenge = db.query(models.Challenge).filter(
+            models.Challenge.id == challenge_id
+        ).first()
+        
+        if not challenge:
+            raise HTTPException(status_code=404, detail="Challenge not found")
+        
+        participation = db.query(models.ChallengeParticipation).filter(
+            and_(
+                models.ChallengeParticipation.challenge_id == challenge_id,
+                models.ChallengeParticipation.user_id == current_user.id
+            )
+        ).first()
+        
+        if not participation:
+            raise HTTPException(status_code=404, detail="Participation not found")
+        
+        # Save answers
+        for answer_data in answers:
+            battle_answer = models.ChallengeAnswer(
+                challenge_id=challenge_id,
+                user_id=current_user.id,
+                question_id=answer_data["question_id"],
+                selected_answer=answer_data["selected_answer"],
+                is_correct=answer_data["is_correct"]
+            )
+            db.add(battle_answer)
+        
+        # Calculate progress based on target metric
+        progress = 0
+        score = questions_answered if challenge.target_metric == "questions_answered" else accuracy_percentage
+        
+        if challenge.target_metric == "questions_answered":
+            progress = min((questions_answered / challenge.target_value) * 100, 100)
+            participation.score = questions_answered
+        elif challenge.target_metric == "accuracy_percentage":
+            progress = min((accuracy_percentage / challenge.target_value) * 100, 100)
+            participation.score = accuracy_percentage
+        
+        participation.progress = progress
+        
+        # Check if completed
+        if progress >= 100:
+            participation.completed = True
+            participation.completed_at = datetime.utcnow()
+            
+            # Create activity
+            activity = models.FriendActivity(
+                user_id=current_user.id,
+                activity_type="challenge_completed",
+                title=f"Completed Challenge: {challenge.title}",
+                description=f"Achieved {progress:.1f}% progress",
+                icon="trophy",
+                activity_data=json.dumps({
+                    "challenge_id": challenge.id,
+                    "score": float(score),
+                    "progress": float(progress)
+                })
+            )
+            db.add(activity)
+        
+        db.commit()
+        
+        return {
+            "message": "Progress updated successfully",
+            "progress": progress,
+            "completed": participation.completed
+        }
+    
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error updating challenge progress: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

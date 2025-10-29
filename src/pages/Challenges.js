@@ -270,7 +270,10 @@ const Challenges = () => {
                         <span>Completed</span>
                       </div>
                     ) : challenge.is_participating ? (
-                      <button className="challenge-btn continue">
+                      <button 
+                        className="challenge-btn continue"
+                        onClick={() => navigate(`/challenge/${challenge.id}`)}
+                      >
                         Continue Challenge
                       </button>
                     ) : challenge.status === 'active' ? (

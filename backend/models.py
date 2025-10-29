@@ -1110,6 +1110,67 @@ class ChallengeParticipation(Base):
     challenge = relationship("Challenge", foreign_keys=[challenge_id])
     user = relationship("User", foreign_keys=[user_id])
 
+class BattleQuestion(Base):
+    __tablename__ = "battle_questions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    battle_id = Column(Integer, ForeignKey("quiz_battles.id"), nullable=False)
+    question = Column(Text, nullable=False)
+    options = Column(Text, nullable=False)  # JSON array
+    correct_answer = Column(Integer, nullable=False)
+    explanation = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    battle = relationship("QuizBattle", foreign_keys=[battle_id])
+
+# Challenge Question Storage Model (add to models.py)
+class ChallengeQuestion(Base):
+    __tablename__ = "challenge_questions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    challenge_id = Column(Integer, ForeignKey("challenges.id"), nullable=False)
+    question = Column(Text, nullable=False)
+    options = Column(Text, nullable=False)  # JSON array
+    correct_answer = Column(Integer, nullable=False)
+    explanation = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    challenge = relationship("Challenge", foreign_keys=[challenge_id])
+
+# User Answer Storage for Battles
+class BattleAnswer(Base):
+    __tablename__ = "battle_answers"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    battle_id = Column(Integer, ForeignKey("quiz_battles.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    question_id = Column(Integer, ForeignKey("battle_questions.id"), nullable=False)
+    selected_answer = Column(Integer, nullable=False)
+    is_correct = Column(Boolean, nullable=False)
+    time_taken = Column(Integer, nullable=True)  # seconds
+    answered_at = Column(DateTime, default=datetime.utcnow)
+    
+    battle = relationship("QuizBattle", foreign_keys=[battle_id])
+    user = relationship("User", foreign_keys=[user_id])
+    question = relationship("BattleQuestion", foreign_keys=[question_id])
+
+# User Answer Storage for Challenges
+class ChallengeAnswer(Base):
+    __tablename__ = "challenge_answers"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    challenge_id = Column(Integer, ForeignKey("challenges.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    question_id = Column(Integer, ForeignKey("challenge_questions.id"), nullable=False)
+    selected_answer = Column(Integer, nullable=False)
+    is_correct = Column(Boolean, nullable=False)
+    answered_at = Column(DateTime, default=datetime.utcnow)
+    
+    challenge = relationship("Challenge", foreign_keys=[challenge_id])
+    user = relationship("User", foreign_keys=[user_id])
+    question = relationship("ChallengeQuestion", foreign_keys=[question_id])
+
+
 
 def create_tables():
     Base.metadata.create_all(bind=engine)
