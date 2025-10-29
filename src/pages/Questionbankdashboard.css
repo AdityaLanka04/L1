@@ -294,6 +294,14 @@ body {
   cursor: not-allowed;
 }
 
+.qbd-btn-secondary.qbd-btn-small {
+  padding: 8px 12px;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .qbd-documents-section {
   display: flex;
   flex-direction: column;

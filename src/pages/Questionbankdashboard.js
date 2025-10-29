@@ -386,6 +386,37 @@ const QuestionBankDashboard = () => {
     }
   };
 
+  const generateSimilarQuestion = async (questionId) => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:8001/qb/generate_similar_question', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          question_id: questionId,
+          difficulty: null
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert('Similar question generated successfully! Added to your question set.');
+        await fetchQuestionSets();
+      } else {
+        alert('Failed to generate similar question');
+      }
+    } catch (error) {
+      console.error('Error generating similar question:', error);
+      alert('Error generating similar question');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const renderSidebar = () => (
     <div className="qbd-sidebar">
       <div className="qbd-sidebar-header">
@@ -1275,6 +1306,17 @@ const QuestionBankDashboard = () => {
                         )}
                         {detail.explanation && (
                           <p className="qbd-result-explanation">{detail.explanation}</p>
+                        )}
+                        {!detail.is_correct && detail.question_id && (
+                          <button 
+                            className="qbd-btn-secondary qbd-btn-small"
+                            onClick={() => generateSimilarQuestion(detail.question_id)}
+                            disabled={loading}
+                            style={{ marginTop: '10px' }}
+                          >
+                            <Zap size={16} style={{ marginRight: '5px' }} />
+                            {loading ? 'Generating...' : 'Generate Similar Question'}
+                          </button>
                         )}
                       </div>
                     </div>

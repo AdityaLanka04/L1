@@ -84,7 +84,9 @@ Respond in JSON format:
     "reasoning": "brief explanation",
     "cognitive_level": "remember|understand|apply|analyze|evaluate|create",
     "estimated_time_seconds": 60
-}}"""
+}}
+
+Return ONLY valid JSON, no markdown formatting."""
         
         try:
             response = self.groq_client.chat.completions.create(
@@ -94,10 +96,38 @@ Respond in JSON format:
                 max_tokens=500
             )
             
-            result = json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content.strip()
+            logger.info(f"Raw classify_difficulty response: {content[:200]}")
+            
+            # Remove markdown code blocks if present
+            if content.startswith('```'):
+                content = re.sub(r'^```(?:json)?\n?', '', content, flags=re.DOTALL)
+                content = re.sub(r'\n?```$', '', content, flags=re.DOTALL)
+                content = content.strip()
+            
+            # Try to extract JSON object - non-greedy match
+            json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', content, re.DOTALL)
+            if json_match:
+                json_str = json_match.group()
+                logger.info(f"Extracted JSON: {json_str[:100]}")
+                result = json.loads(json_str)
+            else:
+                # Fallback: try to parse entire content as JSON
+                logger.info("No JSON match found, attempting to parse entire content")
+                result = json.loads(content)
+            
+            logger.info(f"Difficulty classified: {result.get('difficulty', 'unknown')}")
             return result
+        except json.JSONDecodeError as je:
+            logger.error(f"JSON decode error in classify_difficulty: {je}, content was: {content[:500]}")
+            return {
+                "difficulty": "medium",
+                "reasoning": "Classification failed, defaulting to medium",
+                "cognitive_level": "understand",
+                "estimated_time_seconds": 120
+            }
         except Exception as e:
-            logger.error(f"Difficulty classification error: {e}")
+            logger.error(f"Difficulty classification error: {e}", exc_info=True)
             return {
                 "difficulty": "medium",
                 "reasoning": "Classification failed, defaulting to medium",
@@ -113,17 +143,61 @@ class PDFProcessorAgent:
     
     async def extract_text_from_pdf(self, pdf_content: bytes) -> str:
         try:
-            pdf_reader = PyPDF2.PdfReader(io.BytesIO(pdf_content))
             text = ""
+            pdf_bytes = io.BytesIO(pdf_content)
             
-            for page_num in range(len(pdf_reader.pages)):
-                page = pdf_reader.pages[page_num]
-                text += page.extract_text() + "\n\n"
-            
-            return text.strip()
+            try:
+                # Try primary extraction method
+                logger.info("Attempting PyPDF2 extraction...")
+                pdf_reader = PyPDF2.PdfReader(pdf_bytes)
+                
+                for page_num in range(len(pdf_reader.pages)):
+                    try:
+                        page = pdf_reader.pages[page_num]
+                        extracted = page.extract_text()
+                        if extracted:
+                            text += extracted + "\n\n"
+                    except Exception as page_error:
+                        logger.warning(f"Failed to extract page {page_num}: {page_error}")
+                        continue
+                
+                if text.strip():
+                    logger.info(f"Successfully extracted {len(text)} characters from PDF")
+                    return text.strip()
+                else:
+                    raise ValueError("No text extracted from PDF using primary method")
+                    
+            except Exception as primary_error:
+                logger.warning(f"PyPDF2 extraction failed: {primary_error}, attempting fallback...")
+                
+                # Fallback: Try with pdfplumber if available, or return a default error
+                try:
+                    import pdfplumber
+                    with pdfplumber.open(io.BytesIO(pdf_content)) as pdf:
+                        for page in pdf.pages:
+                            page_text = page.extract_text()
+                            if page_text:
+                                text += page_text + "\n\n"
+                    
+                    if text.strip():
+                        logger.info(f"Fallback extraction successful, got {len(text)} characters")
+                        return text.strip()
+                except ImportError:
+                    logger.warning("pdfplumber not available for fallback")
+                except Exception as fallback_error:
+                    logger.warning(f"Fallback extraction also failed: {fallback_error}")
+                
+                # If both methods fail, raise a meaningful error
+                raise ValueError("Unable to extract text from PDF with available methods")
+                
         except Exception as e:
-            logger.error(f"PDF extraction error: {e}")
-            raise HTTPException(status_code=400, detail=f"Failed to extract text from PDF: {str(e)}")
+            error_msg = str(e)
+            logger.error(f"PDF extraction error: {error_msg}", exc_info=True)
+            # Return a 400 error with a user-friendly message
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Unable to extract text from PDF. The file may be corrupted, encrypted, or in an unsupported format. Error: {error_msg[:100]}"
+            )
     
     async def analyze_document(self, text: str) -> Dict[str, Any]:
         prompt = f"""Analyze this document and extract key information:
@@ -137,7 +211,9 @@ Provide a JSON response with:
     "document_type": "lecture_notes|assignment|exam|review|textbook|questions",
     "difficulty_level": "introductory|intermediate|advanced",
     "subject_area": "detected subject"
-}}"""
+}}
+
+Return ONLY valid JSON, no markdown formatting."""
         
         try:
             response = self.groq_client.chat.completions.create(
@@ -147,10 +223,39 @@ Provide a JSON response with:
                 max_tokens=800
             )
             
-            result = json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content.strip()
+            logger.info(f"Raw analyze_document response: {content[:200]}")
+            
+            # Remove markdown code blocks if present
+            if content.startswith('```'):
+                content = re.sub(r'^```(?:json)?\n?', '', content, flags=re.DOTALL)
+                content = re.sub(r'\n?```$', '', content, flags=re.DOTALL)
+                content = content.strip()
+            
+            # Try to extract JSON object - non-greedy match
+            json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', content, re.DOTALL)
+            if json_match:
+                json_str = json_match.group()
+                logger.info(f"Extracted JSON: {json_str[:100]}")
+                result = json.loads(json_str)
+            else:
+                # Fallback: try to parse entire content as JSON
+                logger.info("No JSON match found, attempting to parse entire content")
+                result = json.loads(content)
+            
+            logger.info(f"Document analysis successful: {result.get('document_type', 'unknown')}")
             return result
+        except json.JSONDecodeError as je:
+            logger.error(f"JSON decode error in document analysis: {je}, content was: {content[:500]}")
+            return {
+                "main_topics": ["General"],
+                "key_concepts": [],
+                "document_type": "unknown",
+                "difficulty_level": "intermediate",
+                "subject_area": "Unknown"
+            }
         except Exception as e:
-            logger.error(f"Document analysis error: {e}")
+            logger.error(f"Document analysis error: {e}, returning default", exc_info=True)
             return {
                 "main_topics": ["General"],
                 "key_concepts": [],
@@ -212,13 +317,20 @@ Return a JSON array of questions."""
                 max_tokens=4000
             )
             
-            content = response.choices[0].message.content
+            content = response.choices[0].message.content.strip()
+            
+            # Remove markdown code blocks if present
+            if content.startswith('```'):
+                content = re.sub(r'^```(?:json)?\n?', '', content)
+                content = re.sub(r'\n?```$', '', content).strip()
+            
             json_match = re.search(r'\[.*\]', content, re.DOTALL)
             if json_match:
                 questions = json.loads(json_match.group())
             else:
                 questions = json.loads(content)
             
+            logger.info(f"Generated {len(questions)} questions successfully")
             return questions
         except Exception as e:
             logger.error(f"Question generation error: {e}")
@@ -255,7 +367,20 @@ Return a JSON object with the same structure as the original."""
                 max_tokens=800
             )
             
-            similar_question = json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content.strip()
+            
+            # Remove markdown code blocks if present
+            if content.startswith('```'):
+                content = re.sub(r'^```(?:json)?\n?', '', content)
+                content = re.sub(r'\n?```$', '', content).strip()
+            
+            json_match = re.search(r'\{.*\}', content, re.DOTALL)
+            if json_match:
+                similar_question = json.loads(json_match.group())
+            else:
+                similar_question = json.loads(content)
+            
+            logger.info("Similar question generated successfully")
             return similar_question
         except Exception as e:
             logger.error(f"Similar question generation error: {e}")
@@ -289,16 +414,37 @@ Return a JSON array of questions. If no questions found, return empty array []."
                 max_tokens=4000
             )
             
-            content = response.choices[0].message.content
-            json_match = re.search(r'\[.*\]', content, re.DOTALL)
+            content = response.choices[0].message.content.strip()
+            logger.info(f"Raw extract_questions response: {content[:200]}")
+            
+            # Remove markdown code blocks if present
+            if content.startswith('```'):
+                content = re.sub(r'^```(?:json)?\n?', '', content, flags=re.DOTALL)
+                content = re.sub(r'\n?```$', '', content, flags=re.DOTALL)
+                content = content.strip()
+            
+            # Try to extract JSON array - looking for [ ... ]
+            json_match = re.search(r'\[[\s\S]*\]', content)
             if json_match:
-                questions = json.loads(json_match.group())
+                json_str = json_match.group()
+                logger.info(f"Extracted JSON array: {json_str[:100]}")
+                questions = json.loads(json_str)
             else:
+                # Fallback: try to parse entire content as JSON
+                logger.info("No JSON array found, attempting to parse entire content")
                 questions = json.loads(content)
             
+            if not isinstance(questions, list):
+                logger.warning(f"Parsed content is not a list, got {type(questions)}, converting to empty list")
+                questions = []
+            
+            logger.info(f"Extracted {len(questions)} questions from PDF")
             return questions
+        except json.JSONDecodeError as je:
+            logger.error(f"JSON decode error in extract_questions: {je}, content was: {content[:500]}")
+            return []
         except Exception as e:
-            logger.error(f"Question extraction error: {e}")
+            logger.error(f"Question extraction error: {e}", exc_info=True)
             return []
 
 
@@ -414,30 +560,55 @@ def register_question_bank_api(app, groq_client: Groq, model: str, get_db_func):
         try:
             import models
             
+            logger.info(f"Starting PDF upload for user: {user_id}, file: {file.filename}")
+            
+            if not file.filename.lower().endswith('.pdf'):
+                raise HTTPException(status_code=400, detail="File must be a PDF")
+            
+            # Debug: Check if user exists
+            all_users = db.query(models.User).all()
+            logger.info(f"Total users in DB: {len(all_users)}")
+            for u in all_users:
+                logger.info(f"  User: id={u.id}, username={u.username}, email={u.email}")
+            
             user = db.query(models.User).filter(
                 (models.User.username == user_id) | (models.User.email == user_id)
             ).first()
             
             if not user:
-                raise HTTPException(status_code=404, detail="User not found")
+                logger.error(f"User not found: {user_id}")
+                logger.error(f"Tried to find user with username OR email matching: '{user_id}'")
+                raise HTTPException(status_code=404, detail=f"User not found: {user_id}")
             
+            logger.info(f"Reading PDF file: {file.filename}")
             pdf_content = await file.read()
+            
+            if not pdf_content:
+                raise HTTPException(status_code=400, detail="PDF file is empty")
+            
+            logger.info(f"Extracting text from PDF...")
             text = await agents["pdf_processor"].extract_text_from_pdf(pdf_content)
             
+            if not text or len(text.strip()) == 0:
+                raise HTTPException(status_code=400, detail="No text could be extracted from PDF")
+            
+            logger.info(f"Analyzing document content...")
             analysis = await agents["pdf_processor"].analyze_document(text)
             
+            logger.info(f"Creating document record in database...")
             document = models.UploadedDocument(
                 user_id=user.id,
                 filename=file.filename,
                 document_type=analysis.get("document_type", "unknown"),
                 content=text,
-                meta_data=json.dumps(analysis)
+                document_metadata=json.dumps(analysis)
             )
             
             db.add(document)
             db.commit()
             db.refresh(document)
             
+            logger.info(f"PDF uploaded successfully: document_id={document.id}")
             return {
                 "status": "success",
                 "document_id": document.id,
@@ -445,10 +616,20 @@ def register_question_bank_api(app, groq_client: Groq, model: str, get_db_func):
                 "analysis": analysis
             }
             
+        except HTTPException as http_e:
+            logger.error(f"HTTP Error uploading PDF: {http_e.detail}")
+            try:
+                db.rollback()
+            except:
+                pass
+            raise http_e
         except Exception as e:
-            logger.error(f"Error uploading PDF: {e}")
-            db.rollback()
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error(f"Unexpected error uploading PDF: {e}", exc_info=True)
+            try:
+                db.rollback()
+            except:
+                pass
+            raise HTTPException(status_code=500, detail=f"Error uploading PDF: {str(e)}")
     
     @app.get("/qb/get_uploaded_documents")
     async def get_uploaded_documents(
@@ -476,7 +657,7 @@ def register_question_bank_api(app, groq_client: Groq, model: str, get_db_func):
                         "filename": doc.filename,
                         "document_type": doc.document_type,
                         "created_at": doc.created_at.isoformat(),
-                        "analysis": json.loads(doc.meta_data) if doc.meta_data else {}
+                        "analysis": json.loads(doc.document_metadata) if doc.document_metadata else {}
                     }
                     for doc in documents
                 ]
@@ -511,7 +692,7 @@ def register_question_bank_api(app, groq_client: Groq, model: str, get_db_func):
                     raise HTTPException(status_code=404, detail="Document not found")
                 
                 content = document.content
-                metadata = json.loads(document.meta_data) if document.meta_data else {}
+                metadata = json.loads(document.document_metadata) if document.document_metadata else {}
                 title = request.title or f"Questions from {document.filename}"
                 
                 if metadata.get("document_type") == "questions":
@@ -957,6 +1138,8 @@ def register_question_bank_api(app, groq_client: Groq, model: str, get_db_func):
         try:
             import models
             
+            logger.info(f"Generating similar question for user: {request.user_id}, question_id: {request.question_id}")
+            
             user = db.query(models.User).filter(
                 (models.User.username == request.user_id) | (models.User.email == request.user_id)
             ).first()
@@ -981,6 +1164,7 @@ def register_question_bank_api(app, groq_client: Groq, model: str, get_db_func):
                 "explanation": original_question.explanation
             }
             
+            logger.info(f"Calling question generator to create similar question...")
             similar_question = await agents["question_generator"].generate_similar_question(
                 original_question=original_data,
                 difficulty=request.difficulty
@@ -1003,6 +1187,7 @@ def register_question_bank_api(app, groq_client: Groq, model: str, get_db_func):
             db.commit()
             db.refresh(new_question)
             
+            logger.info(f"Similar question generated successfully: question_id={new_question.id}")
             return {
                 "status": "success",
                 "question": {
@@ -1011,14 +1196,25 @@ def register_question_bank_api(app, groq_client: Groq, model: str, get_db_func):
                     "question_type": new_question.question_type,
                     "difficulty": new_question.difficulty,
                     "topic": new_question.topic,
-                    "options": json.loads(new_question.options) if new_question.options else []
+                    "options": json.loads(new_question.options) if new_question.options else [],
+                    "explanation": new_question.explanation
                 }
             }
             
+        except HTTPException as http_e:
+            logger.error(f"HTTP Error generating similar question: {http_e.detail}")
+            try:
+                db.rollback()
+            except:
+                pass
+            raise http_e
         except Exception as e:
-            logger.error(f"Error generating similar question: {e}")
-            db.rollback()
-            raise HTTPException(status_code=500, detail=str(e))
+            logger.error(f"Unexpected error generating similar question: {e}", exc_info=True)
+            try:
+                db.rollback()
+            except:
+                pass
+            raise HTTPException(status_code=500, detail=f"Error generating similar question: {str(e)}")
     
     @app.get("/qb/get_analytics")
     async def get_analytics(
