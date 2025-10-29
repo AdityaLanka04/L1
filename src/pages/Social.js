@@ -1,23 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, UserMinus } from 'lucide-react';
+import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, UserMinus, FileText, Eye, Edit3, Trash2, Clock, Plus } from 'lucide-react';
+import ShareModal from './SharedModal';
 import './Social.css';
 
 const Social = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
   const [userName, setUserName] = useState('User');
+  const [userId, setUserId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [friendRequests, setFriendRequests] = useState({ received: [], sent: [] });
   const [friends, setFriends] = useState([]);
+  const [sharedItems, setSharedItems] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [activeTab, setActiveTab] = useState('hub'); // 'hub', 'search', 'requests', 'friends'
+  const [activeTab, setActiveTab] = useState('hub');
+  const [sharedFilter, setSharedFilter] = useState('all');
+  const [sharedSearch, setSharedSearch] = useState('');
+  
+  // Share Modal State
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [itemToShare, setItemToShare] = useState(null);
+  
+  // My Content State (for sharing)
+  const [myNotes, setMyNotes] = useState([]);
+  const [myChats, setMyChats] = useState([]);
+  const [showMyContentModal, setShowMyContentModal] = useState(false);
+  const [myContentFilter, setMyContentFilter] = useState('all'); // 'all', 'notes', 'chats'
 
   useEffect(() => {
     fetchUserProfile();
     fetchFriendRequests();
     fetchFriends();
+    fetchSharedContent();
   }, [token]);
 
   const fetchUserProfile = async () => {
@@ -28,6 +44,7 @@ const Social = () => {
       if (response.ok) {
         const data = await response.json();
         setUserName(data.first_name || 'User');
+        setUserId(data.email || data.username);
       }
     } catch (error) {
       console.error('Error fetching user:', error);
@@ -59,6 +76,58 @@ const Social = () => {
       }
     } catch (error) {
       console.error('Error fetching friends:', error);
+    }
+  };
+
+  const fetchSharedContent = async () => {
+  try {
+    console.log('🔄 Fetching shared content...');
+    const token = localStorage.getItem('token');
+    
+    const response = await fetch('http://localhost:8001/shared_with_me', {
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log('📡 Shared content response status:', response.status);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ Shared content data:', data);
+      setSharedItems(data.shared_items || []);
+    } else {
+      console.error('❌ Failed to fetch shared content:', response.status);
+      const errorText = await response.text();
+      console.error('Error details:', errorText);
+    }
+  } catch (error) {
+    console.error('❌ Error fetching shared content:', error);
+  }
+};
+
+  const fetchMyContent = async () => {
+    try {
+      // Fetch notes
+      const notesResponse = await fetch(`http://localhost:8001/get_notes?user_id=${userId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (notesResponse.ok) {
+        const notesData = await notesResponse.json();
+        setMyNotes(notesData);
+      }
+
+      // Fetch chats
+      const chatsResponse = await fetch(`http://localhost:8001/get_chat_sessions?user_id=${userId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (chatsResponse.ok) {
+        const chatsData = await chatsResponse.json();
+        setMyChats(chatsData.sessions || []);
+      }
+    } catch (error) {
+      console.error('Error fetching my content:', error);
     }
   };
 
@@ -97,7 +166,6 @@ const Social = () => {
       });
 
       if (response.ok) {
-        // Update search results to reflect the sent request
         setSearchResults(prev => prev.map(user => 
           user.id === receiverId ? { ...user, request_sent: true } : user
         ));
@@ -149,6 +217,98 @@ const Social = () => {
     }
   };
 
+  // In Social.js - update the handleOpenSharedItem function
+const handleOpenSharedItem = (item) => {
+  if (item.content_type === 'chat') {
+    // Navigate to AI Chat with shared content
+    navigate(`/shared/chat/${item.content_id}`);
+  } else if (item.content_type === 'note') {
+    // Navigate to Notes with shared content
+    navigate(`/shared/note/${item.content_id}`);
+  }
+};
+  const handleDeleteSharedAccess = async (shareId) => {
+    if (!window.confirm('Remove this shared item? You will no longer have access to it.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8001/remove_shared_access/${shareId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        setSharedItems(prev => prev.filter(item => item.id !== shareId));
+      }
+    } catch (error) {
+      console.error('Error removing shared access:', error);
+    }
+  };
+
+  const handleShareNewContent = async () => {
+    await fetchMyContent();
+    setShowMyContentModal(true);
+  };
+
+  const handleSelectItemToShare = (item, type) => {
+    setItemToShare({
+      id: item.id,
+      title: item.title,
+      type: type
+    });
+    setShowMyContentModal(false);
+    setShareModalOpen(true);
+  };
+
+  const handleShareSuccess = (data) => {
+    console.log('Content shared successfully:', data);
+    // Optionally refresh shared items or show notification
+    fetchSharedContent();
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined 
+    });
+  };
+
+  const getFilteredSharedItems = () => {
+    let filtered = sharedItems;
+
+    if (sharedFilter !== 'all') {
+      filtered = filtered.filter(item => item.content_type === sharedFilter);
+    }
+
+    if (sharedSearch) {
+      filtered = filtered.filter(item =>
+        item.title.toLowerCase().includes(sharedSearch.toLowerCase()) ||
+        item.shared_by.username.toLowerCase().includes(sharedSearch.toLowerCase()) ||
+        (item.shared_by.first_name && item.shared_by.first_name.toLowerCase().includes(sharedSearch.toLowerCase()))
+      );
+    }
+
+    return filtered;
+  };
+
+  const getFilteredMyContent = () => {
+    if (myContentFilter === 'notes') return myNotes;
+    if (myContentFilter === 'chats') return myChats;
+    return [...myNotes.map(n => ({...n, type: 'note'})), ...myChats.map(c => ({...c, type: 'chat'}))];
+  };
+
   const tools = [
     {
       icon: Users,
@@ -173,10 +333,10 @@ const Social = () => {
     },
     {
       icon: Share2,
-      title: 'Challenges',
-      description: 'Join time-limited challenges. Complete goals and compete with the community.',
-      path: '/challenges',
-      id: 'challenges'
+      title: 'Shared Content',
+      description: 'View and manage notes and AI chats that friends have shared with you.',
+      onClick: () => setActiveTab('shared'),
+      id: 'shared'
     }
   ];
 
@@ -240,6 +400,9 @@ const Social = () => {
     </div>
   );
 
+  const filteredSharedItems = getFilteredSharedItems();
+  const filteredMyContent = getFilteredMyContent();
+
   return (
     <div className="hub-page">
       <header className="hub-header">
@@ -283,6 +446,12 @@ const Social = () => {
             >
               Friends ({friends.length})
             </button>
+            <button 
+              className={`hub-tab ${activeTab === 'shared' ? 'active' : ''}`}
+              onClick={() => setActiveTab('shared')}
+            >
+              Shared ({sharedItems.length})
+            </button>
           </div>
         </div>
 
@@ -294,7 +463,7 @@ const Social = () => {
                 <div 
                   key={tool.id}
                   className="hub-card"
-                  onClick={() => navigate(tool.path)}
+                  onClick={tool.onClick || (() => navigate(tool.path))}
                 >
                   <div className="hub-card-header">
                     <div className="hub-card-icon">
@@ -428,7 +597,236 @@ const Social = () => {
             )}
           </div>
         )}
+
+        {activeTab === 'shared' && (
+          <div className="friend-section">
+            <div className="shared-header-actions">
+              <button 
+                className="share-new-content-btn"
+                onClick={handleShareNewContent}
+              >
+                <Plus size={20} />
+                <span>Share New Content</span>
+              </button>
+            </div>
+
+            <div className="shared-controls">
+              <div className="search-container">
+                <Search size={20} />
+                <input
+                  type="text"
+                  placeholder="Search shared content..."
+                  value={sharedSearch}
+                  onChange={(e) => setSharedSearch(e.target.value)}
+                  className="search-input"
+                />
+              </div>
+
+              <div className="shared-filter-buttons">
+                <button
+                  className={`filter-btn ${sharedFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => setSharedFilter('all')}
+                >
+                  All
+                </button>
+                <button
+                  className={`filter-btn ${sharedFilter === 'chat' ? 'active' : ''}`}
+                  onClick={() => setSharedFilter('chat')}
+                >
+                  <MessageSquare size={14} />
+                  Chats
+                </button>
+                <button
+                  className={`filter-btn ${sharedFilter === 'note' ? 'active' : ''}`}
+                  onClick={() => setSharedFilter('note')}
+                >
+                  <FileText size={14} />
+                  Notes
+                </button>
+              </div>
+            </div>
+
+            {filteredSharedItems.length === 0 ? (
+              <div className="empty-state">
+                {sharedSearch || sharedFilter !== 'all'
+                  ? 'No shared content found matching your filters'
+                  : 'No content has been shared with you yet. When friends share notes or AI chats, they will appear here.'}
+              </div>
+            ) : (
+              <div className="shared-items-grid">
+                {filteredSharedItems.map((item) => (
+                  <div key={item.id} className="shared-item-card">
+                    <div className="shared-item-header">
+                      <div className="content-type-badge" data-type={item.content_type}>
+                        {item.content_type === 'chat' ? (
+                          <MessageSquare size={16} />
+                        ) : (
+                          <FileText size={16} />
+                        )}
+                        <span>{item.content_type === 'chat' ? 'AI Chat' : 'Note'}</span>
+                      </div>
+                      
+                      <div className="permission-badge" data-permission={item.permission}>
+                        {item.permission === 'view' ? (
+                          <Eye size={14} />
+                        ) : (
+                          <Edit3 size={14} />
+                        )}
+                        <span>{item.permission === 'view' ? 'View' : 'Edit'}</span>
+                      </div>
+                    </div>
+
+                    <div className="shared-item-content">
+                      <h3 className="shared-item-title">{item.title}</h3>
+                      
+                      {item.message && (
+                        <p className="share-message">
+                          "{item.message}"
+                        </p>
+                      )}
+
+                      <div className="shared-by">
+                        <div className="shared-by-avatar">
+                          {item.shared_by.picture_url ? (
+                            <img src={item.shared_by.picture_url} alt={item.shared_by.username} />
+                          ) : (
+                            <div className="shared-by-avatar-placeholder">
+                              {(item.shared_by.first_name?.[0] || item.shared_by.username[0]).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <div className="shared-by-info">
+                          <span className="shared-by-text">Shared by</span>
+                          <span className="shared-by-name">
+                            {item.shared_by.first_name && item.shared_by.last_name
+                              ? `${item.shared_by.first_name} ${item.shared_by.last_name}`
+                              : item.shared_by.username}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="shared-meta">
+                        <div className="meta-item">
+                          <Clock size={12} />
+                          <span>{formatDate(item.shared_at)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="shared-item-footer">
+                      <button 
+                        className="shared-item-action-btn open"
+                        onClick={() => handleOpenSharedItem(item)}
+                      >
+                        {item.permission === 'view' ? (
+                          <>
+                            <Eye size={16} />
+                            <span>View</span>
+                          </>
+                        ) : (
+                          <>
+                            <Edit3 size={16} />
+                            <span>Open</span>
+                          </>
+                        )}
+                      </button>
+                      
+                      <button 
+                        className="shared-item-action-btn remove"
+                        onClick={() => handleDeleteSharedAccess(item.id)}
+                        title="Remove from your shared items"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* My Content Selection Modal */}
+      {showMyContentModal && (
+        <div className="modal-overlay" onClick={() => setShowMyContentModal(false)}>
+          <div className="modal-content my-content-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Select Content to Share</h2>
+              <button className="modal-close" onClick={() => setShowMyContentModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-filters">
+              <button
+                className={`filter-btn ${myContentFilter === 'all' ? 'active' : ''}`}
+                onClick={() => setMyContentFilter('all')}
+              >
+                All
+              </button>
+              <button
+                className={`filter-btn ${myContentFilter === 'notes' ? 'active' : ''}`}
+                onClick={() => setMyContentFilter('notes')}
+              >
+                <FileText size={14} />
+                Notes ({myNotes.length})
+              </button>
+              <button
+                className={`filter-btn ${myContentFilter === 'chats' ? 'active' : ''}`}
+                onClick={() => setMyContentFilter('chats')}
+              >
+                <MessageSquare size={14} />
+                Chats ({myChats.length})
+              </button>
+            </div>
+
+            <div className="my-content-list">
+              {filteredMyContent.length === 0 ? (
+                <div className="empty-content">
+                  No content available to share
+                </div>
+              ) : (
+                filteredMyContent.map((item) => (
+                  <div 
+                    key={`${item.type || (myContentFilter === 'notes' ? 'note' : 'chat')}-${item.id}`}
+                    className="content-item"
+                    onClick={() => handleSelectItemToShare(item, item.type || (myContentFilter === 'notes' ? 'note' : 'chat'))}
+                  >
+                    <div className="content-item-icon">
+                      {(item.type === 'chat' || myContentFilter === 'chats') ? (
+                        <MessageSquare size={20} />
+                      ) : (
+                        <FileText size={20} />
+                      )}
+                    </div>
+                    <div className="content-item-info">
+                      <h4>{item.title || 'Untitled'}</h4>
+                      <p>{formatDate(item.updated_at || item.created_at)}</p>
+                    </div>
+                    <Share2 size={16} className="content-item-share-icon" />
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {shareModalOpen && itemToShare && (
+        <ShareModal
+          isOpen={shareModalOpen}
+          onClose={() => {
+            setShareModalOpen(false);
+            setItemToShare(null);
+          }}
+          itemType={itemToShare.type}
+          itemId={itemToShare.id}
+          itemTitle={itemToShare.title}
+          onShare={handleShareSuccess}
+        />
+      )}
     </div>
   );
 };

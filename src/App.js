@@ -11,8 +11,9 @@ import QuizBattle from './pages/QuizBattle';
 import QuizBattleSession from './pages/QuizBattleSession';
 import Challenges from './pages/Challenges';
 import ChallengeSession from './pages/ChallengeSession';
+import SharedContent from './pages/SharedContent';
 import KnowledgeRoadmap from './pages/KnowledgeRoadmap';
-import Questionbankdashboard from './pages/Questionbankdashboard';
+import QuestionBank from './pages/Questionbankdashboard';
 import SlideExplorer from './pages/SlideExplorer';
 import Statistics from './pages/Statistics';
 import Flashcards from './pages/Flashcards';
@@ -22,6 +23,8 @@ import Register from './pages/Register';
 import Profile from './pages/profile';
 import ProfileQuiz from './pages/ProfileQuiz';
 import { ThemeProvider } from './contexts/ThemeContext';
+import SharedItemViewer from './pages/SharedItemViewer';
+import NotesRedesign from './pages/NotesRedesign';
 
 
 function App() {
@@ -44,8 +47,10 @@ function App() {
           <Route path="/quiz-battle/:battleId" element={<QuizBattleSession />} />
           <Route path="/challenges" element={<Challenges />} />
           <Route path="/challenge/:challengeId" element={<ChallengeSession />} />
+          <Route path="/shared" element={<SharedContent />} />
+          <Route path="/shared/:contentType/:contentId" element={<SharedContent />} />
           <Route path="/knowledge-roadmap" element={<KnowledgeRoadmap />} />
-          <Route path="/question-bank" element={<Questionbankdashboard />} />
+          <Route path="/question-bank" element={<QuestionBank />} />
           <Route path="/slide-explorer" element={<SlideExplorer />} />
           <Route path="/statistics" element={<Statistics />} />
           <Route path="/flashcards" element={<Flashcards />} />
@@ -53,6 +58,9 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/home" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/shared/:contentType/:contentId" element={<SharedItemViewer />} />
+<Route path="/shared/chat/:chatId" element={<AIChat sharedMode={true} />} />
+<Route path="/shared/note/:noteId" element={<NotesRedesign sharedMode={true} />} />
         </Routes>
       </div>
     </ThemeProvider>

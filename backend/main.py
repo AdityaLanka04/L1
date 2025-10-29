@@ -163,6 +163,16 @@ class AIWritingAssistRequest(BaseModel):
     action: str  # "continue", "improve", "simplify", "expand", "tone_change"
     tone: Optional[str] = "professional"
 
+class ShareContentRequest(BaseModel):
+    content_type: str  # 'chat' or 'note'
+    content_id: int
+    friend_ids: List[int]
+    message: Optional[str] = None
+    permission: str = 'view'  # 'view' or 'edit'
+
+class RemoveSharedAccessRequest(BaseModel):
+    share_id: int
+
 def get_db():
     db = SessionLocal()
     try:
@@ -6885,6 +6895,497 @@ async def update_challenge_progress(
         db.rollback()
         logger.error(f"Error updating challenge progress: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+from sqlalchemy import and_, or_
+@app.post("/share_content")
+async def share_content(
+    share_data: ShareContentRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Share a note or chat with friends"""
+    try:
+        logger.info(f"📤 Sharing content for user {current_user.id}")
+        
+        # Verify content ownership
+        if share_data.content_type == 'note':
+            content = db.query(models.Note).filter(
+                models.Note.id == share_data.content_id,
+                models.Note.user_id == current_user.id
+            ).first()
+            if not content:
+                raise HTTPException(status_code=404, detail="Note not found or not owned by user")
+        elif share_data.content_type == 'chat':
+            content = db.query(models.ChatSession).filter(
+                models.ChatSession.id == share_data.content_id,
+                models.ChatSession.user_id == current_user.id
+            ).first()
+            if not content:
+                raise HTTPException(status_code=404, detail="Chat not found or not owned by user")
+        else:
+            raise HTTPException(status_code=400, detail="Invalid content type")
+        
+        # Create share records for each friend
+        shared_records = []
+        for friend_id in share_data.friend_ids:
+            # ✅ FIXED: Check for 'active' status instead of 'accepted'
+            friendship = db.query(models.Friendship).filter(
+                and_(
+                    or_(
+                        and_(
+                            models.Friendship.user_id == current_user.id,
+                            models.Friendship.friend_id == friend_id
+                        ),
+                        and_(
+                            models.Friendship.user_id == friend_id,
+                            models.Friendship.friend_id == current_user.id
+                        )
+                    ),
+                    models.Friendship.status == 'active'  # ✅ Changed from 'accepted' to 'active'
+                )
+            ).first()
+            
+            if not friendship:
+                logger.warning(f"⚠️ User {friend_id} is not a friend of {current_user.id}")
+                continue  # Skip if not friends
+            
+            # Check if already shared
+            existing_share = db.query(models.SharedContent).filter(
+                models.SharedContent.owner_id == current_user.id,
+                models.SharedContent.shared_with_id == friend_id,
+                models.SharedContent.content_type == share_data.content_type,
+                models.SharedContent.content_id == share_data.content_id
+            ).first()
+            
+            if existing_share:
+                # Update existing share
+                existing_share.permission = share_data.permission
+                existing_share.message = share_data.message
+                existing_share.shared_at = datetime.now(timezone.utc)
+                shared_records.append(existing_share)
+                logger.info(f"🔄 Updated existing share for friend {friend_id}")
+            else:
+                # Create new share
+                shared_content = models.SharedContent(
+                    owner_id=current_user.id,
+                    shared_with_id=friend_id,
+                    content_type=share_data.content_type,
+                    content_id=share_data.content_id,
+                    permission=share_data.permission,
+                    message=share_data.message,
+                    shared_at=datetime.now(timezone.utc)
+                )
+                db.add(shared_content)
+                shared_records.append(shared_content)
+                logger.info(f"✅ Created new share for friend {friend_id}")
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"Content shared with {len(shared_records)} friend(s)",
+            "shared_count": len(shared_records)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error sharing content: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/shared_with_me")
+def get_shared_with_me(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all content shared with the current user"""
+    try:
+        logger.info(f"🔍 Starting shared_with_me endpoint for user: {current_user.id}")
+        
+        # Get all shared content for this user
+        shared_items = db.query(models.SharedContent).filter(
+            models.SharedContent.shared_with_id == current_user.id
+        ).order_by(models.SharedContent.shared_at.desc()).all()
+        
+        logger.info(f"📦 Found {len(shared_items)} shared items for user {current_user.id}")
+        
+        # Debug: Log all shared items
+        for item in shared_items:
+            logger.info(f"🔄 Shared item: id={item.id}, type={item.content_type}, content_id={item.content_id}, owner_id={item.owner_id}")
+        
+        result = []
+        for item in shared_items:
+            # Get owner info
+            owner = db.query(models.User).filter(models.User.id == item.owner_id).first()
+            if not owner:
+                logger.warning(f"⚠️ Owner not found for shared item {item.id}")
+                continue
+            
+            # Get content details
+            title = "Untitled"
+            content_exists = False
+            
+            if item.content_type == 'note':
+                note = db.query(models.Note).filter(models.Note.id == item.content_id).first()
+                if note:
+                    title = note.title or "Untitled Note"
+                    content_exists = True
+                    logger.info(f"📝 Note found: {title}")
+                else:
+                    logger.warning(f"⚠️ Note not found for ID: {item.content_id}")
+                    title = "Deleted Note"
+            elif item.content_type == 'chat':
+                chat = db.query(models.ChatSession).filter(models.ChatSession.id == item.content_id).first()
+                if chat:
+                    title = chat.title or "Untitled Chat"
+                    content_exists = True
+                    logger.info(f"💬 Chat found: {title}")
+                else:
+                    logger.warning(f"⚠️ Chat not found for ID: {item.content_id}")
+                    title = "Deleted Chat"
+            
+            # Only include if content still exists
+            if content_exists:
+                result.append({
+                    "id": item.id,
+                    "content_type": item.content_type,
+                    "content_id": item.content_id,
+                    "title": title,
+                    "permission": item.permission,
+                    "message": item.message,
+                    "shared_at": item.shared_at.isoformat() if item.shared_at else None,
+                    "shared_by": {
+                        "id": owner.id,
+                        "username": owner.username,
+                        "email": owner.email,
+                        "first_name": owner.first_name or "",
+                        "last_name": owner.last_name or "",
+                        "picture_url": owner.picture_url or ""
+                    }
+                })
+            else:
+                logger.info(f"🗑️ Skipping deleted content: {item.content_type} {item.content_id}")
+        
+        logger.info(f"✅ Returning {len(result)} valid shared items")
+        return {"shared_items": result}
+        
+    except Exception as e:
+        logger.error(f"❌ Error getting shared content: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/debug_friendships")
+def debug_friendships(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Debug endpoint to check friendship status"""
+    try:
+        # Get all friendships for current user
+        friendships = db.query(models.Friendship).filter(
+            models.Friendship.user_id == current_user.id
+        ).all()
+        
+        # Also get reverse friendships
+        reverse_friendships = db.query(models.Friendship).filter(
+            models.Friendship.friend_id == current_user.id
+        ).all()
+        
+        result = {
+            "user": {
+                "id": current_user.id,
+                "username": current_user.username
+            },
+            "friendships": [
+                {
+                    "id": f.id,
+                    "user_id": f.user_id,
+                    "friend_id": f.friend_id,
+                    "status": f.status,
+                    "created_at": f.created_at.isoformat()
+                }
+                for f in friendships
+            ],
+            "reverse_friendships": [
+                {
+                    "id": f.id,
+                    "user_id": f.user_id,
+                    "friend_id": f.friend_id,
+                    "status": f.status,
+                    "created_at": f.created_at.isoformat()
+                }
+                for f in reverse_friendships
+            ],
+            "total_friendships": len(friendships) + len(reverse_friendships)
+        }
+        
+        return result
+        
+    except Exception as e:
+        return {"error": str(e)}
+@app.get("/shared/{content_type}/{content_id}")
+def get_shared_content(
+    content_type: str,
+    content_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get details of shared content"""
+    try:
+        logger.info(f"🔍 Accessing shared content: {content_type} {content_id} for user: {current_user.id}")
+        
+        # Check if content is shared with user or owned by user
+        shared = db.query(models.SharedContent).filter(
+            models.SharedContent.content_type == content_type,
+            models.SharedContent.content_id == content_id,
+            models.SharedContent.shared_with_id == current_user.id
+        ).first()
+        
+        # Get content
+        if content_type == 'note':
+            content = db.query(models.Note).filter(models.Note.id == content_id).first()
+            if not content:
+                raise HTTPException(status_code=404, detail="Note not found")
+            
+            # Check permissions
+            is_owner = content.user_id == current_user.id
+            if not is_owner and not shared:
+                raise HTTPException(status_code=403, detail="No access to this note")
+            
+            owner = db.query(models.User).filter(models.User.id == content.user_id).first()
+            
+            return {
+                "content_type": "note",
+                "content_id": content.id,
+                "title": content.title,
+                "content": content.content,
+                "created_at": content.created_at.isoformat(),
+                "updated_at": content.updated_at.isoformat(),
+                "permission": shared.permission if shared else "owner",
+                "is_owner": is_owner,
+                "owner": {
+                    "id": owner.id,
+                    "username": owner.username,
+                    "first_name": owner.first_name or "",
+                    "last_name": owner.last_name or "",
+                    "picture_url": owner.picture_url or ""
+                }
+            }
+            
+        elif content_type == 'chat':
+            content = db.query(models.ChatSession).filter(models.ChatSession.id == content_id).first()
+            if not content:
+                raise HTTPException(status_code=404, detail="Chat not found")
+            
+            # Check permissions
+            is_owner = content.user_id == current_user.id
+            if not is_owner and not shared:
+                raise HTTPException(status_code=403, detail="No access to this chat")
+            
+            # Get messages
+            messages = db.query(models.ChatMessage).filter(
+                models.ChatMessage.chat_session_id == content_id
+            ).order_by(models.ChatMessage.timestamp.asc()).all()
+            
+            owner = db.query(models.User).filter(models.User.id == content.user_id).first()
+            
+            return {
+                "content_type": "chat",
+                "content_id": content.id,
+                "title": content.title,
+                "created_at": content.created_at.isoformat(),
+                "updated_at": content.updated_at.isoformat(),
+                "permission": shared.permission if shared else "owner",
+                "is_owner": is_owner,
+                "owner": {
+                    "id": owner.id,
+                    "username": owner.username,
+                    "first_name": owner.first_name or "",
+                    "last_name": owner.last_name or "",
+                    "picture_url": owner.picture_url or ""
+                },
+                "messages": [
+                    {
+                        "user_message": msg.user_message,
+                        "ai_response": msg.ai_response,
+                        "timestamp": msg.timestamp.isoformat()
+                    }
+                    for msg in messages
+                ]
+            }
+        else:
+            raise HTTPException(status_code=400, detail="Invalid content type")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error getting shared content: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/debug_shared_content")
+def debug_shared_content(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Debug endpoint to check shared content"""
+    try:
+        # Get all shared content
+        shared_items = db.query(models.SharedContent).filter(
+            models.SharedContent.shared_with_id == current_user.id
+        ).all()
+        
+        # Also check if user has any shared items as owner
+        owned_shares = db.query(models.SharedContent).filter(
+            models.SharedContent.owner_id == current_user.id
+        ).all()
+        
+        return {
+            "user": {
+                "id": current_user.id,
+                "username": current_user.username,
+                "email": current_user.email
+            },
+            "received_shares": [
+                {
+                    "id": item.id,
+                    "owner_id": item.owner_id,
+                    "shared_with_id": item.shared_with_id,
+                    "content_type": item.content_type,
+                    "content_id": item.content_id,
+                    "permission": item.permission,
+                    "message": item.message,
+                    "shared_at": item.shared_at.isoformat() if item.shared_at else None
+                }
+                for item in shared_items
+            ],
+            "sent_shares": [
+                {
+                    "id": item.id,
+                    "owner_id": item.owner_id,
+                    "shared_with_id": item.shared_with_id,
+                    "content_type": item.content_type,
+                    "content_id": item.content_id,
+                    "permission": item.permission,
+                    "message": item.message
+                }
+                for item in owned_shares
+            ],
+            "total_received": len(shared_items),
+            "total_sent": len(owned_shares)
+        }
+        
+    except Exception as e:
+        return {"error": str(e)}
+@app.delete("/remove_shared_access/{share_id}")
+def remove_shared_access(
+    share_id: int,
+    current_user: models.User = Depends(get_current_user),  # Use the existing dependency
+    db: Session = Depends(get_db)
+):
+    """Remove access to shared content"""
+    try:
+        logger.info(f"🗑️ User {current_user.id} attempting to remove shared access {share_id}")
+        
+        # Find shared content - user can remove if they are the recipient OR the owner
+        shared = db.query(models.SharedContent).filter(
+            models.SharedContent.id == share_id
+        ).first()
+        
+        if not shared:
+            logger.error(f"❌ Shared content not found: {share_id}")
+            raise HTTPException(status_code=404, detail="Shared content not found")
+        
+        # Check permissions: user can remove if they are the recipient OR the owner
+        can_remove = (shared.shared_with_id == current_user.id) or (shared.owner_id == current_user.id)
+        
+        if not can_remove:
+            logger.warning(f"⚠️ User {current_user.id} not authorized to remove share {share_id}")
+            raise HTTPException(status_code=403, detail="Not authorized to remove this shared content")
+        
+        logger.info(f"✅ Removing shared access: share_id={share_id}, owner={shared.owner_id}, recipient={shared.shared_with_id}")
+        
+        db.delete(shared)
+        db.commit()
+        
+        return {
+            "success": True, 
+            "message": "Access removed successfully",
+            "removed_share_id": share_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error removing shared access: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/update_shared_note/{note_id}")
+def update_shared_note(
+    note_id: int,
+    note_data: dict,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+):
+    """Update a shared note (if user has edit permission)"""
+    try:
+        # Verify token and get user
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        user_email = payload.get("sub")
+        user = get_user_by_email(db, user_email)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get note
+        note = db.query(models.Note).filter(models.Note.id == note_id).first()
+        if not note:
+            raise HTTPException(status_code=404, detail="Note not found")
+        
+        # Check if owner
+        if note.user_id == user.id:
+            # Owner can always edit
+            pass
+        else:
+            # Check if shared with edit permission
+            shared = db.query(models.SharedContent).filter(
+                models.SharedContent.content_type == 'note',
+                models.SharedContent.content_id == note_id,
+                models.SharedContent.shared_with_id == user.id,
+                models.SharedContent.permission == 'edit'
+            ).first()
+            
+            if not shared:
+                raise HTTPException(status_code=403, detail="No edit permission for this note")
+        
+        # Update note
+        if 'content' in note_data:
+            note.content = note_data['content']
+        if 'title' in note_data:
+            note.title = note_data['title']
+        
+        note.updated_at = datetime.now(timezone.utc)
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Note updated successfully",
+            "note": {
+                "id": note.id,
+                "title": note.title,
+                "content": note.content,
+                "updated_at": note.updated_at.isoformat()
+            }
+        }
+        
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating shared note: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 
 if __name__ == "__main__":
     import uvicorn

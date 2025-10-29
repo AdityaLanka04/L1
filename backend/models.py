@@ -1171,7 +1171,35 @@ class ChallengeAnswer(Base):
     question = relationship("ChallengeQuestion", foreign_keys=[question_id])
 
 
+class SharedContent(Base):
+    """Tracks content shared between users"""
+    __tablename__ = "shared_content"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    content_type = Column(String(20), nullable=False)
+    content_id = Column(Integer, nullable=False)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    shared_with_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    permission = Column(String(10), default="view")
+    message = Column(Text, nullable=True)
+    shared_at = Column(DateTime, default=datetime.utcnow)
+    last_accessed = Column(DateTime, nullable=True)
+    
+    owner = relationship("User", foreign_keys=[owner_id])
+    shared_with = relationship("User", foreign_keys=[shared_with_id])
 
+class SharedContentAccess(Base):
+    """Tracks access to shared content"""
+    __tablename__ = "shared_content_access"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    shared_content_id = Column(Integer, ForeignKey("shared_content.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    accessed_at = Column(DateTime, default=datetime.utcnow)
+    action = Column(String(20), nullable=False)
+    
+    shared_content = relationship("SharedContent", foreign_keys=[shared_content_id])
+    user = relationship("User", foreign_keys=[user_id])
 def create_tables():
     Base.metadata.create_all(bind=engine)
 

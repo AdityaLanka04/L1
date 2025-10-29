@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import ReactQuill, { Quill } from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import "./NotesRedesign.css";
@@ -12,7 +12,8 @@ import {
   ChevronDown, Check, Sparkles, Mic, MicOff, 
   MoreVertical, Archive, RefreshCw, Save, Clock,
   AlignLeft, Bold, Italic, Underline, 
-  List, ListOrdered, Link2, Image, Code
+  List, ListOrdered, Link2, Image, Code,
+  ArrowLeft
 } from 'lucide-react';
 
 // Remove problematic imports and register them conditionally
@@ -36,7 +37,16 @@ try {
   console.warn('KaTeX not available:', error);
 }
 
-const NotesRedesign = () => {
+const NotesRedesign = ({ sharedMode = false }) => {
+  const { noteId } = useParams();
+  const navigate = useNavigate();
+  
+  // Add shared content state
+  const [sharedNoteData, setSharedNoteData] = useState(null);
+  const [isSharedContent, setIsSharedContent] = useState(sharedMode);
+  const [canEdit, setCanEdit] = useState(false);
+
+  // ... existing state ...
   const [userName, setUserName] = useState("");
   const [userProfile, setUserProfile] = useState(null);
   const [notes, setNotes] = useState([]);
@@ -146,7 +156,6 @@ const NotesRedesign = () => {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
-  const navigate = useNavigate();
   const quillRef = useRef(null);
   const saveTimeout = useRef(null);
   const aiInputRef = useRef(null);
@@ -154,6 +163,44 @@ const NotesRedesign = () => {
   const [popup, setPopup] = useState({ isOpen: false, title: "", message: "" });
   const showPopup = (title, message) => setPopup({ isOpen: true, title, message });
   const closePopup = () => setPopup({ isOpen: false, title: "", message: "" });
+
+  // Load shared note function
+  const loadSharedNote = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `http://localhost:8001/shared/note/${noteId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setSharedNoteData(data);
+        setIsSharedContent(true);
+        setCanEdit(data.permission === 'edit' || data.is_owner);
+        
+        // Set up the note with shared data
+        setSelectedNote({
+          id: data.content_id,
+          title: data.title,
+          content: data.content,
+          updated_at: data.updated_at
+        });
+        setNoteTitle(data.title);
+        setNoteContent(data.content);
+      } else {
+        throw new Error('Failed to load shared note');
+      }
+    } catch (error) {
+      console.error('Error loading shared note:', error);
+      navigate('/social');
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -164,23 +211,29 @@ const NotesRedesign = () => {
       navigate("/login");
       return;
     }
-    if (username) setUserName(username);
-    if (profile) {
-      try {
-        setUserProfile(JSON.parse(profile));
-      } catch (error) {
-        console.error("Error parsing user profile:", error);
+    
+    if (sharedMode && noteId) {
+      loadSharedNote();
+    } else {
+      // Normal notes loading logic
+      if (username) setUserName(username);
+      if (profile) {
+        try {
+          setUserProfile(JSON.parse(profile));
+        } catch (error) {
+          console.error("Error parsing user profile:", error);
+        }
       }
     }
-  }, [navigate]);
+  }, [navigate, sharedMode, noteId]);
 
   useEffect(() => {
-    if (userName) {
+    if (userName && !isSharedContent) {
       loadNotes();
       loadFolders();
       loadChatSessions();
     }
-  }, [userName]);
+  }, [userName, isSharedContent]);
 
   const loadNotes = async () => {
     try {
@@ -218,6 +271,8 @@ const NotesRedesign = () => {
   }, []);
 
   const handleTextSelection = useCallback(() => {
+    if (!canEdit) return; // Don't show AI button if no edit permission
+    
     const quill = quillRef.current?.getEditor();
     if (!quill) return;
 
@@ -244,10 +299,10 @@ const NotesRedesign = () => {
     setShowAIButton(false);
     setSelectedText("");
     setSelectedRange(null);
-  }, []);
+  }, [canEdit]);
 
   useEffect(() => {
-    if (!quillReady) return;
+    if (!quillReady || !canEdit) return;
 
     const quill = quillRef.current?.getEditor();
     if (!quill || !quill.root) return;
@@ -286,15 +341,16 @@ const NotesRedesign = () => {
       document.removeEventListener("mousedown", onHide);
       document.removeEventListener("scroll", () => setShowAIButton(false));
     };
-  }, [handleTextSelection, showAIButton, quillReady]);
+  }, [handleTextSelection, showAIButton, quillReady, canEdit]);
 
   const handleAIButtonClick = () => {
+    if (!canEdit) return;
     setShowAIAssistant(true);
     setShowAIButton(false);
   };
 
   const processSelectedText = async (action) => {
-    if (!selectedText || !selectedText.trim()) {
+    if (!selectedText || !selectedText.trim() || !canEdit) {
       showPopup("No Text Selected", "Please select text first");
       return;
     }
@@ -343,6 +399,8 @@ const NotesRedesign = () => {
   };
 
   const quickTextAction = async (actionType) => {
+    if (!canEdit) return;
+    
     console.log(`Quick action: ${actionType}`);
     setGeneratingAI(true);
 
@@ -473,6 +531,8 @@ const NotesRedesign = () => {
   };
 
   const createNoteInFolder = async (folderId) => {
+    if (isSharedContent) return;
+    
     try {
       const token = localStorage.getItem("token");
       const res = await fetch("http://localhost:8001/create_note", {
@@ -568,6 +628,8 @@ const NotesRedesign = () => {
   };
 
   const handleDragStart = (e, note) => {
+    if (isSharedContent) return;
+    
     e.dataTransfer.effectAllowed = 'move';
     setDraggedNote(note);
     e.target.style.opacity = '0.5';
@@ -582,6 +644,8 @@ const NotesRedesign = () => {
   };
 
   const handleDragOver = (e, folderId) => {
+    if (isSharedContent) return;
+    
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setDragOverFolder(folderId);
@@ -592,6 +656,8 @@ const NotesRedesign = () => {
   };
 
   const handleDrop = async (e, folderId) => {
+    if (isSharedContent) return;
+    
     e.preventDefault();
     setDragOverFolder(null);
     
@@ -602,6 +668,8 @@ const NotesRedesign = () => {
   };
 
   const toggleFavorite = async (noteId) => {
+    if (isSharedContent) return;
+    
     const note = notes.find(n => n.id === noteId);
     if (!note) return;
 
@@ -631,6 +699,8 @@ const NotesRedesign = () => {
   };
 
   const moveToTrash = async (noteId) => {
+    if (isSharedContent) return;
+    
     try {
       if (saveTimeout.current) {
         clearTimeout(saveTimeout.current);
@@ -726,6 +796,8 @@ const NotesRedesign = () => {
   }, [noteContent]);
 
   const createNewNote = async () => {
+    if (isSharedContent) return;
+    
     try {
       const token = localStorage.getItem("token");
       
@@ -771,6 +843,8 @@ const NotesRedesign = () => {
   };
 
   const duplicateNote = async (note) => {
+    if (isSharedContent) return;
+    
     try {
       const token = localStorage.getItem("token");
       const res = await fetch("http://localhost:8001/create_note", {
@@ -816,55 +890,88 @@ const NotesRedesign = () => {
   const autoSave = useCallback(async () => {
     if (!selectedNote) return;
     
-    const noteStillExists = notes.find(n => n.id === selectedNote.id);
-    if (!noteStillExists) return;
-    
-    if (selectedNote.is_deleted || noteStillExists.is_deleted) return;
-    
-    setSaving(true);
-    
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:8001/update_note", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          note_id: selectedNote.id,
-          title: noteTitle,
-          content: noteContent,
-        }),
-      });
+    // For shared notes, use the update_shared_note endpoint
+    if (isSharedContent) {
+      if (!canEdit) return; // Don't save if no edit permission
       
-      if (res.ok) {
-        setSaving(false);
-        setAutoSaved(true);
-        setTimeout(() => setAutoSaved(false), 2000);
+      setSaving(true);
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`http://localhost:8001/update_shared_note/${selectedNote.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            title: noteTitle,
+            content: noteContent,
+          }),
+        });
 
-        setNotes((prev) =>
-          prev.map((n) =>
-            n.id === selectedNote.id ? { ...n, title: noteTitle, content: noteContent } : n
-          )
-        );
-      } else if (res.status === 400) {
+        if (res.ok) {
+          setSaving(false);
+          setAutoSaved(true);
+          setTimeout(() => setAutoSaved(false), 2000);
+        } else {
+          throw new Error(`Save failed: ${res.status}`);
+        }
+      } catch (error) {
         setSaving(false);
-        
-        setNotes(prev => prev.filter(n => n.id !== selectedNote.id));
-        setSelectedNote(null);
-        setNoteTitle("");
-        setNoteContent("");
-        
-        showPopup("Note Deleted", "This note has been moved to trash");
-      } else {
-        throw new Error(`Save failed: ${res.status}`);
+        console.error('Save error:', error);
       }
-    } catch (error) {
-      setSaving(false);
-      console.error("Save error:", error);
+    } else {
+      // Normal save logic for own notes
+      const noteStillExists = notes.find(n => n.id === selectedNote.id);
+      if (!noteStillExists) return;
+      
+      if (selectedNote.is_deleted || noteStillExists.is_deleted) return;
+      
+      setSaving(true);
+      
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("http://localhost:8001/update_note", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            note_id: selectedNote.id,
+            title: noteTitle,
+            content: noteContent,
+          }),
+        });
+        
+        if (res.ok) {
+          setSaving(false);
+          setAutoSaved(true);
+          setTimeout(() => setAutoSaved(false), 2000);
+
+          setNotes((prev) =>
+            prev.map((n) =>
+              n.id === selectedNote.id ? { ...n, title: noteTitle, content: noteContent } : n
+            )
+          );
+        } else if (res.status === 400) {
+          setSaving(false);
+          
+          setNotes(prev => prev.filter(n => n.id !== selectedNote.id));
+          setSelectedNote(null);
+          setNoteTitle("");
+          setNoteContent("");
+          
+          showPopup("Note Deleted", "This note has been moved to trash");
+        } else {
+          throw new Error(`Save failed: ${res.status}`);
+        }
+      } catch (error) {
+        setSaving(false);
+        console.error("Save error:", error);
+      }
     }
-  }, [selectedNote, noteTitle, noteContent, notes]);
+  }, [selectedNote, noteTitle, noteContent, notes, isSharedContent, canEdit]);
 
   useEffect(() => {
     if (saveTimeout.current) {
@@ -872,9 +979,9 @@ const NotesRedesign = () => {
       saveTimeout.current = null;
     }
     
-    if (selectedNote && !selectedNote.is_deleted) {
+    if (selectedNote && (isSharedContent ? canEdit : !selectedNote.is_deleted)) {
       saveTimeout.current = setTimeout(() => {
-        if (selectedNote && !selectedNote.is_deleted) {
+        if (selectedNote && (isSharedContent ? canEdit : !selectedNote.is_deleted)) {
           autoSave();
         }
       }, 1500);
@@ -886,7 +993,7 @@ const NotesRedesign = () => {
         saveTimeout.current = null;
       }
     };
-  }, [noteContent, noteTitle, selectedNote, autoSave]);
+  }, [noteContent, noteTitle, selectedNote, autoSave, isSharedContent, canEdit]);
 
   useEffect(() => {
     const handleKey = (e) => {
@@ -900,6 +1007,8 @@ const NotesRedesign = () => {
   }, [autoSave]);
 
   const handleEditorChange = (content, delta, source, editor) => {
+    if (!canEdit) return;
+    
     setNoteContent(content);
 
     if (source === "user" && delta && delta.ops) {
@@ -927,7 +1036,7 @@ const NotesRedesign = () => {
   };
 
   const generateAIContent = async () => {
-    if (!aiPrompt.trim()) {
+    if (!aiPrompt.trim() || !canEdit) {
       showPopup("Empty Prompt", "Please enter a prompt for AI generation");
       return;
     }
@@ -983,6 +1092,8 @@ const NotesRedesign = () => {
   };
 
   const quickAIAction = async (actionType) => {
+    if (!canEdit) return;
+    
     setGeneratingAI(true);
     try {
       const token = localStorage.getItem("token");
@@ -1068,6 +1179,8 @@ const NotesRedesign = () => {
   };
 
   const startVoiceRecording = async () => {
+    if (!canEdit) return;
+    
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
@@ -1196,6 +1309,8 @@ const NotesRedesign = () => {
   };
 
   const aiWritingAssist = async () => {
+    if (!canEdit) return;
+    
     const quill = quillRef.current?.getEditor();
     if (!quill) return;
 
@@ -1611,7 +1726,7 @@ const NotesRedesign = () => {
 
   return (
     <div className="notes-redesign">
-      <div className={`notes-sidebar-new ${sidebarOpen ? "open" : "closed"}`}>
+      <div className={`notes-sidebar-new ${sidebarOpen && !isSharedContent ? "open" : "closed"}`}>
         <div className="sidebar-header-new">
           <div className="sidebar-title">
             <h2>My Notes</h2>
@@ -1805,7 +1920,7 @@ const NotesRedesign = () => {
                 key={n.id}
                 className={`note-item-new ${selectedNote?.id === n.id ? "active" : ""}`}
                 onClick={() => selectNote(n)}
-                draggable
+                draggable={!isSharedContent}
                 onDragStart={(e) => handleDragStart(e, n)}
                 onDragEnd={handleDragEnd}
               >
@@ -1836,15 +1951,15 @@ const NotesRedesign = () => {
                       <Archive size={14} />
                     </button>
                     <button
-  className="note-action-btn delete"
-  onClick={(e) => {
-    e.stopPropagation();
-    moveToTrash(n.id);
-  }}
-  title="Move to trash"
->
-  <Trash2 size={14} />
-</button>
+                      className="note-action-btn delete"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        moveToTrash(n.id);
+                      }}
+                      title="Move to trash"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </div>
                 <div className="note-snippet">
@@ -1879,15 +1994,41 @@ const NotesRedesign = () => {
       <div className="editor-area-new">
         <div className="top-nav-new">
           <div className="nav-left">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="toggle-sidebar"
-              title="Toggle sidebar"
-            >
-              {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
-            </button>
-            <div className="nav-title">Brainwave Notes</div>
+            {isSharedContent ? (
+              <button
+                onClick={() => navigate('/social')}
+                className="toggle-sidebar"
+                title="Back to Social"
+              >
+                <ArrowLeft size={18} />
+              </button>
+            ) : (
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="toggle-sidebar"
+                title="Toggle sidebar"
+              >
+                {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
+              </button>
+            )}
+            <div className="nav-title">
+              Brainwave Notes
+              {isSharedContent && <span className="shared-badge">SHARED</span>}
+            </div>
           </div>
+
+          {isSharedContent && sharedNoteData && (
+            <div className="nav-center">
+              <div className="shared-note-info">
+                <span className="shared-by">
+                  Shared by: {sharedNoteData.owner?.username}
+                </span>
+                <span className={`permission-badge ${sharedNoteData.permission}`}>
+                  {sharedNoteData.permission === 'view' ? 'View Only' : 'Can Edit'}
+                </span>
+              </div>
+            </div>
+          )}
 
           <div className="nav-center">
             {selectedNote && (
@@ -1896,6 +2037,7 @@ const NotesRedesign = () => {
                   className={`tool-btn ${viewMode === "edit" ? "active" : ""}`}
                   onClick={() => setViewMode("edit")}
                   title="Edit mode"
+                  disabled={isSharedContent && !canEdit}
                 >
                   <Edit3 size={16} /> Edit
                 </button>
@@ -1918,6 +2060,7 @@ const NotesRedesign = () => {
                   className="tool-btn"
                   onClick={() => setShowAIAssistant(true)}
                   title="AI Writing Assistant"
+                  disabled={isSharedContent && !canEdit}
                 >
                   <Sparkles size={16} /> AI Assist
                 </button>
@@ -1938,6 +2081,14 @@ const NotesRedesign = () => {
           </div>
         </div>
 
+        {/* Conditionally disable editing for view-only shared notes */}
+        {viewMode === "edit" && isSharedContent && !canEdit && (
+          <div className="view-only-overlay">
+            <Eye size={24} />
+            <p>This is a shared note with view-only access</p>
+          </div>
+        )}
+
         {selectedNote ? (
           <div className="editor-content">
             <div className={`title-section ${titleSectionCollapsed ? 'collapsed' : ''}`}>
@@ -1950,6 +2101,7 @@ const NotesRedesign = () => {
                     onChange={(e) => setNoteTitle(e.target.value)}
                     placeholder="Untitled Note"
                     style={{ fontFamily: customFont }}
+                    disabled={isSharedContent && !canEdit}
                   />
                   <div className="title-meta">
                     <span className="last-edited">
@@ -1968,32 +2120,33 @@ const NotesRedesign = () => {
             </div>
 
             {viewMode === "edit" ? (
-  <div className="quill-container">
-    <ReactQuill
-      ref={quillRef}
-      theme="snow"
-      value={noteContent}
-      onChange={handleEditorChange}
-      modules={modules}
-      formats={formats}
-      placeholder="Start typing your notes here... (Press '/' for AI assistance)"
-      className="quill-editor-enhanced"
-      style={{ fontFamily: customFont }}
-    />
-  </div>
-) : (
-  <div className="quill-container">
-    <ReactQuill
-      theme="snow"
-      value={noteContent}
-      readOnly={true}
-      modules={modules}
-      formats={formats}
-      className="quill-editor-enhanced"
-      style={{ fontFamily: customFont }}
-    />
-  </div>
-)}
+              <div className="quill-container">
+                <ReactQuill
+                  ref={quillRef}
+                  theme="snow"
+                  value={noteContent}
+                  onChange={handleEditorChange}
+                  modules={modules}
+                  formats={formats}
+                  placeholder={isSharedContent && !canEdit ? "You have view-only access to this shared note" : "Start typing your notes here... (Press '/' for AI assistance)"}
+                  className="quill-editor-enhanced"
+                  style={{ fontFamily: customFont }}
+                  readOnly={isSharedContent && !canEdit}
+                />
+              </div>
+            ) : (
+              <div className="quill-container">
+                <ReactQuill
+                  theme="snow"
+                  value={noteContent}
+                  readOnly={true}
+                  modules={modules}
+                  formats={formats}
+                  className="quill-editor-enhanced"
+                  style={{ fontFamily: customFont }}
+                />
+              </div>
+            )}
 
             <div className="note-footer">
               <div className="footer-left">
@@ -2467,7 +2620,6 @@ const NotesRedesign = () => {
           </div>
         </>
       )}
-
 
       <CustomPopup
         isOpen={popup.isOpen}

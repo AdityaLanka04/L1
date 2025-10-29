@@ -1261,3 +1261,54 @@ body {
   background: var(--glow);
   color: var(--text-primary);
 }
+
+/* Shared mode styles for AI Chat */
+.shared-badge {
+  background: var(--accent);
+  color: var(--bg-top);
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-left: 12px;
+  border-radius: 0;
+}
+
+.shared-chat-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: 20px;
+  font-size: 12px;
+}
+
+.shared-by {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.view-only-badge {
+  background: var(--warning);
+  color: var(--bg-top);
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  border-radius: 0;
+}
+
+.shared-view-only-notice {
+  background: color-mix(in srgb, var(--warning) 15%, var(--panel));
+  border: 1px solid var(--warning);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--warning);
+  font-weight: 600;
+  font-size: 14px;
+  margin: 0 24px;
+  border-radius: 0;
+}

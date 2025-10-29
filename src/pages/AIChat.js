@@ -3,10 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import './AIChat.css';
 
-const AIChat = () => {
+const AIChat = ({ sharedMode = false }) => {
   const { chatId } = useParams();
   const navigate = useNavigate();
   const { selectedTheme } = useTheme();
+  const [sharedChatData, setSharedChatData] = useState(null);
+  const [isSharedContent, setIsSharedContent] = useState(sharedMode);
   
   const [userName, setUserName] = useState('');
   const [userProfile, setUserProfile] = useState(null);
@@ -56,6 +58,36 @@ const AIChat = () => {
     "{name}, let's turn curiosity into understanding",
     "Hello {name}! What fascinating topic shall we discuss?"
   ];
+
+  const loadSharedChat = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `http://localhost:8001/shared/chat/${chatId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setSharedChatData(data);
+        setIsSharedContent(true);
+        
+        // Set up the chat UI with shared data
+        setMessages(data.messages || []);
+        // You might want to set a special title or indicator for shared chats
+      } else {
+        throw new Error('Failed to load shared chat');
+      }
+    } catch (error) {
+      console.error('Error loading shared chat:', error);
+      navigate('/social');
+    }
+  };
 
   const getRandomGreeting = (name) => {
     const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
