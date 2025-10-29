@@ -12,7 +12,7 @@ import QuizBattleSession from './pages/QuizBattleSession';
 import Challenges from './pages/Challenges';
 import ChallengeSession from './pages/ChallengeSession';
 import KnowledgeRoadmap from './pages/KnowledgeRoadmap';
-import QuestionBank from './pages/QuestionBank';
+import Questionbankdashboard from './pages/Questionbankdashboard';
 import SlideExplorer from './pages/SlideExplorer';
 import Statistics from './pages/Statistics';
 import Flashcards from './pages/Flashcards';
@@ -22,6 +22,7 @@ import Register from './pages/Register';
 import Profile from './pages/profile';
 import ProfileQuiz from './pages/ProfileQuiz';
 import { ThemeProvider } from './contexts/ThemeContext';
+
 
 function App() {
   return (
@@ -44,7 +45,7 @@ function App() {
           <Route path="/challenges" element={<Challenges />} />
           <Route path="/challenge/:challengeId" element={<ChallengeSession />} />
           <Route path="/knowledge-roadmap" element={<KnowledgeRoadmap />} />
-          <Route path="/question-bank" element={<QuestionBank />} />
+          <Route path="/question-bank" element={<Questionbankdashboard />} />
           <Route path="/slide-explorer" element={<SlideExplorer />} />
           <Route path="/statistics" element={<Statistics />} />
           <Route path="/flashcards" element={<Flashcards />} />

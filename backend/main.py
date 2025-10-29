@@ -39,7 +39,7 @@ from ai_personality import PersonalityEngine, AdaptiveLearningModel
 from neural_adaptation import get_rl_agent, ConversationContextAnalyzer
 import advanced_prompting
 from flashcard_api import register_flashcard_api 
-from question_bank import register_question_bank_api
+from question_bank_enhanced import register_question_bank_api
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -72,8 +72,9 @@ logger.info(f"🔑 GROQ_API_KEY loaded: {GROQ_API_KEY[:10]}..." if GROQ_API_KEY 
 flashcard_api = register_flashcard_api(app, groq_client, GROQ_MODEL)  # ← ADD THIS LINE
 logger.info("✅ Flashcard API integrated successfully")
 
+
 register_question_bank_api(app, groq_client, GROQ_MODEL, get_db)
-logger.info("Question Bank API with AI agents registered successfully")
+logger.info("Enhanced Question Bank API with sophisticated AI agents registered successfully")
 
 class Token(BaseModel):
     access_token: str
