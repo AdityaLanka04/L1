@@ -536,7 +536,7 @@ def get_daily_goal_progress(user_id: str = Query(...), db: Session = Depends(get
         return {"questions_today": 0, "daily_goal": 20, "percentage": 0, "streak": 0}
 
 
-@app.post("/register")
+@app.post("api/register")
 async def register(
     first_name: str = Form(...),
     last_name: str = Form(...),
@@ -584,7 +584,7 @@ async def register(
     logger.info(f"User {username} registered successfully")
     return {"message": "User registered successfully"}
 
-@app.post("/token", response_model=Token)
+@app.post("api/token", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
@@ -593,7 +593,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     access_token = create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
-@app.post("/token_form")
+@app.post("api/token_form")
 async def login_form(username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
     user = authenticate_user(db, username, password)
     if not user:
@@ -602,7 +602,7 @@ async def login_form(username: str = Form(...), password: str = Form(...), db: S
     access_token = create_access_token(data={"sub": user.username, "user_id": user.id})
     return {"access_token": access_token, "token_type": "bearer"}
 
-@app.post("/google-auth")
+@app.post("api/google-auth")
 def google_auth(auth_data: GoogleAuth, db: Session = Depends(get_db)):
     try:
         try:
@@ -653,7 +653,7 @@ def google_auth(auth_data: GoogleAuth, db: Session = Depends(get_db)):
         logger.error(f"Google auth error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/me")
+@app.get("api/me")
 async def get_current_user_info(current_user: models.User = Depends(get_current_user)):
     return {
         "id": current_user.id,
@@ -742,7 +742,7 @@ def get_user_learning_context(db, user_id: int) -> Dict[str, Any]:
         return {}
 
 
-@app.post("/ask/")
+@app.post("api/ask/")
 async def ask_ai_enhanced(
     user_id: str = Form(...),
     question: str = Form(...),
@@ -970,7 +970,7 @@ async def ask_ai_enhanced(
             "ai_provider": "Groq"
         }
     
-@app.post("/create_chat_session")
+@app.post("api/create_chat_session")
 def create_chat_session(
     session_data: ChatSessionCreate,
     db: Session = Depends(get_db)
@@ -1005,7 +1005,7 @@ def create_chat_session(
         logger.error(f"Error creating chat session: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to create chat session: {str(e)}")
 
-@app.get("/get_user_achievements")
+@app.get("api/get_user_achievements")
 def get_user_achievements(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -1047,7 +1047,7 @@ def get_user_achievements(user_id: str = Query(...), db: Session = Depends(get_d
             "total_points": 0
         }
 
-@app.get("/get_chat_sessions")
+@app.get("api/get_chat_sessions")
 def get_chat_sessions(user_id: str = Query(...), db: Session = Depends(get_db)):
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
     if not user:
@@ -1069,7 +1069,7 @@ def get_chat_sessions(user_id: str = Query(...), db: Session = Depends(get_db)):
         ]
     }
 
-@app.get("/get_chat_messages")
+@app.get("api/get_chat_messages")
 def get_chat_messages(chat_id: int = Query(...), db: Session = Depends(get_db)):
     try:
         logger.info(f"📥 Loading messages for chat_id: {chat_id}")
@@ -1108,7 +1108,7 @@ def get_chat_messages(chat_id: int = Query(...), db: Session = Depends(get_db)):
         logger.error(f"Error in get_chat_messages: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
     
-@app.post("/submit_response_feedback")
+@app.post("api/submit_response_feedback")
 async def submit_response_feedback(
     user_id: str = Form(...),
     rating: int = Form(...),
@@ -1145,7 +1145,7 @@ async def submit_response_feedback(
     except Exception as e:
         logger.error(f"Error submitting feedback: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-@app.post("/submit_advanced_feedback")
+@app.post("api/submit_advanced_feedback")
 async def submit_advanced_feedback(
     user_id: str = Form(...),
     rating: int = Form(...),
@@ -1234,7 +1234,7 @@ async def submit_advanced_feedback(
         logger.error(f"Error in advanced feedback: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/get_chat_history/{session_id}")
+@app.get("api/get_chat_history/{session_id}")
 async def get_chat_history(session_id: str, db: Session = Depends(get_db)):
     try:
         session_id_int = int(session_id)
@@ -1257,7 +1257,7 @@ async def get_chat_history(session_id: str, db: Session = Depends(get_db)):
         ]
     }
 
-@app.post("/save_chat_message")
+@app.post("api/save_chat_message")
 def save_chat_message(message_data: ChatMessageSave, db: Session = Depends(get_db)):
     chat_session = db.query(models.ChatSession).filter(
         models.ChatSession.id == message_data.chat_id
@@ -1286,7 +1286,7 @@ def save_chat_message(message_data: ChatMessageSave, db: Session = Depends(get_d
     db.commit()
     return {"status": "success", "message": "Message saved successfully"}
 
-@app.delete("/delete_chat_session/{session_id}")
+@app.delete("api/delete_chat_session/{session_id}")
 def delete_chat_session(
     session_id: int,
     db: Session = Depends(get_db),
@@ -1336,7 +1336,7 @@ def clean_conversational_elements(text: str) -> str:
 
 # ==================== NOTES ENDPOINTS ====================
 
-@app.get("/get_notes")
+@app.get("api/get_notes")
 def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
     """Get all notes for a user (excluding deleted)"""
     try:
@@ -1500,7 +1500,7 @@ async def transcribe_audio_test(
         logger.error(f"Test endpoint error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/fix_all_notes")
+@app.post("api/fix_all_notes")
 def fix_all_notes(db: Session = Depends(get_db)):
     """Emergency fix - set all NULL is_deleted to False and ensure data integrity"""
     try:
@@ -1566,7 +1566,7 @@ def fix_all_notes(db: Session = Depends(get_db)):
         )
   
 
-@app.get("/get_folders")
+@app.get("api/get_folders")
 def get_folders(user_id: str = Query(...), db: Session = Depends(get_db)):
     """Get all folders for a user with note counts"""
     try:
