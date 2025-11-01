@@ -478,14 +478,13 @@ Provide clear, educational responses tailored to the student's profile."""
         logger.error(f"Groq API error: {e}")
         return f"I apologize, but I encountered an error processing your request. Please try again."
 
-@app.get("/")
-async def root():
-    return {
-        "message": "Brainwave Backend API v3.0.0",
-        "status": "running",
-        "ai_provider": "Groq",
-        "api_version": "3.0.0"
-    }
+#@app.get("/")
+#async def root():
+ #   return {
+ #       "message": "Brainwave Backend API v3.0.0",
+  ##     "ai_provider": "Groq",
+   #     "api_version": "3.0.0"
+   # }
 
 @app.get("/health")
 def health_check():
