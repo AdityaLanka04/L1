@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Clock, Target, Trophy, AlertCircle, CheckCircle, XCircle, Loader } from 'lucide-react';
 import './QuizBattleSession.css';
-
+import { API_URL } from '../config';
 const QuizBattleSession = () => {
   const navigate = useNavigate();
   const { battleId } = useParams();

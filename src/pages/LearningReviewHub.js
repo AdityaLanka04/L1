@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Map, HelpCircle, BookOpen, TrendingUp } from 'lucide-react';
 import './LearningReviewHub.css';
-
+import { API_URL } from '../config';
 const LearningReviewHub = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
@@ -14,7 +14,7 @@ const LearningReviewHub = () => {
 
   const fetchUserProfile = async () => {
     try {
-      const response = await fetch('${API_URL}/me', {
+      const response = await fetch(`${API_URL}/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {

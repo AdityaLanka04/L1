@@ -15,7 +15,7 @@ import {
   List, ListOrdered, Link2, Image, Code,
   ArrowLeft
 } from 'lucide-react';
-
+import { API_URL } from '../config';
 // Remove problematic imports and register them conditionally
 let QuillTableUI;
 try {
@@ -163,6 +163,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [popup, setPopup] = useState({ isOpen: false, title: "", message: "" });
   const showPopup = (title, message) => setPopup({ isOpen: true, title, message });
   const closePopup = () => setPopup({ isOpen: false, title: "", message: "" });
+  
 
   // Load shared note function
   const loadSharedNote = async () => {

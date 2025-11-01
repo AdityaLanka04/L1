@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageSquare, FileText, Users, Clock, Eye, Edit3, Trash2, Search, Filter, Calendar } from 'lucide-react';
 import './SharedContent.css';
-
+import { API_URL } from '../config';
 const SharedContent = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');

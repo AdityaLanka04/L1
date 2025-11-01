@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader, TrendingUp, BookOpen, Target, Clock } from 'lucide-react';
 import './Statistics.css';
-
+import { API_URL } from '../config';
 const Statistics = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');

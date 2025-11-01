@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trophy, Clock, Target, TrendingUp, Medal, Crown, Award } from 'lucide-react';
 import './Leaderboards.css';
-
+import { API_URL } from '../config';
 const Leaderboards = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');

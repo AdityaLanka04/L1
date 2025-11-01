@@ -25,6 +25,7 @@ import { rgbaFromHex } from '../utils/ThemeManager';
 import ThemeSwitcher from '../components/ThemeSwitcher';
 import './Dashboard.css';
 import './HelpTour.css';
+import { API_URL } from '../config';
 
 /* Prevent CSS cascade from other pages */
 if (document.querySelector('link[href*="Flashcards.css"]')) {

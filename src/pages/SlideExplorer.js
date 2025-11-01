@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, Loader, FileText, Trash2, Eye, Sparkles } from 'lucide-react';
 import './SlideExplorer.css';
-
+import { API_URL } from '../config';
 const SlideExplorer = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');

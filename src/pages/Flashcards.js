@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CustomPopup from './CustomPopup'; 
 import './Flashcards.css';
+import { API_URL } from '../config';
 
 const Flashcards = () => {
   const [userName, setUserName] = useState('');

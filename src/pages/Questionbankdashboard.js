@@ -6,7 +6,7 @@ import {
   CheckCircle, XCircle, Loader, Clock, FileUp, BookOpen, PieChart
 } from 'lucide-react';
 import './Questionbankdashboard.css';
-
+import { API_URL } from '../config';
 const QuestionBankDashboard = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');

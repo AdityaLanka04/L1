@@ -12,7 +12,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { Plus, Loader, MapPin, Book, Sparkles, Trash2 } from 'lucide-react';
 import './KnowledgeRoadmap.css';
-
+import { API_URL } from '../config';
 const CustomNode = ({ data }) => {
   return (
     <div className={`custom-kr-node ${data.isExplored ? 'kr-explored' : ''} ${data.expansionStatus === 'expanded' ? 'kr-expanded' : ''}`}>

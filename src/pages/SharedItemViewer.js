@@ -4,7 +4,7 @@ import { ArrowLeft, Eye, Edit3, User, Clock, MessageSquare, FileText, Lock } fro
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import './SharedItemViewer.css';
-
+import { API_URL } from '../config';
 const SharedItemViewer = () => {
   const navigate = useNavigate();
   const { contentType, contentId } = useParams();

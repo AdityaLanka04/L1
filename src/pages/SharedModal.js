@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search, Users, Check, Copy, Link2, Mail, AlertCircle, UserPlus, Eye, Edit3, MessageSquare } from 'lucide-react';
 import './SharedModal.css';
-
+import { API_URL } from '../config';
 const ShareModal = ({ isOpen, onClose, itemType, itemId, itemTitle, onShare }) => {
   const token = localStorage.getItem('token');
   const [friends, setFriends] = useState([]);
@@ -24,7 +24,7 @@ const ShareModal = ({ isOpen, onClose, itemType, itemId, itemTitle, onShare }) =
 
   const fetchFriends = async () => {
     try {
-      const response = await fetch('${API_URL}/friends', {
+      const response = await fetch(`${API_URL}/friends`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -60,7 +60,7 @@ const ShareModal = ({ isOpen, onClose, itemType, itemId, itemTitle, onShare }) =
     setError('');
 
     try {
-      const response = await fetch('${API_URL}/share_content', {
+      const response = await fetch(`${API_URL}/share_content`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

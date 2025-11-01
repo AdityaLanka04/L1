@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Target, Clock, Users, TrendingUp, Zap, Trophy, Plus, X } from 'lucide-react';
 import './Challenges.css';
+import { API_URL } from '../config';
 
 const Challenges = () => {
   const navigate = useNavigate();

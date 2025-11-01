@@ -4,6 +4,7 @@ import axios from 'axios';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase/config';
 import './Login.css';
+import { API_URL } from '../config';
 
 function Login() {
   const [username, setUsername] = useState('');

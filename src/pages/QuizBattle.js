@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Swords, Users, Clock, Target, Trophy, X, Check } from 'lucide-react';
 import './QuizBattle.css';
-
+import { API_URL } from '../config';
 const QuizBattle = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');

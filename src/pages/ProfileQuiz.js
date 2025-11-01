@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ProfileQuiz.css';
-
+import { API_URL } from '../config';
 const ProfileQuiz = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState('welcome');
@@ -235,7 +235,7 @@ const completeQuiz = async (scores) => {
     try {
       const token = localStorage.getItem('token');
       
-      await fetch('${API_URL}/save_complete_profile', {
+      await fetch(`${API_URL}/save_complete_profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

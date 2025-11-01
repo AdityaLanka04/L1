@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, UserMinus, FileText, Eye, Edit3, Trash2, Clock, Plus } from 'lucide-react';
 import ShareModal from './SharedModal';
 import './Social.css';
-
+import { API_URL } from '../config';
 const Social = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');

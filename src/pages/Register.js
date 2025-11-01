@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Register.css';
-
+import { API_URL } from '../config';
 const Register = () => {
   const [formData, setFormData] = useState({
     username: '',
@@ -57,7 +57,7 @@ const Register = () => {
       }
 
       // Fixed: Correct port (8001) and removed Content-Type header for FormData
-      const res = await fetch('${API_URL}/register', {
+      const res = await fetch(`${API_URL}/register`, {
         method: 'POST',
         body: registrationFormData,  // FormData, not JSON
       });

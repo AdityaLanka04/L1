@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import './AIChat.css';
+import { API_URL } from '../config';
 
 const AIChat = ({ sharedMode = false }) => {
   const { chatId } = useParams();

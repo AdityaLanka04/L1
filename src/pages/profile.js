@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, BookOpen, Target, Brain, Award, TrendingUp } from 'lucide-react';
 import './profile.css';
-
+import { API_URL } from '../config';
 const Profile = () => {
   const [userName, setUserName] = useState('');
   const [profileData, setProfileData] = useState({
