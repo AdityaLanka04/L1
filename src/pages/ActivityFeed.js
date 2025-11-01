@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trophy, Target, Flame, TrendingUp, Heart, Award, Zap, Star } from 'lucide-react';
 import './ActivityFeed.css';
+import { API_URL } from '../config';
 
 const ActivityFeed = () => {
   const navigate = useNavigate();

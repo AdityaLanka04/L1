@@ -5,13 +5,8 @@
  * Handles API URL based on environment
  */
 
-const getApiUrl = () => {
-  // In production, use same domain (empty string)
-  // In development, use localhost from environment variable
-  return process.env.REACT_APP_API_URL || '';
-};
-
-export const API_URL = getApiUrl();
+// Remove the getApiUrl function - not needed
+export const API_URL = process.env.REACT_APP_API_URL || '';
 
 /**
  * Helper function for making authenticated API requests
