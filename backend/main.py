@@ -41,6 +41,11 @@ import advanced_prompting
 from flashcard_api import register_flashcard_api 
 from question_bank_enhanced import register_question_bank_api
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
+from pathlib import Path
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -7385,7 +7390,41 @@ def update_shared_note(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+# ==================== SERVE REACT APP ====================
 
+# Serve static files from React build
+build_dir = Path(__file__).parent.parent / "build"
+
+if build_dir.exists():
+    logger.info(f"✅ Serving React app from {build_dir}")
+    
+    # Serve static assets (JS, CSS, images)
+    app.mount("/static", StaticFiles(directory=build_dir / "static"), name="static")
+    
+    # Serve React app for all other routes (catch-all)
+    @app.get("/{full_path:path}")
+    async def serve_react_app(full_path: str):
+        """Serve React app for all non-API routes"""
+        
+        # Don't interfere with API routes
+        if full_path.startswith(("api/", "docs", "openapi.json", "health", "me", "register", "token", "google-auth", "ask", "create_chat_session", "get_chat_sessions", "get_chat_messages", "get_notes", "create_note", "update_note", "delete_note", "get_folders", "create_folder", "get_user_roadmaps")):
+            return {"error": "API endpoint not found"}
+        
+        # Try to serve specific file if it exists
+        file_path = build_dir / full_path
+        if file_path.is_file():
+            return FileResponse(file_path)
+        
+        # Otherwise, serve index.html (for React Router)
+        index_file = build_dir / "index.html"
+        if index_file.exists():
+            return FileResponse(index_file)
+        
+        return {"error": "React app not found"}
+else:
+    logger.warning(f"⚠️ React build directory not found at {build_dir}")
+
+# ==================== END SERVE REACT APP ====================
 
 if __name__ == "__main__":
     import uvicorn
