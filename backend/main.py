@@ -7392,6 +7392,8 @@ def update_shared_note(
 # ==================== SERVE REACT APP ====================
 
 # Serve static files from React build
+# ==================== SERVE REACT APP ====================
+
 build_dir = Path(__file__).parent.parent / "build"
 
 if build_dir.exists():
@@ -7400,29 +7402,22 @@ if build_dir.exists():
     # Serve static assets (JS, CSS, images)
     app.mount("/static", StaticFiles(directory=build_dir / "static"), name="static")
     
-    # Serve React app for all other routes (catch-all)
+    # Serve React app for all other routes (MUST BE LAST!)
     @app.get("/{full_path:path}")
     async def serve_react_app(full_path: str):
         """Serve React app for all non-API routes"""
         
-        # Don't interfere with API routes
-        if full_path.startswith(("api/", "docs", "openapi.json", "health", "me", "register", "token", "google-auth", "ask", "create_chat_session", "get_chat_sessions", "get_chat_messages", "get_notes", "create_note", "update_note", "delete_note", "get_folders", "create_folder", "get_user_roadmaps")):
-            return {"error": "API endpoint not found"}
-        
-        # Try to serve specific file if it exists
+        # Try to serve specific file if exists
         file_path = build_dir / full_path
         if file_path.is_file():
             return FileResponse(file_path)
         
-        # Otherwise, serve index.html (for React Router)
-        index_file = build_dir / "index.html"
-        if index_file.exists():
-            return FileResponse(index_file)
-        
-        return {"error": "React app not found"}
+        # Otherwise, serve index.html (React Router handles routing)
+        return FileResponse(build_dir / "index.html")
 else:
     logger.warning(f"⚠️ React build directory not found at {build_dir}")
 
+# ==================== END SERVE REACT APP ====================
 # ==================== END SERVE REACT APP ====================
 
 if __name__ == "__main__":
