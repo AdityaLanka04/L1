@@ -15,7 +15,7 @@ export const uploadQuizData = async (userId, quizData) => {
   formData.append("file", file);
   formData.append("user_id", userId);
 
-  const response = await fetch("http://localhost:8000/upload_csv/", {
+  const response = await fetch("${API_URL}/upload_csv/", {
     method: "POST",
     body: formData,
   });

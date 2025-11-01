@@ -23,7 +23,7 @@ const SlideExplorer = () => {
   const fetchUploadedSlides = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8001/get_uploaded_slides?user_id=${userId}`, {
+      const response = await fetch(`${API_URL}/get_uploaded_slides?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -86,7 +86,7 @@ const SlideExplorer = () => {
         formData.append('files', file);
       });
 
-      const response = await fetch('http://localhost:8001/upload_slides', {
+      const response = await fetch('${API_URL}/upload_slides', {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`
@@ -152,7 +152,7 @@ const SlideExplorer = () => {
     if (!window.confirm('Delete this slide presentation?')) return;
 
     try {
-      const response = await fetch(`http://localhost:8001/delete_slide/${slideId}`, {
+      const response = await fetch(`${API_URL}/delete_slide/${slideId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

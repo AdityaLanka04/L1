@@ -143,7 +143,7 @@ const KnowledgeRoadmap = () => {
   const fetchRoadmaps = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8001/get_user_roadmaps?user_id=${userId}`, {
+      const response = await fetch(`${API_URL}/get_user_roadmaps?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -167,7 +167,7 @@ const KnowledgeRoadmap = () => {
 
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8001/create_knowledge_roadmap', {
+      const response = await fetch('${API_URL}/create_knowledge_roadmap', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -206,7 +206,7 @@ const KnowledgeRoadmap = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:8001/delete_roadmap/${roadmapId}`, {
+      const response = await fetch(`${API_URL}/delete_roadmap/${roadmapId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -251,7 +251,7 @@ const KnowledgeRoadmap = () => {
     });
     
     try {
-      const response = await fetch(`http://localhost:8001/expand_knowledge_node/${nodeId}`, {
+      const response = await fetch(`${API_URL}/expand_knowledge_node/${nodeId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -267,7 +267,7 @@ const KnowledgeRoadmap = () => {
           const childrenExist = edges.some(e => String(e.source) === String(nodeId));
           
           if (!childrenExist && currentRoadmap) {
-            const roadmapResponse = await fetch(`http://localhost:8001/get_knowledge_roadmap/${currentRoadmap.id}`, {
+            const roadmapResponse = await fetch(`${API_URL}/get_knowledge_roadmap/${currentRoadmap.id}`, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
             
@@ -624,7 +624,7 @@ const KnowledgeRoadmap = () => {
     );
     
     try {
-      const response = await fetch(`http://localhost:8001/explore_node/${nodeId}`, {
+      const response = await fetch(`${API_URL}/explore_node/${nodeId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -701,7 +701,7 @@ const KnowledgeRoadmap = () => {
       // Load saved UI state
       const savedState = loadRoadmapState(roadmapId);
       
-      const response = await fetch(`http://localhost:8001/get_knowledge_roadmap/${roadmapId}`, {
+      const response = await fetch(`${API_URL}/get_knowledge_roadmap/${roadmapId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 

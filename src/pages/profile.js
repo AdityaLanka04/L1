@@ -145,7 +145,7 @@ const Profile = () => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/get_comprehensive_profile?user_id=${username}`, {
+      const response = await fetch(`${API_URL}/get_comprehensive_profile?user_id=${username}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -243,7 +243,7 @@ const Profile = () => {
         learningPace: profileData.learningPace || 'moderate'
       };
       
-      const response = await fetch('http://localhost:8001/update_comprehensive_profile', {
+      const response = await fetch('${API_URL}/update_comprehensive_profile', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

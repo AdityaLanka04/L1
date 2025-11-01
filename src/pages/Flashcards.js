@@ -89,7 +89,7 @@ const Flashcards = () => {
       formData.append('max_words', '4');
       formData.append('format', 'title');
       
-      const response = await fetch('http://localhost:8001/generate_chat_summary', {
+      const response = await fetch('${API_URL}/generate_chat_summary', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -110,7 +110,7 @@ const Flashcards = () => {
     if (!userName) return;
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/get_chat_sessions?user_id=${userName}`, {
+      const response = await fetch(`${API_URL}/get_chat_sessions?user_id=${userName}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -127,7 +127,7 @@ const Flashcards = () => {
     setLoadingHistory(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/get_flashcard_history?user_id=${userName}&limit=20`, {
+      const response = await fetch(`${API_URL}/get_flashcard_history?user_id=${userName}&limit=20`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -144,7 +144,7 @@ const Flashcards = () => {
     if (!userName) return;
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/get_flashcard_statistics?user_id=${userName}`, {
+      const response = await fetch(`${API_URL}/get_flashcard_statistics?user_id=${userName}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -189,7 +189,7 @@ const Flashcards = () => {
       const token = localStorage.getItem('token');
       const allMessages = [];
       for (const sessionId of selectedSessions) {
-        const response = await fetch(`http://localhost:8001/get_chat_history/${sessionId}`, {
+        const response = await fetch(`${API_URL}/get_chat_history/${sessionId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
@@ -241,14 +241,14 @@ const Flashcards = () => {
         }
       }
 
-      let response = await fetch('http://localhost:8001/generate_flashcards_advanced/', {
+      let response = await fetch('${API_URL}/generate_flashcards_advanced/', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
       });
 
       if (!response.ok && response.status === 404) {
-        response = await fetch('http://localhost:8001/generate_flashcards/', {
+        response = await fetch('${API_URL}/generate_flashcards/', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
           body: formData
@@ -329,7 +329,7 @@ const Flashcards = () => {
   const loadFlashcardSet = async (setId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/get_flashcards_in_set?set_id=${setId}`, {
+      const response = await fetch(`${API_URL}/get_flashcards_in_set?set_id=${setId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -356,7 +356,7 @@ const Flashcards = () => {
     if (!window.confirm('Are you sure you want to delete this flashcard set?')) return;
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/delete_flashcard_set/${setId}`, {
+      const response = await fetch(`${API_URL}/delete_flashcard_set/${setId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -392,7 +392,7 @@ const Flashcards = () => {
     }
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8001/update_flashcard_set', {
+      const response = await fetch('${API_URL}/update_flashcard_set', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

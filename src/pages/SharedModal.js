@@ -24,7 +24,7 @@ const ShareModal = ({ isOpen, onClose, itemType, itemId, itemTitle, onShare }) =
 
   const fetchFriends = async () => {
     try {
-      const response = await fetch('http://localhost:8001/friends', {
+      const response = await fetch('${API_URL}/friends', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -60,7 +60,7 @@ const ShareModal = ({ isOpen, onClose, itemType, itemId, itemTitle, onShare }) =
     setError('');
 
     try {
-      const response = await fetch('http://localhost:8001/share_content', {
+      const response = await fetch('${API_URL}/share_content', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

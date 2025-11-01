@@ -21,7 +21,7 @@ const Statistics = () => {
 
   const fetchUserProfile = async () => {
     try {
-      const response = await fetch('http://localhost:8001/me', {
+      const response = await fetch('${API_URL}/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -36,7 +36,7 @@ const Statistics = () => {
   const fetchStatistics = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8001/get_learning_reviews?time_range=${timeRange}`, {
+      const response = await fetch(`${API_URL}/get_learning_reviews?time_range=${timeRange}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {

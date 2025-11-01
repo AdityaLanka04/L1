@@ -199,7 +199,7 @@ class TrialManager {
   // Server communication methods
   async checkServerTrial(fingerprint) {
     try {
-      const response = await fetch('http://localhost:8001/check_trial', {
+      const response = await fetch('${API_URL}/check_trial', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fingerprint })
@@ -212,7 +212,7 @@ class TrialManager {
 
   async notifyServerTrialStart(fingerprint) {
     try {
-      await fetch('http://localhost:8001/start_trial', {
+      await fetch('${API_URL}/start_trial', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

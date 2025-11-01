@@ -27,7 +27,7 @@ const QuizBattle = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:8001/quiz_battles?status=${statusFilter}`,
+        `${API_URL}/quiz_battles?status=${statusFilter}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       if (response.ok) {
@@ -43,7 +43,7 @@ const QuizBattle = () => {
 
   const fetchFriends = async () => {
     try {
-      const response = await fetch('http://localhost:8001/friends', {
+      const response = await fetch('${API_URL}/friends', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -63,7 +63,7 @@ const QuizBattle = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:8001/create_quiz_battle', {
+      const response = await fetch('${API_URL}/create_quiz_battle', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

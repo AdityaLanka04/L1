@@ -15,7 +15,7 @@ function Login() {
   const checkAndRedirect = async (username) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:8001/check_profile_quiz?user_id=${username}`, {
+      const response = await axios.get(`${API_URL}/check_profile_quiz?user_id=${username}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -42,7 +42,7 @@ function Login() {
       
       const idToken = await user.getIdToken();
       
-      const backendResponse = await axios.post('http://localhost:8001/firebase-auth', {
+      const backendResponse = await axios.post('${API_URL}/firebase-auth', {
         idToken: idToken,
         email: user.email,
         displayName: user.displayName,
@@ -87,7 +87,7 @@ function Login() {
 
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:8001/token',
+      const response = await axios.post('${API_URL}/token',
         new URLSearchParams({
           username,
           password

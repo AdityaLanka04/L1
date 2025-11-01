@@ -18,7 +18,7 @@ const ActivityFeed = () => {
 
   const fetchActivityFeed = async () => {
     try {
-      const response = await fetch('http://localhost:8001/friend_activity_feed?limit=50', {
+      const response = await fetch('${API_URL}/friend_activity_feed?limit=50', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -34,7 +34,7 @@ const ActivityFeed = () => {
 
   const handleKudos = async (activityId) => {
     try {
-      const response = await fetch('http://localhost:8001/give_kudos', {
+      const response = await fetch('${API_URL}/give_kudos', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

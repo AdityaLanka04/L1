@@ -195,7 +195,7 @@ const Dashboard = () => {
     if (!userName) return;
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/get_learning_reviews?user_id=${userName}`, {
+      const response = await fetch(`${API_URL}/get_learning_reviews?user_id=${userName}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -212,7 +212,7 @@ const Dashboard = () => {
   
   try {
     const token = localStorage.getItem('token');
-    const sessionsResponse = await fetch(`http://localhost:8001/get_chat_sessions?user_id=${userName}`, {
+    const sessionsResponse = await fetch(`${API_URL}/get_chat_sessions?user_id=${userName}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
@@ -228,7 +228,7 @@ const Dashboard = () => {
       }
       
       // If sessions exist, create review automatically
-      const response = await fetch('http://localhost:8001/create_learning_review', {
+      const response = await fetch('${API_URL}/create_learning_review', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -275,21 +275,21 @@ const Dashboard = () => {
 
   try {
     // Weekly Progress
-    const weeklyResponse = await fetch(`http://localhost:8001/get_weekly_progress?user_id=${userName}`, { headers });
+    const weeklyResponse = await fetch(`${API_URL}/get_weekly_progress?user_id=${userName}`, { headers });
     if (weeklyResponse.ok) {
       const weeklyData = await weeklyResponse.json();
       setWeeklyProgress(weeklyData.weekly_data || []);
     }
 
     // Achievements
-    const achievementsResponse = await fetch(`http://localhost:8001/get_user_achievements?user_id=${userName}`, { headers });
+    const achievementsResponse = await fetch(`${API_URL}/get_user_achievements?user_id=${userName}`, { headers });
     if (achievementsResponse.ok) {
       const achievementsData = await achievementsResponse.json();
       setAchievements(achievementsData.achievements || []);
     }
 
     // Learning Analytics
-    const analyticsResponse = await fetch(`http://localhost:8001/get_learning_analytics?user_id=${userName}&period=week`, { headers });
+    const analyticsResponse = await fetch(`${API_URL}/get_learning_analytics?user_id=${userName}&period=week`, { headers });
     if (analyticsResponse.ok) {
       const analyticsData = await analyticsResponse.json();
       console.log('📊 Analytics received:', analyticsData);
@@ -300,7 +300,7 @@ const Dashboard = () => {
     }
 
     // Conversation Starters
-    const startersResponse = await fetch(`http://localhost:8001/conversation_starters?user_id=${userName}`, { headers });
+    const startersResponse = await fetch(`${API_URL}/conversation_starters?user_id=${userName}`, { headers });
     if (startersResponse.ok) {
       const startersData = await startersResponse.json();
       setConversationStarters(startersData.suggestions || []);
@@ -401,7 +401,7 @@ const Dashboard = () => {
     if (!userName) return;
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/get_activity_heatmap?user_id=${userName}`, {
+      const response = await fetch(`${API_URL}/get_activity_heatmap?user_id=${userName}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -505,7 +505,7 @@ const Dashboard = () => {
       const formData = new FormData();
       formData.append('user_id', userName);
       formData.append('session_type', 'dashboard');
-      const response = await fetch('http://localhost:8001/start_session', {
+      const response = await fetch('${API_URL}/start_session', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -569,7 +569,7 @@ const Dashboard = () => {
         formData.append('session_id', sessionId);
         formData.append('time_spent_minutes', sessionDuration.toString());
         formData.append('session_type', 'dashboard');
-        const response = await fetch('http://localhost:8001/end_session', {
+        const response = await fetch('${API_URL}/end_session', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
           body: formData
@@ -600,7 +600,7 @@ const Dashboard = () => {
   const loadUserStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/get_enhanced_user_stats?user_id=${userName}`, {
+      const response = await fetch(`${API_URL}/get_enhanced_user_stats?user_id=${userName}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -680,7 +680,7 @@ const Dashboard = () => {
     if (!isConfirmed) return;
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/delete_learning_review/${reviewId}`, {
+      const response = await fetch(`${API_URL}/delete_learning_review/${reviewId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

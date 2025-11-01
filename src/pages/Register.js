@@ -57,7 +57,7 @@ const Register = () => {
       }
 
       // Fixed: Correct port (8001) and removed Content-Type header for FormData
-      const res = await fetch('http://localhost:8001/register', {
+      const res = await fetch('${API_URL}/register', {
         method: 'POST',
         body: registrationFormData,  // FormData, not JSON
       });

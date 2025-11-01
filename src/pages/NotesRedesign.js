@@ -169,7 +169,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:8001/shared/note/${noteId}`,
+        `${API_URL}/shared/note/${noteId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -238,7 +238,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const loadNotes = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:8001/get_notes?user_id=${userName}`, {
+      const res = await fetch(`${API_URL}/get_notes?user_id=${userName}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -360,7 +360,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:8001/ai_writing_assistant/", {
+      const res = await fetch("${API_URL}/ai_writing_assistant/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -413,7 +413,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       fd.append("content_type", actionType);
       fd.append("existing_content", noteContent);
 
-      const res = await fetch("http://localhost:8001/generate_note_content/", {
+      const res = await fetch("${API_URL}/generate_note_content/", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
@@ -446,7 +446,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const loadFolders = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:8001/get_folders?user_id=${userName}`, {
+      const res = await fetch(`${API_URL}/get_folders?user_id=${userName}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -461,7 +461,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const loadTrash = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:8001/get_trash?user_id=${userName}`, {
+      const res = await fetch(`${API_URL}/get_trash?user_id=${userName}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -476,7 +476,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const loadChatSessions = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:8001/get_chat_sessions?user_id=${userName}`, {
+      const res = await fetch(`${API_URL}/get_chat_sessions?user_id=${userName}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -496,7 +496,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:8001/create_folder", {
+      const res = await fetch("${API_URL}/create_folder", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -535,7 +535,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:8001/create_note", {
+      const res = await fetch("${API_URL}/create_note", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -578,7 +578,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:8001/delete_folder/${folderId}`, {
+      const res = await fetch(`${API_URL}/delete_folder/${folderId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -600,7 +600,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const moveNoteToFolder = async (noteId, folderId) => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:8001/move_note_to_folder", {
+      const res = await fetch("${API_URL}/move_note_to_folder", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -677,7 +677,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:8001/toggle_favorite", {
+      const res = await fetch("${API_URL}/toggle_favorite", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -714,7 +714,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       }
       
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:8001/soft_delete_note/${noteId}`, {
+      const res = await fetch(`${API_URL}/soft_delete_note/${noteId}`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -742,7 +742,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const restoreNote = async (noteId) => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:8001/restore_note/${noteId}`, {
+      const res = await fetch(`${API_URL}/restore_note/${noteId}`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -766,7 +766,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:8001/permanent_delete_note/${noteId}`, {
+      const res = await fetch(`${API_URL}/permanent_delete_note/${noteId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -803,7 +803,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       
       const folderId = selectedFolder && selectedFolder !== 0 ? selectedFolder : null;
       
-      const res = await fetch("http://localhost:8001/create_note", {
+      const res = await fetch("${API_URL}/create_note", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -847,7 +847,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:8001/create_note", {
+      const res = await fetch("${API_URL}/create_note", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -897,7 +897,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       setSaving(true);
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(`http://localhost:8001/update_shared_note/${selectedNote.id}`, {
+        const res = await fetch(`${API_URL}/update_shared_note/${selectedNote.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -931,7 +931,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:8001/update_note", {
+        const res = await fetch("${API_URL}/update_note", {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -1060,7 +1060,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       fd.append("content_type", actionType);
       fd.append("existing_content", noteContent);
 
-      const res = await fetch("http://localhost:8001/generate_note_content/", {
+      const res = await fetch("${API_URL}/generate_note_content/", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
@@ -1104,7 +1104,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       fd.append("content_type", actionType);
       fd.append("existing_content", noteContent);
 
-      const res = await fetch("http://localhost:8001/generate_note_content/", {
+      const res = await fetch("${API_URL}/generate_note_content/", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
@@ -1241,7 +1241,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       console.log("Audio blob size:", audioBlob.size);
       console.log("User:", userName);
 
-      const transcribeRes = await fetch("http://localhost:8001/transcribe_audio/", {
+      const transcribeRes = await fetch("${API_URL}/transcribe_audio/", {
         method: "POST",
         headers: { 
           Authorization: `Bearer ${token}`
@@ -1265,7 +1265,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
       console.log("Sending transcript to AI:", transcript);
 
-      const aiRes = await fetch("http://localhost:8001/generate_note_content/", {
+      const aiRes = await fetch("${API_URL}/generate_note_content/", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: (() => {
@@ -1329,7 +1329,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setGeneratingAI(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:8001/ai_writing_assistant/", {
+      const res = await fetch("${API_URL}/ai_writing_assistant/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1387,7 +1387,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       const allMessages = [];
       
       for (const sid of selectedSessions) {
-        const r = await fetch(`http://localhost:8001/get_chat_history/${sid}`, {
+        const r = await fetch(`${API_URL}/get_chat_history/${sid}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (r.ok) {
@@ -1401,7 +1401,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         .map((s) => s.messages.map((m) => `Q: ${m.user_message}\nA: ${m.ai_response}`).join("\n\n"))
         .join("\n\n--- New Session ---\n\n");
 
-      const summaryRes = await fetch("http://localhost:8001/generate_note_summary/", {
+      const summaryRes = await fetch("${API_URL}/generate_note_summary/", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: (() => {
@@ -1432,7 +1432,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
           .join("<hr/>");
       }
 
-      const createRes = await fetch("http://localhost:8001/create_note", {
+      const createRes = await fetch("${API_URL}/create_note", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

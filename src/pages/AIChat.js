@@ -63,7 +63,7 @@ const AIChat = ({ sharedMode = false }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:8001/shared/chat/${chatId}`,
+        `${API_URL}/shared/chat/${chatId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -157,7 +157,7 @@ const AIChat = ({ sharedMode = false }) => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/get_chat_sessions?user_id=${userName}`, {
+      const response = await fetch(`${API_URL}/get_chat_sessions?user_id=${userName}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -178,7 +178,7 @@ const AIChat = ({ sharedMode = false }) => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/get_chat_messages?chat_id=${sessionId}`, {
+      const response = await fetch(`${API_URL}/get_chat_messages?chat_id=${sessionId}`, {
         method: 'GET',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -206,7 +206,7 @@ const AIChat = ({ sharedMode = false }) => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8001/create_chat_session', {
+      const response = await fetch('${API_URL}/create_chat_session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -298,8 +298,8 @@ const AIChat = ({ sharedMode = false }) => {
       });
 
       const endpoint = selectedFiles.length > 0 ? 
-        'http://localhost:8001/ask_with_files/' : 
-        'http://localhost:8001/ask/';
+        '${API_URL}/ask_with_files/' : 
+        '${API_URL}/ask/';
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -363,7 +363,7 @@ const AIChat = ({ sharedMode = false }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8001/delete_chat_session/${chatToDelete.id}`, {
+      const response = await fetch(`${API_URL}/delete_chat_session/${chatToDelete.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -400,7 +400,7 @@ const AIChat = ({ sharedMode = false }) => {
       formData.append('rating', rating.toString());
       formData.append('message_content', message?.content || '');
 
-      const response = await fetch('http://localhost:8001/submit_advanced_feedback', {
+      const response = await fetch('${API_URL}/submit_advanced_feedback', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -434,7 +434,7 @@ const AIChat = ({ sharedMode = false }) => {
       formData.append('improvement_suggestion', improvementSuggestion);
       formData.append('message_content', message?.content || '');
 
-      const response = await fetch('http://localhost:8001/submit_advanced_feedback', {
+      const response = await fetch('${API_URL}/submit_advanced_feedback', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData

@@ -23,7 +23,7 @@ const Leaderboards = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:8001/leaderboard?category=${category}&metric=${metric}&period=${period}&limit=50`,
+        `${API_URL}/leaderboard?category=${category}&metric=${metric}&period=${period}&limit=50`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       if (response.ok) {

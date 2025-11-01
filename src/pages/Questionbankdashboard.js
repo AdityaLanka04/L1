@@ -53,7 +53,7 @@ const QuestionBankDashboard = () => {
   const fetchQuestionSets = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8001/qb/get_question_sets?user_id=${userId}`, {
+      const response = await fetch(`${API_URL}/qb/get_question_sets?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -69,7 +69,7 @@ const QuestionBankDashboard = () => {
 
   const fetchUploadedDocuments = async () => {
     try {
-      const response = await fetch(`http://localhost:8001/qb/get_uploaded_documents?user_id=${userId}`, {
+      const response = await fetch(`${API_URL}/qb/get_uploaded_documents?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -83,7 +83,7 @@ const QuestionBankDashboard = () => {
 
   const fetchChatSessions = async () => {
     try {
-      const response = await fetch(`http://localhost:8001/get_chat_sessions?user_id=${userId}`, {
+      const response = await fetch(`${API_URL}/get_chat_sessions?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -97,7 +97,7 @@ const QuestionBankDashboard = () => {
 
   const fetchUploadedSlides = async () => {
     try {
-      const response = await fetch(`http://localhost:8001/get_uploaded_slides?user_id=${userId}`, {
+      const response = await fetch(`${API_URL}/get_uploaded_slides?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -112,7 +112,7 @@ const QuestionBankDashboard = () => {
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8001/qb/get_analytics?user_id=${userId}`, {
+      const response = await fetch(`${API_URL}/qb/get_analytics?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -135,7 +135,7 @@ const QuestionBankDashboard = () => {
 
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8001/qb/upload_pdf?user_id=${userId}`, {
+      const response = await fetch(`${API_URL}/qb/upload_pdf?user_id=${userId}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -165,7 +165,7 @@ const QuestionBankDashboard = () => {
 
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8001/qb/generate_from_pdf', {
+      const response = await fetch('${API_URL}/qb/generate_from_pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -208,7 +208,7 @@ const QuestionBankDashboard = () => {
     try {
       setLoading(true);
       const promises = selectedSources.map(source => {
-        return fetch('http://localhost:8001/qb/generate_from_chat_slides', {
+        return fetch('${API_URL}/qb/generate_from_chat_slides', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -253,7 +253,7 @@ const QuestionBankDashboard = () => {
 
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8001/qb/generate_from_pdf', {
+      const response = await fetch('${API_URL}/qb/generate_from_pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -292,7 +292,7 @@ const QuestionBankDashboard = () => {
   const startStudySession = async (setId) => {
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8001/qb/get_question_set/${setId}?user_id=${userId}`, {
+      const response = await fetch(`${API_URL}/qb/get_question_set/${setId}?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -323,7 +323,7 @@ const QuestionBankDashboard = () => {
 
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8001/qb/submit_answers', {
+      const response = await fetch('${API_URL}/qb/submit_answers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -359,7 +359,7 @@ const QuestionBankDashboard = () => {
 
     try {
       setLoading(true);
-      const response = await fetch(`http://localhost:8001/qb/delete_question_set/${setId}?user_id=${userId}`, {
+      const response = await fetch(`${API_URL}/qb/delete_question_set/${setId}?user_id=${userId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -389,7 +389,7 @@ const QuestionBankDashboard = () => {
   const generateSimilarQuestion = async (questionId) => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8001/qb/generate_similar_question', {
+      const response = await fetch('${API_URL}/qb/generate_similar_question', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

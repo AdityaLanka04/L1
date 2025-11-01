@@ -30,7 +30,7 @@ const SharedItemViewer = () => {
     
     try {
       const response = await fetch(
-        `http://localhost:8001/shared/${contentType}/${contentId}`,
+        `${API_URL}/shared/${contentType}/${contentId}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -71,7 +71,7 @@ const SharedItemViewer = () => {
 
     try {
       const response = await fetch(
-        `http://localhost:8001/update_shared_note/${contentId}`,
+        `${API_URL}/update_shared_note/${contentId}`,
         {
           method: 'PUT',
           headers: {

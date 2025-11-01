@@ -38,7 +38,7 @@ const Social = () => {
 
   const fetchUserProfile = async () => {
     try {
-      const response = await fetch('http://localhost:8001/me', {
+      const response = await fetch('${API_URL}/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -53,7 +53,7 @@ const Social = () => {
 
   const fetchFriendRequests = async () => {
     try {
-      const response = await fetch('http://localhost:8001/friend_requests', {
+      const response = await fetch('${API_URL}/friend_requests', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -67,7 +67,7 @@ const Social = () => {
 
   const fetchFriends = async () => {
     try {
-      const response = await fetch('http://localhost:8001/friends', {
+      const response = await fetch('${API_URL}/friends', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -84,7 +84,7 @@ const Social = () => {
     console.log('🔄 Fetching shared content...');
     const token = localStorage.getItem('token');
     
-    const response = await fetch('http://localhost:8001/shared_with_me', {
+    const response = await fetch('${API_URL}/shared_with_me', {
       headers: { 
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -110,7 +110,7 @@ const Social = () => {
   const fetchMyContent = async () => {
     try {
       // Fetch notes
-      const notesResponse = await fetch(`http://localhost:8001/get_notes?user_id=${userId}`, {
+      const notesResponse = await fetch(`${API_URL}/get_notes?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (notesResponse.ok) {
@@ -119,7 +119,7 @@ const Social = () => {
       }
 
       // Fetch chats
-      const chatsResponse = await fetch(`http://localhost:8001/get_chat_sessions?user_id=${userId}`, {
+      const chatsResponse = await fetch(`${API_URL}/get_chat_sessions?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (chatsResponse.ok) {
@@ -140,7 +140,7 @@ const Social = () => {
 
     setIsSearching(true);
     try {
-      const response = await fetch(`http://localhost:8001/search_users?query=${encodeURIComponent(query)}`, {
+      const response = await fetch(`${API_URL}/search_users?query=${encodeURIComponent(query)}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -156,7 +156,7 @@ const Social = () => {
 
   const sendFriendRequest = async (receiverId) => {
     try {
-      const response = await fetch('http://localhost:8001/send_friend_request', {
+      const response = await fetch('${API_URL}/send_friend_request', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -178,7 +178,7 @@ const Social = () => {
 
   const respondToFriendRequest = async (requestId, action) => {
     try {
-      const response = await fetch('http://localhost:8001/respond_friend_request', {
+      const response = await fetch('${API_URL}/respond_friend_request', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -200,7 +200,7 @@ const Social = () => {
     if (!window.confirm('Are you sure you want to remove this friend?')) return;
     
     try {
-      const response = await fetch('http://localhost:8001/remove_friend', {
+      const response = await fetch('${API_URL}/remove_friend', {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -233,7 +233,7 @@ const handleOpenSharedItem = (item) => {
     }
 
     try {
-      const response = await fetch(`http://localhost:8001/remove_shared_access/${shareId}`, {
+      const response = await fetch(`${API_URL}/remove_shared_access/${shareId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

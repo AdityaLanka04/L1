@@ -14,7 +14,7 @@ const LearningReviewHub = () => {
 
   const fetchUserProfile = async () => {
     try {
-      const response = await fetch('http://localhost:8001/me', {
+      const response = await fetch('${API_URL}/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {

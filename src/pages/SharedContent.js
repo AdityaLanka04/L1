@@ -20,7 +20,7 @@ const SharedContent = () => {
   const fetchSharedContent = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8001/shared_with_me', {
+      const response = await fetch('${API_URL}/shared_with_me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -49,7 +49,7 @@ const SharedContent = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:8001/remove_shared_access/${shareId}`, {
+      const response = await fetch(`${API_URL}/remove_shared_access/${shareId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

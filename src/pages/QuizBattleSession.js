@@ -37,7 +37,7 @@ const QuizBattleSession = () => {
 
   const loadBattle = async () => {
     try {
-      const response = await fetch(`http://localhost:8001/quiz_battle/${battleId}`, {
+      const response = await fetch(`${API_URL}/quiz_battle/${battleId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -65,7 +65,7 @@ const QuizBattleSession = () => {
   const generateQuestions = async (battleData) => {
     setGeneratingQuestions(true);
     try {
-      const response = await fetch('http://localhost:8001/generate_battle_questions', {
+      const response = await fetch('${API_URL}/generate_battle_questions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -136,7 +136,7 @@ const QuizBattleSession = () => {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch('http://localhost:8001/complete_quiz_battle', {
+      const response = await fetch('${API_URL}/complete_quiz_battle', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

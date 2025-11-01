@@ -28,7 +28,7 @@ const Challenges = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://localhost:8001/challenges?filter_type=${filterType}`,
+        `${API_URL}/challenges?filter_type=${filterType}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       if (response.ok) {
@@ -50,7 +50,7 @@ const Challenges = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:8001/create_challenge', {
+      const response = await fetch('${API_URL}/create_challenge', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -79,7 +79,7 @@ const Challenges = () => {
 
   const handleJoinChallenge = async (challengeId) => {
     try {
-      const response = await fetch('http://localhost:8001/join_challenge', {
+      const response = await fetch('${API_URL}/join_challenge', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

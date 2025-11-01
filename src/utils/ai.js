@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8000";
+const API_BASE = "${API_URL}";
 
 export const storeActivity = async (userId, activityData) => {
   const response = await fetch(`${API_BASE}/store_activity`, {
@@ -17,7 +17,7 @@ export const askTutor = async (userId, question) => {
   formData.append("user_id", userId);
   formData.append("question", question);
 
-  const response = await fetch("http://localhost:8000/ask/", {
+  const response = await fetch("${API_URL}/ask/", {
     method: "POST",
     body: formData
   });
