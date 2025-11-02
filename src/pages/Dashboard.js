@@ -229,7 +229,7 @@ const Dashboard = () => {
       }
       
       // If sessions exist, create review automatically
-      const response = await fetch('${API_URL}/create_learning_review', {
+      const response = await fetch(`${API_URL}/create_learning_review`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -506,7 +506,7 @@ const Dashboard = () => {
       const formData = new FormData();
       formData.append('user_id', userName);
       formData.append('session_type', 'dashboard');
-      const response = await fetch('${API_URL}/start_session', {
+      const response = await fetch(`${API_URL}/start_session`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -570,7 +570,7 @@ const Dashboard = () => {
         formData.append('session_id', sessionId);
         formData.append('time_spent_minutes', sessionDuration.toString());
         formData.append('session_type', 'dashboard');
-        const response = await fetch('${API_URL}/end_session', {
+        const response = await fetch(`${API_URL}/end_session`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
           body: formData

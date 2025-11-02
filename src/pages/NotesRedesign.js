@@ -1465,7 +1465,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     const styles = `
       <style>
         body {
-          font-family: '${customFont}', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          font-family: ${customFont}, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
           padding: 40px;
           max-width: 800px;
           margin: 0 auto;

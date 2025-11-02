@@ -74,7 +74,7 @@ const ChallengeSession = () => {
         questionCount = Math.ceil(challengeData.target_value);
       }
 
-      const response = await fetch('${API_URL}/generate_challenge_questions', {
+      const response = await fetch(`${API_URL}/generate_challenge_questions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -183,7 +183,7 @@ const ChallengeSession = () => {
       const correctCount = answers.filter(q => q.is_correct).length;
       const finalAccuracy = totalAnswered > 0 ? (correctCount / totalAnswered) * 100 : 0;
 
-      const response = await fetch('${API_URL}/update_challenge_progress', {
+      const response = await fetch(`${API_URL}/update_challenge_progress`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

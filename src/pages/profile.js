@@ -243,7 +243,7 @@ const Profile = () => {
         learningPace: profileData.learningPace || 'moderate'
       };
       
-      const response = await fetch('${API_URL}/update_comprehensive_profile', {
+      const response = await fetch(`${API_URL}/update_comprehensive_profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

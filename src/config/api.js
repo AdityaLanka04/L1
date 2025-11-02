@@ -6,7 +6,7 @@
  */
 
 // Remove the getApiUrl function - not needed
-export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8001';
+export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000api';
 
 /**
  * Helper function for making authenticated API requests

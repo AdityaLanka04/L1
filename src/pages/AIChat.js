@@ -207,7 +207,7 @@ const AIChat = ({ sharedMode = false }) => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('${API_URL}/create_chat_session', {
+      const response = await fetch(`${API_URL}/create_chat_session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -299,8 +299,8 @@ const AIChat = ({ sharedMode = false }) => {
       });
 
       const endpoint = selectedFiles.length > 0 ? 
-        '${API_URL}/ask_with_files/' : 
-        '${API_URL}/ask/';
+        `${API_URL}/ask_with_files/` : 
+        `${API_URL}/ask/`;
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -401,7 +401,7 @@ const AIChat = ({ sharedMode = false }) => {
       formData.append('rating', rating.toString());
       formData.append('message_content', message?.content || '');
 
-      const response = await fetch('${API_URL}/submit_advanced_feedback', {
+      const response = await fetch(`${API_URL}/submit_advanced_feedback`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -435,7 +435,7 @@ const AIChat = ({ sharedMode = false }) => {
       formData.append('improvement_suggestion', improvementSuggestion);
       formData.append('message_content', message?.content || '');
 
-      const response = await fetch('${API_URL}/submit_advanced_feedback', {
+      const response = await fetch(`${API_URL}/submit_advanced_feedback`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData

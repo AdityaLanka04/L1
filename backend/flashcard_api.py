@@ -19,6 +19,14 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 # PYDANTIC MODELS
 # ============================================================================
+def get_db():
+    """Dependency to get database session"""
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 class FlashcardSetCreate(BaseModel):
     user_id: str
@@ -334,31 +342,31 @@ class FlashcardAPI:
     def _register_routes(self):
         """Register all flashcard routes"""
         
-        @self.app.post("/create_flashcard_set")
-        def create_flashcard_set(set_data: FlashcardSetCreate, db: Session = Depends(self._get_db)):
+        @self.app.post("/api/create_flashcard_set")
+        def create_flashcard_set(set_data: FlashcardSetCreate, db: Session = Depends(get_db)):
             return self._create_flashcard_set(set_data, db)
         
-        @self.app.post("/add_flashcard_to_set")
-        def add_flashcard_to_set(card_data: FlashcardCreate, db: Session = Depends(self._get_db)):
+        @self.app.post("/api/add_flashcard_to_set")
+        def add_flashcard_to_set(card_data: FlashcardCreate, db: Session = Depends(get_db)):
             return self._add_flashcard_to_set(card_data, db)
         
-        @self.app.get("/get_flashcard_sets")
-        def get_flashcard_sets(user_id: str = Query(...), db: Session = Depends(self._get_db)):
+        @self.app.get("/api/get_flashcard_sets")
+        def get_flashcard_sets(user_id: str = Query(...), db: Session = Depends(get_db)):
             return self._get_flashcard_sets(user_id, db)
         
-        @self.app.get("/get_flashcards_in_set")
-        def get_flashcards_in_set(set_id: int = Query(...), db: Session = Depends(self._get_db)):
+        @self.app.get("/api/get_flashcards_in_set")
+        def get_flashcards_in_set(set_id: int = Query(...), db: Session = Depends(get_db)):
             return self._get_flashcards_in_set(set_id, db)
         
-        @self.app.get("/get_flashcard_history")
-        def get_flashcard_history(user_id: str = Query(...), limit: int = Query(50), db: Session = Depends(self._get_db)):
+        @self.app.get("/api/get_flashcard_history")
+        def get_flashcard_history(user_id: str = Query(...), limit: int = Query(50), db: Session = Depends(get_db)):
             return self._get_flashcard_history(user_id, limit, db)
         
-        @self.app.get("/get_flashcard_statistics")
-        def get_flashcard_statistics(user_id: str = Query(...), db: Session = Depends(self._get_db)):
+        @self.app.get("/api/get_flashcard_statistics")
+        def get_flashcard_statistics(user_id: str = Query(...), db: Session = Depends(get_db)):
             return self._get_flashcard_statistics(user_id, db)
         
-        @self.app.post("/generate_flashcards/")
+        @self.app.post("/api/generate_flashcards")
         async def generate_flashcards(
             user_id: str = Form(...),
             topic: str = Form(None),
@@ -370,7 +378,7 @@ class FlashcardAPI:
             save_to_set: bool = Form(False),
             set_title: str = Form(None),
             focus_areas: str = Form(None),
-            db: Session = Depends(self._get_db)
+            db: Session = Depends(get_db)
         ):
             return await self._generate_flashcards(
                 user_id, topic, generation_type, chat_data, card_count,
@@ -378,39 +386,31 @@ class FlashcardAPI:
                 focus_areas, db
             )
         
-        @self.app.post("/update_flashcard_set")
-        def update_flashcard_set(update_data: FlashcardSetUpdate, db: Session = Depends(self._get_db)):
+        @self.app.post("/api/update_flashcard_set")
+        def update_flashcard_set(update_data: FlashcardSetUpdate, db: Session = Depends(get_db)):
             return self._update_flashcard_set(update_data, db)
         
-        @self.app.post("/update_flashcard")
-        def update_flashcard(update_data: FlashcardUpdate, db: Session = Depends(self._get_db)):
+        @self.app.post("/api/update_flashcard")
+        def update_flashcard(update_data: FlashcardUpdate, db: Session = Depends(get_db)):
             return self._update_flashcard(update_data, db)
         
-        @self.app.delete("/delete_flashcard_set/{set_id}")
-        def delete_flashcard_set(set_id: int, db: Session = Depends(self._get_db)):
+        @self.app.delete("/api/delete_flashcard_set/{set_id}")
+        def delete_flashcard_set(set_id: int, db: Session = Depends(get_db)):
             return self._delete_flashcard_set(set_id, db)
         
-        @self.app.delete("/delete_flashcard/{flashcard_id}")
-        def delete_flashcard(flashcard_id: int, db: Session = Depends(self._get_db)):
+        @self.app.delete("/api/delete_flashcard/{flashcard_id}")
+        def delete_flashcard(flashcard_id: int, db: Session = Depends(get_db)):
             return self._delete_flashcard(flashcard_id, db)
         
-        @self.app.post("/record_flashcard_study_session")
-        def record_study_session(session_data: FlashcardStudySession, db: Session = Depends(self._get_db)):
+        @self.app.post("/api/record_flashcard_study_session")
+        def record_study_session(session_data: FlashcardStudySession, db: Session = Depends(get_db)):
             return self._record_study_session(session_data, db)
     
     # ========================================================================
     # HELPER METHODS
     # ========================================================================
     
-    @staticmethod
-    def _get_db():
-        """Dependency to get database session"""
-        from database import SessionLocal
-        db = SessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
+    
     
     @staticmethod
     def _get_user_by_username(db, username: str):

@@ -486,7 +486,7 @@ Provide clear, educational responses tailored to the student's profile."""
    #     "api_version": "3.0.0"
    # }
 
-@app.get("/api/health")
+@app.get("/health")
 def health_check():
     return {
         "status": "healthy",
@@ -495,7 +495,7 @@ def health_check():
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
-@app.get("/api/get_daily_goal_progress")
+@app.get("/get_daily_goal_progress")
 def get_daily_goal_progress(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -1375,7 +1375,7 @@ def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
         logger.error(f"Error getting notes: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 # Add these endpoints to your main.py file
-@app.get("/api/debug_notes/{user_id}")
+@app.get("/debug_notes/{user_id}")
 def debug_notes(user_id: str, db: Session = Depends(get_db)):
     """Debug endpoint to see ALL notes"""
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -1397,7 +1397,7 @@ def debug_notes(user_id: str, db: Session = Depends(get_db)):
     
     return {"total_notes": len(notes), "notes": result}
 
-@app.post("/api/transcribe_audio/")
+@app.post("/transcribe_audio/")
 async def transcribe_audio(
     audio_file: UploadFile = File(...),
     user_id: str = Form(...),
@@ -1468,7 +1468,7 @@ async def transcribe_audio(
             except Exception as cleanup_error:
                 logger.warning(f"⚠️ Failed to cleanup temp file: {cleanup_error}")
 
-@app.get("/api/test_transcribe")
+@app.get("/test_transcribe")
 def test_transcribe_endpoint():
     """Test endpoint to verify transcription route exists"""
     return {
@@ -1479,7 +1479,7 @@ def test_transcribe_endpoint():
     }
 
 
-@app.post("/api/transcribe_audio_test/")
+@app.post("/transcribe_audio_test/")
 async def transcribe_audio_test(
     user_id: str = Form(...),
     db: Session = Depends(get_db)
@@ -1601,7 +1601,7 @@ def get_folders(user_id: str = Query(...), db: Session = Depends(get_db)):
         return {"folders": []}
 
 
-@app.get("/api/get_trash")
+@app.get("/get_trash")
 def get_trash(user_id: str = Query(...), db: Session = Depends(get_db)):
     """Get all deleted notes (trash)"""
     try:
@@ -1651,7 +1651,7 @@ def get_trash(user_id: str = Query(...), db: Session = Depends(get_db)):
         return {"trash": []}
 
 # ENHANCED AI CONTENT GENERATION WITH SPECIFIC PROMPTS
-@app.post("/api/generate_note_content/")
+@app.post("/generate_note_content/")
 async def generate_note_content(
     user_id: str = Form(...),
     prompt: str = Form(...),
@@ -1807,7 +1807,7 @@ Generate educational content about: {prompt}"""
 
 
 # ENHANCED AI WRITING ASSISTANT WITH MORE ACTIONS
-@app.post("/api/ai_writing_assistant/")
+@app.post("/ai_writing_assistant/")
 async def ai_writing_assistant(
     payload: dict = Body(...),
     db: Session = Depends(get_db)
@@ -1958,7 +1958,7 @@ CRITICAL: Return ONLY the processed text. NO explanations, NO comments, NO greet
         logger.error(f"AI writing assistant error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"AI assistant failed: {str(e)}")
 
-@app.post("/api/create_note")
+@app.post("/create_note")
 def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
     """Create a new note"""
     try:
@@ -1991,7 +1991,7 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Failed to create note: {str(e)}")
 
 
-@app.get("/api/get_notes")
+@app.get("/get_notes")
 def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
     """Get all notes for a user (excluding deleted)"""
     try:
@@ -2030,7 +2030,7 @@ def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.put("/api/soft_delete_note/{note_id}")
+@app.put("/soft_delete_note/{note_id}")
 def soft_delete_note(note_id: int, db: Session = Depends(get_db)):
     """Move note to trash (soft delete)"""
     try:
@@ -2060,7 +2060,7 @@ def soft_delete_note(note_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.put("/api/update_note")
+@app.put("/update_note")
 def update_note(note_data: NoteUpdate, db: Session = Depends(get_db)):
     """Update an existing note"""
     try:
@@ -2098,7 +2098,7 @@ def update_note(note_data: NoteUpdate, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.delete("/api/delete_note/{note_id}")
+@app.delete("/delete_note/{note_id}")
 def delete_note(note_id: int, db: Session = Depends(get_db)):
     """Delete a note"""
     note = db.query(models.Note).filter(models.Note.id == note_id).first()
@@ -2111,7 +2111,7 @@ def delete_note(note_id: int, db: Session = Depends(get_db)):
     return {"message": "Note deleted successfully"}
 
 
-@app.post("/api/generate_note_summary/")
+@app.post("/generate_note_summary/")
 async def generate_note_summary(
     user_id: str = Form(...),
     conversation_data: str = Form(...),
@@ -2178,7 +2178,7 @@ Provide a title and formatted content."""
 
 
 # Optional: Add endpoint to generate content from existing chat
-@app.post("/api/convert_chat_to_note_content/")
+@app.post("/convert_chat_to_note_content/")
 async def convert_chat_to_note_content(
     user_id: str = Form(...),
     chat_session_id: int = Form(...),
@@ -2293,7 +2293,7 @@ Use HTML formatting tags. Start DIRECTLY with the content."""
 
 
 # Optional: Endpoint to expand/elaborate on selected text
-@app.post("/api/expand_note_content/")
+@app.post("/expand_note_content/")
 async def expand_note_content(
     user_id: str = Form(...),
     selected_text: str = Form(...),
@@ -2349,7 +2349,7 @@ Use HTML formatting. Start DIRECTLY with the content."""
         logger.error(f"Error expanding content: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to expand content: {str(e)}")
 
-@app.post("/api/create_note")
+@app.post("/create_note")
 def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
     try:
         user = get_user_by_username(db, note_data.user_id) or get_user_by_email(db, note_data.user_id)
@@ -2380,7 +2380,7 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
         logger.error(f"Error creating note: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to create note: {str(e)}")
 
-@app.put("/api/update_note")
+@app.put("/update_note")
 def update_note(note_data: NoteUpdate, db: Session = Depends(get_db)):
     """Update an existing note"""
     try:
@@ -2419,7 +2419,7 @@ def update_note(note_data: NoteUpdate, db: Session = Depends(get_db)):
 
 
      
-@app.delete("/api/delete_note/{note_id}")
+@app.delete("/delete_note/{note_id}")
 def delete_note(note_id: int, db: Session = Depends(get_db)):
     note = db.query(models.Note).filter(models.Note.id == note_id).first()
     if not note:
@@ -2430,7 +2430,7 @@ def delete_note(note_id: int, db: Session = Depends(get_db)):
     
     return {"message": "Note deleted successfully"}
 
-@app.post("/api/generate_note_summary/")
+@app.post("/generate_note_summary/")
 async def generate_note_summary(
     user_id: str = Form(...),
     conversation_data: str = Form(...),
@@ -2491,7 +2491,7 @@ Provide a title and formatted content."""
 
 # ==================== FOLDERS ENDPOINTS ====================
 
-@app.post("/api/create_folder")
+@app.post("/create_folder")
 def create_folder(folder_data: FolderCreate, db: Session = Depends(get_db)):
     """Create a new folder"""
     try:
@@ -2521,7 +2521,7 @@ def create_folder(folder_data: FolderCreate, db: Session = Depends(get_db)):
         logger.error(f"Error creating folder: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.delete("/api/delete_folder/{folder_id}")
+@app.delete("/delete_folder/{folder_id}")
 def delete_folder(folder_id: int, db: Session = Depends(get_db)):
     """Delete a folder (moves notes to root)"""
     try:
@@ -2546,7 +2546,7 @@ def delete_folder(folder_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.put("/api/move_note_to_folder")
+@app.put("/move_note_to_folder")
 def move_note_to_folder(data: NoteUpdateFolder, db: Session = Depends(get_db)):
     """Move note to a folder or remove from folder"""
     try:
@@ -2573,7 +2573,7 @@ def move_note_to_folder(data: NoteUpdateFolder, db: Session = Depends(get_db)):
 
 # ==================== FAVORITES ENDPOINT ====================
 
-@app.put("/api/toggle_favorite")
+@app.put("/toggle_favorite")
 def toggle_favorite(data: NoteFavorite, db: Session = Depends(get_db)):
     """Toggle favorite status of a note"""
     try:
@@ -2599,7 +2599,7 @@ def toggle_favorite(data: NoteFavorite, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/get_favorite_notes")
+@app.get("/get_favorite_notes")
 def get_favorite_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
     """Get all favorite notes (excluding deleted)"""
     try:
@@ -2633,7 +2633,7 @@ def get_favorite_notes(user_id: str = Query(...), db: Session = Depends(get_db))
                         # ==================== TRASH/RECYCLE BIN ====================
 
 
-@app.put("/api/restore_note/{note_id}")
+@app.put("/restore_note/{note_id}")
 def restore_note(note_id: int, db: Session = Depends(get_db)):
     """Restore note from trash"""
     try:
@@ -2659,7 +2659,7 @@ def restore_note(note_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.delete("/api/permanent_delete_note/{note_id}")
+@app.delete("/permanent_delete_note/{note_id}")
 def permanent_delete_note(note_id: int, db: Session = Depends(get_db)):
     """Permanently delete a note"""
     try:
@@ -2684,7 +2684,7 @@ def permanent_delete_note(note_id: int, db: Session = Depends(get_db)):
 
 # ==================== AI WRITING ASSISTANT ====================
 
-@app.post("/api/ai_writing_assistant/")
+@app.post("/ai_writing_assistant/")
 async def ai_writing_assistant(
     request: AIWritingAssistRequest,
     db: Session = Depends(get_db)
@@ -2740,7 +2740,7 @@ async def ai_writing_assistant(
 
 
 
-@app.post("/api/generate_chat_summary")
+@app.post("/generate_chat_summary")
 async def generate_chat_summary(
     chat_data: str = Form(...),
     max_words: int = Form(4),
@@ -2787,7 +2787,7 @@ Generate only the 4-word title:"""
 
 
 
-@app.get("/api/get_enhanced_user_stats")
+@app.get("/get_enhanced_user_stats")
 def get_enhanced_user_stats(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -2852,7 +2852,7 @@ def get_enhanced_user_stats(user_id: str = Query(...), db: Session = Depends(get
             "totalQuestions": 0, "totalFlashcards": 0, "totalNotes": 0, "totalChatSessions": 0
         }
 
-@app.get("/api/get_activity_heatmap")
+@app.get("/get_activity_heatmap")
 def get_activity_heatmap(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -2913,15 +2913,15 @@ def get_activity_heatmap(user_id: str = Query(...), db: Session = Depends(get_db
         logger.error(f"Error getting heatmap: {str(e)}")
         return {"heatmap_data": [], "total_count": 0, "date_range": {"start": "", "end": ""}}
 
-@app.get("/api/get_recent_activities")
+@app.get("/get_recent_activities")
 def get_recent_activities(user_id: str = Query(...), limit: int = Query(5), db: Session = Depends(get_db)):
     return []
 
-@app.get("/api/get_weekly_progress")
+@app.get("/get_weekly_progress")
 def get_weekly_progress(user_id: str = Query(...), db: Session = Depends(get_db)):
     return {"weekly_data": [0,0,0,0,0,0,0], "total_sessions": 0, "average_per_day": 0}
 
-@app.get("/api/get_weekly_progress")
+@app.get("/get_weekly_progress")
 def get_weekly_progress(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -2971,7 +2971,7 @@ def get_weekly_progress(user_id: str = Query(...), db: Session = Depends(get_db)
         }
 
 
-@app.get("/api/get_learning_analytics")
+@app.get("/get_learning_analytics")
 def get_learning_analytics(user_id: str = Query(...), period: str = Query("week"), db: Session = Depends(get_db)):
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
     if not user:
@@ -3002,7 +3002,7 @@ def get_learning_analytics(user_id: str = Query(...), period: str = Query("week"
         "days_active": total_sessions,
         "daily_data": []
     }
-@app.post("/api/firebase-auth")
+@app.post("/firebase-auth")
 async def firebase_authentication(request: Request, db: Session = Depends(get_db)):
     try:
         data = await request.json()
@@ -3060,7 +3060,7 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
         logger.error(f"Firebase auth error: {str(e)}")
         
         raise HTTPException(status_code=500, detail="Authentication failed")
-@app.get("/api/check_profile_quiz")
+@app.get("/check_profile_quiz")
 async def check_profile_quiz(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -3086,7 +3086,7 @@ async def check_profile_quiz(user_id: str = Query(...), db: Session = Depends(ge
         logger.error(f"Error checking quiz: {str(e)}")
         return {"completed": False}
 
-@app.post("/api/start_session")
+@app.post("/start_session")
 def start_session(
     user_id: str = Form(...),
     session_type: str = Form(...),
@@ -3110,7 +3110,7 @@ def start_session(
         logger.error(f"Error starting session: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to start session")
 
-@app.post("/api/end_session")
+@app.post("/end_session")
 def end_session(
     user_id: str = Form(...),
     session_id: str = Form(...),
@@ -3176,17 +3176,17 @@ def end_session(
         raise HTTPException(status_code=500, detail="Failed to end session")
 
 
-@app.get("/api/conversation_starters")
+@app.get("/conversation_starters")
 def get_conversation_starters(user_id: str = Query(...), db: Session = Depends(get_db)):
     return {"suggestions": ["What would you like to learn today?"]}
 
-@app.get("/api/get_learning_reviews")
+@app.get("/get_learning_reviews")
 def get_learning_reviews(user_id: str = Query(...), db: Session = Depends(get_db)):
     return {"reviews": []}
 
 
 
-@app.post("/api/create_learning_review")
+@app.post("/create_learning_review")
 async def create_learning_review(
     payload: dict = Body(...),
     db: Session = Depends(get_db)
@@ -3299,7 +3299,7 @@ async def create_learning_review(
         raise HTTPException(status_code=500, detail=f"Failed to create learning review: {str(e)}")
 
 
-@app.get("/api/get_learning_reviews")
+@app.get("/get_learning_reviews")
 def get_learning_reviews(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -3361,7 +3361,7 @@ def get_learning_reviews(user_id: str = Query(...), db: Session = Depends(get_db
 UPLOAD_DIR = Path("uploads/slides")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-@app.post("/api/upload_slides")
+@app.post("/upload_slides")
 async def upload_slides(
     user_id: str = Form(...),
     files: List[UploadFile] = File(...),
@@ -3434,7 +3434,7 @@ async def upload_slides(
         raise HTTPException(status_code=500, detail=f"Failed to upload slides: {str(e)}")
 
 
-@app.get("/api/get_uploaded_slides")
+@app.get("/get_uploaded_slides")
 def get_uploaded_slides(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -3466,7 +3466,7 @@ def get_uploaded_slides(user_id: str = Query(...), db: Session = Depends(get_db)
         return {"slides": []}
 
 
-@app.delete("/api/delete_slide/{slide_id}")
+@app.delete("/delete_slide/{slide_id}")
 def delete_slide(slide_id: int, db: Session = Depends(get_db)):
     try:
         slide = db.query(models.UploadedSlide).filter(
@@ -3493,7 +3493,7 @@ def delete_slide(slide_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/generate_questions")
+@app.post("/generate_questions")
 async def generate_questions(
     payload: dict = Body(...),
     db: Session = Depends(get_db)
@@ -3656,7 +3656,7 @@ Generate exactly {question_count} questions:"""
         raise HTTPException(status_code=500, detail=f"Failed to generate questions: {str(e)}")
 
 
-@app.get("/api/get_question_sets")
+@app.get("/get_question_sets")
 def get_question_sets(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -3690,7 +3690,7 @@ def get_question_sets(user_id: str = Query(...), db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error getting question sets: {str(e)}")
         return {"question_sets": []}
-@app.delete("/api/delete_question_set/{question_set_id}")
+@app.delete("/delete_question_set/{question_set_id}")
 def delete_question_set(
     question_set_id: int,
     db: Session = Depends(get_db),
@@ -3736,7 +3736,7 @@ def delete_question_set(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to delete question set: {str(e)}")
         
-@app.post("/api/submit_question_answers")
+@app.post("/submit_question_answers")
 async def submit_question_answers(
     payload: dict = Body(...),
     db: Session = Depends(get_db)
@@ -3839,7 +3839,7 @@ async def submit_question_answers(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.put("/api/update_learning_review")
+@app.put("/update_learning_review")
 async def update_learning_review(
     payload: dict = Body(...),
     db: Session = Depends(get_db)
@@ -3889,7 +3889,7 @@ async def update_learning_review(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/get_question_set_details/{question_set_id}")
+@app.get("/get_question_set_details/{question_set_id}")
 def get_question_set_details(question_set_id: int, db: Session = Depends(get_db)):
     try:
         question_set = db.query(models.QuestionSet).filter(
@@ -3929,7 +3929,7 @@ def get_question_set_details(question_set_id: int, db: Session = Depends(get_db)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/submit_learning_response")
+@app.post("/submit_learning_response")
 async def submit_learning_response(
     payload: dict = Body(...),
     db: Session = Depends(get_db)
@@ -4108,7 +4108,7 @@ Generate evaluation now:"""
 
 # ==================== KNOWLEDGE ROADMAP SYSTEM ====================
 
-@app.post("/api/create_knowledge_roadmap")
+@app.post("/create_knowledge_roadmap")
 async def create_knowledge_roadmap(
     payload: dict = Body(...),
     db: Session = Depends(get_db)
@@ -4191,7 +4191,7 @@ async def create_knowledge_roadmap(
         raise HTTPException(status_code=500, detail=f"Failed to create roadmap: {str(e)}")
 
 
-@app.post("/api/expand_knowledge_node/{node_id}")
+@app.post("/expand_knowledge_node/{node_id}")
 async def expand_knowledge_node(
     node_id: int,
     db: Session = Depends(get_db)
@@ -4391,7 +4391,7 @@ Generate 4-5 subtopics now:"""
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to expand node: {str(e)}")
 
-@app.post("/api/explore_node/{node_id}")
+@app.post("/explore_node/{node_id}")
 async def explore_node(
     node_id: int,
     db: Session = Depends(get_db)
@@ -4535,7 +4535,7 @@ Generate now:"""
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to explore node: {str(e)}")
 
-@app.get("/api/get_knowledge_roadmap/{roadmap_id}")
+@app.get("/get_knowledge_roadmap/{roadmap_id}")
 async def get_knowledge_roadmap(
     roadmap_id: int,
     db: Session = Depends(get_db)
@@ -4642,7 +4642,7 @@ async def get_knowledge_roadmap(
         logger.error(f"Error getting roadmap: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to get roadmap: {str(e)}")
 
-@app.get("/api/get_user_roadmaps")
+@app.get("/get_user_roadmaps")
 async def get_user_roadmaps(
     user_id: str = Query(...),
     db: Session = Depends(get_db)
@@ -4690,7 +4690,7 @@ async def get_user_roadmaps(
         }
  # ==================== MISSING ENDPOINTS FOR LEARNING REVIEW ====================
 
-@app.get("/api/get_generated_questions")
+@app.get("/get_generated_questions")
 def get_generated_questions(user_id: str = Query(...), db: Session = Depends(get_db)):
     """Get all generated question sets for a user"""
     try:
@@ -4721,7 +4721,7 @@ def get_generated_questions(user_id: str = Query(...), db: Session = Depends(get
         logger.error(f"Error getting generated questions: {str(e)}")
         return {"question_sets": []}
 
-@app.get("/api/get_question_set/{question_set_id}")
+@app.get("/get_question_set/{question_set_id}")
 def get_question_set_with_questions(question_set_id: int, db: Session = Depends(get_db)):
     """Get a specific question set with all its questions"""
     try:
@@ -4758,7 +4758,7 @@ def get_question_set_with_questions(question_set_id: int, db: Session = Depends(
         logger.error(f"Error getting question set: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/submit_answers")
+@app.post("/submit_answers")
 async def submit_answers(
     payload: dict = Body(...),
     db: Session = Depends(get_db)
@@ -4846,7 +4846,7 @@ async def submit_answers(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/get_hints/{question_id}")
+@app.get("/get_hints/{question_id}")
 def get_hints_for_question(question_id: int, db: Session = Depends(get_db)):
     """Get hints for a specific question"""
     try:
@@ -4885,7 +4885,7 @@ def get_hints_for_question(question_id: int, db: Session = Depends(get_db)):
         logger.error(f"Error getting hints: {str(e)}")
         return {"question_id": question_id, "hints": ["Think about the main concepts covered in this topic."]}
 
-@app.post("/api/submit_review_response")
+@app.post("/submit_review_response")
 async def submit_review_response(
     payload: dict = Body(...),
     db: Session = Depends(get_db)
@@ -4974,7 +4974,7 @@ async def submit_review_response(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
                
-@app.get("/api/get_knowledge_roadmaps")
+@app.get("/get_knowledge_roadmaps")
 async def get_knowledge_roadmaps(
     user_id: str = Query(...),
     db: Session = Depends(get_db)
@@ -5012,7 +5012,7 @@ async def get_knowledge_roadmaps(
         return {"roadmaps": []}
 
 
-@app.post("/api/save_node_notes/{node_id}")
+@app.post("/save_node_notes/{node_id}")
 async def save_node_notes(
     node_id: int,
     payload: dict = Body(...),
@@ -5045,7 +5045,7 @@ async def save_node_notes(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.delete("/api/delete_roadmap/{roadmap_id}")
+@app.delete("/delete_roadmap/{roadmap_id}")
 async def delete_roadmap(
     roadmap_id: int,
     db: Session = Depends(get_db)
@@ -5098,7 +5098,7 @@ async def delete_roadmap(
 
 
 
-@app.post("/api/get_learning_hints")
+@app.post("/get_learning_hints")
 async def get_learning_hints(
     payload: dict = Body(...),
     db: Session = Depends(get_db)
@@ -5189,7 +5189,7 @@ Generate hint now:"""
 
 # ==================== GET LEARNING REVIEWS ====================
 
-@app.get("/api/get_learning_reviews")
+@app.get("/get_learning_reviews")
 def get_learning_reviews(user_id: str = Query(...), db: Session = Depends(get_db)):
     """
     Get all learning reviews for a user
@@ -5236,7 +5236,7 @@ def get_learning_reviews(user_id: str = Query(...), db: Session = Depends(get_db
         logger.error(f"Error getting learning reviews: {str(e)}")
         return {"reviews": []}
     
-@app.post("/api/save_archetype_profile")
+@app.post("/save_archetype_profile")
 async def save_archetype_profile(
     payload: dict = Body(...),
     db: Session = Depends(get_db)
@@ -5290,7 +5290,7 @@ async def save_archetype_profile(
 
 
 
-@app.get("/api/get_comprehensive_profile")
+@app.get("/get_comprehensive_profile")
 async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -5338,7 +5338,7 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/update_comprehensive_profile")
+@app.post("/update_comprehensive_profile")
 async def update_comprehensive_profile(
     payload: dict = Body(...),
     db: Session = Depends(get_db)
@@ -5390,7 +5390,7 @@ async def update_comprehensive_profile(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e)) 
     
-@app.post("/api/save_complete_profile")
+@app.post("/save_complete_profile")
 async def save_complete_profile(
     payload: dict = Body(...),
     db: Session = Depends(get_db)
@@ -5442,7 +5442,7 @@ async def save_complete_profile(
 
 # ==================== FRIEND SYSTEM ENDPOINTS ====================
 
-@app.get("/api/search_users")
+@app.get("/search_users")
 async def search_users(
     query: str = Query(..., min_length=1),
     username: str = Depends(verify_token),
@@ -5534,7 +5534,7 @@ async def search_users(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/send_friend_request")
+@app.post("/send_friend_request")
 async def send_friend_request(
     payload: dict = Body(...),
     username: str = Depends(verify_token),
@@ -5600,7 +5600,7 @@ async def send_friend_request(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/friend_requests")
+@app.get("/friend_requests")
 async def get_friend_requests(
     username: str = Depends(verify_token),
     db: Session = Depends(get_db)
@@ -5665,7 +5665,7 @@ async def get_friend_requests(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/respond_friend_request")
+@app.post("/respond_friend_request")
 async def respond_friend_request(
     payload: dict = Body(...),
     username: str = Depends(verify_token),
@@ -5740,7 +5740,7 @@ async def respond_friend_request(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/friends")
+@app.get("/friends")
 async def get_friends(
     username: str = Depends(verify_token),
     db: Session = Depends(get_db)
@@ -5802,7 +5802,7 @@ async def get_friends(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.delete("/api/remove_friend")
+@app.delete("/remove_friend")
 async def remove_friend(
     payload: dict = Body(...),
     username: str = Depends(verify_token),
@@ -5848,7 +5848,7 @@ async def remove_friend(
 
 # ==================== FRIEND ACTIVITY FEED ====================
 
-@app.get("/api/friend_activity_feed")
+@app.get("/friend_activity_feed")
 async def get_friend_activity_feed(
     username: str = Depends(verify_token),
     db: Session = Depends(get_db),
@@ -5914,7 +5914,7 @@ async def get_friend_activity_feed(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/give_kudos")
+@app.post("/give_kudos")
 async def give_kudos(
     payload: dict = Body(...),
     username: str = Depends(verify_token),
@@ -5962,7 +5962,7 @@ async def give_kudos(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/create_activity")
+@app.post("/create_activity")
 async def create_activity(
     payload: dict = Body(...),
     username: str = Depends(verify_token),
@@ -5996,7 +5996,7 @@ async def create_activity(
 
 # ==================== LEADERBOARDS ====================
 
-@app.get("/api/leaderboard")
+@app.get("/leaderboard")
 async def get_leaderboard(
     category: str = Query("global", regex="^(global|friends|subject|archetype)$"),
     metric: str = Query("total_hours", regex="^(total_hours|accuracy|streak|lessons)$"),
@@ -6078,7 +6078,7 @@ async def get_leaderboard(
 
 # ==================== QUIZ BATTLES ====================
 
-@app.post("/api/create_quiz_battle")
+@app.post("/create_quiz_battle")
 async def create_quiz_battle(
     payload: dict = Body(...),
     username: str = Depends(verify_token),
@@ -6136,7 +6136,7 @@ async def create_quiz_battle(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/quiz_battles")
+@app.get("/quiz_battles")
 async def get_quiz_battles(
     username: str = Depends(verify_token),
     db: Session = Depends(get_db),
@@ -6194,7 +6194,7 @@ async def get_quiz_battles(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/complete_quiz_battle")
+@app.post("/complete_quiz_battle")
 async def complete_quiz_battle(
     payload: dict = Body(...),
     username: str = Depends(verify_token),
@@ -6271,7 +6271,7 @@ async def complete_quiz_battle(
 
 # ==================== CHALLENGES ====================
 
-@app.post("/api/create_challenge")
+@app.post("/create_challenge")
 async def create_challenge(
     payload: dict = Body(...),
     username: str = Depends(verify_token),
@@ -6310,7 +6310,7 @@ async def create_challenge(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/challenges")
+@app.get("/challenges")
 async def get_challenges(
     username: str = Depends(verify_token),
     db: Session = Depends(get_db),
@@ -6372,7 +6372,7 @@ async def get_challenges(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/join_challenge")
+@app.post("/join_challenge")
 async def join_challenge(
     payload: dict = Body(...),
     username: str = Depends(verify_token),
@@ -6420,7 +6420,7 @@ async def join_challenge(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/quiz_battle/{battle_id}")
+@app.get("/quiz_battle/{battle_id}")
 async def get_quiz_battle_detail(
     battle_id: int,
     current_user: models.User = Depends(get_current_user),
@@ -6479,7 +6479,7 @@ async def get_quiz_battle_detail(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/generate_battle_questions")
+@app.post("/generate_battle_questions")
 async def generate_battle_questions(
     payload: dict,
     current_user: models.User = Depends(get_current_user),
@@ -6613,7 +6613,7 @@ Requirements:
 
 # ==================== CHALLENGE ENDPOINTS ====================
 
-@app.get("/api/challenge/{challenge_id}")
+@app.get("/challenge/{challenge_id}")
 async def get_challenge_detail(
     challenge_id: int,
     current_user: models.User = Depends(get_current_user),
@@ -6678,7 +6678,7 @@ async def get_challenge_detail(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/generate_challenge_questions")
+@app.post("/generate_challenge_questions")
 async def generate_challenge_questions(
     payload: dict,
     current_user: models.User = Depends(get_current_user),
@@ -6812,7 +6812,7 @@ Requirements:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/update_challenge_progress")
+@app.post("/update_challenge_progress")
 async def update_challenge_progress(
     payload: dict,
     current_user: models.User = Depends(get_current_user),
@@ -6900,7 +6900,7 @@ async def update_challenge_progress(
         logger.error(f"Error updating challenge progress: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 from sqlalchemy import and_, or_
-@app.post("/api/share_content")
+@app.post("/share_content")
 async def share_content(
     share_data: ShareContentRequest,
     current_user: models.User = Depends(get_current_user),
@@ -6997,7 +6997,7 @@ async def share_content(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/shared_with_me")
+@app.get("/shared_with_me")
 def get_shared_with_me(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -7077,7 +7077,7 @@ def get_shared_with_me(
         logger.error(f"❌ Error getting shared content: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/debug_friendships")
+@app.get("/debug_friendships")
 def debug_friendships(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -7126,7 +7126,7 @@ def debug_friendships(
         
     except Exception as e:
         return {"error": str(e)}
-@app.get("/api/shared/{content_type}/{content_id}")
+@app.get("/shared/{content_type}/{content_id}")
 def get_shared_content(
     content_type: str,
     content_id: int,
@@ -7225,7 +7225,7 @@ def get_shared_content(
         logger.error(f"❌ Error getting shared content: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/debug_shared_content")
+@app.get("/debug_shared_content")
 def debug_shared_content(
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -7279,7 +7279,7 @@ def debug_shared_content(
         
     except Exception as e:
         return {"error": str(e)}
-@app.delete("/api/remove_shared_access/{share_id}")
+@app.delete("/remove_shared_access/{share_id}")
 def remove_shared_access(
     share_id: int,
     current_user: models.User = Depends(get_current_user),  # Use the existing dependency
@@ -7323,7 +7323,7 @@ def remove_shared_access(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.put("/api/update_shared_note/{note_id}")
+@app.put("/update_shared_note/{note_id}")
 def update_shared_note(
     note_id: int,
     note_data: dict,
@@ -7403,7 +7403,7 @@ if build_dir.exists():
     app.mount("/static", StaticFiles(directory=build_dir / "static"), name="static")
     
     # Serve React app for all other routes (MUST BE LAST!)
-    @app.get("/api/{full_path:path}")
+    @app.get("/{full_path:path}")
     async def serve_react_app(full_path: str):
         """Serve React app for all non-API routes"""
         

@@ -20,7 +20,7 @@ const SharedContent = () => {
   const fetchSharedContent = async () => {
     setLoading(true);
     try {
-      const response = await fetch('${API_URL}/shared_with_me', {
+      const response = await fetch(`${API_URL}/shared_with_me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       

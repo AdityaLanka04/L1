@@ -90,7 +90,7 @@ const Flashcards = () => {
       formData.append('max_words', '4');
       formData.append('format', 'title');
       
-      const response = await fetch('${API_URL}/generate_chat_summary', {
+      const response = await fetch(`${API_URL}/generate_chat_summary`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -242,19 +242,13 @@ const Flashcards = () => {
         }
       }
 
-      let response = await fetch('${API_URL}/generate_flashcards_advanced/', {
+      let response = await fetch(`${API_URL}/generate_flashcards`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
       });
 
-      if (!response.ok && response.status === 404) {
-        response = await fetch('${API_URL}/generate_flashcards/', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: formData
-        });
-      }
+      
 
       if (!response.ok) throw new Error(`Failed to generate flashcards: ${response.status}`);
 
@@ -393,7 +387,7 @@ const Flashcards = () => {
     }
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('${API_URL}/update_flashcard_set', {
+      const response = await fetch(`${API_URL}/update_flashcard_set`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

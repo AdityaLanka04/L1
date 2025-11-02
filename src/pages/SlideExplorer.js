@@ -86,7 +86,7 @@ const SlideExplorer = () => {
         formData.append('files', file);
       });
 
-      const response = await fetch('${API_URL}/upload_slides', {
+      const response = await fetch(`${API_URL}/upload_slides`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`

@@ -272,7 +272,7 @@ const completeQuiz = async (scores) => {
     try {
       const token = localStorage.getItem('token');
       
-      await fetch('${API_URL}/save_complete_profile', {
+      await fetch(`${API_URL}/save_complete_profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

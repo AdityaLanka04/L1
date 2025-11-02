@@ -38,7 +38,7 @@ const Social = () => {
 
   const fetchUserProfile = async () => {
     try {
-      const response = await fetch('${API_URL}/me', {
+      const response = await fetch(`${API_URL}/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -53,7 +53,7 @@ const Social = () => {
 
   const fetchFriendRequests = async () => {
     try {
-      const response = await fetch('${API_URL}/friend_requests', {
+      const response = await fetch(`${API_URL}/friend_requests`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -67,7 +67,7 @@ const Social = () => {
 
   const fetchFriends = async () => {
     try {
-      const response = await fetch('${API_URL}/friends', {
+      const response = await fetch(`${API_URL}/friends`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -84,7 +84,7 @@ const Social = () => {
     console.log('🔄 Fetching shared content...');
     const token = localStorage.getItem('token');
     
-    const response = await fetch('${API_URL}/shared_with_me', {
+    const response = await fetch(`${API_URL}/shared_with_me`, {
       headers: { 
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -156,7 +156,7 @@ const Social = () => {
 
   const sendFriendRequest = async (receiverId) => {
     try {
-      const response = await fetch('${API_URL}/send_friend_request', {
+      const response = await fetch(`${API_URL}/send_friend_request`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -178,7 +178,7 @@ const Social = () => {
 
   const respondToFriendRequest = async (requestId, action) => {
     try {
-      const response = await fetch('${API_URL}/respond_friend_request', {
+      const response = await fetch(`${API_URL}/respond_friend_request`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -200,7 +200,7 @@ const Social = () => {
     if (!window.confirm('Are you sure you want to remove this friend?')) return;
     
     try {
-      const response = await fetch('${API_URL}/remove_friend', {
+      const response = await fetch(`${API_URL}/remove_friend`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -551,7 +551,7 @@ def register_question_bank_api(app, groq_client: Groq, model: str, get_db_func):
         "chat_slide_processor": ChatSlideProcessorAgent(groq_client, model)
     }
     
-    @app.post("/qb/upload_pdf")
+    @app.post("/api/qb/upload_pdf")
     async def upload_pdf(
         file: UploadFile = File(...),
         user_id: str = Query(...),
@@ -631,7 +631,7 @@ def register_question_bank_api(app, groq_client: Groq, model: str, get_db_func):
                 pass
             raise HTTPException(status_code=500, detail=f"Error uploading PDF: {str(e)}")
     
-    @app.get("/qb/get_uploaded_documents")
+    @app.get("/api/qb/get_uploaded_documents")
     async def get_uploaded_documents(
         user_id: str = Query(...),
         db: Session = Depends(get_db_func)
@@ -667,7 +667,7 @@ def register_question_bank_api(app, groq_client: Groq, model: str, get_db_func):
             logger.error(f"Error fetching documents: {e}")
             raise HTTPException(status_code=500, detail=str(e))
     
-    @app.post("/qb/generate_from_pdf")
+    @app.post("/api/qb/generate_from_pdf")
     async def generate_from_pdf(
         request: QuestionGenerationRequest,
         db: Session = Depends(get_db_func)
@@ -784,7 +784,7 @@ def register_question_bank_api(app, groq_client: Groq, model: str, get_db_func):
             db.rollback()
             raise HTTPException(status_code=500, detail=str(e))
     
-    @app.post("/qb/generate_from_chat_slides")
+    @app.post("/api/qb/generate_from_chat_slides")
     async def generate_from_chat_slides(
         request: QuestionGenerationRequest,
         db: Session = Depends(get_db_func)
@@ -890,7 +890,7 @@ def register_question_bank_api(app, groq_client: Groq, model: str, get_db_func):
             db.rollback()
             raise HTTPException(status_code=500, detail=str(e))
     
-    @app.get("/qb/get_question_sets")
+    @app.get("/api/qb/get_question_sets")
     async def get_question_sets(
         user_id: str = Query(...),
         db: Session = Depends(get_db_func)
@@ -930,7 +930,7 @@ def register_question_bank_api(app, groq_client: Groq, model: str, get_db_func):
             logger.error(f"Error fetching question sets: {e}")
             raise HTTPException(status_code=500, detail=str(e))
     
-    @app.get("/qb/get_question_set/{set_id}")
+    @app.get("/api/qb/get_question_set/{set_id}")
     async def get_question_set_detail(
         set_id: int,
         user_id: str = Query(...),
@@ -987,7 +987,7 @@ def register_question_bank_api(app, groq_client: Groq, model: str, get_db_func):
             logger.error(f"Error fetching question set: {e}")
             raise HTTPException(status_code=500, detail=str(e))
     
-    @app.delete("/qb/delete_question_set/{set_id}")
+    @app.delete("/api/qb/delete_question_set/{set_id}")
     async def delete_question_set(
         set_id: int,
         user_id: str = Query(...),
@@ -1021,7 +1021,7 @@ def register_question_bank_api(app, groq_client: Groq, model: str, get_db_func):
             db.rollback()
             raise HTTPException(status_code=500, detail=str(e))
     
-    @app.post("/qb/submit_answers")
+    @app.post("/api/qb/submit_answers")
     async def submit_answers(
         request: AnswerSubmission,
         db: Session = Depends(get_db_func)
@@ -1130,7 +1130,7 @@ def register_question_bank_api(app, groq_client: Groq, model: str, get_db_func):
             db.rollback()
             raise HTTPException(status_code=500, detail=str(e))
     
-    @app.post("/qb/generate_similar_question")
+    @app.post("/api/qb/generate_similar_question")
     async def generate_similar_question(
         request: SimilarQuestionRequest,
         db: Session = Depends(get_db_func)
@@ -1216,7 +1216,7 @@ def register_question_bank_api(app, groq_client: Groq, model: str, get_db_func):
                 pass
             raise HTTPException(status_code=500, detail=f"Error generating similar question: {str(e)}")
     
-    @app.get("/qb/get_analytics")
+    @app.get("/api/qb/get_analytics")
     async def get_analytics(
         user_id: str = Query(...),
         db: Session = Depends(get_db_func)

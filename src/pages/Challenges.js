@@ -51,7 +51,7 @@ const Challenges = () => {
     }
 
     try {
-      const response = await fetch('${API_URL}/create_challenge', {
+      const response = await fetch(`${API_URL}/create_challenge`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -80,7 +80,7 @@ const Challenges = () => {
 
   const handleJoinChallenge = async (challengeId) => {
     try {
-      const response = await fetch('${API_URL}/join_challenge', {
+      const response = await fetch(`${API_URL}/join_challenge`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

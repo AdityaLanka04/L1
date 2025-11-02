@@ -165,7 +165,7 @@ const QuestionBankDashboard = () => {
 
     try {
       setLoading(true);
-      const response = await fetch('${API_URL}/qb/generate_from_pdf', {
+      const response = await fetch(`${API_URL}/qb/generate_from_pdf`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -208,7 +208,7 @@ const QuestionBankDashboard = () => {
     try {
       setLoading(true);
       const promises = selectedSources.map(source => {
-        return fetch('${API_URL}/qb/generate_from_chat_slides', {
+        return fetch(`${API_URL}/qb/generate_from_chat_slides`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -253,7 +253,7 @@ const QuestionBankDashboard = () => {
 
     try {
       setLoading(true);
-      const response = await fetch('${API_URL}/qb/generate_from_pdf', {
+      const response = await fetch(`${API_URL}/qb/generate_from_pdf`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -323,7 +323,7 @@ const QuestionBankDashboard = () => {
 
     try {
       setLoading(true);
-      const response = await fetch('${API_URL}/qb/submit_answers', {
+      const response = await fetch(`${API_URL}/qb/submit_answers`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -389,7 +389,7 @@ const QuestionBankDashboard = () => {
   const generateSimilarQuestion = async (questionId) => {
     try {
       setLoading(true);
-      const response = await fetch('${API_URL}/qb/generate_similar_question', {
+      const response = await fetch(`${API_URL}/qb/generate_similar_question`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

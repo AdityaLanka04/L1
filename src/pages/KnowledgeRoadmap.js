@@ -167,7 +167,7 @@ const KnowledgeRoadmap = () => {
 
     try {
       setLoading(true);
-      const response = await fetch('${API_URL}/create_knowledge_roadmap', {
+      const response = await fetch(`${API_URL}/create_knowledge_roadmap`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
