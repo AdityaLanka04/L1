@@ -56,12 +56,38 @@ app = FastAPI(title="Brainwave Backend API", version="3.0.0")
 
 app = FastAPI()
 
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:8000",
+    "https://ceryl.onrender.com",
+]
+
+# Allow all Vercel deployments dynamically
+def is_allowed_origin(origin: str) -> bool:
+    """Check if origin is allowed"""
+    if origin in ALLOWED_ORIGINS:
+        return True
+    # Allow all vercel.app subdomains for your project
+    if origin.endswith(".vercel.app") and "asphar0057s-projects" in origin:
+        return True
+    return False
+
+# Custom CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"https://.*\.vercel\.app",  # Allow all Vercel deployments
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Also add specific origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",  # Local development
-        "https://l1-m71fagwct-asphar0057s-projects.vercel.app",  # ✅ Your Vercel frontend
-        "https://*.vercel.app",  # ✅ All Vercel preview deployments
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "https://ceryl.onrender.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
