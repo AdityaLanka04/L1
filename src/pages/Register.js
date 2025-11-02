@@ -26,66 +26,61 @@ const Register = () => {
   };
 
   const handleRegister = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!formData.username.trim() || !formData.password.trim() || 
-        !formData.firstName.trim() || !formData.lastName.trim() || 
-        !formData.email.trim()) {
-      alert("Please fill in all required fields (username, password, first name, last name, email)");
-      return;
+  if (!formData.username || !formData.password || 
+      !formData.firstName || !formData.lastName || !formData.email) {
+    alert("Please fill in all required fields");
+    return;
+  }
+
+  setLoading(true);
+  try {
+    // build JSON payload matching backend's RegisterPayload model
+    const registrationData = {
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      email: formData.email,
+      username: formData.username,
+      password: formData.password,
+      ...(formData.age && { age: parseInt(formData.age) }),
+      ...(formData.fieldOfStudy && { field_of_study: formData.fieldOfStudy }),
+      ...(formData.learningStyle && { learning_style: formData.learningStyle }),
+      ...(formData.school && { school_university: formData.school })
+    };
+
+    const res = await fetch(`${API_URL}/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(registrationData),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.detail || `HTTP ${res.status}`);
     }
 
-    setLoading(true);
-    try {
-      // ✅ FIXED: Send JSON data that matches backend's UserCreate model
-      const registrationData = {
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        email: formData.email,
-        username: formData.username,
-        password: formData.password,
-        // Add optional fields only if they have values
-        ...(formData.age && { age: parseInt(formData.age) }),
-        ...(formData.fieldOfStudy && { field_of_study: formData.fieldOfStudy }),
-        ...(formData.learningStyle && { learning_style: formData.learningStyle }),
-        ...(formData.school && { school_university: formData.school })
-      };
+    console.log("Registration successful:", data);
+    localStorage.setItem("userProfile", JSON.stringify({
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      username: formData.username,
+    }));
 
-      console.log('Sending registration data:', registrationData);
-
-      // ✅ FIXED: Use JSON content type and proper HTTP method
-      const res = await fetch(`${API_URL}/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(registrationData),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ detail: 'Registration failed' }));
-        throw new Error(errorData.detail || `HTTP ${res.status}: Registration failed`);
-      }
-
-      const data = await res.json();
-      console.log('Registration successful:', data);
-      
-      // Store user profile for later use
-      localStorage.setItem('userProfile', JSON.stringify({
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        username: formData.username
-      }));
-      
-      alert('Registration successful! Please log in.');
-      navigate('/login');
-    } catch (error) {
-      console.error('Registration error:', error);
-      alert('Registration failed: ' + error.message);
-    }
+    alert("Registration successful! Please log in.");
+    navigate("/login");
+  } catch (err) {
+    console.error("Registration error:", err);
+    alert("Registration failed: " + err.message);
+  } finally {
     setLoading(false);
-  };
+  }
+};
+
 
   return (
     <div className="register-page">

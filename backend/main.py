@@ -12,7 +12,7 @@ from fastapi import FastAPI, Form, Depends, HTTPException, status, Query, Reques
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm, HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel
+from pydantic import BaseModel,EmailStr 
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
@@ -552,52 +552,65 @@ def get_daily_goal_progress(user_id: str = Query(...), db: Session = Depends(get
         return {"questions_today": 0, "daily_goal": 20, "percentage": 0, "streak": 0}
 
 
+
+# -----------------------------
+# 1️⃣ Pydantic model (JSON body)
+# -----------------------------
+class RegisterPayload(BaseModel):
+    first_name: str
+    last_name: str
+    email: EmailStr
+    username: str
+    password: str
+    age: int | None = None
+    field_of_study: str | None = None
+    learning_style: str | None = None
+    school_university: str | None = None
+
+
+# -----------------------------
+# 2️⃣ Register endpoint (JSON)
+# -----------------------------
 @app.post("/api/register")
-async def register(
-    first_name: str = Form(...),
-    last_name: str = Form(...),
-    email: str = Form(...),
-    username: str = Form(...),
-    password: str = Form(...),
-    age: int = Form(None),
-    field_of_study: str = Form(None),
-    learning_style: str = Form(None),
-    school_university: str = Form(None),
-    db: Session = Depends(get_db)
-):
-    logger.info(f"Registering user: {username}")
-    
-    if len(password) < 6:
+async def register(payload: RegisterPayload, db: Session = Depends(get_db)):
+    logger.info(f"Registering user: {payload.username}")
+
+    # --- validation ---
+    if len(payload.password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters long")
-    
-    if get_user_by_username(db, username):
+
+    if get_user_by_username(db, payload.username):
         raise HTTPException(status_code=400, detail="Username already registered")
-    
-    if get_user_by_email(db, email):
+
+    if get_user_by_email(db, payload.email):
         raise HTTPException(status_code=400, detail="Email already registered")
-    
-    hashed_password = get_password_hash(password)
+
+    # --- password hashing ---
+    hashed_password = get_password_hash(payload.password)
+
+    # --- create user record ---
     db_user = models.User(
-        first_name=first_name,
-        last_name=last_name,
-        email=email,
-        username=username,
+        first_name=payload.first_name,
+        last_name=payload.last_name,
+        email=payload.email,
+        username=payload.username,
         hashed_password=hashed_password,
-        age=age,
-        field_of_study=field_of_study,
-        learning_style=learning_style,
-        school_university=school_university,
-        google_user=False
+        age=payload.age,
+        field_of_study=payload.field_of_study,
+        learning_style=payload.learning_style,
+        school_university=payload.school_university,
+        google_user=False,
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    
+
+    # --- initialize stats ---
     user_stats = models.UserStats(user_id=db_user.id)
     db.add(user_stats)
     db.commit()
-    
-    logger.info(f"User {username} registered successfully")
+
+    logger.info(f"User {payload.username} registered successfully")
     return {"message": "User registered successfully"}
 
 @app.post("/api/token", response_model=Token)
