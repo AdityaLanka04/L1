@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# DBs / local state
+*.db
+backend/brainwave.db
+
+# Node
+node_modules/
+
+# Env
+.venv/
+.env
+backend/clear/
+__pycache__/
+*.pyc
+.venv/
+.env
+*.db
+backend/brainwave.db
+node_modules/
+.DS_Store
+start.log

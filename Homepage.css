@@ -1,0 +1,162 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Quicksand', sans-serif;
+  background-color: #000000;
+  background-image: 
+    linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
+    url("https://www.transparenttextures.com/patterns/shattered-dark.png");
+  color: #D7B38C;
+  overflow-x: hidden;
+}
+
+.homepage {
+  width: 100vw;
+  height: 100vh;
+  background-color: #000000;
+  background-image: 
+    linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
+    url("https://www.transparenttextures.com/patterns/shattered-dark.png");
+  position: relative;
+  overflow-x: hidden;
+}
+
+.homepage-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.login-trigger {
+  position: absolute;
+  top: 50px;
+  right: 60px;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: opacity 0.3s ease;
+  color: #D7B38C;
+  z-index: 10;
+}
+
+.login-trigger:hover {
+  opacity: 0.7;
+}
+
+.main-content {
+  text-align: left;
+  position: absolute;
+  left: 60px;
+  bottom: 30%;
+  transform: translateY(50%);
+  width: calc(100vw - 120px);
+  overflow: visible;
+}
+
+.title {
+  font-size: 180px;
+  font-weight: 300;
+  letter-spacing: -4px;
+  line-height: 0.9;
+  margin-bottom: 40px;
+  color: #D7B38C;
+  text-transform: lowercase;
+  position: relative;
+  z-index: 5;
+}
+
+.subtitle-text {
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 3px;
+  color: #D7B38C;
+  opacity: 0.8;
+  text-transform: none;
+  display: block;
+  z-index: 5;
+  position: absolute;
+  right: 0;
+  bottom: -45px;
+}
+
+.horizontal-line {
+  width: 100vw;
+  height: 2px;
+  background-color: #D7B38C;
+  margin-left: -60px;
+  position: relative;
+  z-index: 5;
+  margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 120px;
+    letter-spacing: -3px;
+    margin-bottom: 30px;
+  }
+  
+  .subtitle-text {
+    font-size: 12px;
+    letter-spacing: 2px;
+    right: 0;
+    bottom: -35px;
+  }
+  
+  .login-trigger {
+    top: 30px;
+    right: 30px;
+    font-size: 12px;
+    letter-spacing: 2px;
+  }
+  
+  .main-content {
+    left: 30px;
+    width: calc(100vw - 60px);
+  }
+  
+  .horizontal-line {
+    margin-left: -30px;
+  }
+}
+
+@media (max-width: 480px) {
+  .title {
+    font-size: 80px;
+    letter-spacing: -2px;
+    margin-bottom: 25px;
+  }
+  
+  .subtitle-text {
+    font-size: 10px;
+    letter-spacing: 2px;
+    right: 0;
+    bottom: -30px;
+  }
+  
+  .main-content {
+    left: 20px;
+    width: calc(100vw - 40px);
+  }
+  
+  .login-trigger {
+    top: 20px;
+    right: 20px;
+    font-size: 10px;
+  }
+  
+  .horizontal-line {
+    margin-left: -20px;
+  }
+}

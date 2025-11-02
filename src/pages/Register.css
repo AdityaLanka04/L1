@@ -1,0 +1,218 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  font-family: 'Quicksand', sans-serif;
+  background-color: #000000;
+  color: #D7B38C;
+  height: 100%;
+  overflow-x: hidden;
+  background-image: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
+    url("https://www.transparenttextures.com/patterns/shattered-dark.png");
+}
+
+.register-page {
+  width: 100vw;
+  min-height: 100vh;
+  background-color: #000000;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-image: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
+    url("https://www.transparenttextures.com/patterns/shattered-dark.png");
+}
+
+.register-scroll-container {
+  width: 100%;
+  min-height: 100vh;
+  overflow-y: auto;
+  padding: 40px 0;
+}
+
+.register-container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.register-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.register-title {
+  font-size: 60px;
+  font-weight: 300;
+  letter-spacing: -1px;
+  line-height: 1;
+  color: #D7B38C;
+}
+
+.register-form-container {
+  width: 100%;
+  border: 1px solid #D7B38C;
+  padding: 40px;
+  box-sizing: border-box;
+}
+
+.form-title {
+  font-size: 24px;
+  font-weight: 300;
+  letter-spacing: 2px;
+  margin-bottom: 30px;
+  text-align: center;
+  color: #D7B38C;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-row {
+  display: flex;
+  gap: 20px;
+}
+
+.form-row .register-input {
+  flex: 1;
+}
+
+.register-input {
+  background-color: transparent;
+  border: 1px solid #D7B38C;
+  color: #D7B38C;
+  padding: 15px;
+  font-size: 14px;
+  letter-spacing: 1px;
+  outline: none;
+  transition: border-color 0.3s ease;
+  font-family: 'Quicksand', sans-serif;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.register-input::placeholder {
+  color: #D7B38C;
+  opacity: 0.6;
+  letter-spacing: 1px;
+}
+
+.register-input:focus {
+  border-color: #D7B38C;
+  opacity: 1;
+}
+
+.register-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+select.register-input {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23D7B38C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 20px center;
+  background-size: 16px;
+  padding-right: 50px;
+}
+
+.register-select {
+  appearance: none;
+}
+
+select.register-input option {
+  background-color: #000000;
+  color: #D7B38C;
+}
+
+.register-button {
+  background-color: transparent;
+  border: 1px solid #D7B38C;
+  color: #D7B38C;
+  padding: 15px;
+  font-size: 14px;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 20px;
+  font-family: 'Quicksand', sans-serif;
+}
+
+.register-button:hover:not(:disabled) {
+  background-color: #D7B38C;
+  color: #000000;
+}
+
+.register-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.register-switch {
+  margin-top: 30px;
+  text-align: center;
+}
+
+.register-switch span {
+  font-size: 12px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  color: #D7B38C;
+  opacity: 0.8;
+  border-bottom: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.register-switch span:hover {
+  opacity: 1;
+  border-bottom-color: #D7B38C;
+}
+
+@media (max-width: 768px) {
+  .register-scroll-container {
+    padding: 20px 0;
+  }
+  
+  .register-container {
+    padding: 15px;
+  }
+  
+  .register-title {
+    font-size: 48px;
+  }
+  
+  .register-form-container {
+    padding: 30px;
+  }
+  
+  .register-header {
+    margin-bottom: 30px;
+  }
+  
+  .form-row {
+    flex-direction: column;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .register-title {
+    font-size: 36px;
+  }
+  
+  .register-form-container {
+    padding: 20px;
+  }
+  
+  .form-title {
+    font-size: 20px;
+  }
+}
