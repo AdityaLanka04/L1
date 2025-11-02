@@ -59,18 +59,23 @@ app = FastAPI(title="Brainwave Backend API", version="3.0.0")  # ✅ Keep this, 
 
 # ==================== CORS CONFIGURATION ====================
 
+from fastapi.middleware.cors import CORSMiddleware
+
+origins = [
+    "http://localhost:3000",
+    "http://localhost:8000",
+    "https://ceryl.onrender.com",
+    "https://l1-d0i9clmox-asphar0057s-projects.vercel.app",  # ✅ Your actual Vercel domain
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:8000",
-        "https://ceryl.onrender.com",
-    ],
-    allow_origin_regex=r"https://.*-asphar0057s-projects\.vercel\.app",  # ✅ Only YOUR Vercel deployments
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 logger.info("✅ CORS configured for localhost, Render, and Vercel deployments")
 
