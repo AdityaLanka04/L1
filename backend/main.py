@@ -503,14 +503,19 @@ Provide clear, educational responses tailored to the student's profile."""
    #     "api_version": "3.0.0"
    # }
 
+from datetime import datetime, timezone
+import os
+
 @app.get("/api/health")
 def health_check():
     return {
         "status": "healthy",
         "message": "Brainwave API is running",
         "ai_provider": "Groq",
+        "frontend": os.getenv("FRONTEND_URL", "https://l1-7i4bnhcn1-asphar0057s-projects.vercel.app"),
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
+
 
 @app.get("/api/get_daily_goal_progress")
 def get_daily_goal_progress(user_id: str = Query(...), db: Session = Depends(get_db)):
