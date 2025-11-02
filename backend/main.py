@@ -67,7 +67,8 @@ app.add_middleware(
         "http://localhost:3000",
         "http://localhost:8000",
         "https://ceryl.onrender.com",
-        "https://l1.vercel.app",  # ✅ your main production domain (if set)
+        "https://l1.vercel.app", 
+        "https://l1-7i4bnhcn1-asphar0057s-projects.vercel.app", # ✅ your main production domain (if set)
     ],
     allow_origin_regex=r"https://l1-[a-z0-9]+-projects\.vercel\.app$",  # ✅ allows all preview deploys
     allow_credentials=True,
@@ -585,7 +586,7 @@ async def register(payload: RegisterPayload, db: Session = Depends(get_db)):
     if len(payload.password.encode("utf-8")) > 72:
         logger.warning(f"Password too long for bcrypt (>{len(payload.password)} chars). Truncating for {payload.username}")
         payload.password = payload.password[:72]
-        
+
     if get_user_by_email(db, payload.email):
         raise HTTPException(status_code=400, detail="Email already registered")
 
