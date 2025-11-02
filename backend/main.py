@@ -52,36 +52,13 @@ logger = logging.getLogger(__name__)
 
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Brainwave Backend API", version="3.0.0")
 
-app = FastAPI()
 
-ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:8000",
-    "https://ceryl.onrender.com",
-]
 
-# Allow all Vercel deployments dynamically
-def is_allowed_origin(origin: str) -> bool:
-    """Check if origin is allowed"""
-    if origin in ALLOWED_ORIGINS:
-        return True
-    # Allow all vercel.app subdomains for your project
-    if origin.endswith(".vercel.app") and "asphar0057s-projects" in origin:
-        return True
-    return False
+app = FastAPI(title="Brainwave Backend API", version="3.0.0")  # ✅ Keep this, remove duplicate
 
-# Custom CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origin_regex=r"https://.*\.vercel\.app",  # Allow all Vercel deployments
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# ==================== CORS CONFIGURATION ====================
 
-# Also add specific origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -89,10 +66,13 @@ app.add_middleware(
         "http://localhost:8000",
         "https://ceryl.onrender.com",
     ],
+    allow_origin_regex=r"https://.*-asphar0057s-projects\.vercel\.app",  # ✅ Only YOUR Vercel deployments
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+logger.info("✅ CORS configured for localhost, Render, and Vercel deployments")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
