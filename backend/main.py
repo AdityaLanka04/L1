@@ -45,6 +45,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
 from pathlib import Path
+from fastapi.middleware.cors import CORSMiddleware
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -53,13 +54,18 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Brainwave Backend API", version="3.0.0")
 
+app = FastAPI()
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "https://ceryl.onrender.com"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://l1-nm16lhgp9-asphar0057s-projects.vercel.app",  # Your Vercel URL
+        "https://*.vercel.app",  # Allow all Vercel preview deployments
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"]
 )
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
