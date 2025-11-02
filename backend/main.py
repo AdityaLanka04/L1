@@ -582,6 +582,10 @@ async def register(payload: RegisterPayload, db: Session = Depends(get_db)):
     if get_user_by_username(db, payload.username):
         raise HTTPException(status_code=400, detail="Username already registered")
 
+    if len(payload.password.encode("utf-8")) > 72:
+        logger.warning(f"Password too long for bcrypt (>{len(payload.password)} chars). Truncating for {payload.username}")
+        payload.password = payload.password[:72]
+        
     if get_user_by_email(db, payload.email):
         raise HTTPException(status_code=400, detail="Email already registered")
 
