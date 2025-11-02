@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Register.css';
-import { API_URL } from '../config';
+import { API_URL } from '../config/api';
+
 const Register = () => {
   const [formData, setFormData] = useState({
     username: '',
@@ -27,51 +28,55 @@ const Register = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
 
-    if (!formData.username.trim() || !formData.password.trim() || !formData.firstName.trim() || !formData.lastName.trim()) {
-      alert("Please fill in all required fields");
+    if (!formData.username.trim() || !formData.password.trim() || 
+        !formData.firstName.trim() || !formData.lastName.trim() || 
+        !formData.email.trim()) {
+      alert("Please fill in all required fields (username, password, first name, last name, email)");
       return;
     }
 
     setLoading(true);
     try {
-      // Create FormData object that matches backend expectations
-      const registrationFormData = new FormData();
-      registrationFormData.append('first_name', formData.firstName);
-      registrationFormData.append('last_name', formData.lastName);
-      registrationFormData.append('email', formData.email);
-      registrationFormData.append('username', formData.username);
-      registrationFormData.append('password', formData.password);
-      
-      // Add optional fields only if they have values
-      if (formData.age) {
-        registrationFormData.append('age', formData.age);
-      }
-      if (formData.fieldOfStudy) {
-        registrationFormData.append('field_of_study', formData.fieldOfStudy);
-      }
-      if (formData.learningStyle) {
-        registrationFormData.append('learning_style', formData.learningStyle);
-      }
-      if (formData.school) {
-        registrationFormData.append('school_university', formData.school);
-      }
+      // ✅ FIXED: Send JSON data that matches backend's UserCreate model
+      const registrationData = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        username: formData.username,
+        password: formData.password,
+        // Add optional fields only if they have values
+        ...(formData.age && { age: parseInt(formData.age) }),
+        ...(formData.fieldOfStudy && { field_of_study: formData.fieldOfStudy }),
+        ...(formData.learningStyle && { learning_style: formData.learningStyle }),
+        ...(formData.school && { school_university: formData.school })
+      };
 
-      // Fixed: Correct port (8001) and removed Content-Type header for FormData
+      console.log('Sending registration data:', registrationData);
+
+      // ✅ FIXED: Use JSON content type and proper HTTP method
       const res = await fetch(`${API_URL}/register`, {
         method: 'POST',
-        body: registrationFormData,  // FormData, not JSON
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(registrationData),
       });
 
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.detail || 'Registration failed');
+        const errorData = await res.json().catch(() => ({ detail: 'Registration failed' }));
+        throw new Error(errorData.detail || `HTTP ${res.status}: Registration failed`);
       }
 
       const data = await res.json();
       console.log('Registration successful:', data);
       
       // Store user profile for later use
-      localStorage.setItem('userProfile', JSON.stringify(formData));
+      localStorage.setItem('userProfile', JSON.stringify({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        username: formData.username
+      }));
       
       alert('Registration successful! Please log in.');
       navigate('/login');
@@ -119,10 +124,11 @@ const Register = () => {
               <input
                 type="email"
                 name="email"
-                placeholder="EMAIL ADDRESS"
+                placeholder="EMAIL ADDRESS *"
                 value={formData.email}
                 onChange={handleChange}
                 className="register-input"
+                required
                 disabled={loading}
               />
               

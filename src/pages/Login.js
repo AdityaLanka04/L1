@@ -4,8 +4,7 @@ import axios from 'axios';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase/config';
 import './Login.css';
-import { API_URL } from '../config';
-
+import { API_URL } from '../config/api';
 function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -43,7 +42,8 @@ function Login() {
       
       const idToken = await user.getIdToken();
       
-      const backendResponse = await axios.post('${API_URL}/firebase-auth', {
+      // ✅ FIXED: Changed single quotes to backticks for template literal
+      const backendResponse = await axios.post(`${API_URL}/firebase-auth`, {
         idToken: idToken,
         email: user.email,
         displayName: user.displayName,
@@ -88,7 +88,8 @@ function Login() {
 
     setLoading(true);
     try {
-      const response = await axios.post('${API_URL}/token',
+      // ✅ FIXED: Changed single quotes to backticks for template literal
+      const response = await axios.post(`${API_URL}/token`,
         new URLSearchParams({
           username,
           password
