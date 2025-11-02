@@ -59,9 +59,9 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",
-        "https://l1-nm16lhgp9-asphar0057s-projects.vercel.app",  # Your Vercel URL
-        "https://*.vercel.app",  # Allow all Vercel preview deployments
+        "http://localhost:3000",  # Local development
+        "https://l1-m71fagwct-asphar0057s-projects.vercel.app",  # ✅ Your Vercel frontend
+        "https://*.vercel.app",  # ✅ All Vercel preview deployments
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -7400,29 +7400,45 @@ def update_shared_note(
 # Serve static files from React build
 # ==================== SERVE REACT APP ====================
 
+# ==================== SERVE REACT APP ====================
+
+# ==================== SERVE REACT APP (OPTIONAL - NOT USED IN PRODUCTION) ====================
+
 build_dir = Path(__file__).parent.parent / "build"
 
-if build_dir.exists():
+# Only serve React if build exists (for local testing)
+if build_dir.exists() and os.getenv("SERVE_REACT", "false").lower() == "true":
     logger.info(f"✅ Serving React app from {build_dir}")
     
-    # Serve static assets (JS, CSS, images)
     app.mount("/static", StaticFiles(directory=build_dir / "static"), name="static")
     
-    # Serve React app for all other routes (MUST BE LAST!)
-    @app.get("/api/{full_path:path}")
+    @app.get("/{full_path:path}")
     async def serve_react_app(full_path: str):
-        """Serve React app for all non-API routes"""
+        """Serve React app for all non-API routes (local testing only)"""
         
-        # Try to serve specific file if exists
+        # Block /api/* from being caught
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="API endpoint not found")
+        
         file_path = build_dir / full_path
         if file_path.is_file():
             return FileResponse(file_path)
         
-        # Otherwise, serve index.html (React Router handles routing)
         return FileResponse(build_dir / "index.html")
 else:
-    logger.warning(f"⚠️ React build directory not found at {build_dir}")
+    logger.info("ℹ️ Not serving React app (frontend on Vercel)")
+    
+    # Simple root endpoint
+    @app.get("/")
+    async def root():
+        return {
+            "message": "Brainwave Backend API v3.0.0",
+            "status": "running",
+            "frontend": "https://l1-m71fagwct-asphar0057s-projects.vercel.app"
+        }
 
+# ==================== END SERVE REACT APP ====================
+# ==================== END SERVE REACT APP ====================
 # ==================== END SERVE REACT APP ====================
 # ==================== END SERVE REACT APP ====================
 

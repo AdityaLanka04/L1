@@ -1,23 +1,30 @@
-// src/config/api.js
-
 /**
  * API Configuration
- * Handles API URL based on environment
  */
 
-// Remove the getApiUrl function - not needed
-export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000api';
+// ✅ In production (Vercel), this will be: https://ceryl.onrender.com/api
+// ✅ In development, this will be: http://localhost:8000/api
+export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+
+console.log('🔧 API Configuration:', {
+  environment: process.env.NODE_ENV,
+  apiUrl: API_URL
+});
 
 /**
  * Helper function for making authenticated API requests
  */
 export const apiRequest = async (endpoint, options = {}) => {
-  const url = `${API_URL}${endpoint}`;
+  // Remove leading slash if present to avoid double slashes
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+  const url = `${API_URL}/${cleanEndpoint}`;
   
-  // Get token from localStorage
+  console.log('📡 API Request:', url);
+  
   const token = localStorage.getItem('token');
   
   const defaultHeaders = {
+    'Content-Type': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` }),
   };
 
@@ -28,7 +35,6 @@ export const apiRequest = async (endpoint, options = {}) => {
         ...defaultHeaders,
         ...options.headers,
       },
-      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -38,26 +44,13 @@ export const apiRequest = async (endpoint, options = {}) => {
 
     return await response.json();
   } catch (error) {
-    console.error(`API Request to ${endpoint} failed:`, error);
+    console.error(`❌ API Request to ${url} failed:`, error);
     throw error;
   }
 };
 
-/**
- * Authentication token helpers
- */
-export const getAuthToken = () => {
-  return localStorage.getItem('token');
-};
-
-export const setAuthToken = (token) => {
-  localStorage.setItem('token', token);
-};
-
-export const removeAuthToken = () => {
-  localStorage.removeItem('token');
-};
-
-export const isAuthenticated = () => {
-  return !!getAuthToken();
-};
+// Auth helpers
+export const getAuthToken = () => localStorage.getItem('token');
+export const setAuthToken = (token) => localStorage.setItem('token', token);
+export const removeAuthToken = () => localStorage.removeItem('token');
+export const isAuthenticated = () => !!getAuthToken();
