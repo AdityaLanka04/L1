@@ -524,7 +524,48 @@ def health_check():
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
-
+@app.on_event("startup")
+async def fix_database_sequences():
+    """Automatically fix PostgreSQL sequences on startup"""
+    logger.info("🔧 Checking and fixing database sequences...")
+    
+    try:
+        db = SessionLocal()
+        
+        tables_to_fix = [
+            'users',
+            'chat_sessions',
+            'notes',
+            'activities',
+            'flashcard_sets',
+            'daily_learning_metrics',
+            'user_stats',
+            'folders'
+        ]
+        
+        for table in tables_to_fix:
+            try:
+                # Fix the sequence
+                db.execute(f"""
+                    SELECT setval(
+                        '{table}_id_seq', 
+                        GREATEST(
+                            (SELECT COALESCE(MAX(id), 0) FROM {table}),
+                            (SELECT last_value FROM {table}_id_seq)
+                        )
+                    )
+                """)
+                logger.info(f"✅ Fixed sequence for {table}")
+            except Exception as e:
+                logger.warning(f"⚠️ Could not fix {table}: {str(e)}")
+        
+        db.commit()
+        db.close()
+        logger.info("✅ Database sequences fixed successfully")
+        
+    except Exception as e:
+        logger.error(f"❌ Sequence fix failed: {str(e)}")
+        
 @app.get("/api/get_daily_goal_progress")
 def get_daily_goal_progress(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
