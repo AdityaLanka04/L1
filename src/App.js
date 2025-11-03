@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from './pages/Dashboard';
 import AIChat from './pages/AIChat';
 import Homepage from './pages/Homepage';
+import SafetyLogin from './pages/SafetyLogin';
 import LearningReviewHub from './pages/LearningReviewHub';
 import Social from './pages/Social';
 import ActivityFeed from './pages/ActivityFeed';
@@ -32,8 +33,9 @@ function App() {
     <ThemeProvider>
       <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-top)', color: 'var(--text-primary)' }}>
         <Routes>
-          <Route path="/" element={<Homepage />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<SafetyLogin />} />
+          <Route path="/homepage" element={<Homepage />} />
+          <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="/register" element={<Register />} />
           <Route path="/profile-quiz" element={<ProfileQuiz />} />
           <Route path="/dashboard" element={<Dashboard />} />
@@ -59,8 +61,8 @@ function App() {
           <Route path="/home" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
           <Route path="/shared/:contentType/:contentId" element={<SharedItemViewer />} />
-<Route path="/shared/chat/:chatId" element={<AIChat sharedMode={true} />} />
-<Route path="/shared/note/:noteId" element={<NotesRedesign sharedMode={true} />} />
+          <Route path="/shared/chat/:chatId" element={<AIChat sharedMode={true} />} />
+          <Route path="/shared/note/:noteId" element={<NotesRedesign sharedMode={true} />} />
         </Routes>
       </div>
     </ThemeProvider>

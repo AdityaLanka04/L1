@@ -1,0 +1,237 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.safety-login {
+  width: 100vw;
+  height: 100vh;
+  background-color: #000000;
+  background-image: 
+    linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
+    url("https://www.transparenttextures.com/patterns/shattered-dark.png");
+  font-family: 'Quicksand', sans-serif;
+  color: #D7B38C;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.safety-login-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.login-box {
+  width: 100%;
+  max-width: 450px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(215, 179, 140, 0.2);
+  border-radius: 16px;
+  padding: 60px 50px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.safety-title {
+  font-size: 64px;
+  font-weight: 300;
+  letter-spacing: -2px;
+  line-height: 1;
+  margin-bottom: 12px;
+  color: #D7B38C;
+  text-transform: lowercase;
+}
+
+.safety-subtitle {
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 3px;
+  color: rgba(215, 179, 140, 0.7);
+  margin-bottom: 40px;
+  text-transform: uppercase;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.form-group {
+  position: relative;
+  width: 100%;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 16px 20px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(215, 179, 140, 0.3);
+  border-radius: 8px;
+  color: #FFFFFF;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.form-group input::placeholder {
+  color: rgba(215, 179, 140, 0.5);
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  font-weight: 400;
+}
+
+.form-group input:focus {
+  border-color: #D7B38C;
+  background: rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 3px rgba(215, 179, 140, 0.1);
+  color: #FFFFFF;
+}
+
+.error-message {
+  color: #ff6b6b;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  text-align: center;
+  padding: 12px;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: 6px;
+  margin-top: -8px;
+}
+
+.login-button {
+  width: 100%;
+  padding: 16px;
+  background: rgba(215, 179, 140, 0.15);
+  border: 1px solid rgba(215, 179, 140, 0.4);
+  border-radius: 8px;
+  color: #D7B38C;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 8px;
+}
+
+.login-button:hover {
+  background: rgba(215, 179, 140, 0.25);
+  border-color: #D7B38C;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(215, 179, 140, 0.2);
+}
+
+.login-button:active {
+  transform: translateY(0);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .login-box {
+    max-width: 400px;
+    padding: 50px 40px;
+  }
+
+  .safety-title {
+    font-size: 52px;
+  }
+
+  .safety-subtitle {
+    font-size: 12px;
+    letter-spacing: 2.5px;
+  }
+
+  .form-group input {
+    padding: 14px 18px;
+    font-size: 14px;
+    color: #FFFFFF;
+    font-weight: 500;
+  }
+
+  .login-button {
+    padding: 14px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-box {
+    max-width: 340px;
+    padding: 40px 30px;
+  }
+
+  .safety-title {
+    font-size: 44px;
+  }
+
+  .safety-subtitle {
+    font-size: 11px;
+    letter-spacing: 2px;
+    margin-bottom: 32px;
+  }
+
+  .form-group input {
+    padding: 13px 16px;
+    font-size: 14px;
+    color: #FFFFFF;
+    font-weight: 500;
+  }
+
+  .form-group input::placeholder {
+    font-size: 13px;
+  }
+
+  .login-button {
+    padding: 13px;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+  }
+
+  .error-message {
+    font-size: 12px;
+    padding: 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .login-box {
+    max-width: 300px;
+    padding: 35px 25px;
+  }
+
+  .safety-title {
+    font-size: 38px;
+  }
+
+  .safety-subtitle {
+    font-size: 10px;
+  }
+}
