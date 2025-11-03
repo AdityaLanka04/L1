@@ -24,7 +24,7 @@ from dotenv import load_dotenv
 from groq import Groq
 
 import models
-from database import SessionLocal, engine
+from database import SessionLocal, engine, get_db
 from models import get_db
 
 DATABASE_URL = os.getenv("DATABASE_URL", "")
@@ -232,12 +232,7 @@ class ShareContentRequest(BaseModel):
 class RemoveSharedAccessRequest(BaseModel):
     share_id: int
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+
 
 def verify_password(plain_password, hashed_password):
     """Verify password with Argon2"""
@@ -786,7 +781,7 @@ async def register(payload: RegisterPayload, db: Session = Depends(get_db)):
     
     # If we get here, all retries failed
     raise HTTPException(status_code=500, detail="Registration failed after retries")
-    
+
 @app.post("/api/token", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = authenticate_user(db, form_data.username, form_data.password)
