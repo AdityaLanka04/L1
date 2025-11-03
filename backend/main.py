@@ -16,7 +16,6 @@ from pydantic import BaseModel,EmailStr
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
-from passlib.context import CryptContext
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 import requests
@@ -31,6 +30,8 @@ from models import get_db
 from pathlib import Path
 import PyPDF2
 import io
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv()
@@ -68,7 +69,8 @@ app.add_middleware(
         "http://localhost:8000",
         "https://ceryl.onrender.com",
         "https://l1.vercel.app", 
-        "https://l1-7i4bnhcn1-asphar0057s-projects.vercel.app", # ✅ your main production domain (if set)
+        "https://l1-7i4bnhcn1-asphar0057s-projects.vercel.app",
+        "https://l1-theta.vercel.app" # ✅ your main production domain (if set)
     ],
     allow_origin_regex=r"https://l1-[a-z0-9]+-projects\.vercel\.app$",  # ✅ allows all preview deploys
     allow_credentials=True,
@@ -79,7 +81,7 @@ app.add_middleware(
 
 logger.info("✅ CORS configured for localhost, Render, and Vercel deployments")
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+ph = PasswordHasher()
 security = HTTPBearer()
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
@@ -203,10 +205,16 @@ def get_db():
         db.close()
 
 def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verify password with Argon2"""
+    try:
+        ph.verify(hashed_password, plain_password)
+        return True
+    except VerifyMismatchError:
+        return False
 
 def get_password_hash(password):
-    return pwd_context.hash(password)
+    """Hash password with Argon2 (no length limit)"""
+    return ph.hash(password)
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
@@ -512,7 +520,7 @@ def health_check():
         "status": "healthy",
         "message": "Brainwave API is running",
         "ai_provider": "Groq",
-        "frontend": os.getenv("FRONTEND_URL", "https://l1-7i4bnhcn1-asphar0057s-projects.vercel.app"),
+        "frontend": "https://l1-theta.vercel.app",
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
@@ -587,10 +595,6 @@ async def register(payload: RegisterPayload, db: Session = Depends(get_db)):
 
     if get_user_by_username(db, payload.username):
         raise HTTPException(status_code=400, detail="Username already registered")
-
-    if len(payload.password.encode("utf-8")) > 72:
-        logger.warning(f"Password too long for bcrypt (>{len(payload.password)} chars). Truncating for {payload.username}")
-        payload.password = payload.password[:72]
 
     if get_user_by_email(db, payload.email):
         raise HTTPException(status_code=400, detail="Email already registered")

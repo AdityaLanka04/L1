@@ -3,25 +3,25 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";
 
-// Your web app's Firebase configuration
+// ⚠️ REPLACE THIS with your new Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCCoArOmgALx8pQqVjP2JRK3LvLTfIRuYA",
-  authDomain: "brainwave-8e103.firebaseapp.com",
-  projectId: "brainwave-8e103",
-  storageBucket: "brainwave-8e103.firebasestorage.app",
-  messagingSenderId: "353877922717",
-  appId: "1:353877922717:web:3592e0efff42a44f965574",
-  measurementId: "G-Y24FF4K8FE"
+  apiKey: "AIzaSyCsAiyiy-O83HiPKEr_p49GcLcoYAXuP5M",
+  authDomain: "brainwave-a65dc.firebaseapp.com",
+  projectId: "brainwave-a65dc",
+  storageBucket: "brainwave-a65dc.firebasestorage.app",
+  messagingSenderId: "110579847566",
+  appId: "1:110579847566:web:0079cdf4287fc0599454df",
+  measurementId: "G-E8BGS4D425"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Authentication and get a reference to the service
+// Initialize Firebase Authentication
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Configure Google provider for better UX
+// Configure Google provider
 googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
