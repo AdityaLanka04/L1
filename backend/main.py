@@ -16,6 +16,7 @@ from pydantic import BaseModel,EmailStr
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
+from sqlalchemy import text 
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 import requests
@@ -540,22 +541,24 @@ async def fix_database_sequences():
             'flashcard_sets',
             'daily_learning_metrics',
             'user_stats',
-            'folders'
+            'folders',
+            'question_sets',
+            'learning_reviews',
+            'uploaded_slides'
         ]
         
         for table in tables_to_fix:
             try:
+                # Get max ID
+                max_id_query = text(f"SELECT COALESCE(MAX(id), 0) FROM {table}")
+                max_id = db.execute(max_id_query).scalar()
+                
                 # Fix the sequence
-                db.execute(f"""
-                    SELECT setval(
-                        '{table}_id_seq', 
-                        GREATEST(
-                            (SELECT COALESCE(MAX(id), 0) FROM {table}),
-                            (SELECT last_value FROM {table}_id_seq)
-                        )
-                    )
-                """)
-                logger.info(f"✅ Fixed sequence for {table}")
+                fix_query = text(f"SELECT setval('{table}_id_seq', :next_id)")
+                db.execute(fix_query, {"next_id": max_id + 1})
+                
+                logger.info(f"✅ Fixed sequence for {table}: next_id = {max_id + 1}")
+                
             except Exception as e:
                 logger.warning(f"⚠️ Could not fix {table}: {str(e)}")
         
@@ -565,7 +568,54 @@ async def fix_database_sequences():
         
     except Exception as e:
         logger.error(f"❌ Sequence fix failed: {str(e)}")
+
+@app.get("/api/fix-sequences")
+async def fix_sequences_now(db: Session = Depends(get_db)):
+    """
+    Emergency sequence fix endpoint
+    Call this once: https://ceryl.onrender.com/api/fix-sequences
+    """
+    try:
+        tables = [
+            'users', 'chat_sessions', 'notes', 'activities',
+            'flashcard_sets', 'daily_learning_metrics', 'user_stats',
+            'folders', 'question_sets', 'learning_reviews'
+        ]
         
+        fixed = []
+        errors = []
+        
+        for table in tables:
+            try:
+                # Get max ID
+                max_id_query = text(f"SELECT COALESCE(MAX(id), 0) FROM {table}")
+                max_id = db.execute(max_id_query).scalar()
+                
+                # Fix sequence
+                fix_query = text(f"SELECT setval('{table}_id_seq', :next_id)")
+                db.execute(fix_query, {"next_id": max_id + 1})
+                
+                fixed.append(f"{table}: next_id={max_id + 1}")
+                
+            except Exception as e:
+                errors.append(f"{table}: {str(e)}")
+        
+        db.commit()
+        
+        return {
+            "status": "success",
+            "fixed": fixed,
+            "errors": errors if errors else None,
+            "message": f"Fixed {len(fixed)} sequences"
+        }
+        
+    except Exception as e:
+        db.rollback()
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
 @app.get("/api/get_daily_goal_progress")
 def get_daily_goal_progress(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
@@ -626,6 +676,8 @@ class RegisterPayload(BaseModel):
 # -----------------------------
 # 2️⃣ Register endpoint (JSON)
 # -----------------------------
+from sqlalchemy import text  # Make sure this is imported
+
 @app.post("/api/register")
 async def register(payload: RegisterPayload, db: Session = Depends(get_db)):
     logger.info(f"Registering user: {payload.username}")
@@ -643,31 +695,64 @@ async def register(payload: RegisterPayload, db: Session = Depends(get_db)):
     # --- password hashing ---
     hashed_password = get_password_hash(payload.password)
 
-    # --- create user record ---
-    db_user = models.User(
-        first_name=payload.first_name,
-        last_name=payload.last_name,
-        email=payload.email,
-        username=payload.username,
-        hashed_password=hashed_password,
-        age=payload.age,
-        field_of_study=payload.field_of_study,
-        learning_style=payload.learning_style,
-        school_university=payload.school_university,
-        google_user=False,
-    )
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+    # --- create user record with auto-retry ---
+    max_retries = 2
+    for attempt in range(max_retries):
+        try:
+            db_user = models.User(
+                first_name=payload.first_name,
+                last_name=payload.last_name,
+                email=payload.email,
+                username=payload.username,
+                hashed_password=hashed_password,
+                age=payload.age,
+                field_of_study=payload.field_of_study,
+                learning_style=payload.learning_style,
+                school_university=payload.school_university,
+                google_user=False,
+            )
+            db.add(db_user)
+            db.commit()
+            db.refresh(db_user)
 
-    # --- initialize stats ---
-    user_stats = models.UserStats(user_id=db_user.id)
-    db.add(user_stats)
-    db.commit()
+            # --- initialize stats ---
+            user_stats = models.UserStats(user_id=db_user.id)
+            db.add(user_stats)
+            db.commit()
 
-    logger.info(f"User {payload.username} registered successfully")
-    return {"message": "User registered successfully"}
-
+            logger.info(f"✅ User {payload.username} registered successfully")
+            return {"message": "User registered successfully"}
+            
+        except Exception as e:
+            db.rollback()
+            error_msg = str(e).lower()
+            
+            # Check if it's a sequence/duplicate key error
+            if "duplicate key" in error_msg and "pkey" in error_msg and attempt < max_retries - 1:
+                logger.warning(f"⚠️ Sequence error detected, fixing... (attempt {attempt + 1})")
+                
+                try:
+                    # Fix the sequence using text()
+                    max_id_query = text("SELECT COALESCE(MAX(id), 0) FROM users")
+                    max_id = db.execute(max_id_query).scalar()
+                    
+                    fix_query = text("SELECT setval('users_id_seq', :next_id)")
+                    db.execute(fix_query, {"next_id": max_id + 1})
+                    db.commit()
+                    
+                    logger.info(f"✅ Sequence fixed to {max_id + 1}, retrying registration...")
+                    continue  # Retry registration
+                    
+                except Exception as fix_error:
+                    logger.error(f"❌ Failed to fix sequence: {str(fix_error)}")
+            
+            # If not a sequence error or retry failed, raise the error
+            logger.error(f"❌ Registration failed: {str(e)}")
+            raise HTTPException(status_code=500, detail="Registration failed. Please try again.")
+    
+    # If we get here, all retries failed
+    raise HTTPException(status_code=500, detail="Registration failed after retries")
+    
 @app.post("/api/token", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = authenticate_user(db, form_data.username, form_data.password)
