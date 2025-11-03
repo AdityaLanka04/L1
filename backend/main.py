@@ -27,6 +27,8 @@ import models
 from database import SessionLocal, engine
 from models import get_db
 
+DATABASE_URL = os.getenv("DATABASE_URL", "")
+
 
 from pathlib import Path
 import PyPDF2
@@ -54,6 +56,38 @@ logger = logging.getLogger(__name__)
 
 models.Base.metadata.create_all(bind=engine)
 
+
+def sync_sequences():
+    if "postgres" not in DATABASE_URL:
+        return
+
+    sequences = [
+        ("chat_messages_id_seq", "chat_messages"),
+        ("chat_sessions_id_seq", "chat_sessions"),
+        ("activities_id_seq", "activities"),
+    ]
+
+    with engine.connect() as connection:
+        for sequence_name, table_name in sequences:
+            sequence_exists = connection.execute(
+                text("SELECT to_regclass(:sequence_name)"),
+                {"sequence_name": sequence_name}
+            ).scalar()
+
+            if not sequence_exists:
+                continue
+
+            connection.execute(
+                text(
+                    f"SELECT setval(:sequence_name, COALESCE((SELECT MAX(id) FROM {table_name}), 0) + 1, false)"
+                ),
+                {"sequence_name": sequence_name}
+            )
+
+        connection.commit()
+
+
+sync_sequences()
 
 
 
