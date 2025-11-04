@@ -87,7 +87,7 @@ const Register = () => {
       <div className="register-scroll-container">
         <div className="register-container">
           <div className="register-header">
-            <h1 className="register-title">brainwave</h1>
+            <h1 className="register-title">cerbyl</h1>
           </div>
           
           <div className="register-form-container">

@@ -84,7 +84,7 @@ const ActivityFeed = () => {
     <div className="feed-page">
       <header className="feed-header">
         <div className="feed-header-left">
-          <h1 className="feed-logo">brainwave</h1>
+          <h1 className="feed-logo">cerbyl</h1>
           <span className="feed-subtitle">ACTIVITY FEED</span>
         </div>
         <div className="feed-header-right">

@@ -924,7 +924,7 @@ const createRoadmapFromChat = async () => {
         <div className="kr-header-container">
           <div className="kr-header-left">
             <div className="kr-header-title-group">
-              <h1 className="kr-logo">brainwave</h1>
+              <h1 className="kr-logo">cerbyl</h1>
               <span className="kr-subtitle">KNOWLEDGE ROADMAP</span>
             </div>
           </div>

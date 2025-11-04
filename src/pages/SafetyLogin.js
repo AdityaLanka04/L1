@@ -60,7 +60,7 @@ const SafetyLogin = () => {
     <div className="safety-login">
       <div className="safety-login-container">
         <div className="login-box">
-          <h1 className="safety-title">brainwave</h1>
+          <h1 className="safety-title">cerbyl</h1>
           <p className="safety-subtitle">SAFETY PAGE</p>
           
           <form onSubmit={handleLogin} className="login-form">

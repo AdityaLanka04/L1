@@ -4388,7 +4388,80 @@ async def create_knowledge_roadmap(
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to create roadmap: {str(e)}")
 
+@app.post("/api/create_roadmap_from_chat")
+async def create_roadmap_from_chat(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    try:
+        user_id = payload.get("user_id")
+        chat_session_id = payload.get("chat_session_id")
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get chat session
+        chat_session = db.query(models.ChatSession).filter(
+            models.ChatSession.id == chat_session_id,
+            models.ChatSession.user_id == user.id
+        ).first()
+        
+        if not chat_session:
+            raise HTTPException(status_code=404, detail="Chat session not found")
+        
+        # Get all messages
+        messages = db.query(models.ChatMessage).filter(
+            models.ChatMessage.chat_session_id == chat_session_id
+        ).order_by(models.ChatMessage.timestamp.asc()).all()
+        
+        if not messages:
+            raise HTTPException(status_code=404, detail="No messages in chat session")
+        
+        # Compile conversation
+        conversation_text = []
+        for msg in messages:
+            conversation_text.append(f"Q: {msg.user_message}")
+            conversation_text.append(f"A: {msg.ai_response}")
+        
+        full_conversation = "\n\n".join(conversation_text)[:4000]
+        
+        # Generate topic from conversation using AI
+        prompt = f"""Analyze this conversation and extract the MAIN TOPIC in 2-4 words.
 
+Conversation:
+{full_conversation}
+
+Return ONLY the topic name (e.g., "Machine Learning", "World War II", "Quantum Physics").
+No explanation, just the topic:"""
+
+        user_profile = build_user_profile_dict(user)
+        
+        chat_completion = groq_client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are a topic extraction expert. Return only the topic name."},
+                {"role": "user", "content": prompt}
+            ],
+            model=GROQ_MODEL,
+            temperature=0.3,
+            max_tokens=50,
+        )
+        
+        root_topic = chat_completion.choices[0].message.content.strip()
+        root_topic = root_topic.replace('"', '').replace("'", "")
+        
+        # Return the extracted topic
+        return {
+            "status": "success",
+            "root_topic": root_topic,
+            "chat_title": chat_session.title,
+            "message": f"Roadmap topic identified: {root_topic}"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error creating roadmap from chat: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+        
 @app.post("/api/expand_knowledge_node/{node_id}")
 async def expand_knowledge_node(
     node_id: int,

@@ -130,7 +130,7 @@ const QuestionSetPractice = () => {
               <span>BACK TO QUESTION BANK</span>
             </button>
             <div className="qb-header-title-group">
-              <h1 className="qb-logo">brainwave</h1>
+              <h1 className="qb-logo">cerbyl</h1>
               <span className="qb-subtitle">{questionSet.title}</span>
             </div>
           </div>

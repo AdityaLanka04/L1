@@ -430,7 +430,7 @@ const Flashcards = () => {
 
 <div className="header-left">
   <h1 className="page-title clickable-logo" onClick={() => navigate('/dashboard')}>
-    BRAINWAVE
+    cerbyl
   </h1>
   <p className="page-subtitle">flashcards</p>
 </div>

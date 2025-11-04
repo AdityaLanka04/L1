@@ -148,7 +148,7 @@ const Challenges = () => {
     <div className="challenges-page">
       <header className="challenges-header">
         <div className="challenges-header-left">
-          <h1 className="challenges-logo">brainwave</h1>
+          <h1 className="challenges-logo">cerbyl</h1>
           <span className="challenges-subtitle">CHALLENGES</span>
         </div>
         <div className="challenges-header-right">

@@ -115,7 +115,7 @@ const Statistics = () => {
             <span>BACK</span>
           </button>
           <div className="st-header-title-group">
-            <h1 className="st-logo">brainwave</h1>
+            <h1 className="st-logo">cerbyl</h1>
             <span className="st-subtitle">STATISTICS</span>
           </div>
         </div>

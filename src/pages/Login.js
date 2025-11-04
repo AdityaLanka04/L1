@@ -117,7 +117,7 @@ function Login() {
     <div className="login-page">
       <div className="login-container">
         <div className="login-header">
-          <h1 className="login-title">brainwave</h1>
+          <h1 className="login-title">cerbyl</h1>
         </div>
         
         <div className="login-form-container">

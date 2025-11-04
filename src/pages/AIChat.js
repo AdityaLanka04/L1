@@ -647,7 +647,7 @@ const AIChat = ({ sharedMode = false }) => {
             </button>
             
             <h1 className="chat-title" onClick={handleLogoClick}>
-              brainwave
+              cerbyl
             </h1>
           </div>
 

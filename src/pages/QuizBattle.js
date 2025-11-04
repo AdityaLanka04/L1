@@ -110,7 +110,7 @@ const QuizBattle = () => {
     <div className="quiz-battle-page">
       <header className="battle-header">
         <div className="battle-header-left">
-          <h1 className="battle-logo">brainwave</h1>
+          <h1 className="battle-logo">cerbyl</h1>
           <span className="battle-subtitle">QUIZ BATTLES</span>
         </div>
         <div className="battle-header-right">

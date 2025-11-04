@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ProfileQuiz.css';
 import { API_URL } from '../config';
+
 const ProfileQuiz = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState('welcome');
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [showSkipWarning, setShowSkipWarning] = useState(false);
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [answers, setAnswers] = useState({
     preferredSubjects: [],
     mainSubject: '',
@@ -156,6 +158,19 @@ const ProfileQuiz = () => {
     }
   ];
 
+  const archetypeDescriptions = {
+    Logicor: "You excel at breaking down complex problems into logical steps and systematic approaches. Your analytical mind naturally identifies patterns and structures, making you particularly effective at subjects requiring methodical thinking and clear reasoning.",
+    Flowist: "You thrive in dynamic learning environments where you can adapt and explore freely. Your flexible approach allows you to connect ideas across different contexts naturally, making learning feel intuitive rather than forced.",
+    Kinetiq: "You learn best through hands-on experience and physical engagement. Movement and tactile interaction help you process information deeply, turning abstract concepts into tangible understanding through active practice.",
+    Synth: "You possess a remarkable ability to see connections between seemingly unrelated ideas. Your holistic thinking allows you to integrate knowledge from various domains, creating innovative solutions and comprehensive understanding.",
+    Dreamweaver: "You think in possibilities and future scenarios, naturally envisioning the bigger picture. Your visionary perspective helps you understand not just what is, but what could be, making you excellent at strategic and creative thinking.",
+    Anchor: "You value structure, consistency, and systematic organization in your learning. Your disciplined approach and attention to detail create a solid foundation for building comprehensive knowledge over time.",
+    Spark: "You're driven by creativity and innovative thinking, constantly generating new ideas and perspectives. Your enthusiastic approach to learning brings fresh energy to every subject you explore.",
+    Empathion: "You connect deeply with the human and emotional dimensions of learning. Your ability to understand context and meaning helps you grasp not just the facts, but the significance behind them.",
+    Seeker: "You're motivated by curiosity and the joy of discovery. Your natural inclination to ask questions and explore unknowns drives you to delve deep into subjects that capture your interest.",
+    Resonant: "You're highly adaptable and attuned to different learning situations. Your flexibility allows you to adjust your approach based on context, making you effective across various subjects and environments."
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     const username = localStorage.getItem('username');
@@ -187,9 +202,15 @@ const ProfileQuiz = () => {
     setAnswers(prev => ({ ...prev, brainwaveGoal: goal }));
   };
 
-  const handleArchetypeAnswer = (optionIndex) => {
-    const selectedOption = archetypeQuestions[currentQuestion].options[optionIndex];
-    const newArchetypeAnswers = { ...answers.archetypeAnswers, [currentQuestion]: optionIndex };
+  const handleArchetypeSelect = (optionIndex) => {
+    setSelectedAnswer(optionIndex);
+  };
+
+  const handleArchetypeNext = () => {
+    if (selectedAnswer === null) return;
+
+    const selectedOption = archetypeQuestions[currentQuestion].options[selectedAnswer];
+    const newArchetypeAnswers = { ...answers.archetypeAnswers, [currentQuestion]: selectedAnswer };
     const newScores = { ...answers.archetypeScores };
     
     Object.entries(selectedOption.archetypes).forEach(([archetype, points]) => {
@@ -203,34 +224,27 @@ const ProfileQuiz = () => {
     }));
 
     if (currentQuestion < archetypeQuestions.length - 1) {
-      setTimeout(() => {
-        setCurrentQuestion(currentQuestion + 1);
-      }, 300);
+      setCurrentQuestion(currentQuestion + 1);
+      setSelectedAnswer(null);
     } else {
       completeQuiz(newScores);
     }
   };
 
-const completeQuiz = async (scores) => {
+  const handleArchetypeBack = () => {
+    if (currentQuestion > 0) {
+      setCurrentQuestion(currentQuestion - 1);
+      setSelectedAnswer(answers.archetypeAnswers[currentQuestion - 1] ?? null);
+    }
+  };
+
+  const completeQuiz = async (scores) => {
     const sortedArchetypes = Object.entries(scores)
       .sort(([, a], [, b]) => b - a)
       .map(([archetype]) => archetype);
 
     const primaryArchetype = sortedArchetypes[0];
     const secondaryArchetype = sortedArchetypes[1];
-
-    const archetypeDescriptions = {
-      Logicor: "You thrive on logical analysis and systematic problem-solving.",
-      Flowist: "You learn best through dynamic, hands-on experiences.",
-      Kinetiq: "You're a kinesthetic learner who needs movement.",
-      Synth: "You naturally see connections between ideas.",
-      Dreamweaver: "You think in big pictures and future possibilities.",
-      Anchor: "You value structure and organization.",
-      Spark: "You're driven by creativity and innovation.",
-      Empathion: "You connect deeply with emotional aspects.",
-      Seeker: "You're motivated by curiosity and discovery.",
-      Resonant: "You're highly adaptable and flexible."
-    };
 
     try {
       const token = localStorage.getItem('token');
@@ -258,7 +272,7 @@ const completeQuiz = async (scores) => {
       setCurrentStep('complete');
       setTimeout(() => {
         navigate('/dashboard');
-      }, 3000);
+      }, 5000);
     } catch (error) {
       console.error('Error saving profile:', error);
     }
@@ -314,17 +328,18 @@ const completeQuiz = async (scores) => {
       <div className="profile-quiz-page">
         <div className="quiz-container">
           <div className="welcome-screen">
-            <h1 className="welcome-title">Welcome to Brainwave</h1>
-            <div className="quote-box">
-              <div className="quote-icon">"</div>
-              <p className="quote-text">{randomQuote}</p>
-            </div>
+            <h1 className="welcome-title">welcome to cerbyl</h1>
+            
             <p className="welcome-message">
               Let's personalize your learning experience. This quick assessment will help us understand your goals and learning style.
             </p>
-            <button className="start-quiz-btn" onClick={() => setCurrentStep('subjects')}>
-              Begin Assessment
-            </button>
+
+            <div className="welcome-bottom">
+              <p className="quote-text">{randomQuote}</p>
+              <button className="start-quiz-btn" onClick={() => setCurrentStep('subjects')}>
+                Begin Assessment
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -400,13 +415,18 @@ const completeQuiz = async (scores) => {
               ))}
             </div>
 
-            <button 
-              className="continue-btn" 
-              onClick={() => setCurrentStep('goal')}
-              disabled={!answers.mainSubject}
-            >
-              Continue
-            </button>
+            <div className="navigation-buttons">
+              <button className="back-btn" onClick={() => setCurrentStep('subjects')}>
+                Back
+              </button>
+              <button 
+                className="continue-btn" 
+                onClick={() => setCurrentStep('goal')}
+                disabled={!answers.mainSubject}
+              >
+                Continue
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -426,7 +446,7 @@ const completeQuiz = async (scores) => {
           </div>
 
           <div className="quiz-content">
-            <h2 className="question-text">What's your main goal with Brainwave?</h2>
+            <h2 className="question-text">What's your main goal with Cerbyl?</h2>
             
             <div className="options-grid">
               {brainwaveGoals.map((goal, index) => (
@@ -441,13 +461,18 @@ const completeQuiz = async (scores) => {
               ))}
             </div>
 
-            <button 
-              className="continue-btn" 
-              onClick={() => setCurrentStep('archetype')}
-              disabled={!answers.brainwaveGoal}
-            >
-              Continue to Learning Style Assessment
-            </button>
+            <div className="navigation-buttons">
+              <button className="back-btn" onClick={() => setCurrentStep('mainSubject')}>
+                Back
+              </button>
+              <button 
+                className="continue-btn" 
+                onClick={() => setCurrentStep('archetype')}
+                disabled={!answers.brainwaveGoal}
+              >
+                Continue to Learning Style Assessment
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -476,13 +501,30 @@ const completeQuiz = async (scores) => {
                 {archetypeQuestions[currentQuestion].options.map((option, index) => (
                   <button
                     key={index}
-                    className={`option-button ${answers.archetypeAnswers[currentQuestion] === index ? 'selected' : ''}`}
-                    onClick={() => handleArchetypeAnswer(index)}
+                    className={`option-button ${selectedAnswer === index ? 'selected' : ''}`}
+                    onClick={() => handleArchetypeSelect(index)}
                   >
                     <span className="option-number">{String.fromCharCode(65 + index)}</span>
                     <span className="option-text">{option.text}</span>
                   </button>
                 ))}
+              </div>
+
+              <div className="navigation-buttons">
+                <button 
+                  className="back-btn" 
+                  onClick={handleArchetypeBack}
+                  disabled={currentQuestion === 0}
+                >
+                  Back
+                </button>
+                <button 
+                  className="continue-btn" 
+                  onClick={handleArchetypeNext}
+                  disabled={selectedAnswer === null}
+                >
+                  {currentQuestion === archetypeQuestions.length - 1 ? 'Complete' : 'Continue'}
+                </button>
               </div>
 
               <button className="skip-quiz-btn" onClick={handleSkip}>
@@ -524,14 +566,21 @@ const completeQuiz = async (scores) => {
 
     return (
       <div className="profile-quiz-page">
-        <div className="quiz-completion">
-          <div className="completion-icon">✓</div>
-          <h2>Profile Complete!</h2>
-          <p>Your learning archetype: <strong>{primaryArchetype}</strong></p>
-          <p className="completion-message">
-            Your AI tutor is now personalized to your unique learning style.
-          </p>
-          <p className="redirect-message">Redirecting to dashboard...</p>
+        <div className="quiz-container">
+          <div className="quiz-completion">
+            <p className="completion-header">You are a</p>
+            
+            <h1 className="archetype-name">{primaryArchetype}</h1>
+            
+            <p className="archetype-description">
+              {archetypeDescriptions[primaryArchetype]}
+            </p>
+
+            <p className="completion-message">
+              Your AI tutor is now personalized to match your unique learning style
+            </p>
+            <p className="redirect-message">Redirecting to your dashboard...</p>
+          </div>
         </div>
       </div>
     );

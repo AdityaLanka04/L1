@@ -1495,7 +1495,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         }
         
         body::before {
-          content: 'BrainWaveAI';
+          content: 'cerbylAI';
           position: fixed;
           top: 50%;
           left: 50%;
@@ -1595,7 +1595,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         
         @media print {
           body::before {
-            content: 'BrainWaveAI';
+            content: 'cerbylAI';
             position: fixed;
             top: 50%;
             left: 50%;
@@ -1653,7 +1653,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       printWindow.print();
     }, 250);
 
-    showPopup("Export", "Print dialog opened - Save as PDF with BrainWaveAI watermark");
+    showPopup("Export", "Print dialog opened - Save as PDF with cerbylAI watermark");
   };
 
   const exportAsText = () => {

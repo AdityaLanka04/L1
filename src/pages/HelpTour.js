@@ -22,7 +22,7 @@ const HelpTour = ({
     () => [
       {
         id: 'welcome',
-        title: 'Welcome to Brainwave!',
+        title: 'Welcome to cerbyl!',
         content:
           'Let me show you around your personalized learning dashboard. This interactive tour will help you discover the features that make studying faster and more effective.',
         target: '.welcome-section',

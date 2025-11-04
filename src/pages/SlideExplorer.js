@@ -188,7 +188,7 @@ const SlideExplorer = () => {
             <span>BACK</span>
           </button>
           <div className="se-header-title-group">
-            <h1 className="se-logo">brainwave</h1>
+            <h1 className="se-logo">cerbyl</h1>
             <span className="se-subtitle">SLIDE EXPLORER</span>
           </div>
         </div>

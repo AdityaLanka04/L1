@@ -157,7 +157,7 @@ const TrialWrapper = ({ children }) => {
         background: '#000',
         color: '#d4af37'
       }}>
-        <div>Loading Brainwave...</div>
+        <div>Loading cerbyl...</div>
       </div>
     );
   }

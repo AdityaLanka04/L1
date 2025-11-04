@@ -61,7 +61,7 @@ const LearningReviewHub = () => {
     <div className="hub-page">
       <header className="hub-header">
         <div className="hub-header-left">
-          <h1 className="hub-logo">brainwave</h1>
+          <h1 className="hub-logo">cerbyl</h1>
           <span className="hub-subtitle">LEARNING REVIEW HUB</span>
         </div>
         <div className="hub-header-right">

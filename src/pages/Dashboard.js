@@ -1337,7 +1337,7 @@ const Dashboard = () => {
       <header className="dashboard-header">
         <div className="header-content">
           <div className="header-left">
-            <h1 className="dashboard-title">brainwave</h1>
+            <h1 className="dashboard-title">cerbyl</h1>
           </div>
           <div className="header-right">
             <ThemeSwitcher />

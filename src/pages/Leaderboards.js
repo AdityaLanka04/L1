@@ -79,7 +79,7 @@ const Leaderboards = () => {
     <div className="leaderboard-page">
       <header className="leaderboard-header">
         <div className="leaderboard-header-left">
-          <h1 className="leaderboard-logo">brainwave</h1>
+          <h1 className="leaderboard-logo">cerbyl</h1>
           <span className="leaderboard-subtitle">LEADERBOARDS</span>
         </div>
         <div className="leaderboard-header-right">
