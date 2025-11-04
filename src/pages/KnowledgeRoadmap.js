@@ -99,7 +99,87 @@ const KnowledgeRoadmap = () => {
       console.log('Saved roadmap UI state:', roadmapState);
     }
   }, [expandedNodes, exploredNodesCache, currentRoadmap, nodes]);
+  const [showChatSelectModal, setShowChatSelectModal] = useState(false);
+const [chatSessions, setChatSessions] = useState([]);
+const [selectedChatId, setSelectedChatId] = useState(null);
 
+// Fetch chat sessions for modal
+const fetchChatSessions = async () => {
+  try {
+    const response = await fetch(`${API_URL}/get_chat_sessions?user_id=${userId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (response.ok) {
+      const data = await response.json();
+      setChatSessions(data.sessions || []);
+    }
+  } catch (error) {
+    console.error('Error fetching chat sessions:', error);
+  }
+};
+
+// Create roadmap from chat
+const createRoadmapFromChat = async () => {
+  if (!selectedChatId) {
+    alert('Please select a chat session');
+    return;
+  }
+
+  try {
+    setLoading(true);
+    
+    // Get topic from chat
+    const topicResponse = await fetch(`${API_URL}/create_roadmap_from_chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        chat_session_id: selectedChatId
+      })
+    });
+
+    if (!topicResponse.ok) {
+      throw new Error('Failed to extract topic from chat');
+    }
+
+    const topicData = await topicResponse.json();
+    const extractedTopic = topicData.root_topic;
+
+    // Create roadmap with extracted topic
+    const response = await fetch(`${API_URL}/create_knowledge_roadmap`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        root_topic: extractedTopic
+      })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      setShowChatSelectModal(false);
+      setSelectedChatId(null);
+      
+      clearRoadmapState(data.roadmap_id);
+      
+      await fetchRoadmaps();
+      viewRoadmap(data.roadmap_id);
+    } else {
+      alert('Failed to create roadmap');
+    }
+  } catch (error) {
+    console.error('Error creating roadmap from chat:', error);
+    alert('Error creating roadmap from chat');
+  } finally {
+    setLoading(false);
+  }
+};
   // Load the saved UI state
   const loadRoadmapState = useCallback((roadmapId) => {
     const savedState = localStorage.getItem(`roadmap_state_${roadmapId}`);
@@ -865,10 +945,22 @@ const KnowledgeRoadmap = () => {
                   <h2 className="kr-section-title">Knowledge Roadmaps</h2>
                   <p className="kr-section-subtitle">Build interactive learning maps with expandable topics</p>
                 </div>
-                <button className="kr-create-btn" onClick={() => setShowCreateModal(true)}>
-                  <Plus size={20} />
-                  <span>Create Roadmap</span>
-                </button>
+                <div style={{ display: 'flex', gap: '12px' }}>
+  <button className="kr-create-btn" onClick={() => setShowCreateModal(true)}>
+    <Plus size={20} />
+    <span>Create Roadmap</span>
+  </button>
+  <button 
+    className="kr-create-btn" 
+    onClick={() => {
+      setShowChatSelectModal(true);
+      fetchChatSessions();
+    }}
+  >
+    <Book size={20} />
+    <span>From Chat</span>
+  </button>
+</div>
               </div>
             </div>
 
@@ -1053,45 +1145,116 @@ const KnowledgeRoadmap = () => {
         )}
       </div>
 
-      {showCreateModal && (
-        <div className="kr-modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="kr-modal" onClick={e => e.stopPropagation()}>
-            <div className="kr-modal-header">
-              <h3>Create Knowledge Roadmap</h3>
-              <button className="kr-modal-close" onClick={() => setShowCreateModal(false)}>×</button>
-            </div>
+      {/* CREATE ROADMAP MODAL */}
+{showCreateModal && (
+  <div className="kr-modal-overlay" onClick={() => setShowCreateModal(false)}>
+    <div className="kr-modal" onClick={e => e.stopPropagation()}>
+      <div className="kr-modal-header">
+        <h3>Create Knowledge Roadmap</h3>
+        <button className="kr-modal-close" onClick={() => setShowCreateModal(false)}>×</button>
+      </div>
 
-            <div className="kr-modal-content">
-              <div className="kr-form-group">
-                <label>What topic do you want to explore?</label>
-                <input
-                  type="text"
-                  className="kr-input"
-                  value={rootTopic}
-                  onChange={e => setRootTopic(e.target.value)}
-                  placeholder="e.g., Machine Learning, European History, Organic Chemistry"
-                  onKeyPress={e => e.key === 'Enter' && createRoadmap()}
-                  autoFocus
-                />
-                <p className="kr-input-hint">
-                  Enter a broad topic to start. You'll be able to expand it into subtopics as you explore.
-                </p>
-              </div>
-            </div>
+      <div className="kr-modal-content">
+        <div className="kr-form-group">
+          <label>What topic do you want to explore?</label>
+          <input
+            type="text"
+            className="kr-input"
+            value={rootTopic}
+            onChange={e => setRootTopic(e.target.value)}
+            placeholder="e.g., Machine Learning, European History, Organic Chemistry"
+            onKeyPress={e => e.key === 'Enter' && createRoadmap()}
+            autoFocus
+          />
+          <p className="kr-input-hint">
+            Enter a broad topic to start. You'll be able to expand it into subtopics as you explore.
+          </p>
+        </div>
+      </div>
 
-            <div className="kr-modal-footer">
-              <button className="kr-btn-cancel" onClick={() => setShowCreateModal(false)}>Cancel</button>
-              <button 
-                className="kr-btn-create" 
-                onClick={createRoadmap}
-                disabled={loading || !rootTopic.trim()}
-              >
-                {loading ? 'Creating...' : 'Create Roadmap'}
-              </button>
-            </div>
+      <div className="kr-modal-footer">
+        <button className="kr-btn-cancel" onClick={() => setShowCreateModal(false)}>Cancel</button>
+        <button 
+          className="kr-btn-create" 
+          onClick={createRoadmap}
+          disabled={loading || !rootTopic.trim()}
+        >
+          {loading ? 'Creating...' : 'Create Roadmap'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{/* CHAT SELECT MODAL - SEPARATE */}
+{showChatSelectModal && (
+  <div className="kr-modal-overlay" onClick={() => setShowChatSelectModal(false)}>
+    <div className="kr-modal" onClick={e => e.stopPropagation()}>
+      <div className="kr-modal-header">
+        <h3>Create Roadmap from Chat</h3>
+        <button className="kr-modal-close" onClick={() => setShowChatSelectModal(false)}>×</button>
+      </div>
+
+      <div className="kr-modal-content">
+        <div className="kr-form-group">
+          <label>Select a chat session</label>
+          <p className="kr-input-hint" style={{ marginBottom: '16px' }}>
+            AI will analyze the conversation and create a roadmap based on the main topic discussed.
+          </p>
+          <div style={{ maxHeight: '400px', overflowY: 'auto', border: '1px solid var(--border)', padding: '12px' }}>
+            {chatSessions.length === 0 ? (
+              <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '20px' }}>
+                No chat sessions found
+              </p>
+            ) : (
+              chatSessions.map(session => (
+                <div
+                  key={session.id}
+                  onClick={() => setSelectedChatId(session.id)}
+                  style={{
+                    padding: '12px',
+                    marginBottom: '8px',
+                    background: selectedChatId === session.id ? 'var(--accent)' : 'var(--bg-bottom)',
+                    border: `2px solid ${selectedChatId === session.id ? 'var(--accent)' : 'var(--border)'}`,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    color: selectedChatId === session.id ? 'var(--bg-bottom)' : 'var(--text-primary)'
+                  }}
+                  onMouseEnter={e => {
+                    if (selectedChatId !== session.id) {
+                      e.currentTarget.style.borderColor = 'var(--accent)';
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (selectedChatId !== session.id) {
+                      e.currentTarget.style.borderColor = 'var(--border)';
+                    }
+                  }}
+                >
+                  <div style={{ fontWeight: '600', marginBottom: '4px' }}>{session.title}</div>
+                  <div style={{ fontSize: '12px', opacity: 0.7 }}>
+                    {new Date(session.updated_at).toLocaleDateString()}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
-      )}
+      </div>
+
+      <div className="kr-modal-footer">
+        <button className="kr-btn-cancel" onClick={() => setShowChatSelectModal(false)}>Cancel</button>
+        <button 
+          className="kr-btn-create" 
+          onClick={createRoadmapFromChat}
+          disabled={loading || !selectedChatId}
+        >
+          {loading ? 'Creating...' : 'Create Roadmap'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };

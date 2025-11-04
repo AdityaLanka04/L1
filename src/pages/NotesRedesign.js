@@ -16,6 +16,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { API_URL } from '../config';
+
 // Remove problematic imports and register them conditionally
 let QuillTableUI;
 try {
@@ -41,33 +42,88 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const { noteId } = useParams();
   const navigate = useNavigate();
   
-  // Add shared content state
+  // Shared content state
   const [sharedNoteData, setSharedNoteData] = useState(null);
   const [isSharedContent, setIsSharedContent] = useState(sharedMode);
   const [canEdit, setCanEdit] = useState(false);
 
-  // ... existing state ...
+  // User state
   const [userName, setUserName] = useState("");
   const [userProfile, setUserProfile] = useState(null);
+  
+  // Notes state
   const [notes, setNotes] = useState([]);
   const [selectedNote, setSelectedNote] = useState(null);
   const [noteTitle, setNoteTitle] = useState("");
   const [noteContent, setNoteContent] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // UI state
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [saving, setSaving] = useState(false);
   const [autoSaved, setAutoSaved] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
   const [titleSectionCollapsed, setTitleSectionCollapsed] = useState(false);
+  const [viewMode, setViewMode] = useState("edit");
   
+  // AI state
   const [showAIDropdown, setShowAIDropdown] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiDropdownPosition, setAiDropdownPosition] = useState({ top: 0, left: 0 });
   const [generatingAI, setGeneratingAI] = useState(false);
+  const [showAIButton, setShowAIButton] = useState(false);
+  const [aiButtonPosition, setAiButtonPosition] = useState({ top: 0, left: 0 });
+  const [selectedRange, setSelectedRange] = useState(null);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [aiAssistAction, setAiAssistAction] = useState("improve");
+  const [aiAssistTone, setAiAssistTone] = useState("professional");
+  const [selectedText, setSelectedText] = useState("");
 
+  // Folder state
+  const [folders, setFolders] = useState([]);
+  const [selectedFolder, setSelectedFolder] = useState(null);
+  const [showFolderModal, setShowFolderModal] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [newFolderColor, setNewFolderColor] = useState("#D7B38C");
+  
+  // Trash state
+  const [showTrash, setShowTrash] = useState(false);
+  const [trashedNotes, setTrashedNotes] = useState([]);
+  
+  // Other state
+  const [showFavorites, setShowFavorites] = useState(false);
+  const [customFont, setCustomFont] = useState("Inter");
+  const [draggedNote, setDraggedNote] = useState(null);
+  const [dragOverFolder, setDragOverFolder] = useState(null);
+  
+  // Chat import state
+  const [showChatImport, setShowChatImport] = useState(false);
+  const [chatSessions, setChatSessions] = useState([]);
+  const [selectedSessions, setSelectedSessions] = useState([]);
+  const [importMode, setImportMode] = useState("summary");
+  const [importing, setImporting] = useState(false);
+
+  // Voice state
+  const [isRecording, setIsRecording] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState("");
+  const [processingVoice, setProcessingVoice] = useState(false);
+  
+  // Refs
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const quillRef = useRef(null);
+  const saveTimeout = useRef(null);
+  const aiInputRef = useRef(null);
+
+  // Popup state
+  const [popup, setPopup] = useState({ isOpen: false, title: "", message: "" });
+  const showPopup = (title, message) => setPopup({ isOpen: true, title, message });
+  const closePopup = () => setPopup({ isOpen: false, title: "", message: "" });
+  
   const { selectedTheme } = useTheme();
   
+  // Theme effects
   useEffect(() => {
     console.log('Notes - Selected theme:', selectedTheme);
     console.log('Notes - Theme tokens:', selectedTheme?.tokens);
@@ -85,9 +141,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   }, [selectedTheme]);
 
-  const [viewMode, setViewMode] = useState("edit");
-
-  // Fix Font registration - check if Quill is available
+  // Font registration
   useEffect(() => {
     if (typeof Quill !== 'undefined') {
       try {
@@ -122,48 +176,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
       }
     }
   }, []);
-  
-  const [showAIButton, setShowAIButton] = useState(false);
-  const [aiButtonPosition, setAiButtonPosition] = useState({ top: 0, left: 0 });
-  const [selectedRange, setSelectedRange] = useState(null);
-
-  const [folders, setFolders] = useState([]);
-  const [selectedFolder, setSelectedFolder] = useState(null);
-  const [showFolderModal, setShowFolderModal] = useState(false);
-  const [newFolderName, setNewFolderName] = useState("");
-  const [newFolderColor, setNewFolderColor] = useState("#D7B38C");
-  const [showTrash, setShowTrash] = useState(false);
-  const [trashedNotes, setTrashedNotes] = useState([]);
-  const [showFavorites, setShowFavorites] = useState(false);
-  const [customFont, setCustomFont] = useState("Inter");
-  const [showAIAssistant, setShowAIAssistant] = useState(false);
-  const [aiAssistAction, setAiAssistAction] = useState("improve");
-  const [aiAssistTone, setAiAssistTone] = useState("professional");
-  const [selectedText, setSelectedText] = useState("");
-
-  const [draggedNote, setDraggedNote] = useState(null);
-  const [dragOverFolder, setDragOverFolder] = useState(null);
-
-  const [showChatImport, setShowChatImport] = useState(false);
-  const [chatSessions, setChatSessions] = useState([]);
-  const [selectedSessions, setSelectedSessions] = useState([]);
-  const [importMode, setImportMode] = useState("summary");
-  const [importing, setImporting] = useState(false);
-
-  const [isRecording, setIsRecording] = useState(false);
-  const [voiceTranscript, setVoiceTranscript] = useState("");
-  const [processingVoice, setProcessingVoice] = useState(false);
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
-
-  const quillRef = useRef(null);
-  const saveTimeout = useRef(null);
-  const aiInputRef = useRef(null);
-
-  const [popup, setPopup] = useState({ isOpen: false, title: "", message: "" });
-  const showPopup = (title, message) => setPopup({ isOpen: true, title, message });
-  const closePopup = () => setPopup({ isOpen: false, title: "", message: "" });
-  
 
   // Load shared note function
   const loadSharedNote = async () => {
@@ -199,10 +211,12 @@ const NotesRedesign = ({ sharedMode = false }) => {
       }
     } catch (error) {
       console.error('Error loading shared note:', error);
+      showPopup("Error", "Failed to load shared note");
       navigate('/social');
     }
   };
 
+  // Initial load effect
   useEffect(() => {
     const token = localStorage.getItem("token");
     const username = localStorage.getItem("username");
@@ -216,7 +230,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
     if (sharedMode && noteId) {
       loadSharedNote();
     } else {
-      // Normal notes loading logic
       if (username) setUserName(username);
       if (profile) {
         try {
@@ -228,6 +241,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   }, [navigate, sharedMode, noteId]);
 
+  // Load notes and folders effect
   useEffect(() => {
     if (userName && !isSharedContent) {
       loadNotes();
@@ -272,7 +286,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   }, []);
 
   const handleTextSelection = useCallback(() => {
-    if (!canEdit) return; // Don't show AI button if no edit permission
+    if (!canEdit && isSharedContent) return;
     
     const quill = quillRef.current?.getEditor();
     if (!quill) return;
@@ -300,10 +314,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setShowAIButton(false);
     setSelectedText("");
     setSelectedRange(null);
-  }, [canEdit]);
+  }, [canEdit, isSharedContent]);
 
   useEffect(() => {
-    if (!quillReady || !canEdit) return;
+    if (!quillReady || (isSharedContent && !canEdit)) return;
 
     const quill = quillRef.current?.getEditor();
     if (!quill || !quill.root) return;
@@ -342,16 +356,16 @@ const NotesRedesign = ({ sharedMode = false }) => {
       document.removeEventListener("mousedown", onHide);
       document.removeEventListener("scroll", () => setShowAIButton(false));
     };
-  }, [handleTextSelection, showAIButton, quillReady, canEdit]);
+  }, [handleTextSelection, showAIButton, quillReady, canEdit, isSharedContent]);
 
   const handleAIButtonClick = () => {
-    if (!canEdit) return;
+    if (isSharedContent && !canEdit) return;
     setShowAIAssistant(true);
     setShowAIButton(false);
   };
 
   const processSelectedText = async (action) => {
-    if (!selectedText || !selectedText.trim() || !canEdit) {
+    if (!selectedText || !selectedText.trim() || (isSharedContent && !canEdit)) {
       showPopup("No Text Selected", "Please select text first");
       return;
     }
@@ -361,7 +375,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("${API_URL}/ai_writing_assistant/", {
+      const res = await fetch(`${API_URL}/ai_writing_assistant/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -400,7 +414,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   };
 
   const quickTextAction = async (actionType) => {
-    if (!canEdit) return;
+    if (isSharedContent && !canEdit) return;
     
     console.log(`Quick action: ${actionType}`);
     setGeneratingAI(true);
@@ -414,7 +428,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       fd.append("content_type", actionType);
       fd.append("existing_content", noteContent);
 
-      const res = await fetch("${API_URL}/generate_note_content/", {
+      const res = await fetch(`${API_URL}/generate_note_content/`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
@@ -497,7 +511,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("${API_URL}/create_folder", {
+      const res = await fetch(`${API_URL}/create_folder`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -536,7 +550,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("${API_URL}/create_note", {
+      const res = await fetch(`${API_URL}/create_note`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -601,11 +615,12 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const moveNoteToFolder = async (noteId, folderId) => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("${API_URL}/move_note_to_folder", {
+      const res = await fetch(`${API_URL}/move_note_to_folder`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}` },
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({ note_id: noteId, folder_id: folderId }),
       });
 
@@ -678,7 +693,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("${API_URL}/toggle_favorite", {
+      const res = await fetch(`${API_URL}/toggle_favorite`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -784,6 +799,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   };
 
+  // Word count effect
   useEffect(() => {
     if (noteContent) {
       const text = noteContent.replace(/<[^>]+>/g, "").trim();
@@ -804,7 +820,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       
       const folderId = selectedFolder && selectedFolder !== 0 ? selectedFolder : null;
       
-      const res = await fetch("${API_URL}/create_note", {
+      const res = await fetch(`${API_URL}/create_note`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -848,7 +864,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("${API_URL}/create_note", {
+      const res = await fetch(`${API_URL}/create_note`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -893,7 +909,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     
     // For shared notes, use the update_shared_note endpoint
     if (isSharedContent) {
-      if (!canEdit) return; // Don't save if no edit permission
+      if (!canEdit) return;
       
       setSaving(true);
       try {
@@ -920,6 +936,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       } catch (error) {
         setSaving(false);
         console.error('Save error:', error);
+        showPopup("Error", "Failed to save changes");
       }
     } else {
       // Normal save logic for own notes
@@ -932,7 +949,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("${API_URL}/update_note", {
+        const res = await fetch(`${API_URL}/update_note`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -970,10 +987,12 @@ const NotesRedesign = ({ sharedMode = false }) => {
       } catch (error) {
         setSaving(false);
         console.error("Save error:", error);
+        showPopup("Error", "Failed to save note");
       }
     }
   }, [selectedNote, noteTitle, noteContent, notes, isSharedContent, canEdit]);
 
+  // Auto-save effect
   useEffect(() => {
     if (saveTimeout.current) {
       clearTimeout(saveTimeout.current);
@@ -996,6 +1015,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     };
   }, [noteContent, noteTitle, selectedNote, autoSave, isSharedContent, canEdit]);
 
+  // Keyboard shortcut for save
   useEffect(() => {
     const handleKey = (e) => {
       if (e.ctrlKey && e.key === "s") {
@@ -1008,7 +1028,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   }, [autoSave]);
 
   const handleEditorChange = (content, delta, source, editor) => {
-    if (!canEdit) return;
+    if (isSharedContent && !canEdit) return;
     
     setNoteContent(content);
 
@@ -1037,7 +1057,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   };
 
   const generateAIContent = async () => {
-    if (!aiPrompt.trim() || !canEdit) {
+    if (!aiPrompt.trim() || (isSharedContent && !canEdit)) {
       showPopup("Empty Prompt", "Please enter a prompt for AI generation");
       return;
     }
@@ -1061,7 +1081,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       fd.append("content_type", actionType);
       fd.append("existing_content", noteContent);
 
-      const res = await fetch("${API_URL}/generate_note_content/", {
+      const res = await fetch(`${API_URL}/generate_note_content/`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
@@ -1093,7 +1113,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   };
 
   const quickAIAction = async (actionType) => {
-    if (!canEdit) return;
+    if (isSharedContent && !canEdit) return;
     
     setGeneratingAI(true);
     try {
@@ -1105,7 +1125,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       fd.append("content_type", actionType);
       fd.append("existing_content", noteContent);
 
-      const res = await fetch("${API_URL}/generate_note_content/", {
+      const res = await fetch(`${API_URL}/generate_note_content/`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
@@ -1180,7 +1200,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   };
 
   const startVoiceRecording = async () => {
-    if (!canEdit) return;
+    if (isSharedContent && !canEdit) return;
     
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -1242,7 +1262,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       console.log("Audio blob size:", audioBlob.size);
       console.log("User:", userName);
 
-      const transcribeRes = await fetch("${API_URL}/transcribe_audio/", {
+      const transcribeRes = await fetch(`${API_URL}/transcribe_audio/`, {
         method: "POST",
         headers: { 
           Authorization: `Bearer ${token}`
@@ -1266,7 +1286,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
       console.log("Sending transcript to AI:", transcript);
 
-      const aiRes = await fetch("${API_URL}/generate_note_content/", {
+      const aiRes = await fetch(`${API_URL}/generate_note_content/`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: (() => {
@@ -1310,7 +1330,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   };
 
   const aiWritingAssist = async () => {
-    if (!canEdit) return;
+    if (isSharedContent && !canEdit) return;
     
     const quill = quillRef.current?.getEditor();
     if (!quill) return;
@@ -1330,7 +1350,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setGeneratingAI(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("${API_URL}/ai_writing_assistant/", {
+      const res = await fetch(`${API_URL}/ai_writing_assistant/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1402,7 +1422,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         .map((s) => s.messages.map((m) => `Q: ${m.user_message}\nA: ${m.ai_response}`).join("\n\n"))
         .join("\n\n--- New Session ---\n\n");
 
-      const summaryRes = await fetch("${API_URL}/generate_note_summary/", {
+      const summaryRes = await fetch(`${API_URL}/generate_note_summary/`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: (() => {
@@ -1433,7 +1453,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
           .join("<hr/>");
       }
 
-      const createRes = await fetch("${API_URL}/create_note", {
+      const createRes = await fetch(`${API_URL}/create_note`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1474,7 +1494,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
           position: relative;
         }
         
-        /* Diagonal Centered Watermark */
         body::before {
           content: 'BrainWaveAI';
           position: fixed;
@@ -1574,7 +1593,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
           font-weight: 600; 
         }
         
-        /* Print Styles */
         @media print {
           body::before {
             content: 'BrainWaveAI';
@@ -1646,6 +1664,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     a.href = url;
     a.download = `${noteTitle || "note"}.txt`;
     a.click();
+    URL.revokeObjectURL(url);
     showPopup("Exported", "Note exported as text");
   };
 
@@ -1734,10 +1753,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
             <span className="notes-count">{notes.length}</span>
           </div>
           <div className="sidebar-actions">
-            <button onClick={createNewNote} className="btn-new-note" title="Create new note">
+            <button onClick={createNewNote} className="btn-new-note" title="Create new note" disabled={isSharedContent}>
               <Plus size={18} /> New Note
             </button>
-            <button onClick={() => setShowChatImport(true)} className="btn-import-chat" title="Import from AI Chat">
+            <button onClick={() => setShowChatImport(true)} className="btn-import-chat" title="Import from AI Chat" disabled={isSharedContent}>
               <Upload size={16} /> From Chat
             </button>
           </div>
@@ -1780,7 +1799,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         <div className="folders-section">
           <div className="folders-header">
             <h3>Folders</h3>
-            <button onClick={() => setShowFolderModal(true)} className="btn-add-folder">
+            <button onClick={() => setShowFolderModal(true)} className="btn-add-folder" disabled={isSharedContent}>
               <FolderPlus size={18} />
             </button>
           </div>
@@ -1828,6 +1847,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                       }}
                       className="folder-add-note-btn"
                       title="Add note to this folder"
+                      disabled={isSharedContent}
                     >
                       <Plus size={14} />
                     </button>
@@ -1837,6 +1857,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                         deleteFolder(folder.id);
                       }}
                       className="folder-delete-btn"
+                      disabled={isSharedContent}
                     >
                       <X size={14} />
                     </button>
@@ -1911,7 +1932,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
             <div className="no-notes-new">
               <div className="empty-icon"></div>
               <p>No notes found</p>
-              <button onClick={createNewNote} className="create-first-note">
+              <button onClick={createNewNote} className="create-first-note" disabled={isSharedContent}>
                 Create your first note
               </button>
             </div>
@@ -1938,6 +1959,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                         toggleFavorite(n.id);
                       }}
                       title={n.is_favorite ? "Remove from favorites" : "Add to favorites"}
+                      disabled={isSharedContent}
                     >
                       {n.is_favorite ? <Star size={14} fill="currentColor" /> : <Star size={14} />}
                     </button>
@@ -1948,6 +1970,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                         duplicateNote(n);
                       }}
                       title="Duplicate note"
+                      disabled={isSharedContent}
                     >
                       <Archive size={14} />
                     </button>
@@ -1958,6 +1981,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                         moveToTrash(n.id);
                       }}
                       title="Move to trash"
+                      disabled={isSharedContent}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -2013,7 +2037,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
               </button>
             )}
             <div className="nav-title">
-              Brainwave Notes
+              cerbyl Notes
               {isSharedContent && <span className="shared-badge">SHARED</span>}
             </div>
           </div>
@@ -2031,43 +2055,43 @@ const NotesRedesign = ({ sharedMode = false }) => {
             </div>
           )}
 
-          <div className="nav-center">
-            {selectedNote && (
-              <div className="editor-tools">
-                <button
-                  className={`tool-btn ${viewMode === "edit" ? "active" : ""}`}
-                  onClick={() => setViewMode("edit")}
-                  title="Edit mode"
-                  disabled={isSharedContent && !canEdit}
-                >
-                  <Edit3 size={16} /> Edit
-                </button>
-                <button
-                  className={`tool-btn ${viewMode === "preview" ? "active" : ""}`}
-                  onClick={() => setViewMode("preview")}
-                  title="Preview mode"
-                >
-                  <Eye size={16} /> Preview
-                </button>
-                <div className="tool-divider"></div>
-                <button className="tool-btn" onClick={exportAsPDF} title="Export as PDF">
-                  <FileDown size={16} /> PDF
-                </button>
-                <button className="tool-btn" onClick={exportAsText} title="Export as Text">
-                  <Download size={16} /> TXT
-                </button>
-                <div className="tool-divider"></div>
-                <button
-                  className="tool-btn"
-                  onClick={() => setShowAIAssistant(true)}
-                  title="AI Writing Assistant"
-                  disabled={isSharedContent && !canEdit}
-                >
-                  <Sparkles size={16} /> AI Assist
-                </button>
-              </div>
-            )}
-          </div>
+          {!isSharedContent && (
+            <div className="nav-center">
+              {selectedNote && (
+                <div className="editor-tools">
+                  <button
+                    className={`tool-btn ${viewMode === "edit" ? "active" : ""}`}
+                    onClick={() => setViewMode("edit")}
+                    title="Edit mode"
+                  >
+                    <Edit3 size={16} /> Edit
+                  </button>
+                  <button
+                    className={`tool-btn ${viewMode === "preview" ? "active" : ""}`}
+                    onClick={() => setViewMode("preview")}
+                    title="Preview mode"
+                  >
+                    <Eye size={16} /> Preview
+                  </button>
+                  <div className="tool-divider"></div>
+                  <button className="tool-btn" onClick={exportAsPDF} title="Export as PDF">
+                    <FileDown size={16} /> PDF
+                  </button>
+                  <button className="tool-btn" onClick={exportAsText} title="Export as Text">
+                    <Download size={16} /> TXT
+                  </button>
+                  <div className="tool-divider"></div>
+                  <button
+                    className="tool-btn"
+                    onClick={() => setShowAIAssistant(true)}
+                    title="AI Writing Assistant"
+                  >
+                    <Sparkles size={16} /> AI Assist
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="nav-actions-new">
             <button className="nav-btn" onClick={() => navigate("/dashboard")}>
@@ -2082,16 +2106,15 @@ const NotesRedesign = ({ sharedMode = false }) => {
           </div>
         </div>
 
-        {/* Conditionally disable editing for view-only shared notes */}
-        {viewMode === "edit" && isSharedContent && !canEdit && (
-          <div className="view-only-overlay">
-            <Eye size={24} />
-            <p>This is a shared note with view-only access</p>
-          </div>
-        )}
-
         {selectedNote ? (
           <div className="editor-content">
+            {isSharedContent && !canEdit && (
+              <div className="view-only-banner">
+                <Eye size={16} />
+                <span>View Only - You don't have permission to edit this shared note</span>
+              </div>
+            )}
+            
             <div className={`title-section ${titleSectionCollapsed ? 'collapsed' : ''}`}>
               <div className="title-section-header">
                 <div className="title-section-content">
@@ -2141,9 +2164,9 @@ const NotesRedesign = ({ sharedMode = false }) => {
                   theme="snow"
                   value={noteContent}
                   readOnly={true}
-                  modules={modules}
+                  modules={{ toolbar: false }}
                   formats={formats}
-                  className="quill-editor-enhanced"
+                  className="quill-editor-enhanced preview-mode"
                   style={{ fontFamily: customFont }}
                 />
               </div>
@@ -2175,9 +2198,11 @@ const NotesRedesign = ({ sharedMode = false }) => {
             <div className="empty-icon-large"></div>
             <h2>No Note Selected</h2>
             <p>Select a note from the sidebar or create a new one to get started</p>
-            <button className="btn-create-empty" onClick={createNewNote}>
-              Create New Note
-            </button>
+            {!isSharedContent && (
+              <button className="btn-create-empty" onClick={createNewNote}>
+                Create New Note
+              </button>
+            )}
           </div>
         )}
       </div>
