@@ -37,17 +37,15 @@ const AIChat = ({ sharedMode = false }) => {
   const fileInputRef = useRef(null);
   const isLoadingRef = useRef(false);
 
+  const [showFolderCreation, setShowFolderCreation] = useState(false);
+  const [folderName, setFolderName] = useState('');
+
   const greetings = [
-    "Hello, {name}! Ready to learn something new?",
-    "Welcome back, {name}! What shall we explore today?",
-    "Hi {name}! I'm here to help you learn",
-    "Good to see you, {name}! Let's dive into your questions",
-    "Hey {name}! What can I help you understand today?",
-    "Greetings, {name}! Ready for an educational journey?",
-    "Nice to see you again, {name}!",
-    "Welcome, {name}! Let's make learning fun",
-    "{name}, let's discover something amazing together",
-    "Hi there, {name}! What's on your mind?",
+    "Welcome back! How can I help you today?",
+    "Ready to explore new topics together?",
+    "Let's dive into learning something new",
+    "Your personal AI tutor is here to help",
+    "What would you like to learn today?",
     "Hello {name}! I'm excited to help you learn",
     "{name}, ready to unlock new knowledge?",
     "Welcome back, {name}! Let's continue your learning",

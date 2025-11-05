@@ -19,15 +19,13 @@ const Social = () => {
   const [sharedFilter, setSharedFilter] = useState('all');
   const [sharedSearch, setSharedSearch] = useState('');
   
-  // Share Modal State
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [itemToShare, setItemToShare] = useState(null);
   
-  // My Content State (for sharing)
   const [myNotes, setMyNotes] = useState([]);
   const [myChats, setMyChats] = useState([]);
   const [showMyContentModal, setShowMyContentModal] = useState(false);
-  const [myContentFilter, setMyContentFilter] = useState('all'); // 'all', 'notes', 'chats'
+  const [myContentFilter, setMyContentFilter] = useState('all');
 
   useEffect(() => {
     fetchUserProfile();
@@ -109,7 +107,6 @@ const Social = () => {
 
   const fetchMyContent = async () => {
     try {
-      // Fetch notes
       const notesResponse = await fetch(`${API_URL}/get_notes?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -118,7 +115,6 @@ const Social = () => {
         setMyNotes(notesData);
       }
 
-      // Fetch chats
       const chatsResponse = await fetch(`${API_URL}/get_chat_sessions?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -217,32 +213,49 @@ const Social = () => {
     }
   };
 
-  // In Social.js - update the handleOpenSharedItem function
 const handleOpenSharedItem = (item) => {
   if (item.content_type === 'chat') {
-    // Navigate to AI Chat with shared content
     navigate(`/shared/chat/${item.content_id}`);
   } else if (item.content_type === 'note') {
-    // Navigate to Notes with shared content
     navigate(`/shared/note/${item.content_id}`);
   }
 };
-  const handleDeleteSharedAccess = async (shareId) => {
-    if (!window.confirm('Remove this shared item? You will no longer have access to it.')) {
-      return;
-    }
 
-    try {
-      const response = await fetch(`${API_URL}/remove_shared_access/${shareId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        setSharedItems(prev => prev.filter(item => item.id !== shareId));
+const handleDeleteSharedAccess = async (sharedItemId) => {
+  if (!window.confirm('Remove this item from your shared content?')) return;
+  
+  try {
+    const response = await fetch(`${API_URL}/delete_shared_access/${sharedItemId}`, {
+      method: 'DELETE',
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
-    } catch (error) {
-      console.error('Error removing shared access:', error);
+    });
+
+    if (response.ok) {
+      setSharedItems(prev => prev.filter(item => item.id !== sharedItemId));
+    }
+  } catch (error) {
+    console.error('Error deleting shared access:', error);
+  }
+};
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInMs = now - date;
+    const diffInHours = diffInMs / (1000 * 60 * 60);
+    const diffInDays = diffInMs / (1000 * 60 * 60 * 24);
+    
+    if (diffInHours < 1) {
+      return 'Just now';
+    } else if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)}h ago`;
+    } else if (diffInDays < 7) {
+      return `${Math.floor(diffInDays)}d ago`;
+    } else {
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
   };
 
@@ -254,360 +267,349 @@ const handleOpenSharedItem = (item) => {
   const handleSelectItemToShare = (item, type) => {
     setItemToShare({
       id: item.id,
-      title: item.title,
-      type: type
+      type: type,
+      title: item.title || 'Untitled'
     });
     setShowMyContentModal(false);
     setShareModalOpen(true);
   };
 
-  const handleShareSuccess = (data) => {
-    console.log('Content shared successfully:', data);
-    // Optionally refresh shared items or show notification
+  const handleShareSuccess = () => {
     fetchSharedContent();
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+  const filteredSharedItems = sharedItems.filter(item => {
+    const matchesFilter = sharedFilter === 'all' || item.content_type === sharedFilter;
+    const matchesSearch = !sharedSearch || 
+      item.title.toLowerCase().includes(sharedSearch.toLowerCase()) ||
+      (item.message && item.message.toLowerCase().includes(sharedSearch.toLowerCase())) ||
+      (item.shared_by.username && item.shared_by.username.toLowerCase().includes(sharedSearch.toLowerCase()));
     
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined 
-    });
-  };
+    return matchesFilter && matchesSearch;
+  });
 
-  const getFilteredSharedItems = () => {
-    let filtered = sharedItems;
-
-    if (sharedFilter !== 'all') {
-      filtered = filtered.filter(item => item.content_type === sharedFilter);
-    }
-
-    if (sharedSearch) {
-      filtered = filtered.filter(item =>
-        item.title.toLowerCase().includes(sharedSearch.toLowerCase()) ||
-        item.shared_by.username.toLowerCase().includes(sharedSearch.toLowerCase()) ||
-        (item.shared_by.first_name && item.shared_by.first_name.toLowerCase().includes(sharedSearch.toLowerCase()))
+  const filteredMyContent = (() => {
+    if (myContentFilter === 'all') {
+      const notes = myNotes.map(note => ({ ...note, type: 'note' }));
+      const chats = myChats.map(chat => ({ ...chat, type: 'chat' }));
+      return [...notes, ...chats].sort((a, b) => 
+        new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at)
       );
+    } else if (myContentFilter === 'notes') {
+      return myNotes;
+    } else {
+      return myChats;
     }
+  })();
 
-    return filtered;
-  };
+  if (activeTab === 'hub') {
+    return (
+      <div className="hub-page">
+        <header className="hub-header">
+          <div className="hub-header-left">
+            <div className="hub-logo">cerbyl</div>
+            <div className="hub-subtitle">social hub</div>
+          </div>
+          <div className="hub-header-right">
+            <button className="hub-nav-btn" onClick={() => navigate('/dashboard')}>
+              Dashboard
+            </button>
+            <button className="hub-nav-btn logout" onClick={() => {
+              localStorage.removeItem('token');
+              navigate('/');
+            }}>
+              Logout
+            </button>
+          </div>
+        </header>
 
-  const getFilteredMyContent = () => {
-    if (myContentFilter === 'notes') return myNotes;
-    if (myContentFilter === 'chats') return myChats;
-    return [...myNotes.map(n => ({...n, type: 'note'})), ...myChats.map(c => ({...c, type: 'chat'}))];
-  };
-
-  const tools = [
-    {
-      icon: Users,
-      title: 'Friend Activity',
-      description: 'See what your friends are achieving. View their milestones, achievements, and give kudos.',
-      path: '/activity-feed',
-      id: 'activity'
-    },
-    {
-      icon: TrendingUp,
-      title: 'Leaderboards',
-      description: 'Compete with friends and track your ranking. See who\'s leading in study streaks and achievements.',
-      path: '/leaderboards',
-      id: 'leaderboards'
-    },
-    {
-      icon: MessageSquare,
-      title: 'Quiz Battles',
-      description: 'Challenge your friends to 1v1 quiz battles. Test your knowledge and compete for the top score.',
-      path: '/quiz-battles',
-      id: 'battles'
-    },
-    {
-      icon: Share2,
-      title: 'Shared Content',
-      description: 'View and manage notes and AI chats that friends have shared with you.',
-      onClick: () => setActiveTab('shared'),
-      id: 'shared'
-    }
-  ];
-
-  const renderUserCard = (user, actionButton) => (
-    <div key={user.id} className="user-card">
-      <div className="user-card-header">
-        <div className="user-avatar">
-          {user.picture_url ? (
-            <img src={user.picture_url} alt={user.username} />
-          ) : (
-            <div className="user-avatar-placeholder">
-              {(user.first_name?.[0] || user.username[0]).toUpperCase()}
+        <main className="hub-main-content">
+          <div className="hub-grid-container">
+            <div className="grid-box span-3x3 hero">
+              <div className="grid-box-content">
+                <div className="grid-box-title">Cerbyl</div>
+                <div className="grid-box-subtitle">AI-Powered Learning</div>
+              </div>
             </div>
-          )}
-        </div>
-        <div className="user-info">
-          <h3 className="user-name">
-            {user.first_name && user.last_name 
-              ? `${user.first_name} ${user.last_name}` 
-              : user.username}
-          </h3>
-          <p className="user-username">@{user.username}</p>
-          {user.field_of_study && (
-            <p className="user-field">{user.field_of_study}</p>
-          )}
-        </div>
-        {actionButton}
+
+            <div className="grid-box span-2x1 accent-bg" onClick={() => setActiveTab('friends')}>
+              <div className="grid-box-content">
+                <Users className="grid-box-icon" size={48} />
+                <div className="grid-box-title">Friends</div>
+                <div className="grid-box-subtitle">Manage Connections</div>
+              </div>
+            </div>
+
+            <div className="grid-box span-1x1 white-bg" onClick={() => setActiveTab('shared')}>
+              <div className="grid-box-content">
+                <Share2 className="grid-box-icon" size={40} />
+                <div className="grid-box-title">Shared</div>
+                <div className="grid-box-subtitle">Content Hub</div>
+              </div>
+            </div>
+
+            <div className="grid-box span-2x1 black-bg" onClick={() => navigate('/quiz-battles')}>
+              <div className="grid-box-content">
+                <MessageSquare className="grid-box-icon" size={48} />
+                <div className="grid-box-title">Quiz Battles</div>
+                <div className="grid-box-subtitle">Challenge Friends</div>
+              </div>
+            </div>
+
+            <div className="grid-box span-1x1 dark-variant">
+              <div className="grid-box-content">
+                <div className="grid-box-subtitle">Games</div>
+              </div>
+            </div>
+
+            <div className="grid-box span-2x2 accent-glow" onClick={() => navigate('/leaderboards')}>
+              <div className="grid-box-content">
+                <TrendingUp className="grid-box-icon" size={56} />
+                <div className="grid-box-title">Leaderboards</div>
+                <div className="grid-box-subtitle">Top Performers</div>
+              </div>
+            </div>
+
+            <div className="grid-box span-1x2 white-bg">
+              <div className="grid-box-content">
+                <div className="grid-box-subtitle">Social Hub</div>
+              </div>
+            </div>
+
+            <div className="grid-box span-2x1 dark-variant" onClick={() => navigate('/activity-feed')}>
+              <div className="grid-box-content">
+                <Users className="grid-box-icon" size={48} />
+                <div className="grid-box-title">Activity</div>
+                <div className="grid-box-subtitle">Friend Updates</div>
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
-
-      {user.preferred_subjects && user.preferred_subjects.length > 0 && (
-        <div className="user-subjects">
-          <h4>Preferred Subjects</h4>
-          <div className="subject-tags">
-            {user.preferred_subjects.map((subject, idx) => (
-              <span key={idx} className="subject-tag">{subject}</span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {user.stats && (
-        <div className="user-stats">
-          <div className="stat-item">
-            <span className="stat-value">{user.stats.total_lessons}</span>
-            <span className="stat-label">Lessons</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-value">{user.stats.total_hours}h</span>
-            <span className="stat-label">Study Time</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-value">{user.stats.day_streak}</span>
-            <span className="stat-label">Day Streak</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-value">{user.stats.accuracy_percentage}%</span>
-            <span className="stat-label">Accuracy</span>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  const filteredSharedItems = getFilteredSharedItems();
-  const filteredMyContent = getFilteredMyContent();
+    );
+  }
 
   return (
     <div className="hub-page">
       <header className="hub-header">
         <div className="hub-header-left">
-          <h1 className="hub-logo">cerbyl</h1>
-          <span className="hub-subtitle">SOCIAL HUB</span>
+          <div className="hub-logo">cerbyl</div>
+          <div className="hub-subtitle">social hub</div>
         </div>
         <div className="hub-header-right">
-          <button className="hub-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
-          <button className="hub-nav-btn logout" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>Logout</button>
+          <button className="hub-nav-btn" onClick={() => setActiveTab('hub')}>
+            Home
+          </button>
+          <button className="hub-nav-btn" onClick={() => navigate('/dashboard')}>
+            Dashboard
+          </button>
+          <button className="hub-nav-btn logout" onClick={() => {
+            localStorage.removeItem('token');
+            navigate('/');
+          }}>
+            Logout
+          </button>
         </div>
       </header>
 
       <div className="hub-main-content">
-        <div className="hub-welcome">
-          <h2 className="hub-welcome-title">Welcome back, {userName}</h2>
-          <p className="hub-welcome-subtitle">Connect with fellow learners and grow together</p>
-          
-          <div className="hub-tabs">
-            <button 
-              className={`hub-tab ${activeTab === 'hub' ? 'active' : ''}`}
-              onClick={() => setActiveTab('hub')}
-            >
-              Hub
-            </button>
-            <button 
-              className={`hub-tab ${activeTab === 'search' ? 'active' : ''}`}
-              onClick={() => setActiveTab('search')}
-            >
-              Find Friends
-            </button>
-            <button 
-              className={`hub-tab ${activeTab === 'requests' ? 'active' : ''}`}
-              onClick={() => setActiveTab('requests')}
-            >
-              Requests {friendRequests.received.length > 0 && `(${friendRequests.received.length})`}
-            </button>
-            <button 
-              className={`hub-tab ${activeTab === 'friends' ? 'active' : ''}`}
-              onClick={() => setActiveTab('friends')}
-            >
-              Friends ({friends.length})
-            </button>
-            <button 
-              className={`hub-tab ${activeTab === 'shared' ? 'active' : ''}`}
-              onClick={() => setActiveTab('shared')}
-            >
-              Shared ({sharedItems.length})
-            </button>
-          </div>
-        </div>
-
-        {activeTab === 'hub' && (
-          <div className="hub-grid">
-            {tools.map(tool => {
-              const IconComponent = tool.icon;
-              return (
-                <div 
-                  key={tool.id}
-                  className="hub-card"
-                  onClick={tool.onClick || (() => navigate(tool.path))}
-                >
-                  <div className="hub-card-header">
-                    <div className="hub-card-icon">
-                      <IconComponent size={48} strokeWidth={1.5} />
-                    </div>
-                  </div>
-
-                  <div className="hub-card-content">
-                    <h3 className="hub-card-title">{tool.title}</h3>
-                    <p className="hub-card-description">{tool.description}</p>
-                  </div>
-
-                  <div className="hub-card-footer">
-                    <button className="hub-card-action">EXPLORE NOW</button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {activeTab === 'search' && (
+        {activeTab === 'friends' && (
           <div className="friend-section">
+            <div className="friend-header">
+              <h2>Friends & Connections</h2>
+              <p>Search for users, manage friend requests, and view your connections</p>
+            </div>
+
             <div className="search-container">
               <Search size={20} />
               <input
                 type="text"
-                placeholder="Search by username or email..."
+                placeholder="Search users..."
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
                 className="search-input"
               />
             </div>
 
-            {isSearching && <div className="loading-text">Searching...</div>}
-
-            <div className="users-grid">
-              {searchResults.map(user => renderUserCard(user, 
-                user.is_friend ? (
-                  <span className="friend-badge">Friends</span>
-                ) : user.request_sent ? (
-                  <span className="pending-badge">Request Sent</span>
-                ) : user.request_received ? (
-                  <span className="pending-badge">Pending Response</span>
-                ) : (
-                  <button 
-                    className="social-action-button add-friend"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      sendFriendRequest(user.id);
-                    }}
-                  >
-                    <UserPlus size={14} />
-                  </button>
-                )
-              ))}
-            </div>
-
-            {searchQuery.length >= 2 && !isSearching && searchResults.length === 0 && (
-              <div className="empty-state">No users found matching "{searchQuery}"</div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'requests' && (
-          <div className="friend-section">
-            {friendRequests.received.length > 0 && (
-              <div className="requests-section">
-                <h3 className="section-title">Received Requests</h3>
+            {searchQuery && searchResults.length > 0 && (
+              <>
+                <div className="section-title">Search Results</div>
                 <div className="users-grid">
-                  {friendRequests.received.map(request => renderUserCard(request,
-                    <div className="request-actions">
-                      <button 
-                        className="social-action-button accept"
-                        onClick={() => respondToFriendRequest(request.request_id, 'accept')}
-                        title="Accept"
-                      >
-                        <Check size={14} />
-                      </button>
-                      <button 
-                        className="social-action-button reject"
-                        onClick={() => respondToFriendRequest(request.request_id, 'reject')}
-                        title="Reject"
-                      >
-                        <X size={14} />
-                      </button>
+                  {searchResults.map((user) => (
+                    <div key={user.id} className="user-card">
+                      <div className="user-card-header">
+                        <div className="user-avatar">
+                          {user.picture_url ? (
+                            <img src={user.picture_url} alt={user.username} />
+                          ) : (
+                            (user.first_name?.[0] || user.username[0]).toUpperCase()
+                          )}
+                        </div>
+                        <div className="user-info">
+                          <div className="user-name">
+                            {user.first_name && user.last_name 
+                              ? `${user.first_name} ${user.last_name}`
+                              : user.username}
+                          </div>
+                          <div className="user-email">{user.email || user.username}</div>
+                        </div>
+                      </div>
+
+                      <div className="user-stats">
+                        <div className="stat">
+                          <span className="stat-value">{user.friend_count || 0}</span>
+                          <span className="stat-label">Friends</span>
+                        </div>
+                        <div className="stat">
+                          <span className="stat-value">{user.shared_count || 0}</span>
+                          <span className="stat-label">Shared</span>
+                        </div>
+                        <div className="stat">
+                          <span className="stat-value">{user.note_count || 0}</span>
+                          <span className="stat-label">Notes</span>
+                        </div>
+                      </div>
+
+                      <div className="user-actions">
+                        {user.is_friend ? (
+                          <button className="action-btn secondary disabled">
+                            <Check size={16} />
+                            Friends
+                          </button>
+                        ) : user.request_sent ? (
+                          <button className="action-btn secondary disabled">
+                            <Clock size={16} />
+                            Pending
+                          </button>
+                        ) : (
+                          <button 
+                            className="action-btn primary"
+                            onClick={() => sendFriendRequest(user.id)}
+                          >
+                            <UserPlus size={16} />
+                            Add Friend
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
-              </div>
+              </>
             )}
 
-            {friendRequests.sent.length > 0 && (
-              <div className="requests-section">
-                <h3 className="section-title">Sent Requests</h3>
+            {friendRequests.received.length > 0 && (
+              <>
+                <div className="section-title">Friend Requests</div>
                 <div className="users-grid">
-                  {friendRequests.sent.map(request => renderUserCard(request,
-                    <span className="pending-badge">Pending</span>
+                  {friendRequests.received.map((request) => (
+                    <div key={request.id} className="user-card">
+                      <div className="user-card-header">
+                        <div className="user-avatar">
+                          {request.sender.picture_url ? (
+                            <img src={request.sender.picture_url} alt={request.sender.username} />
+                          ) : (
+                            (request.sender.first_name?.[0] || request.sender.username[0]).toUpperCase()
+                          )}
+                        </div>
+                        <div className="user-info">
+                          <div className="user-name">
+                            {request.sender.first_name && request.sender.last_name
+                              ? `${request.sender.first_name} ${request.sender.last_name}`
+                              : request.sender.username}
+                          </div>
+                          <div className="user-email">{request.sender.email || request.sender.username}</div>
+                        </div>
+                      </div>
+
+                      <div className="user-actions">
+                        <button 
+                          className="action-btn success"
+                          onClick={() => respondToFriendRequest(request.id, 'accept')}
+                        >
+                          <Check size={16} />
+                          Accept
+                        </button>
+                        <button 
+                          className="action-btn danger"
+                          onClick={() => respondToFriendRequest(request.id, 'decline')}
+                        >
+                          <X size={16} />
+                          Decline
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div>
+              </>
             )}
 
-            {friendRequests.received.length === 0 && friendRequests.sent.length === 0 && (
-              <div className="empty-state">No pending friend requests</div>
-            )}
-          </div>
-        )}
+            {friends.length > 0 && (
+              <>
+                <div className="section-title">Your Friends ({friends.length})</div>
+                <div className="users-grid">
+                  {friends.map((friend) => (
+                    <div key={friend.id} className="user-card">
+                      <div className="user-card-header">
+                        <div className="user-avatar">
+                          {friend.picture_url ? (
+                            <img src={friend.picture_url} alt={friend.username} />
+                          ) : (
+                            (friend.first_name?.[0] || friend.username[0]).toUpperCase()
+                          )}
+                        </div>
+                        <div className="user-info">
+                          <div className="user-name">
+                            {friend.first_name && friend.last_name
+                              ? `${friend.first_name} ${friend.last_name}`
+                              : friend.username}
+                          </div>
+                          <div className="user-email">{friend.email || friend.username}</div>
+                        </div>
+                      </div>
 
-        {activeTab === 'friends' && (
-          <div className="friend-section">
-            {friends.length > 0 ? (
-              <div className="users-grid">
-                {friends.map(friend => renderUserCard(friend,
-                  <button 
-                    className="social-action-button remove"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeFriend(friend.id);
-                    }}
-                    title="Remove Friend"
-                  >
-                    <UserMinus size={14} />
-                  </button>
-                ))}
-              </div>
-            ) : (
+                      <div className="user-stats">
+                        <div className="stat">
+                          <span className="stat-value">{friend.friend_count || 0}</span>
+                          <span className="stat-label">Friends</span>
+                        </div>
+                        <div className="stat">
+                          <span className="stat-value">{friend.shared_count || 0}</span>
+                          <span className="stat-label">Shared</span>
+                        </div>
+                        <div className="stat">
+                          <span className="stat-value">{friend.note_count || 0}</span>
+                          <span className="stat-label">Notes</span>
+                        </div>
+                      </div>
+
+                      <div className="user-actions">
+                        <button 
+                          className="action-btn danger"
+                          onClick={() => removeFriend(friend.id)}
+                        >
+                          <UserMinus size={16} />
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {!searchQuery && friendRequests.received.length === 0 && friends.length === 0 && (
               <div className="empty-state">
-                You haven't added any friends yet. Search for users to connect!
+                No friends yet. Search for users above to start connecting!
               </div>
             )}
           </div>
         )}
 
         {activeTab === 'shared' && (
-          <div className="friend-section">
-            <div className="shared-header-actions">
-              <button 
-                className="share-new-content-btn"
-                onClick={handleShareNewContent}
-              >
-                <Plus size={20} />
-                <span>Share New Content</span>
-              </button>
+          <div className="shared-content-section">
+            <div className="shared-header">
+              <h2>Shared Content</h2>
+              <p>View and manage content shared with you by friends</p>
             </div>
 
             <div className="shared-controls">
@@ -644,6 +646,11 @@ const handleOpenSharedItem = (item) => {
                   Notes
                 </button>
               </div>
+
+              <button className="share-new-content-btn" onClick={handleShareNewContent}>
+                <Plus size={16} />
+                Share New
+              </button>
             </div>
 
             {filteredSharedItems.length === 0 ? (
@@ -747,7 +754,6 @@ const handleOpenSharedItem = (item) => {
         )}
       </div>
 
-      {/* My Content Selection Modal */}
       {showMyContentModal && (
         <div className="modal-overlay" onClick={() => setShowMyContentModal(false)}>
           <div className="modal-content my-content-modal" onClick={(e) => e.stopPropagation()}>
@@ -813,7 +819,6 @@ const handleOpenSharedItem = (item) => {
         </div>
       )}
 
-      {/* Share Modal */}
       {shareModalOpen && itemToShare && (
         <ShareModal
           isOpen={shareModalOpen}
