@@ -51,6 +51,15 @@ import os
 from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 
+from fastapi import WebSocket, WebSocketDisconnect
+from websocket_manager import (
+    manager, 
+    notify_battle_challenge, 
+    notify_battle_accepted, 
+    notify_battle_declined,
+    notify_battle_started
+)
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -6355,7 +6364,7 @@ async def create_quiz_battle(
     username: str = Depends(verify_token),
     db: Session = Depends(get_db)
 ):
-    """Create a new quiz battle challenge"""
+    """Create a new quiz battle challenge and notify opponent"""
     try:
         current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
         if not current_user:
@@ -6370,7 +6379,7 @@ async def create_quiz_battle(
         if not opponent_id or not subject:
             raise HTTPException(status_code=400, detail="opponent_id and subject are required")
         
-        # Check if opponent is a friend
+        # Check friendship
         friendship = db.query(models.Friendship).filter(
             and_(
                 models.Friendship.user_id == current_user.id,
@@ -6394,18 +6403,44 @@ async def create_quiz_battle(
         
         db.add(battle)
         db.commit()
+        db.refresh(battle)
+        
+        logger.info(f"⚔️ Battle created: ID={battle.id}")
+        
+        # Prepare notification data
+        battle_data = {
+            "id": battle.id,
+            "subject": battle.subject,
+            "difficulty": battle.difficulty,
+            "question_count": battle.question_count,
+            "time_limit_seconds": battle.time_limit_seconds,
+            "challenger": {
+                "id": current_user.id,
+                "username": current_user.username,
+                "first_name": current_user.first_name or "",
+                "last_name": current_user.last_name or "",
+                "picture_url": current_user.picture_url or ""
+            },
+            "is_challenger": False
+        }
+        
+        # Send WebSocket notification
+        notification_sent = await notify_battle_challenge(opponent_id, battle_data)
+        
+        if notification_sent:
+            logger.info(f"✅ Notification sent to opponent {opponent_id}")
         
         return {
             "status": "success",
             "battle_id": battle.id,
-            "message": "Quiz battle created"
+            "message": "Quiz battle created",
+            "notification_sent": notification_sent
         }
     
     except Exception as e:
-        logger.error(f"Error creating quiz battle: {str(e)}")
+        logger.error(f"❌ Error creating battle: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.get("/api/quiz_battles")
 async def get_quiz_battles(
@@ -7701,6 +7736,206 @@ else:
             "status": "running",
             "frontend": "https://l1-m71fagwct-asphar0057s-projects.vercel.app"
         }
+# ==================== WEBSOCKET ENDPOINT ====================
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket, token: str):
+    """WebSocket endpoint for real-time notifications"""
+    user = None
+    user_id = None
+    db = None
+    
+    try:
+        # ⚠️ IMPORTANT: Accept connection FIRST
+        await websocket.accept()
+        logger.info(f"📥 WebSocket connection attempt with token")
+        
+        # Create database session
+        db = SessionLocal()
+        
+        # Verify token AFTER accepting connection
+        from jose import jwt, JWTError
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            username = payload.get("sub")
+            
+            if not username:
+                logger.error(f"❌ No username in token payload")
+                await websocket.close(code=1008, reason="Invalid token")
+                return
+            
+            logger.info(f"🔑 Token verified for username: {username}")
+            
+            # Get user
+            user = get_user_by_username(db, username) or get_user_by_email(db, username)
+            if not user:
+                logger.error(f"❌ User not found: {username}")
+                await websocket.close(code=1008, reason="User not found")
+                return
+            
+            user_id = user.id
+            logger.info(f"✅ User {user_id} ({username}) authenticated")
+            
+        except JWTError as e:
+            logger.error(f"❌ JWT Error: {str(e)}")
+            await websocket.close(code=1008, reason="Invalid token")
+            return
+        
+        # Store connection
+        manager.active_connections[user_id] = websocket
+        logger.info(f"✅ User {user_id} connected to WebSocket (Total: {len(manager.active_connections)})")
+        
+        # Send connection confirmation
+        await websocket.send_json({
+            "type": "connected",
+            "message": "Connected to battle notification system",
+            "user_id": user_id
+        })
+        
+        # Keep connection alive
+        while True:
+            try:
+                data = await websocket.receive_json()
+                
+                # Handle ping/pong for keepalive
+                if data.get("type") == "ping":
+                    await websocket.send_json({"type": "pong"})
+                    logger.debug(f"🏓 Ping/Pong from user {user_id}")
+                
+            except WebSocketDisconnect:
+                logger.info(f"🔌 WebSocket disconnected for user {user_id}")
+                break
+            except Exception as e:
+                logger.error(f"❌ Error in WebSocket loop: {str(e)}")
+                break
+    
+    except Exception as e:
+        logger.error(f"❌ WebSocket error: {str(e)}")
+        try:
+            await websocket.close(code=1011, reason="Internal error")
+        except:
+            pass
+    
+    finally:
+        # Disconnect user
+        if user_id and user_id in manager.active_connections:
+            del manager.active_connections[user_id]
+            logger.info(f"👋 User {user_id} WebSocket cleaned up (Total: {len(manager.active_connections)})")
+        
+        # Close database session
+        if db:
+            db.close()
+
+@app.post("/api/accept_quiz_battle")
+async def accept_quiz_battle(
+    payload: dict = Body(...),
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Accept a quiz battle challenge"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        battle_id = payload.get("battle_id")
+        if not battle_id:
+            raise HTTPException(status_code=400, detail="battle_id is required")
+        
+        battle = db.query(models.QuizBattle).filter(
+            models.QuizBattle.id == battle_id
+        ).first()
+        
+        if not battle:
+            raise HTTPException(status_code=404, detail="Battle not found")
+        
+        if battle.opponent_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        if battle.status != "pending":
+            raise HTTPException(status_code=400, detail=f"Battle is {battle.status}")
+        
+        # Update battle status
+        battle.status = "active"
+        battle.started_at = datetime.now(timezone.utc)
+        
+        db.commit()
+        db.refresh(battle)
+        
+        logger.info(f"✅ Battle {battle_id} accepted by user {current_user.id}")
+        
+        # Notify challenger
+        await notify_battle_accepted(battle.challenger_id, battle.id)
+        await notify_battle_started([battle.challenger_id, battle.opponent_id], battle.id)
+        
+        return {
+            "status": "success",
+            "message": "Battle accepted!",
+            "battle_id": battle.id,
+            "redirect_to": f"/quiz-battle/{battle.id}"
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error accepting battle: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/decline_quiz_battle")
+async def decline_quiz_battle(
+    payload: dict = Body(...),
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Decline a quiz battle challenge"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        battle_id = payload.get("battle_id")
+        if not battle_id:
+            raise HTTPException(status_code=400, detail="battle_id is required")
+        
+        battle = db.query(models.QuizBattle).filter(
+            models.QuizBattle.id == battle_id
+        ).first()
+        
+        if not battle:
+            raise HTTPException(status_code=404, detail="Battle not found")
+        
+        if battle.opponent_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        if battle.status != "pending":
+            raise HTTPException(status_code=400, detail=f"Battle is {battle.status}")
+        
+        # Update battle status
+        battle.status = "expired"
+        battle.completed_at = datetime.now(timezone.utc)
+        
+        db.commit()
+        
+        logger.info(f"❌ Battle {battle_id} declined by user {current_user.id}")
+        
+        # Notify challenger
+        opponent_name = f"{current_user.first_name} {current_user.last_name}" if current_user.first_name else current_user.username
+        await notify_battle_declined(battle.challenger_id, battle.id, opponent_name)
+        
+        return {
+            "status": "success",
+            "message": "Battle declined",
+            "battle_id": battle.id
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error declining battle: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # ==================== END SERVE REACT APP ====================
 # ==================== END SERVE REACT APP ====================

@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Swords, Users, Clock, Target, Trophy, X, Check } from 'lucide-react';
 import './QuizBattle.css';
 import { API_URL } from '../config';
+import useWebSocket from './useWebSocket';
+import BattleNotification from './BattleNotification.js';
+
 const QuizBattle = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
@@ -11,6 +14,8 @@ const QuizBattle = () => {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState('active');
+  const [pendingBattle, setPendingBattle] = useState(null);
+  const [showNotification, setShowNotification] = useState(false);
   
   // Create battle form
   const [selectedFriend, setSelectedFriend] = useState('');
@@ -18,9 +23,61 @@ const QuizBattle = () => {
   const [difficulty, setDifficulty] = useState('intermediate');
   const [questionCount, setQuestionCount] = useState(10);
 
+  // WebSocket connection for real-time notifications
+  const { isConnected } = useWebSocket(token, (message) => {
+    console.log('Received WebSocket message:', message);
+    
+    if (message.type === 'battle_challenge') {
+      // Show notification popup for new battle challenge
+      setPendingBattle(message.battle);
+      setShowNotification(true);
+      
+      // Optional: Also show a browser notification if permitted
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Quiz Battle Challenge!', {
+          body: `${message.battle.challenger.username} challenged you to a ${message.battle.subject} quiz!`,
+          icon: message.battle.challenger.picture_url || '/default-avatar.png'
+        });
+      }
+      
+      // Also refresh the battles list
+      fetchBattles();
+    } else if (message.type === 'battle_accepted') {
+      // Close notification if it's open
+      setShowNotification(false);
+      
+      // Refresh battles list when someone accepts
+      fetchBattles();
+      
+      // Redirect both challenger and accepter to the battle session
+      if (message.battle_id) {
+        // Show a notification that battle was accepted
+        const opponentName = message.opponent_name || 'Your opponent';
+        alert(`${opponentName} accepted the challenge! Starting quiz session...`);
+        
+        // Redirect to the battle session
+        navigate(`/quiz-battle/${message.battle_id}`);
+      }
+    } else if (message.type === 'battle_declined') {
+      // Close notification if it's open
+      setShowNotification(false);
+      
+      // Refresh battles list when someone declines
+      fetchBattles();
+      
+      const opponentName = message.opponent_name || 'Your opponent';
+      alert(`${opponentName} declined your battle challenge`);
+    }
+  });
+
   useEffect(() => {
     fetchBattles();
     fetchFriends();
+    
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
   }, [statusFilter]);
 
   const fetchBattles = async () => {
@@ -83,9 +140,63 @@ const QuizBattle = () => {
         setSelectedFriend('');
         setSubject('');
         fetchBattles();
+        alert('Battle challenge sent!');
       }
     } catch (error) {
       console.error('Error creating battle:', error);
+    }
+  };
+
+  const handleAcceptBattle = async () => {
+    if (!pendingBattle) return;
+
+    try {
+      const response = await fetch(`${API_URL}/accept_quiz_battle`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          battle_id: pendingBattle.id
+        })
+      });
+
+      if (response.ok) {
+        setShowNotification(false);
+        setPendingBattle(null);
+        // Immediately redirect to the battle
+        navigate(`/quiz-battle/${pendingBattle.id}`);
+      }
+    } catch (error) {
+      console.error('Error accepting battle:', error);
+      alert('Failed to accept battle');
+    }
+  };
+
+  const handleDeclineBattle = async () => {
+    if (!pendingBattle) return;
+
+    try {
+      const response = await fetch(`${API_URL}/decline_quiz_battle`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          battle_id: pendingBattle.id
+        })
+      });
+
+      if (response.ok) {
+        setShowNotification(false);
+        setPendingBattle(null);
+        fetchBattles();
+      }
+    } catch (error) {
+      console.error('Error declining battle:', error);
+      alert('Failed to decline battle');
     }
   };
 
@@ -112,6 +223,7 @@ const QuizBattle = () => {
         <div className="battle-header-left">
           <h1 className="battle-logo">cerbyl</h1>
           <span className="battle-subtitle">QUIZ BATTLES</span>
+          {isConnected && <span className="ws-status">●</span>}
         </div>
         <div className="battle-header-right">
           <button className="battle-nav-btn" onClick={() => navigate('/social')}>Back to Social</button>
@@ -323,6 +435,15 @@ const QuizBattle = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {showNotification && pendingBattle && (
+        <BattleNotification
+          battle={pendingBattle}
+          onAccept={handleAcceptBattle}
+          onDecline={handleDeclineBattle}
+          onClose={() => setShowNotification(false)}
+        />
       )}
     </div>
   );
