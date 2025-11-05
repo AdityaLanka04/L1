@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, UserMinus, FileText, Eye, Edit3, Trash2, Clock, Plus } from 'lucide-react';
+import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, UserMinus, FileText, Eye, Edit3, Trash2, Clock, Plus, Gamepad2, Activity } from 'lucide-react';
 import ShareModal from './SharedModal';
 import './Social.css';
 import { API_URL } from '../config';
+
 const Social = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
@@ -19,15 +20,13 @@ const Social = () => {
   const [sharedFilter, setSharedFilter] = useState('all');
   const [sharedSearch, setSharedSearch] = useState('');
   
-  // Share Modal State
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [itemToShare, setItemToShare] = useState(null);
   
-  // My Content State (for sharing)
   const [myNotes, setMyNotes] = useState([]);
   const [myChats, setMyChats] = useState([]);
   const [showMyContentModal, setShowMyContentModal] = useState(false);
-  const [myContentFilter, setMyContentFilter] = useState('all'); // 'all', 'notes', 'chats'
+  const [myContentFilter, setMyContentFilter] = useState('all');
 
   useEffect(() => {
     fetchUserProfile();
@@ -80,36 +79,25 @@ const Social = () => {
   };
 
   const fetchSharedContent = async () => {
-  try {
-    console.log('🔄 Fetching shared content...');
-    const token = localStorage.getItem('token');
-    
-    const response = await fetch(`${API_URL}/shared_with_me`, {
-      headers: { 
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+    try {
+      const response = await fetch(`${API_URL}/shared_with_me`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setSharedItems(data.shared_items || []);
       }
-    });
-    
-    console.log('📡 Shared content response status:', response.status);
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log('✅ Shared content data:', data);
-      setSharedItems(data.shared_items || []);
-    } else {
-      console.error('❌ Failed to fetch shared content:', response.status);
-      const errorText = await response.text();
-      console.error('Error details:', errorText);
+    } catch (error) {
+      console.error('Error fetching shared content:', error);
     }
-  } catch (error) {
-    console.error('❌ Error fetching shared content:', error);
-  }
-};
+  };
 
   const fetchMyContent = async () => {
     try {
-      // Fetch notes
       const notesResponse = await fetch(`${API_URL}/get_notes?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -118,7 +106,6 @@ const Social = () => {
         setMyNotes(notesData);
       }
 
-      // Fetch chats
       const chatsResponse = await fetch(`${API_URL}/get_chat_sessions?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -217,16 +204,14 @@ const Social = () => {
     }
   };
 
-  // In Social.js - update the handleOpenSharedItem function
-const handleOpenSharedItem = (item) => {
-  if (item.content_type === 'chat') {
-    // Navigate to AI Chat with shared content
-    navigate(`/shared/chat/${item.content_id}`);
-  } else if (item.content_type === 'note') {
-    // Navigate to Notes with shared content
-    navigate(`/shared/note/${item.content_id}`);
-  }
-};
+  const handleOpenSharedItem = (item) => {
+    if (item.content_type === 'chat') {
+      navigate(`/shared/chat/${item.content_id}`);
+    } else if (item.content_type === 'note') {
+      navigate(`/shared/note/${item.content_id}`);
+    }
+  };
+
   const handleDeleteSharedAccess = async (shareId) => {
     if (!window.confirm('Remove this shared item? You will no longer have access to it.')) {
       return;
@@ -262,8 +247,6 @@ const handleOpenSharedItem = (item) => {
   };
 
   const handleShareSuccess = (data) => {
-    console.log('Content shared successfully:', data);
-    // Optionally refresh shared items or show notification
     fetchSharedContent();
   };
 
@@ -309,34 +292,76 @@ const handleOpenSharedItem = (item) => {
     return [...myNotes.map(n => ({...n, type: 'note'})), ...myChats.map(c => ({...c, type: 'chat'}))];
   };
 
-  const tools = [
+  const bentoCards = [
     {
+      id: 'welcome',
+      size: 'large-square',
+      icon: null,
+      title: 'CERBYL',
+      subtitle: 'SOCIAL HUB',
+      description: `Welcome back, ${userName}`,
+      onClick: null,
+      className: 'welcome-card'
+    },
+    {
+      id: 'friends',
+      size: 'medium-horizontal',
       icon: Users,
-      title: 'Friend Activity',
-      description: 'See what your friends are achieving. View their milestones, achievements, and give kudos.',
-      path: '/activity-feed',
-      id: 'activity'
+      title: 'FRIENDS & REQUESTS',
+      subtitle: 'MANAGE CONNECTIONS',
+      description: `${friends.length} friends · ${friendRequests.received.length} pending`,
+      onClick: () => setActiveTab('friends'),
+      className: 'friends-card'
     },
     {
-      icon: TrendingUp,
-      title: 'Leaderboards',
-      description: 'Compete with friends and track your ranking. See who\'s leading in study streaks and achievements.',
-      path: '/leaderboards',
-      id: 'leaderboards'
+      id: 'activity',
+      size: 'medium-horizontal',
+      icon: Activity,
+      title: 'ACTIVITY FEED',
+      subtitle: 'FRIEND UPDATES',
+      description: 'See what friends are learning',
+      onClick: () => navigate('/activity-feed'),
+      className: 'activity-card'
     },
     {
+      id: 'games',
+      size: 'tall',
+      icon: Gamepad2,
+      title: 'GAMES & CHALLENGES',
+      subtitle: 'PLAY & COMPETE',
+      description: 'Interactive learning games',
+      onClick: () => navigate('/games'),
+      className: 'games-card'
+    },
+    {
+      id: 'quiz-battles',
+      size: 'small',
       icon: MessageSquare,
-      title: 'Quiz Battles',
-      description: 'Challenge your friends to 1v1 quiz battles. Test your knowledge and compete for the top score.',
-      path: '/quiz-battles',
-      id: 'battles'
+      title: 'QUIZ BATTLES',
+      subtitle: '1V1 MATCHES',
+      description: 'Challenge your knowledge',
+      onClick: () => navigate('/quiz-battles'),
+      className: 'battles-card'
     },
     {
+      id: 'shared',
+      size: 'small',
       icon: Share2,
-      title: 'Shared Content',
-      description: 'View and manage notes and AI chats that friends have shared with you.',
+      title: 'SHARED',
+      subtitle: 'LEARNING CONTENT',
+      description: `${sharedItems.length} shared items`,
       onClick: () => setActiveTab('shared'),
-      id: 'shared'
+      className: 'shared-card'
+    },
+    {
+      id: 'leaderboards',
+      size: 'large-horizontal',
+      icon: TrendingUp,
+      title: 'GLOBAL LEADERBOARDS',
+      subtitle: 'TOP PERFORMERS',
+      description: 'See where you rank globally',
+      onClick: () => navigate('/leaderboards'),
+      className: 'leaderboards-card'
     }
   ];
 
@@ -407,347 +432,346 @@ const handleOpenSharedItem = (item) => {
     <div className="hub-page">
       <header className="hub-header">
         <div className="hub-header-left">
-          <h1 className="hub-logo">brainwave</h1>
-          <span className="hub-subtitle">SOCIAL HUB</span>
+          <h1 className="hub-logo">cerbyl</h1>
         </div>
         <div className="hub-header-right">
-          <button className="hub-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
-          <button className="hub-nav-btn logout" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>Logout</button>
+          <button className="hub-nav-btn" onClick={() => navigate('/dashboard')}>DASHBOARD</button>
+          <button className="hub-nav-btn logout" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>LOGOUT</button>
         </div>
       </header>
 
-      <div className="hub-main-content">
-        <div className="hub-welcome">
-          <h2 className="hub-welcome-title">Welcome back, {userName}</h2>
-          <p className="hub-welcome-subtitle">Connect with fellow learners and grow together</p>
-          
-          <div className="hub-tabs">
-            <button 
-              className={`hub-tab ${activeTab === 'hub' ? 'active' : ''}`}
-              onClick={() => setActiveTab('hub')}
-            >
-              Hub
-            </button>
-            <button 
-              className={`hub-tab ${activeTab === 'search' ? 'active' : ''}`}
-              onClick={() => setActiveTab('search')}
-            >
-              Find Friends
-            </button>
-            <button 
-              className={`hub-tab ${activeTab === 'requests' ? 'active' : ''}`}
-              onClick={() => setActiveTab('requests')}
-            >
-              Requests {friendRequests.received.length > 0 && `(${friendRequests.received.length})`}
-            </button>
-            <button 
-              className={`hub-tab ${activeTab === 'friends' ? 'active' : ''}`}
-              onClick={() => setActiveTab('friends')}
-            >
-              Friends ({friends.length})
-            </button>
-            <button 
-              className={`hub-tab ${activeTab === 'shared' ? 'active' : ''}`}
-              onClick={() => setActiveTab('shared')}
-            >
-              Shared ({sharedItems.length})
-            </button>
-          </div>
-        </div>
-
-        {activeTab === 'hub' && (
-          <div className="hub-grid">
-            {tools.map(tool => {
-              const IconComponent = tool.icon;
-              return (
-                <div 
-                  key={tool.id}
-                  className="hub-card"
-                  onClick={tool.onClick || (() => navigate(tool.path))}
-                >
-                  <div className="hub-card-header">
-                    <div className="hub-card-icon">
-                      <IconComponent size={48} strokeWidth={1.5} />
+      {activeTab === 'hub' && (
+        <div className="bento-container">
+          {bentoCards.map(card => {
+            const IconComponent = card.icon;
+            return (
+              <div 
+                key={card.id}
+                className={`bento-card ${card.size} ${card.className}`}
+                onClick={card.onClick}
+                style={{ cursor: card.onClick ? 'pointer' : 'default' }}
+              >
+                <div className="bento-card-content">
+                  {IconComponent && (
+                    <div className="bento-card-icon">
+                      <IconComponent size={card.size === 'tall' ? 64 : card.size === 'large-square' ? 72 : 40} strokeWidth={1.5} />
                     </div>
-                  </div>
-
-                  <div className="hub-card-content">
-                    <h3 className="hub-card-title">{tool.title}</h3>
-                    <p className="hub-card-description">{tool.description}</p>
-                  </div>
-
-                  <div className="hub-card-footer">
-                    <button className="hub-card-action">EXPLORE NOW</button>
+                  )}
+                  <div className="bento-card-text">
+                    <h2 className="bento-card-title">{card.title}</h2>
+                    <p className="bento-card-subtitle">{card.subtitle}</p>
+                    {card.description && (
+                      <p className="bento-card-description">{card.description}</p>
+                    )}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-        {activeTab === 'search' && (
-          <div className="friend-section">
+      {activeTab === 'search' && (
+        <div className="friend-section">
+          <div className="search-container">
+            <Search size={20} />
+            <input
+              type="text"
+              placeholder="Search by username or email..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="search-input"
+            />
+          </div>
+
+          {isSearching && <div className="loading-text">Searching...</div>}
+
+          <div className="users-grid">
+            {searchResults.map(user => renderUserCard(user, 
+              user.is_friend ? (
+                <span className="friend-badge">Friends</span>
+              ) : user.request_sent ? (
+                <span className="pending-badge">Request Sent</span>
+              ) : user.request_received ? (
+                <span className="pending-badge">Pending Response</span>
+              ) : (
+                <button 
+                  className="social-action-button add-friend"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    sendFriendRequest(user.id);
+                  }}
+                >
+                  <UserPlus size={14} />
+                </button>
+              )
+            ))}
+          </div>
+
+          {searchQuery.length >= 2 && !isSearching && searchResults.length === 0 && (
+            <div className="empty-state">No users found matching "{searchQuery}"</div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'requests' && (
+        <div className="friend-section">
+          {friendRequests.received.length > 0 && (
+            <div className="requests-section">
+              <h3 className="section-title">Received Requests</h3>
+              <div className="users-grid">
+                {friendRequests.received.map(request => renderUserCard(request,
+                  <div className="request-actions">
+                    <button 
+                      className="social-action-button accept"
+                      onClick={() => respondToFriendRequest(request.request_id, 'accept')}
+                      title="Accept"
+                    >
+                      <Check size={14} />
+                    </button>
+                    <button 
+                      className="social-action-button reject"
+                      onClick={() => respondToFriendRequest(request.request_id, 'reject')}
+                      title="Reject"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {friendRequests.sent.length > 0 && (
+            <div className="requests-section">
+              <h3 className="section-title">Sent Requests</h3>
+              <div className="users-grid">
+                {friendRequests.sent.map(request => renderUserCard(request,
+                  <span className="pending-badge">Pending</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {friendRequests.received.length === 0 && friendRequests.sent.length === 0 && (
+            <div className="empty-state">No pending friend requests</div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'friends' && (
+        <div className="friend-section">
+          <div className="section-header">
+            <h2 className="section-main-title">Your Friends</h2>
+            <button className="hub-nav-btn" onClick={() => setActiveTab('search')}>
+              <UserPlus size={16} />
+              <span>Find Friends</span>
+            </button>
+          </div>
+          {friends.length > 0 ? (
+            <div className="users-grid">
+              {friends.map(friend => renderUserCard(friend,
+                <button 
+                  className="social-action-button remove"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeFriend(friend.id);
+                  }}
+                  title="Remove Friend"
+                >
+                  <UserMinus size={14} />
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              You haven't added any friends yet. Search for users to connect!
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'shared' && (
+        <div className="friend-section">
+          <div className="shared-header-actions">
+            <button 
+              className="share-new-content-btn"
+              onClick={handleShareNewContent}
+            >
+              <Plus size={20} />
+              <span>Share New Content</span>
+            </button>
+          </div>
+
+          <div className="shared-controls">
             <div className="search-container">
               <Search size={20} />
               <input
                 type="text"
-                placeholder="Search by username or email..."
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
+                placeholder="Search shared content..."
+                value={sharedSearch}
+                onChange={(e) => setSharedSearch(e.target.value)}
                 className="search-input"
               />
             </div>
 
-            {isSearching && <div className="loading-text">Searching...</div>}
-
-            <div className="users-grid">
-              {searchResults.map(user => renderUserCard(user, 
-                user.is_friend ? (
-                  <span className="friend-badge">Friends</span>
-                ) : user.request_sent ? (
-                  <span className="pending-badge">Request Sent</span>
-                ) : user.request_received ? (
-                  <span className="pending-badge">Pending Response</span>
-                ) : (
-                  <button 
-                    className="social-action-button add-friend"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      sendFriendRequest(user.id);
-                    }}
-                  >
-                    <UserPlus size={14} />
-                  </button>
-                )
-              ))}
-            </div>
-
-            {searchQuery.length >= 2 && !isSearching && searchResults.length === 0 && (
-              <div className="empty-state">No users found matching "{searchQuery}"</div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'requests' && (
-          <div className="friend-section">
-            {friendRequests.received.length > 0 && (
-              <div className="requests-section">
-                <h3 className="section-title">Received Requests</h3>
-                <div className="users-grid">
-                  {friendRequests.received.map(request => renderUserCard(request,
-                    <div className="request-actions">
-                      <button 
-                        className="social-action-button accept"
-                        onClick={() => respondToFriendRequest(request.request_id, 'accept')}
-                        title="Accept"
-                      >
-                        <Check size={14} />
-                      </button>
-                      <button 
-                        className="social-action-button reject"
-                        onClick={() => respondToFriendRequest(request.request_id, 'reject')}
-                        title="Reject"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {friendRequests.sent.length > 0 && (
-              <div className="requests-section">
-                <h3 className="section-title">Sent Requests</h3>
-                <div className="users-grid">
-                  {friendRequests.sent.map(request => renderUserCard(request,
-                    <span className="pending-badge">Pending</span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {friendRequests.received.length === 0 && friendRequests.sent.length === 0 && (
-              <div className="empty-state">No pending friend requests</div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'friends' && (
-          <div className="friend-section">
-            {friends.length > 0 ? (
-              <div className="users-grid">
-                {friends.map(friend => renderUserCard(friend,
-                  <button 
-                    className="social-action-button remove"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeFriend(friend.id);
-                    }}
-                    title="Remove Friend"
-                  >
-                    <UserMinus size={14} />
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-state">
-                You haven't added any friends yet. Search for users to connect!
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'shared' && (
-          <div className="friend-section">
-            <div className="shared-header-actions">
-              <button 
-                className="share-new-content-btn"
-                onClick={handleShareNewContent}
+            <div className="shared-filter-buttons">
+              <button
+                className={`filter-btn ${sharedFilter === 'all' ? 'active' : ''}`}
+                onClick={() => setSharedFilter('all')}
               >
-                <Plus size={20} />
-                <span>Share New Content</span>
+                All
+              </button>
+              <button
+                className={`filter-btn ${sharedFilter === 'chat' ? 'active' : ''}`}
+                onClick={() => setSharedFilter('chat')}
+              >
+                <MessageSquare size={14} />
+                Chats
+              </button>
+              <button
+                className={`filter-btn ${sharedFilter === 'note' ? 'active' : ''}`}
+                onClick={() => setSharedFilter('note')}
+              >
+                <FileText size={14} />
+                Notes
               </button>
             </div>
+          </div>
 
-            <div className="shared-controls">
-              <div className="search-container">
-                <Search size={20} />
-                <input
-                  type="text"
-                  placeholder="Search shared content..."
-                  value={sharedSearch}
-                  onChange={(e) => setSharedSearch(e.target.value)}
-                  className="search-input"
-                />
-              </div>
-
-              <div className="shared-filter-buttons">
-                <button
-                  className={`filter-btn ${sharedFilter === 'all' ? 'active' : ''}`}
-                  onClick={() => setSharedFilter('all')}
-                >
-                  All
-                </button>
-                <button
-                  className={`filter-btn ${sharedFilter === 'chat' ? 'active' : ''}`}
-                  onClick={() => setSharedFilter('chat')}
-                >
-                  <MessageSquare size={14} />
-                  Chats
-                </button>
-                <button
-                  className={`filter-btn ${sharedFilter === 'note' ? 'active' : ''}`}
-                  onClick={() => setSharedFilter('note')}
-                >
-                  <FileText size={14} />
-                  Notes
-                </button>
-              </div>
+          {filteredSharedItems.length === 0 ? (
+            <div className="empty-state">
+              {sharedSearch || sharedFilter !== 'all'
+                ? 'No shared content found matching your filters'
+                : 'No content has been shared with you yet. When friends share notes or AI chats, they will appear here.'}
             </div>
-
-            {filteredSharedItems.length === 0 ? (
-              <div className="empty-state">
-                {sharedSearch || sharedFilter !== 'all'
-                  ? 'No shared content found matching your filters'
-                  : 'No content has been shared with you yet. When friends share notes or AI chats, they will appear here.'}
-              </div>
-            ) : (
-              <div className="shared-items-grid">
-                {filteredSharedItems.map((item) => (
-                  <div key={item.id} className="shared-item-card">
-                    <div className="shared-item-header">
-                      <div className="content-type-badge" data-type={item.content_type}>
-                        {item.content_type === 'chat' ? (
-                          <MessageSquare size={16} />
-                        ) : (
-                          <FileText size={16} />
-                        )}
-                        <span>{item.content_type === 'chat' ? 'AI Chat' : 'Note'}</span>
-                      </div>
-                      
-                      <div className="permission-badge" data-permission={item.permission}>
-                        {item.permission === 'view' ? (
-                          <Eye size={14} />
-                        ) : (
-                          <Edit3 size={14} />
-                        )}
-                        <span>{item.permission === 'view' ? 'View' : 'Edit'}</span>
-                      </div>
-                    </div>
-
-                    <div className="shared-item-content">
-                      <h3 className="shared-item-title">{item.title}</h3>
-                      
-                      {item.message && (
-                        <p className="share-message">
-                          "{item.message}"
-                        </p>
+          ) : (
+            <div className="shared-items-grid">
+              {filteredSharedItems.map((item) => (
+                <div key={item.id} className="shared-item-card">
+                  <div className="shared-item-header">
+                    <div className="content-type-badge" data-type={item.content_type}>
+                      {item.content_type === 'chat' ? (
+                        <MessageSquare size={16} />
+                      ) : (
+                        <FileText size={16} />
                       )}
-
-                      <div className="shared-by">
-                        <div className="shared-by-avatar">
-                          {item.shared_by.picture_url ? (
-                            <img src={item.shared_by.picture_url} alt={item.shared_by.username} />
-                          ) : (
-                            <div className="shared-by-avatar-placeholder">
-                              {(item.shared_by.first_name?.[0] || item.shared_by.username[0]).toUpperCase()}
-                            </div>
-                          )}
-                        </div>
-                        <div className="shared-by-info">
-                          <span className="shared-by-text">Shared by</span>
-                          <span className="shared-by-name">
-                            {item.shared_by.first_name && item.shared_by.last_name
-                              ? `${item.shared_by.first_name} ${item.shared_by.last_name}`
-                              : item.shared_by.username}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="shared-meta">
-                        <div className="meta-item">
-                          <Clock size={12} />
-                          <span>{formatDate(item.shared_at)}</span>
-                        </div>
-                      </div>
+                      <span>{item.content_type === 'chat' ? 'AI Chat' : 'Note'}</span>
                     </div>
-
-                    <div className="shared-item-footer">
-                      <button 
-                        className="shared-item-action-btn open"
-                        onClick={() => handleOpenSharedItem(item)}
-                      >
-                        {item.permission === 'view' ? (
-                          <>
-                            <Eye size={16} />
-                            <span>View</span>
-                          </>
-                        ) : (
-                          <>
-                            <Edit3 size={16} />
-                            <span>Open</span>
-                          </>
-                        )}
-                      </button>
-                      
-                      <button 
-                        className="shared-item-action-btn remove"
-                        onClick={() => handleDeleteSharedAccess(item.id)}
-                        title="Remove from your shared items"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                    
+                    <div className="permission-badge" data-permission={item.permission}>
+                      {item.permission === 'view' ? (
+                        <Eye size={14} />
+                      ) : (
+                        <Edit3 size={14} />
+                      )}
+                      <span>{item.permission === 'view' ? 'View' : 'Edit'}</span>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+
+                  <div className="shared-item-content">
+                    <h3 className="shared-item-title">{item.title}</h3>
+                    
+                    {item.message && (
+                      <p className="share-message">
+                        "{item.message}"
+                      </p>
+                    )}
+
+                    <div className="shared-by">
+                      <div className="shared-by-avatar">
+                        {item.shared_by.picture_url ? (
+                          <img src={item.shared_by.picture_url} alt={item.shared_by.username} />
+                        ) : (
+                          <div className="shared-by-avatar-placeholder">
+                            {(item.shared_by.first_name?.[0] || item.shared_by.username[0]).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="shared-by-info">
+                        <span className="shared-by-text">Shared by</span>
+                        <span className="shared-by-name">
+                          {item.shared_by.first_name && item.shared_by.last_name
+                            ? `${item.shared_by.first_name} ${item.shared_by.last_name}`
+                            : item.shared_by.username}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="shared-meta">
+                      <div className="meta-item">
+                        <Clock size={12} />
+                        <span>{formatDate(item.shared_at)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="shared-item-footer">
+                    <button 
+                      className="shared-item-action-btn open"
+                      onClick={() => handleOpenSharedItem(item)}
+                    >
+                      {item.permission === 'view' ? (
+                        <>
+                          <Eye size={16} />
+                          <span>View</span>
+                        </>
+                      ) : (
+                        <>
+                          <Edit3 size={16} />
+                          <span>Open</span>
+                        </>
+                      )}
+                    </button>
+                    
+                    <button 
+                      className="shared-item-action-btn remove"
+                      onClick={() => handleDeleteSharedAccess(item.id)}
+                      title="Remove from your shared items"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="hub-tabs-bottom">
+        <button 
+          className={`hub-tab ${activeTab === 'hub' ? 'active' : ''}`}
+          onClick={() => setActiveTab('hub')}
+        >
+          Hub
+        </button>
+        <button 
+          className={`hub-tab ${activeTab === 'search' ? 'active' : ''}`}
+          onClick={() => setActiveTab('search')}
+        >
+          Find Friends
+        </button>
+        <button 
+          className={`hub-tab ${activeTab === 'requests' ? 'active' : ''}`}
+          onClick={() => setActiveTab('requests')}
+        >
+          Requests {friendRequests.received.length > 0 && `(${friendRequests.received.length})`}
+        </button>
+        <button 
+          className={`hub-tab ${activeTab === 'friends' ? 'active' : ''}`}
+          onClick={() => setActiveTab('friends')}
+        >
+          Friends ({friends.length})
+        </button>
+        <button 
+          className={`hub-tab ${activeTab === 'shared' ? 'active' : ''}`}
+          onClick={() => setActiveTab('shared')}
+        >
+          Shared ({sharedItems.length})
+        </button>
       </div>
 
-      {/* My Content Selection Modal */}
       {showMyContentModal && (
         <div className="modal-overlay" onClick={() => setShowMyContentModal(false)}>
           <div className="modal-content my-content-modal" onClick={(e) => e.stopPropagation()}>
@@ -813,7 +837,6 @@ const handleOpenSharedItem = (item) => {
         </div>
       )}
 
-      {/* Share Modal */}
       {shareModalOpen && itemToShare && (
         <ShareModal
           isOpen={shareModalOpen}
