@@ -310,7 +310,7 @@ const Social = () => {
       title: 'FRIENDS & REQUESTS',
       subtitle: 'MANAGE CONNECTIONS',
       description: `${friends.length} friends · ${friendRequests.received.length} pending`,
-      onClick: () => setActiveTab('friends'),
+      onClick: () => navigate('/friends'),
       className: 'friends-card'
     },
     {

@@ -1,0 +1,613 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ==================== CONTAINER ==================== */
+.fd-container {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg-bottom);
+  position: relative;
+}
+
+.fd-container::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(ellipse at top left, var(--glow) 0%, transparent 60%),
+    radial-gradient(ellipse at bottom right, color-mix(in srgb, var(--accent) 8%, transparent) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ==================== SIDEBAR ==================== */
+.fd-sidebar {
+  width: 280px;
+  background: var(--panel);
+  border-right: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 10;
+}
+
+.fd-sidebar-header {
+  padding: 32px 24px;
+  border-bottom: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fd-sidebar-logo-icon {
+  color: var(--accent);
+}
+
+.fd-sidebar-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+}
+
+.fd-sidebar-nav {
+  flex: 1;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fd-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', sans-serif;
+  position: relative;
+}
+
+.fd-sidebar-item:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateX(4px);
+}
+
+.fd-sidebar-item.active {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 8%, transparent));
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--glow) 50%, transparent);
+}
+
+.fd-badge {
+  margin-left: auto;
+  color: var(--bg-primary);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.fd-sidebar-back {
+  margin: 16px;
+  padding: 12px 16px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.fd-sidebar-back:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+/* ==================== MAIN CONTENT ==================== */
+.fd-main {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+  overflow-y: auto;
+}
+
+.fd-view {
+  padding: 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.fd-view-header {
+  margin-bottom: 32px;
+}
+
+.fd-view-title-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.fd-view-icon {
+  color: var(--accent);
+}
+
+.fd-view-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -1px;
+  margin: 0;
+}
+
+.fd-view-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 4px 0 0 0;
+}
+
+.fd-content {
+  position: relative;
+}
+
+/* ==================== SEARCH BOX ==================== */
+.fd-search-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel);
+  border: 2px solid var(--border);
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  transition: all 0.3s ease;
+}
+
+.fd-search-box:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 20px var(--glow);
+}
+
+.fd-search-box svg {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.fd-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+}
+
+.fd-search-input::placeholder {
+  color: var(--text-secondary);
+}
+
+/* ==================== SECTION TITLE ==================== */
+.fd-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border);
+}
+
+/* ==================== FRIENDS GRID ==================== */
+.fd-friends-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.fd-friend-card {
+  background: var(--panel);
+  border: 2px solid var(--border);
+  padding: 24px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fd-friend-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 30px var(--glow);
+  transform: translateY(-2px);
+}
+
+.fd-friend-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.fd-friend-avatar {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.fd-friend-info {
+  flex: 1;
+}
+
+.fd-friend-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.fd-friend-email {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.fd-friend-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.fd-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  border: 1px solid var(--border);
+}
+
+.fd-stat-item svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.fd-stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fd-stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.fd-stat-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ==================== USERS LIST ==================== */
+.fd-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fd-user-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--panel);
+  border: 2px solid var(--border);
+  padding: 16px 20px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fd-user-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 20px var(--glow);
+}
+
+.fd-user-avatar {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.fd-user-info {
+  flex: 1;
+}
+
+.fd-user-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+}
+
+.fd-user-email {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.fd-user-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ==================== ACTION BUTTONS ==================== */
+.fd-action-btn {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+}
+
+.fd-action-btn:hover {
+  transform: translateY(-2px);
+}
+
+.fd-action-btn.add {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.fd-action-btn.add:hover {
+  background: var(--accent);
+  color: var(--bg-primary);
+  box-shadow: 0 0 20px var(--glow);
+}
+
+.fd-action-btn.accept {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.fd-action-btn.accept:hover {
+  background: var(--success);
+  color: white;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+}
+
+.fd-action-btn.reject,
+.fd-action-btn.cancel {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.fd-action-btn.reject:hover,
+.fd-action-btn.cancel:hover {
+  background: var(--danger);
+  color: white;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+}
+
+.fd-action-btn.remove {
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+
+.fd-action-btn.remove:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+
+/* ==================== STATUS BADGES ==================== */
+.fd-status-badge {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid;
+}
+
+.fd-status-badge.friend {
+  background: color-mix(in srgb, var(--success) 15%, transparent);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.fd-status-badge.pending {
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  border-color: var(--warning);
+  color: var(--warning);
+}
+
+/* ==================== REQUESTS ==================== */
+.fd-requests-section {
+  margin-bottom: 32px;
+}
+
+.fd-requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fd-request-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--panel);
+  border: 2px solid var(--border);
+  padding: 16px 20px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fd-request-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 20px var(--glow);
+}
+
+.fd-request-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* ==================== PRIMARY BUTTON ==================== */
+.fd-btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  background: var(--accent);
+  border: 2px solid var(--accent);
+  color: var(--bg-primary);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', sans-serif;
+}
+
+.fd-btn-primary:hover {
+  background: transparent;
+  color: var(--accent);
+  box-shadow: 0 0 30px var(--glow);
+  transform: translateY(-2px);
+}
+
+/* ==================== LOADING & EMPTY STATES ==================== */
+.fd-loading {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.fd-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+  text-align: center;
+  gap: 16px;
+}
+
+.fd-empty-state svg {
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.fd-empty-state h3 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.fd-empty-state p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 16px 0;
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 768px) {
+  .fd-sidebar {
+    width: 240px;
+  }
+
+  .fd-view {
+    padding: 24px;
+  }
+
+  .fd-friend-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .fd-stat-item {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .fd-sidebar {
+    display: none;
+  }
+
+  .fd-view {
+    padding: 16px;
+  }
+
+  .fd-view-title {
+    font-size: 24px;
+  }
+
+  .fd-friend-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

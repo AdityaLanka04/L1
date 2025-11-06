@@ -6,6 +6,7 @@ import Homepage from './pages/Homepage';
 import SafetyLogin from './pages/SafetyLogin';
 import LearningReviewHub from './pages/LearningReviewHub';
 import Social from './pages/Social';
+import FriendsDashboard from './pages/FriendsDashboard';
 import ActivityFeed from './pages/ActivityFeed';
 import Leaderboards from './pages/Leaderboards';
 import QuizBattle from './pages/QuizBattle';
@@ -43,6 +44,7 @@ function App() {
           <Route path="/ai-chat/:chatId?" element={<AIChat />} />
           <Route path="/learning-review" element={<LearningReviewHub />} />
           <Route path="/social" element={<Social />} />
+          <Route path="/friends" element={<FriendsDashboard />} />
           <Route path="/activity-feed" element={<ActivityFeed />} />
           <Route path="/leaderboards" element={<Leaderboards />} />
           <Route path="/quiz-battles" element={<QuizBattle />} />
