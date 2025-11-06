@@ -7743,8 +7743,10 @@ else:
 
 from typing import Optional  # Add this to your imports at the top
 
+from typing import Optional  # Add this import at the top with other imports
+
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = None):
+async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = None):  # ← NEW
     """WebSocket endpoint for real-time notifications"""
     user = None
     user_id = None
@@ -7752,33 +7754,29 @@ async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = None):
     
     try:
         logger.info(f"📥 WebSocket connection attempt")
-        logger.info(f"🔑 Token provided: {bool(token)}")
-        logger.info(f"🌐 Origin: {websocket.headers.get('origin', 'unknown')}")
         
-        # Validate token BEFORE accepting connection
+        # Validate token BEFORE accepting
         if not token:
-            logger.error("❌ No token provided in WebSocket connection")
-            await websocket.close(code=1008, reason="No token provided")
+            logger.error("❌ No token provided")
+            await websocket.close(code=1008, reason="No token")
             return
         
-        # Create database session
         db = SessionLocal()
         
-        # Verify token
-        from jose import jwt, JWTError
+        # Verify JWT token
         try:
+            from jose import jwt, JWTError
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             username = payload.get("sub")
-            user_id_from_token = payload.get("user_id")
             
             if not username:
-                logger.error("❌ No username in token payload")
+                logger.error("❌ No username in token")
                 await websocket.close(code=1008, reason="Invalid token")
                 return
             
-            logger.info(f"🔑 Token verified for username: {username}")
+            logger.info(f"🔑 Token verified for: {username}")
             
-            # Get user
+            # Get user from database
             user = get_user_by_username(db, username) or get_user_by_email(db, username)
             if not user:
                 logger.error(f"❌ User not found: {username}")
@@ -7786,78 +7784,64 @@ async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = None):
                 return
             
             user_id = user.id
-            logger.info(f"✅ User {user_id} ({username}) authenticated successfully")
+            logger.info(f"✅ User {user_id} authenticated successfully")
             
         except JWTError as e:
             logger.error(f"❌ JWT Error: {str(e)}")
             await websocket.close(code=1008, reason="Invalid token")
             return
         except Exception as e:
-            logger.error(f"❌ Token verification error: {str(e)}")
-            await websocket.close(code=1011, reason="Authentication error")
+            logger.error(f"❌ Auth error: {str(e)}")
+            await websocket.close(code=1011, reason="Auth error")
             return
         
-        # NOW accept the connection (after successful authentication)
+        # NOW accept the connection (after validation)
         await websocket.accept()
-        logger.info(f"✅ WebSocket connection accepted for user {user_id}")
+        logger.info(f"✅ WebSocket accepted for user {user_id}")
         
-        # Store connection in manager
+        # Store connection
         manager.active_connections[user_id] = websocket
-        logger.info(f"✅ User {user_id} connected to WebSocket (Total connections: {len(manager.active_connections)})")
+        logger.info(f"✅ User {user_id} connected (Total: {len(manager.active_connections)})")
         
-        # Send connection confirmation
+        # Send confirmation
         await websocket.send_json({
             "type": "connected",
-            "message": "Connected to battle notification system",
-            "user_id": user_id,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "message": "Connected to battle system",
+            "user_id": user_id
         })
         
         # Keep connection alive
         while True:
             try:
-                # Wait for messages with timeout
                 data = await websocket.receive_json()
                 
-                # Handle ping/pong for keepalive
                 if data.get("type") == "ping":
-                    await websocket.send_json({
-                        "type": "pong",
-                        "timestamp": datetime.now(timezone.utc).isoformat()
-                    })
-                    logger.debug(f"🏓 Ping/Pong with user {user_id}")
-                else:
-                    logger.info(f"📨 Received message from user {user_id}: {data.get('type')}")
+                    await websocket.send_json({"type": "pong"})
+                    logger.debug(f"🏓 Ping from user {user_id}")
                 
             except WebSocketDisconnect:
-                logger.info(f"🔌 WebSocket disconnected normally for user {user_id}")
+                logger.info(f"🔌 User {user_id} disconnected")
                 break
             except Exception as e:
-                logger.error(f"❌ Error in WebSocket loop for user {user_id}: {str(e)}")
+                logger.error(f"❌ Error in WebSocket loop: {str(e)}")
                 break
     
-    except WebSocketDisconnect:
-        logger.info(f"🔌 WebSocket disconnected during setup")
     except Exception as e:
         logger.error(f"❌ WebSocket error: {str(e)}")
-        import traceback
-        logger.error(f"❌ Traceback: {traceback.format_exc()}")
         try:
-            await websocket.close(code=1011, reason="Internal error")
+            await websocket.close(code=1011, reason="Error")
         except:
             pass
     
     finally:
-        # Disconnect user and cleanup
+        # Cleanup
         if user_id and user_id in manager.active_connections:
             del manager.active_connections[user_id]
-            logger.info(f"👋 User {user_id} WebSocket connection cleaned up (Remaining: {len(manager.active_connections)})")
+            logger.info(f"👋 User {user_id} cleaned up")
         
-        # Close database session
         if db:
             db.close()
-            logger.debug(f"🗄️ Database session closed for user {user_id}")
-
+            
 @app.post("/api/accept_quiz_battle")
 async def accept_quiz_battle(
     payload: dict = Body(...),
