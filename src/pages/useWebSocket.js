@@ -14,12 +14,23 @@ const useWebSocket = (token, onMessage) => {
       return;
     }
 
-    // Determine WebSocket URL based on API_URL
+    // Determine WebSocket URL based on environment
+    let wsUrl;
     const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-    const wsUrl = API_URL.replace('http://', 'ws://').replace('https://', 'wss://').replace('/api', '');
     
-    const wsEndpoint = `${wsUrl}/ws?token=${token}`;
-    console.log('🔌 Connecting to WebSocket:', wsEndpoint.replace(token, 'TOKEN'));
+    // Convert HTTP/HTTPS to WS/WSS
+    if (API_URL.includes('localhost')) {
+      wsUrl = API_URL.replace('http://', 'ws://').replace('https://', 'ws://');
+    } else {
+      // Production - use WSS for secure WebSocket
+      wsUrl = API_URL.replace('http://', 'wss://').replace('https://', 'wss://');
+    }
+    
+    // Remove /api suffix if present
+    wsUrl = wsUrl.replace('/api', '');
+    
+    const wsEndpoint = `${wsUrl}/ws?token=${encodeURIComponent(token)}`;
+    console.log('🔌 Connecting to WebSocket:', wsEndpoint.replace(token, 'TOKEN_HIDDEN'));
 
     try {
       ws.current = new WebSocket(wsEndpoint);
@@ -51,12 +62,19 @@ const useWebSocket = (token, onMessage) => {
 
       ws.current.onerror = (error) => {
         console.error('❌ WebSocket error:', error);
+        console.error('❌ WebSocket readyState:', ws.current?.readyState);
         setIsConnected(false);
       };
 
       ws.current.onclose = (event) => {
-        console.log('🔌 WebSocket Disconnected:', event.code, event.reason);
+        console.log('🔌 WebSocket Disconnected. Code:', event.code, 'Reason:', event.reason);
         setIsConnected(false);
+
+        // Don't reconnect if it's an authentication error (1008)
+        if (event.code === 1008) {
+          console.error('❌ Authentication failed. Token may be invalid or expired.');
+          return;
+        }
 
         // Attempt to reconnect with exponential backoff
         if (reconnectAttempts.current < maxReconnectAttempts) {
@@ -86,8 +104,9 @@ const useWebSocket = (token, onMessage) => {
       if (reconnectTimeout.current) {
         clearTimeout(reconnectTimeout.current);
       }
-      if (ws.current) {
-        ws.current.close();
+      if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+        console.log('🧹 Cleaning up WebSocket connection');
+        ws.current.close(1000, 'Component unmounting');
       }
     };
   }, [token]);
@@ -99,6 +118,7 @@ const useWebSocket = (token, onMessage) => {
     const pingInterval = setInterval(() => {
       if (ws.current && ws.current.readyState === WebSocket.OPEN) {
         ws.current.send(JSON.stringify({ type: 'ping' }));
+        console.log('🏓 Ping sent');
       }
     }, 30000);
 

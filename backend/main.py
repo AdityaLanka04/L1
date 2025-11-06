@@ -7738,29 +7738,41 @@ else:
         }
 # ==================== WEBSOCKET ENDPOINT ====================
 
+# REPLACE THE WEBSOCKET ENDPOINT in main.py (lines 7741-7827)
+# with this improved version:
+
+from typing import Optional  # Add this to your imports at the top
+
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, token: str):
+async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = None):
     """WebSocket endpoint for real-time notifications"""
     user = None
     user_id = None
     db = None
     
     try:
-        # ⚠️ IMPORTANT: Accept connection FIRST
-        await websocket.accept()
-        logger.info(f"📥 WebSocket connection attempt with token")
+        logger.info(f"📥 WebSocket connection attempt")
+        logger.info(f"🔑 Token provided: {bool(token)}")
+        logger.info(f"🌐 Origin: {websocket.headers.get('origin', 'unknown')}")
+        
+        # Validate token BEFORE accepting connection
+        if not token:
+            logger.error("❌ No token provided in WebSocket connection")
+            await websocket.close(code=1008, reason="No token provided")
+            return
         
         # Create database session
         db = SessionLocal()
         
-        # Verify token AFTER accepting connection
+        # Verify token
         from jose import jwt, JWTError
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             username = payload.get("sub")
+            user_id_from_token = payload.get("user_id")
             
             if not username:
-                logger.error(f"❌ No username in token payload")
+                logger.error("❌ No username in token payload")
                 await websocket.close(code=1008, reason="Invalid token")
                 return
             
@@ -7774,57 +7786,77 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
                 return
             
             user_id = user.id
-            logger.info(f"✅ User {user_id} ({username}) authenticated")
+            logger.info(f"✅ User {user_id} ({username}) authenticated successfully")
             
         except JWTError as e:
             logger.error(f"❌ JWT Error: {str(e)}")
             await websocket.close(code=1008, reason="Invalid token")
             return
+        except Exception as e:
+            logger.error(f"❌ Token verification error: {str(e)}")
+            await websocket.close(code=1011, reason="Authentication error")
+            return
         
-        # Store connection
+        # NOW accept the connection (after successful authentication)
+        await websocket.accept()
+        logger.info(f"✅ WebSocket connection accepted for user {user_id}")
+        
+        # Store connection in manager
         manager.active_connections[user_id] = websocket
-        logger.info(f"✅ User {user_id} connected to WebSocket (Total: {len(manager.active_connections)})")
+        logger.info(f"✅ User {user_id} connected to WebSocket (Total connections: {len(manager.active_connections)})")
         
         # Send connection confirmation
         await websocket.send_json({
             "type": "connected",
             "message": "Connected to battle notification system",
-            "user_id": user_id
+            "user_id": user_id,
+            "timestamp": datetime.now(timezone.utc).isoformat()
         })
         
         # Keep connection alive
         while True:
             try:
+                # Wait for messages with timeout
                 data = await websocket.receive_json()
                 
                 # Handle ping/pong for keepalive
                 if data.get("type") == "ping":
-                    await websocket.send_json({"type": "pong"})
-                    logger.debug(f"🏓 Ping/Pong from user {user_id}")
+                    await websocket.send_json({
+                        "type": "pong",
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    })
+                    logger.debug(f"🏓 Ping/Pong with user {user_id}")
+                else:
+                    logger.info(f"📨 Received message from user {user_id}: {data.get('type')}")
                 
             except WebSocketDisconnect:
-                logger.info(f"🔌 WebSocket disconnected for user {user_id}")
+                logger.info(f"🔌 WebSocket disconnected normally for user {user_id}")
                 break
             except Exception as e:
-                logger.error(f"❌ Error in WebSocket loop: {str(e)}")
+                logger.error(f"❌ Error in WebSocket loop for user {user_id}: {str(e)}")
                 break
     
+    except WebSocketDisconnect:
+        logger.info(f"🔌 WebSocket disconnected during setup")
     except Exception as e:
         logger.error(f"❌ WebSocket error: {str(e)}")
+        import traceback
+        logger.error(f"❌ Traceback: {traceback.format_exc()}")
         try:
             await websocket.close(code=1011, reason="Internal error")
         except:
             pass
     
     finally:
-        # Disconnect user
+        # Disconnect user and cleanup
         if user_id and user_id in manager.active_connections:
             del manager.active_connections[user_id]
-            logger.info(f"👋 User {user_id} WebSocket cleaned up (Total: {len(manager.active_connections)})")
+            logger.info(f"👋 User {user_id} WebSocket connection cleaned up (Remaining: {len(manager.active_connections)})")
         
         # Close database session
         if db:
             db.close()
+            logger.debug(f"🗄️ Database session closed for user {user_id}")
 
 @app.post("/api/accept_quiz_battle")
 async def accept_quiz_battle(
