@@ -13,7 +13,7 @@ const Homepage = () => {
         </div>
         
         <div className="main-content">
-          <h1 className="title">cerbyl</h1>
+          <h1 className="title">Cerbyl</h1>
           <p className="subtitle-text">YOUR PERSONALIZED AI TUTOR</p>
           <div className="horizontal-line"></div>
         </div>

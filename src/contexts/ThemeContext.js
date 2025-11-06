@@ -23,9 +23,9 @@ export const ThemeProvider = ({ children }) => {
 
   // Apply theme immediately when it changes (before paint)
   useLayoutEffect(() => {
-    applyThemeToRoot(selectedTheme.tokens);
+    applyThemeToRoot(selectedTheme.tokens, { mode: selectedTheme.mode, id: selectedTheme.id });
     setStoredTheme(selectedThemeId);
-  }, [selectedThemeId, selectedTheme.tokens]);
+  }, [selectedThemeId, selectedTheme]);
 
   const changeTheme = (themeId) => {
     setSelectedThemeId(themeId);
