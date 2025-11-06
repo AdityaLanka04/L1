@@ -36,13 +36,167 @@ const FriendsDashboard = () => {
       });
       if (response.ok) {
         const data = await response.json();
-        setFriends(data.friends || []);
+        console.log('👥 Friends API response:', data);
+        console.log('👥 Friends list:', data.friends);
+        
+        const friendsList = data.friends || [];
+        
+        // Enhance friends data with stats from leaderboard
+        const enhancedFriends = await enhanceFriendsWithStats(friendsList);
+        setFriends(enhancedFriends);
+      } else {
+        console.error('❌ Friends API error:', response.status, response.statusText);
       }
     } catch (error) {
-      console.error('Error fetching friends:', error);
+      console.error('❌ Error fetching friends:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const enhanceFriendsWithStats = async (friendsList) => {
+    if (!friendsList || friendsList.length === 0) {
+      return friendsList;
+    }
+
+    try {
+      console.log('🔍 Fetching stats for users:', friendsList.map(f => ({ id: f.id, email: f.email })));
+      
+      // Try different API parameter combinations to find what works
+      let response;
+      let leaderboardData;
+      
+      // Try 1: Without period parameter
+      console.log('📡 Trying API call without period parameter...');
+      response = await fetch(
+        `${API_URL}/leaderboard?category=global&metric=total_hours&limit=100`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      
+      if (!response.ok) {
+        console.log('❌ Attempt 1 failed, trying with period=all_time...');
+        // Try 2: With period parameter
+        response = await fetch(
+          `${API_URL}/leaderboard?category=global&metric=total_hours&period=all_time&limit=100`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+      }
+      
+      if (!response.ok) {
+        console.error('❌ Leaderboard API error:', response.status, response.statusText);
+        try {
+          const errorText = await response.text();
+          console.error('❌ Error response:', errorText);
+        } catch (e) {
+          console.error('❌ Could not read error response');
+        }
+        return friendsList;
+      }
+      
+      leaderboardData = await response.json();
+      const leaderboard = leaderboardData.leaderboard || [];
+      
+      console.log('✅ Leaderboard API success!');
+      console.log('📊 Leaderboard data received:', leaderboard.length, 'entries');
+      if (leaderboard.length > 0) {
+        console.log('📊 Sample leaderboard entry:', leaderboard[0]);
+      }
+      
+      // Create a map of user stats - check multiple ID fields
+      const statsMap = {};
+      leaderboard.forEach(entry => {
+        // Try different possible ID field names
+        const userId = entry.user_id || entry.id || entry.userId;
+        if (userId) {
+          statsMap[userId] = {
+            total_hours: entry.score || 0,
+            rank: entry.rank,
+            email: entry.email
+          };
+        }
+      });
+      
+      console.log('📊 Stats map created with', Object.keys(statsMap).length, 'entries');
+      if (Object.keys(statsMap).length > 0) {
+        console.log('📊 Sample stats entry:', Object.entries(statsMap)[0]);
+      }
+      
+      // Fetch lessons count
+      let lessonsResponse = await fetch(
+        `${API_URL}/leaderboard?category=global&metric=lessons&limit=100`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      
+      if (!lessonsResponse.ok) {
+        lessonsResponse = await fetch(
+          `${API_URL}/leaderboard?category=global&metric=lessons&period=all_time&limit=100`,
+          { headers: { 'Authorization': `Bearer ${token}` } }
+        );
+      }
+      
+      if (lessonsResponse.ok) {
+        const lessonsData = await lessonsResponse.json();
+        const lessonsLeaderboard = lessonsData.leaderboard || [];
+        
+        console.log('📚 Lessons data received:', lessonsLeaderboard.length, 'entries');
+        
+        lessonsLeaderboard.forEach(entry => {
+          const userId = entry.user_id || entry.id || entry.userId;
+          if (userId) {
+            if (statsMap[userId]) {
+              statsMap[userId].lessons = entry.score || 0;
+            } else {
+              statsMap[userId] = { 
+                lessons: entry.score || 0,
+                total_hours: 0
+              };
+            }
+          }
+        });
+      } else {
+        console.warn('⚠️ Lessons API error:', lessonsResponse.status);
+      }
+      
+      // Enhance friends with stats - try multiple ID matching strategies
+      const enhancedFriends = friendsList.map(friend => {
+        // Try multiple ID fields
+        const friendId = friend.id || friend.user_id || friend.userId;
+        const stats = statsMap[friendId];
+        
+        console.log(`👤 User ${friend.email || friend.username}:`, {
+          friendId,
+          friendIdType: typeof friendId,
+          hasStats: !!stats,
+          stats: stats,
+          statsMapKeys: Object.keys(statsMap).slice(0, 5),
+          statsMapFirstKey: Object.keys(statsMap)[0],
+          statsMapFirstKeyType: typeof Object.keys(statsMap)[0]
+        });
+        
+        return {
+          ...friend,
+          total_hours: stats?.total_hours || 0,
+          total_activities: stats?.lessons || 0,
+          achievements: friend.achievements || 0,
+          rank: stats?.rank
+        };
+      });
+      
+      console.log('✅ Enhanced friends:', enhancedFriends.map(f => ({ 
+        email: f.email, 
+        hours: f.total_hours,
+        activities: f.total_activities 
+      })));
+      
+      return enhancedFriends;
+    } catch (error) {
+      console.error('❌ Error fetching user stats:', error);
+      console.error('❌ Error stack:', error.stack);
+    }
+    
+    // Return original list if stats fetch fails
+    console.log('⚠️ Returning original friend list without stats enhancement');
+    return friendsList;
   };
 
   const fetchFriendRequests = async () => {
@@ -71,7 +225,10 @@ const FriendsDashboard = () => {
         const sortedUsers = (data.users || []).sort((a, b) => 
           (a.username || a.email).localeCompare(b.username || b.email)
         );
-        setAllUsers(sortedUsers);
+        
+        // Enhance users with stats
+        const enhancedUsers = await enhanceFriendsWithStats(sortedUsers);
+        setAllUsers(enhancedUsers);
       }
     } catch (error) {
       console.error('Error fetching all users:', error);
@@ -96,7 +253,10 @@ const FriendsDashboard = () => {
         const sortedResults = (data.users || []).sort((a, b) => 
           (a.username || a.email).localeCompare(b.username || b.email)
         );
-        setSearchResults(sortedResults);
+        
+        // Enhance search results with stats
+        const enhancedResults = await enhanceFriendsWithStats(sortedResults);
+        setSearchResults(enhancedResults);
       }
     } catch (error) {
       console.error('Error searching users:', error);
@@ -192,6 +352,57 @@ const FriendsDashboard = () => {
     }
   };
 
+  // Helper function to render avatar with profile picture support
+  const renderAvatar = (user, className = "fd-friend-avatar") => {
+    // Check for picture_url (backend field) and picture (Google OAuth field)
+    const profilePicture = user.picture_url || user.picture || user.profile_picture;
+    const displayName = user.username || user.email || 'U';
+    const initial = displayName.charAt(0).toUpperCase();
+
+    if (profilePicture) {
+      return (
+        <div className={className} style={{ position: 'relative', overflow: 'hidden' }}>
+          <img 
+            src={profilePicture} 
+            alt={displayName}
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block'
+            }}
+            onError={(e) => {
+              // If image fails to load, hide it and show fallback
+              e.target.style.display = 'none';
+              const fallback = e.target.nextSibling;
+              if (fallback) fallback.style.display = 'flex';
+            }}
+          />
+          <div style={{ 
+            display: 'none',
+            width: '100%',
+            height: '100%',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'absolute',
+            top: 0,
+            left: 0
+          }}>
+            {initial}
+          </div>
+        </div>
+      );
+    }
+    
+    return (
+      <div className={className}>
+        {initial}
+      </div>
+    );
+  };
+
   const renderSidebar = () => (
     <div className="fd-sidebar">
       <div className="fd-sidebar-header">
@@ -236,64 +447,87 @@ const FriendsDashboard = () => {
     </div>
   );
 
-  const renderFriendCard = (friend) => (
-    <div key={friend.id} className="fd-friend-card">
-      <div className="fd-friend-header">
-        <div className="fd-friend-avatar">
-          {(friend.username || friend.email || 'U').charAt(0).toUpperCase()}
+  const renderFriendCard = (friend) => {
+    // Get stats from friend object or use defaults
+    // The API should return these fields from the leaderboard or user stats endpoint
+    const totalHours = friend.total_hours || friend.hours_spent || 0;
+    const totalActivities = friend.total_activities || friend.activity_count || friend.lessons || 0;
+    const achievements = friend.achievements || friend.total_achievements || 0;
+    
+    return (
+      <div key={friend.id} className="fd-friend-card">
+        <div className="fd-friend-header">
+          {renderAvatar(friend, "fd-friend-avatar")}
+          <div className="fd-friend-info">
+            <h3 className="fd-friend-name">{friend.username || friend.email}</h3>
+            <p className="fd-friend-email">{friend.email}</p>
+          </div>
+          <button 
+            className="fd-action-btn remove"
+            onClick={() => removeFriend(friend.id)}
+            title="Remove Friend"
+          >
+            <UserMinus size={18} />
+          </button>
         </div>
-        <div className="fd-friend-info">
-          <h3 className="fd-friend-name">{friend.username || friend.email}</h3>
-          <p className="fd-friend-email">{friend.email}</p>
+        
+        <div className="fd-friend-stats">
+          <div className="fd-stat-item">
+            <Clock size={16} />
+            <div className="fd-stat-content">
+              <span className="fd-stat-value">{Math.round(totalHours)}h</span>
+              <span className="fd-stat-label">Hours Spent</span>
+            </div>
+          </div>
+          <div className="fd-stat-item">
+            <Activity size={16} />
+            <div className="fd-stat-content">
+              <span className="fd-stat-value">{totalActivities}</span>
+              <span className="fd-stat-label">Activities</span>
+            </div>
+          </div>
+          <div className="fd-stat-item">
+            <Award size={16} />
+            <div className="fd-stat-content">
+              <span className="fd-stat-value">{achievements}</span>
+              <span className="fd-stat-label">Achievements</span>
+            </div>
+          </div>
         </div>
-        <button 
-          className="fd-action-btn remove"
-          onClick={() => removeFriend(friend.id)}
-          title="Remove Friend"
-        >
-          <UserMinus size={18} />
-        </button>
       </div>
-      
-      <div className="fd-friend-stats">
-        <div className="fd-stat-item">
-          <Clock size={16} />
-          <div className="fd-stat-content">
-            <span className="fd-stat-value">{friend.hours_spent || 0}h</span>
-            <span className="fd-stat-label">Hours Spent</span>
-          </div>
-        </div>
-        <div className="fd-stat-item">
-          <Activity size={16} />
-          <div className="fd-stat-content">
-            <span className="fd-stat-value">{friend.activity_count || 0}</span>
-            <span className="fd-stat-label">Activities</span>
-          </div>
-        </div>
-        <div className="fd-stat-item">
-          <Award size={16} />
-          <div className="fd-stat-content">
-            <span className="fd-stat-value">{friend.achievements || 0}</span>
-            <span className="fd-stat-label">Achievements</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderUserCard = (user) => {
     const isRequestSent = user.request_sent || friendRequests.sent.some(req => req.id === user.id);
     const isRequestReceived = friendRequests.received.some(req => req.id === user.id);
     const isFriend = user.is_friend || friends.some(f => f.id === user.id);
+    
+    const totalHours = user.total_hours || user.hours_spent || 0;
+    const totalActivities = user.total_activities || user.activity_count || user.lessons || 0;
 
     return (
       <div key={user.id} className="fd-user-card">
-        <div className="fd-user-avatar">
-          {(user.username || user.email || 'U').charAt(0).toUpperCase()}
-        </div>
+        {renderAvatar(user, "fd-user-avatar")}
         <div className="fd-user-info">
           <h4 className="fd-user-name">{user.username || user.email}</h4>
           <p className="fd-user-email">{user.email}</p>
+          {(totalHours > 0 || totalActivities > 0) && (
+            <div className="fd-user-stats-preview">
+              {totalHours > 0 && (
+                <span className="stat-preview">
+                  <Clock size={12} />
+                  {Math.round(totalHours)}h
+                </span>
+              )}
+              {totalActivities > 0 && (
+                <span className="stat-preview">
+                  <Activity size={12} />
+                  {totalActivities}
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <div className="fd-user-actions">
           {isFriend ? (
@@ -431,9 +665,7 @@ const FriendsDashboard = () => {
             <div className="fd-requests-list">
               {friendRequests.received.map(request => (
                 <div key={request.request_id} className="fd-request-card">
-                  <div className="fd-user-avatar">
-                    {(request.username || request.email || 'U').charAt(0).toUpperCase()}
-                  </div>
+                  {renderAvatar(request, "fd-user-avatar")}
                   <div className="fd-user-info">
                     <h4 className="fd-user-name">{request.username || request.email}</h4>
                     <p className="fd-user-email">{request.email}</p>
@@ -466,9 +698,7 @@ const FriendsDashboard = () => {
             <div className="fd-requests-list">
               {friendRequests.sent.map(request => (
                 <div key={request.request_id} className="fd-request-card">
-                  <div className="fd-user-avatar">
-                    {(request.username || request.email || 'U').charAt(0).toUpperCase()}
-                  </div>
+                  {renderAvatar(request, "fd-user-avatar")}
                   <div className="fd-user-info">
                     <h4 className="fd-user-name">{request.username || request.email}</h4>
                     <p className="fd-user-email">{request.email}</p>
@@ -512,4 +742,3 @@ const FriendsDashboard = () => {
 };
 
 export default FriendsDashboard;
-

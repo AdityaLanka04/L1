@@ -147,8 +147,10 @@ const QuizBattle = () => {
     }
   };
 
-  const handleAcceptBattle = async () => {
-    if (!pendingBattle) return;
+  const handleAcceptBattle = async (battleId = null) => {
+    // Use provided battleId or pendingBattle id
+    const id = battleId || pendingBattle?.id;
+    if (!id) return;
 
     try {
       const response = await fetch(`${API_URL}/accept_quiz_battle`, {
@@ -158,7 +160,7 @@ const QuizBattle = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          battle_id: pendingBattle.id
+          battle_id: id
         })
       });
 
@@ -166,7 +168,7 @@ const QuizBattle = () => {
         setShowNotification(false);
         setPendingBattle(null);
         // Immediately redirect to the battle
-        navigate(`/quiz-battle/${pendingBattle.id}`);
+        navigate(`/quiz-battle/${id}`);
       }
     } catch (error) {
       console.error('Error accepting battle:', error);
@@ -347,7 +349,7 @@ const QuizBattle = () => {
                   {battle.status === 'pending' && !battle.is_challenger && (
                     <button 
                       className="start-battle-btn"
-                      onClick={() => navigate(`/quiz-battle/${battle.id}`)}
+                      onClick={() => handleAcceptBattle(battle.id)}
                     >
                       Accept Challenge
                     </button>
