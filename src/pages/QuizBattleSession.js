@@ -199,6 +199,12 @@ const QuizBattleSession = () => {
   const handleAnswerSelect = (answerIndex) => {
     if (selectedAnswer !== null) return;
     setSelectedAnswer(answerIndex);
+    
+    // Automatically advance to next question after 2 seconds
+    // Pass the answer index to avoid closure issues
+    setTimeout(() => {
+      handleNextQuestion(answerIndex);
+    }, 2000);
   };
 
   const submitAnswerNotification = async (questionIndex, isCorrect) => {
@@ -227,24 +233,25 @@ const QuizBattleSession = () => {
     }
   };
 
-  const handleNextQuestion = () => {
+  const handleNextQuestion = (answerIndex = selectedAnswer) => {
+    // Use the passed answer index to avoid closure issues
     const currentQuestion = questions[currentQuestionIndex];
-    const isCorrect = selectedAnswer === currentQuestion.correct_answer;
+    const isCorrect = answerIndex === currentQuestion.correct_answer;
     
     const newAnsweredQuestions = [
       ...answeredQuestions,
       {
         question_id: currentQuestion.id,
-        selected_answer: selectedAnswer,
+        selected_answer: answerIndex,
         is_correct: isCorrect,
         time_taken: battle.time_limit_seconds - timeRemaining
       }
     ];
     
     setAnsweredQuestions(newAnsweredQuestions);
-    if (isCorrect) {
-      setScore(score + 1);
-    }
+    
+    const newScore = score + (isCorrect ? 1 : 0);
+    setScore(newScore);
 
     // Send live notification to opponent
     submitAnswerNotification(currentQuestionIndex, isCorrect);
@@ -253,7 +260,7 @@ const QuizBattleSession = () => {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setSelectedAnswer(null);
     } else {
-      submitBattle(score + (isCorrect ? 1 : 0), newAnsweredQuestions);
+      submitBattle(newScore, newAnsweredQuestions);
     }
   };
 
@@ -384,21 +391,58 @@ const QuizBattleSession = () => {
                   const opponentAnswer = opponentAnswers[index];
                   const yourCorrect = yourAnswer?.is_correct;
                   const opponentCorrect = opponentAnswer?.is_correct;
+                  const yourSelectedIndex = yourAnswer?.selected_answer;
+                  const opponentSelectedIndex = opponentAnswer?.selected_answer;
+                  const correctAnswerIndex = question.correct_answer;
+                  const showExplanation = !yourCorrect || !opponentCorrect; // Show if either got it wrong
 
                   return (
-                    <div key={index} className="question-comparison-item">
-                      <div className="question-number">Q{index + 1}</div>
-                      <div className="question-text-small">{question.question}</div>
-                      <div className="answer-indicators">
-                        <div className={`answer-indicator you ${yourCorrect ? 'correct' : 'incorrect'}`}>
-                          {yourCorrect ? <CheckCircle size={20} /> : <XCircle size={20} />}
-                          <span>You</span>
-                        </div>
-                        <div className={`answer-indicator opponent ${opponentCorrect ? 'correct' : 'incorrect'}`}>
-                          {opponentCorrect ? <CheckCircle size={20} /> : <XCircle size={20} />}
-                          <span>Opponent</span>
-                        </div>
+                    <div key={index} className="question-comparison-item expanded">
+                      <div className="question-comparison-header">
+                        <div className="question-number">Q{index + 1}</div>
+                        <div className="question-text-full">{question.question}</div>
                       </div>
+                      
+                      {/* Show all answer options */}
+                      <div className="answer-options-review">
+                        {question.options.map((option, optIndex) => {
+                          const isCorrect = optIndex === correctAnswerIndex;
+                          const youSelected = optIndex === yourSelectedIndex;
+                          const opponentSelected = optIndex === opponentSelectedIndex;
+                          
+                          return (
+                            <div 
+                              key={optIndex} 
+                              className={`answer-option-review ${isCorrect ? 'correct-answer' : ''} ${youSelected || opponentSelected ? 'selected' : ''}`}
+                            >
+                              <div className="option-content">
+                                <span className="option-letter">{String.fromCharCode(65 + optIndex)}</span>
+                                <span className="option-text">{option}</span>
+                                {isCorrect && <CheckCircle size={16} className="correct-icon" />}
+                              </div>
+                              <div className="selection-indicators">
+                                {youSelected && (
+                                  <span className={`user-badge you ${yourCorrect ? 'correct' : 'incorrect'}`}>
+                                    You {yourCorrect ? '✓' : '✗'}
+                                  </span>
+                                )}
+                                {opponentSelected && (
+                                  <span className={`user-badge opponent ${opponentCorrect ? 'correct' : 'incorrect'}`}>
+                                    Opponent {opponentCorrect ? '✓' : '✗'}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Show explanation if anyone got it wrong */}
+                      {showExplanation && question.explanation && (
+                        <div className="question-explanation">
+                          <strong>Explanation:</strong> {question.explanation}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -548,34 +592,7 @@ const QuizBattleSession = () => {
             })}
           </div>
 
-          {selectedAnswer !== null && (
-            <div className={`answer-feedback ${selectedAnswer === currentQuestion.correct_answer ? 'correct' : 'incorrect'}`}>
-              <div className="feedback-icon">
-                {selectedAnswer === currentQuestion.correct_answer ? (
-                  <CheckCircle size={24} />
-                ) : (
-                  <XCircle size={24} />
-                )}
-              </div>
-              <div className="feedback-text">
-                <strong>
-                  {selectedAnswer === currentQuestion.correct_answer ? 'Correct!' : 'Incorrect'}
-                </strong>
-                <p>{currentQuestion.explanation}</p>
-              </div>
-            </div>
-          )}
-
-          <div className="question-actions">
-            {selectedAnswer !== null && (
-              <button 
-                className="next-question-btn"
-                onClick={handleNextQuestion}
-              >
-                {currentQuestionIndex < questions.length - 1 ? 'Next Question' : 'Finish Battle'}
-              </button>
-            )}
-          </div>
+          {/* Removed feedback and next button - auto-advances after 2 seconds */}
         </div>
 
         <div className="battle-sidebar">
