@@ -615,7 +615,7 @@ const AIChat = ({ sharedMode = false }) => {
               <div className="sidebar-title">CONVERSATIONS</div>
               <div className="sidebar-actions">
                 <button className="create-folder-btn" onClick={() => setShowFolderCreation(true)}>
-                  <span>📁</span> New Folder
+                  <span></span> New Folder
                 </button>
                 <button className="new-chat-btn" onClick={handleNewChat}>
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">

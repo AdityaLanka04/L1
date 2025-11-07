@@ -34,9 +34,10 @@ const QuizBattle = () => {
       
       // Optional: Also show a browser notification if permitted
       if ('Notification' in window && Notification.permission === 'granted') {
+        const profilePicture = message.battle.challenger.picture_url || message.battle.challenger.picture || message.battle.challenger.profile_picture;
         new Notification('Quiz Battle Challenge!', {
           body: `${message.battle.challenger.username} challenged you to a ${message.battle.subject} quiz!`,
-          icon: message.battle.challenger.picture_url || '/default-avatar.png'
+          icon: profilePicture || '/default-avatar.png'
         });
       }
       
@@ -78,7 +79,17 @@ const QuizBattle = () => {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
-  }, [statusFilter]);
+    
+    // Poll for new battles every 10 seconds as fallback when WebSocket is not connected
+    const pollInterval = setInterval(() => {
+      if (!isConnected) {
+        console.log('🔄 Polling for new battles (WebSocket not connected)');
+        fetchBattles();
+      }
+    }, 10000);
+    
+    return () => clearInterval(pollInterval);
+  }, [statusFilter, isConnected]);
 
   const fetchBattles = async () => {
     setLoading(true);
@@ -89,6 +100,35 @@ const QuizBattle = () => {
       );
       if (response.ok) {
         const data = await response.json();
+        
+        // Check for new pending battles (where user is opponent)
+        const newPendingBattles = data.battles.filter(
+          b => b.status === 'pending' && !b.is_challenger
+        );
+        
+        // If there's a new pending battle and no notification is showing, show it
+        if (newPendingBattles.length > 0 && !showNotification && !pendingBattle) {
+          const latestBattle = newPendingBattles[0];
+          setPendingBattle({
+            id: latestBattle.id,
+            subject: latestBattle.subject,
+            difficulty: latestBattle.difficulty,
+            question_count: latestBattle.question_count,
+            time_limit_seconds: latestBattle.time_limit_seconds,
+            challenger: latestBattle.opponent // opponent field contains the challenger info
+          });
+          setShowNotification(true);
+          
+          // Show browser notification
+          if ('Notification' in window && Notification.permission === 'granted') {
+            const profilePicture = latestBattle.opponent.picture_url || latestBattle.opponent.picture || latestBattle.opponent.profile_picture;
+            new Notification('Quiz Battle Challenge!', {
+              body: `${latestBattle.opponent.username} challenged you to a ${latestBattle.subject} quiz!`,
+              icon: profilePicture || '/default-avatar.png'
+            });
+          }
+        }
+        
         setBattles(data.battles);
       }
     } catch (error) {
@@ -219,6 +259,62 @@ const QuizBattle = () => {
     return 'Draw';
   };
 
+  // Helper function to render avatar with profile picture support
+  const renderAvatar = (user, className = "opponent-avatar") => {
+    // Check for picture_url (backend field) and picture (Google OAuth field)
+    const profilePicture = user.picture_url || user.picture || user.profile_picture;
+    const displayName = user.username || user.email || 'U';
+    const initial = (user.first_name?.[0] || displayName.charAt(0)).toUpperCase();
+
+    if (profilePicture) {
+      return (
+        <div className={className} style={{ position: 'relative', overflow: 'hidden' }}>
+          <img 
+            src={profilePicture} 
+            alt={displayName}
+            referrerPolicy="no-referrer"
+            crossOrigin="anonymous"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              display: 'block'
+            }}
+            onError={(e) => {
+              // If image fails to load, hide it and show fallback
+              e.target.style.display = 'none';
+              const fallback = e.target.nextSibling;
+              if (fallback) fallback.style.display = 'flex';
+            }}
+          />
+          <div 
+            className="opponent-avatar-placeholder"
+            style={{ 
+              display: 'none',
+              width: '100%',
+              height: '100%',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'absolute',
+              top: 0,
+              left: 0
+            }}
+          >
+            {initial}
+          </div>
+        </div>
+      );
+    }
+    
+    return (
+      <div className={className}>
+        <div className="opponent-avatar-placeholder">
+          {initial}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="quiz-battle-page">
       <header className="battle-header">
@@ -298,15 +394,7 @@ const QuizBattle = () => {
                   </div>
 
                   <div className="battle-opponent">
-                    <div className="opponent-avatar">
-                      {battle.opponent.picture_url ? (
-                        <img src={battle.opponent.picture_url} alt={battle.opponent.username} />
-                      ) : (
-                        <div className="opponent-avatar-placeholder">
-                          {(battle.opponent.first_name?.[0] || battle.opponent.username[0]).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
+                    {renderAvatar(battle.opponent, "opponent-avatar")}
                     <div className="opponent-info">
                       <span className="opponent-name">
                         VS {battle.opponent.first_name && battle.opponent.last_name

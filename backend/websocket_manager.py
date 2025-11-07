@@ -62,8 +62,9 @@ async def notify_battle_challenge(opponent_id: int, battle_data: dict):
         "type": "battle_challenge",
         "battle": battle_data
     }
-    await manager.send_personal_message(message, opponent_id)
-    logger.info(f"📬 Battle challenge notification sent to user {opponent_id}")
+    success = await manager.send_personal_message(message, opponent_id)
+    logger.info(f"📬 Battle challenge notification sent to user {opponent_id}: {success}")
+    return success
 
 async def notify_battle_accepted(challenger_id: int, battle_id: int, accepter_name: str = "Your opponent"):
     """Notify challenger that their battle was accepted"""

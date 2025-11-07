@@ -6429,12 +6429,18 @@ async def create_quiz_battle(
         
         if notification_sent:
             logger.info(f"✅ Notification sent to opponent {opponent_id}")
+        else:
+            logger.warning(f"⚠️ Opponent {opponent_id} not connected to WebSocket - notification not sent")
+        
+        # Log active connections for debugging
+        logger.info(f"📊 Active WebSocket connections: {list(manager.active_connections.keys())}")
         
         return {
             "status": "success",
             "battle_id": battle.id,
             "message": "Quiz battle created",
-            "notification_sent": notification_sent
+            "notification_sent": notification_sent,
+            "opponent_connected": notification_sent
         }
     
     except Exception as e:
@@ -7952,6 +7958,14 @@ async def decline_quiz_battle(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/debug/websocket-connections")
+async def debug_websocket_connections(username: str = Depends(verify_token)):
+    """Debug endpoint to check active WebSocket connections"""
+    return {
+        "active_connections": list(manager.active_connections.keys()),
+        "total_connections": len(manager.active_connections),
+        "requesting_user": username
+    }
 
 # ==================== END SERVE REACT APP ====================
 # ==================== END SERVE REACT APP ====================

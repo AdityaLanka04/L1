@@ -20,13 +20,56 @@ const BattleNotification = ({ battle, onAccept, onDecline, onClose }) => {
         <div className="notification-body">
           <div className="challenger-info">
             <div className="challenger-avatar">
-              {battle.challenger.picture_url ? (
-                <img src={battle.challenger.picture_url} alt={battle.challenger.username} />
-              ) : (
-                <div className="challenger-avatar-placeholder">
-                  {(battle.challenger.first_name?.[0] || battle.challenger.username[0]).toUpperCase()}
-                </div>
-              )}
+              {(() => {
+                const profilePicture = battle.challenger.picture_url || battle.challenger.picture || battle.challenger.profile_picture;
+                const displayName = battle.challenger.username || battle.challenger.email || 'U';
+                const initial = (battle.challenger.first_name?.[0] || displayName.charAt(0)).toUpperCase();
+                
+                if (profilePicture) {
+                  return (
+                    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+                      <img 
+                        src={profilePicture} 
+                        alt={displayName}
+                        referrerPolicy="no-referrer"
+                        crossOrigin="anonymous"
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block'
+                        }}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          const fallback = e.target.nextSibling;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                      <div 
+                        className="challenger-avatar-placeholder"
+                        style={{ 
+                          display: 'none',
+                          width: '100%',
+                          height: '100%',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          position: 'absolute',
+                          top: 0,
+                          left: 0
+                        }}
+                      >
+                        {initial}
+                      </div>
+                    </div>
+                  );
+                }
+                
+                return (
+                  <div className="challenger-avatar-placeholder">
+                    {initial}
+                  </div>
+                );
+              })()}
             </div>
             <div className="challenger-details">
               <span className="challenger-label">Challenged by</span>
@@ -78,7 +121,7 @@ const BattleNotification = ({ battle, onAccept, onDecline, onClose }) => {
             <X size={16} />
             <span>Decline</span>
           </button>
-          <button className="accept-btn" onClick={onAccept}>
+          <button className="accept-btn" onClick={() => onAccept(battle.id)}>
             <Swords size={16} />
             <span>Accept Challenge</span>
           </button>
