@@ -1,0 +1,171 @@
+/**
+ * Global WebSocket Manager
+ * Ensures single WebSocket connection shared across all components
+ */
+
+class WebSocketManager {
+  constructor() {
+    this.ws = null;
+    this.listeners = new Map();
+    this.isConnected = false;
+    this.reconnectAttempts = 0;
+    this.maxReconnectAttempts = 5;
+    this.reconnectTimeout = null;
+    this.messageQueue = [];
+    this.token = null;
+  }
+
+  connect(token) {
+    // Prevent multiple connections
+    if (this.ws) {
+      if (this.ws.readyState === WebSocket.OPEN) {
+        console.log('🔌 [WebSocketManager] Already connected, reusing connection');
+        return;
+      } else if (this.ws.readyState === WebSocket.CONNECTING) {
+        console.log('🔌 [WebSocketManager] Connection in progress, waiting...');
+        return;
+      }
+    }
+
+    if (!token) {
+      console.warn('⚠️ [WebSocketManager] No token provided');
+      return;
+    }
+
+    this.token = token;
+
+    // Determine WebSocket URL
+    let wsUrl;
+    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+    
+    if (API_URL.includes('localhost')) {
+      wsUrl = API_URL.replace('http://', 'ws://').replace('https://', 'ws://');
+    } else {
+      wsUrl = API_URL.replace('http://', 'wss://').replace('https://', 'wss://');
+    }
+    
+    wsUrl = wsUrl.replace('/api', '');
+    const wsEndpoint = `${wsUrl}/ws?token=${encodeURIComponent(token)}`;
+    
+    console.log('🔌 [WebSocketManager] Connecting to:', wsEndpoint.replace(token, 'TOKEN_HIDDEN'));
+
+    try {
+      this.ws = new WebSocket(wsEndpoint);
+
+      this.ws.onopen = () => {
+        console.log('✅ [WebSocketManager] Connected');
+        this.isConnected = true;
+        this.reconnectAttempts = 0;
+        
+        // Notify all listeners
+        this.notifyListeners({ type: '_connected', isConnected: true });
+
+        // Send queued messages
+        while (this.messageQueue.length > 0) {
+          const msg = this.messageQueue.shift();
+          this.ws.send(JSON.stringify(msg));
+        }
+      };
+
+      this.ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('📨 [WebSocketManager] Message received:', data.type);
+          
+          // Broadcast to all listeners
+          this.notifyListeners(data);
+        } catch (error) {
+          console.error('❌ [WebSocketManager] Error parsing message:', error);
+        }
+      };
+
+      this.ws.onerror = (error) => {
+        console.error('❌ [WebSocketManager] Error:', error);
+        this.isConnected = false;
+        this.notifyListeners({ type: '_connected', isConnected: false });
+      };
+
+      this.ws.onclose = (event) => {
+        console.log('🔌 [WebSocketManager] Disconnected. Code:', event.code);
+        this.isConnected = false;
+        this.notifyListeners({ type: '_connected', isConnected: false });
+
+        // Don't reconnect if authentication error
+        if (event.code === 1008) {
+          console.error('❌ [WebSocketManager] Authentication failed');
+          return;
+        }
+
+        // Attempt reconnect
+        if (this.reconnectAttempts < this.maxReconnectAttempts) {
+          const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+          console.log(`🔄 [WebSocketManager] Reconnecting in ${delay}ms...`);
+          
+          this.reconnectTimeout = setTimeout(() => {
+            this.reconnectAttempts++;
+            this.connect(this.token);
+          }, delay);
+        }
+      };
+    } catch (error) {
+      console.error('❌ [WebSocketManager] Error creating WebSocket:', error);
+    }
+  }
+
+  disconnect() {
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+    }
+    
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      console.log('🧹 [WebSocketManager] Disconnecting');
+      this.ws.close(1000, 'Manual disconnect');
+    }
+    
+    this.ws = null;
+    this.isConnected = false;
+  }
+
+  subscribe(id, callback) {
+    console.log(`📝 [WebSocketManager] Subscriber added: ${id}`);
+    this.listeners.set(id, callback);
+    
+    // Send current connection status
+    callback({ type: '_connected', isConnected: this.isConnected });
+  }
+
+  unsubscribe(id) {
+    console.log(`📝 [WebSocketManager] Subscriber removed: ${id}`);
+    this.listeners.delete(id);
+    
+    // If no more listeners, disconnect
+    if (this.listeners.size === 0) {
+      console.log('📝 [WebSocketManager] No more listeners, disconnecting...');
+      this.disconnect();
+    }
+  }
+
+  notifyListeners(message) {
+    this.listeners.forEach((callback, id) => {
+      try {
+        callback(message);
+      } catch (error) {
+        console.error(`❌ [WebSocketManager] Error in listener ${id}:`, error);
+      }
+    });
+  }
+
+  send(message) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(message));
+    } else {
+      console.warn('⚠️ [WebSocketManager] Not connected, queuing message');
+      this.messageQueue.push(message);
+    }
+  }
+}
+
+// Global singleton instance
+const wsManager = new WebSocketManager();
+
+export default wsManager;

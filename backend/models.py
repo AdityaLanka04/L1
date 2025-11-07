@@ -1053,6 +1053,10 @@ class QuizBattle(Base):
     challenger_completed = Column(Boolean, default=False)
     opponent_completed = Column(Boolean, default=False)
     
+    # Store answers as JSON
+    challenger_answers = Column(Text, nullable=True)  # JSON array of answers
+    opponent_answers = Column(Text, nullable=True)  # JSON array of answers
+    
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     started_at = Column(DateTime, nullable=True)

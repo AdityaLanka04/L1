@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Swords, Users, Clock, Target, Trophy, X, Check } from 'lucide-react';
 import './QuizBattle.css';
 import { API_URL } from '../config';
-import useWebSocket from './useWebSocket';
+import useSharedWebSocket from '../hooks/useSharedWebSocket';
 import BattleNotification from './BattleNotification.js';
 
 const QuizBattle = () => {
@@ -23,9 +23,16 @@ const QuizBattle = () => {
   const [difficulty, setDifficulty] = useState('intermediate');
   const [questionCount, setQuestionCount] = useState(10);
 
-  // WebSocket connection for real-time notifications
-  const { isConnected } = useWebSocket(token, (message) => {
-    console.log('Received WebSocket message:', message);
+  // WebSocket connection for real-time notifications (shared connection)
+  const { isConnected } = useSharedWebSocket(token, (message) => {
+    console.log('[QuizBattle LOBBY] Received WebSocket message:', message);
+    
+    // Ignore battle session messages (these should go to QuizBattleSession)
+    if (message.type === 'battle_answer_submitted' || 
+        message.type === 'battle_opponent_completed') {
+      console.log('[QuizBattle LOBBY] Ignoring session message, belongs to QuizBattleSession');
+      return;
+    }
     
     if (message.type === 'battle_challenge') {
       // Show notification popup for new battle challenge
@@ -57,6 +64,12 @@ const QuizBattle = () => {
         alert(`${opponentName} accepted the challenge! Starting quiz session...`);
         
         // Redirect to the battle session
+        navigate(`/quiz-battle/${message.battle_id}`);
+      }
+    } else if (message.type === 'battle_started') {
+      // Battle started - redirect both users to the session
+      if (message.battle_id) {
+        console.log('🚀 Battle started, redirecting to session...');
         navigate(`/quiz-battle/${message.battle_id}`);
       }
     } else if (message.type === 'battle_declined') {

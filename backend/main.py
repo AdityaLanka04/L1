@@ -57,7 +57,8 @@ from websocket_manager import (
     notify_battle_challenge, 
     notify_battle_accepted, 
     notify_battle_declined,
-    notify_battle_started
+    notify_battle_started,
+    notify_battle_completed
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -6520,6 +6521,7 @@ async def complete_quiz_battle(
         
         battle_id = payload.get("battle_id")
         score = payload.get("score")
+        answers = payload.get("answers", [])
         
         if not battle_id or score is None:
             raise HTTPException(status_code=400, detail="battle_id and score are required")
@@ -6531,14 +6533,19 @@ async def complete_quiz_battle(
         if not battle:
             raise HTTPException(status_code=404, detail="Battle not found")
         
-        # Update score
+        # Update score and store answers
         is_challenger = battle.challenger_id == current_user.id
         if is_challenger:
             battle.challenger_score = score
             battle.challenger_completed = True
+            battle.challenger_answers = json.dumps(answers)
         else:
             battle.opponent_score = score
             battle.opponent_completed = True
+            battle.opponent_answers = json.dumps(answers)
+        
+        # Get opponent ID for notification
+        opponent_id = battle.opponent_id if is_challenger else battle.challenger_id
         
         # Check if both completed
         if battle.challenger_completed and battle.opponent_completed:
@@ -6569,10 +6576,23 @@ async def complete_quiz_battle(
         
         db.commit()
         
+        # Notify opponent that user completed
+        await manager.send_personal_message({
+            "type": "battle_opponent_completed",
+            "battle_id": battle.id,
+            "opponent_completed": True
+        }, opponent_id)
+        
+        # If both completed, notify both users
+        if battle.challenger_completed and battle.opponent_completed:
+            await notify_battle_completed([battle.challenger_id, battle.opponent_id], battle.id, 
+                                         battle.challenger_id if battle.challenger_score > battle.opponent_score else battle.opponent_id)
+        
         return {
             "status": "success",
             "battle_status": battle.status,
-            "message": "Score submitted"
+            "message": "Score submitted",
+            "both_completed": battle.challenger_completed and battle.opponent_completed
         }
     
     except Exception as e:
@@ -6767,20 +6787,41 @@ async def get_quiz_battle_detail(
             })
         
         is_challenger = battle.challenger_id == current_user.id
+        opponent = battle.opponent if is_challenger else battle.challenger
+        
+        battle_data = {
+            "id": battle.id,
+            "subject": battle.subject,
+            "difficulty": battle.difficulty,
+            "status": battle.status,
+            "question_count": battle.question_count,
+            "time_limit_seconds": battle.time_limit_seconds,
+            "your_score": battle.challenger_score if is_challenger else battle.opponent_score,
+            "opponent_score": battle.opponent_score if is_challenger else battle.challenger_score,
+            "your_completed": battle.challenger_completed if is_challenger else battle.opponent_completed,
+            "opponent_completed": battle.opponent_completed if is_challenger else battle.challenger_completed,
+            "is_challenger": is_challenger,
+            "opponent": {
+                "id": opponent.id,
+                "username": opponent.username,
+                "first_name": opponent.first_name or "",
+                "last_name": opponent.last_name or "",
+                "picture_url": opponent.picture_url or ""
+            }
+        }
+        
+        # Include answers if both completed
+        if battle.challenger_completed and battle.opponent_completed:
+            try:
+                your_answers = json.loads(battle.challenger_answers if is_challenger else battle.opponent_answers) if (battle.challenger_answers if is_challenger else battle.opponent_answers) else []
+                opponent_answers = json.loads(battle.opponent_answers if is_challenger else battle.challenger_answers) if (battle.opponent_answers if is_challenger else battle.challenger_answers) else []
+                battle_data["your_answers"] = your_answers
+                battle_data["opponent_answers"] = opponent_answers
+            except:
+                pass
         
         return {
-            "battle": {
-                "id": battle.id,
-                "subject": battle.subject,
-                "difficulty": battle.difficulty,
-                "status": battle.status,
-                "question_count": battle.question_count,
-                "time_limit_seconds": battle.time_limit_seconds,
-                "your_score": battle.challenger_score if is_challenger else battle.opponent_score,
-                "opponent_score": battle.opponent_score if is_challenger else battle.challenger_score,
-                "your_completed": battle.challenger_completed if is_challenger else battle.opponent_completed,
-                "is_challenger": is_challenger
-            },
+            "battle": battle_data,
             "questions": question_list
         }
     
@@ -7805,6 +7846,12 @@ async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = None):
         await websocket.accept()
         logger.info(f"✅ WebSocket accepted for user {user_id}")
         
+        # Close database connection immediately after auth
+        if db:
+            db.close()
+            db = None
+            logger.info(f"🔒 Database connection closed for user {user_id}")
+        
         # Store connection
         manager.active_connections[user_id] = websocket
         logger.info(f"✅ User {user_id} connected (Total: {len(manager.active_connections)})")
@@ -7845,8 +7892,13 @@ async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = None):
             del manager.active_connections[user_id]
             logger.info(f"👋 User {user_id} cleaned up")
         
+        # Ensure database connection is closed
         if db:
-            db.close()
+            try:
+                db.close()
+                logger.info(f"🔒 Database connection closed in cleanup")
+            except:
+                pass
             
 @app.post("/api/accept_quiz_battle")
 async def accept_quiz_battle(
@@ -7956,6 +8008,62 @@ async def decline_quiz_battle(
     except Exception as e:
         logger.error(f"❌ Error declining battle: {str(e)}")
         db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/submit_battle_answer")
+async def submit_battle_answer(
+    payload: dict = Body(...),
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Submit a single answer during battle and notify opponent"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        battle_id = payload.get("battle_id")
+        question_index = payload.get("question_index")
+        is_correct = payload.get("is_correct")
+        
+        if battle_id is None or question_index is None or is_correct is None:
+            raise HTTPException(status_code=400, detail="Missing required fields")
+        
+        battle = db.query(models.QuizBattle).filter(
+            models.QuizBattle.id == battle_id
+        ).first()
+        
+        if not battle:
+            raise HTTPException(status_code=404, detail="Battle not found")
+        
+        # Determine opponent
+        is_challenger = battle.challenger_id == current_user.id
+        opponent_id = battle.opponent_id if is_challenger else battle.challenger_id
+        
+        # Send live notification to opponent
+        logger.info(f"📤 Sending answer notification to opponent {opponent_id}: Battle {battle_id}, Q{question_index}, Correct: {is_correct}")
+        logger.info(f"📊 Active WebSocket connections: {list(manager.active_connections.keys())}")
+        
+        success = await manager.send_personal_message({
+            "type": "battle_answer_submitted",
+            "battle_id": battle_id,
+            "question_index": question_index,
+            "is_correct": is_correct,
+            "is_opponent": True
+        }, opponent_id)
+        
+        if success:
+            logger.info(f"✅ Answer notification delivered to opponent {opponent_id}")
+        else:
+            logger.warning(f"⚠️ Failed to deliver notification - opponent {opponent_id} not connected")
+        
+        return {
+            "status": "success",
+            "message": "Answer submitted"
+        }
+    
+    except Exception as e:
+        logger.error(f"❌ Error submitting answer: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/debug/websocket-connections")
