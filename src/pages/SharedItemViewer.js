@@ -137,7 +137,7 @@ const SharedItemViewer = () => {
       <header className="shared-viewer-header">
         <div className="header-left">
           <button className="back-btn" onClick={() => navigate('/shared')}>
-            <ArrowLeft size={20} />
+            ◄ Back
           </button>
           <div className="header-info">
             <div className="content-type-icon">

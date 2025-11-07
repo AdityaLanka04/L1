@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, BookOpen, Target, Brain, Award, TrendingUp } from 'lucide-react';
 import './profile.css';
 import { API_URL } from '../config';
 const Profile = () => {
+  const token = localStorage.getItem('token');
   const [userName, setUserName] = useState('');
   const [profileData, setProfileData] = useState({
     firstName: '',
@@ -25,6 +26,7 @@ const Profile = () => {
   const [lastSaved, setLastSaved] = useState(null);
   const [saveTimer, setSaveTimer] = useState(null);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const lastSavedProfile = useRef(null);
   
   const navigate = useNavigate();
 
@@ -107,6 +109,46 @@ const Profile = () => {
     }
   };
 
+  const autoSaveProfile = useCallback(async () => {
+    if (autoSaving) return;
+
+    const profileSnapshot = JSON.stringify(profileData);
+
+    if (profileSnapshot === lastSavedProfile.current) {
+      return;
+    }
+    
+    setAutoSaving(true);
+    
+    try {
+      const saveData = {
+        ...profileData,
+        userName,
+        difficultyLevel: profileData.difficultyLevel || 'intermediate',
+        learningPace: profileData.learningPace || 'moderate'
+      };
+      
+      const response = await fetch(`${API_URL}/update_comprehensive_profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(saveData)
+      });
+      
+      if (response.ok) {
+        lastSavedProfile.current = profileSnapshot;
+        setLastSaved(new Date().toLocaleTimeString());
+        localStorage.setItem('userProfile', profileSnapshot);
+      }
+    } catch (error) {
+      console.error('Error auto-saving profile:', error);
+    } finally {
+      setAutoSaving(false);
+    }
+  }, [API_URL, token, userName, profileData, autoSaving, lastSavedProfile, setLastSaved, setAutoSaving]);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     const username = localStorage.getItem('username');
@@ -123,22 +165,31 @@ const Profile = () => {
   }, [navigate]);
 
   useEffect(() => {
-    if (dataLoaded && userName) {
-      if (saveTimer) clearTimeout(saveTimer);
-      
-      const newTimer = setTimeout(() => {
-        if (profileData.firstName || profileData.lastName || profileData.email) {
-          autoSaveProfile();
-        }
-      }, 3000);
-      
-      setSaveTimer(newTimer);
-      
-      return () => {
-        if (newTimer) clearTimeout(newTimer);
-      };
+    if (!dataLoaded || !userName) {
+      return;
     }
-  }, [profileData, userName, dataLoaded]);
+
+    if (saveTimer) {
+      clearTimeout(saveTimer);
+    }
+
+    const profileSnapshot = JSON.stringify(profileData);
+
+    if (profileSnapshot === lastSavedProfile.current) {
+      setSaveTimer(null);
+      return;
+    }
+
+    const newTimer = setTimeout(() => {
+      autoSaveProfile();
+    }, 3000);
+
+    setSaveTimer(newTimer);
+
+    return () => {
+      clearTimeout(newTimer);
+    };
+  }, [profileData, userName, dataLoaded, autoSaveProfile]);
 
   const loadUserProfile = async (username) => {
     if (!username) return;
@@ -182,6 +233,7 @@ const Profile = () => {
         }
 
         setProfileData(newProfileData);
+        lastSavedProfile.current = JSON.stringify(newProfileData);
 
         if (data.quizResponses) {
           try {
@@ -221,49 +273,7 @@ const Profile = () => {
         ? prev.preferredSubjects.filter(s => s !== subject)
         : [...prev.preferredSubjects, subject]
     }));
-  };
-
-  const autoSaveProfile = async () => {
-    if (autoSaving) return;
-    
-    setAutoSaving(true);
-    
-    try {
-      const token = localStorage.getItem('token');
-      
-      const saveData = {
-        user_id: userName,
-        firstName: profileData.firstName || '',
-        lastName: profileData.lastName || '',
-        email: profileData.email || '',
-        fieldOfStudy: profileData.fieldOfStudy || '',
-        brainwaveGoal: profileData.brainwaveGoal || '',
-        preferredSubjects: profileData.preferredSubjects || [],
-        difficultyLevel: profileData.difficultyLevel || 'intermediate',
-        learningPace: profileData.learningPace || 'moderate'
-      };
-      
-      const response = await fetch(`${API_URL}/update_comprehensive_profile`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(saveData)
-      });
-      
-      if (response.ok) {
-        setLastSaved(new Date().toLocaleTimeString());
-        localStorage.setItem('userProfile', JSON.stringify(profileData));
-      }
-    } catch (error) {
-      console.error('Error auto-saving profile:', error);
-    } finally {
-      setAutoSaving(false);
-    }
-  };
-
-  const goBack = () => {
+  };  const goBack = () => {
     navigate('/dashboard');
   };
 
@@ -300,9 +310,9 @@ const Profile = () => {
             {lastSaved && !autoSaving && (
               <span className="profile-save-status saved">Saved at {lastSaved}</span>
             )}
-            <button className="back-btn" onClick={goBack}>
-              Back to Dashboard
-            </button>
+              <button className="back-btn" onClick={goBack}>
+                ◄ Back to Dashboard
+              </button>
           </div>
         </header>
 

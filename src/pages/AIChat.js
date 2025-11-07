@@ -20,6 +20,7 @@ const AIChat = ({ sharedMode = false }) => {
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [greeting, setGreeting] = useState('');
+  const [folders, setFolders] = useState([]);
   
   const [showFeedbackFor, setShowFeedbackFor] = useState(null);
   const [feedbackText, setFeedbackText] = useState('');
@@ -29,6 +30,34 @@ const AIChat = ({ sharedMode = false }) => {
   const [chatToDelete, setChatToDelete] = useState(null);
   
   const [selectedFiles, setSelectedFiles] = useState([]);
+  
+  const handleFolderCreation = async () => {
+    if (!folderName.trim()) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/create_chat_folder`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          folder_name: folderName.trim()
+        })
+      });
+
+      if (response.ok) {
+        const newFolder = await response.json();
+        setFolders(prev => [...prev, newFolder]);
+        setShowFolderCreation(false);
+        setFolderName('');
+      }
+    } catch (error) {
+      console.error('Error creating folder:', error);
+    }
+  };
   const [fileProcessing, setFileProcessing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [processedFiles, setProcessedFiles] = useState([]);
@@ -583,13 +612,48 @@ const AIChat = ({ sharedMode = false }) => {
         <div className="chat-sidebar open">
           <div className="sidebar-header">
             <div className="sidebar-title-bar">
-              <span className="sidebar-title">CONVERSATIONS</span>
-              <button className="new-chat-btn" onClick={handleNewChat}>
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M6 1v10M1 6h10"/>
-                </svg>
-                NEW CHAT
-              </button>
+              <div className="sidebar-title">CONVERSATIONS</div>
+              <div className="sidebar-actions">
+                <button className="create-folder-btn" onClick={() => setShowFolderCreation(true)}>
+                  <span>📁</span> New Folder
+                </button>
+                <button className="new-chat-btn" onClick={handleNewChat}>
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M6 1v10M1 6h10"/>
+                  </svg>
+                  NEW CHAT
+                </button>
+              </div>
+              {showFolderCreation && (
+                <div className="folder-input-group">
+                  <input
+                    type="text"
+                    className="folder-input"
+                    placeholder="Enter folder name"
+                    value={folderName}
+                    onChange={(e) => setFolderName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleFolderCreation();
+                      else if (e.key === 'Escape') {
+                        setShowFolderCreation(false);
+                        setFolderName('');
+                      }
+                    }}
+                  />
+                  <button className="folder-submit" onClick={handleFolderCreation}>
+                    Create
+                  </button>
+                  <button 
+                    className="folder-cancel" 
+                    onClick={() => {
+                      setShowFolderCreation(false);
+                      setFolderName('');
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -863,11 +927,19 @@ const AIChat = ({ sharedMode = false }) => {
                 <path d="M1 8l14-6-6 14-2-8z"/>
               </svg>
             </button>
-          </div>
-        </div>
-      </div>
-
-      {showDeleteConfirmation && (
+              </div>
+              {folders.length > 0 && (
+                <div className="folders-list">
+                  {folders.map(folder => (
+                    <div key={folder.id} className="folder-item">
+                      <span className="folder-icon">📁</span>
+                      <span className="folder-name">{folder.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>      {showDeleteConfirmation && (
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">

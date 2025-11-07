@@ -29,6 +29,79 @@
   outline: none !important;
 }
 
+.folder-section {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: var(--panel);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.folder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.folder-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.create-folder-btn {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.create-folder-btn:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.folder-input-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 0.5rem;
+}
+
+.folder-input {
+  flex: 1;
+  background: var(--bg-bottom);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  border-radius: 4px;
+}
+
+.folder-submit {
+  background: var(--accent);
+  color: var(--bg-top);
+  border: none;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.folder-cancel {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
 .welcome-section {
   text-align: center;
   padding: 2rem;
@@ -37,17 +110,17 @@
 }
 
 .welcome-title {
-  font-size: 1.75rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 500;
   color: var(--accent);
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   line-height: 1.2;
 }
 
 .welcome-subtitle {
-  font-size: 1rem;
+  font-size: 0.875rem;
   color: var(--text-secondary);
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .folder-creation {
@@ -124,12 +197,36 @@ body {
 }
 
 .sidebar-title {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 1.8px;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+}
+
+.sidebar-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.create-folder-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.create-folder-btn:hover {
+  background: color-mix(in srgb, var(--panel) 80%, var(--accent));
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .new-chat-btn {

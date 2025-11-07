@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Loader, FileText, Trash2, Eye, Sparkles } from 'lucide-react';
+import { Upload, Loader, FileText, Trash2, Eye, Sparkles } from 'lucide-react';
 import './SlideExplorer.css';
 import { API_URL } from '../config';
 const SlideExplorer = () => {
@@ -18,9 +18,9 @@ const SlideExplorer = () => {
 
   useEffect(() => {
     fetchUploadedSlides();
-  }, []);
+  }, [fetchUploadedSlides]);
 
-  const fetchUploadedSlides = async () => {
+  const fetchUploadedSlides = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`${API_URL}/get_uploaded_slides?user_id=${userId}`, {
@@ -35,7 +35,7 @@ const SlideExplorer = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, token, API_URL, setLoading, setUploadedSlides]);
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -184,8 +184,7 @@ const SlideExplorer = () => {
       <header className="se-header">
         <div className="se-header-left">
           <button className="se-back-btn" onClick={() => navigate('/learning-review')}>
-            <ArrowLeft size={20} />
-            <span>BACK</span>
+            ◄ Back
           </button>
           <div className="se-header-title-group">
             <h1 className="se-logo">cerbyl</h1>

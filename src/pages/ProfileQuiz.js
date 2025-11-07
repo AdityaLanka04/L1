@@ -417,7 +417,7 @@ const ProfileQuiz = () => {
 
             <div className="navigation-buttons">
               <button className="back-btn" onClick={() => setCurrentStep('subjects')}>
-                Back
+                ◄ Back
               </button>
               <button 
                 className="continue-btn" 
