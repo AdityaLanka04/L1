@@ -182,8 +182,27 @@ const ProfileQuiz = () => {
 
     if (username) {
       setUserName(username);
+      checkQuizStatus(username, token);
     }
   }, [navigate]);
+
+  const checkQuizStatus = async (username, token) => {
+    try {
+      const response = await fetch(`${API_URL}/get_user_profile?user_id=${username}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // If quiz was completed or skipped, redirect to dashboard
+        if (data.quiz_completed || data.quiz_skipped) {
+          navigate('/dashboard');
+        }
+      }
+    } catch (error) {
+      console.error('Error checking quiz status:', error);
+    }
+  };
 
   const handleSubjectToggle = (subject) => {
     setAnswers(prev => ({
@@ -297,7 +316,8 @@ const ProfileQuiz = () => {
           preferred_subjects: answers.preferredSubjects,
           main_subject: answers.mainSubject,
           brainwave_goal: answers.brainwaveGoal,
-          quiz_completed: false
+          quiz_completed: false,
+          quiz_skipped: true
         })
       });
 

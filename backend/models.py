@@ -52,8 +52,9 @@ class User(Base):
     # Relationships
     chat_sessions = relationship("ChatSession", back_populates="user")
     user_stats = relationship("UserStats", back_populates="user", uselist=False)
-    notes = relationship("Note", back_populates="user")  # ✅ ADD THIS
-    folders = relationship("Folder", back_populates="user")  # ✅ ADD THIS
+    notes = relationship("Note", back_populates="user")
+    folders = relationship("Folder", back_populates="user")
+    chat_folders = relationship("ChatFolder", back_populates="user")
     activities = relationship("Activity", back_populates="user")
     flashcard_sets = relationship("FlashcardSet", back_populates="user")
     flashcard_study_sessions = relationship("FlashcardStudySession", back_populates="user")
@@ -79,12 +80,14 @@ class ChatSession(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     title = Column(String(255), default="New Chat")
+    folder_id = Column(Integer, ForeignKey("chat_folders.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     user = relationship("User", back_populates="chat_sessions")
     messages = relationship("ChatMessage", back_populates="chat_session", cascade="all, delete-orphan")
+    folder = relationship("ChatFolder", back_populates="chat_sessions")
 
 
 class ChatMessage(Base):
@@ -230,6 +233,20 @@ class Folder(Base):
 
     user = relationship("User", back_populates="folders")
     notes = relationship("Note", back_populates="folder")
+
+class ChatFolder(Base):
+    __tablename__ = "chat_folders"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    name = Column(String(255), nullable=False)
+    color = Column(String(50), default="#D7B38C")
+    parent_id = Column(Integer, ForeignKey("chat_folders.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="chat_folders")
+    chat_sessions = relationship("ChatSession", back_populates="folder")
 
 class Activity(Base):
     __tablename__ = "activities"
@@ -950,6 +967,7 @@ class ComprehensiveUserProfile(Base):
     
     quiz_responses = Column(Text, nullable=True)
     quiz_completed = Column(Boolean, default=False)
+    quiz_skipped = Column(Boolean, default=False)
     
     primary_archetype = Column(String(50), nullable=True)
     secondary_archetype = Column(String(50), nullable=True)

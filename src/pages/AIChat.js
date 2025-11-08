@@ -44,7 +44,8 @@ const AIChat = ({ sharedMode = false }) => {
         },
         body: JSON.stringify({
           user_id: userName,
-          folder_name: folderName.trim()
+          name: folderName.trim(),
+          color: '#D7B38C'
         })
       });
 
@@ -53,10 +54,42 @@ const AIChat = ({ sharedMode = false }) => {
         setFolders(prev => [...prev, newFolder]);
         setShowFolderCreation(false);
         setFolderName('');
+        loadChatFolders();
       }
     } catch (error) {
       console.error('Error creating folder:', error);
     }
+  };
+
+  const handleMoveToFolder = async (chatId, folderId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/move_chat_to_folder`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          folder_id: folderId
+        })
+      });
+
+      if (response.ok) {
+        loadChatSessions();
+        setShowMoveMenu(null);
+      }
+    } catch (error) {
+      console.error('Error moving chat:', error);
+    }
+  };
+
+  const handleContextMenu = (e, chatId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMenuPosition({ x: e.clientX, y: e.clientY });
+    setShowMoveMenu(chatId);
   };
   const [fileProcessing, setFileProcessing] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -68,6 +101,9 @@ const AIChat = ({ sharedMode = false }) => {
 
   const [showFolderCreation, setShowFolderCreation] = useState(false);
   const [folderName, setFolderName] = useState('');
+  const [showMoveMenu, setShowMoveMenu] = useState(null);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+  const [selectedFolder, setSelectedFolder] = useState(null);
 
   const greetings = [
     "Welcome back! How can I help you today?",
@@ -178,6 +214,24 @@ const AIChat = ({ sharedMode = false }) => {
   const clearAllFiles = () => {
     setSelectedFiles([]);
     setProcessedFiles([]);
+  };
+
+  const loadChatFolders = async () => {
+    if (!userName) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/get_chat_folders?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const foldersData = await response.json();
+        setFolders(foldersData || []);
+      }
+    } catch (error) {
+      console.error('Error loading chat folders:', error);
+    }
   };
 
   const loadChatSessions = async () => {
@@ -570,6 +624,7 @@ const AIChat = ({ sharedMode = false }) => {
 
   useEffect(() => {
     if (userName) {
+      loadChatFolders();
       loadChatSessions();
     }
   }, [userName]);
@@ -613,58 +668,111 @@ const AIChat = ({ sharedMode = false }) => {
           <div className="sidebar-header">
             <div className="sidebar-title-bar">
               <div className="sidebar-title">CONVERSATIONS</div>
-              <div className="sidebar-actions">
-                <button className="create-folder-btn" onClick={() => setShowFolderCreation(true)}>
-                  <span></span> New Folder
-                </button>
-                <button className="new-chat-btn" onClick={handleNewChat}>
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M6 1v10M1 6h10"/>
-                  </svg>
-                  NEW CHAT
-                </button>
-              </div>
-              {showFolderCreation && (
-                <div className="folder-input-group">
-                  <input
-                    type="text"
-                    className="folder-input"
-                    placeholder="Enter folder name"
-                    value={folderName}
-                    onChange={(e) => setFolderName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleFolderCreation();
-                      else if (e.key === 'Escape') {
-                        setShowFolderCreation(false);
-                        setFolderName('');
-                      }
-                    }}
-                  />
-                  <button className="folder-submit" onClick={handleFolderCreation}>
-                    Create
-                  </button>
-                  <button 
-                    className="folder-cancel" 
-                    onClick={() => {
-                      setShowFolderCreation(false);
-                      setFolderName('');
-                    }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
+              <button 
+                className="new-chat-btn" 
+                onClick={handleNewChat}
+                disabled={chatSessions.length > 0}
+                title={chatSessions.length > 0 ? "Chat already exists" : "Create new chat"}
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M6 1v10M1 6h10"/>
+                </svg>
+                NEW CHAT
+              </button>
             </div>
           </div>
 
-          <div className="chat-sessions">
-            {chatSessions.length === 0 ? (
-              <div className="no-chats">
-                <p>No conversations yet</p>
-                <span>Start a new chat to begin</span>
+          <div className="folders-section">
+            <div className="folders-header">
+              <h3>Folders</h3>
+              <button onClick={() => setShowFolderCreation(true)} className="btn-add-folder">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                  <line x1="12" y1="11" x2="12" y2="17"/>
+                  <line x1="9" y1="14" x2="15" y2="14"/>
+                </svg>
+              </button>
+            </div>
+            
+            {showFolderCreation && (
+              <div className="folder-input-group">
+                <input
+                  type="text"
+                  className="folder-input"
+                  placeholder="Folder name"
+                  value={folderName}
+                  onChange={(e) => setFolderName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleFolderCreation();
+                    else if (e.key === 'Escape') {
+                      setShowFolderCreation(false);
+                      setFolderName('');
+                    }
+                  }}
+                  autoFocus
+                />
+                <button className="folder-submit" onClick={handleFolderCreation}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                </button>
+                <button 
+                  className="folder-cancel" 
+                  onClick={() => {
+                    setShowFolderCreation(false);
+                    setFolderName('');
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
               </div>
-            ) : (
-              chatSessions.map(session => (
+            )}
+            
+            <div className="folders-list">
+              {folders.map((folder) => (
+                <div key={folder.id} className="folder-item-wrapper">
+                  <div
+                    className={`folder-item ${selectedFolder === folder.id ? 'active' : ''}`}
+                    style={{ borderLeft: `3px solid ${folder.color}` }}
+                    onClick={() => setSelectedFolder(selectedFolder === folder.id ? null : folder.id)}
+                  >
+                    <span>{folder.name}</span>
+                    <span className="folder-count">{chatSessions.filter(s => s.folder_id === folder.id).length}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="chats-section">
+            <div className="chats-header">
+              <h3>CHATS</h3>
+              {selectedFolder && (
+                <button 
+                  className="clear-filter-btn"
+                  onClick={() => setSelectedFolder(null)}
+                  title="Show all chats"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              )}
+            </div>
+            <div className="chat-sessions">
+              {chatSessions.length === 0 ? (
+                <div className="no-chats">
+                  <p>No conversations yet</p>
+                  <span>Start a new chat to begin</span>
+                </div>
+              ) : (
+                chatSessions
+                  .filter(session => selectedFolder ? session.folder_id === selectedFolder : true)
+                  .map(session => (
                 <div
                   key={session.id}
                   className={`chat-session-item ${activeChatId === session.id ? 'active' : ''}`}
@@ -679,18 +787,34 @@ const AIChat = ({ sharedMode = false }) => {
                       })}
                     </div>
                   </div>
-                  <button
-                    className="delete-chat-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteChat(session.id, session.title);
-                    }}
-                  >
-                    ×
-                  </button>
+                  <div className="chat-session-actions">
+                    <button
+                      className="move-to-folder-btn"
+                      onClick={(e) => handleContextMenu(e, session.id)}
+                      title="Move to folder"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                      </svg>
+                    </button>
+                    <button
+                      className="delete-chat-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteChat(session.id, session.title);
+                      }}
+                      title="Delete chat"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               ))
-            )}
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -928,18 +1052,10 @@ const AIChat = ({ sharedMode = false }) => {
               </svg>
             </button>
               </div>
-              {folders.length > 0 && (
-                <div className="folders-list">
-                  {folders.map(folder => (
-                    <div key={folder.id} className="folder-item">
-                      <span className="folder-icon">📁</span>
-                      <span className="folder-name">{folder.name}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
-          </div>      {showDeleteConfirmation && (
+          </div>
+      
+      {showDeleteConfirmation && (
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
@@ -966,6 +1082,43 @@ const AIChat = ({ sharedMode = false }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {showMoveMenu && (
+        <>
+          <div className="context-menu-overlay" onClick={() => setShowMoveMenu(null)} />
+          <div 
+            className="context-menu" 
+            style={{ 
+              top: `${menuPosition.y}px`, 
+              left: `${menuPosition.x}px` 
+            }}
+          >
+            <div className="context-menu-header">Move to Folder</div>
+            {folders.map(folder => (
+              <div
+                key={folder.id}
+                className="context-menu-item"
+                onClick={() => handleMoveToFolder(showMoveMenu, folder.id)}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                {folder.name}
+              </div>
+            ))}
+            <div className="context-menu-divider" />
+            <div
+              className="context-menu-item"
+              onClick={() => handleMoveToFolder(showMoveMenu, null)}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              Remove from Folder
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

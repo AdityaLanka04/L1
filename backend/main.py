@@ -226,6 +226,20 @@ class NoteFavorite(BaseModel):
     note_id: int
     is_favorite: bool
 
+class ChatFolderCreate(BaseModel):
+    user_id: str
+    name: str
+    color: Optional[str] = "#D7B38C"
+    parent_id: Optional[int] = None
+
+class ChatUpdateFolder(BaseModel):
+    chat_id: int
+    folder_id: Optional[int] = None
+
+class GenerateChatTitleRequest(BaseModel):
+    chat_id: int
+    user_id: str
+
 class AIWritingAssistRequest(BaseModel):
     user_id: str
     content: str
@@ -1270,6 +1284,7 @@ def get_chat_sessions(user_id: str = Query(...), db: Session = Depends(get_db)):
             {
                 "id": session.id,
                 "title": session.title,
+                "folder_id": session.folder_id,
                 "created_at": session.created_at.isoformat(),
                 "updated_at": session.updated_at.isoformat()
             }
@@ -2889,6 +2904,207 @@ def permanent_delete_note(note_id: int, db: Session = Depends(get_db)):
         logger.error(f"Error permanently deleting note: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# ==================== CHAT FOLDERS ENDPOINTS ====================
+
+@app.post("/api/create_chat_folder")
+def create_chat_folder(folder_data: ChatFolderCreate, db: Session = Depends(get_db)):
+    """Create a new chat folder"""
+    try:
+        user = get_user_by_username(db, folder_data.user_id) or get_user_by_email(db, folder_data.user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        new_folder = models.ChatFolder(
+            user_id=user.id,
+            name=folder_data.name,
+            color=folder_data.color,
+            parent_id=folder_data.parent_id
+        )
+        db.add(new_folder)
+        db.commit()
+        db.refresh(new_folder)
+        
+        logger.info(f"✅ Chat folder created: {new_folder.name} for user {user.email}")
+        
+        return {
+            "id": new_folder.id,
+            "name": new_folder.name,
+            "color": new_folder.color,
+            "parent_id": new_folder.parent_id,
+            "created_at": new_folder.created_at.isoformat(),
+            "status": "success"
+        }
+    except Exception as e:
+        logger.error(f"Error creating chat folder: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/get_chat_folders")
+def get_chat_folders(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """Get all chat folders for a user with chat counts"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        folders = db.query(models.ChatFolder).filter(
+            models.ChatFolder.user_id == user.id
+        ).order_by(models.ChatFolder.name.asc()).all()
+        
+        result = []
+        for folder in folders:
+            chat_count = db.query(models.ChatSession).filter(
+                models.ChatSession.folder_id == folder.id
+            ).count()
+            
+            result.append({
+                "id": folder.id,
+                "name": folder.name,
+                "color": folder.color,
+                "parent_id": folder.parent_id,
+                "chat_count": chat_count,
+                "created_at": folder.created_at.isoformat(),
+                "updated_at": folder.updated_at.isoformat()
+            })
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error getting chat folders: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/delete_chat_folder/{folder_id}")
+def delete_chat_folder(folder_id: int, db: Session = Depends(get_db)):
+    """Delete a chat folder (moves chats to root)"""
+    try:
+        folder = db.query(models.ChatFolder).filter(
+            models.ChatFolder.id == folder_id
+        ).first()
+        
+        if not folder:
+            raise HTTPException(status_code=404, detail="Folder not found")
+        
+        # Move all chats in this folder to root (no folder)
+        db.query(models.ChatSession).filter(
+            models.ChatSession.folder_id == folder_id
+        ).update({"folder_id": None})
+        
+        db.delete(folder)
+        db.commit()
+        
+        return {"message": "Chat folder deleted successfully", "status": "success"}
+    except Exception as e:
+        logger.error(f"Error deleting chat folder: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/move_chat_to_folder")
+def move_chat_to_folder(data: ChatUpdateFolder, db: Session = Depends(get_db)):
+    """Move chat to a folder or remove from folder"""
+    try:
+        chat = db.query(models.ChatSession).filter(
+            models.ChatSession.id == data.chat_id
+        ).first()
+        
+        if not chat:
+            raise HTTPException(status_code=404, detail="Chat not found")
+        
+        chat.folder_id = data.folder_id
+        chat.updated_at = datetime.now(timezone.utc)
+        db.commit()
+        
+        return {
+            "message": "Chat moved successfully",
+            "chat_id": chat.id,
+            "folder_id": data.folder_id,
+            "status": "success"
+        }
+    except Exception as e:
+        logger.error(f"Error moving chat: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/generate_chat_title")
+async def generate_chat_title(request: GenerateChatTitleRequest, db: Session = Depends(get_db)):
+    """AI-generated chat title based on conversation content"""
+    try:
+        user = get_user_by_username(db, request.user_id) or get_user_by_email(db, request.user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        chat = db.query(models.ChatSession).filter(
+            models.ChatSession.id == request.chat_id,
+            models.ChatSession.user_id == user.id
+        ).first()
+        
+        if not chat:
+            raise HTTPException(status_code=404, detail="Chat not found")
+        
+        # Get first few messages to understand the topic
+        messages = db.query(models.ChatMessage).filter(
+            models.ChatMessage.chat_session_id == request.chat_id
+        ).order_by(models.ChatMessage.timestamp.asc()).limit(3).all()
+        
+        if not messages:
+            return {"title": "New Chat", "status": "success"}
+        
+        # Build context from messages
+        conversation_context = "\n".join([
+            f"User: {msg.user_message}\nAI: {msg.ai_response[:200]}"
+            for msg in messages
+        ])
+        
+        # Generate title using AI
+        prompt = f"""Based on this conversation, generate a concise, descriptive title (max 6 words).
+The title should capture the main topic or question being discussed.
+
+Conversation:
+{conversation_context}
+
+Generate only the title, nothing else. Make it specific and informative."""
+
+        try:
+            response = groq_client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant that generates concise, descriptive titles for conversations."},
+                    {"role": "user", "content": prompt}
+                ],
+                model=GROQ_MODEL,
+                temperature=0.7,
+                max_tokens=50,
+            )
+            
+            generated_title = response.choices[0].message.content.strip()
+            # Clean up the title
+            generated_title = generated_title.replace('"', '').replace("'", "")
+            generated_title = generated_title[:60]  # Limit length
+            
+            # Update chat title
+            chat.title = generated_title
+            chat.updated_at = datetime.now(timezone.utc)
+            db.commit()
+            
+            logger.info(f"✅ Generated title for chat {chat.id}: {generated_title}")
+            
+            return {
+                "title": generated_title,
+                "chat_id": chat.id,
+                "status": "success"
+            }
+            
+        except Exception as ai_error:
+            logger.error(f"AI title generation error: {str(ai_error)}")
+            # Fallback to simple title
+            fallback_title = messages[0].user_message[:50] + "..."
+            chat.title = fallback_title
+            db.commit()
+            
+            return {
+                "title": fallback_title,
+                "chat_id": chat.id,
+                "status": "success"
+            }
+        
+    except Exception as e:
+        logger.error(f"Error generating chat title: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ==================== AI WRITING ASSISTANT ====================
 
@@ -5706,6 +5922,7 @@ async def save_complete_profile(
             comprehensive_profile.archetype_description = payload.get("archetype_description")
 
         comprehensive_profile.quiz_completed = payload.get("quiz_completed", False)
+        comprehensive_profile.quiz_skipped = payload.get("quiz_skipped", False)
         comprehensive_profile.updated_at = datetime.now(timezone.utc)
 
         db.commit()
@@ -6787,7 +7004,16 @@ async def get_quiz_battle_detail(
             })
         
         is_challenger = battle.challenger_id == current_user.id
-        opponent = battle.opponent if is_challenger else battle.challenger
+        
+        # Get opponent user
+        try:
+            opponent_id = battle.opponent_id if is_challenger else battle.challenger_id
+            opponent = db.query(models.User).filter(models.User.id == opponent_id).first()
+            if not opponent:
+                raise HTTPException(status_code=404, detail="Opponent not found")
+        except Exception as e:
+            logger.error(f"Error getting opponent: {str(e)}")
+            raise HTTPException(status_code=500, detail="Error loading battle opponent")
         
         battle_data = {
             "id": battle.id,
