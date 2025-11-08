@@ -9,8 +9,11 @@ import Social from './pages/Social';
 import FriendsDashboard from './pages/FriendsDashboard';
 import ActivityFeed from './pages/ActivityFeed';
 import Leaderboards from './pages/Leaderboards';
+import QuizHub from './pages/QuizHub';
 import QuizBattle from './pages/QuizBattle';
 import QuizBattleSession from './pages/QuizBattleSession';
+import SoloQuiz from './pages/SoloQuiz';
+import SoloQuizSession from './pages/SoloQuizSession';
 import Challenges from './pages/Challenges';
 import ChallengeSession from './pages/ChallengeSession';
 import SharedContent from './pages/SharedContent';
@@ -47,8 +50,11 @@ function App() {
           <Route path="/friends" element={<FriendsDashboard />} />
           <Route path="/activity-feed" element={<ActivityFeed />} />
           <Route path="/leaderboards" element={<Leaderboards />} />
+          <Route path="/quiz-hub" element={<QuizHub />} />
           <Route path="/quiz-battles" element={<QuizBattle />} />
           <Route path="/quiz-battle/:battleId" element={<QuizBattleSession />} />
+          <Route path="/solo-quiz" element={<SoloQuiz />} />
+          <Route path="/solo-quiz/:quizId" element={<SoloQuizSession />} />
           <Route path="/challenges" element={<Challenges />} />
           <Route path="/challenge/:challengeId" element={<ChallengeSession />} />
           <Route path="/shared" element={<SharedContent />} />

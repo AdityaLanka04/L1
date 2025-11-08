@@ -1222,6 +1222,46 @@ class SharedContentAccess(Base):
     
     shared_content = relationship("SharedContent", foreign_keys=[shared_content_id])
     user = relationship("User", foreign_keys=[user_id])
+class SoloQuiz(Base):
+    """Solo practice quizzes"""
+    __tablename__ = "solo_quizzes"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    subject = Column(String(100), nullable=False)
+    difficulty = Column(String(20), default="intermediate")
+    status = Column(String(20), default="active")  # active, completed
+    
+    # Quiz details
+    question_count = Column(Integer, default=10)
+    time_limit_seconds = Column(Integer, default=300)
+    
+    # Score
+    score = Column(Integer, default=0)
+    completed = Column(Boolean, default=False)
+    
+    # Store answers as JSON
+    answers = Column(Text, nullable=True)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+    
+    user = relationship("User")
+
+class SoloQuizQuestion(Base):
+    """Questions for solo quizzes"""
+    __tablename__ = "solo_quiz_questions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    quiz_id = Column(Integer, ForeignKey("solo_quizzes.id"), nullable=False)
+    question = Column(Text, nullable=False)
+    options = Column(Text, nullable=False)  # JSON array
+    correct_answer = Column(Integer, nullable=False)
+    explanation = Column(Text, nullable=True)
+    
+    quiz = relationship("SoloQuiz")
+
 def create_tables():
     Base.metadata.create_all(bind=engine)
 

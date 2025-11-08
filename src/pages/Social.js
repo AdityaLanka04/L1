@@ -334,14 +334,14 @@ const Social = () => {
       className: 'games-card'
     },
     {
-      id: 'quiz-battles',
+      id: 'quiz',
       size: 'small',
       icon: MessageSquare,
-      title: 'QUIZ BATTLES',
-      subtitle: '1V1 MATCHES',
-      description: 'Challenge your knowledge',
-      onClick: () => navigate('/quiz-battles'),
-      className: 'battles-card'
+      title: 'QUIZ',
+      subtitle: 'SOLO & 1V1',
+      description: 'Practice or compete',
+      onClick: () => navigate('/quiz-hub'),
+      className: 'quiz-card'
     },
     {
       id: 'shared',

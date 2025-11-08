@@ -8292,6 +8292,200 @@ async def submit_battle_answer(
         logger.error(f"❌ Error submitting answer: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/create_solo_quiz")
+async def create_solo_quiz(
+    payload: dict = Body(...),
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Create a new solo quiz"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        subject = payload.get("subject")
+        difficulty = payload.get("difficulty", "intermediate")
+        question_count = payload.get("question_count", 10)
+        
+        # Create quiz
+        quiz = models.SoloQuiz(
+            user_id=current_user.id,
+            subject=subject,
+            difficulty=difficulty,
+            question_count=question_count,
+            time_limit_seconds=300
+        )
+        
+        db.add(quiz)
+        db.commit()
+        db.refresh(quiz)
+        
+        # Generate questions using AI
+        questions = await generate_quiz_questions(subject, difficulty, question_count)
+        
+        # Save questions
+        for q_data in questions:
+            question = models.SoloQuizQuestion(
+                quiz_id=quiz.id,
+                question=q_data["question"],
+                options=json.dumps(q_data["options"]),
+                correct_answer=q_data["correct_answer"],
+                explanation=q_data.get("explanation", "")
+            )
+            db.add(question)
+        
+        db.commit()
+        
+        return {
+            "status": "success",
+            "quiz_id": quiz.id
+        }
+    
+    except Exception as e:
+        logger.error(f"Error creating solo quiz: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/solo_quiz/{quiz_id}")
+async def get_solo_quiz(
+    quiz_id: int,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Get solo quiz details"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        quiz = db.query(models.SoloQuiz).filter(
+            models.SoloQuiz.id == quiz_id,
+            models.SoloQuiz.user_id == current_user.id
+        ).first()
+        
+        if not quiz:
+            raise HTTPException(status_code=404, detail="Quiz not found")
+        
+        questions = db.query(models.SoloQuizQuestion).filter(
+            models.SoloQuizQuestion.quiz_id == quiz_id
+        ).all()
+        
+        return {
+            "quiz": {
+                "id": quiz.id,
+                "subject": quiz.subject,
+                "difficulty": quiz.difficulty,
+                "question_count": quiz.question_count,
+                "time_limit_seconds": quiz.time_limit_seconds
+            },
+            "questions": [{
+                "id": q.id,
+                "question": q.question,
+                "options": json.loads(q.options),
+                "correct_answer": q.correct_answer,
+                "explanation": q.explanation
+            } for q in questions]
+        }
+    
+    except Exception as e:
+        logger.error(f"Error getting solo quiz: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/complete_solo_quiz")
+async def complete_solo_quiz(
+    payload: dict = Body(...),
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Complete a solo quiz"""
+    try:
+        current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        quiz_id = payload.get("quiz_id")
+        score = payload.get("score")
+        answers = payload.get("answers", [])
+        
+        quiz = db.query(models.SoloQuiz).filter(
+            models.SoloQuiz.id == quiz_id,
+            models.SoloQuiz.user_id == current_user.id
+        ).first()
+        
+        if not quiz:
+            raise HTTPException(status_code=404, detail="Quiz not found")
+        
+        quiz.score = score
+        quiz.completed = True
+        quiz.status = "completed"
+        quiz.answers = json.dumps(answers)
+        quiz.completed_at = datetime.now(timezone.utc)
+        
+        db.commit()
+        
+        return {
+            "status": "success",
+            "message": "Quiz completed"
+        }
+    
+    except Exception as e:
+        logger.error(f"Error completing solo quiz: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+async def generate_quiz_questions(subject: str, difficulty: str, count: int):
+    """Generate quiz questions using AI"""
+    try:
+        prompt = f"""Generate {count} multiple choice questions about {subject} at {difficulty} level.
+
+For each question provide:
+- A clear question
+- 4 answer options
+- The index of the correct answer (0-3)
+- A brief explanation of the correct answer
+
+IMPORTANT: Return ONLY a valid JSON array, no markdown formatting, no code blocks, no extra text.
+Use this exact structure:
+[{{"question": "...", "options": ["A", "B", "C", "D"], "correct_answer": 0, "explanation": "..."}}]"""
+
+        response = groq_client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model=GROQ_MODEL,
+            temperature=0.7,
+            max_tokens=3000
+        )
+        
+        content = response.choices[0].message.content.strip()
+        
+        # Remove markdown code blocks if present
+        if content.startswith("```"):
+            # Remove opening ```json or ```
+            content = re.sub(r'^```(?:json)?\s*\n', '', content)
+            # Remove closing ```
+            content = re.sub(r'\n```\s*$', '', content)
+            content = content.strip()
+        
+        logger.info(f"Cleaned content: {content[:200]}...")
+        questions = json.loads(content)
+        
+        # Validate the structure
+        if not isinstance(questions, list) or len(questions) == 0:
+            raise ValueError("Invalid questions format")
+        
+        return questions
+        
+    except Exception as e:
+        logger.error(f"Error generating questions: {str(e)}")
+        logger.error(f"Raw content: {content if 'content' in locals() else 'No content'}")
+        # Return fallback questions
+        return [{
+            "question": f"Sample question {i+1} about {subject}",
+            "options": ["Option A", "Option B", "Option C", "Option D"],
+            "correct_answer": 0,
+            "explanation": "This is a sample explanation."
+        } for i in range(count)]
+
 @app.get("/api/debug/websocket-connections")
 async def debug_websocket_connections(username: str = Depends(verify_token)):
     """Debug endpoint to check active WebSocket connections"""
