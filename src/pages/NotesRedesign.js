@@ -16,6 +16,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { API_URL } from '../config';
+import gamificationService from '../services/gamificationService';
 
 // Remove problematic imports and register them conditionally
 let QuillTableUI;
@@ -850,6 +851,9 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
         const folderName = folders.find(f => f.id === folderId)?.name;
         showPopup("Created", folderName ? `New note created in ${folderName}` : "New note created");
+        
+        // Track gamification activity
+        gamificationService.trackNoteCreated(userName);
       } else {
         throw new Error(`Failed to create note: ${res.status}`);
       }

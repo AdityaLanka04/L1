@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import CustomPopup from './CustomPopup'; 
 import './Flashcards.css';
 import { API_URL } from '../config';
+import gamificationService from '../services/gamificationService';
 
 const Flashcards = () => {
   const [userName, setUserName] = useState('');
@@ -267,6 +268,9 @@ const Flashcards = () => {
         loadFlashcardHistory();
         loadFlashcardStats();
         showPopup('Success!', `Created "${data.set_title}" with ${data.flashcards.length} cards.`);
+        
+        // Track gamification activity
+        gamificationService.trackFlashcardSet(userName, data.flashcards.length);
       } else {
         setCurrentSetInfo({ saved: false, cardCount: data.flashcards.length });
         showPopup('Generated!', `Created ${data.flashcards.length} flashcards.`);

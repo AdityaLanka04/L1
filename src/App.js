@@ -30,6 +30,7 @@ import ProfileQuiz from './pages/ProfileQuiz';
 import { ThemeProvider } from './contexts/ThemeContext';
 import SharedItemViewer from './pages/SharedItemViewer';
 import NotesRedesign from './pages/NotesRedesign';
+import Games from './pages/Games';
 
 
 function App() {
@@ -55,7 +56,8 @@ function App() {
           <Route path="/quiz-battle/:battleId" element={<QuizBattleSession />} />
           <Route path="/solo-quiz" element={<SoloQuiz />} />
           <Route path="/solo-quiz/:quizId" element={<SoloQuizSession />} />
-          <Route path="/challenges" element={<Challenges />} />
+          <Route path="/games" element={<Games />} />
+          <Route path="/challenges" element={<Games />} />
           <Route path="/challenge/:challengeId" element={<ChallengeSession />} />
           <Route path="/shared" element={<SharedContent />} />
           <Route path="/shared/:contentType/:contentId" element={<SharedContent />} />

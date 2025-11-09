@@ -4,6 +4,7 @@ import { Clock, Target, Trophy, AlertCircle, CheckCircle, XCircle, Loader } from
 import './QuizBattleSession.css';
 import { API_URL } from '../config';
 import useSharedWebSocket from '../hooks/useSharedWebSocket';
+import gamificationService from '../services/gamificationService';
 
 const QuizBattleSession = () => {
   const navigate = useNavigate();
@@ -323,6 +324,18 @@ const QuizBattleSession = () => {
           setDetailedBattleData(data);
           setShowDetailedResults(true);
           setOpponentCompleted(true); // Ensure this is set
+          
+          // Track gamification activity based on result
+          const userName = localStorage.getItem('username');
+          if (userName && data.battle) {
+            if (data.battle.your_score > data.battle.opponent_score) {
+              gamificationService.trackBattleResult(userName, 'win');
+            } else if (data.battle.your_score < data.battle.opponent_score) {
+              gamificationService.trackBattleResult(userName, 'loss');
+            } else {
+              gamificationService.trackBattleResult(userName, 'draw');
+            }
+          }
         } else {
           console.log('⏳ Still waiting...');
           console.log('   - Your completed:', data.battle.your_completed);

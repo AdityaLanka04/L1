@@ -583,6 +583,16 @@ async def fix_database_sequences():
     """Automatically fix PostgreSQL sequences on startup"""
     logger.info("🔧 Checking and fixing database sequences...")
     
+    # Run migrations on startup (production)
+    if "postgres" in DATABASE_URL:
+        try:
+            logger.info("🔄 Running database migrations...")
+            from migration import run_migration
+            run_migration()
+            logger.info("✅ Database migrations completed")
+        except Exception as e:
+            logger.error(f"❌ Migration error: {e}")
+    
     try:
         db = SessionLocal()
         
@@ -1089,8 +1099,10 @@ async def ask_ai_enhanced(
         if chat_id_int:
             chat_message = models.ChatMessage(
                 chat_session_id=chat_id_int,
+                user_id=user.id,
                 user_message=question,
-                ai_response=response
+                ai_response=response,
+                is_user=True
             )
             db.add(chat_message)
             
@@ -3394,6 +3406,404 @@ def get_weekly_progress(user_id: str = Query(...), db: Session = Depends(get_db)
             "average_per_day": 0
         }
 
+
+@app.get("/api/get_weekly_bingo_stats")
+def get_weekly_bingo_stats(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """Get weekly stats for bingo board"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get start of current week (Monday)
+        today = datetime.now(timezone.utc).date()
+        start_of_week = today - timedelta(days=today.weekday())
+        
+        # Get chat message count (not sessions)
+        chats = db.query(models.ChatMessage).filter(
+            models.ChatMessage.user_id == user.id,
+            models.ChatMessage.is_user == True,
+            func.date(models.ChatMessage.timestamp) >= start_of_week
+        ).count()
+        
+        # Get questions answered
+        questions = db.query(models.Activity).filter(
+            models.Activity.user_id == user.id,
+            func.date(models.Activity.timestamp) >= start_of_week
+        ).count()
+        
+        # Get notes created
+        notes = db.query(models.Note).filter(
+            models.Note.user_id == user.id,
+            func.date(models.Note.created_at) >= start_of_week,
+            models.Note.is_deleted == False
+        ).count()
+        
+        # Get study hours
+        daily_metrics = db.query(models.DailyLearningMetrics).filter(
+            models.DailyLearningMetrics.user_id == user.id,
+            models.DailyLearningMetrics.date >= start_of_week
+        ).all()
+        hours = sum(m.time_spent_minutes for m in daily_metrics) / 60
+        
+        # Get quizzes completed
+        quizzes = db.query(models.SoloQuiz).filter(
+            models.SoloQuiz.user_id == user.id,
+            models.SoloQuiz.completed == True,
+            func.date(models.SoloQuiz.completed_at) >= start_of_week
+        ).count()
+        
+        # Get flashcard sets created
+        flashcards = db.query(models.FlashcardSet).filter(
+            models.FlashcardSet.user_id == user.id,
+            func.date(models.FlashcardSet.created_at) >= start_of_week
+        ).count()
+        
+        # Get current streak
+        user_stats = db.query(models.UserStats).filter(
+            models.UserStats.user_id == user.id
+        ).first()
+        streak = user_stats.day_streak if user_stats else 0
+        
+        # Get reviews
+        reviews = db.query(models.LearningReview).filter(
+            models.LearningReview.user_id == user.id,
+            func.date(models.LearningReview.created_at) >= start_of_week
+        ).count()
+        
+        # Get uploads
+        uploads = db.query(models.UploadedSlide).filter(
+            models.UploadedSlide.user_id == user.id,
+            func.date(models.UploadedSlide.uploaded_at) >= start_of_week
+        ).count()
+        
+        # Get achievements
+        achievements = db.query(models.UserAchievement).filter(
+            models.UserAchievement.user_id == user.id,
+            func.date(models.UserAchievement.earned_at) >= start_of_week
+        ).count()
+        
+        # Get unique subjects studied
+        topics_studied = set()
+        for metric in daily_metrics:
+            try:
+                topics = json.loads(metric.topics_studied or "[]")
+                topics_studied.update(topics)
+            except:
+                pass
+        subjects = len(topics_studied)
+        
+        # Get battles (simplified query to avoid column errors)
+        try:
+            battles = db.query(models.QuizBattle.id).filter(
+                (models.QuizBattle.challenger_id == user.id) | (models.QuizBattle.opponent_id == user.id),
+                func.date(models.QuizBattle.created_at) >= start_of_week
+            ).count()
+        except:
+            battles = 0
+        
+        # Get daily goal completions
+        daily_goals = sum(1 for m in daily_metrics if m.questions_answered >= 20)
+        
+        # Get gamification stats for battles won
+        gamif_stats = db.query(models.UserGamificationStats).filter(
+            models.UserGamificationStats.user_id == user.id
+        ).first()
+        
+        battles_won = gamif_stats.quiz_battle_wins if gamif_stats else 0
+        user_level = gamif_stats.level if gamif_stats else 1
+        
+        stats = {
+            "ai_chats": chats,
+            "questions_answered": questions,
+            "notes_created": notes,
+            "study_hours": round(hours, 1),
+            "quizzes_completed": quizzes,
+            "flashcards_created": flashcards,
+            "streak": streak,
+            "battles_won": battles_won,
+            "level": user_level
+        }
+        
+        return {
+            "stats": stats,
+            "completed": [],
+            "week_start": start_of_week.isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting bingo stats: {str(e)}")
+        return {
+            "stats": {},
+            "completed": [],
+            "week_start": datetime.now(timezone.utc).date().isoformat()
+        }
+
+@app.post("/api/track_gamification_activity")
+def track_gamification_activity(
+    user_id: str = Body(...),
+    activity_type: str = Body(...),
+    metadata: dict = Body(default={}),
+    db: Session = Depends(get_db)
+):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get or create gamification stats
+        stats = db.query(models.UserGamificationStats).filter(
+            models.UserGamificationStats.user_id == user.id
+        ).first()
+        
+        if not stats:
+            stats = models.UserGamificationStats(user_id=user.id)
+            db.add(stats)
+            db.commit()
+            db.refresh(stats)
+        
+        # Calculate points based on activity type
+        points_map = {
+            "ai_chat": 1,
+            "note_created": 10,
+            "flashcard_set_created": 10,
+            "quiz_completed": 50,
+            "question_answered": 2,
+            "study_time": 10,  # per hour
+            "battle_result": 0  # calculated below
+        }
+        
+        points_earned = 0
+        description = ""
+        
+        if activity_type == "ai_chat":
+            points_earned = 1
+            description = "AI Chat Session"
+        elif activity_type == "note_created":
+            points_earned = 10
+            description = "Created a Note"
+        elif activity_type == "flashcard_set_created":
+            card_count = metadata.get("card_count", 0)
+            points_earned = 10
+            description = f"Created Flashcard Set ({card_count} cards)"
+        elif activity_type == "quiz_completed":
+            score = metadata.get("score", 0)
+            total = metadata.get("total_questions", 1)
+            points_earned = 50
+            description = f"Completed Quiz ({score}/{total})"
+        elif activity_type == "question_answered":
+            correct = metadata.get("correct", False)
+            points_earned = 2
+            description = "Answered Question"
+        elif activity_type == "study_time":
+            minutes = metadata.get("minutes", 0)
+            hours = minutes / 60
+            points_earned = int(hours * 10)
+            description = f"Studied for {minutes} minutes"
+        elif activity_type == "battle_result":
+            result = metadata.get("result", "loss")
+            if result == "win":
+                points_earned = 3
+                description = "Won Quiz Battle"
+                stats.quiz_battle_wins += 1
+            elif result == "draw":
+                points_earned = 2
+                description = "Drew Quiz Battle"
+                stats.quiz_battle_draws += 1
+            else:
+                points_earned = 1
+                description = "Participated in Quiz Battle"
+                stats.quiz_battle_losses += 1
+        
+        # Update stats
+        stats.total_points += points_earned
+        stats.experience += points_earned
+        stats.weekly_points += points_earned
+        
+        # Level up logic
+        exp_for_next_level = int(100 * (stats.level ** 1.5))
+        while stats.experience >= exp_for_next_level:
+            stats.level += 1
+            exp_for_next_level = int(100 * (stats.level ** 1.5))
+        
+        # Create point transaction
+        transaction = models.PointTransaction(
+            user_id=user.id,
+            points=points_earned,
+            activity_type=activity_type,
+            description=description,
+            metadata=metadata
+        )
+        db.add(transaction)
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "points_earned": points_earned,
+            "total_points": stats.total_points,
+            "level": stats.level,
+            "experience": stats.experience
+        }
+    except Exception as e:
+        logger.error(f"Error tracking gamification activity: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/get_gamification_stats")
+def get_gamification_stats(user_id: str = Query(...), db: Session = Depends(get_db)):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        stats = db.query(models.UserGamificationStats).filter(
+            models.UserGamificationStats.user_id == user.id
+        ).first()
+        
+        if not stats:
+            stats = models.UserGamificationStats(user_id=user.id)
+            db.add(stats)
+            db.commit()
+            db.refresh(stats)
+        
+        all_users = db.query(models.UserGamificationStats).order_by(
+            models.UserGamificationStats.total_points.desc()
+        ).all()
+        
+        rank = next((i + 1 for i, u in enumerate(all_users) if u.user_id == user.id), None)
+        
+        return {
+            "total_points": stats.total_points,
+            "level": stats.level,
+            "experience": stats.experience,
+            "rank": rank,
+            "weekly_points": stats.weekly_points,
+            "weekly_study_minutes": stats.weekly_study_minutes,
+            "quiz_battle_wins": stats.quiz_battle_wins,
+            "quiz_battle_draws": stats.quiz_battle_draws,
+            "quiz_battle_losses": stats.quiz_battle_losses
+        }
+    except Exception as e:
+        logger.error(f"Error getting gamification stats: {str(e)}")
+        return {"total_points": 0, "level": 1, "experience": 0, "rank": None, "weekly_points": 0, "weekly_study_minutes": 0}
+
+@app.get("/api/get_weekly_activity_progress")
+def get_weekly_activity_progress(user_id: str = Query(...), db: Session = Depends(get_db)):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        today = datetime.now(timezone.utc).date()
+        start_of_week = today - timedelta(days=today.weekday())
+        
+        chats = db.query(models.ChatMessage).filter(
+            models.ChatMessage.user_id == user.id,
+            models.ChatMessage.is_user == True,
+            func.date(models.ChatMessage.timestamp) >= start_of_week
+        ).count()
+        
+        notes = db.query(models.Note).filter(
+            models.Note.user_id == user.id,
+            func.date(models.Note.created_at) >= start_of_week,
+            models.Note.is_deleted == False
+        ).count()
+        
+        questions = db.query(models.Activity).filter(
+            models.Activity.user_id == user.id,
+            func.date(models.Activity.timestamp) >= start_of_week
+        ).count()
+        
+        quizzes = db.query(models.SoloQuiz).filter(
+            models.SoloQuiz.user_id == user.id,
+            models.SoloQuiz.completed == True,
+            func.date(models.SoloQuiz.completed_at) >= start_of_week
+        ).count()
+        
+        flashcards = db.query(models.FlashcardSet).filter(
+            models.FlashcardSet.user_id == user.id,
+            func.date(models.FlashcardSet.created_at) >= start_of_week
+        ).count()
+        
+        daily_metrics = db.query(models.DailyLearningMetrics).filter(
+            models.DailyLearningMetrics.user_id == user.id,
+            models.DailyLearningMetrics.date >= start_of_week
+        ).all()
+        
+        study_minutes = int(sum(m.time_spent_minutes for m in daily_metrics))
+        
+        result = {
+            "study_minutes": study_minutes,
+            "ai_chats": chats,
+            "notes_created": notes,
+            "questions_answered": questions,
+            "quizzes_completed": quizzes,
+            "flashcards_created": flashcards
+        }
+        logger.info(f"📊 Weekly Progress for {user_id}: {result}")
+        return result
+    except Exception as e:
+        logger.error(f"Error getting weekly progress: {str(e)}")
+        return {"study_minutes": 0, "ai_chats": 0, "notes_created": 0, "questions_answered": 0, "quizzes_completed": 0, "flashcards_created": 0}
+
+@app.get("/api/get_global_leaderboard")
+def get_global_leaderboard(limit: int = Query(10), db: Session = Depends(get_db)):
+    try:
+        top_users = db.query(models.UserGamificationStats).order_by(
+            models.UserGamificationStats.total_points.desc()
+        ).limit(limit).all()
+        
+        leaderboard = []
+        for stats in top_users:
+            user = db.query(models.User).filter(models.User.id == stats.user_id).first()
+            if user:
+                leaderboard.append({
+                    "user_id": user.id,
+                    "username": user.username,
+                    "total_points": stats.total_points,
+                    "level": stats.level
+                })
+        
+        return {"leaderboard": leaderboard}
+    except Exception as e:
+        logger.error(f"Error getting leaderboard: {str(e)}")
+        return {"leaderboard": []}
+
+@app.get("/api/get_recent_point_activities")
+def get_recent_point_activities(user_id: str = Query(...), limit: int = Query(5), db: Session = Depends(get_db)):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        transactions = db.query(models.PointTransaction).filter(
+            models.PointTransaction.user_id == user.id
+        ).order_by(models.PointTransaction.created_at.desc()).limit(limit).all()
+        
+        activities = []
+        for t in transactions:
+            # Handle both timezone-aware and naive datetimes
+            now = datetime.now(timezone.utc)
+            created = t.created_at.replace(tzinfo=timezone.utc) if t.created_at.tzinfo is None else t.created_at
+            time_diff = now - created
+            if time_diff.days > 0:
+                time_ago = f"{time_diff.days}d ago"
+            elif time_diff.seconds >= 3600:
+                time_ago = f"{time_diff.seconds // 3600}h ago"
+            else:
+                time_ago = f"{time_diff.seconds // 60}m ago"
+            
+            activities.append({
+                "description": t.description,
+                "points": t.points,
+                "time_ago": time_ago
+            })
+        
+        return {"activities": activities}
+    except Exception as e:
+        logger.error(f"Error getting activities: {str(e)}")
+        return {"activities": []}
 
 @app.get("/api/get_learning_analytics")
 def get_learning_analytics(user_id: str = Query(...), period: str = Query("week"), db: Session = Depends(get_db)):

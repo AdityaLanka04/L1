@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import './AIChat.css';
 import { API_URL } from '../config';
+import gamificationService from '../services/gamificationService';
 
 const AIChat = ({ sharedMode = false }) => {
   const { chatId } = useParams();
@@ -418,6 +419,9 @@ const AIChat = ({ sharedMode = false }) => {
 
       setMessages(prev => [...prev, aiMessage]);
       clearAllFiles();
+      
+      // Track gamification activity
+      gamificationService.trackAIChat(userName);
 
     } catch (error) {
       console.error('Error in sendMessage:', error);

@@ -5,6 +5,7 @@ import './QuizBattle.css';
 import { API_URL } from '../config';
 import useSharedWebSocket from '../hooks/useSharedWebSocket';
 import BattleNotification from './BattleNotification.js';
+import gamificationService from '../services/gamificationService';
 
 const QuizBattle = () => {
   const navigate = useNavigate();

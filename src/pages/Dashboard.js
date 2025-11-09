@@ -1219,6 +1219,15 @@ const Dashboard = () => {
         </button>
         <button 
           className="action-btn" 
+          onClick={() => navigate('/games')}
+          disabled={isCustomizing}
+          style={{ color: accent, borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
+        >
+          <div className="action-label" style={{ color: accent }}>Games</div>
+          <div className="action-count">Play</div>
+        </button>
+        <button 
+          className="action-btn" 
           onClick={openProfile}
           disabled={isCustomizing}
           style={{ color: accent, borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}

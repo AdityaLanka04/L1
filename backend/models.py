@@ -95,8 +95,10 @@ class ChatMessage(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     chat_session_id = Column(Integer, ForeignKey("chat_sessions.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     user_message = Column(Text, nullable=False)
     ai_response = Column(Text, nullable=False)
+    is_user = Column(Boolean, default=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
@@ -557,6 +559,68 @@ class UserAchievement(Base):
     
     user = relationship("User", back_populates="achievements")
     achievement = relationship("Achievement", back_populates="user_achievements")
+
+class UserGamificationStats(Base):
+    __tablename__ = "user_gamification_stats"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
+    
+    total_points = Column(Integer, default=0)
+    level = Column(Integer, default=1)
+    experience = Column(Integer, default=0)
+    rank = Column(Integer, nullable=True)
+    
+    quiz_battle_wins = Column(Integer, default=0)
+    quiz_battle_draws = Column(Integer, default=0)
+    quiz_battle_losses = Column(Integer, default=0)
+    
+    total_study_minutes = Column(Integer, default=0)
+    total_ai_chats = Column(Integer, default=0)
+    total_notes_created = Column(Integer, default=0)
+    total_flashcards_created = Column(Integer, default=0)
+    total_questions_answered = Column(Integer, default=0)
+    total_quizzes_completed = Column(Integer, default=0)
+    
+    weekly_points = Column(Integer, default=0)
+    weekly_study_minutes = Column(Integer, default=0)
+    last_weekly_reset = Column(Date, nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User")
+
+class PointTransaction(Base):
+    __tablename__ = "point_transactions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    
+    points = Column(Integer)
+    activity_type = Column(String(50))
+    description = Column(String(255))
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User")
+
+class WeeklyBingoProgress(Base):
+    __tablename__ = "weekly_bingo_progress"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    week_start = Column(Date)
+    
+    completed_tasks = Column(JSON)
+    total_completed = Column(Integer, default=0)
+    is_complete = Column(Boolean, default=False)
+    reward_claimed = Column(Boolean, default=False)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User")
 
 # ==================== GLOBAL AI LEARNING SYSTEM ====================
 

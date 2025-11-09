@@ -1,11 +1,10 @@
 import os
 import sys
-from sqlalchemy import create_engine, MetaData, Table, inspect
+from sqlalchemy import create_engine, MetaData, Table, inspect, text
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
 import models
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./brainwave_tutor.db")
@@ -17,6 +16,81 @@ def get_existing_tables(engine):
 def get_model_tables():
     return set(models.Base.metadata.tables.keys())
 
+def add_missing_columns(engine):
+    """Add missing columns to existing tables"""
+    print("\n[COLUMN MIGRATION] Checking for missing columns...")
+    
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    
+    try:
+        # Check if we're using PostgreSQL or SQLite
+        is_postgres = "postgresql" in str(engine.url)
+        
+        # Add user_id and is_user to chat_messages if missing
+        inspector = inspect(engine)
+        chat_messages_columns = [col['name'] for col in inspector.get_columns('chat_messages')]
+        
+        if 'user_id' not in chat_messages_columns:
+            print("   Adding user_id column to chat_messages...")
+            if is_postgres:
+                session.execute(text("""
+                    ALTER TABLE chat_messages 
+                    ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)
+                """))
+            else:
+                session.execute(text("""
+                    ALTER TABLE chat_messages 
+                    ADD COLUMN user_id INTEGER REFERENCES users(id)
+                """))
+            print("   ✓ Added user_id column")
+        
+        if 'is_user' not in chat_messages_columns:
+            print("   Adding is_user column to chat_messages...")
+            if is_postgres:
+                session.execute(text("""
+                    ALTER TABLE chat_messages 
+                    ADD COLUMN IF NOT EXISTS is_user BOOLEAN DEFAULT TRUE
+                """))
+            else:
+                session.execute(text("""
+                    ALTER TABLE chat_messages 
+                    ADD COLUMN is_user BOOLEAN DEFAULT 1
+                """))
+            print("   ✓ Added is_user column")
+        
+        # Update existing records
+        if 'user_id' not in chat_messages_columns or 'is_user' not in chat_messages_columns:
+            print("   Updating existing chat_messages records...")
+            if is_postgres:
+                session.execute(text("""
+                    UPDATE chat_messages cm
+                    SET user_id = cs.user_id
+                    FROM chat_sessions cs
+                    WHERE cm.chat_session_id = cs.id
+                    AND cm.user_id IS NULL
+                """))
+            else:
+                session.execute(text("""
+                    UPDATE chat_messages
+                    SET user_id = (
+                        SELECT user_id 
+                        FROM chat_sessions 
+                        WHERE chat_sessions.id = chat_messages.chat_session_id
+                    )
+                    WHERE user_id IS NULL
+                """))
+            print("   ✓ Updated existing records")
+        
+        session.commit()
+        print("   ✓ Column migration completed")
+        
+    except Exception as e:
+        print(f"   ⚠ Column migration error: {e}")
+        session.rollback()
+    finally:
+        session.close()
+
 def run_migration():
     print("=" * 60)
     print("BRAINWAVE DATABASE MIGRATION TOOL")
@@ -27,15 +101,15 @@ def run_migration():
     
     try:
         engine = create_engine(
-            DATABASE_URL, 
+            DATABASE_URL,
             connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
         )
         
-        print("\n[1/4] Connecting to database...")
+        print("\n[1/5] Connecting to database...")
         engine.connect()
         print("SUCCESS: Database connection established")
         
-        print("\n[2/4] Analyzing database schema...")
+        print("\n[2/5] Analyzing database schema...")
         existing_tables = get_existing_tables(engine)
         model_tables = get_model_tables()
         
@@ -57,8 +131,7 @@ def run_migration():
             for table in sorted(extra_tables):
                 print(f"      - {table}")
         
-        print("\n[3/4] Creating missing tables...")
-        
+        print("\n[3/5] Creating missing tables...")
         if missing_tables:
             models.Base.metadata.create_all(bind=engine, checkfirst=True)
             print(f"SUCCESS: Created {len(missing_tables)} missing table(s)")
@@ -67,7 +140,10 @@ def run_migration():
         else:
             print("   No tables to create")
         
-        print("\n[4/4] Verifying database schema...")
+        print("\n[4/5] Adding missing columns to existing tables...")
+        add_missing_columns(engine)
+        
+        print("\n[5/5] Verifying database schema...")
         final_tables = get_existing_tables(engine)
         still_missing = model_tables - final_tables
         
@@ -125,7 +201,6 @@ def verify_critical_tables():
             DATABASE_URL,
             connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
         )
-        
         existing_tables = get_existing_tables(engine)
         
         all_present = True
@@ -158,7 +233,6 @@ def show_table_details():
             DATABASE_URL,
             connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
         )
-        
         inspector = inspect(engine)
         tables = sorted(inspector.get_table_names())
         
@@ -190,17 +264,15 @@ def backup_database():
                 return True
         except Exception as e:
             print(f"\nWARNING: Could not create backup - {str(e)}")
-    return False
+            return False
 
 def main():
     import argparse
-    
     parser = argparse.ArgumentParser(description="Brainwave Database Migration Tool")
     parser.add_argument("--verify", action="store_true", help="Verify critical tables only")
     parser.add_argument("--details", action="store_true", help="Show detailed table information")
     parser.add_argument("--backup", action="store_true", help="Backup database before migration")
     parser.add_argument("--force", action="store_true", help="Force migration without prompts")
-    
     args = parser.parse_args()
     
     if args.verify:
