@@ -1412,14 +1412,21 @@ select {
 }
 
 .quill-editor-enhanced .ql-editor .ql-formula {
-  background: var(--hover-bg);
+  background: color-mix(in srgb, var(--accent) 10%, var(--editor-bg));
   padding: 8px 12px;
   border-radius: 0;
   display: inline-block;
   margin: 4px 2px;
   font-family: 'Courier New', monospace;
   color: var(--editor-text);
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  transition: all 0.3s;
+}
+
+.quill-editor-enhanced .ql-editor .ql-formula:hover {
+  background: color-mix(in srgb, var(--accent) 20%, var(--editor-bg));
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(215, 179, 140, 0.2);
 }
 
 .ql-snow .ql-tooltip {
@@ -1428,16 +1435,115 @@ select {
   color: var(--text-primary) !important;
   box-shadow: var(--shadow-lg);
   backdrop-filter: blur(20px);
+  border-radius: 0 !important;
+  padding: 8px 12px !important;
+  z-index: 1000 !important;
 }
 
 .ql-snow .ql-tooltip input {
-  background: var(--hover-bg) !important;
+  background: var(--bg-bottom) !important;
   border: 1px solid var(--border) !important;
   color: var(--text-primary) !important;
+  padding: 8px 12px !important;
+  border-radius: 0 !important;
+  font-size: 14px !important;
+  font-family: 'Inter', sans-serif !important;
+  outline: none !important;
+}
+
+.ql-snow .ql-tooltip input:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent) !important;
+}
+
+.ql-snow .ql-tooltip input::placeholder {
+  color: var(--text-secondary) !important;
 }
 
 .ql-snow .ql-tooltip a {
   color: var(--accent) !important;
+  text-decoration: none !important;
+  padding: 6px 12px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--bg-bottom) !important;
+  border-radius: 0 !important;
+  transition: all 0.3s !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.ql-snow .ql-tooltip a:hover {
+  background: var(--accent) !important;
+  color: var(--bg-top) !important;
+  border-color: var(--accent) !important;
+}
+
+.ql-snow .ql-tooltip.ql-editing {
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+}
+
+.ql-snow .ql-tooltip[data-mode="formula"]::before {
+  content: "Enter formula:" !important;
+  color: var(--text-secondary) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  margin-right: 8px !important;
+}
+
+.ql-snow .ql-tooltip[data-mode="link"]::before {
+  content: "Enter link:" !important;
+  color: var(--text-secondary) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  margin-right: 8px !important;
+}
+
+/* ==================== KATEX FORMULA STYLING ==================== */
+.katex {
+  font-size: 1.1em !important;
+  color: var(--editor-text) !important;
+}
+
+.katex-display {
+  margin: 16px 0 !important;
+  padding: 12px !important;
+  background: color-mix(in srgb, var(--accent) 5%, var(--editor-bg)) !important;
+  border-left: 3px solid var(--accent) !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+}
+
+.katex-display::-webkit-scrollbar {
+  height: 6px;
+}
+
+.katex-display::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+.katex-display::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 0;
+}
+
+.katex-html {
+  color: var(--editor-text) !important;
+}
+
+/* Ensure formula text is visible */
+.ql-editor .ql-formula {
+  color: var(--editor-text) !important;
+}
+
+.ql-editor .ql-formula .katex {
+  color: var(--editor-text) !important;
+}
+
+.ql-editor .ql-formula .katex * {
+  color: var(--editor-text) !important;
 }
 
 /* ==================== FOOTER ==================== */

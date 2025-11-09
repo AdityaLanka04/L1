@@ -865,6 +865,118 @@ body {
   user-select: text;
 }
 
+/* Code Block Styles */
+.code-block-container {
+  margin: 16px 0;
+  background: var(--bg-bottom);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.code-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.code-language {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.code-copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-bottom);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 6px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  border-radius: 0;
+}
+
+.code-copy-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-top);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm), var(--shadow-glow);
+}
+
+.code-copy-btn.copied {
+  background: var(--success);
+  border-color: var(--success);
+  color: white;
+  pointer-events: none;
+}
+
+.code-copy-btn svg {
+  flex-shrink: 0;
+}
+
+.code-block {
+  margin: 0;
+  padding: 16px;
+  background: var(--bg-bottom);
+  overflow-x: auto;
+  font-family: 'Courier New', 'Consolas', 'Monaco', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.code-block::-webkit-scrollbar {
+  height: 6px;
+}
+
+.code-block::-webkit-scrollbar-track {
+  background: var(--panel);
+}
+
+.code-block::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 0;
+}
+
+.code-block::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 80%, white);
+}
+
+.code-block code {
+  font-family: inherit;
+  color: var(--text-primary);
+  background: none;
+  padding: 0;
+  border: none;
+  display: block;
+  white-space: pre;
+}
+
+/* Inline code (not in blocks) */
+.message-content code:not(.code-block code) {
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-bottom));
+  color: var(--accent);
+  padding: 2px 6px;
+  border-radius: 0;
+  font-family: 'Courier New', 'Consolas', 'Monaco', monospace;
+  font-size: 13px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
 .message-files {
   display: flex;
   flex-wrap: wrap;

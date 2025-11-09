@@ -622,7 +622,9 @@ class WeeklyBingoProgress(Base):
     
     user = relationship("User")
 
-# ==================== GLOBAL AI LEARNING SYSTEM ====================
+# ==================== LEARNING REVIEWS ====================
+
+
 
 class GlobalKnowledgeBase(Base):
     """Global knowledge base that improves for all users"""

@@ -105,6 +105,7 @@ const AIChat = ({ sharedMode = false }) => {
   const [showMoveMenu, setShowMoveMenu] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [selectedFolder, setSelectedFolder] = useState(null);
+  const [copiedCode, setCopiedCode] = useState(null);
 
   const greetings = [
     "Welcome back! How can I help you today?",
@@ -580,6 +581,96 @@ const AIChat = ({ sharedMode = false }) => {
     navigate('/dashboard');
   };
 
+  const copyToClipboard = (text, codeIndex) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedCode(codeIndex);
+      setTimeout(() => setCopiedCode(null), 2000);
+    }).catch(err => {
+      console.error('Failed to copy:', err);
+    });
+  };
+
+  const renderMessageContent = (content) => {
+    if (!content) return null;
+
+    // Split content by code blocks (```language\ncode\n```)
+    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = codeBlockRegex.exec(content)) !== null) {
+      // Add text before code block
+      if (match.index > lastIndex) {
+        parts.push({
+          type: 'text',
+          content: content.substring(lastIndex, match.index)
+        });
+      }
+
+      // Add code block
+      parts.push({
+        type: 'code',
+        language: match[1] || 'plaintext',
+        content: match[2].trim()
+      });
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < content.length) {
+      parts.push({
+        type: 'text',
+        content: content.substring(lastIndex)
+      });
+    }
+
+    // If no code blocks found, return plain text
+    if (parts.length === 0) {
+      return content;
+    }
+
+    return parts.map((part, index) => {
+      if (part.type === 'text') {
+        return <span key={index}>{part.content}</span>;
+      } else {
+        return (
+          <div key={index} className="code-block-container">
+            <div className="code-block-header">
+              <span className="code-language">{part.language}</span>
+              <button
+                className={`code-copy-btn ${copiedCode === index ? 'copied' : ''}`}
+                onClick={() => copyToClipboard(part.content, index)}
+                title="Copy code"
+              >
+                {copiedCode === index ? (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    COPIED
+                  </>
+                ) : (
+                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    COPY
+                  </>
+                )}
+              </button>
+            </div>
+            <pre className="code-block">
+              <code className={`language-${part.language}`}>{part.content}</code>
+            </pre>
+          </div>
+        );
+      }
+    });
+  };
+
   const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -876,7 +967,7 @@ const AIChat = ({ sharedMode = false }) => {
                 <div key={message.id} className={`message ${message.type}`}>
                   <div className="message-bubble">
                     <div className="message-content">
-                      {message.content}
+                      {renderMessageContent(message.content)}
                     </div>
                     
                     {message.files && message.files.length > 0 && (
