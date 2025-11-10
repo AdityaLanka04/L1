@@ -72,6 +72,7 @@ class User(Base):
     question_sets_new = relationship("QuestionSet", back_populates="user")
     question_sessions_new = relationship("QuestionSession", back_populates="user")
     performance_metrics = relationship("UserPerformanceMetrics", back_populates="user")
+    gamification_stats = relationship("UserGamificationStats", back_populates="user", uselist=False)
 
 
 class ChatSession(Base):
@@ -560,67 +561,7 @@ class UserAchievement(Base):
     user = relationship("User", back_populates="achievements")
     achievement = relationship("Achievement", back_populates="user_achievements")
 
-class UserGamificationStats(Base):
-    __tablename__ = "user_gamification_stats"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
-    
-    total_points = Column(Integer, default=0)
-    level = Column(Integer, default=1)
-    experience = Column(Integer, default=0)
-    rank = Column(Integer, nullable=True)
-    
-    quiz_battle_wins = Column(Integer, default=0)
-    quiz_battle_draws = Column(Integer, default=0)
-    quiz_battle_losses = Column(Integer, default=0)
-    
-    total_study_minutes = Column(Integer, default=0)
-    total_ai_chats = Column(Integer, default=0)
-    total_notes_created = Column(Integer, default=0)
-    total_flashcards_created = Column(Integer, default=0)
-    total_questions_answered = Column(Integer, default=0)
-    total_quizzes_completed = Column(Integer, default=0)
-    
-    weekly_points = Column(Integer, default=0)
-    weekly_study_minutes = Column(Integer, default=0)
-    last_weekly_reset = Column(Date, nullable=True)
-    
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    user = relationship("User")
-
-class PointTransaction(Base):
-    __tablename__ = "point_transactions"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    
-    points = Column(Integer)
-    activity_type = Column(String(50))
-    description = Column(String(255))
-    
-    created_at = Column(DateTime, default=datetime.utcnow)
-    
-    user = relationship("User")
-
-class WeeklyBingoProgress(Base):
-    __tablename__ = "weekly_bingo_progress"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    week_start = Column(Date)
-    
-    completed_tasks = Column(JSON)
-    total_completed = Column(Integer, default=0)
-    is_complete = Column(Boolean, default=False)
-    reward_claimed = Column(Boolean, default=False)
-    
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    user = relationship("User")
+# Old gamification models removed - see comprehensive models at end of file
 
 # ==================== LEARNING REVIEWS ====================
 
@@ -1327,6 +1268,96 @@ class SoloQuizQuestion(Base):
     explanation = Column(Text, nullable=True)
     
     quiz = relationship("SoloQuiz")
+
+# ==================== GAMIFICATION MODELS ====================
+
+class UserGamificationStats(Base):
+    """Comprehensive gamification stats for each user"""
+    __tablename__ = "user_gamification_stats"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
+    
+    # Points and Level
+    total_points = Column(Integer, default=0)
+    level = Column(Integer, default=1)
+    experience = Column(Integer, default=0)
+    
+    # Weekly Stats (reset every Monday)
+    weekly_points = Column(Integer, default=0)
+    weekly_ai_chats = Column(Integer, default=0)
+    weekly_notes_created = Column(Integer, default=0)
+    weekly_questions_answered = Column(Integer, default=0)
+    weekly_quizzes_completed = Column(Integer, default=0)
+    weekly_flashcards_created = Column(Integer, default=0)
+    weekly_study_minutes = Column(Integer, default=0)
+    weekly_battles_won = Column(Integer, default=0)
+    
+    # All-time Stats
+    total_ai_chats = Column(Integer, default=0)
+    total_notes_created = Column(Integer, default=0)
+    total_questions_answered = Column(Integer, default=0)
+    total_quizzes_completed = Column(Integer, default=0)
+    total_flashcards_created = Column(Integer, default=0)
+    total_study_minutes = Column(Integer, default=0)
+    total_battles_won = Column(Integer, default=0)
+    
+    # Streaks
+    current_streak = Column(Integer, default=0)
+    longest_streak = Column(Integer, default=0)
+    last_activity_date = Column(DateTime, nullable=True)
+    
+    # Timestamps
+    week_start_date = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User", back_populates="gamification_stats")
+
+class PointTransaction(Base):
+    """Track all point-earning activities"""
+    __tablename__ = "point_transactions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    activity_type = Column(String(50), nullable=False)  # ai_chat, note_created, etc.
+    points_earned = Column(Integer, nullable=False)
+    description = Column(String(255), nullable=True)
+    activity_metadata = Column(Text, nullable=True)  # JSON for additional data
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User")
+
+class WeeklyBingoProgress(Base):
+    """Track weekly bingo challenge progress"""
+    __tablename__ = "weekly_bingo_progress"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    week_start_date = Column(DateTime, nullable=False)
+    
+    # Bingo task completion
+    task_1_completed = Column(Boolean, default=False)  # Chat 50 times
+    task_2_completed = Column(Boolean, default=False)  # Answer 20 questions
+    task_3_completed = Column(Boolean, default=False)  # Create 5 notes
+    task_4_completed = Column(Boolean, default=False)  # Study 5 hours
+    task_5_completed = Column(Boolean, default=False)  # Complete 3 quizzes
+    task_6_completed = Column(Boolean, default=False)  # Create 10 flashcards
+    task_7_completed = Column(Boolean, default=False)  # 7 day streak
+    task_8_completed = Column(Boolean, default=False)  # Win 3 battles
+    task_9_completed = Column(Boolean, default=False)  # Study 10 hours
+    task_10_completed = Column(Boolean, default=False)  # Chat 100 times
+    task_11_completed = Column(Boolean, default=False)  # Create 10 notes
+    task_12_completed = Column(Boolean, default=False)  # Answer 50 questions
+    task_13_completed = Column(Boolean, default=False)  # Complete 5 quizzes
+    task_14_completed = Column(Boolean, default=False)  # Win 5 battles
+    task_15_completed = Column(Boolean, default=False)  # Study 20 hours
+    task_16_completed = Column(Boolean, default=False)  # Master level (level 5)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User")
 
 def create_tables():
     Base.metadata.create_all(bind=engine)
