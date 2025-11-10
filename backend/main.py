@@ -5171,6 +5171,9 @@ Generate now:"""
         # Update node with explanation (mark as explored)
         node.ai_explanation = ai_data.get("explanation", "")
         node.key_concepts = json.dumps(ai_data.get("key_concepts", []))
+        node.why_important = ai_data.get("why_important", "")
+        node.real_world_examples = json.dumps(ai_data.get("real_world_examples", []))
+        node.learning_tips = ai_data.get("learning_tips", "")
         node.is_explored = True
         node.exploration_count += 1
         node.last_explored = datetime.now(timezone.utc)
@@ -5286,6 +5289,9 @@ async def get_knowledge_roadmap(
                 "depth_level": node.depth_level,
                 "ai_explanation": node.ai_explanation,
                 "key_concepts": json.loads(node.key_concepts) if node.key_concepts else [],
+                "why_important": node.why_important,
+                "real_world_examples": json.loads(node.real_world_examples) if node.real_world_examples else [],
+                "learning_tips": node.learning_tips,
                 "is_explored": node.is_explored,
                 "exploration_count": node.exploration_count,
                 "expansion_status": node.expansion_status,

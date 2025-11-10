@@ -121,6 +121,9 @@ class KnowledgeNode(Base):
     # AI-generated content
     ai_explanation = Column(Text, nullable=True)
     key_concepts = Column(Text, nullable=True)  # JSON array
+    why_important = Column(Text, nullable=True)
+    real_world_examples = Column(Text, nullable=True)  # JSON array
+    learning_tips = Column(Text, nullable=True)
     generated_subtopics = Column(Text, nullable=True)  # JSON array
     
     # User interaction

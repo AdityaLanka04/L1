@@ -1138,6 +1138,37 @@ body {
   flex-shrink: 0;
 }
 
+.kr-export-btn {
+  background: var(--accent);
+  border: none;
+  color: var(--bg-bottom);
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', sans-serif;
+  box-shadow: var(--shadow-md);
+  margin-left: auto;
+}
+
+.kr-export-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 85%, transparent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(215, 179, 140, 0.4);
+}
+
+.kr-export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .kr-back-to-list-compact {
   padding: 8px 16px;
   background: var(--bg-bottom);

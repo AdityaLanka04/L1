@@ -10,7 +10,7 @@ import ReactFlow, {
   Position,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Plus, Loader, MapPin, Book, Sparkles, Trash2 } from 'lucide-react';
+import { Plus, Loader, MapPin, Book, Sparkles, Trash2, FileDown, Info } from 'lucide-react';
 import './KnowledgeRoadmap.css';
 import { API_URL } from '../config';
 const CustomNode = ({ data }) => {
@@ -86,6 +86,7 @@ const KnowledgeRoadmap = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [expandedNodes, setExpandedNodes] = useState(new Set());
   const [exploredNodesCache, setExploredNodesCache] = useState(new Map()); // Cache for explored nodes
+  const [exporting, setExporting] = useState(false);
 
   // Save the current UI state (which nodes are actually expanded in the current view)
   useEffect(() => {
@@ -918,6 +919,186 @@ const createRoadmapFromChat = async () => {
     }
   };
 
+  // Export roadmap to notes
+  const exportRoadmapToNotes = async () => {
+    if (!currentRoadmap || exporting) return;
+
+    setExporting(true);
+    try {
+      // Fetch complete roadmap data with all nodes
+      const response = await fetch(`${API_URL}/get_knowledge_roadmap/${currentRoadmap.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch roadmap data');
+      }
+
+      const data = await response.json();
+      const allNodes = data.nodes_flat || [];
+
+      // Filter only explored nodes
+      const exploredNodes = allNodes.filter(node => node.is_explored);
+
+      if (exploredNodes.length === 0) {
+        alert('No explored nodes to export.\n\nPlease click the "Explore" button on nodes to generate content before exporting.');
+        setExporting(false);
+        return;
+      }
+
+      // Build a hierarchical structure
+      const nodeMap = new Map();
+      exploredNodes.forEach(node => {
+        nodeMap.set(node.id, { ...node, children: [] });
+      });
+
+      // Link children to parents
+      const rootNodes = [];
+      exploredNodes.forEach(node => {
+        const nodeData = nodeMap.get(node.id);
+        if (node.parent_id && nodeMap.has(node.parent_id)) {
+          nodeMap.get(node.parent_id).children.push(nodeData);
+        } else {
+          rootNodes.push(nodeData);
+        }
+      });
+
+      // Sort children by id to maintain consistent order
+      const sortChildren = (node) => {
+        node.children.sort((a, b) => a.id - b.id);
+        node.children.forEach(sortChildren);
+      };
+      rootNodes.forEach(sortChildren);
+
+      // Generate formatted HTML content
+      let htmlContent = `<h1 style="font-weight: 800; font-size: 28px; margin-bottom: 24px; color: var(--accent);">${currentRoadmap.title || `Exploring ${currentRoadmap.root_topic}`}</h1>`;
+      htmlContent += `<p style="color: var(--text-secondary); margin-bottom: 32px; font-style: italic;">Exported from Knowledge Roadmap on ${new Date().toLocaleDateString()}</p>`;
+      htmlContent += `<hr style="border: none; border-top: 2px solid var(--border); margin: 24px 0;">`;
+
+      const generateNodeContent = (node, depth = 0) => {
+        let content = '';
+        const indent = depth * 24;
+        
+        // Heading size based on depth (h2 for depth 0, h3 for depth 1, etc.)
+        const headingLevel = Math.min(depth + 2, 6);
+        const headingSize = [24, 20, 18, 16, 15, 14][depth] || 14;
+        
+        // Node title - BOLD for explored nodes
+        content += `<h${headingLevel} style="font-weight: 700; font-size: ${headingSize}px; margin-top: ${depth === 0 ? 32 : 24}px; margin-bottom: 12px; margin-left: ${indent}px; color: var(--accent);">`;
+        content += `<strong>${node.topic_name}</strong>`;
+        content += `</h${headingLevel}>`;
+
+        // Node description
+        if (node.description) {
+          content += `<p style="margin-left: ${indent}px; margin-bottom: 12px; color: var(--text-secondary); font-size: 14px;">${node.description}</p>`;
+        }
+
+        // AI Explanation
+        if (node.ai_explanation) {
+          content += `<div style="margin-left: ${indent}px; margin-bottom: 16px; padding: 16px; background: var(--panel); border-left: 4px solid var(--accent); border-radius: 4px;">`;
+          content += `<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;">Overview</h4>`;
+          content += `<p style="color: var(--text-primary); line-height: 1.7; font-size: 14px;">${node.ai_explanation}</p>`;
+          content += `</div>`;
+        }
+
+        // Key Concepts
+        if (node.key_concepts && node.key_concepts.length > 0) {
+          content += `<div style="margin-left: ${indent}px; margin-bottom: 16px;">`;
+          content += `<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;">Key Concepts</h4>`;
+          content += `<ul style="margin-left: 20px; color: var(--text-primary); line-height: 1.8;">`;
+          node.key_concepts.forEach(concept => {
+            content += `<li style="margin-bottom: 6px; font-size: 14px;">${concept}</li>`;
+          });
+          content += `</ul></div>`;
+        }
+
+        // Why Important
+        if (node.why_important) {
+          content += `<div style="margin-left: ${indent}px; margin-bottom: 16px;">`;
+          content += `<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;">Why This Matters</h4>`;
+          content += `<p style="color: var(--text-primary); line-height: 1.7; font-size: 14px;">${node.why_important}</p>`;
+          content += `</div>`;
+        }
+
+        // Real World Examples
+        if (node.real_world_examples && node.real_world_examples.length > 0) {
+          content += `<div style="margin-left: ${indent}px; margin-bottom: 16px;">`;
+          content += `<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;">Real-World Examples</h4>`;
+          content += `<ul style="margin-left: 20px; color: var(--text-primary); line-height: 1.8;">`;
+          node.real_world_examples.forEach(example => {
+            content += `<li style="margin-bottom: 6px; font-size: 14px;">${example}</li>`;
+          });
+          content += `</ul></div>`;
+        }
+
+        // Learning Tips
+        if (node.learning_tips) {
+          content += `<div style="margin-left: ${indent}px; margin-bottom: 16px; padding: 12px; background: color-mix(in srgb, var(--success) 10%, transparent); border-radius: 4px; border: 1px solid var(--success);">`;
+          content += `<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--success); text-transform: uppercase; letter-spacing: 0.5px;">💡 Learning Tips</h4>`;
+          content += `<p style="color: var(--text-primary); line-height: 1.7; font-size: 14px;">${node.learning_tips}</p>`;
+          content += `</div>`;
+        }
+
+        // Add separator between nodes at same level
+        if (depth > 0) {
+          content += `<hr style="border: none; border-top: 1px solid var(--border); margin: 20px ${indent}px; opacity: 0.3;">`;
+        }
+
+        // Recursively add children
+        if (node.children && node.children.length > 0) {
+          node.children.forEach(child => {
+            content += generateNodeContent(child, depth + 1);
+          });
+        }
+
+        return content;
+      };
+
+      // Generate content for all root nodes
+      rootNodes.forEach(rootNode => {
+        htmlContent += generateNodeContent(rootNode, 0);
+      });
+
+      // Add footer
+      htmlContent += `<hr style="border: none; border-top: 2px solid var(--border); margin: 32px 0;">`;
+      htmlContent += `<p style="color: var(--text-secondary); font-size: 12px; text-align: center; margin-top: 24px;">`;
+      htmlContent += `Exported ${exploredNodes.length} explored node${exploredNodes.length !== 1 ? 's' : ''} from Knowledge Roadmap`;
+      htmlContent += `</p>`;
+
+      // Create note via API
+      const createNoteResponse = await fetch(`${API_URL}/create_note`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          title: `${currentRoadmap.title || currentRoadmap.root_topic} - Roadmap Export`,
+          content: htmlContent
+        })
+      });
+
+      if (createNoteResponse.ok) {
+        const newNote = await createNoteResponse.json();
+        alert(`Successfully exported ${exploredNodes.length} explored nodes to Notes!`);
+        
+        // Optionally navigate to notes
+        if (window.confirm('Would you like to view the exported note?')) {
+          navigate('/notes');
+        }
+      } else {
+        throw new Error('Failed to create note');
+      }
+
+    } catch (error) {
+      console.error('Error exporting roadmap:', error);
+      alert('Failed to export roadmap to notes. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="kr-page">
       <header className="kr-header">
@@ -1047,6 +1228,24 @@ const createRoadmapFromChat = async () => {
                   <span>Depth: {currentRoadmap.max_depth_reached || 0}</span>
                 </div>
               </div>
+              <button 
+                className="kr-export-btn" 
+                onClick={exportRoadmapToNotes}
+                disabled={exporting}
+                title="Export explored nodes to Notes"
+              >
+                {exporting ? (
+                  <>
+                    <Loader size={18} className="kr-spinner" />
+                    <span>Exporting...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileDown size={18} />
+                    <span>Export to Notes</span>
+                  </>
+                )}
+              </button>
             </div>
 
             <div className="kr-flow-wrapper">
