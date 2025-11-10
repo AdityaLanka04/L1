@@ -14,7 +14,6 @@ import QuizBattle from './pages/QuizBattle';
 import QuizBattleSession from './pages/QuizBattleSession';
 import SoloQuiz from './pages/SoloQuiz';
 import SoloQuizSession from './pages/SoloQuizSession';
-import Challenges from './pages/Challenges';
 import ChallengeSession from './pages/ChallengeSession';
 import SharedContent from './pages/SharedContent';
 import KnowledgeRoadmap from './pages/KnowledgeRoadmap';

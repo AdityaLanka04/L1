@@ -65,4 +65,5 @@ class GamificationService {
   }
 }
 
-export default new GamificationService();
+const gamificationServiceInstance = new GamificationService();
+export default gamificationServiceInstance;

@@ -5,7 +5,6 @@ import { API_URL } from '../config';
 
 const Games = () => {
   const navigate = useNavigate();
-  const [userName, setUserName] = useState('');
   const [loading, setLoading] = useState(true);
   
   const [gamificationStats, setGamificationStats] = useState({
@@ -59,9 +58,9 @@ const Games = () => {
     }
 
     if (username) {
-      setUserName(username);
       loadAllData(username);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   const loadAllData = async (username) => {
@@ -94,9 +93,10 @@ const Games = () => {
       setGamificationStats(prev => ({
         ...prev,
         weekly_points: calculatedWeeklyPoints,
-        total_points: calculatedWeeklyPoints // Use calculated as total for now
+        total_points: calculatedWeeklyPoints
       }));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weeklyProgress]);
 
   const loadGamificationStats = async (username) => {
@@ -195,13 +195,11 @@ const Games = () => {
 
   const completedCount = bingoTasks.filter(isTaskCompleted).length;
   const totalTasks = bingoTasks.length;
-  const completionPercentage = Math.round((completedCount / totalTasks) * 100);
 
   const levelProgress = gamificationStats.experience > 0 
     ? ((gamificationStats.experience % calculateExpForLevel(gamificationStats.level)) / calculateExpForLevel(gamificationStats.level + 1)) * 100
     : 0;
 
-  const studyMinutesToHour = 60 - (weeklyProgress.study_minutes % 60);
   const studyHoursCompleted = Math.floor(weeklyProgress.study_minutes / 60);
 
   if (loading) {
