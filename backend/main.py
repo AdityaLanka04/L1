@@ -114,10 +114,10 @@ app.add_middleware(
         "http://localhost:8000",
         "https://ceryl.onrender.com",
         "https://l1.vercel.app", 
-        "https://l1-7i4bnhcn1-asphar0057s-projects.vercel.app",
-        "https://l1-theta.vercel.app" # ✅ your main production domain (if set)
+        "https://l1-theta.vercel.app",
+        "https://l1-7i4bnhcn1-asphar0057s-projects.vercel.app"
     ],
-    allow_origin_regex=r"https://l1-[a-z0-9]+-projects\.vercel\.app$",  # ✅ allows all preview deploys
+    allow_origin_regex=r"https://l1-.*\.vercel\.app$",  # Allow all Vercel preview deploys
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
