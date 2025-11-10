@@ -581,17 +581,21 @@ def health_check():
 @app.on_event("startup")
 async def fix_database_sequences():
     """Automatically fix PostgreSQL sequences on startup"""
-    logger.info("🔧 Checking and fixing database sequences...")
+    # Only run for PostgreSQL, not SQLite
+    if "postgres" not in DATABASE_URL:
+        logger.info("✅ Using SQLite - sequence fix not needed")
+        return
+    
+    logger.info("🔧 Checking and fixing PostgreSQL database sequences...")
     
     # Run migrations on startup (production)
-    if "postgres" in DATABASE_URL:
-        try:
-            logger.info("🔄 Running database migrations...")
-            from migration import run_migration
-            run_migration()
-            logger.info("✅ Database migrations completed")
-        except Exception as e:
-            logger.error(f"❌ Migration error: {e}")
+    try:
+        logger.info("🔄 Running database migrations...")
+        from migration import run_migration
+        run_migration()
+        logger.info("✅ Database migrations completed")
+    except Exception as e:
+        logger.error(f"❌ Migration error: {e}")
     
     try:
         db = SessionLocal()
@@ -616,7 +620,7 @@ async def fix_database_sequences():
                 max_id_query = text(f"SELECT COALESCE(MAX(id), 0) FROM {table}")
                 max_id = db.execute(max_id_query).scalar()
                 
-                # Fix the sequence
+                # Fix the sequence (PostgreSQL only)
                 fix_query = text(f"SELECT setval('{table}_id_seq', :next_id)")
                 db.execute(fix_query, {"next_id": max_id + 1})
                 
@@ -3629,10 +3633,10 @@ def track_gamification_activity(
         # Create point transaction
         transaction = models.PointTransaction(
             user_id=user.id,
-            points=points_earned,
+            points_earned=points_earned,
             activity_type=activity_type,
             description=description,
-            metadata=metadata
+            activity_metadata=json.dumps(metadata)
         )
         db.add(transaction)
         
@@ -3796,7 +3800,7 @@ def get_recent_point_activities(user_id: str = Query(...), limit: int = Query(5)
             
             activities.append({
                 "description": t.description,
-                "points": t.points,
+                "points": t.points_earned,
                 "time_ago": time_ago
             })
         
