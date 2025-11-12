@@ -79,25 +79,7 @@ const Games = () => {
     }
   };
   
-  // Recalculate points when weekly progress changes
-  useEffect(() => {
-    if (weeklyProgress.ai_chats !== undefined) {
-      const calculatedWeeklyPoints = 
-        (weeklyProgress.ai_chats * 1) +
-        (weeklyProgress.notes_created * 10) +
-        (weeklyProgress.questions_answered * 2) +
-        (weeklyProgress.quizzes_completed * 50) +
-        (weeklyProgress.flashcards_created * 10) +
-        (Math.floor(weeklyProgress.study_minutes / 60) * 10);
-      
-      setGamificationStats(prev => ({
-        ...prev,
-        weekly_points: calculatedWeeklyPoints,
-        total_points: calculatedWeeklyPoints
-      }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weeklyProgress]);
+  // Backend now calculates points correctly - no need to recalculate on frontend
 
   const loadGamificationStats = async (username) => {
     try {
@@ -110,8 +92,13 @@ const Games = () => {
         const data = await response.json();
         setGamificationStats(data);
         
-        const expForNextLevel = calculateExpForLevel(data.level + 1);
-        setPointsToNextLevel(expForNextLevel - data.experience);
+        // Use xp_to_next_level from backend if available, otherwise calculate
+        if (data.xp_to_next_level !== undefined) {
+          setPointsToNextLevel(data.xp_to_next_level);
+        } else {
+          const expForNextLevel = calculateExpForLevel(data.level + 1);
+          setPointsToNextLevel(expForNextLevel - data.experience);
+        }
       }
     } catch (error) {
       console.error('Error loading gamification stats:', error);
@@ -179,7 +166,13 @@ const Games = () => {
   };
 
   const calculateExpForLevel = (level) => {
-    return Math.floor(100 * Math.pow(level, 1.5));
+    // New level thresholds: 0, 100, 282, 500, 800, 1200, 1700, 2300, 3000...
+    const thresholds = [0, 100, 282, 500, 800, 1200, 1700, 2300, 3000];
+    if (level < thresholds.length) {
+      return thresholds[level];
+    } else {
+      return 3000 + ((level - 8) * 1000);
+    }
   };
 
   const isTaskCompleted = (task) => {
@@ -372,6 +365,22 @@ const Games = () => {
                 <span>+1</span>
               </div>
               <div className="points-item">
+                <span>battle loss</span>
+                <span>+1</span>
+              </div>
+              <div className="points-item">
+                <span>answer question</span>
+                <span>+2</span>
+              </div>
+              <div className="points-item">
+                <span>battle draw</span>
+                <span>+2</span>
+              </div>
+              <div className="points-item">
+                <span>battle win</span>
+                <span>+3</span>
+              </div>
+              <div className="points-item">
                 <span>create note</span>
                 <span>+10</span>
               </div>
@@ -380,28 +389,12 @@ const Games = () => {
                 <span>+10</span>
               </div>
               <div className="points-item">
-                <span>answer question</span>
-                <span>+2</span>
-              </div>
-              <div className="points-item">
-                <span>complete quiz</span>
-                <span>+50</span>
-              </div>
-              <div className="points-item">
                 <span>study 1 hour</span>
                 <span>+10</span>
               </div>
               <div className="points-item">
-                <span>battle win</span>
-                <span>+3</span>
-              </div>
-              <div className="points-item">
-                <span>battle draw</span>
-                <span>+2</span>
-              </div>
-              <div className="points-item">
-                <span>battle loss</span>
-                <span>+1</span>
+                <span>complete quiz</span>
+                <span>+50</span>
               </div>
             </div>
           </div>

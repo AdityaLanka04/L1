@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from './pages/Dashboard';
 import AIChat from './pages/AIChat';
@@ -30,12 +30,72 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import SharedItemViewer from './pages/SharedItemViewer';
 import NotesRedesign from './pages/NotesRedesign';
 import Games from './pages/Games';
+import ProactiveNotification from './components/ProactiveNotification';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
 
 function App() {
+  const [proactiveNotification, setProactiveNotification] = useState(null);
+  const [lastCheckTime, setLastCheckTime] = useState(Date.now());
+
+  // Check for proactive AI messages periodically
+  useEffect(() => {
+    const checkProactiveMessage = async () => {
+      const userId = localStorage.getItem('userId');
+      if (!userId) return;
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/check_proactive_message?user_id=${userId}`);
+        const data = await response.json();
+
+        if (data.should_notify && data.message) {
+          setProactiveNotification({
+            message: data.message,
+            chatId: data.chat_id,
+            urgencyScore: data.urgency_score || 0.5,
+            reason: data.reason
+          });
+          setLastCheckTime(Date.now());
+        }
+      } catch (error) {
+        console.error('Error checking proactive message:', error);
+      }
+    };
+
+    // Check immediately on mount if user is logged in
+    const userId = localStorage.getItem('userId');
+    if (userId) {
+      checkProactiveMessage();
+    }
+
+    // Check every 2 minutes for proactive messages
+    const interval = setInterval(() => {
+      const userId = localStorage.getItem('userId');
+      if (userId) {
+        // Only check if it's been at least 30 minutes since last notification
+        const timeSinceLastCheck = Date.now() - lastCheckTime;
+        if (timeSinceLastCheck >= 30 * 60 * 1000) {
+          checkProactiveMessage();
+        }
+      }
+    }, 2 * 60 * 1000); // Check every 2 minutes
+
+    return () => clearInterval(interval);
+  }, [lastCheckTime]);
+
   return (
     <ThemeProvider>
       <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-top)', color: 'var(--text-primary)' }}>
+        {/* Proactive AI Notification - appears on all pages */}
+        {proactiveNotification && (
+          <ProactiveNotification
+            message={proactiveNotification.message}
+            chatId={proactiveNotification.chatId}
+            urgencyScore={proactiveNotification.urgencyScore}
+            onClose={() => setProactiveNotification(null)}
+          />
+        )}
+        
         <Routes>
           <Route path="/" element={<SafetyLogin />} />
           <Route path="/homepage" element={<Homepage />} />

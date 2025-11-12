@@ -44,6 +44,7 @@ from neural_adaptation import get_rl_agent, ConversationContextAnalyzer
 import advanced_prompting
 from flashcard_api import register_flashcard_api 
 from question_bank_enhanced import register_question_bank_api
+from proactive_ai_system import get_proactive_ai_engine
 
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -3178,7 +3179,91 @@ async def ai_writing_assistant(
 
 # ==================== UPDATE GET_NOTES TO INCLUDE NEW FIELDS ====================
 
+# ==================== PROACTIVE AI SYSTEM ====================
 
+@app.get("/api/check_proactive_message")
+async def check_proactive_message(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Check if AI should proactively reach out to user
+    Uses ML to analyze learning patterns and determine optimal intervention
+    """
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get proactive AI engine
+        proactive_engine = get_proactive_ai_engine(groq_client, MODEL_NAME)
+        
+        # Get user profile for personalization
+        user_profile = {
+            "first_name": user.first_name or "there",
+            "field_of_study": user.field_of_study or "General Studies"
+        }
+        
+        # Check if we should send a proactive message
+        result = await proactive_engine.check_and_send_proactive_message(
+            db, user.id, user_profile
+        )
+        
+        if result is None:
+            return {
+                "should_notify": False,
+                "message": None
+            }
+        
+        # Create a chat session for the proactive message if it should show now
+        if result.get("should_show_now", False):
+            # Create new chat session
+            new_session = models.ChatSession(
+                user_id=user.id,
+                title="AI Check-in",
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc)
+            )
+            db.add(new_session)
+            db.commit()
+            db.refresh(new_session)
+            
+            # Save the proactive message
+            proactive_marker = f"🤖 PROACTIVE:{result['reason']}"
+            new_message = models.ChatMessage(
+                chat_session_id=new_session.id,
+                user_id=user.id,
+                user_message=proactive_marker,
+                ai_response=result['message'],
+                timestamp=datetime.now(timezone.utc)
+            )
+            db.add(new_message)
+            db.commit()
+            
+            return {
+                "should_notify": True,
+                "message": result['message'],
+                "chat_id": new_session.id,
+                "urgency_score": result['urgency_score'],
+                "reason": result['reason'],
+                "patterns": result['patterns']
+            }
+        else:
+            return {
+                "should_notify": False,
+                "message": None,
+                "delay_minutes": result.get("optimal_delay_minutes", 30)
+            }
+            
+    except Exception as e:
+        logger.error(f"Error checking proactive message: {str(e)}")
+        return {
+            "should_notify": False,
+            "message": None,
+            "error": str(e)
+        }
+
+# ==================== END PROACTIVE AI SYSTEM ====================
 
 @app.post("/api/generate_chat_summary")
 async def generate_chat_summary(
@@ -3413,104 +3498,9 @@ def get_weekly_progress(user_id: str = Query(...), db: Session = Depends(get_db)
 
 # OLD endpoint removed - using newer comprehensive version at line ~9123
 
-# OLD endpoint removed - using newer comprehensive version below
+# OLD BROKEN ENDPOINT REMOVED - Using new centralized system at line ~8699
 
-@app.get("/api/get_gamification_stats")
-def get_gamification_stats(user_id: str = Query(...), db: Session = Depends(get_db)):
-    try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        stats = db.query(models.UserGamificationStats).filter(
-            models.UserGamificationStats.user_id == user.id
-        ).first()
-        
-        if not stats:
-            stats = models.UserGamificationStats(user_id=user.id)
-            db.add(stats)
-            db.commit()
-            db.refresh(stats)
-        
-        all_users = db.query(models.UserGamificationStats).order_by(
-            models.UserGamificationStats.total_points.desc()
-        ).all()
-        
-        rank = next((i + 1 for i, u in enumerate(all_users) if u.user_id == user.id), None)
-        
-        return {
-            "total_points": stats.total_points,
-            "level": stats.level,
-            "experience": stats.experience,
-            "rank": rank,
-            "weekly_points": stats.weekly_points,
-            "weekly_study_minutes": stats.weekly_study_minutes,
-            "quiz_battle_wins": stats.quiz_battle_wins,
-            "quiz_battle_draws": stats.quiz_battle_draws,
-            "quiz_battle_losses": stats.quiz_battle_losses
-        }
-    except Exception as e:
-        logger.error(f"Error getting gamification stats: {str(e)}")
-        return {"total_points": 0, "level": 1, "experience": 0, "rank": None, "weekly_points": 0, "weekly_study_minutes": 0}
-
-@app.get("/api/get_weekly_activity_progress")
-def get_weekly_activity_progress(user_id: str = Query(...), db: Session = Depends(get_db)):
-    try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        today = datetime.now(timezone.utc).date()
-        start_of_week = today - timedelta(days=today.weekday())
-        
-        chats = db.query(models.ChatMessage).filter(
-            models.ChatMessage.user_id == user.id,
-            models.ChatMessage.is_user == True,
-            func.date(models.ChatMessage.timestamp) >= start_of_week
-        ).count()
-        
-        notes = db.query(models.Note).filter(
-            models.Note.user_id == user.id,
-            func.date(models.Note.created_at) >= start_of_week,
-            models.Note.is_deleted == False
-        ).count()
-        
-        questions = db.query(models.Activity).filter(
-            models.Activity.user_id == user.id,
-            func.date(models.Activity.timestamp) >= start_of_week
-        ).count()
-        
-        quizzes = db.query(models.SoloQuiz).filter(
-            models.SoloQuiz.user_id == user.id,
-            models.SoloQuiz.completed == True,
-            func.date(models.SoloQuiz.completed_at) >= start_of_week
-        ).count()
-        
-        flashcards = db.query(models.FlashcardSet).filter(
-            models.FlashcardSet.user_id == user.id,
-            func.date(models.FlashcardSet.created_at) >= start_of_week
-        ).count()
-        
-        daily_metrics = db.query(models.DailyLearningMetrics).filter(
-            models.DailyLearningMetrics.user_id == user.id,
-            models.DailyLearningMetrics.date >= start_of_week
-        ).all()
-        
-        study_minutes = int(sum(m.time_spent_minutes for m in daily_metrics))
-        
-        result = {
-            "study_minutes": study_minutes,
-            "ai_chats": chats,
-            "notes_created": notes,
-            "questions_answered": questions,
-            "quizzes_completed": quizzes,
-            "flashcards_created": flashcards
-        }
-        logger.info(f"📊 Weekly Progress for {user_id}: {result}")
-        return result
-    except Exception as e:
-        logger.error(f"Error getting weekly progress: {str(e)}")
-        return {"study_minutes": 0, "ai_chats": 0, "notes_created": 0, "questions_answered": 0, "quizzes_completed": 0, "flashcards_created": 0}
+# OLD BROKEN ENDPOINT REMOVED - Using new one at line ~8814
 
 @app.get("/api/get_global_leaderboard")
 def get_global_leaderboard(limit: int = Query(10), db: Session = Depends(get_db)):
@@ -8687,8 +8677,35 @@ def get_week_start():
     return today - timedelta(days=today.weekday())
 
 def calculate_level_from_xp(xp: int) -> int:
-    """Calculate level based on XP"""
-    return max(1, int((xp / 100) ** (1/1.5)))
+    """Calculate level based on XP with progressive thresholds"""
+    # Level thresholds: 0, 100, 282, 500, 800, 1200, 1700, 2300, 3000...
+    if xp < 100:
+        return 1
+    elif xp < 282:
+        return 2
+    elif xp < 500:
+        return 3
+    elif xp < 800:
+        return 4
+    elif xp < 1200:
+        return 5
+    elif xp < 1700:
+        return 6
+    elif xp < 2300:
+        return 7
+    elif xp < 3000:
+        return 8
+    else:
+        # For higher levels: each 1000 XP = 1 level
+        return 8 + int((xp - 3000) / 1000)
+
+def get_xp_for_next_level(current_level: int) -> int:
+    """Get XP required for next level"""
+    thresholds = [0, 100, 282, 500, 800, 1200, 1700, 2300, 3000]
+    if current_level < len(thresholds):
+        return thresholds[current_level]
+    else:
+        return 3000 + ((current_level - 8) * 1000)
 
 def calculate_xp_for_level(level: int) -> int:
     """Calculate XP needed for a specific level"""
@@ -8700,8 +8717,10 @@ async def track_gamification_activity(
     username: str = Depends(verify_token),
     db: Session = Depends(get_db)
 ):
-    """Track user activity and award points"""
+    """Track user activity and award points - Uses centralized gamification system"""
     try:
+        from gamification_system import award_points
+        
         current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
         if not current_user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -8709,119 +8728,15 @@ async def track_gamification_activity(
         activity_type = payload.get("activity_type")
         metadata = payload.get("metadata", {})
         
-        # Point values for each activity
-        point_values = {
-            "ai_chat": 1,
-            "note_created": 10,
-            "question_answered": 2,
-            "quiz_completed": 50,
-            "flashcard_set_created": 10,
-            "study_time": 10,  # per hour
-            "battle_won": 3,
-            "battle_draw": 2,
-            "battle_loss": 1
-        }
-        
-        points_earned = point_values.get(activity_type, 0)
-        
-        # Special handling for study time (points per hour)
-        if activity_type == "study_time":
-            minutes = metadata.get("minutes", 0)
-            points_earned = int((minutes / 60) * 10)
-        
-        # Get or create gamification stats
-        stats = db.query(models.UserGamificationStats).filter(
-            models.UserGamificationStats.user_id == current_user.id
-        ).first()
-        
-        if not stats:
-            stats = models.UserGamificationStats(
-                user_id=current_user.id,
-                week_start_date=get_week_start()
-            )
-            db.add(stats)
-            db.flush()
-        
-        # Check if we need to reset weekly stats
-        week_start = get_week_start()
-        if stats.week_start_date.date() < week_start:
-            stats.weekly_points = 0
-            stats.weekly_ai_chats = 0
-            stats.weekly_notes_created = 0
-            stats.weekly_questions_answered = 0
-            stats.weekly_quizzes_completed = 0
-            stats.weekly_flashcards_created = 0
-            stats.weekly_study_minutes = 0
-            stats.weekly_battles_won = 0
-            stats.week_start_date = week_start
-        
-        # Update stats based on activity type
-        stats.total_points += points_earned
-        stats.weekly_points += points_earned
-        stats.experience += points_earned
-        
-        if activity_type == "ai_chat":
-            stats.total_ai_chats += 1
-            stats.weekly_ai_chats += 1
-        elif activity_type == "note_created":
-            stats.total_notes_created += 1
-            stats.weekly_notes_created += 1
-        elif activity_type == "question_answered":
-            stats.total_questions_answered += 1
-            stats.weekly_questions_answered += 1
-        elif activity_type == "quiz_completed":
-            stats.total_quizzes_completed += 1
-            stats.weekly_quizzes_completed += 1
-        elif activity_type == "flashcard_set_created":
-            stats.total_flashcards_created += 1
-            stats.weekly_flashcards_created += 1
-        elif activity_type == "study_time":
-            minutes = metadata.get("minutes", 0)
-            stats.total_study_minutes += minutes
-            stats.weekly_study_minutes += minutes
-        elif activity_type == "battle_won":
-            stats.total_battles_won += 1
-            stats.weekly_battles_won += 1
-        
-        # Update level
-        stats.level = calculate_level_from_xp(stats.experience)
-        
-        # Update streak
-        today = datetime.now(timezone.utc).date()
-        if stats.last_activity_date:
-            last_date = stats.last_activity_date.date()
-            if last_date == today:
-                pass  # Same day, don't update streak
-            elif last_date == today - timedelta(days=1):
-                stats.current_streak += 1
-                if stats.current_streak > stats.longest_streak:
-                    stats.longest_streak = stats.current_streak
-            else:
-                stats.current_streak = 1
-        else:
-            stats.current_streak = 1
-        
-        stats.last_activity_date = datetime.now(timezone.utc)
-        
-        # Create point transaction
-        transaction = models.PointTransaction(
-            user_id=current_user.id,
-            activity_type=activity_type,
-            points_earned=points_earned,
-            description=f"{activity_type.replace('_', ' ').title()}",
-            activity_metadata=json.dumps(metadata)
-        )
-        db.add(transaction)
-        
+        # Use centralized gamification system
+        result = award_points(db, current_user.id, activity_type, metadata)
         db.commit()
         
         return {
             "status": "success",
-            "points_earned": points_earned,
-            "total_points": stats.total_points,
-            "level": stats.level,
-            "experience": stats.experience
+            **result
         }
+
     
     except Exception as e:
         logger.error(f"Error tracking gamification activity: {str(e)}")
@@ -8833,57 +8748,16 @@ async def get_gamification_stats(
     user_id: str = Query(...),
     db: Session = Depends(get_db)
 ):
-    """Get user's gamification stats"""
+    """Get user's gamification stats - Uses centralized gamification system"""
     try:
+        from gamification_system import get_user_stats
+        
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        stats = db.query(models.UserGamificationStats).filter(
-            models.UserGamificationStats.user_id == user.id
-        ).first()
-        
-        if not stats:
-            # Create default stats
-            stats = models.UserGamificationStats(
-                user_id=user.id,
-                week_start_date=get_week_start()
-            )
-            db.add(stats)
-            db.commit()
-            db.refresh(stats)
-        
-        # Check if we need to reset weekly stats
-        week_start = get_week_start()
-        if stats.week_start_date.date() < week_start:
-            stats.weekly_points = 0
-            stats.weekly_ai_chats = 0
-            stats.weekly_notes_created = 0
-            stats.weekly_questions_answered = 0
-            stats.weekly_quizzes_completed = 0
-            stats.weekly_flashcards_created = 0
-            stats.weekly_study_minutes = 0
-            stats.weekly_battles_won = 0
-            stats.week_start_date = week_start
-            db.commit()
-        
-        # Get rank
-        all_users = db.query(models.UserGamificationStats).order_by(
-            models.UserGamificationStats.total_points.desc()
-        ).all()
-        
-        rank = next((i + 1 for i, s in enumerate(all_users) if s.user_id == user.id), None)
-        
-        return {
-            "total_points": stats.total_points,
-            "level": stats.level,
-            "experience": stats.experience,
-            "rank": rank,
-            "weekly_points": stats.weekly_points,
-            "weekly_study_minutes": stats.weekly_study_minutes,
-            "current_streak": stats.current_streak,
-            "longest_streak": stats.longest_streak
-        }
+        # Use centralized gamification system
+        return get_user_stats(db, user.id)
     
     except Exception as e:
         logger.error(f"Error getting gamification stats: {str(e)}")
@@ -9054,7 +8928,20 @@ async def get_leaderboard(
         logger.error(f"Error getting leaderboard: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# Admin deployment endpoint removed - gamification system is now active
+@app.get("/api/admin/recalculate_gamification")
+async def recalculate_gamification(db: Session = Depends(get_db)):
+    """ONE-TIME: Recalculate all user stats from historical data"""
+    try:
+        from gamification_system import recalculate_all_stats
+        count = recalculate_all_stats(db)
+        return {
+            "status": "success",
+            "users_processed": count,
+            "message": "All user stats recalculated from historical data"
+        }
+    except Exception as e:
+        logger.error(f"Recalculation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ==================== END SERVE REACT APP ====================
 
