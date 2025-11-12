@@ -1302,12 +1302,12 @@ const Dashboard = () => {
         </button>
         <button 
           className="action-btn" 
-          onClick={() => navigate('/games')}
+          onClick={() => navigate('/concept-web')}
           disabled={isCustomizing}
           style={{ color: accent, borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
         >
-          <div className="action-label" style={{ color: accent }}>Games</div>
-          <div className="action-count">Play</div>
+          <div className="action-label" style={{ color: accent }}>Concept Web</div>
+          <div className="action-count">Build</div>
         </button>
         <button 
           className="action-btn" 

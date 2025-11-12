@@ -17,6 +17,7 @@ import SoloQuizSession from './pages/SoloQuizSession';
 import ChallengeSession from './pages/ChallengeSession';
 import SharedContent from './pages/SharedContent';
 import KnowledgeRoadmap from './pages/KnowledgeRoadmap';
+import ConceptWeb from './pages/ConceptWeb';
 import QuestionBank from './pages/Questionbankdashboard';
 import SlideExplorer from './pages/SlideExplorer';
 import Statistics from './pages/Statistics';
@@ -123,6 +124,7 @@ function App() {
           <Route path="/shared" element={<SharedContent />} />
           <Route path="/shared/:contentType/:contentId" element={<SharedContent />} />
           <Route path="/knowledge-roadmap" element={<KnowledgeRoadmap />} />
+          <Route path="/concept-web" element={<ConceptWeb />} />
           <Route path="/question-bank" element={<QuestionBank />} />
           <Route path="/slide-explorer" element={<SlideExplorer />} />
           <Route path="/statistics" element={<Statistics />} />

@@ -1378,6 +1378,57 @@ class Notification(Base):
     
     user = relationship("User")
 
+class ConceptNode(Base):
+    """Concept nodes for knowledge graph"""
+    __tablename__ = "concept_nodes"
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    
+    concept_name = Column(String(200), nullable=False)
+    description = Column(Text)
+    category = Column(String(100))  # subject/topic category
+    
+    # Metadata
+    importance_score = Column(Float, default=0.5)  # 0-1 scale
+    mastery_level = Column(Float, default=0.0)  # 0-1 scale based on quiz performance
+    
+    # Visual positioning
+    position_x = Column(Float, nullable=True)
+    position_y = Column(Float, nullable=True)
+    
+    # Related content counts
+    notes_count = Column(Integer, default=0)
+    quizzes_count = Column(Integer, default=0)
+    flashcards_count = Column(Integer, default=0)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User")
+
+class ConceptConnection(Base):
+    """Connections between concepts"""
+    __tablename__ = "concept_connections"
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    
+    source_concept_id = Column(Integer, ForeignKey("concept_nodes.id"))
+    target_concept_id = Column(Integer, ForeignKey("concept_nodes.id"))
+    
+    connection_type = Column(String(50))  # prerequisite, related, opposite, example_of, etc.
+    strength = Column(Float, default=0.5)  # 0-1 scale, how strong the connection is
+    
+    ai_generated = Column(Boolean, default=False)
+    user_confirmed = Column(Boolean, default=False)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User")
+    source = relationship("ConceptNode", foreign_keys=[source_concept_id])
+    target = relationship("ConceptNode", foreign_keys=[target_concept_id])
+
 def create_tables():
     Base.metadata.create_all(bind=engine)
 

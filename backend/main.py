@@ -9186,6 +9186,295 @@ async def create_notification(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+
+
+
+@app.get("/api/get_concept_web")
+async def get_concept_web(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Get user's complete concept web (nodes and connections)"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            return {"nodes": [], "connections": []}
+        
+        # Get all concept nodes
+        nodes = db.query(models.ConceptNode).filter(
+            models.ConceptNode.user_id == user.id
+        ).all()
+        
+        # Get all connections
+        connections = db.query(models.ConceptConnection).filter(
+            models.ConceptConnection.user_id == user.id
+        ).all()
+        
+        return {
+            "nodes": [
+                {
+                    "id": node.id,
+                    "concept_name": node.concept_name,
+                    "description": node.description,
+                    "category": node.category,
+                    "importance_score": node.importance_score,
+                    "mastery_level": node.mastery_level,
+                    "position_x": node.position_x,
+                    "position_y": node.position_y,
+                    "notes_count": node.notes_count,
+                    "quizzes_count": node.quizzes_count,
+                    "flashcards_count": node.flashcards_count,
+                    "created_at": node.created_at.isoformat()
+                }
+                for node in nodes
+            ],
+            "connections": [
+                {
+                    "id": conn.id,
+                    "source_id": conn.source_concept_id,
+                    "target_id": conn.target_concept_id,
+                    "connection_type": conn.connection_type,
+                    "strength": conn.strength,
+                    "ai_generated": conn.ai_generated,
+                    "user_confirmed": conn.user_confirmed
+                }
+                for conn in connections
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Error getting concept web: {str(e)}")
+        return {"nodes": [], "connections": []}
+
+@app.post("/api/generate_concept_web")
+async def generate_concept_web(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """AI generates concept web from user's learning content"""
+    try:
+        user_id = payload.get("user_id")
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Gather user's learning content
+        notes = db.query(models.Note).filter(
+            models.Note.user_id == user.id,
+            models.Note.is_deleted == False
+        ).all()
+        
+        quizzes = db.query(models.SoloQuiz).filter(
+            models.SoloQuiz.user_id == user.id
+        ).all()
+        
+        flashcard_sets = db.query(models.FlashcardSet).filter(
+            models.FlashcardSet.user_id == user.id
+        ).all()
+        
+        # Extract concepts from content
+        content_summary = []
+        for note in notes[:20]:  # Limit to recent 20
+            content_summary.append(f"Note: {note.title}")
+        for quiz in quizzes[:10]:
+            content_summary.append(f"Quiz: {quiz.subject}")
+        for fs in flashcard_sets[:10]:
+            content_summary.append(f"Flashcards: {fs.title}")
+        
+        if not content_summary:
+            return {"status": "no_content", "message": "No learning content found"}
+        
+        # AI prompt to extract concepts and connections
+        prompt = f"""Analyze this student's learning content and extract key concepts with their relationships.
+
+Content:
+{chr(10).join(content_summary)}
+
+Return a JSON with:
+1. "concepts": array of {{name, description, category}}
+2. "connections": array of {{source, target, type, strength}}
+
+Connection types: prerequisite, related, opposite, example_of, part_of
+Strength: 0.0-1.0
+
+Limit to 15 most important concepts. Return ONLY valid JSON."""
+
+        # Call AI
+        response = groq_client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=2000
+        )
+        
+        ai_response = response.choices[0].message.content.strip()
+        logger.info(f"AI Response: {ai_response[:500]}")
+        
+        # Parse JSON
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', ai_response)
+        if json_match:
+            data = json.loads(json_match.group())
+        else:
+            data = json.loads(ai_response)
+        
+        logger.info(f"Parsed data: concepts={len(data.get('concepts', []))}, connections={len(data.get('connections', []))}")
+        
+        # Create concept nodes
+        concept_map = {}
+        for concept in data.get("concepts", []):
+            node = models.ConceptNode(
+                user_id=user.id,
+                concept_name=concept["name"],
+                description=concept.get("description", ""),
+                category=concept.get("category", "General"),
+                importance_score=0.7
+            )
+            db.add(node)
+            db.flush()
+            concept_map[concept["name"]] = node.id
+        
+        # Create connections
+        for conn in data.get("connections", []):
+            source_id = concept_map.get(conn["source"])
+            target_id = concept_map.get(conn["target"])
+            
+            if source_id and target_id:
+                connection = models.ConceptConnection(
+                    user_id=user.id,
+                    source_concept_id=source_id,
+                    target_concept_id=target_id,
+                    connection_type=conn.get("type", "related"),
+                    strength=conn.get("strength", 0.5),
+                    ai_generated=True
+                )
+                db.add(connection)
+        
+        db.commit()
+        
+        return {
+            "status": "success",
+            "concepts_created": len(concept_map),
+            "connections_created": len(data.get("connections", []))
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating concept web: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/add_concept_node")
+async def add_concept_node(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """Manually add a concept node"""
+    try:
+        user_id = payload.get("user_id")
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        node = models.ConceptNode(
+            user_id=user.id,
+            concept_name=payload.get("concept_name"),
+            description=payload.get("description", ""),
+            category=payload.get("category", "General")
+        )
+        db.add(node)
+        db.commit()
+        db.refresh(node)
+        
+        return {
+            "status": "success",
+            "node_id": node.id,
+            "concept_name": node.concept_name
+        }
+    except Exception as e:
+        logger.error(f"Error adding concept node: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/update_node_position")
+async def update_node_position(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """Update node position after drag"""
+    try:
+        node_id = payload.get("node_id")
+        x = payload.get("x")
+        y = payload.get("y")
+        
+        node = db.query(models.ConceptNode).filter(
+            models.ConceptNode.id == node_id
+        ).first()
+        
+        if node:
+            node.position_x = x
+            node.position_y = y
+            db.commit()
+            return {"status": "success"}
+        
+        return {"status": "not_found"}
+    except Exception as e:
+        logger.error(f"Error updating node position: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/delete_concept_node/{node_id}")
+async def delete_concept_node(
+    node_id: int,
+    db: Session = Depends(get_db)
+):
+    """Delete a concept node and its connections"""
+    try:
+        # Delete connections
+        db.query(models.ConceptConnection).filter(
+            (models.ConceptConnection.source_concept_id == node_id) |
+            (models.ConceptConnection.target_concept_id == node_id)
+        ).delete()
+        
+        # Delete node
+        db.query(models.ConceptNode).filter(
+            models.ConceptNode.id == node_id
+        ).delete()
+        
+        db.commit()
+        return {"status": "success"}
+    except Exception as e:
+        logger.error(f"Error deleting concept node: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/delete_all_concepts")
+async def delete_all_concepts(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Delete all concept nodes and connections for a user"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Delete all connections
+        db.query(models.ConceptConnection).filter(
+            models.ConceptConnection.user_id == user.id
+        ).delete()
+        
+        # Delete all nodes
+        db.query(models.ConceptNode).filter(
+            models.ConceptNode.user_id == user.id
+        ).delete()
+        
+        db.commit()
+        return {"status": "success", "message": "All concepts deleted"}
+    except Exception as e:
+        logger.error(f"Error deleting all concepts: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
     import uvicorn
     
