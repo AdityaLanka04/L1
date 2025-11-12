@@ -622,8 +622,13 @@ const AIChat = ({ sharedMode = false }) => {
       // Math symbols
       '*infinity*': '∞',
       '*sum*': '∑',
+      '*Sum*': '∑',
+      '*summation*': '∑',
+      '*Summation*': '∑',
       '*product*': '∏',
+      '*Product*': '∏',
       '*integral*': '∫',
+      '*Integral*': '∫',
       '*partial*': '∂',
       '*nabla*': '∇',
       '*sqrt*': '√',
@@ -653,6 +658,114 @@ const AIChat = ({ sharedMode = false }) => {
       '*rightarrow*': '→',
       '*uparrow*': '↑',
       '*downarrow*': '↓',
+      
+      // Additional statistical symbols
+      '*mean*': 'x̄',
+      '*variance*': 'σ²',
+      '*stddev*': 'σ',
+      '*correlation*': 'ρ',
+      '*proportion*': 'p̂',
+      
+      // Set theory
+      '*emptyset*': '∅',
+      '*element*': '∈',
+      '*notelement*': '∉',
+      '*contains*': '∋',
+      '*notcontains*': '∌',
+      
+      // Logic symbols
+      '*and*': '∧',
+      '*or*': '∨',
+      '*not*': '¬',
+      '*implies*': '⇒',
+      '*iff*': '⇔',
+      '*equivalent*': '≡',
+      
+      // Calculus
+      '*limit*': 'lim',
+      '*derivative*': 'd/dx',
+      '*del*': '∂',
+      
+      // Inequalities
+      '*much_less*': '≪',
+      '*much_greater*': '≫',
+      '*less_equal*': '≤',
+      '*greater_equal*': '≥',
+      '*not_equal*': '≠',
+      
+      // Arrows
+      '*implies_arrow*': '⇒',
+      '*iff_arrow*': '⇔',
+      '*maps_to*': '↦',
+      '*left_right_arrow*': '↔',
+      
+      // Fractions and numbers
+      '*half*': '½',
+      '*third*': '⅓',
+      '*quarter*': '¼',
+      '*two_thirds*': '⅔',
+      '*three_quarters*': '¾',
+      
+      // Superscripts (common)
+      '*squared*': '²',
+      '*cubed*': '³',
+      
+      // Physics symbols
+      '*planck*': 'ℏ',
+      '*angstrom*': 'Å',
+      '*ohm*': 'Ω',
+      '*micro*': 'μ',
+      
+      // Currency
+      '*euro*': '€',
+      '*pound*': '£',
+      '*yen*': '¥',
+      '*cent*': '¢',
+      
+      // Miscellaneous
+      '*check*': '✓',
+      '*cross*': '✗',
+      '*star*': '★',
+      '*bullet*': '•',
+      '*ellipsis*': '…',
+      '*dagger*': '†',
+      '*double_dagger*': '‡',
+      '*section*': '§',
+      '*paragraph*': '¶',
+      '*copyright*': '©',
+      '*registered*': '®',
+      '*trademark*': '™',
+      
+      // Geometric shapes
+      '*circle*': '○',
+      '*filled_circle*': '●',
+      '*square*': '□',
+      '*filled_square*': '■',
+      '*triangle*': '△',
+      '*filled_triangle*': '▲',
+      
+      // Chemistry
+      '*equilibrium*': '⇌',
+      '*reversible*': '⇄',
+      
+      // Complex numbers
+      '*real*': 'ℝ',
+      '*complex*': 'ℂ',
+      '*natural*': 'ℕ',
+      '*integer*': 'ℤ',
+      '*rational*': 'ℚ',
+      
+      // Probability
+      '*expected*': 'E',
+      '*probability*': 'P',
+      '*given*': '|',
+      
+      // Dots
+      '*cdot*': '·',
+      '*ldots*': '…',
+      '*cdots*': '⋯',
+      '*vdots*': '⋮',
+      '*ddots*': '⋱',
     };
     
     let result = text;
