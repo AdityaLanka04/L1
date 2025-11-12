@@ -9421,6 +9421,322 @@ async def update_node_position(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.put("/api/update_concept_mastery")
+async def update_concept_mastery(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """Update concept mastery level"""
+    try:
+        node_id = payload.get("node_id")
+        mastery_level = payload.get("mastery_level")
+        
+        if mastery_level < 0 or mastery_level > 1:
+            raise HTTPException(status_code=400, detail="Mastery level must be between 0 and 1")
+        
+        node = db.query(models.ConceptNode).filter(
+            models.ConceptNode.id == node_id
+        ).first()
+        
+        if node:
+            node.mastery_level = mastery_level
+            db.commit()
+            return {"status": "success", "mastery_level": mastery_level}
+        
+        return {"status": "not_found"}
+    except Exception as e:
+        logger.error(f"Error updating mastery level: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/generate_concept_notes")
+async def generate_concept_notes(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """Generate study notes for a specific concept"""
+    try:
+        user_id = payload.get("user_id")
+        concept_id = payload.get("concept_id")
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        concept = db.query(models.ConceptNode).filter(
+            models.ConceptNode.id == concept_id,
+            models.ConceptNode.user_id == user.id
+        ).first()
+        
+        if not concept:
+            raise HTTPException(status_code=404, detail="Concept not found")
+        
+        # Get related chat context
+        recent_chats = db.query(models.ChatMessage).join(
+            models.ChatSession
+        ).filter(
+            models.ChatSession.user_id == user.id
+        ).order_by(models.ChatMessage.timestamp.desc()).limit(10).all()
+        
+        chat_context = "\n".join([
+            f"Q: {msg.user_message}\nA: {msg.ai_response}" 
+            for msg in recent_chats
+        ])[:2000]
+        
+        # Generate notes
+        prompt = f"""Create comprehensive study notes about: {concept.concept_name}
+
+Description: {concept.description}
+Category: {concept.category}
+
+Recent learning context:
+{chat_context}
+
+Generate detailed notes covering:
+1. Key concepts and definitions
+2. Important points to remember
+3. Examples and applications
+4. Common misconceptions
+
+Format as clear, organized study notes."""
+
+        response = groq_client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=1500
+        )
+        
+        content = response.choices[0].message.content
+        
+        # Create note
+        note = models.Note(
+            user_id=user.id,
+            title=f"Study Notes: {concept.concept_name}",
+            content=content
+        )
+        db.add(note)
+        db.flush()
+        
+        concept.notes_count += 1
+        concept.mastery_level = min(1.0, concept.mastery_level + 0.1)
+        
+        db.commit()
+        
+        return {
+            "status": "success",
+            "note_id": note.id,
+            "new_mastery": concept.mastery_level,
+            "message": f"Generated notes for {concept.concept_name}"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating notes: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/generate_concept_flashcards")
+async def generate_concept_flashcards(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """Generate flashcards for a specific concept"""
+    try:
+        user_id = payload.get("user_id")
+        concept_id = payload.get("concept_id")
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        concept = db.query(models.ConceptNode).filter(
+            models.ConceptNode.id == concept_id,
+            models.ConceptNode.user_id == user.id
+        ).first()
+        
+        if not concept:
+            raise HTTPException(status_code=404, detail="Concept not found")
+        
+        # Get related chat context
+        recent_chats = db.query(models.ChatMessage).join(
+            models.ChatSession
+        ).filter(
+            models.ChatSession.user_id == user.id
+        ).order_by(models.ChatMessage.timestamp.desc()).limit(10).all()
+        
+        chat_context = "\n".join([
+            f"Q: {msg.user_message}\nA: {msg.ai_response}" 
+            for msg in recent_chats
+        ])[:2000]
+        
+        # Generate flashcards
+        prompt = f"""Create 10 flashcard pairs (question/answer) about: {concept.concept_name}
+
+Description: {concept.description}
+Category: {concept.category}
+
+Recent learning context:
+{chat_context}
+
+Return ONLY a JSON array with this format:
+[
+  {{"front": "Question 1", "back": "Answer 1"}},
+  {{"front": "Question 2", "back": "Answer 2"}}
+]
+
+Make questions clear and answers concise."""
+
+        response = groq_client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=1500
+        )
+        
+        content = response.choices[0].message.content.strip()
+        
+        # Parse JSON
+        import re
+        json_match = re.search(r'\[[\s\S]*\]', content)
+        if json_match:
+            flashcards_data = json.loads(json_match.group())
+        else:
+            flashcards_data = json.loads(content)
+        
+        # Create flashcard set
+        flashcard_set = models.FlashcardSet(
+            user_id=user.id,
+            title=f"Flashcards: {concept.concept_name}",
+            description=f"AI-generated flashcards for {concept.concept_name}"
+        )
+        db.add(flashcard_set)
+        db.flush()
+        
+        # Create individual flashcards
+        for card_data in flashcards_data[:10]:
+            flashcard = models.Flashcard(
+                set_id=flashcard_set.id,
+                question=card_data.get("front", ""),
+                answer=card_data.get("back", "")
+            )
+            db.add(flashcard)
+        
+        concept.flashcards_count += 1
+        concept.mastery_level = min(1.0, concept.mastery_level + 0.1)
+        
+        db.commit()
+        
+        return {
+            "status": "success",
+            "set_id": flashcard_set.id,
+            "new_mastery": concept.mastery_level,
+            "message": f"Generated flashcards for {concept.concept_name}"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating flashcards: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/generate_concept_quiz")
+async def generate_concept_quiz(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """Generate quiz for a specific concept"""
+    try:
+        user_id = payload.get("user_id")
+        concept_id = payload.get("concept_id")
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        concept = db.query(models.ConceptNode).filter(
+            models.ConceptNode.id == concept_id,
+            models.ConceptNode.user_id == user.id
+        ).first()
+        
+        if not concept:
+            raise HTTPException(status_code=404, detail="Concept not found")
+        
+        # Get related chat context
+        recent_chats = db.query(models.ChatMessage).join(
+            models.ChatSession
+        ).filter(
+            models.ChatSession.user_id == user.id
+        ).order_by(models.ChatMessage.timestamp.desc()).limit(10).all()
+        
+        chat_context = "\n".join([
+            f"Q: {msg.user_message}\nA: {msg.ai_response}" 
+            for msg in recent_chats
+        ])[:2000]
+        
+        # Generate quiz
+        prompt = f"""Create 5 multiple choice questions about: {concept.concept_name}
+
+Description: {concept.description}
+Category: {concept.category}
+
+Recent learning context:
+{chat_context}
+
+Return ONLY a JSON array:
+[
+  {{
+    "question": "Question text",
+    "options": ["A", "B", "C", "D"],
+    "correct": 0,
+    "explanation": "Why this is correct"
+  }}
+]"""
+
+        response = groq_client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=1500
+        )
+        
+        content = response.choices[0].message.content.strip()
+        
+        # Parse JSON
+        import re
+        json_match = re.search(r'\[[\s\S]*\]', content)
+        if json_match:
+            questions_data = json.loads(json_match.group())
+        else:
+            questions_data = json.loads(content)
+        
+        # Create quiz
+        quiz = models.SoloQuiz(
+            user_id=user.id,
+            subject=concept.concept_name,
+            difficulty="intermediate",
+            question_count=len(questions_data),
+            answers=json.dumps(questions_data)  # Store questions as JSON
+        )
+        db.add(quiz)
+        db.flush()
+        
+        concept.quizzes_count += 1
+        concept.mastery_level = min(1.0, concept.mastery_level + 0.1)
+        
+        db.commit()
+        
+        return {
+            "status": "success",
+            "quiz_id": quiz.id,
+            "questions": questions_data,
+            "new_mastery": concept.mastery_level,
+            "message": f"Generated quiz for {concept.concept_name}"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating quiz: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.delete("/api/delete_concept_node/{node_id}")
 async def delete_concept_node(
     node_id: int,

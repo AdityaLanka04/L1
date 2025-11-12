@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Plus, Trash2, ArrowLeft, Loader, Link as LinkIcon, BookOpen, FileText, Brain, Filter, Search, TrendingUp } from 'lucide-react';
+import { Sparkles, Plus, Trash2, ArrowLeft, Loader, Link as LinkIcon, BookOpen, FileText, Brain, Filter, Search, TrendingUp, Download, Eye, EyeOff, Grid, Network, BarChart3, CheckSquare, Square } from 'lucide-react';
 import './ConceptWeb.css';
 import { API_URL } from '../config';
 
@@ -17,6 +17,12 @@ const ConceptWeb = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [sortBy, setSortBy] = useState('name');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'network'
+  const [selectedConcepts, setSelectedConcepts] = useState(new Set());
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [highlightConnections, setHighlightConnections] = useState(null);
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const [generatingContent, setGeneratingContent] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -231,7 +237,169 @@ const ConceptWeb = () => {
       : 0;
     const categories = new Set(concepts.map(c => c.category)).size;
     
-    return { totalConcepts, totalConnections, avgMastery, categories };
+    const masteryDistribution = {
+      beginner: concepts.filter(c => c.mastery_level < 0.3).length,
+      intermediate: concepts.filter(c => c.mastery_level >= 0.3 && c.mastery_level < 0.7).length,
+      advanced: concepts.filter(c => c.mastery_level >= 0.7).length
+    };
+
+    const mostConnected = concepts.length > 0 
+      ? concepts.reduce((max, c) => {
+          const connCount = getConnectedConcepts(c.id).length;
+          return connCount > (max.count || 0) ? { concept: c, count: connCount } : max;
+        }, {})
+      : null;
+
+    const totalContent = concepts.reduce((sum, c) => 
+      sum + c.notes_count + c.quizzes_count + c.flashcards_count, 0
+    );
+    
+    return { 
+      totalConcepts, 
+      totalConnections, 
+      avgMastery, 
+      categories,
+      masteryDistribution,
+      mostConnected,
+      totalContent
+    };
+  };
+
+  const toggleConceptSelection = (conceptId) => {
+    const newSelected = new Set(selectedConcepts);
+    if (newSelected.has(conceptId)) {
+      newSelected.delete(conceptId);
+    } else {
+      newSelected.add(conceptId);
+    }
+    setSelectedConcepts(newSelected);
+  };
+
+  const selectAll = () => {
+    setSelectedConcepts(new Set(getFilteredAndSortedConcepts().map(c => c.id)));
+  };
+
+  const deselectAll = () => {
+    setSelectedConcepts(new Set());
+  };
+
+  const deleteSelected = async () => {
+    if (selectedConcepts.size === 0) return;
+    if (!window.confirm(`Delete ${selectedConcepts.size} selected concepts?`)) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      await Promise.all(
+        Array.from(selectedConcepts).map(id =>
+          fetch(`${API_URL}/delete_concept_node/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+        )
+      );
+      loadConceptWeb(userName);
+      setSelectedConcepts(new Set());
+      setSelectedNode(null);
+    } catch (error) {
+      console.error('Error deleting selected:', error);
+    }
+  };
+
+  const generateConceptContent = async (contentType) => {
+    if (!selectedNode) return;
+    
+    const contentNames = {
+      notes: 'study notes',
+      flashcards: 'flashcards',
+      quiz: 'practice quiz'
+    };
+    
+    const endpoints = {
+      notes: 'generate_concept_notes',
+      flashcards: 'generate_concept_flashcards',
+      quiz: 'generate_concept_quiz'
+    };
+    
+    if (!window.confirm(`Generate AI-powered ${contentNames[contentType]} for "${selectedNode.concept_name}"?`)) {
+      return;
+    }
+    
+    try {
+      setGeneratingContent(contentType);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/${endpoints[contentType]}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          concept_id: selectedNode.id
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        alert(`✅ Generated ${contentNames[contentType]}! Mastery increased to ${Math.round(data.new_mastery * 100)}%`);
+        
+        // Reload concept web to show updated counts and mastery
+        await loadConceptWeb(userName);
+        
+        // Navigate to the appropriate page with the generated content
+        if (contentType === 'notes' && data.note_id) {
+          navigate(`/notes`);
+        } else if (contentType === 'flashcards' && data.set_id) {
+          navigate(`/flashcards`);
+        } else if (contentType === 'quiz' && data.quiz_id) {
+          navigate(`/quiz-hub`);
+        }
+      } else {
+        const error = await response.json();
+        alert(`Failed to generate content: ${error.detail}`);
+      }
+    } catch (error) {
+      console.error('Error generating content:', error);
+      alert('Failed to generate content');
+    } finally {
+      setGeneratingContent(null);
+    }
+  };
+
+  const exportData = () => {
+    const data = {
+      concepts: concepts.map(c => ({
+        name: c.concept_name,
+        category: c.category,
+        description: c.description,
+        mastery: c.mastery_level,
+        content: {
+          notes: c.notes_count,
+          quizzes: c.quizzes_count,
+          flashcards: c.flashcards_count
+        }
+      })),
+      connections: connections.map(c => {
+        const source = concepts.find(con => con.id === c.source_id);
+        const target = concepts.find(con => con.id === c.target_id);
+        return {
+          from: source?.concept_name,
+          to: target?.concept_name,
+          type: c.connection_type,
+          strength: c.strength
+        };
+      }),
+      stats: getStats(),
+      exportDate: new Date().toISOString()
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `concept-web-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -248,6 +416,23 @@ const ConceptWeb = () => {
           </div>
         </div>
         <div className="header-right">
+          {concepts.length > 0 && (
+            <>
+              <button className="icon-btn" onClick={() => setShowAnalytics(!showAnalytics)} title="Analytics">
+                <BarChart3 size={18} />
+              </button>
+              <button className="icon-btn" onClick={exportData} title="Export Data">
+                <Download size={18} />
+              </button>
+              <button 
+                className="icon-btn" 
+                onClick={() => setViewMode(viewMode === 'grid' ? 'network' : 'grid')}
+                title={viewMode === 'grid' ? 'Network View' : 'Grid View'}
+              >
+                {viewMode === 'grid' ? <Network size={18} /> : <Grid size={18} />}
+              </button>
+            </>
+          )}
           <button className="generate-btn" onClick={generateConceptWeb} disabled={generating}>
             {generating ? <><Loader size={18} className="spinner" />Generating...</> : <><Sparkles size={18} />AI Generate</>}
           </button>
@@ -308,6 +493,98 @@ const ConceptWeb = () => {
               </div>
             </div>
 
+            {/* Analytics Panel */}
+            {showAnalytics && (
+              <div className="analytics-panel">
+                <div className="analytics-header">
+                  <h3>Analytics Dashboard</h3>
+                  <button className="close-btn" onClick={() => setShowAnalytics(false)}>×</button>
+                </div>
+                <div className="analytics-grid">
+                  <div className="analytics-card">
+                    <h4>Mastery Distribution</h4>
+                    <div className="mastery-bars">
+                      <div className="mastery-bar-item">
+                        <span className="mastery-label">Beginner (&lt;30%)</span>
+                        <div className="mastery-bar-bg">
+                          <div 
+                            className="mastery-bar-fill beginner"
+                            style={{ width: `${(getStats().masteryDistribution.beginner / concepts.length) * 100}%` }}
+                          ></div>
+                        </div>
+                        <span className="mastery-count">{getStats().masteryDistribution.beginner}</span>
+                      </div>
+                      <div className="mastery-bar-item">
+                        <span className="mastery-label">Intermediate (30-70%)</span>
+                        <div className="mastery-bar-bg">
+                          <div 
+                            className="mastery-bar-fill intermediate"
+                            style={{ width: `${(getStats().masteryDistribution.intermediate / concepts.length) * 100}%` }}
+                          ></div>
+                        </div>
+                        <span className="mastery-count">{getStats().masteryDistribution.intermediate}</span>
+                      </div>
+                      <div className="mastery-bar-item">
+                        <span className="mastery-label">Advanced (&gt;70%)</span>
+                        <div className="mastery-bar-bg">
+                          <div 
+                            className="mastery-bar-fill advanced"
+                            style={{ width: `${(getStats().masteryDistribution.advanced / concepts.length) * 100}%` }}
+                          ></div>
+                        </div>
+                        <span className="mastery-count">{getStats().masteryDistribution.advanced}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="analytics-card">
+                    <h4>Most Connected Concept</h4>
+                    {getStats().mostConnected?.concept ? (
+                      <div className="highlight-concept">
+                        <h5>{getStats().mostConnected.concept.concept_name}</h5>
+                        <p>{getStats().mostConnected.count} connections</p>
+                        <button 
+                          className="view-btn"
+                          onClick={() => setSelectedNode(getStats().mostConnected.concept)}
+                        >
+                          View Details
+                        </button>
+                      </div>
+                    ) : (
+                      <p>No connections yet</p>
+                    )}
+                  </div>
+
+                  <div className="analytics-card">
+                    <h4>Content Overview</h4>
+                    <div className="content-stats">
+                      <div className="content-stat-item">
+                        <FileText size={24} />
+                        <div>
+                          <span className="content-number">{concepts.reduce((sum, c) => sum + c.notes_count, 0)}</span>
+                          <span className="content-label">Total Notes</span>
+                        </div>
+                      </div>
+                      <div className="content-stat-item">
+                        <Brain size={24} />
+                        <div>
+                          <span className="content-number">{concepts.reduce((sum, c) => sum + c.quizzes_count, 0)}</span>
+                          <span className="content-label">Total Quizzes</span>
+                        </div>
+                      </div>
+                      <div className="content-stat-item">
+                        <BookOpen size={24} />
+                        <div>
+                          <span className="content-number">{concepts.reduce((sum, c) => sum + c.flashcards_count, 0)}</span>
+                          <span className="content-label">Total Flashcards</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Filters and Search */}
             <div className="controls-bar">
               <div className="search-box">
@@ -340,19 +617,76 @@ const ConceptWeb = () => {
               </div>
             </div>
 
-            {/* Concepts Grid */}
+            {/* Bulk Actions Bar */}
+            {selectedConcepts.size > 0 && (
+              <div className="bulk-actions-bar">
+                <div className="bulk-info">
+                  <CheckSquare size={18} />
+                  <span>{selectedConcepts.size} concept{selectedConcepts.size !== 1 ? 's' : ''} selected</span>
+                </div>
+                <div className="bulk-actions">
+                  <button className="bulk-btn" onClick={deselectAll}>
+                    Deselect All
+                  </button>
+                  <button className="bulk-btn danger" onClick={deleteSelected}>
+                    <Trash2 size={16} />
+                    Delete Selected
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Selection Controls */}
+            {getFilteredAndSortedConcepts().length > 0 && (
+              <div className="selection-controls">
+                <button className="select-btn" onClick={selectAll}>
+                  <CheckSquare size={14} />
+                  Select All
+                </button>
+                {selectedConcepts.size > 0 && (
+                  <button className="select-btn" onClick={deselectAll}>
+                    <Square size={14} />
+                    Deselect All
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Concepts Display - Grid or Network */}
+            {viewMode === 'grid' ? (
             <div className="concepts-grid">
               {getFilteredAndSortedConcepts().map(concept => {
                 const connectedConcepts = getConnectedConcepts(concept.id);
                 const totalContent = concept.notes_count + concept.quizzes_count + concept.flashcards_count;
                 
+                const isSelected = selectedConcepts.has(concept.id);
+                const isHighlighted = highlightConnections && 
+                  (highlightConnections === concept.id || 
+                   getConnectedConcepts(highlightConnections).some(c => 
+                     c.source_id === concept.id || c.target_id === concept.id
+                   ));
+
                 return (
                   <div 
                     key={concept.id}
-                    className="concept-card"
-                    onClick={() => setSelectedNode(concept)}
+                    className={`concept-card ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
+                    onClick={(e) => {
+                      if (e.shiftKey) {
+                        toggleConceptSelection(concept.id);
+                      } else {
+                        setSelectedNode(concept);
+                      }
+                    }}
+                    onMouseEnter={() => setHighlightConnections(concept.id)}
+                    onMouseLeave={() => setHighlightConnections(null)}
                     style={{ borderLeftColor: getMasteryColor(concept.mastery_level) }}
                   >
+                    <div className="selection-checkbox" onClick={(e) => {
+                      e.stopPropagation();
+                      toggleConceptSelection(concept.id);
+                    }}>
+                      {isSelected ? <CheckSquare size={18} /> : <Square size={18} />}
+                    </div>
                     <div className="concept-card-header">
                       <h3>{concept.concept_name}</h3>
                       <span className="concept-category">{concept.category}</span>
@@ -414,6 +748,137 @@ const ConceptWeb = () => {
                 );
               })}
             </div>
+            ) : (
+              <div className="network-view">
+                <svg className="network-svg" width="100%" height="600" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                  {/* Draw connections */}
+                  {connections.map((conn, idx) => {
+                    const source = concepts.find(c => c.id === conn.source_id);
+                    const target = concepts.find(c => c.id === conn.target_id);
+                    if (!source || !target) return null;
+
+                    const sourceIndex = concepts.indexOf(source);
+                    const targetIndex = concepts.indexOf(target);
+                    
+                    const centerX = 50;
+                    const centerY = 50;
+                    const radius = 35;
+                    const angleStep = (2 * Math.PI) / concepts.length;
+                    
+                    const sourceAngle = sourceIndex * angleStep - Math.PI / 2;
+                    const targetAngle = targetIndex * angleStep - Math.PI / 2;
+                    
+                    const x1 = centerX + radius * Math.cos(sourceAngle);
+                    const y1 = centerY + radius * Math.sin(sourceAngle);
+                    const x2 = centerX + radius * Math.cos(targetAngle);
+                    const y2 = centerY + radius * Math.sin(targetAngle);
+
+                    const isHighlighted = highlightConnections && 
+                      (highlightConnections === source.id || highlightConnections === target.id);
+
+                    return (
+                      <line
+                        key={`conn-${idx}`}
+                        x1={x1}
+                        y1={y1}
+                        x2={x2}
+                        y2={y2}
+                        stroke={isHighlighted ? getConnectionColor(conn.connection_type) : 'var(--border)'}
+                        strokeWidth={isHighlighted ? 0.3 : 0.15}
+                        strokeOpacity={isHighlighted ? 0.8 : 0.3}
+                        className="connection-line"
+                      />
+                    );
+                  })}
+
+                  {/* Draw nodes */}
+                  {getFilteredAndSortedConcepts().map((concept, index) => {
+                    const centerX = 50;
+                    const centerY = 50;
+                    const radius = 35;
+                    const angleStep = (2 * Math.PI) / concepts.length;
+                    const angle = index * angleStep - Math.PI / 2;
+                    
+                    const x = centerX + radius * Math.cos(angle);
+                    const y = centerY + radius * Math.sin(angle);
+
+                    const isSelected = selectedConcepts.has(concept.id);
+                    const isHighlighted = highlightConnections === concept.id;
+                    const connectedConcepts = getConnectedConcepts(concept.id);
+
+                    return (
+                      <g 
+                        key={concept.id}
+                        className={`network-node ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
+                        onMouseEnter={() => setHighlightConnections(concept.id)}
+                        onMouseLeave={() => setHighlightConnections(null)}
+                        onClick={(e) => {
+                          if (e.shiftKey) {
+                            toggleConceptSelection(concept.id);
+                          } else {
+                            setSelectedNode(concept);
+                          }
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <circle
+                          cx={x}
+                          cy={y}
+                          r={isHighlighted ? 2.5 : 2}
+                          fill={getMasteryColor(concept.mastery_level)}
+                          stroke={isSelected ? 'var(--accent)' : 'var(--border)'}
+                          strokeWidth={isSelected ? 0.3 : 0.15}
+                          className="node-circle"
+                        />
+                        <text
+                          x={x}
+                          y={y - 3}
+                          textAnchor="middle"
+                          fill="var(--text-primary)"
+                          fontSize="1.8"
+                          fontWeight="700"
+                          className="node-label"
+                        >
+                          {concept.concept_name.length > 12 
+                            ? concept.concept_name.substring(0, 12) + '...' 
+                            : concept.concept_name}
+                        </text>
+                        <text
+                          x={x}
+                          y={y + 4}
+                          textAnchor="middle"
+                          fill="var(--text-secondary)"
+                          fontSize="1.2"
+                          fontWeight="600"
+                          className="node-sublabel"
+                        >
+                          {Math.round(concept.mastery_level * 100)}% • {connectedConcepts.length}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
+
+                <div className="network-legend">
+                  <h4>Mastery Levels</h4>
+                  <div className="legend-items">
+                    <div className="legend-item">
+                      <div className="legend-color" style={{ background: '#EF4444' }}></div>
+                      <span>Beginner (&lt;30%)</span>
+                    </div>
+                    <div className="legend-item">
+                      <div className="legend-color" style={{ background: '#F59E0B' }}></div>
+                      <span>Intermediate (30-70%)</span>
+                    </div>
+                    <div className="legend-item">
+                      <div className="legend-color" style={{ background: '#10B981' }}></div>
+                      <span>Advanced (&gt;70%)</span>
+                    </div>
+                  </div>
+                  <p className="network-hint">Hover over nodes to highlight connections • Shift+Click to select</p>
+                </div>
+              </div>
+            )}
 
             {getFilteredAndSortedConcepts().length === 0 && (
               <div className="no-results">
@@ -425,12 +890,38 @@ const ConceptWeb = () => {
         )}
       </div>
 
+      {!selectedNode && concepts.length > 0 && (
+        <div className="floating-hint">
+          <Eye size={16} />
+          <span>Click any concept to view details</span>
+        </div>
+      )}
+
       {selectedNode && (
-        <div className="node-details-panel">
+        <div className={`node-details-panel ${isPanelCollapsed ? 'collapsed' : ''}`}>
           <div className="panel-header">
-            <h3>{selectedNode.concept_name}</h3>
-            <button className="close-btn" onClick={() => setSelectedNode(null)}>×</button>
+            {!isPanelCollapsed && <h3>{selectedNode.concept_name}</h3>}
+            <div className="panel-header-actions">
+              <button 
+                className="toggle-btn" 
+                onClick={() => setIsPanelCollapsed(!isPanelCollapsed)}
+                title={isPanelCollapsed ? "Show Details" : "Hide Details"}
+              >
+                {isPanelCollapsed ? <Eye size={18} /> : <EyeOff size={18} />}
+              </button>
+              <button 
+                className="close-btn" 
+                onClick={() => {
+                  setSelectedNode(null);
+                  setIsPanelCollapsed(false);
+                }}
+                title="Close Panel"
+              >
+                ×
+              </button>
+            </div>
           </div>
+          {!isPanelCollapsed && (
           <div className="panel-content">
             <div className="detail-section">
               <label>Category</label>
@@ -460,27 +951,58 @@ const ConceptWeb = () => {
             <div className="detail-section">
               <label>Related Content</label>
               <div className="content-counts">
-                <div className="count-item">
+                <div 
+                  className={`count-item clickable ${generatingContent === 'notes' ? 'generating' : ''}`}
+                  onClick={() => generateConceptContent('notes')}
+                  title="AI Generate study notes for this concept"
+                >
                   <FileText size={18} />
                   <div>
                     <strong>{selectedNode.notes_count}</strong>
                     <span>Notes</span>
                   </div>
+                  {generatingContent === 'notes' ? (
+                    <Loader size={14} className="spinner" />
+                  ) : (
+                    <Sparkles size={14} className="add-icon" />
+                  )}
                 </div>
-                <div className="count-item">
+                <div 
+                  className={`count-item clickable ${generatingContent === 'quiz' ? 'generating' : ''}`}
+                  onClick={() => generateConceptContent('quiz')}
+                  title="AI Generate practice quiz for this concept"
+                >
                   <Brain size={18} />
                   <div>
                     <strong>{selectedNode.quizzes_count}</strong>
                     <span>Quizzes</span>
                   </div>
+                  {generatingContent === 'quiz' ? (
+                    <Loader size={14} className="spinner" />
+                  ) : (
+                    <Sparkles size={14} className="add-icon" />
+                  )}
                 </div>
-                <div className="count-item">
+                <div 
+                  className={`count-item clickable ${generatingContent === 'flashcards' ? 'generating' : ''}`}
+                  onClick={() => generateConceptContent('flashcards')}
+                  title="AI Generate flashcards for this concept"
+                >
                   <BookOpen size={18} />
                   <div>
                     <strong>{selectedNode.flashcards_count}</strong>
                     <span>Flashcards</span>
                   </div>
+                  {generatingContent === 'flashcards' ? (
+                    <Loader size={14} className="spinner" />
+                  ) : (
+                    <Sparkles size={14} className="add-icon" />
+                  )}
                 </div>
+              </div>
+              <div className="mastery-tip">
+                <Sparkles size={14} />
+                <span>Click above to AI-generate content and boost mastery by 10%</span>
               </div>
             </div>
             
@@ -512,6 +1034,7 @@ const ConceptWeb = () => {
               Delete Concept
             </button>
           </div>
+          )}
         </div>
       )}
 
