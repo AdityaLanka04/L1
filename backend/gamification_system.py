@@ -62,7 +62,7 @@ def get_or_create_stats(db: Session, user_id: int):
 def check_and_reset_weekly_stats(stats):
     """Check if weekly stats need to be reset"""
     week_start = get_week_start()
-    if stats.week_start_date.date() < week_start:
+    if stats.week_start_date is None or stats.week_start_date.date() < week_start:
         stats.weekly_points = 0
         stats.weekly_ai_chats = 0
         stats.weekly_notes_created = 0
@@ -150,13 +150,27 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
         description = "Participated in Battle"
     
     # Update points and level
+    old_level = stats.level
     stats.total_points += points_earned
     stats.weekly_points += points_earned
     stats.experience = stats.total_points
     stats.level = calculate_level_from_xp(stats.experience)
     
+    # Check for level up
+    if stats.level > old_level:
+        notification = models.Notification(
+            user_id=user_id,
+            title=f"Level Up! Now Level {stats.level}",
+            message=f"Congratulations! You've reached level {stats.level}. Keep learning to unlock more!",
+            notification_type="level_up"
+        )
+        db.add(notification)
+    
     # Update streak
     today = datetime.now(timezone.utc).date()
+    streak_milestone_reached = False
+    old_streak = stats.current_streak
+    
     if stats.last_activity_date:
         last_date = stats.last_activity_date.date()
         if last_date == today:
@@ -165,12 +179,35 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
             stats.current_streak += 1
             if stats.current_streak > stats.longest_streak:
                 stats.longest_streak = stats.current_streak
+            # Check for streak milestones
+            if stats.current_streak in [7, 14, 30, 60, 100]:
+                streak_milestone_reached = True
         else:
+            # Streak broken
+            if old_streak >= 7:
+                # Notify about broken streak
+                notification = models.Notification(
+                    user_id=user_id,
+                    title="Streak Broken",
+                    message=f"Your {old_streak}-day streak has ended. Start a new one today!",
+                    notification_type="streak_broken"
+                )
+                db.add(notification)
             stats.current_streak = 1
     else:
         stats.current_streak = 1
     
     stats.last_activity_date = datetime.now(timezone.utc)
+    
+    # Create streak milestone notification
+    if streak_milestone_reached:
+        notification = models.Notification(
+            user_id=user_id,
+            title=f"{stats.current_streak}-Day Streak!",
+            message=f"Incredible! You've maintained a {stats.current_streak}-day learning streak. Keep it going!",
+            notification_type="streak_milestone"
+        )
+        db.add(notification)
     
     # Create transaction record
     transaction = models.PointTransaction(

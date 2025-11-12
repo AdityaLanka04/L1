@@ -1362,6 +1362,22 @@ class WeeklyBingoProgress(Base):
     
     user = relationship("User")
 
+class Notification(Base):
+    """User notifications"""
+    __tablename__ = "notifications"
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    
+    title = Column(String(200), nullable=False)
+    message = Column(Text, nullable=False)
+    notification_type = Column(String(50))  # inactivity, quiz_poor_performance, achievement, etc.
+    is_read = Column(Boolean, default=False)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User")
+
 def create_tables():
     Base.metadata.create_all(bind=engine)
 

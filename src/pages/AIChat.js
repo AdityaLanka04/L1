@@ -590,8 +590,98 @@ const AIChat = ({ sharedMode = false }) => {
     });
   };
 
+  // Convert text symbols to Unicode symbols
+  const convertSymbolsToUnicode = (text) => {
+    const symbolMap = {
+      // Greek letters
+      '*alpha*': 'α', '*Alpha*': 'Α',
+      '*beta*': 'β', '*Beta*': 'Β',
+      '*gamma*': 'γ', '*Gamma*': 'Γ',
+      '*delta*': 'δ', '*Delta*': 'Δ',
+      '*epsilon*': 'ε', '*Epsilon*': 'Ε',
+      '*zeta*': 'ζ', '*Zeta*': 'Ζ',
+      '*eta*': 'η', '*Eta*': 'Η',
+      '*theta*': 'θ', '*Theta*': 'Θ',
+      '*iota*': 'ι', '*Iota*': 'Ι',
+      '*kappa*': 'κ', '*Kappa*': 'Κ',
+      '*lambda*': 'λ', '*Lambda*': 'Λ',
+      '*mu*': 'μ', '*Mu*': 'Μ',
+      '*nu*': 'ν', '*Nu*': 'Ν',
+      '*xi*': 'ξ', '*Xi*': 'Ξ',
+      '*omicron*': 'ο', '*Omicron*': 'Ο',
+      '*pi*': 'π', '*Pi*': 'Π',
+      '*rho*': 'ρ', '*Rho*': 'Ρ',
+      '*sigma*': 'σ', '*Sigma*': 'Σ',
+      '*tau*': 'τ', '*Tau*': 'Τ',
+      '*upsilon*': 'υ', '*Upsilon*': 'Υ',
+      '*phi*': 'φ', '*Phi*': 'Φ',
+      '*chi*': 'χ', '*Chi*': 'Χ',
+      '*psi*': 'ψ', '*Psi*': 'Ψ',
+      '*omega*': 'ω', '*Omega*': 'Ω',
+      
+      // Math symbols
+      '*infinity*': '∞',
+      '*sum*': '∑',
+      '*product*': '∏',
+      '*integral*': '∫',
+      '*partial*': '∂',
+      '*nabla*': '∇',
+      '*sqrt*': '√',
+      '*approx*': '≈',
+      '*neq*': '≠',
+      '*leq*': '≤',
+      '*geq*': '≥',
+      '*times*': '×',
+      '*divide*': '÷',
+      '*plusminus*': '±',
+      '*degree*': '°',
+      '*therefore*': '∴',
+      '*because*': '∵',
+      '*forall*': '∀',
+      '*exists*': '∃',
+      '*in*': '∈',
+      '*notin*': '∉',
+      '*subset*': '⊂',
+      '*supset*': '⊃',
+      '*union*': '∪',
+      '*intersection*': '∩',
+      '*angle*': '∠',
+      '*perpendicular*': '⊥',
+      '*parallel*': '∥',
+      '*arrow*': '→',
+      '*leftarrow*': '←',
+      '*rightarrow*': '→',
+      '*uparrow*': '↑',
+      '*downarrow*': '↓',
+    };
+    
+    let result = text;
+    for (const [symbol, unicode] of Object.entries(symbolMap)) {
+      result = result.replace(new RegExp(symbol.replace(/[*]/g, '\\*'), 'gi'), unicode);
+    }
+    return result;
+  };
+
   const renderMessageContent = (content) => {
     if (!content) return null;
+
+    // Convert symbols to Unicode first
+    content = convertSymbolsToUnicode(content);
+
+    // Convert superscripts and subscripts
+    // Match patterns like x^2, a^n, 10^-3, etc.
+    content = content.replace(/\^(\d+|[a-zA-Z]|\{[^}]+\})/g, (match, exp) => {
+      // Remove curly braces if present
+      const cleanExp = exp.replace(/[{}]/g, '');
+      return `<sup>${cleanExp}</sup>`;
+    });
+    
+    // Match subscripts like H_2O, x_i, etc.
+    content = content.replace(/_(\d+|[a-zA-Z]|\{[^}]+\})/g, (match, sub) => {
+      // Remove curly braces if present
+      const cleanSub = sub.replace(/[{}]/g, '');
+      return `<sub>${cleanSub}</sub>`;
+    });
 
     // Split content by code blocks (```language\ncode\n```)
     const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
@@ -633,7 +723,7 @@ const AIChat = ({ sharedMode = false }) => {
 
     return parts.map((part, index) => {
       if (part.type === 'text') {
-        return <span key={index}>{part.content}</span>;
+        return <span key={index} dangerouslySetInnerHTML={{ __html: part.content }} />;
       } else {
         return (
           <div key={index} className="code-block-container">
@@ -766,8 +856,8 @@ const AIChat = ({ sharedMode = false }) => {
               <button 
                 className="new-chat-btn" 
                 onClick={handleNewChat}
-                disabled={chatSessions.length > 0}
-                title={chatSessions.length > 0 ? "Chat already exists" : "Create new chat"}
+                disabled={loading}
+                title="Create new chat"
               >
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M6 1v10M1 6h10"/>

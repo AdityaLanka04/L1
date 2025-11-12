@@ -2605,7 +2605,43 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(new_note)
         
-        return {
+        # Check for note creation milestones
+        total_notes = db.query(models.Note).filter(
+            models.Note.user_id == user.id,
+            models.Note.is_deleted == False
+        ).count()
+        
+        # Create milestone notifications
+        notification = None
+        if total_notes == 1:
+            notification = models.Notification(
+                user_id=user.id,
+                title="First Note Created!",
+                message="Great start! You've created your first note. Keep organizing your learning!",
+                notification_type="milestone"
+            )
+            db.add(notification)
+            db.commit()
+        elif total_notes == 10:
+            notification = models.Notification(
+                user_id=user.id,
+                title="10 Notes Milestone!",
+                message="Impressive! You've created 10 notes. Your knowledge base is growing!",
+                notification_type="milestone"
+            )
+            db.add(notification)
+            db.commit()
+        elif total_notes == 50:
+            notification = models.Notification(
+                user_id=user.id,
+                title="50 Notes Achievement!",
+                message="Amazing! You've created 50 notes. You're building a comprehensive knowledge library!",
+                notification_type="milestone"
+            )
+            db.add(notification)
+            db.commit()
+        
+        response = {
             "id": new_note.id,
             "title": new_note.title,
             "content": new_note.content,
@@ -2615,6 +2651,16 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
             "status": "success",
             "message": "Note created successfully"
         }
+        
+        # Include notification in response if created
+        if notification:
+            response["notification"] = {
+                "title": notification.title,
+                "message": notification.message,
+                "notification_type": notification.notification_type
+            }
+        
+        return response
         
     except Exception as e:
         logger.error(f"Error creating note: {str(e)}")
@@ -6948,6 +6994,9 @@ async def complete_quiz_battle(
             winner = battle.challenger if winner_id == battle.challenger_id else battle.opponent
             loser = battle.opponent if winner_id == battle.challenger_id else battle.challenger
             
+            winner_score = battle.challenger_score if winner_id == battle.challenger_id else battle.opponent_score
+            loser_score = battle.opponent_score if winner_id == battle.challenger_id else battle.challenger_score
+            
             activity = models.FriendActivity(
                 user_id=winner_id,
                 activity_type="quiz_battle_won",
@@ -6955,12 +7004,31 @@ async def complete_quiz_battle(
                 description=f"Defeated {loser.username} in {battle.subject}",
                 icon="Swords",
                 activity_data=json.dumps({
-                    "winner_score": battle.challenger_score if winner_id == battle.challenger_id else battle.opponent_score,
-                    "loser_score": battle.opponent_score if winner_id == battle.challenger_id else battle.challenger_score,
+                    "winner_score": winner_score,
+                    "loser_score": loser_score,
                     "subject": battle.subject
                 })
             )
             db.add(activity)
+            
+            # Create notifications for both players
+            # Winner notification
+            winner_notification = models.Notification(
+                user_id=winner_id,
+                title="Battle Victory!",
+                message=f"You won the quiz battle against {loser.username} with a score of {winner_score}%!",
+                notification_type="battle_won"
+            )
+            db.add(winner_notification)
+            
+            # Loser notification (encouraging)
+            loser_notification = models.Notification(
+                user_id=loser.id,
+                title="Battle Complete",
+                message=f"Good effort! You scored {loser_score}% against {winner.username}. Practice and challenge them again!",
+                notification_type="battle_lost"
+            )
+            db.add(loser_notification)
         elif battle.status == "pending":
             battle.status = "active"
             battle.started_at = datetime.now(timezone.utc)
@@ -8590,6 +8658,8 @@ async def complete_solo_quiz(
         if not quiz:
             raise HTTPException(status_code=404, detail="Quiz not found")
         
+        logger.info(f"Quiz completion - User: {current_user.id}, Score: {score}%")
+        
         quiz.score = score
         quiz.completed = True
         quiz.status = "completed"
@@ -8597,11 +8667,53 @@ async def complete_solo_quiz(
         quiz.completed_at = datetime.now(timezone.utc)
         
         db.commit()
+        logger.info(f"Quiz saved successfully")
         
-        return {
+        # Create notifications based on quiz performance
+        logger.info(f"Checking notification conditions - Score: {score}")
+        notification = None
+        
+        if score < 50:
+            # Poor performance
+            logger.info(f"Creating poor performance notification (score {score} < 50)")
+            notification = models.Notification(
+                user_id=current_user.id,
+                title="Quiz Performance Alert",
+                message=f"Your recent quiz score was {score}%. Review the material and try again to improve!",
+                notification_type="quiz_poor_performance"
+            )
+            db.add(notification)
+            db.commit()
+            logger.info(f"✅ Created poor performance notification for user {current_user.id}")
+        elif score >= 90:
+            # Excellent performance
+            logger.info(f"Creating excellent performance notification (score {score} >= 90)")
+            notification = models.Notification(
+                user_id=current_user.id,
+                title="Excellent Work!",
+                message=f"Amazing! You scored {score}% on your quiz. Keep up the great work!",
+                notification_type="quiz_excellent"
+            )
+            db.add(notification)
+            db.commit()
+            logger.info(f"✅ Created excellent performance notification for user {current_user.id}")
+        else:
+            logger.info(f"No notification created - score {score} is between 50-89")
+        
+        response = {
             "status": "success",
             "message": "Quiz completed"
         }
+        
+        # Include notification in response if created
+        if notification:
+            response["notification"] = {
+                "title": notification.title,
+                "message": notification.message,
+                "notification_type": notification.notification_type
+            }
+        
+        return response
     
     except Exception as e:
         logger.error(f"Error completing solo quiz: {str(e)}")
@@ -8944,6 +9056,135 @@ async def recalculate_gamification(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 # ==================== END SERVE REACT APP ====================
+
+
+# ==================== NOTIFICATION ENDPOINTS ====================
+
+@app.get("/api/get_notifications")
+async def get_notifications(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Get all notifications for a user"""
+    try:
+        logger.info(f"Getting notifications for user: {user_id}")
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        
+        if not user:
+            logger.warning(f"User not found for notifications: {user_id}")
+            # Return empty notifications instead of 404
+            return {"notifications": []}
+        
+        logger.info(f"Found user with id: {user.id}")
+        
+        notifications = db.query(models.Notification).filter(
+            models.Notification.user_id == user.id
+        ).order_by(models.Notification.created_at.desc()).all()
+        
+        logger.info(f"Found {len(notifications)} notifications")
+        
+        return {
+            "notifications": [
+                {
+                    "id": n.id,
+                    "title": n.title,
+                    "message": n.message,
+                    "notification_type": n.notification_type,
+                    "is_read": n.is_read,
+                    "created_at": n.created_at.isoformat()
+                }
+                for n in notifications
+            ]
+        }
+    except HTTPException as he:
+        logger.error(f"HTTPException in get_notifications: {he.detail}")
+        raise
+    except Exception as e:
+        logger.error(f"Error getting notifications: {str(e)}", exc_info=True)
+        # Return empty notifications on error instead of 500
+        return {"notifications": []}
+
+@app.put("/api/mark_notification_read/{notification_id}")
+async def mark_notification_read(
+    notification_id: int,
+    db: Session = Depends(get_db)
+):
+    """Mark a notification as read"""
+    try:
+        notification = db.query(models.Notification).filter(
+            models.Notification.id == notification_id
+        ).first()
+        
+        if not notification:
+            raise HTTPException(status_code=404, detail="Notification not found")
+        
+        notification.is_read = True
+        db.commit()
+        
+        return {"status": "success", "message": "Notification marked as read"}
+    except Exception as e:
+        logger.error(f"Error marking notification as read: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/mark_all_notifications_read")
+async def mark_all_notifications_read(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Mark all notifications as read for a user"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        db.query(models.Notification).filter(
+            models.Notification.user_id == user.id,
+            models.Notification.is_read == False
+        ).update({"is_read": True})
+        
+        db.commit()
+        
+        return {"status": "success", "message": "All notifications marked as read"}
+    except Exception as e:
+        logger.error(f"Error marking all notifications as read: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/create_notification")
+async def create_notification(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """Create a notification for a user"""
+    try:
+        user_id = payload.get("user_id")
+        title = payload.get("title")
+        message = payload.get("message")
+        notification_type = payload.get("notification_type", "general")
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        notification = models.Notification(
+            user_id=user.id,
+            title=title,
+            message=message,
+            notification_type=notification_type
+        )
+        
+        db.add(notification)
+        db.commit()
+        db.refresh(notification)
+        
+        return {
+            "status": "success",
+            "notification_id": notification.id,
+            "message": "Notification created"
+        }
+    except Exception as e:
+        logger.error(f"Error creating notification: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     import uvicorn

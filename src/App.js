@@ -27,6 +27,7 @@ import Register from './pages/Register';
 import Profile from './pages/profile';
 import ProfileQuiz from './pages/ProfileQuiz';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ToastProvider } from './contexts/ToastContext';
 import SharedItemViewer from './pages/SharedItemViewer';
 import NotesRedesign from './pages/NotesRedesign';
 import Games from './pages/Games';
@@ -85,7 +86,8 @@ function App() {
 
   return (
     <ThemeProvider>
-      <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-top)', color: 'var(--text-primary)' }}>
+      <ToastProvider>
+        <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-top)', color: 'var(--text-primary)' }}>
         {/* Proactive AI Notification - appears on all pages */}
         {proactiveNotification && (
           <ProactiveNotification
@@ -133,7 +135,8 @@ function App() {
           <Route path="/shared/chat/:chatId" element={<AIChat sharedMode={true} />} />
           <Route path="/shared/note/:noteId" element={<NotesRedesign sharedMode={true} />} />
         </Routes>
-      </div>
+        </div>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

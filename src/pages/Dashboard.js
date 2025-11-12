@@ -18,9 +18,10 @@ import {
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  CheckCircle, XCircle, Clock, Plus, Users
+  CheckCircle, XCircle, Clock, Plus, Users, Bell
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useToast } from '../contexts/ToastContext';
 import { rgbaFromHex } from '../utils/ThemeManager';
 import ThemeSwitcher from '../components/ThemeSwitcher';
 import './Dashboard.css';
@@ -36,6 +37,7 @@ if (document.querySelector('link[href*="Flashcards.css"]')) {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { selectedTheme } = useTheme();
+  const { showToast } = useToast();
   
   const [userName, setUserName] = useState('');
   const [userProfile, setUserProfile] = useState(null);
@@ -86,6 +88,11 @@ const Dashboard = () => {
   const [achievements, setAchievements] = useState([]);
   const [learningAnalytics, setLearningAnalytics] = useState(null);
   const [conversationStarters, setConversationStarters] = useState([]);
+  
+  // Notification states
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const timeIntervalRef = useRef(null);
   const sessionUpdateRef = useRef(null);
@@ -208,6 +215,70 @@ const Dashboard = () => {
     }
   };
 
+  const loadNotifications = async () => {
+    if (!userName) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/get_notifications?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const newNotifications = data.notifications || [];
+        
+        // Check for new notifications and show toast
+        const lastCheckTime = localStorage.getItem('lastNotificationCheck');
+        const currentTime = new Date().toISOString();
+        
+        if (lastCheckTime) {
+          const newOnes = newNotifications.filter(n => 
+            new Date(n.created_at) > new Date(lastCheckTime) && !n.is_read
+          );
+          
+          // Show toast for new notifications
+          newOnes.forEach(notification => {
+            showToast(notification);
+          });
+        }
+        
+        localStorage.setItem('lastNotificationCheck', currentTime);
+        setNotifications(newNotifications);
+        setUnreadCount(newNotifications.filter(n => !n.is_read).length);
+      }
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+      // If endpoint doesn't exist, set empty array
+      setNotifications([]);
+      setUnreadCount(0);
+    }
+  };
+
+  const markNotificationAsRead = async (notificationId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${API_URL}/mark_notification_read/${notificationId}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      loadNotifications();
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const markAllNotificationsAsRead = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${API_URL}/mark_all_notifications_read?user_id=${userName}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      loadNotifications();
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  };
+
   const createLearningReview = async () => {
   if (!userName) return;
   
@@ -309,11 +380,23 @@ const Dashboard = () => {
 
     loadMotivationalQuote();
     loadLearningReviews();
+    loadNotifications();
     
   } catch (error) {
     console.error('Error loading dashboard data:', error);
   }
 };
+
+  // Poll for new notifications every 10 seconds
+  useEffect(() => {
+    if (!userName) return;
+    
+    const notificationInterval = setInterval(() => {
+      loadNotifications();
+    }, 10000); // Check every 10 seconds
+    
+    return () => clearInterval(notificationInterval);
+  }, [userName]);
   async function responseToJsonSafely(resp) {
     try { return await resp.json(); } catch { return {}; }
   }
@@ -1350,6 +1433,65 @@ const Dashboard = () => {
           </div>
           <div className="header-right">
             <ThemeSwitcher />
+            
+            {/* Notification Bell */}
+            <div className="notification-container">
+              <button 
+                className="notification-bell"
+                onClick={() => setShowNotifications(!showNotifications)}
+                title="Notifications"
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span className="notification-badge">{unreadCount}</span>
+                )}
+              </button>
+              
+              {showNotifications && (
+                <div className="notification-dropdown">
+                  <div className="notification-header">
+                    <h3>Notifications</h3>
+                    {unreadCount > 0 && (
+                      <button 
+                        className="mark-all-read"
+                        onClick={markAllNotificationsAsRead}
+                      >
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="notification-list">
+                    {notifications.length === 0 ? (
+                      <div className="no-notifications">
+                        <Bell size={40} />
+                        <p>No notifications yet</p>
+                      </div>
+                    ) : (
+                      notifications.map(notification => (
+                        <div 
+                          key={notification.id}
+                          className={`notification-item ${!notification.is_read ? 'unread' : ''}`}
+                          onClick={() => !notification.is_read && markNotificationAsRead(notification.id)}
+                        >
+                          <div className="notification-content">
+                            <h4>{notification.title}</h4>
+                            <p>{notification.message}</p>
+                            <span className="notification-time">
+                              {new Date(notification.created_at).toLocaleString()}
+                            </span>
+                          </div>
+                          {!notification.is_read && (
+                            <div className="unread-indicator"></div>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            
             <div className="user-info">
               {userProfile?.picture && (
   <img
