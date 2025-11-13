@@ -3242,7 +3242,7 @@ async def check_proactive_message(
             raise HTTPException(status_code=404, detail="User not found")
         
         # Get proactive AI engine
-        proactive_engine = get_proactive_ai_engine(groq_client, MODEL_NAME)
+        proactive_engine = get_proactive_ai_engine(groq_client, GROQ_MODEL)
         
         # Get user profile for personalization
         user_profile = {
@@ -9250,111 +9250,205 @@ async def generate_concept_web(
     payload: dict = Body(...),
     db: Session = Depends(get_db)
 ):
-    """AI generates concept web from user's learning content"""
+    """Generate concept web from user's actual learning content"""
     try:
         user_id = payload.get("user_id")
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # Gather user's learning content
+        logger.info(f"Generating concept web for user: {user.username}")
+        
+        # Delete ALL existing concepts first
+        db.query(models.ConceptConnection).filter(
+            models.ConceptConnection.user_id == user.id
+        ).delete()
+        db.query(models.ConceptNode).filter(
+            models.ConceptNode.user_id == user.id
+        ).delete()
+        db.commit()
+        
+        # Gather ACTUAL content titles/subjects
+        concepts_to_create = {}  # Use dict to track source
+        
+        # From Notes - use actual note titles
         notes = db.query(models.Note).filter(
             models.Note.user_id == user.id,
             models.Note.is_deleted == False
         ).all()
+        logger.info(f"Found {len(notes)} notes")
+        for note in notes:
+            if note.title and len(note.title.strip()) > 2:
+                title = note.title.strip()
+                if title not in concepts_to_create:
+                    concepts_to_create[title] = ("Note", "Academic")
         
+        # From Quizzes - use actual quiz subjects
         quizzes = db.query(models.SoloQuiz).filter(
             models.SoloQuiz.user_id == user.id
         ).all()
+        logger.info(f"Found {len(quizzes)} quizzes")
+        for quiz in quizzes:
+            if quiz.subject and len(quiz.subject.strip()) > 2:
+                subject = quiz.subject.strip()
+                if subject not in concepts_to_create:
+                    concepts_to_create[subject] = ("Quiz", "Academic")
         
+        # From Flashcard Sets - use actual set titles
         flashcard_sets = db.query(models.FlashcardSet).filter(
             models.FlashcardSet.user_id == user.id
         ).all()
+        logger.info(f"Found {len(flashcard_sets)} flashcard sets")
+        for fs in flashcard_sets:
+            if fs.title and len(fs.title.strip()) > 2:
+                title = fs.title.strip()
+                if title not in concepts_to_create:
+                    concepts_to_create[title] = ("Flashcards", "Academic")
         
-        # Extract concepts from content
-        content_summary = []
-        for note in notes[:20]:  # Limit to recent 20
-            content_summary.append(f"Note: {note.title}")
-        for quiz in quizzes[:10]:
-            content_summary.append(f"Quiz: {quiz.subject}")
-        for fs in flashcard_sets[:10]:
-            content_summary.append(f"Flashcards: {fs.title}")
+        # From AI Chat Sessions - use chat titles
+        chat_sessions = db.query(models.ChatSession).filter(
+            models.ChatSession.user_id == user.id
+        ).order_by(models.ChatSession.updated_at.desc()).limit(50).all()
+        logger.info(f"Found {len(chat_sessions)} chat sessions")
+        for session in chat_sessions:
+            if session.title and session.title != "New Chat" and len(session.title.strip()) > 2:
+                title = session.title.strip()
+                if title not in concepts_to_create:
+                    concepts_to_create[title] = ("AI Chat", "Discussion")
         
-        if not content_summary:
+        if not concepts_to_create:
+            logger.info("No content found")
             return {"status": "no_content", "message": "No learning content found"}
         
-        # AI prompt to extract concepts and connections
-        prompt = f"""Analyze this student's learning content and extract key concepts with their relationships.
-
-Content:
-{chr(10).join(content_summary)}
-
-Return a JSON with:
-1. "concepts": array of {{name, description, category}}
-2. "connections": array of {{source, target, type, strength}}
-
-Connection types: prerequisite, related, opposite, example_of, part_of
-Strength: 0.0-1.0
-
-Limit to 15 most important concepts. Return ONLY valid JSON."""
-
-        # Call AI
-        response = groq_client.chat.completions.create(
-            model=GROQ_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-            max_tokens=2000
-        )
+        logger.info(f"Creating {len(concepts_to_create)} concepts with AI classification")
         
-        ai_response = response.choices[0].message.content.strip()
-        logger.info(f"AI Response: {ai_response[:500]}")
+        # Get AI classification agent
+        from concept_classification_agent import get_concept_agent
+        agent = get_concept_agent(groq_client, GROQ_MODEL)
         
-        # Parse JSON
-        import re
-        json_match = re.search(r'\{[\s\S]*\}', ai_response)
-        if json_match:
-            data = json.loads(json_match.group())
-        else:
-            data = json.loads(ai_response)
-        
-        logger.info(f"Parsed data: concepts={len(data.get('concepts', []))}, connections={len(data.get('connections', []))}")
-        
-        # Create concept nodes
+        # Create concept nodes with AI-powered classification
         concept_map = {}
-        for concept in data.get("concepts", []):
+        connections_to_create = []
+        
+        for concept_name, (source_type, category) in concepts_to_create.items():
+            try:
+                # Use AI to classify each concept with maximum specificity
+                classification = agent.ai_classify_single_concept(
+                    concept_name, 
+                    f"Learning content from {source_type}"
+                )
+                
+                # Use AI classification
+                ai_category = classification.get("category", category)
+                subcategory = classification.get("subcategory", "")
+                advanced_topic = classification.get("advanced_topic", concept_name)
+                
+                # Enhanced description
+                description = f"{advanced_topic}"
+                if subcategory and subcategory != advanced_topic:
+                    description = f"{subcategory}: {advanced_topic}"
+                description += f" (from {source_type})"
+                
+                # Store related concepts and prerequisites for connection creation
+                related = classification.get("related_concepts", [])
+                prereqs = classification.get("prerequisites", [])
+                
+            except Exception as e:
+                logger.error(f"AI classification failed for {concept_name}: {e}")
+                # Fallback to basic classification
+                ai_category = category
+                description = f"{concept_name} (from {source_type})"
+                related = []
+                prereqs = []
+            
+            # Create the node (always, even if AI fails)
             node = models.ConceptNode(
                 user_id=user.id,
-                concept_name=concept["name"],
-                description=concept.get("description", ""),
-                category=concept.get("category", "General"),
+                concept_name=concept_name,
+                description=description,
+                category=ai_category,
                 importance_score=0.7
             )
             db.add(node)
             db.flush()
-            concept_map[concept["name"]] = node.id
-        
-        # Create connections
-        for conn in data.get("connections", []):
-            source_id = concept_map.get(conn["source"])
-            target_id = concept_map.get(conn["target"])
+            concept_map[concept_name] = node.id
             
-            if source_id and target_id:
-                connection = models.ConceptConnection(
-                    user_id=user.id,
-                    source_concept_id=source_id,
-                    target_concept_id=target_id,
-                    connection_type=conn.get("type", "related"),
-                    strength=conn.get("strength", 0.5),
-                    ai_generated=True
-                )
-                db.add(connection)
+            connections_to_create.append((node.id, concept_name, related, prereqs))
+        
+        # Create connections between related concepts
+        connections_created = 0
+        
+        # Get all nodes for connection creation
+        all_nodes = db.query(models.ConceptNode).filter(
+            models.ConceptNode.user_id == user.id
+        ).all()
+        
+        for node_id, concept_name, related_concepts, prerequisites in connections_to_create:
+            current_node = next((n for n in all_nodes if n.id == node_id), None)
+            if not current_node:
+                continue
+            
+            # Strategy 1: AI-suggested related concepts
+            for related_name in related_concepts[:3]:  # Top 3 related
+                for other_node in all_nodes:
+                    if other_node.id != node_id and related_name.lower() in other_node.concept_name.lower():
+                        conn = models.ConceptConnection(
+                            user_id=user.id,
+                            source_concept_id=node_id,
+                            target_concept_id=other_node.id,
+                            connection_type="related",
+                            strength=0.7,
+                            ai_generated=True
+                        )
+                        db.add(conn)
+                        connections_created += 1
+                        break
+            
+            # Strategy 2: AI-suggested prerequisites
+            for prereq_name in prerequisites[:2]:  # Top 2 prerequisites
+                for other_node in all_nodes:
+                    if other_node.id != node_id and prereq_name.lower() in other_node.concept_name.lower():
+                        conn = models.ConceptConnection(
+                            user_id=user.id,
+                            source_concept_id=other_node.id,  # Prerequisite points to this concept
+                            target_concept_id=node_id,
+                            connection_type="prerequisite",
+                            strength=0.8,
+                            ai_generated=True
+                        )
+                        db.add(conn)
+                        connections_created += 1
+                        break
+            
+            # Strategy 3: Same category connections (create web within categories)
+            same_category_nodes = [n for n in all_nodes if n.id != node_id and n.category == current_node.category]
+            for other_node in same_category_nodes[:2]:  # Connect to 2 nodes in same category
+                # Check if connection already exists
+                existing = db.query(models.ConceptConnection).filter(
+                    models.ConceptConnection.user_id == user.id,
+                    models.ConceptConnection.source_concept_id == node_id,
+                    models.ConceptConnection.target_concept_id == other_node.id
+                ).first()
+                
+                if not existing:
+                    conn = models.ConceptConnection(
+                        user_id=user.id,
+                        source_concept_id=node_id,
+                        target_concept_id=other_node.id,
+                        connection_type="similar",
+                        strength=0.5,
+                        ai_generated=True
+                    )
+                    db.add(conn)
+                    connections_created += 1
         
         db.commit()
+        logger.info(f"Successfully created {len(concept_map)} concepts and {connections_created} connections")
         
         return {
             "status": "success",
             "concepts_created": len(concept_map),
-            "connections_created": len(data.get("connections", []))
+            "connections_created": connections_created
         }
         
     except Exception as e:
@@ -9367,27 +9461,97 @@ async def add_concept_node(
     payload: dict = Body(...),
     db: Session = Depends(get_db)
 ):
-    """Manually add a concept node"""
+    """Manually add a concept node with AI-powered classification"""
     try:
         user_id = payload.get("user_id")
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
+        concept_name = payload.get("concept_name")
+        description = payload.get("description", "")
+        
+        # Use AI to classify the concept with maximum specificity
+        from concept_classification_agent import get_concept_agent
+        agent = get_concept_agent(groq_client, GROQ_MODEL)
+        
+        classification = agent.ai_classify_single_concept(concept_name, description)
+        
+        # Use AI classification or fallback to user input
+        category = classification.get("category", payload.get("category", "General"))
+        subcategory = classification.get("subcategory", "")
+        advanced_topic = classification.get("advanced_topic", concept_name)
+        
+        # Create enhanced description
+        enhanced_description = description
+        if not enhanced_description:
+            enhanced_description = f"{advanced_topic} - {subcategory}"
+        
         node = models.ConceptNode(
             user_id=user.id,
-            concept_name=payload.get("concept_name"),
-            description=payload.get("description", ""),
-            category=payload.get("category", "General")
+            concept_name=concept_name,
+            description=enhanced_description,
+            category=category
         )
         db.add(node)
+        db.flush()
+        
+        # Auto-create connections to related concepts
+        related_concepts = classification.get("related_concepts", [])
+        prerequisites = classification.get("prerequisites", [])
+        
+        # Find existing nodes that match related concepts
+        for related_name in related_concepts[:3]:  # Top 3 related
+            related_node = db.query(models.ConceptNode).filter(
+                models.ConceptNode.user_id == user.id,
+                models.ConceptNode.concept_name.ilike(f"%{related_name}%")
+            ).first()
+            
+            if related_node:
+                # Create bidirectional "related" connection
+                conn = models.ConceptConnection(
+                    user_id=user.id,
+                    source_concept_id=node.id,
+                    target_concept_id=related_node.id,
+                    connection_type="related",
+                    strength=0.7,
+                    ai_generated=True
+                )
+                db.add(conn)
+        
+        # Find prerequisite nodes
+        for prereq_name in prerequisites[:2]:  # Top 2 prerequisites
+            prereq_node = db.query(models.ConceptNode).filter(
+                models.ConceptNode.user_id == user.id,
+                models.ConceptNode.concept_name.ilike(f"%{prereq_name}%")
+            ).first()
+            
+            if prereq_node:
+                # Create "prerequisite" connection (prereq -> new concept)
+                conn = models.ConceptConnection(
+                    user_id=user.id,
+                    source_concept_id=prereq_node.id,
+                    target_concept_id=node.id,
+                    connection_type="prerequisite",
+                    strength=0.8,
+                    ai_generated=True
+                )
+                db.add(conn)
+        
         db.commit()
         db.refresh(node)
         
         return {
             "status": "success",
             "node_id": node.id,
-            "concept_name": node.concept_name
+            "concept_name": node.concept_name,
+            "classification": {
+                "category": category,
+                "subcategory": subcategory,
+                "advanced_topic": advanced_topic,
+                "difficulty": classification.get("difficulty_level", "intermediate")
+            },
+            "connections_created": len(related_concepts) + len(prerequisites)
         }
     except Exception as e:
         logger.error(f"Error adding concept node: {str(e)}")
