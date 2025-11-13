@@ -353,63 +353,119 @@ const ConceptWeb = () => {
     return '#10B981';
   };
 
-  // Get aesthetic color for node based on category
+  // Get vibrant color for node based on category with smart grouping
   const getCategoryColor = (category) => {
-    const predefinedColors = {
-      'Computer Science': '#3B82F6',
-      'Mathematics': '#8B5CF6',
-      'Physics': '#06B6D4',
-      'Chemistry': '#10B981',
-      'Biology': '#22C55E',
-      'History': '#F59E0B',
-      'Literature': '#EC4899',
-      'Philosophy': '#A855F7',
-      'Psychology': '#6366F1',
-      'Economics': '#14B8A6',
-      'Engineering': '#0EA5E9',
-      'Art': '#F43F5E',
-      'Music': '#D946EF',
-      'Language': '#84CC16',
-      'General': '#D7B38C',
-      'Academic Field': '#3B82F6',
-      'Social Skill': '#EC4899',
-      'Communication': '#06B6D4',
-      'Personal Growth': '#22C55E',
-      'Personal Development': '#8B5CF6',
-      'Personal Trait': '#F59E0B'
+    const categoryLower = category.toLowerCase();
+    
+    // Group similar categories with same color family
+    const colorGroups = {
+      // Computer Science & Programming - Blue shades
+      'algorithms': '#3B82F6',
+      'sorting algorithms': '#3B82F6',
+      'searching algorithms': '#2563EB',
+      'graph algorithms': '#1D4ED8',
+      'data structures': '#60A5FA',
+      'machine learning': '#93C5FD',
+      'web development': '#DBEAFE',
+      'computer science': '#3B82F6',
+      'programming': '#3B82F6',
+      
+      // Mathematics - Purple shades
+      'mathematics': '#8B5CF6',
+      'calculus': '#7C3AED',
+      'linear algebra': '#6D28D9',
+      'discrete math': '#A78BFA',
+      'statistics': '#C4B5FD',
+      'probability': '#DDD6FE',
+      
+      // Physics - Cyan shades
+      'physics': '#06B6D4',
+      'classical mechanics': '#0891B2',
+      'quantum mechanics': '#0E7490',
+      'thermodynamics': '#22D3EE',
+      'electromagnetism': '#67E8F9',
+      'newtons laws': '#06B6D4',
+      'mechanics': '#0891B2',
+      
+      // Chemistry - Green shades
+      'chemistry': '#10B981',
+      'organic chemistry': '#059669',
+      'inorganic chemistry': '#047857',
+      'biochemistry': '#34D399',
+      'physical chemistry': '#6EE7B7',
+      
+      // Biology - Emerald shades
+      'biology': '#22C55E',
+      'molecular biology': '#16A34A',
+      'genetics': '#15803D',
+      'cell biology': '#4ADE80',
+      'neuroscience': '#86EFAC',
+      'ecology': '#BBF7D0',
+      
+      // History & Social - Orange shades
+      'history': '#F59E0B',
+      'world history': '#D97706',
+      'ancient history': '#B45309',
+      'modern history': '#FBBF24',
+      
+      // Literature & Arts - Pink shades
+      'literature': '#EC4899',
+      'poetry': '#DB2777',
+      'drama': '#BE185D',
+      'art': '#F43F5E',
+      'music': '#D946EF',
+      
+      // Philosophy & Psychology - Indigo shades
+      'philosophy': '#6366F1',
+      'psychology': '#4F46E5',
+      'ethics': '#4338CA',
+      'logic': '#818CF8',
+      
+      // Sports & Physical - Red shades
+      'sports': '#EF4444',
+      'fitness': '#DC2626',
+      'athletics': '#B91C1C',
+      
+      // General & Others - Gold
+      'general': '#D7B38C',
+      'discussion': '#C4A57B',
+      'academic': '#B8956A'
     };
     
-    // If predefined color exists, use it
-    if (predefinedColors[category]) {
-      return predefinedColors[category];
+    // Check for exact match or partial match
+    for (const [key, color] of Object.entries(colorGroups)) {
+      if (categoryLower === key || categoryLower.includes(key) || key.includes(categoryLower)) {
+        return color;
+      }
     }
     
-    // Otherwise generate a consistent color based on category name
-    const colorPalette = [
+    // Fallback: generate consistent color based on category name
+    const vibrantPalette = [
       '#3B82F6', '#8B5CF6', '#06B6D4', '#10B981', '#22C55E',
-      '#F59E0B', '#EC4899', '#A855F7', '#6366F1', '#14B8A6',
-      '#0EA5E9', '#F43F5E', '#D946EF', '#84CC16', '#D7B38C'
+      '#F59E0B', '#EC4899', '#6366F1', '#EF4444', '#14B8A6',
+      '#0EA5E9', '#F43F5E', '#D946EF', '#84CC16', '#D7B38C',
+      '#7C3AED', '#0891B2', '#059669', '#D97706', '#DB2777'
     ];
     
     let hash = 0;
     for (let i = 0; i < category.length; i++) {
       hash = category.charCodeAt(i) + ((hash << 5) - hash);
     }
-    return colorPalette[Math.abs(hash) % colorPalette.length];
+    return vibrantPalette[Math.abs(hash) % vibrantPalette.length];
   };
 
   const getConnectionColor = (type, strength = 0.5) => {
     const baseColors = {
-      prerequisite: { r: 245, g: 158, b: 11 },   // Orange
-      related: { r: 215, g: 179, b: 140 },       // Gold
-      opposite: { r: 239, g: 68, b: 68 },        // Red
-      example_of: { r: 16, g: 185, b: 129 },     // Green
-      part_of: { r: 59, g: 130, b: 246 },        // Blue
-      similar: { r: 168, g: 85, b: 247 }         // Purple
+      prerequisite: { r: 251, g: 146, b: 60 },   // Vibrant Orange
+      related: { r: 234, g: 179, b: 8 },         // Vibrant Gold
+      opposite: { r: 239, g: 68, b: 68 },        // Vibrant Red
+      example_of: { r: 34, g: 197, b: 94 },      // Vibrant Green
+      part_of: { r: 59, g: 130, b: 246 },        // Vibrant Blue
+      similar: { r: 168, g: 85, b: 247 }         // Vibrant Purple
     };
     
     const color = baseColors[type] || baseColors.related;
-    const alpha = 0.3 + (strength * 0.5); // 0.3 to 0.8 opacity based on strength
+    const alpha = 0.4 + (strength * 0.5); // 0.4 to 0.9 opacity based on strength
     
     return `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
   };

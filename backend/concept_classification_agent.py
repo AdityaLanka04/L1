@@ -472,6 +472,147 @@ If not related, return: {{"related": false}}"""
         
         return False
     
+    def ai_classify_batch_concepts(self, concepts: List[str]) -> List[Dict[str, Any]]:
+        """
+        Classify multiple concepts in a single AI request (much faster, avoids rate limits)
+        
+        Args:
+            concepts: List of concept names to classify
+        
+        Returns:
+            List of classification dicts for each concept
+        """
+        if not concepts:
+            return []
+        
+        concepts_list = "\n".join([f"{i+1}. {name}" for i, name in enumerate(concepts)])
+        
+        prompt = f"""You are an expert knowledge classifier. Analyze these {len(concepts)} concepts and group them intelligently.
+
+CONCEPTS TO CLASSIFY:
+{concepts_list}
+
+CRITICAL CLASSIFICATION RULES:
+
+1. GROUP RELATED CONCEPTS TOGETHER:
+   - "Merge Sort", "Quick Sort", "Hashing" → ALL should be "Algorithm Analysis" or "Data Structures & Algorithms"
+   - "Newtons Laws", "Newtons Laws Flashcards" → BOTH should be "Newtons Laws" or "Classical Mechanics"
+   - "Messi", "Football", "Sports" → ALL should be "Sports" or specific sport name
+
+2. BE SPECIFIC BUT LOGICAL:
+   - If multiple concepts are about sorting → category: "Sorting Algorithms"
+   - If multiple concepts are about physics laws → category: "Classical Mechanics" or "Physics Laws"
+   - If multiple concepts are about a person/topic → use that topic as category
+
+3. SMART GROUPING EXAMPLES:
+   ✓ GOOD: "Merge Sort", "Quick Sort" → category: "Sorting Algorithms"
+   ✗ BAD: "Merge Sort" → "Computer Science", "Quick Sort" → "Algorithms" (inconsistent!)
+   
+   ✓ GOOD: "Newtons Laws", "Newtons Laws Flashcards" → category: "Newtons Laws"
+   ✗ BAD: One as "Physics", other as "Classical Mechanics" (inconsistent!)
+   
+   ✓ GOOD: "Messi", "Football" → category: "Sports" or "Football"
+   ✗ BAD: "Messi" → "General", "Football" → "Sports" (inconsistent!)
+
+4. CATEGORY HIERARCHY:
+   - Use the MOST SPECIFIC common category that groups related concepts
+   - "Algorithm Analysis" > "Computer Science" (more specific)
+   - "Newtons Laws" > "Physics" (more specific)
+   - "Football" > "Sports" (more specific)
+
+5. LOOK FOR PATTERNS:
+   - Multiple sorting algorithms? → "Sorting Algorithms"
+   - Multiple physics concepts? → "Classical Mechanics" or specific law
+   - Multiple about same person/topic? → Use that as category
+   - Flashcards/quizzes about X? → Category should be X
+
+6. SUBCATEGORY RULES:
+   - subcategory = broader context (e.g., "Data Structures & Algorithms")
+   - category = specific grouping (e.g., "Sorting Algorithms")
+   - advanced_topic = exact concept (e.g., "Merge Sort")
+
+Return ONLY a JSON array with {len(concepts)} objects:
+[
+  {{
+    "concept_name": "original name",
+    "category": "Specific grouping category (e.g., 'Sorting Algorithms', 'Newtons Laws', 'Football')",
+    "subcategory": "Broader context (e.g., 'Data Structures & Algorithms', 'Classical Mechanics', 'Sports')",
+    "advanced_topic": "Most specific topic",
+    "difficulty_level": "beginner/intermediate/advanced",
+    "related_concepts": ["other concepts in this list that are related"],
+    "prerequisites": ["concepts needed before this"],
+    "confidence": 0.9
+  }},
+  ...
+]
+
+IMPORTANT: Look at ALL concepts first, identify groups, then classify consistently!
+
+Classify all {len(concepts)} concepts now:"""
+
+        try:
+            response = self.groq_client.chat.completions.create(
+                model=self.model_name,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+                max_tokens=2000  # Increased for batch
+            )
+            
+            result_text = response.choices[0].message.content.strip()
+            
+            # Extract JSON
+            if "```json" in result_text:
+                result_text = result_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in result_text:
+                result_text = result_text.split("```")[1].split("```")[0].strip()
+            
+            classifications = json.loads(result_text)
+            
+            # Validate each classification
+            validated = []
+            for i, classification in enumerate(classifications):
+                if not isinstance(classification, dict):
+                    continue
+                
+                # Set defaults
+                if not classification.get("category"):
+                    classification["category"] = self._infer_category(concepts[i] if i < len(concepts) else "")
+                if not classification.get("subcategory"):
+                    classification["subcategory"] = self._infer_subcategory(
+                        concepts[i] if i < len(concepts) else "", 
+                        classification["category"]
+                    )
+                if not classification.get("advanced_topic"):
+                    classification["advanced_topic"] = concepts[i] if i < len(concepts) else ""
+                if not classification.get("difficulty_level"):
+                    classification["difficulty_level"] = "intermediate"
+                if not classification.get("related_concepts"):
+                    classification["related_concepts"] = []
+                if not classification.get("prerequisites"):
+                    classification["prerequisites"] = []
+                if not classification.get("confidence"):
+                    classification["confidence"] = 0.7
+                
+                validated.append(classification)
+            
+            return validated
+            
+        except Exception as e:
+            logger.error(f"Error in batch AI classification: {e}")
+            # Fallback: return basic classifications
+            return [
+                {
+                    "category": self._infer_category(name),
+                    "subcategory": self._infer_subcategory(name, self._infer_category(name)),
+                    "advanced_topic": name,
+                    "difficulty_level": "intermediate",
+                    "related_concepts": [],
+                    "prerequisites": [],
+                    "confidence": 0.5
+                }
+                for name in concepts
+            ]
+    
     def ai_classify_single_concept(self, concept_name: str, description: str = "") -> Dict[str, Any]:
         """
         Use AI to deeply classify a single concept with maximum specificity

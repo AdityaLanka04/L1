@@ -9326,42 +9326,64 @@ async def generate_concept_web(
         from concept_classification_agent import get_concept_agent
         agent = get_concept_agent(groq_client, GROQ_MODEL)
         
+        # BATCH CLASSIFY ALL CONCEPTS IN ONE REQUEST (avoids rate limits!)
+        concept_names = list(concepts_to_create.keys())
+        logger.info(f"Batch classifying {len(concept_names)} concepts in ONE AI request...")
+        
+        try:
+            classifications = agent.ai_classify_batch_concepts(concept_names)
+        except Exception as e:
+            logger.error(f"Batch classification failed: {e}, falling back to basic classification")
+            classifications = [
+                {
+                    "category": concepts_to_create[name][1],
+                    "subcategory": "",
+                    "advanced_topic": name,
+                    "related_concepts": [],
+                    "prerequisites": []
+                }
+                for name in concept_names
+            ]
+        
         # Create concept nodes with AI-powered classification
         concept_map = {}
         connections_to_create = []
         
-        for concept_name, (source_type, category) in concepts_to_create.items():
-            try:
-                # Use AI to classify each concept with maximum specificity
-                classification = agent.ai_classify_single_concept(
-                    concept_name, 
-                    f"Learning content from {source_type}"
-                )
-                
-                # Use AI classification
-                ai_category = classification.get("category", category)
-                subcategory = classification.get("subcategory", "")
-                advanced_topic = classification.get("advanced_topic", concept_name)
-                
-                # Enhanced description
-                description = f"{advanced_topic}"
-                if subcategory and subcategory != advanced_topic:
-                    description = f"{subcategory}: {advanced_topic}"
-                description += f" (from {source_type})"
-                
-                # Store related concepts and prerequisites for connection creation
-                related = classification.get("related_concepts", [])
-                prereqs = classification.get("prerequisites", [])
-                
-            except Exception as e:
-                logger.error(f"AI classification failed for {concept_name}: {e}")
-                # Fallback to basic classification
-                ai_category = category
-                description = f"{concept_name} (from {source_type})"
-                related = []
-                prereqs = []
+        for i, concept_name in enumerate(concept_names):
+            source_type, category = concepts_to_create[concept_name]
             
-            # Create the node (always, even if AI fails)
+            # Get classification for this concept
+            classification = classifications[i] if i < len(classifications) else {}
+            
+            # Use AI classification - prefer the MOST SPECIFIC category
+            ai_category_raw = classification.get("category", category)
+            subcategory = classification.get("subcategory", "")
+            advanced_topic = classification.get("advanced_topic", concept_name)
+            
+            # Smart category selection: use the most specific one
+            # Priority: category > subcategory > base category
+            # e.g., "Sorting Algorithms" > "Data Structures & Algorithms" > "Computer Science"
+            if ai_category_raw and ai_category_raw not in ["General", "Academic", "Discussion"]:
+                ai_category = ai_category_raw
+                logger.info(f"✓ '{concept_name}' → '{ai_category}' (from AI category)")
+            elif subcategory and subcategory not in ["General", "Academic", "Discussion"]:
+                ai_category = subcategory
+                logger.info(f"✓ '{concept_name}' → '{subcategory}' (from AI subcategory)")
+            else:
+                ai_category = category
+                logger.info(f"✓ '{concept_name}' → '{category}' (fallback)")
+            
+            # Enhanced description
+            description = f"{advanced_topic}"
+            if subcategory and subcategory != advanced_topic and subcategory != ai_category:
+                description = f"{subcategory}: {advanced_topic}"
+            description += f" (from {source_type})"
+            
+            # Store related concepts and prerequisites for connection creation
+            related = classification.get("related_concepts", [])
+            prereqs = classification.get("prerequisites", [])
+            
+            # Create the node
             node = models.ConceptNode(
                 user_id=user.id,
                 concept_name=concept_name,
@@ -9477,15 +9499,24 @@ async def add_concept_node(
         
         classification = agent.ai_classify_single_concept(concept_name, description)
         
-        # Use AI classification or fallback to user input
-        category = classification.get("category", payload.get("category", "General"))
+        # Use AI classification - prefer subcategory as main category if it's specific
+        base_category = classification.get("category", payload.get("category", "General"))
         subcategory = classification.get("subcategory", "")
         advanced_topic = classification.get("advanced_topic", concept_name)
+        
+        # Use subcategory as the main category if it's more specific
+        if subcategory and subcategory not in ["General", base_category]:
+            category = subcategory
+        else:
+            category = base_category
         
         # Create enhanced description
         enhanced_description = description
         if not enhanced_description:
-            enhanced_description = f"{advanced_topic} - {subcategory}"
+            if subcategory and subcategory != category:
+                enhanced_description = f"{subcategory}: {advanced_topic}"
+            else:
+                enhanced_description = f"{advanced_topic}"
         
         node = models.ConceptNode(
             user_id=user.id,

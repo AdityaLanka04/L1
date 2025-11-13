@@ -244,6 +244,11 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
   height: 100%;
   color: var(--text-secondary);
   text-align: center;
@@ -667,15 +672,14 @@
 
 .network-view-ethereal {
   width: 100%;
-  height: 85vh;
+  height: calc(100vh - 80px);
   position: relative;
   overflow: hidden;
   background: radial-gradient(circle at 50% 50%, 
     color-mix(in srgb, var(--accent) 3%, var(--bg-bottom)), 
     var(--bg-bottom) 70%);
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  margin-top: 10px;
-  padding: 60px 120px;
+  padding: 40px 80px;
   box-sizing: border-box;
 }
 
