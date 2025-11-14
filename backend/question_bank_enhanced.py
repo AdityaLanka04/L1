@@ -61,9 +61,8 @@ class SimilarQuestionRequest(BaseModel):
 
 
 class DifficultyClassifierAgent:
-    def __init__(self, groq_client: Groq, model: str):
-        self.groq_client = groq_client
-        self.model = model
+    def __init__(self, unified_ai):
+        self.unified_ai = unified_ai
     
     async def classify_difficulty(self, question: str, context: str = "") -> Dict[str, Any]:
         prompt = f"""Analyze this question and classify its difficulty level as 'easy', 'medium', or 'hard'.
@@ -89,14 +88,7 @@ Respond in JSON format:
 Return ONLY valid JSON, no markdown formatting."""
         
         try:
-            response = self.groq_client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
-                model=self.model,
-                temperature=0.3,
-                max_tokens=500
-            )
-            
-            content = response.choices[0].message.content.strip()
+            content = self.unified_ai.generate(prompt, max_tokens=500, temperature=0.3)
             logger.info(f"Raw classify_difficulty response: {content[:200]}")
             
             # Remove markdown code blocks if present
@@ -137,9 +129,8 @@ Return ONLY valid JSON, no markdown formatting."""
 
 
 class PDFProcessorAgent:
-    def __init__(self, groq_client: Groq, model: str):
-        self.groq_client = groq_client
-        self.model = model
+    def __init__(self, unified_ai):
+        self.unified_ai = unified_ai
     
     async def extract_text_from_pdf(self, pdf_content: bytes) -> str:
         try:
@@ -216,14 +207,7 @@ Provide a JSON response with:
 Return ONLY valid JSON, no markdown formatting."""
         
         try:
-            response = self.groq_client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
-                model=self.model,
-                temperature=0.3,
-                max_tokens=800
-            )
-            
-            content = response.choices[0].message.content.strip()
+            content = self.unified_ai.generate(prompt, max_tokens=800, temperature=0.3)
             logger.info(f"Raw analyze_document response: {content[:200]}")
             
             # Remove markdown code blocks if present
@@ -266,9 +250,8 @@ Return ONLY valid JSON, no markdown formatting."""
 
 
 class QuestionGeneratorAgent:
-    def __init__(self, groq_client: Groq, model: str):
-        self.groq_client = groq_client
-        self.model = model
+    def __init__(self, unified_ai):
+        self.unified_ai = unified_ai
     
     async def generate_questions(
         self, 
@@ -310,14 +293,7 @@ For each question, provide:
 Return a JSON array of questions."""
         
         try:
-            response = self.groq_client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
-                model=self.model,
-                temperature=0.7,
-                max_tokens=4000
-            )
-            
-            content = response.choices[0].message.content.strip()
+            content = self.unified_ai.generate(prompt, max_tokens=4000, temperature=0.7)
             
             # Remove markdown code blocks if present
             if content.startswith('```'):
@@ -360,14 +336,7 @@ Requirements:
 Return a JSON object with the same structure as the original."""
         
         try:
-            response = self.groq_client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
-                model=self.model,
-                temperature=0.8,
-                max_tokens=800
-            )
-            
-            content = response.choices[0].message.content.strip()
+            content = self.unified_ai.generate(prompt, max_tokens=800, temperature=0.8)
             
             # Remove markdown code blocks if present
             if content.startswith('```'):
@@ -407,14 +376,7 @@ Parse any existing questions and return them in this format:
 Return a JSON array of questions. If no questions found, return empty array []."""
         
         try:
-            response = self.groq_client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
-                model=self.model,
-                temperature=0.3,
-                max_tokens=4000
-            )
-            
-            content = response.choices[0].message.content.strip()
+            content = self.unified_ai.generate(prompt, max_tokens=4000, temperature=0.3)
             logger.info(f"Raw extract_questions response: {content[:200]}")
             
             # Remove markdown code blocks if present
@@ -525,9 +487,8 @@ class MLPredictorAgent:
 
 
 class ChatSlideProcessorAgent:
-    def __init__(self, groq_client: Groq, model: str):
-        self.groq_client = groq_client
-        self.model = model
+    def __init__(self, unified_ai):
+        self.unified_ai = unified_ai
     
     async def extract_content_from_chat(self, chat_messages: List[Dict[str, str]]) -> str:
         combined_text = ""
@@ -540,15 +501,15 @@ class ChatSlideProcessorAgent:
         return slide_content
 
 
-def register_question_bank_api(app, groq_client: Groq, model: str, get_db_func):
+def register_question_bank_api(app, unified_ai, get_db_func):
     
     agents = {
-        "pdf_processor": PDFProcessorAgent(groq_client, model),
-        "question_generator": QuestionGeneratorAgent(groq_client, model),
-        "difficulty_classifier": DifficultyClassifierAgent(groq_client, model),
+        "pdf_processor": PDFProcessorAgent(unified_ai),
+        "question_generator": QuestionGeneratorAgent(unified_ai),
+        "difficulty_classifier": DifficultyClassifierAgent(unified_ai),
         "adaptive_difficulty": AdaptiveDifficultyAgent(),
         "ml_predictor": MLPredictorAgent(),
-        "chat_slide_processor": ChatSlideProcessorAgent(groq_client, model)
+        "chat_slide_processor": ChatSlideProcessorAgent(unified_ai)
     }
     
     @app.post("/api/qb/upload_pdf")

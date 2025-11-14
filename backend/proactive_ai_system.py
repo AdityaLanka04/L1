@@ -12,9 +12,8 @@ from groq import Groq
 import models
 
 class ProactiveAIEngine:
-    def __init__(self, groq_client, model_name):
-        self.groq_client = groq_client
-        self.model_name = model_name
+    def __init__(self, unified_ai):
+        self.unified_ai = unified_ai
         self.min_notification_interval = timedelta(minutes=30)  # Don't spam users
     
     def analyze_learning_patterns(self, db: Session, user_id: int):
@@ -236,14 +235,7 @@ Generate a brief encouraging message that:
 4. Sounds genuine and supportive"""
         
         try:
-            response = self.groq_client.chat.completions.create(
-                model=self.model_name,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.8,
-                max_tokens=200
-            )
-            
-            message = response.choices[0].message.content.strip()
+            message = self.unified_ai.generate(prompt, max_tokens=200, temperature=0.8)
             return message
             
         except Exception as e:
@@ -332,8 +324,8 @@ Generate a brief encouraging message that:
 # Singleton instance
 _proactive_ai_engine = None
 
-def get_proactive_ai_engine(groq_client, model_name):
+def get_proactive_ai_engine(unified_ai):
     global _proactive_ai_engine
     if _proactive_ai_engine is None:
-        _proactive_ai_engine = ProactiveAIEngine(groq_client, model_name)
+        _proactive_ai_engine = ProactiveAIEngine(unified_ai)
     return _proactive_ai_engine

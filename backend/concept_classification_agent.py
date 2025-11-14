@@ -14,9 +14,33 @@ logger = logging.getLogger(__name__)
 class ConceptClassificationAgent:
     """AI agent that intelligently classifies learning content into topics"""
     
-    def __init__(self, groq_client: Groq, model_name: str = "llama-3.3-70b-versatile"):
+    def __init__(self, groq_client=None, model_name: str = "llama-3.3-70b-versatile", 
+                 gemini_client=None, gemini_model: str = "gemini-2.0-flash"):
         self.groq_client = groq_client
         self.model_name = model_name
+        self.gemini_module = gemini_client  # This is the genai module
+        self.gemini_model = gemini_model
+        
+        # Create actual Gemini model instance if module provided
+        if gemini_client:
+            try:
+                self.gemini_client = gemini_client.GenerativeModel(gemini_model)
+                self.primary_ai = "gemini"
+                logger.info(f"ConceptAgent using GEMINI as primary (model: {gemini_model})")
+            except Exception as e:
+                logger.error(f"Failed to create Gemini model in ConceptAgent: {e}")
+                self.gemini_client = None
+                if groq_client:
+                    self.primary_ai = "groq"
+                    logger.info("ConceptAgent using GROQ as primary (Gemini failed)")
+                else:
+                    raise ValueError("Both AI clients failed")
+        elif groq_client:
+            self.gemini_client = None
+            self.primary_ai = "groq"
+            logger.info("ConceptAgent using GROQ as primary")
+        else:
+            raise ValueError("At least one AI client (Gemini or Groq) must be provided")
         
         # ULTRA-ADVANCED hierarchical categories with deep subcategories
         self.category_hierarchy = {
@@ -472,6 +496,52 @@ If not related, return: {{"related": false}}"""
         
         return False
     
+    def _call_ai(self, prompt: str, max_tokens: int = 2000) -> str:
+        """
+        Call AI with Gemini as primary, Groq as fallback
+        
+        Args:
+            prompt: The prompt to send
+            max_tokens: Maximum tokens in response
+        
+        Returns:
+            AI response text
+        """
+        try:
+            if self.primary_ai == "gemini" and self.gemini_client:
+                logger.info("Calling Gemini API...")
+                response = self.gemini_client.generate_content(prompt)
+                return response.text
+            elif self.groq_client:
+                logger.info("Calling Groq API...")
+                response = self.groq_client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.2,
+                    max_tokens=max_tokens
+                )
+                return response.choices[0].message.content.strip()
+            else:
+                raise Exception("No AI client available")
+        except Exception as e:
+            logger.error(f"Primary AI ({self.primary_ai}) failed: {e}")
+            # Fallback to other AI
+            if self.primary_ai == "gemini" and self.groq_client:
+                logger.info("Falling back to Groq...")
+                response = self.groq_client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.2,
+                    max_tokens=max_tokens
+                )
+                return response.choices[0].message.content.strip()
+            elif self.primary_ai == "groq" and self.gemini_client:
+                logger.info("Falling back to Gemini...")
+                response = self.gemini_client.generate_content(prompt)
+                return response.text
+            else:
+                raise Exception(f"Both AI clients failed: {e}")
+    
     def ai_classify_batch_concepts(self, concepts: List[str]) -> List[Dict[str, Any]]:
         """
         Classify multiple concepts in a single AI request (much faster, avoids rate limits)
@@ -551,14 +621,7 @@ IMPORTANT: Look at ALL concepts first, identify groups, then classify consistent
 Classify all {len(concepts)} concepts now:"""
 
         try:
-            response = self.groq_client.chat.completions.create(
-                model=self.model_name,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.2,
-                max_tokens=2000  # Increased for batch
-            )
-            
-            result_text = response.choices[0].message.content.strip()
+            result_text = self._call_ai(prompt, max_tokens=2000)
             
             # Extract JSON
             if "```json" in result_text:
@@ -730,9 +793,10 @@ Classify now:"""
 # Singleton instance
 _concept_agent = None
 
-def get_concept_agent(groq_client: Groq, model_name: str = "llama-3.3-70b-versatile"):
+def get_concept_agent(groq_client=None, model_name: str = "llama-3.3-70b-versatile",
+                     gemini_client=None, gemini_model: str = "gemini-2.0-flash"):
     """Get or create the concept classification agent singleton"""
     global _concept_agent
     if _concept_agent is None:
-        _concept_agent = ConceptClassificationAgent(groq_client, model_name)
+        _concept_agent = ConceptClassificationAgent(groq_client, model_name, gemini_client, gemini_model)
     return _concept_agent

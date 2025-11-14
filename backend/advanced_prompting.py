@@ -363,7 +363,7 @@ async def generate_enhanced_ai_response(
     conversation_history: List[Dict],
     relevant_past_chats: List[Dict],
     db: Session,
-    groq_client: Any,
+    ai_function: Any,  # Now accepts the unified call_ai function
     model: str
 ) -> str:
     try:
@@ -441,15 +441,11 @@ async def generate_enhanced_ai_response(
         
         messages.append({"role": "user", "content": question})
         
-        chat_completion = groq_client.chat.completions.create(
-            messages=messages,
-            model=model,
-            temperature=0.8,
-            max_tokens=3072,
-            top_p=0.95,
-        )
+        # Build full prompt from messages
+        full_prompt = "\n\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
         
-        response = chat_completion.choices[0].message.content
+        # Use unified AI function (Gemini primary, Groq fallback)
+        response = ai_function(full_prompt, max_tokens=3072, temperature=0.8)
         
         known_mistake = rl_agent.check_for_known_mistakes(response)
         if known_mistake:

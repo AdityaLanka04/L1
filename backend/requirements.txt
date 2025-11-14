@@ -21,6 +21,9 @@ requests>=2.28.0
 # AI/ML - Groq
 groq>=0.4.0
 
+# AI/ML - Google Gemini (Primary)
+google-generativeai>=0.3.0
+
 # AI/ML - Transformers (optional)
 torch>=2.0.0
 transformers>=4.30.0

@@ -133,17 +133,67 @@ security = HTTPBearer()
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-key-change-this-in-production")
 ALGORITHM = "HS256"
+
+# AI API Configuration - Gemini first (free tier), Groq as fallback
+GEMINI_API_KEY = os.getenv("GOOGLE_GENERATIVE_AI_KEY") or os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_MODEL = "llama-3.3-70b-versatile"
+GEMINI_MODEL = "gemini-2.0-flash"  # Gemini 2.0 Flash (stable, 10 req/min, 4M tokens/min, 1500 req/day)
 
-groq_client = Groq(api_key=GROQ_API_KEY)
+# Initialize AI clients
+groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
-logger.info(f"🔑 GROQ_API_KEY loaded: {GROQ_API_KEY[:10]}..." if GROQ_API_KEY else "❌ NO API KEY")
-flashcard_api = register_flashcard_api(app, groq_client, GROQ_MODEL)  # ← ADD THIS LINE
+try:
+    import google.generativeai as genai
+    if GEMINI_API_KEY:
+        genai.configure(api_key=GEMINI_API_KEY)
+        # Don't create model here, create it in ai_utils with correct name
+        gemini_client = genai  # Pass the genai module itself
+        logger.info(f"✅ GEMINI API configured: {GEMINI_API_KEY[:10]}... (PRIMARY)")
+    else:
+        gemini_client = None
+        logger.warning("⚠️  No GEMINI_API_KEY found in .env")
+except ImportError as e:
+    gemini_client = None
+    logger.error(f"⚠️  google-generativeai not installed: {e}")
+    logger.warning("Install with: pip install google-generativeai")
+except Exception as e:
+    gemini_client = None
+    logger.error(f"⚠️  Error initializing Gemini: {e}")
+
+if groq_client:
+    logger.info(f"✅ GROQ API configured: {GROQ_API_KEY[:10]}... (FALLBACK)")
+else:
+    logger.error("❌ NO GROQ_API_KEY found")
+
+# Determine which AI to use
+if gemini_client:
+    logger.info("🎯 Using GEMINI as primary AI (free tier)")
+    primary_ai = "gemini"
+elif groq_client:
+    logger.info("🎯 Using GROQ as primary AI")
+    primary_ai = "groq"
+else:
+    logger.error("❌ NO AI API KEYS CONFIGURED!")
+    primary_ai = None
+
+# Initialize unified AI client
+from ai_utils import UnifiedAIClient
+unified_ai = UnifiedAIClient(gemini_client, groq_client, GEMINI_MODEL, GROQ_MODEL)
+logger.info("✅ Unified AI client initialized")
+
+# Unified AI call function - uses the unified_ai client
+def call_ai(prompt: str, max_tokens: int = 2000, temperature: float = 0.7) -> str:
+    """
+    Call AI with Gemini as primary, Groq as fallback
+    Used throughout the entire app for all AI calls
+    """
+    return unified_ai.generate(prompt, max_tokens, temperature)
+
+flashcard_api = register_flashcard_api(app, unified_ai)
 logger.info("✅ Flashcard API integrated successfully")
 
-
-register_question_bank_api(app, groq_client, GROQ_MODEL, get_db)
+register_question_bank_api(app, unified_ai, get_db)
 logger.info("Enhanced Question Bank API with sophisticated AI agents registered successfully")
 
 class Token(BaseModel):
@@ -377,20 +427,11 @@ Pace: {user_profile.get('learning_pace', 'moderate')}
 
 Provide clear, educational responses tailored to the student's profile."""
 
-        chat_completion = groq_client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt}
-            ],
-            model=GROQ_MODEL,
-            temperature=0.7,
-            max_tokens=2048,
-            top_p=0.9,
-        )
-        
-        return chat_completion.choices[0].message.content
+        full_prompt = f"{system_prompt}\n\nUser: {prompt}"
+        response = call_ai(full_prompt, max_tokens=2048, temperature=0.7)
+        return response
     except Exception as e:
-        logger.error(f"Groq API error: {e}")
+        logger.error(f"AI API error: {e}")
         return f"I apologize, but I encountered an error processing your request. Please try again."
 def extract_topic_keywords(text: str) -> List[str]:
     stop_words = {
@@ -1085,6 +1126,7 @@ async def ask_ai_enhanced(
         
         logger.info(f"🧠 Neural adjustments: {response_adjustments}")
         
+        # Use unified call_ai function (Gemini primary, Groq fallback)
         response = await advanced_prompting.generate_enhanced_ai_response(
             question,
             user_profile,
@@ -1092,7 +1134,7 @@ async def ask_ai_enhanced(
             conversation_history,
             relevant_past_chats,
             db,
-            groq_client,
+            call_ai,  # Pass the unified AI function
             GROQ_MODEL
         )
         
@@ -2008,17 +2050,12 @@ Generate educational content about: {prompt}"""
             {"role": "user", "content": prompt}
         ]
 
-        logger.info("Calling Groq API...")
+        logger.info("Calling AI (Gemini primary, Groq fallback)...")
         
-        chat_completion = groq_client.chat.completions.create(
-            messages=messages,
-            model=GROQ_MODEL,
-            temperature=0.7,
-            max_tokens=2048,
-            top_p=0.9,
-        )
+        # Build prompt from messages
+        full_prompt = "\n\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
         
-        generated_content = chat_completion.choices[0].message.content
+        generated_content = call_ai(full_prompt, max_tokens=2048, temperature=0.7)
         logger.info(f"Generated content length: {len(generated_content)} characters")
         
         generated_content = clean_conversational_elements(generated_content)
@@ -3242,7 +3279,7 @@ async def check_proactive_message(
             raise HTTPException(status_code=404, detail="User not found")
         
         # Get proactive AI engine
-        proactive_engine = get_proactive_ai_engine(groq_client, GROQ_MODEL)
+        proactive_engine = get_proactive_ai_engine(unified_ai)
         
         # Get user profile for personalization
         user_profile = {
@@ -9322,9 +9359,9 @@ async def generate_concept_web(
         
         logger.info(f"Creating {len(concepts_to_create)} concepts with AI classification")
         
-        # Get AI classification agent
+        # Get AI classification agent with Gemini primary, Groq fallback
         from concept_classification_agent import get_concept_agent
-        agent = get_concept_agent(groq_client, GROQ_MODEL)
+        agent = get_concept_agent(groq_client, GROQ_MODEL, gemini_client, GEMINI_MODEL)  # Keep this as is - already supports both
         
         # BATCH CLASSIFY ALL CONCEPTS IN ONE REQUEST (avoids rate limits!)
         concept_names = list(concepts_to_create.keys())
@@ -9495,7 +9532,7 @@ async def add_concept_node(
         
         # Use AI to classify the concept with maximum specificity
         from concept_classification_agent import get_concept_agent
-        agent = get_concept_agent(groq_client, GROQ_MODEL)
+        agent = get_concept_agent(groq_client, GROQ_MODEL, gemini_client, GEMINI_MODEL)
         
         classification = agent.ai_classify_single_concept(concept_name, description)
         

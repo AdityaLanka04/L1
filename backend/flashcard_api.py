@@ -332,10 +332,9 @@ Generate the {card_count} flashcards now:"""
 class FlashcardAPI:
     """Flashcard API endpoints"""
     
-    def __init__(self, app, groq_client, groq_model: str):
+    def __init__(self, app, unified_ai):
         self.app = app
-        self.groq_client = groq_client
-        self.groq_model = groq_model
+        self.unified_ai = unified_ai
         self.prompt_engine = FlashcardPromptEngine()
         self._register_routes()
     
@@ -738,21 +737,11 @@ class FlashcardAPI:
                 focus_areas_list
             )
             
-            # Generate with Groq
+            # Generate with AI (Gemini primary, Groq fallback)
             logger.info(f"Generating {card_count} flashcards at {difficulty_level} difficulty and {depth_level} depth")
             
-            chat_completion = self.groq_client.chat.completions.create(
-                messages=[
-                    {"role": "system", "content": "You are an expert educational flashcard creator. Always return valid JSON arrays."},
-                    {"role": "user", "content": prompt}
-                ],
-                model=self.groq_model,
-                temperature=0.7,
-                max_tokens=4096,
-                top_p=0.9,
-            )
-            
-            response = chat_completion.choices[0].message.content
+            full_prompt = f"You are an expert educational flashcard creator. Always return valid JSON arrays.\n\n{prompt}"
+            response = self.unified_ai.generate(full_prompt, max_tokens=4096, temperature=0.7)
             
             # Extract and validate JSON
             json_match = re.search(r'\[.*\]', response, re.DOTALL)
@@ -963,14 +952,14 @@ class FlashcardAPI:
         }
 
 
-def register_flashcard_api(app, groq_client, groq_model: str):
+def register_flashcard_api(app, unified_ai):
     """
     Register flashcard API with the FastAPI app
     
     Usage in main.py:
         from flashcard_api import register_flashcard_api
-        register_flashcard_api(app, groq_client, GROQ_MODEL)
+        register_flashcard_api(app, unified_ai)
     """
-    flashcard_api = FlashcardAPI(app, groq_client, groq_model)
+    flashcard_api = FlashcardAPI(app, unified_ai)
     logger.info("✓ Flashcard API registered successfully")
     return flashcard_api
