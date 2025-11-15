@@ -34,27 +34,22 @@ const ProactiveNotification = ({ message, chatId, onClose, urgencyScore }) => {
   };
 
   return (
-    <div className={`proactive-notification ${isVisible ? 'visible' : ''} ${isExiting ? 'exiting' : ''}`}>
+    <div className={`proactive-notification ${isVisible ? 'visible' : ''} ${isExiting ? 'exiting' : ''} ${urgencyScore > 0.7 ? 'high-urgency' : ''}`}>
       <div className="proactive-notification-content" onClick={handleClick}>
         <div className="proactive-notification-header">
           <div className="proactive-ai-avatar">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" fill="url(#gradient)" />
-              <path d="M8 10h2M14 10h2M8 14c0 2 1.5 3 4 3s4-1 4-3" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-              <defs>
-                <linearGradient id="gradient" x1="0" y1="0" x2="24" y2="24">
-                  <stop offset="0%" stopColor="#667eea" />
-                  <stop offset="100%" stopColor="#764ba2" />
-                </linearGradient>
-              </defs>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="white" opacity="0.9"/>
+              <path d="M2 17L12 22L22 17" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.7"/>
+              <path d="M2 12L12 17L22 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.8"/>
             </svg>
           </div>
           <div className="proactive-notification-title">
-            <span className="proactive-badge">AI reached out</span>
-            <span className="proactive-time">Just now</span>
+            <span className="proactive-badge">your AI tutor</span>
+            <span className="proactive-time">just now</span>
           </div>
           <button className="proactive-close-btn" onClick={(e) => { e.stopPropagation(); handleClose(); }}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
               <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </button>
@@ -63,8 +58,8 @@ const ProactiveNotification = ({ message, chatId, onClose, urgencyScore }) => {
         <div className="proactive-notification-body">
           <p className="proactive-message">{message}</p>
           <div className="proactive-cta">
-            <span className="proactive-cta-text">Tap to open chat</span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <span className="proactive-cta-text">click to chat</span>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
               <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
             </svg>
           </div>

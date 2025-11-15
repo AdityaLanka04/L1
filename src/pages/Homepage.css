@@ -9,7 +9,7 @@
 body {
   font-family: 'Quicksand', sans-serif;
   background-color: #000000;
-  background-image: 
+  background-image:
     linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
     url("https://www.transparenttextures.com/patterns/shattered-dark.png");
   color: #D7B38C;
@@ -20,7 +20,7 @@ body {
   width: 100vw;
   height: 100vh;
   background-color: #000000;
-  background-image: 
+  background-image:
     linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
     url("https://www.transparenttextures.com/patterns/shattered-dark.png");
   position: relative;
@@ -106,26 +106,26 @@ body {
     letter-spacing: -3px;
     margin-bottom: 30px;
   }
-  
+
   .subtitle-text {
     font-size: 12px;
     letter-spacing: 2px;
     right: 0;
     bottom: -35px;
   }
-  
+
   .login-trigger {
     top: 30px;
     right: 30px;
     font-size: 12px;
     letter-spacing: 2px;
   }
-  
+
   .main-content {
     left: 30px;
     width: calc(100vw - 60px);
   }
-  
+
   .horizontal-line {
     margin-left: -30px;
   }
@@ -137,25 +137,25 @@ body {
     letter-spacing: -2px;
     margin-bottom: 25px;
   }
-  
+
   .subtitle-text {
     font-size: 10px;
     letter-spacing: 2px;
     right: 0;
     bottom: -30px;
   }
-  
+
   .main-content {
     left: 20px;
     width: calc(100vw - 40px);
   }
-  
+
   .login-trigger {
     top: 20px;
     right: 20px;
     font-size: 10px;
   }
-  
+
   .horizontal-line {
     margin-left: -20px;
   }

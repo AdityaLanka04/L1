@@ -6142,7 +6142,57 @@ async def update_comprehensive_profile(
     except Exception as e:
         logger.error(f"Error updating profile: {str(e)}")
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/suggest_subjects")
+async def suggest_subjects(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """AI-powered subject suggestions based on user input"""
+    try:
+        input_text = payload.get("input", "")
+        college_level = payload.get("college_level", "")
+        
+        if len(input_text) < 2:
+            return {"suggestions": []}
+        
+        # Use AI to generate relevant subject suggestions
+        prompt = f"""Based on the input "{input_text}" and college level "{college_level}", suggest 5 relevant academic subjects or courses.
+
+Return ONLY a JSON array of subject names, nothing else. Format: ["Subject 1", "Subject 2", ...]
+
+Examples:
+- Input "calc" → ["Calculus I", "Calculus II", "Calculus III", "Multivariable Calculus", "Differential Calculus"]
+- Input "bio" → ["Biology", "Molecular Biology", "Cell Biology", "Microbiology", "Biochemistry"]
+- Input "comp" → ["Computer Science", "Computer Architecture", "Computational Theory", "Computer Networks", "Computer Graphics"]
+
+Input: "{input_text}"
+College Level: "{college_level}"
+Suggestions:"""
+
+        response = call_ai(prompt, max_tokens=200, temperature=0.7)
+        
+        # Parse AI response
+        try:
+            # Try to extract JSON array from response
+            import re
+            json_match = re.search(r'\[.*\]', response, re.DOTALL)
+            if json_match:
+                suggestions = json.loads(json_match.group())
+            else:
+                # Fallback: split by newlines and clean
+                suggestions = [s.strip().strip('"').strip("'").strip('-').strip() 
+                             for s in response.split('\n') if s.strip()]
+                suggestions = [s for s in suggestions if len(s) > 2 and len(s) < 50][:5]
+        except:
+            suggestions = []
+        
+        return {"suggestions": suggestions}
+        
+    except Exception as e:
+        logger.error(f"Error generating subject suggestions: {str(e)}")
+        return {"suggestions": []}
     
 @app.post("/api/save_complete_profile")
 async def save_complete_profile(
@@ -6163,26 +6213,95 @@ async def save_complete_profile(
             comprehensive_profile = models.ComprehensiveUserProfile(user_id=user.id)
             db.add(comprehensive_profile)
 
+        # New profile quiz fields
+        if "is_college_student" in payload:
+            comprehensive_profile.is_college_student = payload["is_college_student"]
+        
+        if "college_level" in payload:
+            comprehensive_profile.college_level = payload["college_level"]
+        
+        if "major" in payload:
+            comprehensive_profile.major = payload["major"]
+        
         if "preferred_subjects" in payload:
             comprehensive_profile.preferred_subjects = json.dumps(payload["preferred_subjects"])
         
         if "main_subject" in payload:
             user.field_of_study = payload["main_subject"]
+            comprehensive_profile.main_subject = payload["main_subject"]
         
         if "brainwave_goal" in payload:
             comprehensive_profile.brainwave_goal = payload["brainwave_goal"]
         
         if payload.get("quiz_completed"):
-            comprehensive_profile.primary_archetype = payload.get("primary_archetype")
-            comprehensive_profile.secondary_archetype = payload.get("secondary_archetype")
+            comprehensive_profile.primary_archetype = payload.get("primary_archetype", "")
+            comprehensive_profile.secondary_archetype = payload.get("secondary_archetype", "")
             comprehensive_profile.archetype_scores = json.dumps(payload.get("archetype_scores", {}))
-            comprehensive_profile.archetype_description = payload.get("archetype_description")
+            comprehensive_profile.archetype_description = payload.get("archetype_description", "")
 
         comprehensive_profile.quiz_completed = payload.get("quiz_completed", False)
         comprehensive_profile.quiz_skipped = payload.get("quiz_skipped", False)
         comprehensive_profile.updated_at = datetime.now(timezone.utc)
 
         db.commit()
+        
+        # Generate initial proactive greeting message
+        if payload.get("quiz_completed"):
+            try:
+                proactive_engine = get_proactive_ai_engine(unified_ai)
+                user_profile = {
+                    "first_name": user.first_name or "there",
+                    "field_of_study": user.field_of_study or "General Studies",
+                    "is_college_student": payload.get("is_college_student", True),
+                    "college_level": payload.get("college_level", ""),
+                    "subjects": payload.get("preferred_subjects", []),
+                    "main_subject": payload.get("main_subject", ""),
+                    "goal": payload.get("brainwave_goal", "")
+                }
+                
+                # Generate personalized greeting
+                greeting_prompt = f"""You are an AI tutor greeting {user_profile['first_name']} for the first time after they completed their profile.
+
+Profile:
+- College Student: {user_profile['is_college_student']}
+- Level: {user_profile['college_level']}
+- Main Subject: {user_profile['main_subject']}
+- Goal: {user_profile['goal']}
+
+Generate a warm, personalized greeting message (2-3 sentences) that:
+1. Welcomes them by name
+2. Acknowledges their specific subject and goal
+3. Expresses excitement to help them succeed
+4. Sounds natural and encouraging
+
+Keep it brief and friendly."""
+
+                greeting_message = call_ai(greeting_prompt, max_tokens=150, temperature=0.8)
+                
+                # Create initial chat session with greeting
+                new_session = models.ChatSession(
+                    user_id=user.id,
+                    title="Welcome to Cerbyl",
+                    created_at=datetime.now(timezone.utc),
+                    updated_at=datetime.now(timezone.utc)
+                )
+                db.add(new_session)
+                db.commit()
+                db.refresh(new_session)
+                
+                # Save greeting message
+                greeting_chat = models.ChatMessage(
+                    chat_session_id=new_session.id,
+                    user_id=user.id,
+                    user_message="🎓 PROFILE_COMPLETED",
+                    ai_response=greeting_message,
+                    timestamp=datetime.now(timezone.utc)
+                )
+                db.add(greeting_chat)
+                db.commit()
+                
+            except Exception as e:
+                logger.error(f"Error generating greeting: {str(e)}")
 
         return {
             "status": "success",

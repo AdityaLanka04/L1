@@ -1,17 +1,32 @@
 .proactive-notification {
   position: fixed;
-  top: 20px;
+  bottom: 24px;
   right: -400px;
-  width: 360px;
-  max-width: calc(100vw - 40px);
+  width: 340px;
+  max-width: calc(100vw - 48px);
   z-index: 10000;
-  transition: right 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  transition: right 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   pointer-events: none;
 }
 
 .proactive-notification.visible {
-  right: 20px;
+  right: 24px;
   pointer-events: all;
+  animation: slideInBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes slideInBounce {
+  0% {
+    right: -400px;
+    opacity: 0;
+  }
+  60% {
+    right: 30px;
+  }
+  100% {
+    right: 24px;
+    opacity: 1;
+  }
 }
 
 .proactive-notification.exiting {
@@ -20,67 +35,61 @@
 }
 
 .proactive-notification-content {
-  background: rgba(255, 255, 255, 0.95);
+  background: #1e1e23;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 16px;
   box-shadow: 
-    0 10px 40px rgba(0, 0, 0, 0.1),
-    0 2px 8px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
+  position: relative;
+}
+
+.proactive-notification-content::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #D7B38C 0%, rgba(215, 179, 140, 0.5) 100%);
+  border-radius: 12px 0 0 12px;
 }
 
 .proactive-notification-content:hover {
-  transform: translateY(-2px);
+  transform: translateX(-4px);
   box-shadow: 
-    0 15px 50px rgba(0, 0, 0, 0.15),
-    0 4px 12px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border-color: rgba(215, 179, 140, 0.3);
 }
 
 .proactive-notification-content:active {
-  transform: translateY(0);
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .proactive-notification-content {
-    background: rgba(30, 30, 35, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 
-      0 10px 40px rgba(0, 0, 0, 0.3),
-      0 2px 8px rgba(0, 0, 0, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  }
-
-  .proactive-notification-content:hover {
-    box-shadow: 
-      0 15px 50px rgba(0, 0, 0, 0.4),
-      0 4px 12px rgba(0, 0, 0, 0.25),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  }
+  transform: translateX(-2px);
 }
 
 .proactive-notification-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .proactive-ai-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  background: linear-gradient(135deg, #D7B38C 0%, #C9A578 100%);
+  box-shadow: 0 2px 8px rgba(215, 179, 140, 0.4);
   flex-shrink: 0;
 }
 
@@ -88,41 +97,31 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .proactive-badge {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  color: #1a1a1a;
-  letter-spacing: -0.01em;
-}
-
-@media (prefers-color-scheme: dark) {
-  .proactive-badge {
-    color: #ffffff;
-  }
+  color: #EAECEF;
+  letter-spacing: 0.2px;
+  text-transform: lowercase;
 }
 
 .proactive-time {
-  font-size: 12px;
-  color: #666;
-  font-weight: 500;
-}
-
-@media (prefers-color-scheme: dark) {
-  .proactive-time {
-    color: #999;
-  }
+  font-size: 11px;
+  color: #B8C0CC;
+  font-weight: 400;
+  letter-spacing: 0.3px;
 }
 
 .proactive-close-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
   border: none;
-  background: rgba(0, 0, 0, 0.05);
-  color: #666;
+  background: rgba(255, 255, 255, 0.05);
+  color: #B8C0CC;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -132,48 +131,32 @@
 }
 
 .proactive-close-btn:hover {
-  background: rgba(0, 0, 0, 0.1);
-  color: #333;
-}
-
-@media (prefers-color-scheme: dark) {
-  .proactive-close-btn {
-    background: rgba(255, 255, 255, 0.1);
-    color: #999;
-  }
-
-  .proactive-close-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: #fff;
-  }
+  background: rgba(255, 255, 255, 0.1);
+  color: #EAECEF;
 }
 
 .proactive-notification-body {
-  padding-left: 52px;
+  padding-left: 48px;
 }
 
 .proactive-message {
-  font-size: 14px;
-  line-height: 1.5;
-  color: #333;
-  margin: 0 0 12px 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #EAECEF;
+  margin: 0 0 10px 0;
   font-weight: 400;
-}
-
-@media (prefers-color-scheme: dark) {
-  .proactive-message {
-    color: #e0e0e0;
-  }
+  letter-spacing: 0.2px;
 }
 
 .proactive-cta {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #667eea;
-  font-size: 13px;
-  font-weight: 600;
+  color: #D7B38C;
+  font-size: 12px;
+  font-weight: 500;
   transition: gap 0.2s ease;
+  letter-spacing: 0.3px;
 }
 
 .proactive-notification-content:hover .proactive-cta {
@@ -181,20 +164,20 @@
 }
 
 .proactive-cta-text {
-  letter-spacing: -0.01em;
+  text-transform: lowercase;
 }
 
 /* Mobile responsive */
 @media (max-width: 768px) {
   .proactive-notification {
-    top: 10px;
+    bottom: 16px;
     right: -100vw;
-    width: calc(100vw - 20px);
+    width: calc(100vw - 32px);
     max-width: none;
   }
 
   .proactive-notification.visible {
-    right: 10px;
+    right: 16px;
   }
 
   .proactive-notification.exiting {
@@ -206,30 +189,34 @@
   }
 
   .proactive-ai-avatar {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
   }
 
   .proactive-notification-body {
-    padding-left: 48px;
+    padding-left: 44px;
   }
 
   .proactive-badge {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .proactive-message {
-    font-size: 13px;
+    font-size: 12px;
+  }
+
+  .proactive-cta {
+    font-size: 11px;
   }
 }
 
 /* Animation for pulsing effect on high urgency */
 @keyframes pulse {
   0%, 100% {
-    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 2px 8px rgba(215, 179, 140, 0.4);
   }
   50% {
-    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.5);
+    box-shadow: 0 2px 16px rgba(215, 179, 140, 0.7);
   }
 }
 

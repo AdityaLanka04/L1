@@ -967,6 +967,12 @@ class ComprehensiveUserProfile(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
     
+    # New profile quiz fields
+    is_college_student = Column(Boolean, default=True)
+    college_level = Column(String(100), nullable=True)
+    major = Column(String(200), nullable=True)
+    main_subject = Column(String(200), nullable=True)
+    
     preferred_subjects = Column(Text, nullable=True)
     brainwave_goal = Column(String(100), nullable=True)
     difficulty_level = Column(String(50), default="intermediate")
