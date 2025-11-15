@@ -12,6 +12,7 @@ const ProfileQuiz = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [selectedAnswers, setSelectedAnswers] = useState([]);
   const [showSkipWarning, setShowSkipWarning] = useState(false);
   const [answers, setAnswers] = useState({
     isCollegeStudent: null,
@@ -66,102 +67,164 @@ const ProfileQuiz = () => {
   const archetypeQuestions = [
     {
       id: 1,
-      question: "When you're studying for a big exam, which approach do you naturally lean toward?",
+      question: "When you're studying for a big exam, which approaches do you use? (Select all that apply)",
+      multiSelect: true,
+      layout: 'grid',
       options: [
-        { text: "Create detailed outlines and break down concepts systematically", archetypes: { Logicor: 3, Anchor: 2 } },
-        { text: "Jump between topics based on what feels interesting in the moment", archetypes: { Flowist: 3, Spark: 2 } },
-        { text: "Walk around, use flashcards, or explain concepts out loud", archetypes: { Kinetiq: 3, Flowist: 1 } },
-        { text: "Draw diagrams and mind maps connecting different ideas", archetypes: { Synth: 3, Dreamweaver: 2 } }
+        { text: "Create detailed outlines and systematic breakdowns", archetypes: { Logicor: 3, Anchor: 2 } },
+        { text: "Jump between topics based on interest", archetypes: { Flowist: 3, Spark: 2 } },
+        { text: "Use flashcards or explain concepts out loud", archetypes: { Kinetiq: 3, Flowist: 1 } },
+        { text: "Draw diagrams and mind maps", archetypes: { Synth: 3, Dreamweaver: 2 } },
+        { text: "Study with others in groups", archetypes: { Empathion: 2, Synth: 1 } },
+        { text: "Focus on practice problems", archetypes: { Logicor: 2, Kinetiq: 2 } }
       ]
     },
     {
       id: 2,
-      question: "Your professor assigns a group project. What role do you typically take?",
+      question: "What roles do you naturally take in group projects? (Select all that apply)",
+      multiSelect: true,
+      layout: 'grid',
       options: [
-        { text: "The organizer who creates timelines and keeps everyone on track", archetypes: { Anchor: 3, Logicor: 2 } },
-        { text: "The idea generator who brings creative solutions to problems", archetypes: { Spark: 3, Dreamweaver: 2 } },
-        { text: "The connector who makes sure everyone's ideas work together", archetypes: { Synth: 3, Empathion: 2 } },
-        { text: "The adapter who fills gaps and handles whatever needs doing", archetypes: { Flowist: 3, Resonant: 2 } }
+        { text: "Organizer & timeline keeper", archetypes: { Anchor: 3, Logicor: 2 } },
+        { text: "Idea generator & creative problem solver", archetypes: { Spark: 3, Dreamweaver: 2 } },
+        { text: "Connector & collaborator", archetypes: { Synth: 3, Empathion: 2 } },
+        { text: "Flexible adapter", archetypes: { Flowist: 3, Resonant: 2 } },
+        { text: "Detail-oriented editor", archetypes: { Anchor: 2, Logicor: 1 } },
+        { text: "Hands-on builder", archetypes: { Kinetiq: 3, Flowist: 1 } }
       ]
     },
     {
       id: 3,
-      question: "When learning a new concept in class, you understand it best when:",
+      question: "How do you best understand new concepts?",
+      multiSelect: false,
+      layout: 'vertical',
       options: [
-        { text: "The professor shows the logical steps and formulas", archetypes: { Logicor: 3, Anchor: 1 } },
-        { text: "You can physically work through examples or build something", archetypes: { Kinetiq: 3, Flowist: 2 } },
-        { text: "You can see how it connects to real-world applications", archetypes: { Synth: 3, Seeker: 2 } },
-        { text: "You grasp the overall vision and future implications", archetypes: { Dreamweaver: 3, Spark: 1 } }
+        { text: "Through logical steps and formulas", archetypes: { Logicor: 3, Anchor: 1 } },
+        { text: "By physically working through examples", archetypes: { Kinetiq: 3, Flowist: 2 } },
+        { text: "Connecting to real-world applications", archetypes: { Synth: 3, Seeker: 2 } },
+        { text: "Grasping the overall vision first", archetypes: { Dreamweaver: 3, Spark: 1 } }
       ]
     },
     {
       id: 4,
-      question: "How would you describe your dorm room or study space?",
+      question: "What describes your study space?",
+      multiSelect: false,
+      layout: 'vertical',
       options: [
-        { text: "Very organized with everything labeled and in its place", archetypes: { Anchor: 3 } },
-        { text: "Organized chaos - looks messy but you know where everything is", archetypes: { Spark: 2, Flowist: 2 } },
-        { text: "Decorated with inspiration boards, quotes, and creative displays", archetypes: { Dreamweaver: 3, Spark: 1 } },
-        { text: "Constantly rearranged based on your current projects or mood", archetypes: { Flowist: 3, Resonant: 2 } }
+        { text: "Very organized with everything labeled", archetypes: { Anchor: 3 } },
+        { text: "Organized chaos - messy but I know where things are", archetypes: { Spark: 2, Flowist: 2 } },
+        { text: "Decorated with inspiration boards and quotes", archetypes: { Dreamweaver: 3, Spark: 1 } },
+        { text: "Constantly rearranged based on projects", archetypes: { Flowist: 3, Resonant: 2 } }
       ]
     },
     {
       id: 5,
-      question: "When you hit a roadblock on an assignment, your first instinct is to:",
+      question: "When you hit a roadblock, what do you do? (Select all that apply)",
+      multiSelect: true,
+      layout: 'grid',
       options: [
-        { text: "Break down the problem into smaller, manageable pieces", archetypes: { Logicor: 3, Anchor: 1 } },
-        { text: "Try different approaches until something clicks", archetypes: { Kinetiq: 3, Flowist: 2 } },
-        { text: "Step back and look for patterns or connections you missed", archetypes: { Synth: 3, Seeker: 1 } },
-        { text: "Brainstorm wildly different solutions or alternatives", archetypes: { Spark: 3, Dreamweaver: 2 } }
+        { text: "Break it into smaller pieces", archetypes: { Logicor: 3, Anchor: 1 } },
+        { text: "Try different approaches", archetypes: { Kinetiq: 3, Flowist: 2 } },
+        { text: "Look for patterns", archetypes: { Synth: 3, Seeker: 1 } },
+        { text: "Brainstorm alternatives", archetypes: { Spark: 3, Dreamweaver: 2 } },
+        { text: "Take a break and come back", archetypes: { Resonant: 2, Flowist: 1 } },
+        { text: "Ask for help", archetypes: { Empathion: 2, Synth: 1 } }
       ]
     },
     {
       id: 6,
-      question: "What motivates you most during a tough semester?",
+      question: "What motivates you during tough semesters? (Select all that apply)",
+      multiSelect: true,
+      layout: 'grid',
       options: [
-        { text: "Seeing clear progress toward your degree requirements", archetypes: { Anchor: 3, Logicor: 2 } },
-        { text: "Learning fascinating new topics that spark your curiosity", archetypes: { Seeker: 3, Spark: 2 } },
-        { text: "Feeling like your work has meaning and helps others", archetypes: { Empathion: 3, Synth: 1 } },
-        { text: "Achieving mastery and proving you can handle challenges", archetypes: { Logicor: 3, Kinetiq: 2 } }
+        { text: "Clear progress toward degree", archetypes: { Anchor: 3, Logicor: 2 } },
+        { text: "Learning fascinating topics", archetypes: { Seeker: 3, Spark: 2 } },
+        { text: "Work with meaning & impact", archetypes: { Empathion: 3, Synth: 1 } },
+        { text: "Achieving mastery", archetypes: { Logicor: 3, Kinetiq: 2 } },
+        { text: "Exploring new ideas", archetypes: { Dreamweaver: 2, Seeker: 2 } },
+        { text: "Building practical skills", archetypes: { Kinetiq: 2, Anchor: 1 } }
       ]
     },
     {
       id: 7,
-      question: "In a lecture hall, you're most likely to:",
+      question: "How do you take notes in lectures?",
+      multiSelect: false,
+      layout: 'vertical',
       options: [
-        { text: "Take detailed linear notes following the professor's structure", archetypes: { Anchor: 3, Logicor: 2 } },
-        { text: "Sketch diagrams, use colors, and add visual elements", archetypes: { Dreamweaver: 3, Spark: 2 } },
-        { text: "Jot down key ideas and make connections to other classes", archetypes: { Synth: 3, Seeker: 1 } },
-        { text: "Record or photograph slides to review while moving around later", archetypes: { Kinetiq: 3, Flowist: 2 } }
+        { text: "Detailed linear notes following structure", archetypes: { Anchor: 3, Logicor: 2 } },
+        { text: "Sketches, diagrams, and visual elements", archetypes: { Dreamweaver: 3, Spark: 2 } },
+        { text: "Key ideas with connections to other topics", archetypes: { Synth: 3, Seeker: 1 } },
+        { text: "Record/photograph to review later while active", archetypes: { Kinetiq: 3, Flowist: 2 } }
       ]
     },
     {
       id: 8,
-      question: "When choosing electives, you prefer classes that:",
+      question: "What type of classes do you prefer? (Select all that apply)",
+      multiSelect: true,
+      layout: 'grid',
       options: [
-        { text: "Build directly on your major with clear career applications", archetypes: { Anchor: 3, Logicor: 1 } },
-        { text: "Explore totally different fields and expand your thinking", archetypes: { Seeker: 3, Spark: 2 } },
-        { text: "Involve hands-on projects or practical skill-building", archetypes: { Kinetiq: 3, Flowist: 1 } },
-        { text: "Connect multiple disciplines in innovative ways", archetypes: { Synth: 3, Dreamweaver: 2 } }
+        { text: "Career-focused courses", archetypes: { Anchor: 3, Logicor: 1 } },
+        { text: "Interdisciplinary explorations", archetypes: { Seeker: 3, Spark: 2 } },
+        { text: "Hands-on projects", archetypes: { Kinetiq: 3, Flowist: 1 } },
+        { text: "Multi-discipline connections", archetypes: { Synth: 3, Dreamweaver: 2 } },
+        { text: "Theory-heavy courses", archetypes: { Logicor: 2, Seeker: 1 } },
+        { text: "Creative & innovative courses", archetypes: { Spark: 3, Dreamweaver: 1 } }
       ]
     },
     {
       id: 9,
-      question: "When stressed about deadlines, you cope by:",
+      question: "How do you handle deadline stress? (Select all that apply)",
+      multiSelect: true,
+      layout: 'grid',
       options: [
-        { text: "Making detailed to-do lists and checking off tasks", archetypes: { Anchor: 3, Logicor: 2 } },
-        { text: "Taking breaks to exercise, walk, or do something physical", archetypes: { Kinetiq: 3, Flowist: 2 } },
-        { text: "Talking it through with friends or writing in a journal", archetypes: { Empathion: 3, Spark: 1 } },
-        { text: "Adjusting your approach and being flexible with plans", archetypes: { Resonant: 3, Flowist: 2 } }
+        { text: "Make detailed to-do lists", archetypes: { Anchor: 3, Logicor: 2 } },
+        { text: "Exercise or physical activity", archetypes: { Kinetiq: 3, Flowist: 2 } },
+        { text: "Talk with friends or journal", archetypes: { Empathion: 3, Spark: 1 } },
+        { text: "Stay flexible with plans", archetypes: { Resonant: 3, Flowist: 2 } },
+        { text: "Focus intensely on tasks", archetypes: { Logicor: 2, Anchor: 1 } },
+        { text: "Take strategic breaks", archetypes: { Resonant: 2, Kinetiq: 1 } }
       ]
     },
     {
       id: 10,
-      question: "Which study environment helps you focus best?",
+      question: "Which study environments work for you? (Select all that apply)",
+      multiSelect: true,
+      layout: 'grid',
       options: [
-        { text: "Quiet library with minimal distractions", archetypes: { Anchor: 2, Logicor: 2 } },
-        { text: "Coffee shop with background noise and movement", archetypes: { Flowist: 3, Kinetiq: 1 } },
-        { text: "Nature or outdoor spaces with fresh air", archetypes: { Kinetiq: 2, Resonant: 2 } },
-        { text: "Creative spaces with inspiring visuals and atmosphere", archetypes: { Spark: 3, Dreamweaver: 2 } }
+        { text: "Quiet library", archetypes: { Anchor: 2, Logicor: 2 } },
+        { text: "Coffee shop with ambiance", archetypes: { Flowist: 3, Kinetiq: 1 } },
+        { text: "Outdoor spaces", archetypes: { Kinetiq: 2, Resonant: 2 } },
+        { text: "Creative inspiring spaces", archetypes: { Spark: 3, Dreamweaver: 2 } },
+        { text: "Study groups", archetypes: { Empathion: 2, Synth: 2 } },
+        { text: "My own room", archetypes: { Anchor: 1, Resonant: 1 } }
+      ]
+    },
+    {
+      id: 11,
+      question: "What learning resources do you prefer? (Select all that apply)",
+      multiSelect: true,
+      layout: 'grid',
+      options: [
+        { text: "Textbooks & written materials", archetypes: { Logicor: 2, Anchor: 2 } },
+        { text: "Video tutorials", archetypes: { Kinetiq: 2, Flowist: 1 } },
+        { text: "Interactive simulations", archetypes: { Kinetiq: 3, Spark: 2 } },
+        { text: "Concept maps & visuals", archetypes: { Synth: 3, Dreamweaver: 2 } },
+        { text: "Discussion forums", archetypes: { Empathion: 2, Seeker: 1 } },
+        { text: "Real-world case studies", archetypes: { Synth: 2, Seeker: 2 } }
+      ]
+    },
+    {
+      id: 12,
+      question: "How do you prepare for exams? (Select all that apply)",
+      multiSelect: true,
+      layout: 'grid',
+      options: [
+        { text: "Review notes systematically", archetypes: { Anchor: 3, Logicor: 2 } },
+        { text: "Do practice problems", archetypes: { Logicor: 3, Kinetiq: 1 } },
+        { text: "Create study guides", archetypes: { Anchor: 2, Synth: 2 } },
+        { text: "Teach concepts to others", archetypes: { Empathion: 3, Kinetiq: 2 } },
+        { text: "Review in varied locations", archetypes: { Flowist: 2, Kinetiq: 1 } },
+        { text: "Connect to bigger picture", archetypes: { Dreamweaver: 2, Synth: 2 } }
       ]
     }
   ];
@@ -272,19 +335,46 @@ const ProfileQuiz = () => {
   };
 
   const handleArchetypeSelect = (optionIndex) => {
-    setSelectedAnswer(optionIndex);
+    const question = archetypeQuestions[currentQuestion];
+    
+    if (question.multiSelect) {
+      setSelectedAnswers(prev => {
+        if (prev.includes(optionIndex)) {
+          return prev.filter(i => i !== optionIndex);
+        } else {
+          return [...prev, optionIndex];
+        }
+      });
+    } else {
+      setSelectedAnswer(optionIndex);
+    }
   };
 
   const handleArchetypeNext = () => {
-    if (selectedAnswer === null) return;
+    const question = archetypeQuestions[currentQuestion];
+    
+    if (question.multiSelect && selectedAnswers.length === 0) return;
+    if (!question.multiSelect && selectedAnswer === null) return;
 
-    const selectedOption = archetypeQuestions[currentQuestion].options[selectedAnswer];
-    const newArchetypeAnswers = { ...answers.archetypeAnswers, [currentQuestion]: selectedAnswer };
+    const newArchetypeAnswers = { 
+      ...answers.archetypeAnswers, 
+      [currentQuestion]: question.multiSelect ? selectedAnswers : selectedAnswer 
+    };
     const newScores = { ...answers.archetypeScores };
     
-    Object.entries(selectedOption.archetypes).forEach(([archetype, points]) => {
-      newScores[archetype] = (newScores[archetype] || 0) + points;
-    });
+    if (question.multiSelect) {
+      selectedAnswers.forEach(answerIndex => {
+        const selectedOption = question.options[answerIndex];
+        Object.entries(selectedOption.archetypes).forEach(([archetype, points]) => {
+          newScores[archetype] = (newScores[archetype] || 0) + points;
+        });
+      });
+    } else {
+      const selectedOption = question.options[selectedAnswer];
+      Object.entries(selectedOption.archetypes).forEach(([archetype, points]) => {
+        newScores[archetype] = (newScores[archetype] || 0) + points;
+      });
+    }
 
     setAnswers(prev => ({
       ...prev,
@@ -295,6 +385,7 @@ const ProfileQuiz = () => {
     if (currentQuestion < archetypeQuestions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
       setSelectedAnswer(null);
+      setSelectedAnswers([]);
     } else {
       completeQuiz(newScores);
     }
@@ -303,7 +394,16 @@ const ProfileQuiz = () => {
   const handleArchetypeBack = () => {
     if (currentQuestion > 0) {
       setCurrentQuestion(currentQuestion - 1);
-      setSelectedAnswer(answers.archetypeAnswers[currentQuestion - 1] ?? null);
+      const prevAnswer = answers.archetypeAnswers[currentQuestion - 1];
+      const prevQuestion = archetypeQuestions[currentQuestion - 1];
+      
+      if (prevQuestion.multiSelect) {
+        setSelectedAnswers(prevAnswer || []);
+        setSelectedAnswer(null);
+      } else {
+        setSelectedAnswer(prevAnswer ?? null);
+        setSelectedAnswers([]);
+      }
     }
   };
 
@@ -397,21 +497,69 @@ const ProfileQuiz = () => {
   if (currentStep === 'welcome') {
     return (
       <div className="profile-quiz-page">
+        <div className="bento-background">
+          <div className="bento-bg-box bento-bg-1"></div>
+          <div className="bento-bg-box bento-bg-2"></div>
+          <div className="bento-bg-box bento-bg-3"></div>
+          <div className="bento-bg-box bento-bg-4"></div>
+          <div className="bento-bg-box bento-bg-5"></div>
+          <div className="bento-bg-box bento-bg-6"></div>
+          <div className="bento-bg-box bento-bg-7"></div>
+          <div className="bento-bg-box bento-bg-8"></div>
+        </div>
+        
         <div className="bento-grid">
-          <div className="bento-box bento-welcome">
-            <h1 className="bento-welcome-title">welcome to cerbyl</h1>
+          <div className="connection-network">
+            <div className="node node-1"></div>
+            <div className="node node-2"></div>
+            <div className="node node-3"></div>
+            <div className="node node-4"></div>
+            <div className="node node-5"></div>
+            <div className="node node-6"></div>
+            <div className="node node-7"></div>
+            <div className="node node-8"></div>
+            <svg className="connection-lines" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <line x1="25" y1="25" x2="50" y2="25" className="connection-line" />
+              <line x1="50" y1="12.5" x2="75" y2="12.5" className="connection-line" />
+              <line x1="75" y1="25" x2="87.5" y2="25" className="connection-line" />
+              <line x1="50" y1="37.5" x2="75" y2="37.5" className="connection-line" />
+              <line x1="37.5" y1="62.5" x2="62.5" y2="62.5" className="connection-line" />
+              <line x1="50" y1="75" x2="75" y2="75" className="connection-line" />
+              <line x1="25" y1="25" x2="25" y2="62.5" className="connection-line" />
+              <line x1="75" y1="37.5" x2="75" y2="62.5" className="connection-line" />
+            </svg>
           </div>
 
-          <div className="bento-box bento-quote">
+          <div className="bento-box bento-text-large">
+            <h1 className="bento-large-title">welcome to cerbyl</h1>
+          </div>
+
+          <div className="bento-box bento-quote-top">
             <p className="bento-quote-text">{randomQuote}</p>
           </div>
 
-          <div className="bento-box bento-cta" onClick={() => setCurrentStep('form')}>
+          <div className="bento-box bento-symbol-top">
+            <svg className="bento-symbol-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 3L1 9l11 6 9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/>
+            </svg>
+          </div>
+
+          <div className="bento-box bento-main-cta" onClick={() => setCurrentStep('form')}>
             <div className="bento-cta-content">
-              <span className="bento-cta-icon">→</span>
+              <svg className="bento-cta-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
               <span className="bento-cta-text">take quiz</span>
             </div>
           </div>
+
+          <div className="bento-box bento-accent-light"></div>
+          <div className="bento-box bento-accent-medium"></div>
+
+          <div className="bento-box bento-accent-mid"></div>
+          <div className="bento-box bento-accent-strong"></div>
+
+          <div className="bento-box bento-accent-dark"></div>
 
           <div className="bento-box bento-description">
             <h3 className="bento-desc-title">your personalized ai tutor</h3>
@@ -420,17 +568,29 @@ const ProfileQuiz = () => {
             </p>
           </div>
 
-          <div className="bento-box bento-blank bento-accent-1"></div>
-          <div className="bento-box bento-blank bento-accent-2"></div>
-          <div className="bento-box bento-blank bento-accent-3"></div>
+          <div className="bento-box bento-accent-subtle"></div>
         </div>
       </div>
     );
   }
 
   if (currentStep === 'archetype') {
+    const question = archetypeQuestions[currentQuestion];
+    const isValid = question.multiSelect ? selectedAnswers.length > 0 : selectedAnswer !== null;
+    
     return (
       <div className="profile-quiz-page">
+        <div className="bento-background">
+          <div className="bento-bg-box bento-bg-1"></div>
+          <div className="bento-bg-box bento-bg-2"></div>
+          <div className="bento-bg-box bento-bg-3"></div>
+          <div className="bento-bg-box bento-bg-4"></div>
+          <div className="bento-bg-box bento-bg-5"></div>
+          <div className="bento-bg-box bento-bg-6"></div>
+          <div className="bento-bg-box bento-bg-7"></div>
+          <div className="bento-bg-box bento-bg-8"></div>
+        </div>
+        
         <div className="quiz-container">
           <div className="quiz-header">
             <h1 className="quiz-title">discover your learning archetype</h1>
@@ -444,19 +604,31 @@ const ProfileQuiz = () => {
 
           <div className="quiz-content">
             <div className="question-card">
-              <h2 className="question-text">{archetypeQuestions[currentQuestion].question}</h2>
+              <h2 className="question-text">{question.question}</h2>
+              {question.multiSelect && (
+                <p className="question-subtitle">select all that apply</p>
+              )}
               
-              <div className="options-grid">
-                {archetypeQuestions[currentQuestion].options.map((option, index) => (
-                  <button
-                    key={index}
-                    className={`option-button ${selectedAnswer === index ? 'selected' : ''}`}
-                    onClick={() => handleArchetypeSelect(index)}
-                  >
-                    <span className="option-number">{String.fromCharCode(65 + index)}</span>
-                    <span className="option-text">{option.text}</span>
-                  </button>
-                ))}
+              <div className={`options-grid ${question.layout === 'grid' ? 'options-grid-2col' : 'options-grid-1col'}`}>
+                {question.options.map((option, index) => {
+                  const isSelected = question.multiSelect 
+                    ? selectedAnswers.includes(index)
+                    : selectedAnswer === index;
+                    
+                  return (
+                    <button
+                      key={index}
+                      className={`option-button ${isSelected ? 'selected' : ''}`}
+                      onClick={() => handleArchetypeSelect(index)}
+                    >
+                      <span className="option-number">{String.fromCharCode(65 + index)}</span>
+                      <span className="option-text">{option.text}</span>
+                      {question.multiSelect && isSelected && (
+                        <span className="option-checkmark">✓</span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
 
               <div className="navigation-buttons">
@@ -465,19 +637,22 @@ const ProfileQuiz = () => {
                   onClick={handleArchetypeBack}
                   disabled={currentQuestion === 0}
                 >
-                  ← Back
+                  <svg className="back-btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M16 5v14l-11-7z"/>
+                  </svg>
+                  back
                 </button>
                 <button 
                   className="continue-btn" 
                   onClick={handleArchetypeNext}
-                  disabled={selectedAnswer === null}
+                  disabled={!isValid}
                 >
-                  {currentQuestion === archetypeQuestions.length - 1 ? 'Complete' : 'Continue'}
+                  {currentQuestion === archetypeQuestions.length - 1 ? 'complete' : 'continue'}
                 </button>
               </div>
 
               <button className="skip-quiz-btn" onClick={handleSkip}>
-                Skip Learning Style Assessment
+                skip learning style assessment
               </button>
             </div>
           </div>
@@ -537,6 +712,17 @@ const ProfileQuiz = () => {
 
   return (
     <div className="profile-quiz-page">
+      <div className="bento-background">
+        <div className="bento-bg-box bento-bg-1"></div>
+        <div className="bento-bg-box bento-bg-2"></div>
+        <div className="bento-bg-box bento-bg-3"></div>
+        <div className="bento-bg-box bento-bg-4"></div>
+        <div className="bento-bg-box bento-bg-5"></div>
+        <div className="bento-bg-box bento-bg-6"></div>
+        <div className="bento-bg-box bento-bg-7"></div>
+        <div className="bento-bg-box bento-bg-8"></div>
+      </div>
+      
       <div className="quiz-container">
         <div className="quiz-header-single">
           <h1 className="quiz-title-single">tell us about yourself</h1>
@@ -583,8 +769,57 @@ const ProfileQuiz = () => {
 
           {answers.collegeLevel && (
             <div className="form-section">
-              <label className="form-label">what subjects do you need help with?</label>
-              <p className="form-hint">type to search or add custom subjects</p>
+              <label className="form-label">what's your main subject or field of study?</label>
+              <p className="form-hint">type to search or add a custom subject</p>
+              
+              <div className="subject-input-container">
+                <input
+                  type="text"
+                  className="subject-input"
+                  placeholder="e.g., Computer Science, Biology, Mathematics..."
+                  value={answers.mainSubject}
+                  onChange={(e) => {
+                    setAnswers(prev => ({ ...prev, mainSubject: e.target.value }));
+                    setSubjectInput(e.target.value);
+                    generateSubjectSuggestions(e.target.value);
+                  }}
+                  onFocus={() => {
+                    if (answers.mainSubject.length >= 2) {
+                      setShowSuggestions(true);
+                    }
+                  }}
+                  onBlur={() => {
+                    setTimeout(() => setShowSuggestions(false), 200);
+                  }}
+                />
+                {isLoadingSuggestions && <div className="loading-spinner"></div>}
+
+                {showSuggestions && suggestedSubjects.length > 0 && (
+                  <div className="suggestions-dropdown">
+                    {suggestedSubjects.map((subject, idx) => (
+                      <div
+                        key={idx}
+                        className="suggestion-item"
+                        onClick={() => {
+                          setAnswers(prev => ({ ...prev, mainSubject: subject }));
+                          setSubjectInput('');
+                          setSuggestedSubjects([]);
+                          setShowSuggestions(false);
+                        }}
+                      >
+                        {subject}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {answers.mainSubject && (
+            <div className="form-section">
+              <label className="form-label">what other subjects are you interested in?</label>
+              <p className="form-hint">type to search or add custom subjects (optional)</p>
               
               <div className="subject-input-container">
                 <input
@@ -594,7 +829,7 @@ const ProfileQuiz = () => {
                   value={subjectInput}
                   onChange={handleSubjectInputChange}
                   onKeyPress={(e) => {
-                    if (e.key === 'Enter' && subjectInput.trim()) {
+                    if (e.key === 'Enter' && subjectInput.trim() && subjectInput !== answers.mainSubject) {
                       addSubject(subjectInput.trim());
                     }
                   }}
@@ -642,23 +877,6 @@ const ProfileQuiz = () => {
             </div>
           )}
 
-          {answers.subjects.length > 0 && (
-            <div className="form-section">
-              <label className="form-label">which subject is your main focus?</label>
-              <div className="button-group-vertical">
-                {answers.subjects.map((subject) => (
-                  <button
-                    key={subject}
-                    className={`choice-btn-vertical ${answers.mainSubject === subject ? 'selected' : ''}`}
-                    onClick={() => setAnswers(prev => ({ ...prev, mainSubject: subject }))}
-                  >
-                    {subject}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           {answers.mainSubject && (
             <div className="form-section">
               <label className="form-label">what's your main goal?</label>
@@ -676,7 +894,7 @@ const ProfileQuiz = () => {
             </div>
           )}
 
-          {isFormValid() && (
+          {answers.mainSubject && answers.brainwaveGoal && (
             <div className="form-section">
               <button
                 className="submit-btn"
