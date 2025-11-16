@@ -39,18 +39,65 @@ const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:800
 function App() {
   const [proactiveNotification, setProactiveNotification] = useState(null);
   const [lastCheckTime, setLastCheckTime] = useState(Date.now());
+  const [lastActivityTime, setLastActivityTime] = useState(Date.now());
+  const [isIdle, setIsIdle] = useState(false);
+
+  // Track user activity for idle detection
+  useEffect(() => {
+    const updateActivity = () => {
+      setLastActivityTime(Date.now());
+      setIsIdle(false);
+    };
+
+    // Listen to user interactions
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    events.forEach(event => {
+      document.addEventListener(event, updateActivity);
+    });
+
+    // Check for idle every 10 seconds
+    const idleCheckInterval = setInterval(() => {
+      const timeSinceActivity = Date.now() - lastActivityTime;
+      const oneMinute = 60 * 1000;
+      
+      if (timeSinceActivity >= oneMinute && !isIdle) {
+        console.log('🔔 User is idle for 1 minute, checking for proactive message...');
+        setIsIdle(true);
+        // Use the global function
+        if (window.checkProactiveMessage) {
+          window.checkProactiveMessage(true);
+        }
+      }
+    }, 10000);
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, updateActivity);
+      });
+      clearInterval(idleCheckInterval);
+    };
+  }, [lastActivityTime, isIdle]);
 
   // Check for proactive AI messages periodically
   useEffect(() => {
-    const checkProactiveMessage = async () => {
-      const userId = localStorage.getItem('userId');
-      if (!userId) return;
+    const checkProactiveMessage = async (forceIdle = false) => {
+      const userId = localStorage.getItem('username');
+      if (!userId) {
+        console.log('🔔 No username found, skipping check');
+        return;
+      }
 
       try {
-        const response = await fetch(`${API_BASE_URL}/api/check_proactive_message?user_id=${userId}`);
+        const url = `${API_BASE_URL}/api/check_proactive_message?user_id=${userId}${forceIdle ? '&is_idle=true' : ''}`;
+        console.log('🔔 Checking proactive message:', url);
+        
+        const response = await fetch(url);
         const data = await response.json();
 
+        console.log('🔔 Proactive message response:', data);
+
         if (data.should_notify && data.message) {
+          console.log('🔔 SHOWING NOTIFICATION!', data);
           setProactiveNotification({
             message: data.message,
             chatId: data.chat_id,
@@ -58,29 +105,83 @@ function App() {
             reason: data.reason
           });
           setLastCheckTime(Date.now());
+          setIsIdle(false);
+        } else {
+          console.log('🔔 No notification to show:', data);
         }
       } catch (error) {
-        console.error('Error checking proactive message:', error);
+        console.error('🔔 Error checking proactive message:', error);
       }
     };
+    
+    // Make checkProactiveMessage available globally
+    window.checkProactiveMessage = checkProactiveMessage;
 
-    // Check immediately on mount if user is logged in
-    const userId = localStorage.getItem('userId');
+    // FORCE SHOW TEST NOTIFICATION IMMEDIATELY (doesn't depend on backend)
+    const userId = localStorage.getItem('username');
+    const userProfile = localStorage.getItem('userProfile');
+    
     if (userId) {
-      checkProactiveMessage();
+      console.log('🔔 User logged in:', userId);
+      
+      let firstName = 'there';
+      try {
+        if (userProfile) {
+          const profile = JSON.parse(userProfile);
+          firstName = profile.firstName || 'there';
+        }
+      } catch (e) {
+        console.log('Could not parse user profile');
+      }
+
+      console.log('🔔 FORCING TEST NOTIFICATION in 2 seconds...');
+      const notificationTimer = setTimeout(() => {
+        console.log('🔔 SHOWING FORCED TEST NOTIFICATION NOW!');
+        const testNotif = {
+          message: `Hey ${firstName}! 👋 I'm your AI tutor. What would you like to learn today? Click here to start chatting!`,
+          chatId: null,
+          urgencyScore: 0.8,
+          reason: 'test'
+        };
+        console.log('🔔 Setting notification state:', testNotif);
+        setProactiveNotification(testNotif);
+        console.log('🔔 Notification state set! Should render now...');
+      }, 2000);
+
+      // Also try to check backend after 10 seconds (but don't fail if it's down)
+      const backendCheckTimer = setTimeout(() => {
+        console.log('🔔 Attempting to check backend for real notification...');
+        checkProactiveMessage().catch(err => {
+          console.log('🔔 Backend check failed (expected if backend is down):', err);
+        });
+      }, 10000);
+    } else {
+      console.log('🔔 No user logged in, skipping notification');
     }
 
-    // Check every 2 minutes for proactive messages
+    // Add global function to manually trigger notification for testing
+    window.showTestNotification = () => {
+      console.log('🔔 Manual test notification triggered!');
+      setProactiveNotification({
+        message: "This is a manual test notification! Click to open AI chat.",
+        chatId: null,
+        urgencyScore: 0.9,
+        reason: 'manual_test'
+      });
+    };
+    console.log('🔔 Added window.showTestNotification() - call this in console to test!');
+
+    // Check every 20 seconds for proactive messages (more frequent)
     const interval = setInterval(() => {
-      const userId = localStorage.getItem('userId');
+      const userId = localStorage.getItem('username');
       if (userId) {
-        // Only check if it's been at least 30 minutes since last notification
         const timeSinceLastCheck = Date.now() - lastCheckTime;
-        if (timeSinceLastCheck >= 30 * 60 * 1000) {
+        if (timeSinceLastCheck >= 2 * 60 * 1000) { // 2 minutes
+          console.log('🔔 Periodic check for proactive message...');
           checkProactiveMessage();
         }
       }
-    }, 2 * 60 * 1000); // Check every 2 minutes
+    }, 20 * 1000);
 
     return () => clearInterval(interval);
   }, [lastCheckTime]);
@@ -91,12 +192,18 @@ function App() {
         <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-top)', color: 'var(--text-primary)' }}>
         {/* Proactive AI Notification - appears on all pages */}
         {proactiveNotification && (
-          <ProactiveNotification
-            message={proactiveNotification.message}
-            chatId={proactiveNotification.chatId}
-            urgencyScore={proactiveNotification.urgencyScore}
-            onClose={() => setProactiveNotification(null)}
-          />
+          <>
+            {console.log('🔔 RENDERING ProactiveNotification component!', proactiveNotification)}
+            <ProactiveNotification
+              message={proactiveNotification.message}
+              chatId={proactiveNotification.chatId}
+              urgencyScore={proactiveNotification.urgencyScore}
+              onClose={() => {
+                console.log('🔔 Closing notification');
+                setProactiveNotification(null);
+              }}
+            />
+          </>
         )}
         
         <Routes>

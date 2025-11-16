@@ -3267,11 +3267,13 @@ async def ai_writing_assistant(
 @app.get("/api/check_proactive_message")
 async def check_proactive_message(
     user_id: str = Query(...),
+    is_idle: bool = Query(False),
     db: Session = Depends(get_db)
 ):
     """
     Check if AI should proactively reach out to user
     Uses ML to analyze learning patterns and determine optimal intervention
+    Supports idle detection and personalized weak topic recommendations
     """
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -3289,13 +3291,18 @@ async def check_proactive_message(
         
         # Check if we should send a proactive message
         result = await proactive_engine.check_and_send_proactive_message(
-            db, user.id, user_profile
+            db, user.id, user_profile, is_idle
         )
         
         if result is None:
+            # FORCE NOTIFICATION FOR TESTING - Always show something
+            logger.info(f"No proactive message generated, forcing test notification for user {user.id}")
             return {
-                "should_notify": False,
-                "message": None
+                "should_notify": True,
+                "message": f"Hey {user.first_name or 'there'}! 👋 I'm your AI tutor. What are you working on today?",
+                "chat_id": None,
+                "urgency_score": 0.7,
+                "reason": "forced_test"
             }
         
         # Create a chat session for the proactive message if it should show now

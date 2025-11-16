@@ -7,17 +7,35 @@ const ProactiveNotification = ({ message, chatId, onClose, urgencyScore }) => {
   const [isExiting, setIsExiting] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // Slide in animation
-    setTimeout(() => setIsVisible(true), 100);
+  console.log('🔔 ProactiveNotification COMPONENT RENDERED!', { message, chatId, urgencyScore });
+  console.log('🔔 Component props:', { message, chatId, onClose, urgencyScore });
 
-    // Auto-dismiss after 10 seconds (unless high urgency)
-    const dismissTime = urgencyScore > 0.7 ? 15000 : 10000;
+  useEffect(() => {
+    console.log('🔔 ProactiveNotification MOUNTED! Setting visible in 100ms...');
+    // Slide in animation
     const timer = setTimeout(() => {
+      console.log('🔔 Setting isVisible to TRUE now!');
+      setIsVisible(true);
+      console.log('🔔 Notification should now be visible!');
+    }, 100);
+
+    // Play notification sound (optional - can be enabled later)
+    // const audio = new Audio('/notification.mp3');
+    // audio.volume = 0.3;
+    // audio.play().catch(() => {}); // Ignore if autoplay is blocked
+
+    // Auto-dismiss after 20 seconds (unless high urgency)
+    const dismissTime = urgencyScore > 0.7 ? 30000 : 20000;
+    console.log(`🔔 Will auto-dismiss in ${dismissTime}ms`);
+    const dismissTimer = setTimeout(() => {
+      console.log('🔔 Auto-dismissing notification');
       handleClose();
     }, dismissTime);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(dismissTimer);
+    };
   }, [urgencyScore]);
 
   const handleClose = () => {
@@ -28,8 +46,13 @@ const ProactiveNotification = ({ message, chatId, onClose, urgencyScore }) => {
   };
 
   const handleClick = () => {
-    // Navigate to AI chat with the proactive message
-    navigate(`/ai-chat?session=${chatId}&proactive=true`);
+    console.log('🔔 Navigating to AI chat with session:', chatId);
+    // Navigate to AI chat with the proactive message session
+    if (chatId && chatId !== 'test-chat') {
+      navigate(`/ai-chat/${chatId}`);
+    } else {
+      navigate('/ai-chat');
+    }
     handleClose();
   };
 
@@ -45,8 +68,8 @@ const ProactiveNotification = ({ message, chatId, onClose, urgencyScore }) => {
             </svg>
           </div>
           <div className="proactive-notification-title">
-            <span className="proactive-badge">your AI tutor</span>
-            <span className="proactive-time">just now</span>
+            <span className="proactive-badge">Cerbyl AI</span>
+            <span className="proactive-time">Just now</span>
           </div>
           <button className="proactive-close-btn" onClick={(e) => { e.stopPropagation(); handleClose(); }}>
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -58,8 +81,8 @@ const ProactiveNotification = ({ message, chatId, onClose, urgencyScore }) => {
         <div className="proactive-notification-body">
           <p className="proactive-message">{message}</p>
           <div className="proactive-cta">
-            <span className="proactive-cta-text">click to chat</span>
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+            <span className="proactive-cta-text">Click to Open Chat</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
             </svg>
           </div>

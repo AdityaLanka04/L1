@@ -1,53 +1,57 @@
 .proactive-notification {
   position: fixed;
-  bottom: 24px;
-  right: -400px;
-  width: 340px;
+  top: 80px;
+  right: -420px;
+  width: 380px;
   max-width: calc(100vw - 48px);
-  z-index: 10000;
-  transition: right 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  z-index: 999999 !important;
+  transition: right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   pointer-events: none;
 }
 
 .proactive-notification.visible {
-  right: 24px;
+  right: 20px !important;
   pointer-events: all;
-  animation: slideInBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: slideInBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 @keyframes slideInBounce {
   0% {
-    right: -400px;
+    right: -420px;
     opacity: 0;
+    transform: translateY(-10px);
   }
   60% {
-    right: 30px;
+    right: 26px;
   }
   100% {
-    right: 24px;
+    right: 20px;
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
 .proactive-notification.exiting {
-  right: -400px;
+  right: -420px;
   opacity: 0;
+  transform: translateY(-10px);
 }
 
 .proactive-notification-content {
-  background: #1e1e23;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: var(--bg-primary, #1a1a2e);
   border-radius: 12px;
-  padding: 16px;
+  padding: 0;
   box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.4),
-    0 2px 8px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition: all 0.3s ease;
   position: relative;
+  overflow: hidden;
 }
 
 .proactive-notification-content::before {
@@ -56,40 +60,41 @@
   left: 0;
   top: 0;
   bottom: 0;
-  width: 3px;
-  background: linear-gradient(180deg, #D7B38C 0%, rgba(215, 179, 140, 0.5) 100%);
+  width: 5px;
+  background: var(--accent, #a78bfa);
   border-radius: 12px 0 0 12px;
 }
 
 .proactive-notification-content:hover {
-  transform: translateX(-4px);
+  transform: translateY(-2px);
   box-shadow: 
-    0 12px 40px rgba(0, 0, 0, 0.5),
-    0 4px 12px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  border-color: rgba(215, 179, 140, 0.3);
+    0 12px 40px rgba(0, 0, 0, 0.7),
+    0 4px 12px rgba(0, 0, 0, 0.5);
+  border-color: var(--accent, #a78bfa);
 }
 
 .proactive-notification-content:active {
-  transform: translateX(-2px);
+  transform: translateY(0);
 }
 
 .proactive-notification-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 10px;
+  padding: 14px 16px;
+  background: var(--bg-secondary, rgba(255, 255, 255, 0.03));
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
 }
 
 .proactive-ai-avatar {
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #D7B38C 0%, #C9A578 100%);
-  box-shadow: 0 2px 8px rgba(215, 179, 140, 0.4);
+  background: var(--accent, #a78bfa);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   flex-shrink: 0;
 }
 
@@ -97,31 +102,29 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .proactive-badge {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
-  color: #EAECEF;
-  letter-spacing: 0.2px;
-  text-transform: lowercase;
+  color: var(--text-primary, #ffffff);
+  letter-spacing: 0;
 }
 
 .proactive-time {
-  font-size: 11px;
-  color: #B8C0CC;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
   font-weight: 400;
-  letter-spacing: 0.3px;
 }
 
 .proactive-close-btn {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   border: none;
-  background: rgba(255, 255, 255, 0.05);
-  color: #B8C0CC;
+  background: transparent;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.6));
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -132,31 +135,29 @@
 
 .proactive-close-btn:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: #EAECEF;
+  color: var(--text-primary, #ffffff);
 }
 
 .proactive-notification-body {
-  padding-left: 48px;
+  padding: 16px;
 }
 
 .proactive-message {
-  font-size: 13px;
-  line-height: 1.6;
-  color: #EAECEF;
-  margin: 0 0 10px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-primary, #ffffff);
+  margin: 0 0 12px 0;
   font-weight: 400;
-  letter-spacing: 0.2px;
 }
 
 .proactive-cta {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #D7B38C;
-  font-size: 12px;
-  font-weight: 500;
+  color: var(--accent, #a78bfa);
+  font-size: 13px;
+  font-weight: 600;
   transition: gap 0.2s ease;
-  letter-spacing: 0.3px;
 }
 
 .proactive-notification-content:hover .proactive-cta {
@@ -164,13 +165,13 @@
 }
 
 .proactive-cta-text {
-  text-transform: lowercase;
+  text-transform: capitalize;
 }
 
 /* Mobile responsive */
 @media (max-width: 768px) {
   .proactive-notification {
-    bottom: 16px;
+    top: 70px;
     right: -100vw;
     width: calc(100vw - 32px);
     max-width: none;
@@ -184,39 +185,39 @@
     right: -100vw;
   }
 
-  .proactive-notification-content {
-    padding: 14px;
+  .proactive-notification-header {
+    padding: 12px 14px;
   }
 
   .proactive-ai-avatar {
-    width: 32px;
-    height: 32px;
+    width: 42px;
+    height: 42px;
   }
 
   .proactive-notification-body {
-    padding-left: 44px;
+    padding: 14px;
   }
 
   .proactive-badge {
-    font-size: 12px;
+    font-size: 14px;
   }
 
   .proactive-message {
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .proactive-cta {
-    font-size: 11px;
+    font-size: 12px;
   }
 }
 
 /* Animation for pulsing effect on high urgency */
 @keyframes pulse {
   0%, 100% {
-    box-shadow: 0 2px 8px rgba(215, 179, 140, 0.4);
+    transform: scale(1);
   }
   50% {
-    box-shadow: 0 2px 16px rgba(215, 179, 140, 0.7);
+    transform: scale(1.05);
   }
 }
 

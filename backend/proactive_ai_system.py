@@ -14,13 +14,32 @@ import models
 class ProactiveAIEngine:
     def __init__(self, unified_ai):
         self.unified_ai = unified_ai
-        self.min_notification_interval = timedelta(minutes=30)  # Don't spam users
+        self.min_notification_interval = timedelta(minutes=2)  # Very frequent for proactive tutoring
     
-    def analyze_learning_patterns(self, db: Session, user_id: int):
+    def analyze_learning_patterns(self, db: Session, user_id: int, is_idle: bool = False):
         """Analyze user's learning patterns to detect intervention opportunities"""
         
         # Get recent activities (last 24 hours)
         yesterday = datetime.now(timezone.utc) - timedelta(hours=24)
+        
+        # Check if user just completed profile quiz (within last 5 minutes)
+        user = db.query(models.User).filter(models.User.id == user_id).first()
+        five_minutes_ago = datetime.now(timezone.utc) - timedelta(minutes=5)
+        just_completed_quiz = False
+        is_new_user = False
+        
+        if user:
+            # Check if user was created recently (within last hour)
+            if user.created_at and user.created_at >= datetime.now(timezone.utc) - timedelta(hours=1):
+                is_new_user = True
+            
+            # Check if user has profile data but very few chat sessions (just completed quiz)
+            chat_count = db.query(models.ChatSession).filter(
+                models.ChatSession.user_id == user_id
+            ).count()
+            
+            if user.field_of_study and chat_count <= 1:
+                just_completed_quiz = True
         
         # Check for wrong answers in quizzes
         wrong_answers = db.query(models.Activity).filter(
@@ -63,13 +82,44 @@ class ProactiveAIEngine:
             models.Activity.timestamp >= yesterday
         ).count()
         
+        # Get weak topics from user stats
+        weak_topics = []
+        try:
+            # Get topics where user has low accuracy
+            from sqlalchemy import Integer
+            topic_stats = db.query(
+                models.Activity.topic,
+                func.count(models.Activity.id).label('total'),
+                func.sum(func.cast(models.Activity.correct, Integer)).label('correct_count')
+            ).filter(
+                models.Activity.user_id == user_id,
+                models.Activity.timestamp >= yesterday,
+                models.Activity.topic.isnot(None)
+            ).group_by(models.Activity.topic).all()
+            
+            for topic, total, correct in topic_stats:
+                if total >= 3:  # At least 3 attempts
+                    accuracy = (correct or 0) / total
+                    if accuracy < 0.6:  # Less than 60% accuracy
+                        weak_topics.append({
+                            'topic': topic,
+                            'accuracy': accuracy,
+                            'attempts': total
+                        })
+        except Exception as e:
+            print(f"Error getting weak topics: {e}")
+        
         return {
             "wrong_answers_count": len(wrong_answers),
             "topics_with_errors": topics_with_errors,
             "clarification_requests_count": len(clarification_requests),
             "recent_clarifications": clarification_requests[:3],
             "inactive_but_was_active": recent_activity == 0 and previous_activity > 0,
-            "struggling_topics": list(topics_with_errors.keys())
+            "struggling_topics": list(topics_with_errors.keys()),
+            "is_new_user": is_new_user,
+            "just_completed_quiz": just_completed_quiz,
+            "is_idle": is_idle,
+            "weak_topics": weak_topics
         }
     
     def calculate_ml_intervention_score(self, patterns: dict, user_history: dict) -> float:
@@ -81,18 +131,24 @@ class ProactiveAIEngine:
         
         # Feature extraction with weights (simulating trained neural network)
         features = {
-            'wrong_answers_normalized': min(patterns["wrong_answers_count"] / 5.0, 1.0),  # Weight: 0.35
-            'topic_concentration': len(patterns["topics_with_errors"]) / max(patterns["wrong_answers_count"], 1),  # Weight: 0.25
-            'clarification_frequency': min(patterns["clarification_requests_count"] / 3.0, 1.0),  # Weight: 0.20
+            'wrong_answers_normalized': min(patterns["wrong_answers_count"] / 5.0, 1.0),  # Weight: 0.25
+            'topic_concentration': len(patterns["topics_with_errors"]) / max(patterns["wrong_answers_count"], 1),  # Weight: 0.15
+            'clarification_frequency': min(patterns["clarification_requests_count"] / 3.0, 1.0),  # Weight: 0.15
             'inactivity_signal': 1.0 if patterns["inactive_but_was_active"] else 0.0,  # Weight: 0.10
+            'idle_signal': 1.0 if patterns.get("is_idle", False) else 0.0,  # Weight: 0.15
+            'weak_topics_signal': min(len(patterns.get("weak_topics", [])) / 3.0, 1.0),  # Weight: 0.10
             'time_of_day_factor': self._get_time_of_day_engagement_factor(),  # Weight: 0.10
         }
         
         # Weighted sum (neural network output layer simulation)
-        weights = [0.35, 0.25, 0.20, 0.10, 0.10]
+        weights = [0.25, 0.15, 0.15, 0.10, 0.15, 0.10, 0.10]
         feature_values = list(features.values())
         
         score = sum(w * v for w, v in zip(weights, feature_values))
+        
+        # Boost score for new users or just completed quiz
+        if patterns.get("is_new_user") or patterns.get("just_completed_quiz"):
+            score = max(score, 0.8)
         
         # Apply sigmoid activation for smooth 0-1 output
         score = 1 / (1 + np.exp(-5 * (score - 0.5)))
@@ -143,23 +199,46 @@ class ProactiveAIEngine:
         # Calculate ML intervention score
         score = self.calculate_ml_intervention_score(patterns, user_history)
         
-        # Threshold for intervention (0.4 = 40% confidence)
-        if score < 0.4:
+        # Threshold for intervention (0.1 = 10% confidence - VERY proactive)
+        if score < 0.1:
             return False, None, score
         
-        # Determine reason based on dominant pattern
+        # Determine reason based on dominant pattern (priority order)
+        
+        # 1. Welcome message for new users or after profile quiz (highest priority)
+        if patterns.get("is_new_user") or patterns.get("just_completed_quiz"):
+            return True, "welcome", 0.9
+        
+        # 2. Idle detection - user hasn't interacted in a while
+        if patterns.get("is_idle"):
+            weak_topics = patterns.get("weak_topics", [])
+            if weak_topics:
+                topic = weak_topics[0]['topic']
+                return True, f"idle_weak_topic:{topic}", 0.8
+            return True, "idle_check_in", 0.7
+        
+        # 3. Struggling with specific topics
         if patterns["wrong_answers_count"] >= 3:
             struggling_topic = list(patterns["topics_with_errors"].keys())[0] if patterns["topics_with_errors"] else "this topic"
             return True, f"struggle_with_topic:{struggling_topic}", score
         
+        # 4. Weak topics detected (low accuracy)
+        weak_topics = patterns.get("weak_topics", [])
+        if weak_topics and score > 0.4:
+            topic = weak_topics[0]['topic']
+            accuracy = int(weak_topics[0]['accuracy'] * 100)
+            return True, f"weak_topic:{topic}:{accuracy}", score
+        
+        # 5. Repeated confusion/clarification requests
         if patterns["clarification_requests_count"] >= 2:
             return True, "repeated_confusion", score
         
+        # 6. Inactive but was active before
         if patterns["inactive_but_was_active"] and score > 0.5:
             return True, "check_in", score
         
-        # Encouragement for consistent learners (lower threshold)
-        if score > 0.35 and random.random() < 0.1:
+        # 7. Encouragement for consistent learners
+        if score > 0.25 and random.random() < 0.15:
             return True, "encouragement", score
         
         return False, None, score
@@ -169,9 +248,58 @@ class ProactiveAIEngine:
         
         user = db.query(models.User).filter(models.User.id == user_id).first()
         first_name = user.first_name or "there"
+        field_of_study = user.field_of_study or "your studies"
         
         # Get context based on reason
-        if reason.startswith("struggle_with_topic:"):
+        if reason.startswith("idle_weak_topic:"):
+            topic = reason.split(":")[1]
+            
+            prompt = f"""You are a caring AI tutor checking in on {first_name} who has been idle.
+
+They've been struggling with {topic} and haven't been active for a bit.
+
+Generate a friendly, personalized message that:
+1. Asks how they're doing with {topic}
+2. Offers specific help or practice
+3. Sounds like a caring human tutor, not a bot
+4. Keeps it brief (2-3 sentences)
+5. Makes them want to engage
+
+Be warm, personal, and encouraging."""
+
+        elif reason == "idle_check_in":
+            prompt = f"""You are a caring AI tutor checking in on {first_name} who has been idle.
+
+They're studying {field_of_study} but haven't been active recently.
+
+Generate a friendly check-in message that:
+1. Asks what they're working on
+2. Offers to help with anything
+3. Sounds natural and caring
+4. Keeps it brief (2 sentences)
+5. Encourages them to continue learning
+
+Be warm and supportive."""
+
+        elif reason.startswith("weak_topic:"):
+            parts = reason.split(":")
+            topic = parts[1]
+            accuracy = parts[2] if len(parts) > 2 else "low"
+            
+            prompt = f"""You are a caring AI tutor reaching out to {first_name}.
+
+You've noticed they have {accuracy}% accuracy on {topic} - they need help but might not realize it.
+
+Generate a supportive message that:
+1. Mentions you noticed they're working on {topic}
+2. Offers to help them improve
+3. Suggests a focused practice session
+4. Sounds encouraging, not critical
+5. Keeps it brief (2-3 sentences)
+
+Be supportive and motivating."""
+
+        elif reason.startswith("struggle_with_topic:"):
             topic = reason.split(":")[1]
             
             # Get the wrong answers
@@ -197,7 +325,7 @@ Generate a friendly, encouraging message that:
 4. Keeps it brief (2-3 sentences)
 5. Sounds natural and caring, not robotic
 
-Start with their name and be warm and supportive."""
+Be warm and supportive."""
 
         elif reason == "repeated_confusion":
             prompt = f"""You are a caring AI tutor reaching out to {first_name}.
@@ -223,6 +351,20 @@ Generate a friendly check-in message that:
 4. Keeps it brief (2-3 sentences)
 5. Sounds warm and natural"""
 
+        elif reason == "welcome":
+            prompt = f"""You are a friendly AI tutor welcoming {first_name} to their personalized learning journey.
+
+They just completed their profile quiz and are studying {field_of_study}.
+
+Generate a warm, personalized welcome message that:
+1. Greets them by name enthusiastically
+2. Mentions their field of study ({field_of_study})
+3. Asks what they'd like to learn first or what they're working on
+4. Keeps it brief (2-3 sentences)
+5. Sounds like an excited human tutor, not a bot
+
+Be warm, personal, and inviting."""
+
         else:  # encouragement
             prompt = f"""You are a caring AI tutor sending encouragement to {first_name}.
 
@@ -240,22 +382,29 @@ Generate a brief encouraging message that:
             
         except Exception as e:
             # Fallback messages
+            reason_key = reason.split(":")[0]
+            topic_name = reason.split(":")[1] if ':' in reason else 'this topic'
+            
             fallbacks = {
-                "struggle_with_topic": f"Hey {first_name}! I noticed you're working hard on {topic.split(':')[1] if ':' in topic else 'this topic'}. Want to go over it together? I can explain it differently! 💡",
+                "idle_weak_topic": f"Hey {first_name}! I noticed you've been working on {topic_name}. How's it going? Want to practice together? 💪",
+                "idle_check_in": f"Hi {first_name}! Taking a break? I'm here when you're ready to continue learning! 📚",
+                "weak_topic": f"Hey {first_name}! I see you're working on {topic_name}. Want some help to master it? I can explain it differently! 🎯",
+                "struggle_with_topic": f"Hey {first_name}! I noticed you're working hard on {topic_name}. Want to go over it together? I can explain it differently! 💡",
                 "repeated_confusion": f"Hi {first_name}! I see you're asking great questions. Sometimes a different explanation helps - want me to break this down step by step? 🎯",
                 "check_in": f"Hey {first_name}! How's your study session going? I'm here if you need any help! 📚",
-                "encouragement": f"You're doing great, {first_name}! Keep up the awesome work! 🌟"
+                "encouragement": f"You're doing great, {first_name}! Keep up the awesome work! 🌟",
+                "welcome": f"Welcome {first_name}! 🎉 I'm excited to help you with {field_of_study}. What would you like to learn first?"
             }
-            return fallbacks.get(reason.split(":")[0], fallbacks["encouragement"])
+            return fallbacks.get(reason_key, fallbacks["encouragement"])
     
-    async def check_and_send_proactive_message(self, db: Session, user_id: int, user_profile: dict):
+    async def check_and_send_proactive_message(self, db: Session, user_id: int, user_profile: dict, is_idle: bool = False):
         """
         Main function to check if we should reach out and create the message
         Uses ML to determine optimal timing and intervention strategy
         """
         
         # Analyze patterns
-        patterns = self.analyze_learning_patterns(db, user_id)
+        patterns = self.analyze_learning_patterns(db, user_id, is_idle)
         
         # Get user history for ML model
         user_history = self._get_user_history(db, user_id)

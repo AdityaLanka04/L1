@@ -441,6 +441,8 @@ const ProfileQuiz = () => {
       });
 
       setCurrentStep('complete');
+      // Set flag to trigger welcome notification
+      localStorage.setItem('justCompletedQuiz', 'true');
       setTimeout(() => {
         navigate('/dashboard');
       }, 5000);
