@@ -3295,14 +3295,50 @@ async def check_proactive_message(
         )
         
         if result is None:
-            # FORCE NOTIFICATION FOR TESTING - Always show something
-            logger.info(f"No proactive message generated, forcing test notification for user {user.id}")
+            # Generate personalized message based on user's learning history
+            logger.info(f"No urgent intervention needed, generating personalized check-in for user {user.id}")
+            
+            # Get user's recent activity
+            recent_activities = db.query(models.Activity).filter(
+                models.Activity.user_id == user.id
+            ).order_by(models.Activity.timestamp.desc()).limit(10).all()
+            
+            # Get user's weak topics
+            weak_topics = []
+            if recent_activities:
+                topic_performance = {}
+                for activity in recent_activities:
+                    if activity.topic:
+                        if activity.topic not in topic_performance:
+                            topic_performance[activity.topic] = {'correct': 0, 'total': 0}
+                        topic_performance[activity.topic]['total'] += 1
+                        if activity.correct:
+                            topic_performance[activity.topic]['correct'] += 1
+                
+                for topic, perf in topic_performance.items():
+                    if perf['total'] >= 3:
+                        accuracy = perf['correct'] / perf['total']
+                        if accuracy < 0.7:
+                            weak_topics.append(topic)
+            
+            # Generate personalized message
+            first_name = user.first_name or "there"
+            if weak_topics:
+                topic = weak_topics[0]
+                message = f"Hey {first_name}! I noticed you've been working on {topic}. Want to practice together and improve your understanding? 💪"
+            elif recent_activities:
+                last_topic = recent_activities[0].topic or "your studies"
+                message = f"Hi {first_name}! How's {last_topic} going? I'm here if you need any help or want to dive deeper! 📚"
+            else:
+                field = user.field_of_study or "learning"
+                message = f"Hey {first_name}! Ready to continue your {field} journey? What would you like to explore today? 🚀"
+            
             return {
                 "should_notify": True,
-                "message": f"Hey {user.first_name or 'there'}! 👋 I'm your AI tutor. What are you working on today?",
+                "message": message,
                 "chat_id": None,
-                "urgency_score": 0.7,
-                "reason": "forced_test"
+                "urgency_score": 0.5,
+                "reason": "personalized_check_in"
             }
         
         # Create a chat session for the proactive message if it should show now

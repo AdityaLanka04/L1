@@ -352,15 +352,36 @@ Generate a friendly check-in message that:
 5. Sounds warm and natural"""
 
         elif reason == "welcome":
-            prompt = f"""You are a friendly AI tutor welcoming {first_name} to their personalized learning journey.
+            # Get user's recent activity to personalize welcome
+            recent_activity = db.query(models.Activity).filter(
+                models.Activity.user_id == user_id
+            ).order_by(models.Activity.timestamp.desc()).limit(5).all()
+            
+            has_activity = len(recent_activity) > 0
+            
+            if has_activity:
+                prompt = f"""You are a friendly AI tutor checking in with {first_name}, a returning user studying {field_of_study}.
 
-They just completed their profile quiz and are studying {field_of_study}.
+They've been using the app and have some learning history. 
+
+Generate a personalized check-in message that:
+1. Welcomes them back warmly
+2. Asks about their recent studies or what they're working on today
+3. Offers to help with anything specific
+4. Keeps it brief (2 sentences max)
+5. Sounds natural and caring, like a real tutor
+
+Be warm and personal, not generic."""
+            else:
+                prompt = f"""You are a friendly AI tutor welcoming {first_name} to their personalized learning journey.
+
+They just started and are studying {field_of_study}.
 
 Generate a warm, personalized welcome message that:
 1. Greets them by name enthusiastically
 2. Mentions their field of study ({field_of_study})
-3. Asks what they'd like to learn first or what they're working on
-4. Keeps it brief (2-3 sentences)
+3. Asks what they'd like to learn first
+4. Keeps it brief (2 sentences)
 5. Sounds like an excited human tutor, not a bot
 
 Be warm, personal, and inviting."""
