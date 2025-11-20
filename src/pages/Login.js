@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase/config';
+import LoadingSpinner from '../components/LoadingSpinner';
 import './Login.css';
 import { API_URL } from '../config/api';
 function Login() {
@@ -11,6 +12,38 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Check if safety page was completed and clear any old tokens
+  useEffect(() => {
+    const safetyAccepted = sessionStorage.getItem('safetyAccepted');
+    console.log('Login page - Safety check:', safetyAccepted);
+    
+    if (!safetyAccepted) {
+      console.log('Safety not accepted, redirecting to /');
+      navigate('/', { replace: true });
+      return;
+    }
+
+    // Clear any existing tokens when on login page (user hasn't logged in yet)
+    console.log('Clearing any old tokens...');
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    localStorage.removeItem('userProfile');
+    
+    // Prevent navigation away from login page until user logs in
+    const handleBeforeUnload = () => {
+      // Clear tokens if user tries to navigate away
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      localStorage.removeItem('userProfile');
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [navigate]);
 
   const checkAndRedirect = async (username) => {
     try {
@@ -23,6 +56,7 @@ function Login() {
 
       if (response.data.completed) {
         console.log('Quiz completed - going to dashboard');
+        sessionStorage.setItem('justLoggedIn', 'true'); // Set flag for notification
         navigate('/dashboard');
       } else {
         console.log('Quiz not completed - going to profile-quiz');
@@ -53,6 +87,7 @@ function Login() {
 
       const { access_token, user: userData } = backendResponse.data;
       
+      console.log('Google login successful, setting tokens...');
       localStorage.setItem('token', access_token);
       localStorage.setItem('username', userData.email);
       localStorage.setItem('userProfile', JSON.stringify({
@@ -62,6 +97,22 @@ function Login() {
         picture: userData.picture_url,
         googleUser: true
       }));
+      console.log('Tokens set:', { token: access_token, username: userData.email });
+
+      // Clear old notifications from previous session
+      console.log('🔔 Clearing old notifications...');
+      try {
+        await fetch(`${API_URL}/clear_old_notifications?user_id=${userData.email}`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${access_token}` }
+        });
+        console.log('🔔 Old notifications cleared');
+      } catch (error) {
+        console.error('🔔 Error clearing notifications:', error);
+      }
+
+      // Trigger notification check after login
+      localStorage.setItem('justLoggedIn', 'true');
 
       await checkAndRedirect(userData.email);
     } catch (error) {
@@ -102,8 +153,25 @@ function Login() {
       );
 
       const token = response.data.access_token;
+      console.log('Normal login successful, setting tokens...');
       localStorage.setItem('token', token);
       localStorage.setItem('username', username);
+      console.log('Tokens set:', { token, username });
+      
+      // Clear old notifications from previous session
+      console.log('🔔 Clearing old notifications...');
+      try {
+        await fetch(`${API_URL}/clear_old_notifications?user_id=${username}`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        console.log('🔔 Old notifications cleared');
+      } catch (error) {
+        console.error('🔔 Error clearing notifications:', error);
+      }
+      
+      // Trigger notification check after login
+      localStorage.setItem('justLoggedIn', 'true');
       
       await checkAndRedirect(username);
     } catch (err) {
@@ -114,7 +182,9 @@ function Login() {
   };
 
   return (
-    <div className="login-page">
+    <>
+      {(loading || googleLoading) && <LoadingSpinner />}
+      <div className="login-page">
       <div className="login-container">
         <div className="login-header">
           <h1 className="login-title">cerbyl</h1>
@@ -207,6 +277,7 @@ function Login() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 

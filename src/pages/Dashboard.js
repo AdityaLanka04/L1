@@ -24,6 +24,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../contexts/ToastContext';
 import { rgbaFromHex } from '../utils/ThemeManager';
 import ThemeSwitcher from '../components/ThemeSwitcher';
+import LoadingSpinner from '../components/LoadingSpinner';
+import ProactiveNotification from '../components/ProactiveNotification';
 import './Dashboard.css';
 import './HelpTour.css';
 import { API_URL } from '../config';
@@ -93,6 +95,9 @@ const Dashboard = () => {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  
+  // Proactive notification state
+  const [proactiveNotif, setProactiveNotif] = useState(null);
 
   const timeIntervalRef = useRef(null);
   const sessionUpdateRef = useRef(null);
@@ -182,6 +187,45 @@ const Dashboard = () => {
     loadHeatmapData();
     loadDashboardData();
     startDashboardSession();
+    // Check if this is a fresh login (not a refresh)
+    const justLoggedIn = sessionStorage.getItem('justLoggedIn');
+    if (justLoggedIn === 'true') {
+      console.log('🔔 Fresh login detected - showing welcome notification');
+      sessionStorage.removeItem('justLoggedIn'); // Clear flag
+      
+      // Show notification after 2 seconds
+      setTimeout(async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const url = `${API_URL}/check_proactive_message?user_id=${userName}&is_login=true`;
+          console.log('🔔 Calling backend:', url);
+          
+          const response = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          
+          const data = await response.json();
+          console.log('🔔 Backend response:', data);
+          
+          if (data.should_notify && data.message) {
+            console.log('🔔 Showing notification');
+            setProactiveNotif({
+              message: data.message,
+              chatId: data.chat_id,
+              urgencyScore: data.urgency_score || 0.8
+            });
+          } else {
+            console.log('🔔 No notification from backend');
+          }
+        } catch (error) {
+          console.error('🔔 Error:', error);
+        }
+      }, 2000);
+    }
     
     // Poll for daily goal updates every 10 seconds
     const goalPollInterval = setInterval(() => {
@@ -198,6 +242,59 @@ const Dashboard = () => {
     };
   }
 }, [userName]);
+
+  // ML-based idle detection for proactive notifications
+  useEffect(() => {
+    if (!userName) return;
+
+    // Track user activity
+    const trackActivity = () => {
+      lastActivityRef.current = Date.now();
+    };
+
+    // Listen for user interactions
+    window.addEventListener('click', trackActivity);
+    window.addEventListener('keypress', trackActivity);
+    window.addEventListener('scroll', trackActivity);
+
+    // Check for idle every 2 minutes
+    const idleCheckInterval = setInterval(async () => {
+      const idleTime = Date.now() - lastActivityRef.current;
+      const IDLE_THRESHOLD = 3 * 60 * 1000; // 3 minutes
+
+      if (idleTime > IDLE_THRESHOLD && !proactiveNotif) {
+        console.log('🔔 User is idle, checking for ML-based notification...');
+        
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch(
+            `${API_URL}/check_proactive_message?user_id=${userName}&is_idle=true`,
+            { headers: { 'Authorization': `Bearer ${token}` } }
+          );
+          
+          const data = await response.json();
+          
+          if (data.should_notify && data.message) {
+            console.log('🔔 ML system suggests idle notification:', data.reason);
+            setProactiveNotif({
+              message: data.message,
+              chatId: data.chat_id,
+              urgencyScore: data.urgency_score || 0.7
+            });
+          }
+        } catch (error) {
+          console.error('🔔 Idle notification check failed:', error);
+        }
+      }
+    }, 2 * 60 * 1000); // Check every 2 minutes
+
+    return () => {
+      window.removeEventListener('click', trackActivity);
+      window.removeEventListener('keypress', trackActivity);
+      window.removeEventListener('scroll', trackActivity);
+      clearInterval(idleCheckInterval);
+    };
+  }, [userName, proactiveNotif]);
 
   const loadLearningReviews = async () => {
     if (!userName) return;
@@ -1213,7 +1310,9 @@ const Dashboard = () => {
               </div>
 
               {heatmapLoading ? (
-                <div className="heatmap-loading">Loading activity data...</div>
+                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  Loading activity data...
+                </div>
               ) : (
                 <>
                   <div className="heatmap-container">
@@ -1451,6 +1550,21 @@ const Dashboard = () => {
                 <div className="notification-dropdown">
                   <div className="notification-header">
                     <h3>Notifications</h3>
+                    {notifications.length > 0 && (
+                      <button 
+                        onClick={markAllNotificationsAsRead}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--accent)',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          fontWeight: '600'
+                        }}
+                      >
+                        Clear All
+                      </button>
+                    )}
                     {unreadCount > 0 && (
                       <button 
                         className="mark-all-read"
@@ -1589,11 +1703,7 @@ const Dashboard = () => {
           </SortableContext>
         </DndContext>
 
-        {heatmapLoading && (
-          <div className="loading-overlay">
-            <div className="loading-spinner">Loading dashboard data...</div>
-          </div>
-        )}
+        {heatmapLoading && <LoadingSpinner />}
       </main>
 
       <HelpTour
@@ -1602,6 +1712,16 @@ const Dashboard = () => {
         onComplete={completeTour}
       />
       <HelpButton onStartTour={startTour} />
+      
+      {/* Proactive Notification */}
+      {proactiveNotif && (
+        <ProactiveNotification
+          message={proactiveNotif.message}
+          chatId={proactiveNotif.chatId}
+          urgencyScore={proactiveNotif.urgencyScore}
+          onClose={() => setProactiveNotif(null)}
+        />
+      )}
     </div>
   );
 };

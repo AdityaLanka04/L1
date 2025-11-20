@@ -3268,85 +3268,64 @@ async def ai_writing_assistant(
 async def check_proactive_message(
     user_id: str = Query(...),
     is_idle: bool = Query(False),
+    is_login: bool = Query(False),
     db: Session = Depends(get_db)
 ):
     """
     Check if AI should proactively reach out to user
     Uses ML to analyze learning patterns and determine optimal intervention
-    Supports idle detection and personalized weak topic recommendations
+    Supports idle detection, login greetings, and personalized weak topic recommendations
     """
     try:
+        print(f"\n{'='*80}")
+        print(f"🔔 PROACTIVE CHECK ENDPOINT CALLED")
+        print(f"🔔 user_id={user_id}, is_idle={is_idle}, is_login={is_login}")
+        print(f"{'='*80}\n")
+        logger.info(f"🔔 Proactive check: user_id={user_id}, is_idle={is_idle}, is_login={is_login}")
+        
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
+        logger.info(f"🔔 User found: {user.first_name} {user.last_name}")
+        
         # Get proactive AI engine
         proactive_engine = get_proactive_ai_engine(unified_ai)
         
-        # Get user profile for personalization
+        # Get comprehensive user profile for personalization
+        comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
+            models.ComprehensiveUserProfile.user_id == user.id
+        ).first()
+        
         user_profile = {
             "first_name": user.first_name or "there",
-            "field_of_study": user.field_of_study or "General Studies"
+            "field_of_study": user.field_of_study or "General Studies",
+            "learning_style": user.learning_style or "Mixed",
+            "is_login": is_login
         }
         
-        # Check if we should send a proactive message
+        # Add comprehensive profile data if available
+        if comprehensive_profile:
+            user_profile.update({
+                "difficulty_level": getattr(comprehensive_profile, "difficulty_level", "intermediate") or "intermediate",
+                "study_goals": getattr(comprehensive_profile, "study_goals", None),
+                "career_goals": getattr(comprehensive_profile, "career_goals", None)
+            })
+        
+        # Check if we should send a proactive message (ML-based decision)
+        logger.info(f"🔔 Calling ML engine with is_login={is_login}...")
         result = await proactive_engine.check_and_send_proactive_message(
-            db, user.id, user_profile, is_idle
+            db, user.id, user_profile, is_idle, is_login
         )
         
-        if result is None:
-            # Generate personalized message based on user's learning history
-            logger.info(f"No urgent intervention needed, generating personalized check-in for user {user.id}")
-            
-            # Get user's recent activity
-            recent_activities = db.query(models.Activity).filter(
-                models.Activity.user_id == user.id
-            ).order_by(models.Activity.timestamp.desc()).limit(10).all()
-            
-            # Get user's weak topics
-            weak_topics = []
-            if recent_activities:
-                topic_performance = {}
-                for activity in recent_activities:
-                    if activity.topic:
-                        if activity.topic not in topic_performance:
-                            topic_performance[activity.topic] = {'correct': 0, 'total': 0}
-                        topic_performance[activity.topic]['total'] += 1
-                        if activity.correct:
-                            topic_performance[activity.topic]['correct'] += 1
-                
-                for topic, perf in topic_performance.items():
-                    if perf['total'] >= 3:
-                        accuracy = perf['correct'] / perf['total']
-                        if accuracy < 0.7:
-                            weak_topics.append(topic)
-            
-            # Generate personalized message
-            first_name = user.first_name or "there"
-            if weak_topics:
-                topic = weak_topics[0]
-                message = f"Hey {first_name}! I noticed you've been working on {topic}. Want to practice together and improve your understanding? 💪"
-            elif recent_activities:
-                last_topic = recent_activities[0].topic or "your studies"
-                message = f"Hi {first_name}! How's {last_topic} going? I'm here if you need any help or want to dive deeper! 📚"
-            else:
-                field = user.field_of_study or "learning"
-                message = f"Hey {first_name}! Ready to continue your {field} journey? What would you like to explore today? 🚀"
-            
-            return {
-                "should_notify": True,
-                "message": message,
-                "chat_id": None,
-                "urgency_score": 0.5,
-                "reason": "personalized_check_in"
-            }
+        logger.info(f"🔔 ML engine returned: {result}")
         
-        # Create a chat session for the proactive message if it should show now
-        if result.get("should_show_now", False):
-            # Create new chat session
+        # If ML system determined we should reach out
+        if result:
+            # Create chat session for this proactive message
             new_session = models.ChatSession(
                 user_id=user.id,
-                title="AI Check-in",
+                title="AI Tutor Check-in",
                 created_at=datetime.now(timezone.utc),
                 updated_at=datetime.now(timezone.utc)
             )
@@ -3354,35 +3333,45 @@ async def check_proactive_message(
             db.commit()
             db.refresh(new_session)
             
-            # Save the proactive message
-            proactive_marker = f"🤖 PROACTIVE:{result['reason']}"
+            # Save the ML-generated message
             new_message = models.ChatMessage(
                 chat_session_id=new_session.id,
                 user_id=user.id,
-                user_message=proactive_marker,
-                ai_response=result['message'],
+                user_message="",
+                ai_response=result["message"],
                 timestamp=datetime.now(timezone.utc)
             )
             db.add(new_message)
             db.commit()
             
-            return {
+            response_data = {
                 "should_notify": True,
-                "message": result['message'],
+                "message": result["message"],
                 "chat_id": new_session.id,
-                "urgency_score": result['urgency_score'],
-                "reason": result['reason'],
-                "patterns": result['patterns']
+                "urgency_score": result["urgency_score"],
+                "reason": result["reason"]
             }
-        else:
-            return {
-                "should_notify": False,
-                "message": None,
-                "delay_minutes": result.get("optimal_delay_minutes", 30)
-            }
+            print(f"\n🔔 RETURNING SUCCESS: {response_data}\n")
+            logger.info(f"ML-based proactive message sent to user {user.id}: {result['reason']}")
+            return response_data
+        
+        # No intervention needed based on ML analysis
+        print(f"\n🔔 RETURNING NO NOTIFICATION (result was None)\n")
+        logger.info(f"ML system determined no intervention needed for user {user.id}")
+        return {
+            "should_notify": False,
+            "message": None
+        }
             
     except Exception as e:
         logger.error(f"Error checking proactive message: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "should_notify": False,
+            "message": None,
+            "error": str(e)
+        }
         return {
             "should_notify": False,
             "message": None,
@@ -3390,6 +3379,56 @@ async def check_proactive_message(
         }
 
 # ==================== END PROACTIVE AI SYSTEM ====================
+
+@app.post("/api/generate_welcome_message")
+async def generate_welcome_message(payload: dict = Body(...), db: Session = Depends(get_db)):
+    """Generate personalized welcome message using Gemini AI"""
+    try:
+        user_id = payload.get("user_id")
+        first_name = payload.get("first_name", "there")
+        field_of_study = payload.get("field_of_study", "learning")
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get recent learning context
+        recent_activities = db.query(models.Activity).filter(
+            models.Activity.user_id == user.id
+        ).order_by(models.Activity.timestamp.desc()).limit(10).all()
+        
+        context = ""
+        if recent_activities:
+            topics = list(set([a.topic for a in recent_activities if a.topic]))[:3]
+            if topics:
+                context = f"\nThey recently studied: {', '.join(topics)}"
+            
+            correct = sum(1 for a in recent_activities if a.correct)
+            accuracy = (correct / len(recent_activities)) * 100 if recent_activities else 0
+            context += f"\nRecent accuracy: {accuracy:.0f}%"
+        
+        prompt = f"""You are a friendly AI tutor welcoming back {first_name} who is studying {field_of_study}.
+{context}
+
+Generate a warm, personalized welcome message that:
+1. Greets them enthusiastically by name
+2. References their recent learning if available
+3. Asks what they'd like to work on today
+4. Keeps it brief (2 sentences max)
+5. Sounds natural and human
+6. Uses an emoji if appropriate
+
+Be warm and make them excited to learn!"""
+        
+        message = call_ai(prompt, max_tokens=150, temperature=0.8)
+        
+        logger.info(f"Generated welcome message for {first_name}")
+        return {"message": message}
+        
+    except Exception as e:
+        logger.error(f"Error generating welcome message: {e}")
+        first_name = payload.get("first_name", "there")
+        return {"message": f"Hey {first_name}! 👋 Welcome back! What would you like to learn today?"}
 
 @app.post("/api/generate_chat_summary")
 async def generate_chat_summary(
@@ -9384,7 +9423,32 @@ async def create_notification(
         logger.error(f"Error creating notification: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
+@app.post("/api/clear_old_notifications")
+async def clear_old_notifications(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Clear all old notifications from previous sessions when user logs in"""
+    try:
+        logger.info(f"🔔 Clearing old notifications for user: {user_id}")
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            logger.warning(f"🔔 User not found: {user_id}")
+            return {"status": "success", "cleared": 0, "message": "User not found, nothing to clear"}
+        
+        # Delete all notifications for this user
+        deleted = db.query(models.Notification).filter(
+            models.Notification.user_id == user.id
+        ).delete()
+        
+        db.commit()
+        
+        logger.info(f"🔔 Cleared {deleted} old notifications for user {user_id}")
+        return {"status": "success", "cleared": deleted, "message": f"Cleared {deleted} old notifications"}
+    except Exception as e:
+        logger.error(f"🔔 Error clearing notifications: {str(e)}")
+        return {"status": "error", "cleared": 0, "message": str(e)}
 
 
 

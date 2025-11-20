@@ -11,7 +11,7 @@ const SafetyLogin = () => {
   // 20 Default Demo Accounts
   const demoAccounts = [
     { username: 'demo_student1', password: 'BrainWave2024!', name: 'Alex Chen' },
-    { username: 'demo_student2', password: 'Learning#123', name: 'Sarah Johnson' },
+    { username: 'bob', password: 'bob', name: 'Sarah Johnson' },
     { username: 'demo_student3', password: 'Study@456', name: 'Michael Brown' },
     { username: 'demo_student4', password: 'Education$789', name: 'Emily Davis' },
     { username: 'demo_student5', password: 'Knowledge%012', name: 'James Wilson' },
@@ -49,8 +49,12 @@ const SafetyLogin = () => {
         isDemo: true
       }));
       
-      // Navigate to homepage
-      navigate('/homepage');
+      // Set safety acceptance flag in sessionStorage (clears when browser closes)
+      sessionStorage.setItem('safetyAccepted', 'true');
+      console.log('Safety accepted, navigating to /login');
+      
+      // Navigate to LOGIN page
+      navigate('/login');
     } else {
       setError('Invalid credentials. Please try again.');
     }
@@ -61,7 +65,8 @@ const SafetyLogin = () => {
       <div className="safety-login-container">
         <div className="login-box">
           <h1 className="safety-title">cerbyl</h1>
-          <p className="safety-subtitle">SAFETY PAGE</p>
+          <p className="safety-subtitle">SAFETY VERIFICATION</p>
+        
           
           <form onSubmit={handleLogin} className="login-form">
             <div className="form-group">

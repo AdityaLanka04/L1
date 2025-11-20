@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Register.css';
 import { API_URL } from '../config/api';
@@ -17,6 +17,17 @@ const Register = () => {
   });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Check if safety page was completed
+  useEffect(() => {
+    const safetyAccepted = sessionStorage.getItem('safetyAccepted');
+    console.log('Register page - Safety check:', safetyAccepted);
+    
+    if (!safetyAccepted) {
+      console.log('Safety not accepted, redirecting to /');
+      navigate('/', { replace: true });
+    }
+  }, [navigate]);
 
   const handleChange = (e) => {
     setFormData({

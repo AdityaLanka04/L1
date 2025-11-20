@@ -1,226 +1,112 @@
-.proactive-notification {
+/* Proactive Notification - Clean & Simple */
+.proactive-notif {
   position: fixed;
   top: 80px;
-  right: -420px;
-  width: 380px;
-  max-width: calc(100vw - 48px);
+  right: -400px;
+  width: 360px;
   z-index: 9999;
-  transition: right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  pointer-events: none;
+  transition: right 0.4s ease;
 }
 
-.proactive-notification.visible {
-  right: 20px !important;
-  pointer-events: all;
-  animation: slideInBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
+.proactive-notif.show {
+  right: 20px;
 }
 
-@keyframes slideInBounce {
-  0% {
-    right: -420px;
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  60% {
-    right: 26px;
-  }
-  100% {
-    right: 20px;
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.proactive-notification.exiting {
-  right: -420px;
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
-.proactive-notification-content {
+.proactive-notif-card {
   background: var(--bg-primary, #1a1a2e);
   border-radius: 12px;
-  padding: 0;
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.6),
-    0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
   border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
   cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
+  transition: transform 0.2s ease;
 }
 
-.proactive-notification-content::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 5px;
-  background: var(--accent, #a78bfa);
-  border-radius: 12px 0 0 12px;
-}
-
-.proactive-notification-content:hover {
+.proactive-notif-card:hover {
   transform: translateY(-2px);
-  box-shadow: 
-    0 12px 40px rgba(0, 0, 0, 0.7),
-    0 4px 12px rgba(0, 0, 0, 0.5);
-  border-color: var(--accent, #a78bfa);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
 }
 
-.proactive-notification-content:active {
-  transform: translateY(0);
-}
-
-.proactive-notification-header {
+.proactive-notif-header {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  background: var(--bg-secondary, rgba(255, 255, 255, 0.03));
-  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.proactive-ai-avatar {
-  width: 48px;
-  height: 48px;
+.proactive-notif-avatar {
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
+  background: var(--accent, #a78bfa);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--accent, #a78bfa);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   flex-shrink: 0;
 }
 
-.proactive-notification-title {
+.proactive-notif-title {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
-.proactive-badge {
-  font-size: 15px;
+.proactive-notif-name {
+  font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary, #ffffff);
-  letter-spacing: 0;
+  color: var(--text-primary, #fff);
 }
 
-.proactive-time {
-  font-size: 12px;
+.proactive-notif-time {
+  font-size: 11px;
   color: var(--text-secondary, rgba(255, 255, 255, 0.6));
-  font-weight: 400;
 }
 
-.proactive-close-btn {
+.proactive-notif-close {
   width: 28px;
   height: 28px;
   border-radius: 50%;
   border: none;
   background: transparent;
   color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+  font-size: 24px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
+  transition: all 0.2s;
 }
 
-.proactive-close-btn:hover {
+.proactive-notif-close:hover {
   background: rgba(255, 255, 255, 0.1);
-  color: var(--text-primary, #ffffff);
+  color: var(--text-primary, #fff);
 }
 
-.proactive-notification-body {
+.proactive-notif-body {
   padding: 16px;
 }
 
-.proactive-message {
+.proactive-notif-body p {
+  margin: 0 0 12px 0;
   font-size: 14px;
   line-height: 1.5;
-  color: var(--text-primary, #ffffff);
-  margin: 0 0 12px 0;
-  font-weight: 400;
+  color: var(--text-primary, #fff);
 }
 
-.proactive-cta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--accent, #a78bfa);
-  font-size: 13px;
+.proactive-notif-cta {
+  font-size: 12px;
   font-weight: 600;
-  transition: gap 0.2s ease;
+  color: var(--accent, #a78bfa);
 }
 
-.proactive-notification-content:hover .proactive-cta {
-  gap: 8px;
-}
-
-.proactive-cta-text {
-  text-transform: capitalize;
-}
-
-/* Mobile responsive */
 @media (max-width: 768px) {
-  .proactive-notification {
-    top: 70px;
-    right: -100vw;
+  .proactive-notif {
     width: calc(100vw - 32px);
-    max-width: none;
+    right: -100vw;
   }
-
-  .proactive-notification.visible {
+  
+  .proactive-notif.show {
     right: 16px;
   }
-
-  .proactive-notification.exiting {
-    right: -100vw;
-  }
-
-  .proactive-notification-header {
-    padding: 12px 14px;
-  }
-
-  .proactive-ai-avatar {
-    width: 42px;
-    height: 42px;
-  }
-
-  .proactive-notification-body {
-    padding: 14px;
-  }
-
-  .proactive-badge {
-    font-size: 14px;
-  }
-
-  .proactive-message {
-    font-size: 13px;
-  }
-
-  .proactive-cta {
-    font-size: 12px;
-  }
-}
-
-/* Animation for pulsing effect on high urgency */
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-}
-
-.proactive-notification.high-urgency .proactive-ai-avatar {
-  animation: pulse 2s ease-in-out infinite;
 }

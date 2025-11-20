@@ -443,6 +443,7 @@ const ProfileQuiz = () => {
       setCurrentStep('complete');
       // Set flag to trigger welcome notification
       localStorage.setItem('justCompletedQuiz', 'true');
+      sessionStorage.setItem('justLoggedIn', 'true'); // Set flag for welcome notification
       setTimeout(() => {
         navigate('/dashboard');
       }, 5000);

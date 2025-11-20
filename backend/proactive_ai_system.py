@@ -131,20 +131,30 @@ class ProactiveAIEngine:
         
         # Feature extraction with weights (simulating trained neural network)
         features = {
-            'wrong_answers_normalized': min(patterns["wrong_answers_count"] / 5.0, 1.0),  # Weight: 0.25
-            'topic_concentration': len(patterns["topics_with_errors"]) / max(patterns["wrong_answers_count"], 1),  # Weight: 0.15
-            'clarification_frequency': min(patterns["clarification_requests_count"] / 3.0, 1.0),  # Weight: 0.15
+            'wrong_answers_normalized': min(patterns["wrong_answers_count"] / 5.0, 1.0),  # Weight: 0.22
+            'topic_concentration': len(patterns["topics_with_errors"]) / max(patterns["wrong_answers_count"], 1),  # Weight: 0.13
+            'clarification_frequency': min(patterns["clarification_requests_count"] / 3.0, 1.0),  # Weight: 0.13
             'inactivity_signal': 1.0 if patterns["inactive_but_was_active"] else 0.0,  # Weight: 0.10
             'idle_signal': 1.0 if patterns.get("is_idle", False) else 0.0,  # Weight: 0.15
-            'weak_topics_signal': min(len(patterns.get("weak_topics", [])) / 3.0, 1.0),  # Weight: 0.10
-            'time_of_day_factor': self._get_time_of_day_engagement_factor(),  # Weight: 0.10
+            'weak_topics_signal': min(len(patterns.get("weak_topics", [])) / 3.0, 1.0),  # Weight: 0.12
+            'time_of_day_factor': self._get_time_of_day_engagement_factor(),  # Weight: 0.08
+            'user_engagement': user_history.get("notification_response_rate", 0.5),  # Weight: 0.07
         }
         
         # Weighted sum (neural network output layer simulation)
-        weights = [0.25, 0.15, 0.15, 0.10, 0.15, 0.10, 0.10]
+        weights = [0.22, 0.13, 0.13, 0.10, 0.15, 0.12, 0.08, 0.07]
         feature_values = list(features.values())
         
         score = sum(w * v for w, v in zip(weights, feature_values))
+        
+        # Adjust score based on user's historical response to notifications
+        response_rate = user_history.get("notification_response_rate", 0.5)
+        if response_rate < 0.3:
+            # User rarely responds to notifications - be more selective
+            score *= 0.7
+        elif response_rate > 0.7:
+            # User engages well with notifications - can be more proactive
+            score *= 1.2
         
         # Boost score for new users or just completed quiz
         if patterns.get("is_new_user") or patterns.get("just_completed_quiz"):
@@ -187,7 +197,7 @@ class ProactiveAIEngine:
         else:  # Very low urgency
             return random.randint(90, 120)
     
-    def should_reach_out(self, patterns: dict, user_history: dict = None) -> tuple[bool, str, float]:
+    def should_reach_out(self, patterns: dict, user_history: dict = None, is_login: bool = False) -> tuple[bool, str, float]:
         """
         ML-enhanced decision making for proactive outreach
         Returns: (should_reach_out, reason, urgency_score)
@@ -196,20 +206,27 @@ class ProactiveAIEngine:
         if user_history is None:
             user_history = {}
         
+        print(f"🔔 should_reach_out called with is_login={is_login}")
+        
+        # 1. Login greeting (highest priority - only on fresh login)
+        if is_login:
+            print(f"🔔 Login detected! Returning login_greeting")
+            return True, "login_greeting", 0.9
+        
         # Calculate ML intervention score
         score = self.calculate_ml_intervention_score(patterns, user_history)
         
-        # Threshold for intervention (0.1 = 10% confidence - VERY proactive)
-        if score < 0.1:
+        # Threshold for intervention (0.4 = 40% confidence - more selective)
+        if score < 0.4:
             return False, None, score
         
         # Determine reason based on dominant pattern (priority order)
         
-        # 1. Welcome message for new users or after profile quiz (highest priority)
+        # 2. Welcome message for new users or after profile quiz
         if patterns.get("is_new_user") or patterns.get("just_completed_quiz"):
             return True, "welcome", 0.9
         
-        # 2. Idle detection - user hasn't interacted in a while
+        # 3. Idle detection - user hasn't interacted in a while
         if patterns.get("is_idle"):
             weak_topics = patterns.get("weak_topics", [])
             if weak_topics:
@@ -244,14 +261,91 @@ class ProactiveAIEngine:
         return False, None, score
     
     async def generate_proactive_message(self, db: Session, user_id: int, reason: str, user_profile: dict):
-        """Generate a personalized proactive message"""
+        """Generate a personalized proactive message using Gemini AI"""
         
         user = db.query(models.User).filter(models.User.id == user_id).first()
         first_name = user.first_name or "there"
         field_of_study = user.field_of_study or "your studies"
         
         # Get context based on reason
-        if reason.startswith("idle_weak_topic:"):
+        if reason == "login_greeting":
+            # Get user's recent learning history for personalized greeting
+            recent_activities = db.query(models.Activity).filter(
+                models.Activity.user_id == user_id
+            ).order_by(models.Activity.timestamp.desc()).limit(20).all()
+            
+            # Get recent chat topics  
+            recent_chats = db.query(models.ChatMessage).filter(
+                models.ChatMessage.user_id == user_id
+            ).order_by(models.ChatMessage.timestamp.desc()).limit(10).all()
+            
+            # Build detailed context
+            context = ""
+            
+            # Add recent topics studied
+            if recent_activities:
+                topics = []
+                for a in recent_activities:
+                    if a.topic and a.topic not in topics:
+                        topics.append(a.topic)
+                topics = topics[:5]  # Top 5 recent topics
+                
+                if topics:
+                    context += f"Recent topics studied: {', '.join(topics)}\n"
+                
+                # Calculate recent performance (use getattr for safety)
+                try:
+                    correct = sum(1 for a in recent_activities if getattr(a, 'correct', False))
+                    accuracy = (correct / len(recent_activities)) * 100 if recent_activities else 0
+                    context += f"Recent accuracy: {accuracy:.0f}%\n"
+                except:
+                    pass
+                
+                # Get weak areas
+                weak_topics = []
+                for activity in recent_activities[-10:]:
+                    if not getattr(activity, 'correct', True) and activity.topic:
+                        weak_topics.append(activity.topic)
+                if weak_topics:
+                    unique_weak = list(set(weak_topics))[:3]
+                    context += f"Areas to focus on: {', '.join(unique_weak)}\n"
+            
+            # Add chat context
+            if recent_chats:
+                chat_topics = []
+                for chat in recent_chats[:5]:
+                    if chat.user_message and len(chat.user_message) > 0:
+                        # Extract topic hints from chat messages
+                        msg = chat.user_message[:150].strip()
+                        if msg:
+                            chat_topics.append(msg)
+                
+                if chat_topics:
+                    context += f"Recently asked about: {chat_topics[0]}\n"
+            
+            # Session info
+            context += f"Studying: {field_of_study}\n"
+            
+            prompt = f"""You are a friendly, warm, and encouraging AI tutor welcoming {first_name} back to their personalized learning.
+
+Context about {first_name}:
+{context}
+
+Generate a highly personalized, enthusiastic welcome message that:
+1. Greets them warmly by name
+2. References at least ONE specific topic they've been studying or struggling with
+3. Acknowledges their progress or areas they're working on
+4. Shows genuine interest in their learning journey
+5. Asks what they'd like to focus on today or continue with
+6. Keeps it brief (2-3 sentences max)
+7. Sounds like a caring human tutor who knows them, not a generic bot
+8. Uses a friendly emoji if fitting
+
+Important: Make it personal and specific - mention their topics/progress, not generic platitudes!
+
+Be warm, encouraging, and make them excited to learn with you today!"""
+
+        elif reason.startswith("idle_weak_topic:"):
             topic = reason.split(":")[1]
             
             prompt = f"""You are a caring AI tutor checking in on {first_name} who has been idle.
@@ -398,15 +492,19 @@ Generate a brief encouraging message that:
 4. Sounds genuine and supportive"""
         
         try:
+            print(f"🔔 Calling AI with prompt length: {len(prompt)}")
             message = self.unified_ai.generate(prompt, max_tokens=200, temperature=0.8)
+            print(f"🔔 AI generated message: {message}")
             return message
             
         except Exception as e:
+            print(f"🔔 AI generation failed: {e}, using fallback")
             # Fallback messages
             reason_key = reason.split(":")[0]
             topic_name = reason.split(":")[1] if ':' in reason else 'this topic'
             
             fallbacks = {
+                "login_greeting": f"Hey {first_name}! 👋 Welcome back! What would you like to learn today?",
                 "idle_weak_topic": f"Hey {first_name}! I noticed you've been working on {topic_name}. How's it going? Want to practice together? 💪",
                 "idle_check_in": f"Hi {first_name}! Taking a break? I'm here when you're ready to continue learning! 📚",
                 "weak_topic": f"Hey {first_name}! I see you're working on {topic_name}. Want some help to master it? I can explain it differently! 🎯",
@@ -416,13 +514,34 @@ Generate a brief encouraging message that:
                 "encouragement": f"You're doing great, {first_name}! Keep up the awesome work! 🌟",
                 "welcome": f"Welcome {first_name}! 🎉 I'm excited to help you with {field_of_study}. What would you like to learn first?"
             }
-            return fallbacks.get(reason_key, fallbacks["encouragement"])
+            return fallbacks.get(reason_key, fallbacks["login_greeting"])
     
-    async def check_and_send_proactive_message(self, db: Session, user_id: int, user_profile: dict, is_idle: bool = False):
+    async def check_and_send_proactive_message(self, db: Session, user_id: int, user_profile: dict, is_idle: bool = False, is_login: bool = False):
         """
         Main function to check if we should reach out and create the message
         Uses ML to determine optimal timing and intervention strategy
         """
+        
+        print(f"🔔 check_and_send_proactive_message called: is_login={is_login}")
+        
+        # FORCE LOGIN GREETING - Always show on login
+        if is_login:
+            print(f"🔔 LOGIN DETECTED - Forcing notification")
+            user = db.query(models.User).filter(models.User.id == user_id).first()
+            first_name = user.first_name or "there"
+            field_of_study = user.field_of_study or "your studies"
+            
+            # Generate message with AI
+            message = await self.generate_proactive_message(db, user_id, "login_greeting", user_profile)
+            
+            return {
+                "message": message,
+                "reason": "login_greeting",
+                "patterns": {},
+                "urgency_score": 0.9,
+                "optimal_delay_minutes": 0,
+                "should_show_now": True
+            }
         
         # Analyze patterns
         patterns = self.analyze_learning_patterns(db, user_id, is_idle)
@@ -431,29 +550,29 @@ Generate a brief encouraging message that:
         user_history = self._get_user_history(db, user_id)
         
         # ML-based decision
-        should_reach, reason, urgency_score = self.should_reach_out(patterns, user_history)
+        should_reach, reason, urgency_score = self.should_reach_out(patterns, user_history, is_login)
+        
+        print(f"🔔 ML Decision: should_reach={should_reach}, reason={reason}, urgency={urgency_score}")
         
         if not should_reach:
+            print(f"🔔 Not reaching out - score too low")
             return None
         
-        # Check if we already sent a proactive message recently (anti-spam)
-        recent_proactive = db.query(models.ChatMessage).filter(
-            models.ChatMessage.user_id == user_id,
-            models.ChatMessage.user_message.like("🤖 PROACTIVE:%")
-        ).order_by(models.ChatMessage.timestamp.desc()).first()
-        
-        if recent_proactive:
-            time_since = datetime.now(timezone.utc) - recent_proactive.timestamp
-            if time_since < self.min_notification_interval:
-                return None  # Don't spam - respect minimum interval
+        # NO ANTI-SPAM CHECK FOR LOGIN - Always show on fresh login
+        print(f"🔔 Proceeding with notification (reason: {reason})")
         
         # Calculate optimal timing (in minutes)
         optimal_delay_minutes = self.calculate_optimal_timing(urgency_score, patterns)
         
-        # Generate the personalized message
+        # Generate the personalized message using AI
+        print(f"🔔 Generating message for reason: {reason}")
         message = await self.generate_proactive_message(db, user_id, reason, user_profile)
+        print(f"🔔 Generated message: {message[:100]}...")
         
-        return {
+        # Track notification for ML learning
+        self._track_notification(db, user_id, reason, urgency_score, patterns)
+        
+        result = {
             "message": message,
             "reason": reason,
             "patterns": patterns,
@@ -461,6 +580,8 @@ Generate a brief encouraging message that:
             "optimal_delay_minutes": optimal_delay_minutes,
             "should_show_now": optimal_delay_minutes <= 5  # Show immediately if high urgency
         }
+        print(f"🔔 Returning result: should_notify=True, message length={len(message)}")
+        return result
     
     def _get_user_history(self, db: Session, user_id: int) -> dict:
         """Get user's historical engagement patterns for ML model"""
@@ -484,12 +605,46 @@ Generate a brief encouraging message that:
             models.ChatMessage.timestamp >= week_ago
         ).count()
         
+        # Get notification response rate (how often user engages after notification)
+        try:
+            notifications = db.query(models.Notification).filter(
+                models.Notification.user_id == user_id,
+                models.Notification.notification_type == "proactive_ai",
+                models.Notification.created_at >= week_ago
+            ).all()
+            
+            notification_response_rate = 0.5  # Default
+            if notifications:
+                responded = sum(1 for n in notifications if n.is_read)
+                notification_response_rate = responded / len(notifications)
+        except:
+            notification_response_rate = 0.5
+        
         return {
             "total_activities": total_activities,
             "accuracy": accuracy,
             "chat_engagement": chats,
-            "avg_daily_activities": total_activities / 7
+            "avg_daily_activities": total_activities / 7,
+            "notification_response_rate": notification_response_rate
         }
+    
+    def _track_notification(self, db: Session, user_id: int, reason: str, urgency_score: float, patterns: dict):
+        """Track notification for ML learning and analytics"""
+        try:
+            # Create notification record
+            notification = models.Notification(
+                user_id=user_id,
+                title="AI Tutor Check-in",
+                message=f"ML-based intervention: {reason}",
+                notification_type="proactive_ai",
+                is_read=False,
+                created_at=datetime.now(timezone.utc)
+            )
+            db.add(notification)
+            db.commit()
+        except Exception as e:
+            # Don't fail if notification tracking fails
+            print(f"Warning: Could not track notification: {e}")
 
 # Singleton instance
 _proactive_ai_engine = None
