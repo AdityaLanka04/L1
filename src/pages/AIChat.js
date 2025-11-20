@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
-import './AIChat.css';
 import { API_URL } from '../config';
 import gamificationService from '../services/gamificationService';
+import './AIChat.css';
 
 const AIChat = ({ sharedMode = false }) => {
   const { chatId } = useParams();
@@ -421,6 +421,12 @@ const AIChat = ({ sharedMode = false }) => {
       setMessages(prev => [...prev, aiMessage]);
       clearAllFiles();
       
+      // Auto-rename chat if it's the first message (title is still "New Chat")
+      const currentChat = chatSessions.find(chat => chat.id === currentChatId);
+      if (currentChat && currentChat.title === 'New Chat' && messageText.trim()) {
+        autoRenameChat(currentChatId, messageText);
+      }
+      
       // Track gamification activity
       gamificationService.trackAIChat(userName);
 
@@ -443,6 +449,48 @@ const AIChat = ({ sharedMode = false }) => {
   const handleDeleteChat = (chatSessionId, chatTitle) => {
     setChatToDelete({ id: chatSessionId, title: chatTitle });
     setShowDeleteConfirmation(true);
+  };
+
+  const autoRenameChat = async (chatId, userMessage) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Generate a title from the first message (take first 50 chars or first sentence)
+      let title = userMessage.trim();
+      
+      // Take first sentence or first 50 characters
+      const firstSentence = title.match(/^[^.!?]+[.!?]/);
+      if (firstSentence) {
+        title = firstSentence[0];
+      }
+      
+      // Limit to 50 characters
+      if (title.length > 50) {
+        title = title.substring(0, 47) + '...';
+      }
+      
+      // Update the chat title
+      const response = await fetch(`${API_URL}/rename_chat_session`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          new_title: title
+        })
+      });
+
+      if (response.ok) {
+        // Update local state
+        setChatSessions(prev => prev.map(chat => 
+          chat.id === chatId ? { ...chat, title } : chat
+        ));
+      }
+    } catch (error) {
+      console.error('Error auto-renaming chat:', error);
+    }
   };
 
   const confirmDeleteChat = async () => {
@@ -775,6 +823,112 @@ const AIChat = ({ sharedMode = false }) => {
     return result;
   };
 
+  const renderMarkdown = (text) => {
+    if (!text) return '';
+    
+    console.log('🔍 renderMarkdown called with:', text.substring(0, 100));
+    
+    // Wrap large mathematical symbols in special class
+    const mathSymbols = ['∑', 'Σ', '∫', '∏', 'Π', '∮', '∯', '∰', '⨌'];
+    mathSymbols.forEach(symbol => {
+      const regex = new RegExp(symbol, 'g');
+      text = text.replace(regex, `<span class="math-symbol">${symbol}</span>`);
+    });
+    
+    // Process line by line to handle headers and lists
+    const lines = text.split('\n');
+    const processedLines = [];
+    let inBulletList = false;
+    let inNumberedList = false;
+    
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i];
+      
+      // Check for headers FIRST
+      if (/^### (.+)$/.test(line)) {
+        if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
+        if (inNumberedList) { processedLines.push('</ol>'); inNumberedList = false; }
+        const content = line.replace(/^### (.+)$/, '$1');
+        processedLines.push(`<h3 class="md-h3">${content}</h3>`);
+        continue;
+      }
+      if (/^## (.+)$/.test(line)) {
+        if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
+        if (inNumberedList) { processedLines.push('</ol>'); inNumberedList = false; }
+        const content = line.replace(/^## (.+)$/, '$1');
+        processedLines.push(`<h2 class="md-h2">${content}</h2>`);
+        continue;
+      }
+      if (/^# (.+)$/.test(line)) {
+        if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
+        if (inNumberedList) { processedLines.push('</ol>'); inNumberedList = false; }
+        const content = line.replace(/^# (.+)$/, '$1');
+        processedLines.push(`<h1 class="md-h1">${content}</h1>`);
+        continue;
+      }
+      
+      // Bold and italic
+      // Use different classes for bold at start of line (heading-like) vs inline
+      if (/^\*\*(.+?)\*\*/.test(line)) {
+        // Bold at start of line = main heading bold
+        line = line.replace(/\*\*(.+?)\*\*/g, '<strong class="md-bold-heading">$1</strong>');
+      } else {
+        // Bold elsewhere = side/inline bold
+        line = line.replace(/\*\*(.+?)\*\*/g, '<strong class="md-bold-inline">$1</strong>');
+      }
+      line = line.replace(/__(.+?)__/g, '<strong class="md-bold-inline">$1</strong>');
+      line = line.replace(/(?<!\w)\*(.+?)\*(?!\w)/g, '<em>$1</em>');
+      line = line.replace(/(?<!\w)_(.+?)_(?!\w)/g, '<em>$1</em>');
+      
+      // Inline code
+      line = line.replace(/`([^`]+)`/g, '<code class="md-inline-code">$1</code>');
+      
+      // Check for lists
+      const isBullet = /^[\*\-] (.+)$/.test(line);
+      const isNumbered = /^\d+\. (.+)$/.test(line);
+      
+      if (isBullet) {
+        if (!inBulletList) {
+          processedLines.push('<ul class="md-ul">');
+          inBulletList = true;
+        }
+        const content = line.replace(/^[\*\-] (.+)$/, '$1');
+        processedLines.push(`<li class="md-li">${content}</li>`);
+      } else if (isNumbered) {
+        if (!inNumberedList) {
+          processedLines.push('<ol class="md-ol">');
+          inNumberedList = true;
+        }
+        const content = line.replace(/^\d+\. (.+)$/, '$1');
+        processedLines.push(`<li class="md-li-num">${content}</li>`);
+      } else {
+        if (inBulletList) {
+          processedLines.push('</ul>');
+          inBulletList = false;
+        }
+        if (inNumberedList) {
+          processedLines.push('</ol>');
+          inNumberedList = false;
+        }
+        processedLines.push(line);
+      }
+    }
+    
+    // Close any open lists
+    if (inBulletList) processedLines.push('</ul>');
+    if (inNumberedList) processedLines.push('</ol>');
+    
+    text = processedLines.join('\n');
+    
+    // Line breaks (but not inside HTML tags)
+    text = text.replace(/\n\n/g, '<br/><br/>');
+    text = text.replace(/\n/g, '<br/>');
+    
+    console.log('✅ renderMarkdown output:', text.substring(0, 200));
+    
+    return text;
+  };
+
   const renderMessageContent = (content) => {
     if (!content) return null;
 
@@ -829,14 +983,16 @@ const AIChat = ({ sharedMode = false }) => {
       });
     }
 
-    // If no code blocks found, return plain text
+    // If no code blocks found, render as markdown
     if (parts.length === 0) {
-      return content;
+      const htmlContent = renderMarkdown(content);
+      return <div dangerouslySetInnerHTML={{ __html: htmlContent }} />;
     }
 
     return parts.map((part, index) => {
       if (part.type === 'text') {
-        return <span key={index} dangerouslySetInnerHTML={{ __html: part.content }} />;
+        const htmlContent = renderMarkdown(part.content);
+        return <div key={index} dangerouslySetInnerHTML={{ __html: htmlContent }} />;
       } else {
         return (
           <div key={index} className="code-block-container">

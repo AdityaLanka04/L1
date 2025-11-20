@@ -56,7 +56,9 @@ function Login() {
 
       if (response.data.completed) {
         console.log('Quiz completed - going to dashboard');
+        console.log('🔔 Setting justLoggedIn flag in sessionStorage');
         sessionStorage.setItem('justLoggedIn', 'true'); // Set flag for notification
+        console.log('🔔 Flag set, value:', sessionStorage.getItem('justLoggedIn'));
         navigate('/dashboard');
       } else {
         console.log('Quiz not completed - going to profile-quiz');
@@ -112,7 +114,7 @@ function Login() {
       }
 
       // Trigger notification check after login
-      localStorage.setItem('justLoggedIn', 'true');
+      sessionStorage.setItem('justLoggedIn', 'true');
 
       await checkAndRedirect(userData.email);
     } catch (error) {
@@ -171,7 +173,7 @@ function Login() {
       }
       
       // Trigger notification check after login
-      localStorage.setItem('justLoggedIn', 'true');
+      sessionStorage.setItem('justLoggedIn', 'true');
       
       await checkAndRedirect(username);
     } catch (err) {

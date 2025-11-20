@@ -339,7 +339,7 @@ Generate a highly personalized, enthusiastic welcome message that:
 5. Asks what they'd like to focus on today or continue with
 6. Keeps it brief (2-3 sentences max)
 7. Sounds like a caring human tutor who knows them, not a generic bot
-8. Uses a friendly emoji if fitting
+8. Does NOT use emojis - keep it professional
 
 Important: Make it personal and specific - mention their topics/progress, not generic platitudes!
 
@@ -493,9 +493,19 @@ Generate a brief encouraging message that:
         
         try:
             print(f"🔔 Calling AI with prompt length: {len(prompt)}")
-            message = self.unified_ai.generate(prompt, max_tokens=200, temperature=0.8)
-            print(f"🔔 AI generated message: {message}")
-            return message
+            
+            # Use unified AI (now with REST API for Gemini)
+            import asyncio
+            try:
+                message = await asyncio.wait_for(
+                    asyncio.to_thread(self.unified_ai.generate, prompt, max_tokens=200, temperature=0.8),
+                    timeout=12.0  # 12 second timeout (10s for API + 2s buffer)
+                )
+                print(f"🔔 AI generated message: {message}")
+                return message
+            except asyncio.TimeoutError:
+                print(f"🔔 AI generation timed out after 12s, using fallback")
+                raise Exception("AI timeout")
             
         except Exception as e:
             print(f"🔔 AI generation failed: {e}, using fallback")
@@ -504,16 +514,17 @@ Generate a brief encouraging message that:
             topic_name = reason.split(":")[1] if ':' in reason else 'this topic'
             
             fallbacks = {
-                "login_greeting": f"Hey {first_name}! 👋 Welcome back! What would you like to learn today?",
-                "idle_weak_topic": f"Hey {first_name}! I noticed you've been working on {topic_name}. How's it going? Want to practice together? 💪",
-                "idle_check_in": f"Hi {first_name}! Taking a break? I'm here when you're ready to continue learning! 📚",
-                "weak_topic": f"Hey {first_name}! I see you're working on {topic_name}. Want some help to master it? I can explain it differently! 🎯",
-                "struggle_with_topic": f"Hey {first_name}! I noticed you're working hard on {topic_name}. Want to go over it together? I can explain it differently! 💡",
-                "repeated_confusion": f"Hi {first_name}! I see you're asking great questions. Sometimes a different explanation helps - want me to break this down step by step? 🎯",
-                "check_in": f"Hey {first_name}! How's your study session going? I'm here if you need any help! 📚",
-                "encouragement": f"You're doing great, {first_name}! Keep up the awesome work! 🌟",
-                "welcome": f"Welcome {first_name}! 🎉 I'm excited to help you with {field_of_study}. What would you like to learn first?"
+                "login_greeting": f"Hey {first_name}! Welcome back to your learning journey. Ready to dive into {field_of_study} today?",
+                "idle_weak_topic": f"Hey {first_name}! I noticed you've been working on {topic_name}. How's it going? Want to practice together?",
+                "idle_check_in": f"Hi {first_name}! Taking a break? I'm here when you're ready to continue learning.",
+                "weak_topic": f"Hey {first_name}! I see you're working on {topic_name}. Want some help to master it? I can explain it differently.",
+                "struggle_with_topic": f"Hey {first_name}! I noticed you're working hard on {topic_name}. Want to go over it together? I can explain it differently.",
+                "repeated_confusion": f"Hi {first_name}! I see you're asking great questions. Sometimes a different explanation helps - want me to break this down step by step?",
+                "check_in": f"Hey {first_name}! How's your study session going? I'm here if you need any help.",
+                "encouragement": f"You're doing great, {first_name}! Keep up the awesome work.",
+                "welcome": f"Welcome {first_name}! I'm excited to help you with {field_of_study}. What would you like to learn first?"
             }
+            print(f"🔔 Using fallback message for reason: {reason_key}")
             return fallbacks.get(reason_key, fallbacks["login_greeting"])
     
     async def check_and_send_proactive_message(self, db: Session, user_id: int, user_profile: dict, is_idle: bool = False, is_login: bool = False):

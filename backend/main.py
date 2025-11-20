@@ -179,7 +179,7 @@ else:
 
 # Initialize unified AI client
 from ai_utils import UnifiedAIClient
-unified_ai = UnifiedAIClient(gemini_client, groq_client, GEMINI_MODEL, GROQ_MODEL)
+unified_ai = UnifiedAIClient(gemini_client, groq_client, GEMINI_MODEL, GROQ_MODEL, GEMINI_API_KEY)
 logger.info("✅ Unified AI client initialized")
 
 # Unified AI call function - uses the unified_ai client
@@ -1285,6 +1285,42 @@ def create_chat_session(
     except Exception as e:
         logger.error(f"Error creating chat session: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to create chat session: {str(e)}")
+
+@app.put("/api/rename_chat_session")
+def rename_chat_session(
+    data: dict,
+    db: Session = Depends(get_db)
+):
+    try:
+        chat_id = data.get('chat_id')
+        new_title = data.get('new_title')
+        
+        if not chat_id or not new_title:
+            raise HTTPException(status_code=400, detail="chat_id and new_title are required")
+        
+        chat_session = db.query(models.ChatSession).filter(
+            models.ChatSession.id == chat_id
+        ).first()
+        
+        if not chat_session:
+            raise HTTPException(status_code=404, detail="Chat session not found")
+        
+        chat_session.title = new_title
+        chat_session.updated_at = datetime.now(timezone.utc)
+        db.commit()
+        
+        logger.info(f"✅ Chat session renamed: ID={chat_id} to '{new_title}'")
+        
+        return {
+            "status": "success",
+            "chat_id": chat_id,
+            "new_title": new_title
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error renaming chat session: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to rename chat session: {str(e)}")
 
 @app.get("/api/get_user_achievements")
 def get_user_achievements(user_id: str = Query(...), db: Session = Depends(get_db)):
@@ -9587,7 +9623,7 @@ async def generate_concept_web(
         
         # Get AI classification agent with Gemini primary, Groq fallback
         from concept_classification_agent import get_concept_agent
-        agent = get_concept_agent(groq_client, GROQ_MODEL, gemini_client, GEMINI_MODEL)  # Keep this as is - already supports both
+        agent = get_concept_agent(groq_client, GROQ_MODEL, gemini_client, GEMINI_MODEL, GEMINI_API_KEY)
         
         # BATCH CLASSIFY ALL CONCEPTS IN ONE REQUEST (avoids rate limits!)
         concept_names = list(concepts_to_create.keys())
@@ -9758,7 +9794,7 @@ async def add_concept_node(
         
         # Use AI to classify the concept with maximum specificity
         from concept_classification_agent import get_concept_agent
-        agent = get_concept_agent(groq_client, GROQ_MODEL, gemini_client, GEMINI_MODEL)
+        agent = get_concept_agent(groq_client, GROQ_MODEL, gemini_client, GEMINI_MODEL, GEMINI_API_KEY)
         
         classification = agent.ai_classify_single_concept(concept_name, description)
         

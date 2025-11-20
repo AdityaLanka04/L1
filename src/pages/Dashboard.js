@@ -189,6 +189,7 @@ const Dashboard = () => {
     startDashboardSession();
     // Check if this is a fresh login (not a refresh)
     const justLoggedIn = sessionStorage.getItem('justLoggedIn');
+    console.log('🔔 Dashboard mounted, checking justLoggedIn flag:', justLoggedIn);
     if (justLoggedIn === 'true') {
       console.log('🔔 Fresh login detected - showing welcome notification');
       sessionStorage.removeItem('justLoggedIn'); // Clear flag

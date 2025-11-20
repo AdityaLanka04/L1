@@ -15,32 +15,22 @@ class ConceptClassificationAgent:
     """AI agent that intelligently classifies learning content into topics"""
     
     def __init__(self, groq_client=None, model_name: str = "llama-3.3-70b-versatile", 
-                 gemini_client=None, gemini_model: str = "gemini-2.0-flash"):
+                 gemini_client=None, gemini_model: str = "gemini-2.0-flash", gemini_api_key: str = None):
         self.groq_client = groq_client
         self.model_name = model_name
         self.gemini_module = gemini_client  # This is the genai module
         self.gemini_model = gemini_model
+        self.gemini_api_key = gemini_api_key
         
-        # Create actual Gemini model instance if module provided
-        if gemini_client:
-            try:
-                self.gemini_client = gemini_client.GenerativeModel(gemini_model)
-                self.primary_ai = "gemini"
-                logger.info(f"ConceptAgent using GEMINI as primary (model: {gemini_model})")
-            except Exception as e:
-                logger.error(f"Failed to create Gemini model in ConceptAgent: {e}")
-                self.gemini_client = None
-                if groq_client:
-                    self.primary_ai = "groq"
-                    logger.info("ConceptAgent using GROQ as primary (Gemini failed)")
-                else:
-                    raise ValueError("Both AI clients failed")
+        # Use REST API for Gemini (SDK hangs)
+        if gemini_api_key:
+            self.primary_ai = "gemini"
+            logger.info(f"ConceptAgent using GEMINI REST API as primary (model: {gemini_model})")
         elif groq_client:
-            self.gemini_client = None
             self.primary_ai = "groq"
             logger.info("ConceptAgent using GROQ as primary")
         else:
-            raise ValueError("At least one AI client (Gemini or Groq) must be provided")
+            raise ValueError("At least one AI client (Gemini API key or Groq) must be provided")
         
         # ULTRA-ADVANCED hierarchical categories with deep subcategories
         self.category_hierarchy = {
@@ -508,10 +498,35 @@ If not related, return: {{"related": false}}"""
             AI response text
         """
         try:
-            if self.primary_ai == "gemini" and self.gemini_client:
-                logger.info("Calling Gemini API...")
-                response = self.gemini_client.generate_content(prompt)
-                return response.text
+            if self.primary_ai == "gemini" and self.gemini_api_key:
+                logger.info("Calling Gemini REST API...")
+                import requests
+                
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.gemini_model}:generateContent?key={self.gemini_api_key}"
+                
+                payload = {
+                    "contents": [{
+                        "parts": [{"text": prompt}]
+                    }],
+                    "generationConfig": {
+                        "temperature": 0.2,
+                        "maxOutputTokens": max_tokens,
+                    }
+                }
+                
+                # Use longer timeout for batch classification (30s)
+                timeout = 30 if max_tokens > 2000 else 15
+                response = requests.post(url, json=payload, timeout=timeout)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    text = data['candidates'][0]['content']['parts'][0]['text']
+                    logger.info(f"✅ Gemini REST response received")
+                    return text
+                else:
+                    logger.error(f"❌ Gemini REST API error: {response.status_code}")
+                    raise Exception(f"Gemini API error: {response.status_code}")
+                    
             elif self.groq_client:
                 logger.info("Calling Groq API...")
                 response = self.groq_client.chat.completions.create(
@@ -535,10 +550,6 @@ If not related, return: {{"related": false}}"""
                     max_tokens=max_tokens
                 )
                 return response.choices[0].message.content.strip()
-            elif self.primary_ai == "groq" and self.gemini_client:
-                logger.info("Falling back to Gemini...")
-                response = self.gemini_client.generate_content(prompt)
-                return response.text
             else:
                 raise Exception(f"Both AI clients failed: {e}")
     
@@ -794,9 +805,10 @@ Classify now:"""
 _concept_agent = None
 
 def get_concept_agent(groq_client=None, model_name: str = "llama-3.3-70b-versatile",
-                     gemini_client=None, gemini_model: str = "gemini-2.0-flash"):
+                     gemini_client=None, gemini_model: str = "gemini-2.0-flash", gemini_api_key: str = None):
     """Get or create the concept classification agent singleton"""
     global _concept_agent
-    if _concept_agent is None:
-        _concept_agent = ConceptClassificationAgent(groq_client, model_name, gemini_client, gemini_model)
+    # Always recreate if API key is provided (ensures we use Gemini)
+    if gemini_api_key or _concept_agent is None:
+        _concept_agent = ConceptClassificationAgent(groq_client, model_name, gemini_client, gemini_model, gemini_api_key)
     return _concept_agent

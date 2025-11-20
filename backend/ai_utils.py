@@ -9,11 +9,12 @@ logger = logging.getLogger(__name__)
 class UnifiedAIClient:
     """Unified client that uses Gemini as primary, Groq as fallback"""
     
-    def __init__(self, gemini_client=None, groq_client=None, gemini_model: str = "gemini-2.0-flash", groq_model: str = "llama-3.3-70b-versatile"):
+    def __init__(self, gemini_client=None, groq_client=None, gemini_model: str = "gemini-2.0-flash", groq_model: str = "llama-3.3-70b-versatile", gemini_api_key: str = None):
         self.gemini_module = gemini_client  # This is the genai module
         self.groq_client = groq_client
         self.gemini_model = gemini_model
         self.groq_model = groq_model
+        self.gemini_api_key = gemini_api_key
         
         # Create the actual Gemini model instance
         if gemini_client:
@@ -53,12 +54,37 @@ class UnifiedAIClient:
             AI response text
         """
         try:
-            if self.primary_ai == "gemini" and self.gemini_client:
-                logger.info(f"📡 Calling Gemini API... (client type: {type(self.gemini_client)})")
+            if self.primary_ai == "gemini" and self.gemini_api_key:
+                logger.info(f"📡 Calling Gemini REST API directly...")
                 try:
-                    response = self.gemini_client.generate_content(prompt)
-                    logger.info(f"✅ Gemini response received: {len(response.text)} chars")
-                    return response.text
+                    # Use REST API directly to avoid SDK hanging issues
+                    import requests
+                    import json
+                    
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.gemini_model}:generateContent?key={self.gemini_api_key}"
+                    
+                    payload = {
+                        "contents": [{
+                            "parts": [{"text": prompt}]
+                        }],
+                        "generationConfig": {
+                            "temperature": temperature,
+                            "maxOutputTokens": max_tokens,
+                        }
+                    }
+                    
+                    logger.info(f"📡 Sending REST request to Gemini...")
+                    response = requests.post(url, json=payload, timeout=10)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        text = data['candidates'][0]['content']['parts'][0]['text']
+                        logger.info(f"✅ Gemini REST response received: {len(text)} chars")
+                        return text
+                    else:
+                        logger.error(f"❌ Gemini REST API error: {response.status_code} - {response.text}")
+                        raise Exception(f"Gemini API error: {response.status_code}")
+                        
                 except Exception as gemini_error:
                     logger.error(f"❌ Gemini error: {type(gemini_error).__name__}: {gemini_error}")
                     import traceback

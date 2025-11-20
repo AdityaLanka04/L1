@@ -5,7 +5,10 @@ Checks all tables and adds missing columns
 import sqlite3
 import os
 from sqlalchemy import inspect
-from models import engine, Base, User, ChatSession, ChatMessage, QuizSession, QuizQuestion, \
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from models import engine, Base, User, ChatSession, ChatMessage, \
     Flashcard, Note, LearningReview, ReviewQuestion, UserStats, ActivityLog, \
     ComprehensiveUserProfile, Friendship, FriendRequest, SharedContent, \
     Notification, Achievement, UserAchievement, Leaderboard, Challenge, \
@@ -100,7 +103,7 @@ def run_migration():
     
     # List of all models to check
     models = [
-        User, ChatSession, ChatMessage, QuizSession, QuizQuestion,
+        User, ChatSession, ChatMessage,
         Flashcard, Note, LearningReview, ReviewQuestion, UserStats,
         ActivityLog, ComprehensiveUserProfile, Friendship, FriendRequest,
         SharedContent, Notification, Achievement, UserAchievement,
