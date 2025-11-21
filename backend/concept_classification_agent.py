@@ -514,8 +514,8 @@ If not related, return: {{"related": false}}"""
                     }
                 }
                 
-                # Use longer timeout for batch classification (30s)
-                timeout = 30 if max_tokens > 2000 else 15
+                # Use longer timeout for batch classification (60s)
+                timeout = 60 if max_tokens > 2000 else 30
                 response = requests.post(url, json=payload, timeout=timeout)
                 
                 if response.status_code == 200:

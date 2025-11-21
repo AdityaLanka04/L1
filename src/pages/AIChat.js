@@ -826,8 +826,6 @@ const AIChat = ({ sharedMode = false }) => {
   const renderMarkdown = (text) => {
     if (!text) return '';
     
-    console.log('🔍 renderMarkdown called with:', text.substring(0, 100));
-    
     // Wrap large mathematical symbols in special class
     const mathSymbols = ['∑', 'Σ', '∫', '∏', 'Π', '∮', '∯', '∰', '⨌'];
     mathSymbols.forEach(symbol => {
@@ -840,11 +838,41 @@ const AIChat = ({ sharedMode = false }) => {
     const processedLines = [];
     let inBulletList = false;
     let inNumberedList = false;
+    let inTable = false;
+    let tableRows = [];
     
     for (let i = 0; i < lines.length; i++) {
-      let line = lines[i];
+      let line = lines[i].trim();
+      
+      // Handle table detection
+      if (line.includes('|') && !inTable) {
+        // Start of table
+        inTable = true;
+        tableRows = [line];
+        continue;
+      } else if (inTable && line.includes('|')) {
+        // Continue table
+        tableRows.push(line);
+        continue;
+      } else if (inTable && !line.includes('|')) {
+        // End of table
+        inTable = false;
+        processedLines.push(renderTable(tableRows));
+        tableRows = [];
+        // Process current line normally
+      }
+      
+      // Skip empty lines in tables
+      if (inTable) continue;
       
       // Check for headers FIRST
+      if (/^#### (.+)$/.test(line)) {
+        if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
+        if (inNumberedList) { processedLines.push('</ol>'); inNumberedList = false; }
+        const content = line.replace(/^#### (.+)$/, '$1');
+        processedLines.push(`<h4 class="md-h4">${content}</h4>`);
+        continue;
+      }
       if (/^### (.+)$/.test(line)) {
         if (inBulletList) { processedLines.push('</ul>'); inBulletList = false; }
         if (inNumberedList) { processedLines.push('</ol>'); inNumberedList = false; }
@@ -867,7 +895,7 @@ const AIChat = ({ sharedMode = false }) => {
         continue;
       }
       
-      // Bold and italic
+      // Bold and italic - Enhanced detection
       // Use different classes for bold at start of line (heading-like) vs inline
       if (/^\*\*(.+?)\*\*/.test(line)) {
         // Bold at start of line = main heading bold
@@ -877,14 +905,17 @@ const AIChat = ({ sharedMode = false }) => {
         line = line.replace(/\*\*(.+?)\*\*/g, '<strong class="md-bold-inline">$1</strong>');
       }
       line = line.replace(/__(.+?)__/g, '<strong class="md-bold-inline">$1</strong>');
-      line = line.replace(/(?<!\w)\*(.+?)\*(?!\w)/g, '<em>$1</em>');
-      line = line.replace(/(?<!\w)_(.+?)_(?!\w)/g, '<em>$1</em>');
+      line = line.replace(/(?<!\w)\*([^*]+?)\*(?!\w)/g, '<em>$1</em>');
+      line = line.replace(/(?<!\w)_([^_]+?)_(?!\w)/g, '<em>$1</em>');
       
       // Inline code
       line = line.replace(/`([^`]+)`/g, '<code class="md-inline-code">$1</code>');
       
+      // Keywords highlighting (words in ALL CAPS or specific patterns)
+      line = line.replace(/\b([A-Z]{2,})\b/g, '<span class="keyword">$1</span>');
+      
       // Check for lists
-      const isBullet = /^[\*\-] (.+)$/.test(line);
+      const isBullet = /^[\*\-•] (.+)$/.test(line);
       const isNumbered = /^\d+\. (.+)$/.test(line);
       
       if (isBullet) {
@@ -892,7 +923,7 @@ const AIChat = ({ sharedMode = false }) => {
           processedLines.push('<ul class="md-ul">');
           inBulletList = true;
         }
-        const content = line.replace(/^[\*\-] (.+)$/, '$1');
+        const content = line.replace(/^[\*\-•] (.+)$/, '$1');
         processedLines.push(`<li class="md-li">${content}</li>`);
       } else if (isNumbered) {
         if (!inNumberedList) {
@@ -910,23 +941,132 @@ const AIChat = ({ sharedMode = false }) => {
           processedLines.push('</ol>');
           inNumberedList = false;
         }
+        
+        // Add line (empty lines will be handled in paragraph processing)
         processedLines.push(line);
       }
+    }
+    
+    // Handle any remaining table
+    if (inTable && tableRows.length > 0) {
+      processedLines.push(renderTable(tableRows));
     }
     
     // Close any open lists
     if (inBulletList) processedLines.push('</ul>');
     if (inNumberedList) processedLines.push('</ol>');
     
-    text = processedLines.join('\n');
+    // Process lines into proper paragraphs
+    const finalContent = [];
+    let currentParagraph = [];
     
-    // Line breaks (but not inside HTML tags)
-    text = text.replace(/\n\n/g, '<br/><br/>');
-    text = text.replace(/\n/g, '<br/>');
+    for (let i = 0; i < processedLines.length; i++) {
+      const line = processedLines[i];
+      const trimmedLine = line.trim();
+      
+      // Check if this is a block element (heading, list, table, etc.)
+      const isBlockElement = line.startsWith('<h') || line.startsWith('<ul') || line.startsWith('<ol') || 
+                            line.startsWith('</ul>') || line.startsWith('</ol>') || 
+                            line.startsWith('<div class="table-block-container">');
+      
+      // Empty line indicates paragraph break
+      const isEmptyLine = trimmedLine === '';
+      
+      if (isBlockElement) {
+        // Finish current paragraph if exists
+        if (currentParagraph.length > 0) {
+          finalContent.push(`<p>${currentParagraph.join(' ')}</p>`);
+          currentParagraph = [];
+        }
+        
+        // Add block element
+        finalContent.push(line);
+      } else if (isEmptyLine) {
+        // Empty line - finish current paragraph if exists
+        if (currentParagraph.length > 0) {
+          finalContent.push(`<p>${currentParagraph.join(' ')}</p>`);
+          currentParagraph = [];
+        }
+      } else {
+        // Regular text line - add to current paragraph
+        if (trimmedLine) {
+          currentParagraph.push(trimmedLine);
+        }
+      }
+    }
     
-    console.log('✅ renderMarkdown output:', text.substring(0, 200));
+    // Finish any remaining paragraph
+    if (currentParagraph.length > 0) {
+      finalContent.push(`<p>${currentParagraph.join(' ')}</p>`);
+    }
+    
+    text = finalContent.join('\n');
+    
+    // Post-processing: Ensure the first element is properly formatted
+    if (text && !text.startsWith('<')) {
+      // If content doesn't start with HTML tag, wrap it in a paragraph
+      text = `<p>${text}</p>`;
+    }
     
     return text;
+  };
+
+  // Helper function to render tables in structured blocks
+  const renderTable = (tableRows) => {
+    if (tableRows.length < 2) return tableRows.join('\n');
+    
+    // Count columns from header row
+    const headerRow = tableRows[0];
+    const headers = headerRow.split('|').map(h => h.trim()).filter(h => h);
+    const columnCount = headers.length;
+    
+    // Create table block container similar to code blocks
+    let tableBlockHtml = '<div class="table-block-container">';
+    
+    // Add table header with info
+    tableBlockHtml += '<div class="table-block-header">';
+    tableBlockHtml += '<span class="table-info">TABLE</span>';
+    tableBlockHtml += `<span class="table-meta">${tableRows.length - 1} rows × ${columnCount} columns</span>`;
+    tableBlockHtml += '</div>';
+    
+    // Add table content
+    tableBlockHtml += '<div class="table-block-content">';
+    tableBlockHtml += '<table class="structured-table">';
+    
+    // Process header row
+    if (headers.length > 0) {
+      tableBlockHtml += '<thead><tr>';
+      headers.forEach(header => {
+        tableBlockHtml += `<th>${header}</th>`;
+      });
+      tableBlockHtml += '</tr></thead>';
+    }
+    
+    // Process data rows (skip separator row if exists)
+    tableBlockHtml += '<tbody>';
+    let rowCount = 0;
+    for (let i = 1; i < tableRows.length; i++) {
+      const row = tableRows[i];
+      // Skip separator rows (like |---|---|)
+      if (row.includes('---')) continue;
+      
+      const cells = row.split('|').map(c => c.trim()).filter(c => c);
+      if (cells.length > 0) {
+        rowCount++;
+        tableBlockHtml += `<tr class="table-row-${rowCount % 2 === 0 ? 'even' : 'odd'}">`;
+        cells.forEach((cell, index) => {
+          // Add row number for first column if it's numeric data
+          const cellContent = cell || '—'; // Use em dash for empty cells
+          tableBlockHtml += `<td data-column="${index + 1}">${cellContent}</td>`;
+        });
+        tableBlockHtml += '</tr>';
+      }
+    }
+    tableBlockHtml += '</tbody></table>';
+    tableBlockHtml += '</div>'; // Close table-block-content
+    tableBlockHtml += '</div>'; // Close table-block-container
+    
+    return tableBlockHtml;
   };
 
   const renderMessageContent = (content) => {
@@ -995,9 +1135,9 @@ const AIChat = ({ sharedMode = false }) => {
         return <div key={index} dangerouslySetInnerHTML={{ __html: htmlContent }} />;
       } else {
         return (
-          <div key={index} className="code-block-container">
+          <div key={index} className="code-block-container" data-language={part.language}>
             <div className="code-block-header">
-              <span className="code-language">{part.language}</span>
+              <span className="code-language">{part.language.toUpperCase()}</span>
               <button
                 className={`code-copy-btn ${copiedCode === index ? 'copied' : ''}`}
                 onClick={() => copyToClipboard(part.content, index)}

@@ -816,18 +816,20 @@ body {
 }
 
 .message-bubble {
-  max-width: 70%;
+  max-width: 75%;
   background: var(--panel);
   border: 1px solid var(--border);
-  padding: 18px 22px;
+  padding: 24px 28px;
   box-shadow: var(--shadow-md);
   position: relative;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 8px;
 }
 
 .message-bubble:hover {
   box-shadow: var(--shadow-lg);
   border-color: color-mix(in srgb, var(--border) 70%, var(--accent) 30%);
+  transform: translateY(-1px);
 }
 
 .message.user .message-bubble {
@@ -858,124 +860,210 @@ body {
 .message-content {
   color: var(--text-primary);
   font-size: 15px;
-  line-height: 1.7;
+  line-height: 1.65;
   white-space: pre-wrap;
   word-wrap: break-word;
   font-weight: 400;
   user-select: text;
-  letter-spacing: 0.005em;
+  letter-spacing: 0.01em;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-/* Code Block Styles */
+/* ========== CODE BLOCKS - PROFESSIONAL & STRUCTURED ========== */
 .code-block-container {
-  margin: 16px 0;
-  background: var(--bg-bottom);
-  border: 1px solid var(--border);
-  border-radius: 0;
-  overflow: hidden;
-  box-shadow: var(--shadow-md);
+  margin: 1.5rem 0 !important;
+  background: var(--bg-bottom) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px !important;
+  overflow: hidden !important;
+  box-shadow: var(--shadow-md) !important;
+  position: relative !important;
 }
 
 .code-block-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 14px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 12px 16px !important;
+  background: var(--panel) !important;
+  border-bottom: 1px solid var(--border) !important;
+  position: relative !important;
+}
+
+.code-block-header::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 1px !important;
+  background: var(--accent) !important;
+  opacity: 0.3 !important;
 }
 
 .code-language {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: var(--accent) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1.2px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.code-language::before {
+  content: '' !important;
+  width: 8px !important;
+  height: 8px !important;
+  background: var(--accent) !important;
+  border-radius: 50% !important;
+  display: inline-block !important;
 }
 
 .code-copy-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--bg-bottom);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  padding: 6px 10px;
-  font-size: 10px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  border-radius: 0;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  background: var(--bg-bottom) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-secondary) !important;
+  padding: 6px 12px !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.8px !important;
+  border-radius: 3px !important;
 }
 
 .code-copy-btn:hover {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--bg-top);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm), var(--shadow-glow);
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: var(--bg-top) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: var(--shadow-sm), var(--shadow-glow) !important;
 }
 
 .code-copy-btn.copied {
-  background: var(--success);
-  border-color: var(--success);
-  color: white;
-  pointer-events: none;
+  background: var(--success) !important;
+  border-color: var(--success) !important;
+  color: white !important;
+  pointer-events: none !important;
 }
 
 .code-copy-btn svg {
-  flex-shrink: 0;
+  flex-shrink: 0 !important;
 }
 
 .code-block {
-  margin: 0;
-  padding: 16px;
-  background: var(--bg-bottom);
-  overflow-x: auto;
-  font-family: 'Courier New', 'Consolas', 'Monaco', monospace;
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--text-primary);
+  margin: 0 !important;
+  padding: 20px !important;
+  background: var(--bg-bottom) !important;
+  overflow-x: auto !important;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  color: var(--text-primary) !important;
+  position: relative !important;
+}
+
+/* SQL-specific styling */
+.code-block-container[data-language="sql"] .code-block,
+.code-block-container .code-block.language-sql {
+  background: linear-gradient(135deg, var(--bg-bottom) 0%, color-mix(in srgb, var(--bg-bottom) 95%, var(--accent) 5%) 100%) !important;
+}
+
+.code-block-container[data-language="sql"] .code-language::before,
+.code-language:has-text("SQL")::before {
+  background: #4CAF50 !important; /* Green for SQL */
+}
+
+/* Python-specific styling */
+.code-block-container[data-language="python"] .code-language::before,
+.code-language:has-text("PYTHON")::before {
+  background: #3776AB !important; /* Python blue */
+}
+
+/* JavaScript-specific styling */
+.code-block-container[data-language="javascript"] .code-language::before,
+.code-block-container[data-language="js"] .code-language::before {
+  background: #F7DF1E !important; /* JavaScript yellow */
 }
 
 .code-block::-webkit-scrollbar {
-  height: 6px;
+  height: 8px !important;
+  width: 8px !important;
 }
 
 .code-block::-webkit-scrollbar-track {
-  background: var(--panel);
+  background: var(--panel) !important;
+  border-radius: 4px !important;
 }
 
 .code-block::-webkit-scrollbar-thumb {
-  background: var(--accent);
-  border-radius: 0;
+  background: var(--accent) !important;
+  border-radius: 4px !important;
+  border: 2px solid var(--panel) !important;
 }
 
 .code-block::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--accent) 80%, white);
+  background: color-mix(in srgb, var(--accent) 80%, white) !important;
 }
 
 .code-block code {
-  font-family: inherit;
-  color: var(--text-primary);
-  background: none;
-  padding: 0;
-  border: none;
-  display: block;
-  white-space: pre;
+  font-family: inherit !important;
+  color: var(--text-primary) !important;
+  background: none !important;
+  padding: 0 !important;
+  border: none !important;
+  display: block !important;
+  white-space: pre !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
 }
 
-/* Inline code (not in blocks) */
-.message-content code:not(.code-block code) {
-  background: color-mix(in srgb, var(--accent) 15%, var(--bg-bottom));
-  color: var(--accent);
-  padding: 2px 6px;
-  border-radius: 0;
-  font-family: 'Courier New', 'Consolas', 'Monaco', monospace;
-  font-size: 13px;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+/* Code syntax highlighting for better readability */
+.code-block .keyword {
+  color: var(--accent) !important;
+  font-weight: 600 !important;
+}
+
+.code-block .string {
+  color: #10B981 !important; /* Green for strings */
+}
+
+.code-block .comment {
+  color: var(--text-secondary) !important;
+  font-style: italic !important;
+}
+
+.code-block .number {
+  color: #F59E0B !important; /* Orange for numbers */
+}
+
+/* Line numbers for code blocks */
+.code-block-with-lines {
+  display: flex !important;
+}
+
+.code-line-numbers {
+  background: var(--panel) !important;
+  padding: 20px 12px !important;
+  border-right: 1px solid var(--border) !important;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace !important;
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+  color: var(--text-secondary) !important;
+  user-select: none !important;
+  min-width: 40px !important;
+  text-align: right !important;
+}
+
+.code-content {
+  flex: 1 !important;
+  overflow-x: auto !important;
 }
 
 .message-files {
@@ -1802,263 +1890,619 @@ body {
   margin: 0 24px;
   border-radius: 0;
 }
-/*
- Markdown Styling */
-/* ========== MARKDOWN STYLING - CHATGPT/CLAUDE STYLE v2.0 ========== */
+/* ========== AI CHAT RESPONSE STYLING - MINIMAL & STRUCTURED ========== */
 
-/* Bold Text - Main Heading Bold (28px) */
-.ai-chat-page .message .message-content strong.md-bold-heading {
+/* Base Message Content Styling */
+.message-content {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  font-size: 15px !important;
+  line-height: 1.65 !important;
+  color: var(--text-primary) !important;
+  letter-spacing: 0.01em !important;
+  font-weight: 400 !important;
+}
+
+/* Ensure all text content is properly formatted */
+.message-content > div {
+  font-size: inherit !important;
+  line-height: inherit !important;
+  color: inherit !important;
+}
+
+/* Fix for opening paragraph formatting */
+.message-content > div:first-child p:first-child,
+.message-content > p:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  font-size: 15px !important;
+  line-height: 1.65 !important;
+  color: var(--text-primary) !important;
+  font-weight: 400 !important;
+}
+
+/* ========== HEADINGS - Clean & Hierarchical ========== */
+.message-content h1,
+.message-content .md-h1 {
+  font-size: 1.75rem !important; /* 28px */
   font-weight: 700 !important;
-  font-size: 28px !important;
   color: var(--text-primary) !important;
-  display: block !important;
-  margin: 16px 0 12px 0 !important;
-}
-
-/* Bold Text - Side/Inline Bold (20px) */
-.ai-chat-page .message .message-content strong.md-bold-inline {
-  font-weight: 700 !important;
-  font-size: 20px !important;
-  color: var(--text-primary) !important;
-}
-
-/* Fallback for any strong without class */
-.ai-chat-page .message .message-content strong {
-  font-weight: 700 !important;
-  font-size: 20px !important;
-  color: var(--text-primary) !important;
-}
-
-/* Italic Text - Ultra specific */
-.ai-chat-page .message .message-content em {
-  font-style: italic !important;
-  color: var(--text-secondary) !important;
-}
-
-/* Headers - PROPERLY SIZED - Professional & Clean */
-.ai-chat-page .message.ai .message-bubble .message-content .md-h1,
-.ai-chat-page .message .message-content .md-h1,
-.message-content .md-h1,
-.message-content h1 {
-  font-size: 2.25rem !important; /* 36px - Large but balanced */
-  font-weight: 800 !important;
-  color: var(--text-primary) !important;
-  margin: 1.75rem 0 1rem 0 !important;
-  line-height: 1.2 !important;
-  letter-spacing: -0.02em !important;
-  display: block !important;
-  border-bottom: 2px solid var(--border) !important;
+  margin: 2rem 0 1rem 0 !important;
+  line-height: 1.3 !important;
+  letter-spacing: -0.025em !important;
+  border-bottom: 2px solid var(--accent) !important;
   padding-bottom: 0.5rem !important;
+  display: block !important;
 }
 
-.ai-chat-page .message.ai .message-bubble .message-content .md-h2,
-.ai-chat-page .message .message-content .md-h2,
-.message-content .md-h2,
-.message-content h2 {
-  font-size: 1.875rem !important; /* 30px - Medium-large */
-  font-weight: 700 !important;
+.message-content h2,
+.message-content .md-h2 {
+  font-size: 1.375rem !important; /* 22px */
+  font-weight: 600 !important;
   color: var(--text-primary) !important;
-  margin: 1.5rem 0 0.875rem 0 !important;
-  line-height: 1.25 !important;
+  margin: 1.75rem 0 0.875rem 0 !important;
+  line-height: 1.35 !important;
   letter-spacing: -0.015em !important;
-  display: block !important;
   border-bottom: 1px solid var(--border) !important;
   padding-bottom: 0.375rem !important;
+  display: block !important;
 }
 
-.ai-chat-page .message.ai .message-bubble .message-content .md-h3,
-.ai-chat-page .message .message-content .md-h3,
-.message-content .md-h3,
-.message-content h3 {
-  font-size: 1.5rem !important; /* 24px - Medium size */
-  font-weight: 700 !important;
-  color: var(--text-primary) !important;
-  margin: 1.25rem 0 0.75rem 0 !important;
-  line-height: 1.3 !important;
+.message-content h3,
+.message-content .md-h3 {
+  font-size: 1.125rem !important; /* 18px */
+  font-weight: 600 !important;
+  color: var(--accent) !important;
+  margin: 1.5rem 0 0.75rem 0 !important;
+  line-height: 1.4 !important;
   letter-spacing: -0.01em !important;
   display: block !important;
 }
 
-/* Lists - Professional Style with Accent Colors */
-.ai-chat-page .message .message-content .md-ul,
-.ai-chat-page .message .message-content .md-ol {
-  margin: 0.875rem 0 !important;
-  padding-left: 2rem !important;
-  list-style-position: outside !important;
+.message-content h4,
+.message-content .md-h4 {
+  font-size: 1rem !important; /* 16px */
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+  margin: 1.25rem 0 0.625rem 0 !important;
+  line-height: 1.45 !important;
   display: block !important;
 }
 
-.ai-chat-page .message .message-content .md-ul {
-  list-style-type: disc !important;
-}
-
-.ai-chat-page .message .message-content .md-ol {
-  list-style-type: decimal !important;
-}
-
-.ai-chat-page .message .message-content .md-li,
-.ai-chat-page .message .message-content .md-li-num {
-  margin: 0.375rem 0 !important;
-  line-height: 1.7 !important;
-  color: var(--text-primary) !important;
-  padding-left: 0.375rem !important;
-  display: list-item !important;
-}
-
-.ai-chat-page .message .message-content .md-li::marker {
-  color: var(--accent) !important; /* Gold/tan accent color */
-  font-weight: 600 !important;
-}
-
-.ai-chat-page .message .message-content .md-li-num::marker {
-  color: var(--accent) !important; /* Gold/tan accent color */
+/* ========== BOLD TEXT - Contextual Sizing ========== */
+.message-content strong.md-bold-heading {
   font-weight: 700 !important;
+  font-size: 1.25rem !important; /* 20px - For section headings */
+  color: var(--text-primary) !important;
+  display: block !important;
+  margin: 1.25rem 0 0.75rem 0 !important;
+  line-height: 1.4 !important;
 }
 
-/* Inline Code - Enhanced with Accent Color */
-.message-content .md-inline-code {
-  background: rgba(215, 179, 140, 0.12) !important; /* Subtle accent background */
-  color: var(--accent) !important; /* Use accent color for code */
-  padding: 0.15rem 0.4rem !important;
-  border-radius: 4px !important;
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Courier New', monospace !important;
-  font-size: 0.9em !important;
-  border: 1px solid rgba(215, 179, 140, 0.25) !important; /* Subtle accent border */
+.message-content strong.md-bold-inline,
+.message-content strong {
+  font-weight: 600 !important;
+  font-size: inherit !important; /* Same as parent text */
+  color: var(--accent) !important; /* Accent color for emphasis */
+}
+
+/* ========== KEYWORDS & EMPHASIS ========== */
+.message-content em {
+  font-style: italic !important;
+  color: var(--text-secondary) !important;
   font-weight: 500 !important;
 }
 
-/* Line Breaks */
-.message-content br {
-  display: block !important;
-  content: "" !important;
-  margin: 0.375rem 0 !important;
+/* Special keyword highlighting */
+.message-content .keyword {
+  background: rgba(215, 179, 140, 0.15) !important;
+  color: var(--accent) !important;
+  padding: 0.125rem 0.375rem !important;
+  border-radius: 3px !important;
+  font-weight: 500 !important;
+  font-size: 0.95em !important;
 }
 
-/* Superscript & Subscript */
-.message-content sup {
-  font-size: 0.65em !important;
-  vertical-align: super !important;
-  line-height: 0 !important;
-  font-weight: 600 !important;
+/* ========== LISTS - Clean & Minimal ========== */
+.message-content ul,
+.message-content .md-ul {
+  margin: 1rem 0 !important;
+  padding-left: 1.5rem !important;
+  list-style: none !important;
+}
+
+.message-content ol,
+.message-content .md-ol {
+  margin: 1rem 0 !important;
+  padding-left: 1.5rem !important;
+  list-style: none !important;
+  counter-reset: list-counter !important;
+}
+
+.message-content li,
+.message-content .md-li,
+.message-content .md-li-num {
+  margin: 0.5rem 0 !important;
+  line-height: 1.65 !important;
+  color: var(--text-primary) !important;
   position: relative !important;
-  top: -0.4em !important;
+  padding-left: 0.5rem !important;
 }
 
-.message-content sub {
-  font-size: 0.65em !important;
-  vertical-align: sub !important;
-  line-height: 0 !important;
+/* Custom bullet points */
+.message-content ul li::before,
+.message-content .md-ul .md-li::before {
+  content: "•" !important;
+  color: var(--accent) !important;
+  font-weight: 700 !important;
+  position: absolute !important;
+  left: -1rem !important;
+  font-size: 1.1em !important;
+}
+
+/* Custom numbered lists */
+.message-content ol li::before,
+.message-content .md-ol .md-li-num::before {
+  counter-increment: list-counter !important;
+  content: counter(list-counter) "." !important;
+  color: var(--accent) !important;
   font-weight: 600 !important;
-  position: relative !important;
-  bottom: -0.25em !important;
+  position: absolute !important;
+  left: -1.25rem !important;
+  font-size: 0.9em !important;
 }
 
-/* Mathematical Symbols - Large, Clear, and Accent Colored */
-.message-content {
-  font-feature-settings: "ss01", "ss02", "ss03", "ss04" !important;
+/* ========== INLINE CODE - Accent Styled ========== */
+.message-content code:not(.code-block code),
+.message-content .md-inline-code {
+  background: rgba(215, 179, 140, 0.12) !important;
+  color: var(--accent) !important;
+  padding: 0.125rem 0.375rem !important;
+  border-radius: 3px !important;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace !important;
+  font-size: 0.9em !important;
+  font-weight: 500 !important;
+  border: 1px solid rgba(215, 179, 140, 0.2) !important;
 }
 
-/* Make summation and product symbols larger and colored */
-.math-symbol {
-  font-size: 1.5em !important; /* Slightly larger */
-  font-weight: 700 !important; /* Bolder */
-  display: inline-block !important;
-  vertical-align: middle !important;
-  line-height: 1 !important;
-  margin: 0 0.2em !important;
-  color: var(--accent) !important; /* Gold/tan accent color */
-}
-
-/* Paragraphs - Better Spacing */
+/* ========== PARAGRAPHS - Proper Spacing ========== */
 .message-content p {
-  margin: 0.75rem 0 !important;
-  line-height: 1.7 !important;
+  margin: 0.875rem 0 !important;
+  line-height: 1.65 !important;
+  color: var(--text-primary) !important;
+  font-weight: 400 !important;
 }
 
-/* First paragraph no top margin */
+/* First paragraph (opening paragraph) - Special styling */
 .message-content p:first-child {
   margin-top: 0 !important;
+  font-size: 15px !important;
+  line-height: 1.7 !important;
+  color: var(--text-primary) !important;
 }
 
-/* Last paragraph no bottom margin */
 .message-content p:last-child {
   margin-bottom: 0 !important;
 }
 
-/* Additional Content Enhancements */
+/* Ensure proper spacing between paragraphs and other elements */
+.message-content p + h1,
+.message-content p + h2,
+.message-content p + h3,
+.message-content p + h4 {
+  margin-top: 1.75rem !important;
+}
 
-/* Blockquotes */
+.message-content h1 + p,
+.message-content h2 + p,
+.message-content h3 + p,
+.message-content h4 + p {
+  margin-top: 0.75rem !important;
+}
+
+/* ========== BLOCKQUOTES - Minimal Design ========== */
 .message-content blockquote {
-  border-left: 4px solid var(--accent) !important;
+  border-left: 3px solid var(--accent) !important;
   padding-left: 1rem !important;
-  margin: 1rem 0 !important;
+  margin: 1.25rem 0 !important;
   color: var(--text-secondary) !important;
   font-style: italic !important;
+  background: rgba(215, 179, 140, 0.05) !important;
+  padding: 0.75rem 1rem !important;
+  border-radius: 0 4px 4px 0 !important;
 }
 
-/* Horizontal Rules */
+/* ========== STRUCTURED TABLE BLOCKS ========== */
+.table-block-container {
+  margin: 1.5rem 0 !important;
+  background: var(--bg-bottom) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px !important;
+  overflow: hidden !important;
+  box-shadow: var(--shadow-md) !important;
+  position: relative !important;
+}
+
+.table-block-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 12px 16px !important;
+  background: var(--panel) !important;
+  border-bottom: 1px solid var(--border) !important;
+  position: relative !important;
+}
+
+.table-block-header::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 1px !important;
+  background: var(--accent) !important;
+  opacity: 0.3 !important;
+}
+
+.table-info {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: var(--accent) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1.2px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.table-info::before {
+  content: '' !important;
+  width: 8px !important;
+  height: 8px !important;
+  background: #10B981 !important; /* Green for tables */
+  border-radius: 50% !important;
+  display: inline-block !important;
+}
+
+.table-meta {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  color: var(--text-secondary) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.8px !important;
+}
+
+.table-block-content {
+  overflow-x: auto !important;
+  background: var(--bg-bottom) !important;
+}
+
+.table-block-content::-webkit-scrollbar {
+  height: 8px !important;
+}
+
+.table-block-content::-webkit-scrollbar-track {
+  background: var(--panel) !important;
+}
+
+.table-block-content::-webkit-scrollbar-thumb {
+  background: var(--accent) !important;
+  border-radius: 4px !important;
+}
+
+.structured-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin: 0 !important;
+  background: var(--bg-bottom) !important;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace !important;
+}
+
+.structured-table thead {
+  background: var(--panel) !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+}
+
+.structured-table th {
+  padding: 12px 16px !important;
+  border-bottom: 2px solid var(--border) !important;
+  border-right: 1px solid var(--border) !important;
+  text-align: left !important;
+  font-weight: 700 !important;
+  color: var(--accent) !important;
+  font-size: 0.875rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  background: var(--panel) !important;
+  position: relative !important;
+}
+
+.structured-table th:last-child {
+  border-right: none !important;
+}
+
+.structured-table th::after {
+  content: attr(data-column) !important;
+  position: absolute !important;
+  top: 2px !important;
+  right: 4px !important;
+  font-size: 8px !important;
+  color: var(--text-secondary) !important;
+  opacity: 0.6 !important;
+}
+
+.structured-table td {
+  padding: 10px 16px !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-right: 1px solid var(--border) !important;
+  color: var(--text-primary) !important;
+  font-size: 0.875rem !important;
+  line-height: 1.4 !important;
+  vertical-align: top !important;
+  position: relative !important;
+}
+
+.structured-table td:last-child {
+  border-right: none !important;
+}
+
+.structured-table .table-row-even {
+  background: rgba(215, 179, 140, 0.03) !important;
+}
+
+.structured-table .table-row-odd {
+  background: var(--bg-bottom) !important;
+}
+
+.structured-table tbody tr:hover {
+  background: rgba(215, 179, 140, 0.08) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+.structured-table tbody tr:last-child td {
+  border-bottom: none !important;
+}
+
+/* Row numbers for large tables */
+.structured-table tbody tr td:first-child::before {
+  content: counter(table-row) !important;
+  counter-increment: table-row !important;
+  position: absolute !important;
+  left: 2px !important;
+  top: 2px !important;
+  font-size: 8px !important;
+  color: var(--text-secondary) !important;
+  opacity: 0.5 !important;
+  font-weight: 600 !important;
+}
+
+.structured-table tbody {
+  counter-reset: table-row !important;
+}
+
+/* Fallback for regular tables (if any slip through) */
+.message-content table:not(.structured-table) {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin: 1.5rem 0 !important;
+  background: var(--bg-bottom) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 4px !important;
+  overflow: hidden !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.message-content table:not(.structured-table) th {
+  padding: 0.75rem 1rem !important;
+  border-bottom: 2px solid var(--border) !important;
+  text-align: left !important;
+  font-weight: 600 !important;
+  color: var(--accent) !important;
+  font-size: 0.875rem !important;
+  background: var(--panel) !important;
+}
+
+.message-content table:not(.structured-table) td {
+  padding: 0.625rem 1rem !important;
+  border-bottom: 1px solid var(--border) !important;
+  color: var(--text-primary) !important;
+  font-size: 0.875rem !important;
+}
+
+/* ========== HORIZONTAL RULES ========== */
 .message-content hr {
   border: none !important;
-  border-top: 2px solid var(--border) !important;
-  margin: 1.5rem 0 !important;
+  border-top: 1px solid var(--border) !important;
+  margin: 2rem 0 !important;
+  opacity: 0.6 !important;
 }
 
-/* Links */
+/* ========== LINKS ========== */
 .message-content a {
   color: var(--accent) !important;
   text-decoration: none !important;
   border-bottom: 1px solid transparent !important;
-  transition: border-color 0.2s !important;
+  transition: all 0.2s ease !important;
+  font-weight: 500 !important;
 }
 
 .message-content a:hover {
   border-bottom-color: var(--accent) !important;
+  color: color-mix(in srgb, var(--accent) 80%, white) !important;
 }
 
-/* Tables */
-.message-content table {
-  width: 100% !important;
-  border-collapse: collapse !important;
-  margin: 1rem 0 !important;
+/* ========== MATHEMATICAL SYMBOLS ========== */
+.message-content .math-symbol {
+  font-size: 1.25em !important;
+  font-weight: 600 !important;
+  color: var(--accent) !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  margin: 0 0.125rem !important;
 }
 
-.message-content th,
-.message-content td {
-  padding: 0.75rem !important;
-  border: 1px solid var(--border) !important;
-  text-align: left !important;
+/* ========== SUPERSCRIPT & SUBSCRIPT ========== */
+.message-content sup {
+  font-size: 0.7em !important;
+  vertical-align: super !important;
+  line-height: 0 !important;
+  font-weight: 500 !important;
 }
 
-.message-content th {
-  background: var(--panel) !important;
-  font-weight: 700 !important;
-  color: var(--text-primary) !important;
+.message-content sub {
+  font-size: 0.7em !important;
+  vertical-align: sub !important;
+  line-height: 0 !important;
+  font-weight: 500 !important;
 }
 
-.message-content td {
-  background: var(--bg-top) !important;
-  color: var(--text-primary) !important;
+/* ========== LINE BREAKS ========== */
+.message-content br {
+  display: block !important;
+  margin: 0.5rem 0 !important;
+  content: "" !important;
 }
 
-/* Ensure clean rendering */
-.message-content * {
-  max-width: 100% !important;
-}
-
-/* Code blocks - ensure they render nicely */
-.message-content pre {
-  background: var(--bg-bottom) !important;
-  padding: 1rem !important;
-  border-radius: 4px !important;
-  overflow-x: auto !important;
-  margin: 1rem 0 !important;
-}
-
-/* Nested lists */
+/* ========== NESTED LISTS ========== */
 .message-content ul ul,
 .message-content ol ul,
 .message-content ul ol,
 .message-content ol ol {
-  margin: 0.25rem 0 !important;
-  padding-left: 1.5rem !important;
+  margin: 0.375rem 0 !important;
+  padding-left: 1.25rem !important;
+}
+
+/* ========== CONTENT SECTIONS & VISUAL HIERARCHY ========== */
+.message-content > *:first-child {
+  margin-top: 0 !important;
+}
+
+.message-content > *:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Ensure opening paragraph has proper formatting */
+.message-content > p:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  font-size: 15px !important;
+  line-height: 1.65 !important;
+  color: var(--text-primary) !important;
+  font-weight: 400 !important;
+}
+
+/* Better spacing between different content types */
+.message-content h1 + p,
+.message-content h2 + p,
+.message-content h3 + p,
+.message-content h4 + p {
+  margin-top: 0.5rem !important;
+}
+
+.message-content p + h1,
+.message-content p + h2,
+.message-content p + h3,
+.message-content p + h4 {
+  margin-top: 2rem !important;
+}
+
+.message-content ul + p,
+.message-content ol + p,
+.message-content .code-block-container + p {
+  margin-top: 1.25rem !important;
+}
+
+.message-content p + ul,
+.message-content p + ol,
+.message-content p + .code-block-container {
+  margin-top: 1rem !important;
+}
+
+/* ========== ENHANCED READABILITY ========== */
+.message-content {
+  text-rendering: optimizeLegibility !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
+
+/* ========== CONTENT ORGANIZATION ========== */
+.message-content .section-divider {
+  margin: 2rem 0 !important;
+  border-top: 1px solid var(--border) !important;
+  opacity: 0.5 !important;
+}
+
+.message-content .highlight-box {
+  background: rgba(215, 179, 140, 0.08) !important;
+  border-left: 3px solid var(--accent) !important;
+  padding: 1rem 1.25rem !important;
+  margin: 1.25rem 0 !important;
+  border-radius: 0 4px 4px 0 !important;
+}
+
+.message-content .info-callout {
+  background: rgba(59, 130, 246, 0.1) !important;
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
+  padding: 1rem !important;
+  margin: 1rem 0 !important;
+  border-radius: 4px !important;
+  color: var(--text-primary) !important;
+}
+
+.message-content .warning-callout {
+  background: rgba(245, 158, 11, 0.1) !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+  padding: 1rem !important;
+  margin: 1rem 0 !important;
+  border-radius: 4px !important;
+  color: var(--text-primary) !important;
+}
+
+/* Better focus states for accessibility */
+.message-content a:focus,
+.message-content code:focus {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px !important;
+}
+
+/* ========== RESPONSIVE ADJUSTMENTS ========== */
+@media (max-width: 768px) {
+  .message-content {
+    font-size: 14px !important;
+    padding: 0 !important;
+  }
+  
+  .message-content h1,
+  .message-content .md-h1 {
+    font-size: 1.5rem !important;
+    margin: 1.5rem 0 0.75rem 0 !important;
+  }
+  
+  .message-content h2,
+  .message-content .md-h2 {
+    font-size: 1.25rem !important;
+    margin: 1.25rem 0 0.625rem 0 !important;
+  }
+  
+  .message-content h3,
+  .message-content .md-h3 {
+    font-size: 1.125rem !important;
+    margin: 1rem 0 0.5rem 0 !important;
+  }
+  
+  .message-bubble {
+    max-width: 90% !important;
+    padding: 20px !important;
+  }
+  
+  .code-block-container {
+    margin: 1rem 0 !important;
+  }
+  
+  .code-block {
+    padding: 16px !important;
+    font-size: 13px !important;
+  }
 }

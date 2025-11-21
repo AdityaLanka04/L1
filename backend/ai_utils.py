@@ -60,6 +60,7 @@ class UnifiedAIClient:
                     # Use REST API directly to avoid SDK hanging issues
                     import requests
                     import json
+                    import time
                     
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.gemini_model}:generateContent?key={self.gemini_api_key}"
                     
@@ -73,22 +74,50 @@ class UnifiedAIClient:
                         }
                     }
                     
-                    logger.info(f"📡 Sending REST request to Gemini...")
-                    response = requests.post(url, json=payload, timeout=10)
-                    
-                    if response.status_code == 200:
-                        data = response.json()
-                        text = data['candidates'][0]['content']['parts'][0]['text']
-                        logger.info(f"✅ Gemini REST response received: {len(text)} chars")
-                        return text
-                    else:
-                        logger.error(f"❌ Gemini REST API error: {response.status_code} - {response.text}")
-                        raise Exception(f"Gemini API error: {response.status_code}")
+                    # Retry logic for Gemini
+                    max_retries = 3
+                    for attempt in range(max_retries):
+                        try:
+                            logger.info(f"📡 Sending REST request to Gemini (attempt {attempt + 1}/{max_retries})...")
+                            response = requests.post(url, json=payload, timeout=60)
+                            
+                            if response.status_code == 200:
+                                data = response.json()
+                                if 'candidates' in data and len(data['candidates']) > 0:
+                                    text = data['candidates'][0]['content']['parts'][0]['text']
+                                    logger.info(f"✅ Gemini REST response received: {len(text)} chars")
+                                    return text
+                                else:
+                                    logger.error(f"❌ Gemini response has no candidates: {data}")
+                                    raise Exception("Gemini response has no candidates")
+                            elif response.status_code == 429:
+                                # Rate limit - wait and retry
+                                wait_time = (attempt + 1) * 2
+                                logger.warning(f"⚠️ Gemini rate limited, waiting {wait_time}s before retry...")
+                                time.sleep(wait_time)
+                                continue
+                            else:
+                                logger.error(f"❌ Gemini REST API error: {response.status_code} - {response.text}")
+                                if attempt == max_retries - 1:
+                                    raise Exception(f"Gemini API error: {response.status_code}")
+                                time.sleep(1)
+                                continue
+                                
+                        except requests.exceptions.Timeout:
+                            logger.warning(f"⚠️ Gemini timeout on attempt {attempt + 1}")
+                            if attempt == max_retries - 1:
+                                raise
+                            time.sleep(2)
+                            continue
+                        except requests.exceptions.ConnectionError:
+                            logger.warning(f"⚠️ Gemini connection error on attempt {attempt + 1}")
+                            if attempt == max_retries - 1:
+                                raise
+                            time.sleep(2)
+                            continue
                         
                 except Exception as gemini_error:
                     logger.error(f"❌ Gemini error: {type(gemini_error).__name__}: {gemini_error}")
-                    import traceback
-                    traceback.print_exc()
                     raise
             elif self.groq_client:
                 logger.info("📡 Calling Groq API...")
