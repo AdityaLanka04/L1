@@ -74,6 +74,7 @@ const Dashboard = () => {
   const [widgets, setWidgets] = useState([
     { id: 'quick-actions', type: 'quick-actions', title: 'Quick Actions', enabled: true, size: 'medium' },
     { id: 'ai-assistant', type: 'ai-assistant', title: 'AI Learning Assistant', enabled: true, size: 'large' },
+    { id: 'notifications', type: 'notifications', title: 'AI Notifications', enabled: true, size: 'medium' },
     { id: 'learning-review', type: 'learning-review', title: 'Learning Reviews', enabled: true, size: 'medium' },
     { id: 'stats', type: 'stats', title: 'Learning Stats', enabled: true, size: 'medium' },
     { id: 'social', type: 'social', title: 'Social Hub', enabled: true, size: 'medium' },
@@ -99,9 +100,21 @@ const Dashboard = () => {
   // Proactive notification state
   const [proactiveNotif, setProactiveNotif] = useState(null);
 
+  // Inactivity engagement states
+  const [showInactivitySuggestion, setShowInactivitySuggestion] = useState(false);
+  const [engagementSuggestions, setEngagementSuggestions] = useState([
+    { id: 1, title: 'Start an AI Chat', description: 'Ask your AI tutor any question about your studies', icon: '💬', action: 'ai' },
+    { id: 2, title: 'Practice with Flashcards', description: 'Review and master key concepts with interactive flashcards', icon: '📚', action: 'flashcards' },
+    { id: 3, title: 'Generate Quiz Questions', description: 'Test your knowledge with auto-generated questions', icon: '❓', action: 'quiz' },
+    { id: 4, title: 'Review Your Notes', description: 'Browse through your notes and organize concepts', icon: '📝', action: 'notes' },
+    { id: 5, title: 'Explore Concept Web', description: 'Visualize connections between topics', icon: '🕸️', action: 'concepts' },
+    { id: 6, title: 'Join Study Group', description: 'Connect and collaborate with other learners', icon: '👥', action: 'social' }
+  ]);
+
   const timeIntervalRef = useRef(null);
   const sessionUpdateRef = useRef(null);
   const lastActivityRef = useRef(Date.now());
+  const inactivityTimerRef = useRef(null);
 
   // Remove Flashcards.css to prevent style cascade
   useEffect(() => {
@@ -189,17 +202,24 @@ const Dashboard = () => {
     startDashboardSession();
     // Check if this is a fresh login (not a refresh)
     const justLoggedIn = sessionStorage.getItem('justLoggedIn');
-    console.log('🔔 Dashboard mounted, checking justLoggedIn flag:', justLoggedIn);
-    if (justLoggedIn === 'true') {
-      console.log('🔔 Fresh login detected - showing welcome notification');
-      sessionStorage.removeItem('justLoggedIn'); // Clear flag
+    const notificationAlreadyShown = sessionStorage.getItem('notificationShown');
+    
+    console.log('🔔 Dashboard mounted, justLoggedIn:', justLoggedIn, 'alreadyShown:', notificationAlreadyShown);
+    
+    if (justLoggedIn === 'true' && notificationAlreadyShown !== 'true') {
+      console.log('🔔 Fresh login detected - clearing old notifications and showing ONE notification');
+      sessionStorage.removeItem('justLoggedIn');
+      sessionStorage.setItem('notificationShown', 'true');
+      
+      // Clear all previous notifications on fresh login
+      clearAllNotifications();
       
       // Show notification after 2 seconds
       setTimeout(async () => {
         try {
           const token = localStorage.getItem('token');
           const url = `${API_URL}/check_proactive_message?user_id=${userName}&is_login=true`;
-          console.log('🔔 Calling backend:', url);
+          console.log('🔔 Calling backend ONCE:', url);
           
           const response = await fetch(url, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -213,19 +233,25 @@ const Dashboard = () => {
           console.log('🔔 Backend response:', data);
           
           if (data.should_notify && data.message) {
-            console.log('🔔 Showing notification');
+            console.log('🔔 Showing notification popup');
+            
             setProactiveNotif({
               message: data.message,
               chatId: data.chat_id,
               urgencyScore: data.urgency_score || 0.8
             });
-          } else {
-            console.log('🔔 No notification from backend');
+            
+            // Reload notifications after 2 seconds
+            setTimeout(() => {
+              loadNotifications();
+            }, 2000);
           }
         } catch (error) {
           console.error('🔔 Error:', error);
         }
       }, 2000);
+    } else if (notificationAlreadyShown === 'true') {
+      console.log('🔔 Notification already shown this session, skipping');
     }
     
     // Poll for daily goal updates every 10 seconds
@@ -297,6 +323,74 @@ const Dashboard = () => {
     };
   }, [userName, proactiveNotif]);
 
+  // Inactivity engagement suggestions
+  useEffect(() => {
+    if (!userName) return;
+
+    const trackActivity = () => {
+      lastActivityRef.current = Date.now();
+      setShowInactivitySuggestion(false);
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+    };
+
+    window.addEventListener('click', trackActivity);
+    window.addEventListener('keypress', trackActivity);
+    window.addEventListener('mousemove', trackActivity);
+    window.addEventListener('scroll', trackActivity);
+
+    const inactivityCheckInterval = setInterval(() => {
+      const inactiveTime = Date.now() - lastActivityRef.current;
+      const INACTIVITY_THRESHOLD = 90 * 1000; // 90 seconds (1.5 minutes)
+
+      if (inactiveTime > INACTIVITY_THRESHOLD && !showInactivitySuggestion) {
+        setShowInactivitySuggestion(true);
+      }
+    }, 10 * 1000); // Check every 10 seconds
+
+    return () => {
+      window.removeEventListener('click', trackActivity);
+      window.removeEventListener('keypress', trackActivity);
+      window.removeEventListener('mousemove', trackActivity);
+      window.removeEventListener('scroll', trackActivity);
+      clearInterval(inactivityCheckInterval);
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+      }
+    };
+  }, [userName, showInactivitySuggestion]);
+
+  const handleEngagementSuggestion = async (action) => {
+    setShowInactivitySuggestion(false);
+    lastActivityRef.current = Date.now();
+    
+    await endDashboardSession();
+    
+    switch(action) {
+      case 'ai':
+        window.location.href = '/ai-chat';
+        break;
+      case 'flashcards':
+        window.location.href = '/flashcards';
+        break;
+      case 'quiz':
+        window.location.href = '/question-bank';
+        break;
+      case 'notes':
+        window.location.href = '/notes';
+        break;
+      case 'concepts':
+        window.location.href = '/concept-web';
+        break;
+      case 'social':
+        window.location.href = '/social';
+        break;
+      default:
+        break;
+    }
+  };
+
   const loadLearningReviews = async () => {
     if (!userName) return;
     try {
@@ -313,38 +407,46 @@ const Dashboard = () => {
     }
   };
 
+  const clearAllNotifications = async () => {
+    if (!userName) return;
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${API_URL}/clear_all_notifications?user_id=${userName}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setNotifications([]);
+      setUnreadCount(0);
+      console.log('📬 All notifications cleared');
+    } catch (error) {
+      console.error('Error clearing notifications:', error);
+    }
+  };
+
   const loadNotifications = async () => {
     if (!userName) return;
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/get_notifications?user_id=${userName}`, {
+      const url = `${API_URL}/get_notifications?user_id=${userName}`;
+      console.log('📬 Loading notifications from:', url);
+      
+      const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      
       if (response.ok) {
         const data = await response.json();
         const newNotifications = data.notifications || [];
+        console.log('📬 Loaded notifications:', newNotifications.length, newNotifications);
         
-        // Check for new notifications and show toast
-        const lastCheckTime = localStorage.getItem('lastNotificationCheck');
-        const currentTime = new Date().toISOString();
-        
-        if (lastCheckTime) {
-          const newOnes = newNotifications.filter(n => 
-            new Date(n.created_at) > new Date(lastCheckTime) && !n.is_read
-          );
-          
-          // Show toast for new notifications
-          newOnes.forEach(notification => {
-            showToast(notification);
-          });
-        }
-        
-        localStorage.setItem('lastNotificationCheck', currentTime);
         setNotifications(newNotifications);
         setUnreadCount(newNotifications.filter(n => !n.is_read).length);
+        console.log('📬 Notifications state updated:', newNotifications.length);
+      } else {
+        console.error('📬 Failed to load notifications:', response.status);
       }
     } catch (error) {
-      console.error('Error loading notifications:', error);
+      console.error('📬 Error loading notifications:', error);
       // If endpoint doesn't exist, set empty array
       setNotifications([]);
       setUnreadCount(0);
@@ -358,6 +460,7 @@ const Dashboard = () => {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      
       loadNotifications();
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -374,6 +477,21 @@ const Dashboard = () => {
       loadNotifications();
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
+    }
+  };
+
+  const deleteNotification = async (notificationId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${API_URL}/delete_notification/${notificationId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      loadNotifications();
+      showToast('Notification deleted', 'success');
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      showToast('Failed to delete notification', 'error');
     }
   };
 
@@ -485,16 +603,6 @@ const Dashboard = () => {
   }
 };
 
-  // Poll for new notifications every 10 seconds
-  useEffect(() => {
-    if (!userName) return;
-    
-    const notificationInterval = setInterval(() => {
-      loadNotifications();
-    }, 10000); // Check every 10 seconds
-    
-    return () => clearInterval(notificationInterval);
-  }, [userName]);
   async function responseToJsonSafely(resp) {
     try { return await resp.json(); } catch { return {}; }
   }
@@ -812,6 +920,7 @@ const Dashboard = () => {
     localStorage.removeItem('username');
     localStorage.removeItem('userProfile');
     localStorage.removeItem('dashboardWidgets');
+    sessionStorage.removeItem('notificationShown'); // Clear notification flag
     window.location.href = '/';
   };
 
@@ -1020,6 +1129,76 @@ const Dashboard = () => {
 
               <div className="ai-description">
                 Personalized AI tutor ready to help with explanations, questions, and study guidance.
+              </div>
+            </div>
+          );
+
+        case 'notifications':
+          return (
+            <div className="notifications-widget">
+              <div className="widget-header">
+                <h3 className="widget-title">AI Notifications</h3>
+                {notifications.length > 0 && (
+                  <button
+                    className="clear-all-btn"
+                    onClick={markAllNotificationsAsRead}
+                    title="Mark all as read"
+                  >
+                    Mark all read
+                  </button>
+                )}
+              </div>
+              <div className="notifications-widget-content">
+                {notifications.length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-icon">🔔</div>
+                    <p>Notifications cleared</p>
+                    <span className="empty-subtitle">AI notifications will appear here</span>
+                  </div>
+                ) : (
+                  <div className="notifications-list-widget">
+                    {notifications.map(notification => (
+                      <div 
+                        key={notification.id}
+                        className={`notification-card ${!notification.is_read ? 'unread' : ''}`}
+                      >
+                        <div className="notification-card-header">
+                          <div className="notification-icon">🤖</div>
+                          <div className="notification-meta">
+                            <h4>{notification.title}</h4>
+                            <span className="notification-timestamp">
+                              {new Date(notification.created_at).toLocaleString()}
+                            </span>
+                          </div>
+                          <button
+                            className="delete-notification-btn-widget"
+                            onClick={() => deleteNotification(notification.id)}
+                            title="Delete"
+                          >
+                            ×
+                          </button>
+                        </div>
+                        <p className="notification-message">{notification.message}</p>
+                        <div className="notification-actions">
+                          <button
+                            className="go-to-chat-btn"
+                            onClick={() => navigate('/ai-chat')}
+                          >
+                            Go to AI Chat →
+                          </button>
+                          {!notification.is_read && (
+                            <button
+                              className="mark-read-btn"
+                              onClick={() => markNotificationAsRead(notification.id)}
+                            >
+                              Mark as read
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -1587,15 +1766,27 @@ const Dashboard = () => {
                         <div 
                           key={notification.id}
                           className={`notification-item ${!notification.is_read ? 'unread' : ''}`}
-                          onClick={() => !notification.is_read && markNotificationAsRead(notification.id)}
                         >
-                          <div className="notification-content">
+                          <div 
+                            className="notification-content"
+                            onClick={() => !notification.is_read && markNotificationAsRead(notification.id)}
+                          >
                             <h4>{notification.title}</h4>
                             <p>{notification.message}</p>
                             <span className="notification-time">
                               {new Date(notification.created_at).toLocaleString()}
                             </span>
                           </div>
+                          <button
+                            className="delete-notification-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteNotification(notification.id);
+                            }}
+                            title="Delete notification"
+                          >
+                            ×
+                          </button>
                           {!notification.is_read && (
                             <div className="unread-indicator"></div>
                           )}
@@ -1713,6 +1904,50 @@ const Dashboard = () => {
         onComplete={completeTour}
       />
       <HelpButton onStartTour={startTour} />
+      
+      {/* Inactivity Engagement Suggestions */}
+      {showInactivitySuggestion && (
+        <div className="inactivity-suggestion-overlay">
+          <div className="inactivity-suggestion-modal">
+            <div className="suggestion-header">
+              <h2>Let's Keep Learning!</h2>
+              <p>You've been idle for a bit. Here are some ways to continue:</p>
+              <button 
+                className="suggestion-close-btn"
+                onClick={() => setShowInactivitySuggestion(false)}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="suggestion-grid">
+              {engagementSuggestions.map(suggestion => (
+                <div 
+                  key={suggestion.id}
+                  className="suggestion-card"
+                  onClick={() => handleEngagementSuggestion(suggestion.action)}
+                >
+                  <div className="suggestion-icon">{suggestion.icon}</div>
+                  <div className="suggestion-content">
+                    <h3>{suggestion.title}</h3>
+                    <p>{suggestion.description}</p>
+                  </div>
+                  <div className="suggestion-arrow">→</div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="suggestion-footer">
+              <button 
+                className="suggestion-dismiss-btn"
+                onClick={() => setShowInactivitySuggestion(false)}
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Proactive Notification */}
       {proactiveNotif && (

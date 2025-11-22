@@ -101,18 +101,6 @@ function Login() {
       }));
       console.log('Tokens set:', { token: access_token, username: userData.email });
 
-      // Clear old notifications from previous session
-      console.log('🔔 Clearing old notifications...');
-      try {
-        await fetch(`${API_URL}/clear_old_notifications?user_id=${userData.email}`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${access_token}` }
-        });
-        console.log('🔔 Old notifications cleared');
-      } catch (error) {
-        console.error('🔔 Error clearing notifications:', error);
-      }
-
       // Trigger notification check after login
       sessionStorage.setItem('justLoggedIn', 'true');
 
@@ -159,18 +147,6 @@ function Login() {
       localStorage.setItem('token', token);
       localStorage.setItem('username', username);
       console.log('Tokens set:', { token, username });
-      
-      // Clear old notifications from previous session
-      console.log('🔔 Clearing old notifications...');
-      try {
-        await fetch(`${API_URL}/clear_old_notifications?user_id=${username}`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        console.log('🔔 Old notifications cleared');
-      } catch (error) {
-        console.error('🔔 Error clearing notifications:', error);
-      }
       
       // Trigger notification check after login
       sessionStorage.setItem('justLoggedIn', 'true');

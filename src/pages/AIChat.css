@@ -809,6 +809,7 @@ body {
 
 .message.user {
   align-items: flex-end;
+  display: none;
 }
 
 .message.ai {

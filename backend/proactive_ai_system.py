@@ -15,6 +15,38 @@ class ProactiveAIEngine:
     def __init__(self, unified_ai):
         self.unified_ai = unified_ai
         self.min_notification_interval = timedelta(minutes=2)  # Very frequent for proactive tutoring
+        
+        # Define valid academic topics/keywords for filtering
+        self.academic_keywords = {
+            # Math & Science
+            'math', 'algebra', 'geometry', 'calculus', 'statistics', 'physics', 'chemistry', 'biology',
+            'trigonometry', 'differential', 'integral', 'linear algebra', 'equation', 'formula',
+            'theorem', 'proof', 'quantum', 'thermodynamics', 'mechanics', 'organic', 'inorganic',
+            'genetics', 'evolution', 'cell', 'enzyme', 'reaction', 'atom', 'molecule',
+            # Programming & CS
+            'programming', 'python', 'java', 'javascript', 'code', 'algorithm', 'data structure',
+            'database', 'sql', 'html', 'css', 'api', 'function', 'class', 'object', 'loop',
+            'variable', 'debugging', 'compiler', 'framework', 'react', 'django', 'flask',
+            # Languages
+            'english', 'spanish', 'french', 'german', 'chinese', 'japanese', 'grammar', 'vocabulary',
+            'literature', 'poetry', 'essay', 'writing', 'reading', 'comprehension', 'syntax',
+            # History & Social Studies
+            'history', 'geography', 'politics', 'economy', 'revolution', 'civilization', 'culture',
+            'government', 'constitution', 'war', 'period', 'era', 'era', 'dynasty', 'empire',
+            # Other Academic
+            'economics', 'psychology', 'sociology', 'philosophy', 'art', 'music', 'theory',
+            'research', 'essay', 'paper', 'study', 'learn', 'concept', 'topic', 'subject',
+            'exam', 'test', 'quiz', 'practice', 'exercise', 'assignment', 'homework'
+        }
+    
+    def is_academic_topic(self, text: str) -> bool:
+        """Check if a message/topic is related to academic studies"""
+        if not text:
+            return False
+        
+        text_lower = text.lower()
+        # Check if any academic keyword is in the text
+        return any(keyword in text_lower for keyword in self.academic_keywords)
     
     def analyze_learning_patterns(self, db: Session, user_id: int, is_idle: bool = False):
         """Analyze user's learning patterns to detect intervention opportunities"""
@@ -258,6 +290,22 @@ class ProactiveAIEngine:
         if score > 0.25 and random.random() < 0.15:
             return True, "encouragement", score
         
+        # 8. Inactivity warning (user hasn't interacted in 6+ hours but was active before)
+        six_hours_ago = datetime.now(timezone.utc) - timedelta(hours=6)
+        recent_activity_6h = db.query(models.Activity).filter(
+            models.Activity.user_id == user_id,
+            models.Activity.timestamp >= six_hours_ago
+        ).count()
+        
+        previous_activity_6h = db.query(models.Activity).filter(
+            models.Activity.user_id == user_id,
+            models.Activity.timestamp < six_hours_ago,
+            models.Activity.timestamp >= datetime.now(timezone.utc) - timedelta(days=1)
+        ).count()
+        
+        if recent_activity_6h == 0 and previous_activity_6h > 0:
+            return True, "inactivity_warning", 0.6
+        
         return False, None, score
     
     async def generate_proactive_message(self, db: Session, user_id: int, reason: str, user_profile: dict):
@@ -282,11 +330,11 @@ class ProactiveAIEngine:
             # Build detailed context
             context = ""
             
-            # Add recent topics studied
+            # Add recent topics studied (only academic topics)
             if recent_activities:
                 topics = []
                 for a in recent_activities:
-                    if a.topic and a.topic not in topics:
+                    if a.topic and a.topic not in topics and self.is_academic_topic(a.topic):
                         topics.append(a.topic)
                 topics = topics[:5]  # Top 5 recent topics
                 
@@ -301,20 +349,20 @@ class ProactiveAIEngine:
                 except:
                     pass
                 
-                # Get weak areas
+                # Get weak areas (only academic topics)
                 weak_topics = []
                 for activity in recent_activities[-10:]:
-                    if not getattr(activity, 'correct', True) and activity.topic:
+                    if not getattr(activity, 'correct', True) and activity.topic and self.is_academic_topic(activity.topic):
                         weak_topics.append(activity.topic)
                 if weak_topics:
                     unique_weak = list(set(weak_topics))[:3]
                     context += f"Areas to focus on: {', '.join(unique_weak)}\n"
             
-            # Add chat context
+            # Add chat context (only academic topics)
             if recent_chats:
                 chat_topics = []
                 for chat in recent_chats[:5]:
-                    if chat.user_message and len(chat.user_message) > 0:
+                    if chat.user_message and len(chat.user_message) > 0 and self.is_academic_topic(chat.user_message):
                         # Extract topic hints from chat messages
                         msg = chat.user_message[:150].strip()
                         if msg:
@@ -480,16 +528,30 @@ Generate a warm, personalized welcome message that:
 
 Be warm, personal, and inviting."""
 
+        elif reason == "inactivity_warning":
+            prompt = f"""You are a caring AI tutor noticing that {first_name} has been inactive for 6+ hours, even though they were active earlier.
+
+They're studying {field_of_study} but seem to have stepped away.
+
+Generate a friendly, non-judgmental message that:
+1. Gently reminds them how much progress they can make with more practice
+2. Offers to help them jump back in with their weak areas or next steps
+3. Sounds encouraging, not nagging
+4. Keeps it brief (2-3 sentences)
+5. Makes them want to come back and continue
+
+Be warm, supportive, and inviting."""
+
         else:  # encouragement
             prompt = f"""You are a caring AI tutor sending encouragement to {first_name}.
 
-They've been studying consistently.
+They've been studying consistently in {field_of_study}.
 
 Generate a brief encouraging message that:
-1. Acknowledges their progress
+1. Acknowledges their progress and effort
 2. Motivates them to keep going
 3. Keeps it very brief (1-2 sentences)
-4. Sounds genuine and supportive"""
+4. Sounds genuine, warm, and supportive"""
         
         try:
             print(f"🔔 Calling AI with prompt length: {len(prompt)}")
@@ -521,7 +583,8 @@ Generate a brief encouraging message that:
                 "struggle_with_topic": f"Hey {first_name}! I noticed you're working hard on {topic_name}. Want to go over it together? I can explain it differently.",
                 "repeated_confusion": f"Hi {first_name}! I see you're asking great questions. Sometimes a different explanation helps - want me to break this down step by step?",
                 "check_in": f"Hey {first_name}! How's your study session going? I'm here if you need any help.",
-                "encouragement": f"You're doing great, {first_name}! Keep up the awesome work.",
+                "inactivity_warning": f"Hi {first_name}! You haven't studied in a while. I think you could make great progress if we pick up where you left off. Let's get back to it!",
+                "encouragement": f"You're doing great, {first_name}! Keep up the awesome work - your consistency is paying off!",
                 "welcome": f"Welcome {first_name}! I'm excited to help you with {field_of_study}. What would you like to learn first?"
             }
             print(f"🔔 Using fallback message for reason: {reason_key}")

@@ -3300,6 +3300,9 @@ async def ai_writing_assistant(
 
 # ==================== PROACTIVE AI SYSTEM ====================
 
+# Global lock to prevent duplicate notifications
+_notification_lock = {}
+
 @app.get("/api/check_proactive_message")
 async def check_proactive_message(
     user_id: str = Query(...),
@@ -3313,6 +3316,19 @@ async def check_proactive_message(
     Supports idle detection, login greetings, and personalized weak topic recommendations
     """
     try:
+        # Prevent duplicate calls within 5 seconds
+        import time
+        current_time = time.time()
+        lock_key = f"{user_id}_{is_login}_{is_idle}"
+        
+        if lock_key in _notification_lock:
+            time_since = current_time - _notification_lock[lock_key]
+            if time_since < 5:
+                print(f"\n🔔 BLOCKED DUPLICATE CALL (called {time_since:.1f}s ago)\n")
+                return {"should_notify": False, "message": None}
+        
+        _notification_lock[lock_key] = current_time
+        
         print(f"\n{'='*80}")
         print(f"🔔 PROACTIVE CHECK ENDPOINT CALLED")
         print(f"🔔 user_id={user_id}, is_idle={is_idle}, is_login={is_login}")
@@ -3378,14 +3394,49 @@ async def check_proactive_message(
                 timestamp=datetime.now(timezone.utc)
             )
             db.add(new_message)
-            db.commit()
+            
+            # Check if we already created a notification in the last 30 seconds (prevent duplicates)
+            recent_notif = db.query(models.Notification).filter(
+                models.Notification.user_id == user.id,
+                models.Notification.notification_type == "proactive_ai",
+                models.Notification.created_at >= datetime.now(timezone.utc) - timedelta(seconds=30)
+            ).first()
+            
+            if not recent_notif:
+                # Delete old login notifications (keep only the latest one)
+                old_login_notifs = db.query(models.Notification).filter(
+                    models.Notification.user_id == user.id,
+                    models.Notification.notification_type == "proactive_ai"
+                ).all()
+                
+                for old_notif in old_login_notifs:
+                    db.delete(old_notif)
+                
+                # Create new notification
+                notification = models.Notification(
+                    user_id=user.id,
+                    title="Cerbyl AI",
+                    message=result["message"],
+                    notification_type="proactive_ai",
+                    is_read=False,
+                    created_at=datetime.now(timezone.utc)
+                )
+                db.add(notification)
+                db.commit()
+                db.refresh(notification)
+                
+                print(f"\n🔔 NOTIFICATION CREATED: ID={notification.id}, user_id={user.id}\n")
+            else:
+                print(f"\n🔔 SKIPPING DUPLICATE NOTIFICATION (recent one exists)\n")
+                notification = recent_notif
             
             response_data = {
                 "should_notify": True,
                 "message": result["message"],
                 "chat_id": new_session.id,
                 "urgency_score": result["urgency_score"],
-                "reason": result["reason"]
+                "reason": result["reason"],
+                "notification_id": notification.id
             }
             print(f"\n🔔 RETURNING SUCCESS: {response_data}\n")
             logger.info(f"ML-based proactive message sent to user {user.id}: {result['reason']}")
@@ -9457,6 +9508,59 @@ async def create_notification(
         }
     except Exception as e:
         logger.error(f"Error creating notification: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/debug_notifications")
+async def debug_notifications(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """Debug endpoint to check notifications in database"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            return {"error": "User not found", "user_id": user_id}
+        
+        notifications = db.query(models.Notification).filter(
+            models.Notification.user_id == user.id
+        ).all()
+        
+        return {
+            "user_id": user.id,
+            "username": user.username,
+            "total_notifications": len(notifications),
+            "notifications": [
+                {
+                    "id": n.id,
+                    "title": n.title,
+                    "message": n.message[:100],
+                    "type": n.notification_type,
+                    "is_read": n.is_read,
+                    "created_at": str(n.created_at)
+                }
+                for n in notifications
+            ]
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.delete("/api/delete_notification/{notification_id}")
+async def delete_notification(
+    notification_id: int,
+    db: Session = Depends(get_db)
+):
+    """Delete a specific notification"""
+    try:
+        notification = db.query(models.Notification).filter(
+            models.Notification.id == notification_id
+        ).first()
+        
+        if not notification:
+            raise HTTPException(status_code=404, detail="Notification not found")
+        
+        db.delete(notification)
+        db.commit()
+        
+        return {"status": "success", "message": "Notification deleted"}
+    except Exception as e:
+        logger.error(f"Error deleting notification: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/clear_old_notifications")

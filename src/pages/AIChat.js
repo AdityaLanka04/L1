@@ -322,7 +322,45 @@ const AIChat = ({ sharedMode = false }) => {
     }
   };
 
+  const cleanupEmptyNewChats = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const emptyNewChats = chatSessions.filter(
+        chat => chat.title === 'New Chat' && (!messages.length || chat.id !== activeChatId)
+      );
+
+      for (const chat of emptyNewChats) {
+        if (chat.id === activeChatId) {
+          continue;
+        }
+        
+        const chatMessages = await fetch(`${API_URL}/get_chat_messages?chat_id=${chat.id}`, {
+          method: 'GET',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (chatMessages.ok) {
+          const msgs = await chatMessages.json();
+          if (!msgs || msgs.length === 0) {
+            await fetch(`${API_URL}/delete_chat_session/${chat.id}`, {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            setChatSessions(prev => prev.filter(c => c.id !== chat.id));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error cleaning up empty chats:', error);
+    }
+  };
+
   const handleNewChat = async () => {
+    await cleanupEmptyNewChats();
     const newChatId = await createNewChat();
     if (newChatId) {
       isLoadingRef.current = false;
@@ -331,6 +369,7 @@ const AIChat = ({ sharedMode = false }) => {
   };
 
   const selectChat = (chatSessionId) => {
+    cleanupEmptyNewChats();
     isLoadingRef.current = false;
     navigate(`/ai-chat/${chatSessionId}`);
   };
@@ -610,7 +649,8 @@ const AIChat = ({ sharedMode = false }) => {
     setInputMessage(e.target.value);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await cleanupEmptyNewChats();
     if (userProfile?.googleUser && window.google) {
       window.google.accounts.id.disableAutoSelect();
     }
@@ -621,7 +661,8 @@ const AIChat = ({ sharedMode = false }) => {
     navigate('/');
   };
 
-  const goToDashboard = () => {
+  const goToDashboard = async () => {
+    await cleanupEmptyNewChats();
     navigate('/dashboard');
   };
 
