@@ -3374,7 +3374,44 @@ async def check_proactive_message(
         
         # If ML system determined we should reach out
         if result:
-            # Create chat session for this proactive message
+            # FIRST: Delete old empty check-in chats (no user replies)
+            print(f"\n🗑️ Checking for empty check-in chats to delete...")
+            old_checkin_chats = db.query(models.ChatSession).filter(
+                models.ChatSession.user_id == user.id,
+                models.ChatSession.title == "AI Tutor Check-in"
+            ).all()
+            
+            print(f"🗑️ Found {len(old_checkin_chats)} check-in chats to check")
+            
+            deleted_count = 0
+            for old_chat in old_checkin_chats:
+                # Count messages where user actually typed something
+                user_messages = db.query(models.ChatMessage).filter(
+                    models.ChatMessage.chat_session_id == old_chat.id,
+                    models.ChatMessage.user_message != "",
+                    models.ChatMessage.user_message.isnot(None)
+                ).count()
+                
+                print(f"🗑️ Chat ID {old_chat.id}: {user_messages} user messages")
+                
+                if user_messages == 0:
+                    # No user replies - delete this chat
+                    db.query(models.ChatMessage).filter(
+                        models.ChatMessage.chat_session_id == old_chat.id
+                    ).delete()
+                    db.delete(old_chat)
+                    deleted_count += 1
+                    print(f"🗑️ ✅ Deleted empty check-in chat ID: {old_chat.id}")
+                else:
+                    print(f"✅ Keeping check-in chat ID: {old_chat.id} (user replied)")
+            
+            if deleted_count > 0:
+                db.commit()
+                print(f"🗑️ Deleted {deleted_count} empty check-in chats\n")
+            else:
+                print(f"🗑️ No empty chats to delete\n")
+            
+            # NOW: Create new chat session for this proactive message
             new_session = models.ChatSession(
                 user_id=user.id,
                 title="AI Tutor Check-in",

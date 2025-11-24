@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { formatToLocalTime, getRelativeTime } from '../utils/dateUtils';
 import {
   DndContext,
   closestCenter,
@@ -1151,8 +1152,11 @@ const Dashboard = () => {
               <div className="notifications-widget-content">
                 {notifications.length === 0 ? (
                   <div className="empty-state">
-                    <div className="empty-icon">🔔</div>
-                    <p>Notifications cleared</p>
+                    <svg className="empty-icon-svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    <p>No notifications</p>
                     <span className="empty-subtitle">AI notifications will appear here</span>
                   </div>
                 ) : (
@@ -1163,11 +1167,15 @@ const Dashboard = () => {
                         className={`notification-card ${!notification.is_read ? 'unread' : ''}`}
                       >
                         <div className="notification-card-header">
-                          <div className="notification-icon">🤖</div>
+                          <svg className="notification-icon-svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2L2 7L12 12L22 7L12 2Z" />
+                            <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" fill="none" />
+                            <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" fill="none" />
+                          </svg>
                           <div className="notification-meta">
                             <h4>{notification.title}</h4>
                             <span className="notification-timestamp">
-                              {new Date(notification.created_at).toLocaleString()}
+                              {getRelativeTime(notification.created_at)}
                             </span>
                           </div>
                           <button
@@ -1184,7 +1192,7 @@ const Dashboard = () => {
                             className="go-to-chat-btn"
                             onClick={() => navigate('/ai-chat')}
                           >
-                            Go to AI Chat →
+                            Open AI Chat
                           </button>
                           {!notification.is_read && (
                             <button
@@ -1728,68 +1736,32 @@ const Dashboard = () => {
               
               {showNotifications && (
                 <div className="notification-dropdown">
-                  <div className="notification-header">
-                    <h3>Notifications</h3>
-                    {notifications.length > 0 && (
-                      <button 
-                        onClick={markAllNotificationsAsRead}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: 'var(--accent)',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          fontWeight: '600'
-                        }}
-                      >
-                        Clear All
-                      </button>
-                    )}
+                  <div className="notif-header">
+                    <span className="notif-title">Notifications</span>
                     {unreadCount > 0 && (
-                      <button 
-                        className="mark-all-read"
-                        onClick={markAllNotificationsAsRead}
-                      >
-                        Mark all as read
+                      <button className="notif-clear-btn" onClick={markAllNotificationsAsRead}>
+                        Mark all read
                       </button>
                     )}
                   </div>
                   
-                  <div className="notification-list">
+                  <div className="notif-list">
                     {notifications.length === 0 ? (
-                      <div className="no-notifications">
-                        <Bell size={40} />
-                        <p>No notifications yet</p>
+                      <div className="notif-empty">
+                        <Bell size={32} />
+                        <p>No notifications</p>
                       </div>
                     ) : (
                       notifications.map(notification => (
-                        <div 
-                          key={notification.id}
-                          className={`notification-item ${!notification.is_read ? 'unread' : ''}`}
-                        >
-                          <div 
-                            className="notification-content"
-                            onClick={() => !notification.is_read && markNotificationAsRead(notification.id)}
-                          >
-                            <h4>{notification.title}</h4>
-                            <p>{notification.message}</p>
-                            <span className="notification-time">
-                              {new Date(notification.created_at).toLocaleString()}
-                            </span>
+                        <div key={notification.id} className={`notif-item ${!notification.is_read ? 'notif-unread' : ''}`}>
+                          <div className="notif-body">
+                            <div className="notif-header-row">
+                              <span className="notif-from">{notification.title}</span>
+                              <button className="notif-delete" onClick={() => deleteNotification(notification.id)}>×</button>
+                            </div>
+                            <p className="notif-text">{notification.message}</p>
+                            <span className="notif-time">{getRelativeTime(notification.created_at)}</span>
                           </div>
-                          <button
-                            className="delete-notification-btn"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteNotification(notification.id);
-                            }}
-                            title="Delete notification"
-                          >
-                            ×
-                          </button>
-                          {!notification.is_read && (
-                            <div className="unread-indicator"></div>
-                          )}
                         </div>
                       ))
                     )}
