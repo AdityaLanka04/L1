@@ -23,6 +23,7 @@ import SlideExplorer from './pages/SlideExplorer';
 import Statistics from './pages/Statistics';
 import Flashcards from './pages/Flashcards';
 import Notes from './pages/NotesRedesign';
+import NotesDashboard from './pages/NotesDashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/profile';
@@ -91,6 +92,8 @@ function App() {
             <Route path="/slide-explorer" element={<ProtectedRoute><SlideExplorer /></ProtectedRoute>} />
             <Route path="/statistics" element={<ProtectedRoute><Statistics /></ProtectedRoute>} />
             <Route path="/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
+            <Route path="/notes-dashboard" element={<ProtectedRoute><NotesDashboard /></ProtectedRoute>} />
+            <Route path="/notes/:noteId" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
             <Route path="/notes" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/home" element={<Navigate to="/dashboard" replace />} />

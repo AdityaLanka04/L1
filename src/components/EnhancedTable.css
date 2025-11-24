@@ -1,0 +1,154 @@
+.enhanced-table-wrapper {
+  margin: 16px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--panel);
+}
+
+.enhanced-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bg-bottom);
+}
+
+.enhanced-table th,
+.enhanced-table td {
+  border: 1px solid var(--border);
+  padding: 0;
+  position: relative;
+}
+
+.enhanced-table th {
+  background: var(--panel);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.table-header-input,
+.table-cell-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 14px;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.table-header-input {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.table-header-input:focus,
+.table-cell-input:focus {
+  background: var(--hover-bg);
+}
+
+.table-grip-cell {
+  width: 40px;
+  background: var(--panel);
+  text-align: center;
+  vertical-align: middle;
+  padding: 8px;
+}
+
+.table-grip-icon {
+  color: var(--text-secondary);
+  cursor: grab;
+  opacity: 0.5;
+}
+
+.table-grip-cell:hover .table-grip-icon {
+  opacity: 1;
+}
+
+.table-delete-row,
+.table-delete-col {
+  position: absolute;
+  background: var(--danger);
+  border: none;
+  color: white;
+  padding: 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-delete-row {
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.table-delete-col {
+  top: 4px;
+  right: 4px;
+}
+
+.table-grip-cell:hover .table-delete-row,
+th:hover .table-delete-col {
+  opacity: 1;
+}
+
+.table-delete-row:hover,
+.table-delete-col:hover {
+  background: color-mix(in srgb, var(--danger) 85%, white);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.table-delete-col:hover {
+  transform: scale(1.1);
+}
+
+.table-add-cell {
+  width: 40px;
+  background: var(--panel);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.table-add-btn {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--accent);
+  padding: 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-add-btn:hover {
+  background: var(--hover-bg);
+  border-color: var(--accent);
+}
+
+.table-add-row-btn {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--border);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.table-add-row-btn:hover {
+  background: var(--hover-bg);
+}

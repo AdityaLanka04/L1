@@ -13,10 +13,27 @@ import {
   MoreVertical, Archive, RefreshCw, Save, Clock,
   AlignLeft, Bold, Italic, Underline, 
   List, ListOrdered, Link2, Image, Code,
-  ArrowLeft
+  ArrowLeft, Tag
 } from 'lucide-react';
 import { API_URL } from '../config';
 import gamificationService from '../services/gamificationService';
+
+// Enhanced Notes Features
+import QuickSwitcher from '../components/QuickSwitcher';
+import TagsPanel from '../components/TagsPanel';
+import BacklinksPanel from '../components/BacklinksPanel';
+import SimpleBlockEditor from '../components/SimpleBlockEditor';
+import FormattingToolbar from '../components/FormattingToolbar';
+import { 
+  useQuickSwitcher, 
+  useTags, 
+  useBacklinks, 
+  useSlashCommands,
+  SlashMenu 
+} from './NotesEnhanced';
+import { parsePageLinks, parseTags, filterNotesByTag } from '../utils/noteUtils';
+import { htmlToBlocks, blocksToHtml } from '../utils/blockConverter';
+import './NotesEnhanced.css';
 
 // Remove problematic imports and register them conditionally
 let QuillTableUI;
@@ -97,6 +114,21 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [customFont, setCustomFont] = useState("Inter");
   const [draggedNote, setDraggedNote] = useState(null);
   const [dragOverFolder, setDragOverFolder] = useState(null);
+  
+  // Enhanced features state
+  const [showTagsPanel, setShowTagsPanel] = useState(false);
+  const [selectedTagFilter, setSelectedTagFilter] = useState(null);
+  
+  // Block editor state
+  const [noteBlocks, setNoteBlocks] = useState([{
+    id: Date.now(),
+    type: 'paragraph',
+    content: '',
+    properties: {}
+  }]);
+  const [showAIFloatingButton, setShowAIFloatingButton] = useState(false);
+  const [aiFloatingPosition, setAiFloatingPosition] = useState({ top: 0, left: 0 });
+  const [selectedTextContent, setSelectedTextContent] = useState('');
   
   // Chat import state
   const [showChatImport, setShowChatImport] = useState(false);
@@ -261,7 +293,16 @@ const NotesRedesign = ({ sharedMode = false }) => {
         const data = await res.json();
         const activeNotes = data.filter(n => !n.is_deleted);
         setNotes(activeNotes);
-        if (activeNotes.length > 0 && !selectedNote) {
+        
+        // If noteId is provided in URL, select that note
+        if (noteId && !sharedMode) {
+          const specificNote = activeNotes.find(n => n.id === parseInt(noteId));
+          if (specificNote) {
+            selectNote(specificNote);
+          } else if (activeNotes.length > 0) {
+            selectNote(activeNotes[0]);
+          }
+        } else if (activeNotes.length > 0 && !selectedNote) {
           selectNote(activeNotes[0]);
         }
       } else {
@@ -898,15 +939,57 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setSelectedNote(n);
     setNoteTitle(n.title);
     setNoteContent(n.content);
+    
+    // Convert HTML content to blocks
+    const blocks = htmlToBlocks(n.content);
+    setNoteBlocks(blocks);
+    
     setViewMode("edit");
-
-    setTimeout(() => {
-      const quill = quillRef.current?.getEditor();
-      if (quill) {
-        quill.setSelection(0, 0);
-      }
-    }, 100);
   };
+
+  // Enhanced features handlers
+  const handleTagSelect = (tag) => {
+    setSelectedTagFilter(tag);
+    setShowFavorites(false);
+    setShowTrash(false);
+    setSelectedFolder(null);
+  };
+
+  const handleClearTagFilter = () => {
+    setSelectedTagFilter(null);
+  };
+
+  // Block editor handlers
+  const handleBlocksChange = (newBlocks) => {
+    setNoteBlocks(newBlocks);
+    // Convert blocks to HTML for saving
+    const html = blocksToHtml(newBlocks);
+    setNoteContent(html);
+  };
+
+  const handleInsertBlock = (blockType) => {
+    // Add a new block of the specified type at the end
+    const newBlock = {
+      id: Date.now() + Math.random(),
+      type: blockType,
+      content: '',
+      properties: {}
+    };
+    const newBlocks = [...noteBlocks, newBlock];
+    setNoteBlocks(newBlocks);
+    handleBlocksChange(newBlocks);
+  };
+
+  // Enhanced features hooks (must be after selectNote is defined)
+  const { QuickSwitcherComponent } = useQuickSwitcher(notes, folders, selectNote);
+  const { allTags } = useTags(notes);
+  const backlinks = useBacklinks(selectedNote, notes);
+  const { 
+    showSlashMenu, 
+    slashMenuPosition, 
+    setShowSlashMenu, 
+    insertBlock 
+  } = useSlashCommands(quillRef);
 
   const autoSave = useCallback(async () => {
     if (!selectedNote) return;
@@ -1030,6 +1113,73 @@ const NotesRedesign = ({ sharedMode = false }) => {
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [autoSave]);
+
+  // Handle page link clicks
+  useEffect(() => {
+    const handlePageLinkClick = (e) => {
+      if (e.target.classList.contains('page-link')) {
+        const noteId = parseInt(e.target.dataset.noteId);
+        const note = notes.find(n => n.id === noteId);
+        if (note) selectNote(note);
+      }
+    };
+
+    const editor = quillRef.current?.getEditor();
+    if (editor && editor.root) {
+      editor.root.addEventListener('click', handlePageLinkClick);
+      return () => editor.root.removeEventListener('click', handlePageLinkClick);
+    }
+  }, [notes, quillRef]);
+
+  // Handle tag clicks
+  useEffect(() => {
+    const handleTagClick = (e) => {
+      if (e.target.classList.contains('tag')) {
+        const tag = e.target.dataset.tag;
+        handleTagSelect(tag);
+        setShowTagsPanel(true);
+      }
+    };
+
+    const editor = quillRef.current?.getEditor();
+    if (editor && editor.root) {
+      editor.root.addEventListener('click', handleTagClick);
+      return () => editor.root.removeEventListener('click', handleTagClick);
+    }
+  }, [quillRef]);
+
+  // Handle text selection for AI assistant in block editor
+  useEffect(() => {
+    if (isSharedContent && !canEdit) return;
+
+    const handleSelection = () => {
+      const selection = window.getSelection();
+      const selectedText = selection.toString().trim();
+
+      if (selectedText && selectedText.length > 3) {
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+
+        setAiFloatingPosition({
+          top: rect.bottom + window.scrollY + 8,
+          left: rect.left + rect.width / 2 + window.scrollX
+        });
+        setSelectedTextContent(selectedText);
+        setShowAIFloatingButton(true);
+      } else {
+        setShowAIFloatingButton(false);
+        setSelectedTextContent('');
+      }
+    };
+
+    document.addEventListener('mouseup', handleSelection);
+    document.addEventListener('keyup', handleSelection);
+
+    return () => {
+      document.removeEventListener('mouseup', handleSelection);
+      document.removeEventListener('keyup', handleSelection);
+    };
+  }, [isSharedContent, canEdit]);
 
   const handleEditorChange = (content, delta, source, editor) => {
     if (isSharedContent && !canEdit) return;
@@ -1336,17 +1486,19 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const aiWritingAssist = async () => {
     if (isSharedContent && !canEdit) return;
     
-    const quill = quillRef.current?.getEditor();
-    if (!quill) return;
-
-    const range = quill.getSelection();
+    // Get text to process
     let textToProcess = selectedText;
-
-    if (!textToProcess && range && range.length > 0) {
-      textToProcess = quill.getText(range.index, range.length);
+    
+    // For generate action, we don't need selected text
+    if (aiAssistAction !== 'generate' && (!textToProcess || !textToProcess.trim())) {
+      // Try to get selected text from the editor
+      const selection = window.getSelection();
+      if (selection && selection.toString()) {
+        textToProcess = selection.toString();
+      }
     }
 
-    if (!textToProcess || !textToProcess.trim()) {
+    if (aiAssistAction !== 'generate' && (!textToProcess || !textToProcess.trim())) {
       showPopup("No Text Selected", "Please select text or enter text to process");
       return;
     }
@@ -1362,31 +1514,56 @@ const NotesRedesign = ({ sharedMode = false }) => {
         },
         body: JSON.stringify({
           user_id: userName,
-          content: textToProcess,
+          content: textToProcess || selectedText,
           action: aiAssistAction,
           tone: aiAssistTone,
-          context: noteContent,
+          context: noteBlocks.map(b => b.content).join('\n'),
         }),
       });
 
       if (!res.ok) throw new Error("AI assist failed");
 
       const data = await res.json();
+      console.log('🔥 FULL AI Response:', JSON.stringify(data, null, 2));
 
-      if (range && range.length > 0) {
-        quill.deleteText(range.index, range.length);
-        quill.insertText(range.index, data.result);
-        quill.setSelection(range.index + data.result.length);
-      } else {
-        const cursorPos = range ? range.index : quill.getLength();
-        quill.insertText(cursorPos, "\n\n" + data.result);
-        quill.setSelection(cursorPos + data.result.length + 2);
+      const resultText = data.result;
+      console.log('🔥 Result text:', resultText);
+      console.log('🔥 Result length:', resultText?.length);
+      
+      if (!resultText || resultText.trim() === '') {
+        console.error('❌ AI returned empty response');
+        showPopup("Error", "AI returned empty response");
+        setGeneratingAI(false);
+        return;
       }
-
-      setNoteContent(quill.root.innerHTML);
+      
+      // Create a single block with all the content
+      const newBlock = {
+        id: Date.now() + Math.random(),
+        type: 'paragraph',
+        content: resultText.trim(),
+        properties: {}
+      };
+      
+      console.log('🔥 New block created:', newBlock);
+      console.log('🔥 Current blocks before:', noteBlocks.length);
+      
+      // Add the new block at the end
+      const updatedBlocks = [...noteBlocks, newBlock];
+      console.log('🔥 Updated blocks after:', updatedBlocks.length);
+      
+      // Directly update state
+      setNoteBlocks(updatedBlocks);
+      
+      // Also update via handleBlocksChange to trigger save
+      setTimeout(() => {
+        handleBlocksChange(updatedBlocks);
+        console.log('🔥 handleBlocksChange called');
+      }, 100);
+      
       setShowAIAssistant(false);
       setSelectedText("");
-      showPopup("AI Assistant", `Text ${aiAssistAction} successfully`);
+      showPopup("Success", `AI ${aiAssistAction} completed - ${resultText.length} characters generated`);
     } catch (error) {
       console.error("AI assistant error:", error);
       showPopup("Error", "Failed to process text");
@@ -1688,6 +1865,11 @@ const NotesRedesign = ({ sharedMode = false }) => {
       filtered = filtered.filter(n => !n.folder_id);
     }
 
+    // Tag filtering
+    if (selectedTagFilter) {
+      filtered = filterNotesByTag(filtered, selectedTagFilter);
+    }
+
     return filtered;
   };
 
@@ -1750,6 +1932,17 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
   return (
     <div className="notes-redesign">
+      {/* Quick Switcher (Cmd+K) */}
+      {QuickSwitcherComponent}
+      
+      {/* Slash Menu */}
+      <SlashMenu
+        isOpen={showSlashMenu}
+        position={slashMenuPosition}
+        onSelect={insertBlock}
+        onClose={() => setShowSlashMenu(false)}
+      />
+
       <div className={`notes-sidebar-new ${sidebarOpen && !isSharedContent ? "open" : "closed"}`}>
         <div className="sidebar-header-new">
           <div className="sidebar-title">
@@ -1768,11 +1961,12 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
         <div className="sidebar-filters">
           <button
-            className={`filter-btn ${!showFavorites && !showTrash && !selectedFolder ? 'active' : ''}`}
+            className={`filter-btn ${!showFavorites && !showTrash && !selectedFolder && !selectedTagFilter ? 'active' : ''}`}
             onClick={() => {
               setShowFavorites(false);
               setShowTrash(false);
               setSelectedFolder(null);
+              setSelectedTagFilter(null);
             }}
           >
             <FileText size={16} /> All Notes
@@ -1783,16 +1977,27 @@ const NotesRedesign = ({ sharedMode = false }) => {
               setShowFavorites(!showFavorites);
               setShowTrash(false);
               setSelectedFolder(null);
+              setSelectedTagFilter(null);
             }}
           >
             <Star size={16} /> Favorites
           </button>
+          {selectedTagFilter && (
+            <button
+              className="filter-btn active"
+              onClick={handleClearTagFilter}
+            >
+              <Tag size={16} /> #{selectedTagFilter}
+              <X size={14} style={{ marginLeft: '4px' }} />
+            </button>
+          )}
           <button
             className={`filter-btn ${showTrash ? 'active' : ''}`}
             onClick={() => {
               setShowTrash(!showTrash);
               setShowFavorites(false);
               setSelectedFolder(null);
+              setSelectedTagFilter(null);
               if (!showTrash) loadTrash();
             }}
           >
@@ -2098,6 +2303,16 @@ const NotesRedesign = ({ sharedMode = false }) => {
           )}
 
           <div className="nav-actions-new">
+            {!isSharedContent && (
+              <button 
+                onClick={() => setShowTagsPanel(!showTagsPanel)}
+                className={`nav-btn tags-toggle-btn ${showTagsPanel ? 'active' : ''}`}
+                title="Toggle tags panel"
+              >
+                <Tag size={16} />
+                Tags
+              </button>
+            )}
             <button className="nav-btn" onClick={() => navigate("/dashboard")}>
               Dashboard
             </button>
@@ -2147,34 +2362,49 @@ const NotesRedesign = ({ sharedMode = false }) => {
               </div>
             </div>
 
-            {viewMode === "edit" ? (
-              <div className="quill-container">
-                <ReactQuill
-                  ref={quillRef}
-                  theme="snow"
-                  value={noteContent}
-                  onChange={handleEditorChange}
-                  modules={modules}
-                  formats={formats}
-                  placeholder={isSharedContent && !canEdit ? "You have view-only access to this shared note" : "Start typing your notes here... (Press '/' for AI assistance)"}
-                  className="quill-editor-enhanced"
-                  style={{ fontFamily: customFont }}
-                  readOnly={isSharedContent && !canEdit}
+            <div className="block-editor-wrapper">
+              {viewMode === "edit" && (!isSharedContent || canEdit) && (
+                <FormattingToolbar
+                  onAIAssist={() => setShowAIAssistant(true)}
+                  showAI={true}
+                  onInsertBlock={handleInsertBlock}
+                />
+              )}
+              
+              <div className="block-editor-container" style={{ fontFamily: customFont }}>
+                <SimpleBlockEditor
+                  blocks={noteBlocks}
+                  onChange={handleBlocksChange}
+                  readOnly={viewMode === "preview" || (isSharedContent && !canEdit)}
                 />
               </div>
-            ) : (
-              <div className="quill-container">
-                <ReactQuill
-                  theme="snow"
-                  value={noteContent}
-                  readOnly={true}
-                  modules={{ toolbar: false }}
-                  formats={formats}
-                  className="quill-editor-enhanced preview-mode"
-                  style={{ fontFamily: customFont }}
-                />
-              </div>
-            )}
+
+              {/* AI Floating Button on Selection */}
+              {showAIFloatingButton && !isSharedContent && (
+                <div
+                  className="ai-floating-button"
+                  style={{
+                    position: 'fixed',
+                    top: aiFloatingPosition.top,
+                    left: aiFloatingPosition.left,
+                    transform: 'translateX(-50%)',
+                    zIndex: 1000
+                  }}
+                >
+                  <button
+                    onClick={() => {
+                      setSelectedText(selectedTextContent);
+                      setShowAIAssistant(true);
+                      setShowAIFloatingButton(false);
+                    }}
+                    className="ai-assist-btn"
+                  >
+                    <Sparkles size={16} />
+                    AI Assist
+                  </button>
+                </div>
+              )}
+            </div>
 
             <div className="note-footer">
               <div className="footer-left">
@@ -2196,6 +2426,16 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 )}
               </div>
             </div>
+
+            {/* Backlinks Panel */}
+            {selectedNote && backlinks.length > 0 && !isSharedContent && (
+              <div style={{ padding: '0 60px 40px' }}>
+                <BacklinksPanel
+                  backlinks={backlinks}
+                  onNoteClick={selectNote}
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div className="empty-state-new">
@@ -2335,6 +2575,13 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 <label>Select Action:</label>
                 <div className="ai-action-buttons">
                   <button
+                    className={`ai-action-btn ${aiAssistAction === 'generate' ? 'active' : ''}`}
+                    onClick={() => setAiAssistAction('generate')}
+                  >
+                    <Sparkles size={14} style={{ marginRight: '4px', display: 'inline' }} />
+                    Generate Content
+                  </button>
+                  <button
                     className={`ai-action-btn ${aiAssistAction === 'continue' ? 'active' : ''}`}
                     onClick={() => setAiAssistAction('continue')}
                   >
@@ -2406,10 +2653,16 @@ const NotesRedesign = ({ sharedMode = false }) => {
               )}
 
               <div className="ai-assistant-section">
-                <label>Text to Process:</label>
+                <label>{aiAssistAction === 'generate' ? 'Topic or Prompt:' : 'Text to Process:'}</label>
                 <textarea
                   className={`ai-text-input ${aiAssistAction === 'code' ? 'code-mode' : ''}`}
-                  placeholder={aiAssistAction === 'code' ? 'Enter or paste your code here...' : 'Enter text or select text in the editor...'}
+                  placeholder={
+                    aiAssistAction === 'generate' 
+                      ? 'Enter a topic or prompt to generate content about...' 
+                      : aiAssistAction === 'code' 
+                        ? 'Enter or paste your code here...' 
+                        : 'Enter text or select text in the editor...'
+                  }
                   value={selectedText}
                   onChange={(e) => setSelectedText(e.target.value)}
                   rows={8}
@@ -2657,6 +2910,16 @@ const NotesRedesign = ({ sharedMode = false }) => {
         title={popup.title}
         message={popup.message}
       />
+
+      {/* Tags Panel */}
+      {showTagsPanel && !isSharedContent && (
+        <TagsPanel
+          tags={allTags}
+          selectedTag={selectedTagFilter}
+          onTagSelect={handleTagSelect}
+          onClose={() => setShowTagsPanel(false)}
+        />
+      )}
     </div>
   );
 };

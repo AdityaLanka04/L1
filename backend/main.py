@@ -2143,6 +2143,17 @@ async def ai_writing_assistant(
         
         # DIFFERENT PROMPTS FOR EACH ACTION
         action_prompts = {
+            "generate": f"""Write a detailed, comprehensive article explaining this topic in depth.
+
+Topic: {content}
+
+Write a complete article with:
+1. An introduction paragraph explaining what {content} is
+2. 2-3 body paragraphs with detailed explanations, examples, and facts
+3. A conclusion paragraph
+
+Use a {tone} tone. Write at least 300 words. Start writing now:""",
+
             "continue": f"""Continue writing this text naturally and coherently.
 
 RULES:
@@ -2236,27 +2247,88 @@ RULES:
 Text to summarize:
 {content}
 
-Summary:"""
+Summary:""",
+
+            "code": f"""Review, explain, or improve this code.
+
+RULES:
+- Explain what the code does
+- Suggest improvements if any
+- Point out potential issues
+- Add helpful comments
+- Keep the same programming language
+
+Code:
+{content}
+
+Analysis and improved version:"""
         }
         
         prompt = action_prompts.get(action, action_prompts["improve"])
         
-        system_prompt = f"""You are a professional writing assistant for {user_profile.get('first_name', 'a student')}.
+        if action == "generate":
+            system_prompt = """You are an expert writer. When given a topic, you write detailed, informative articles about it.
+
+CRITICAL: 
+- Write LONG, DETAILED content (300+ words minimum)
+- Start writing immediately - no introductions like "Here's an article"
+- Just write the actual content"""
+        else:
+            system_prompt = f"""You are a professional writing assistant for {user_profile.get('first_name', 'a student')}.
 
 CRITICAL: Return ONLY the processed text. NO explanations, NO comments, NO greetings."""
 
+        # Use more tokens for generate action
+        max_tokens = 4096 if action == "generate" else 2048
+        
         chat_completion = groq_client.chat.completions.create(
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
             ],
             model=GROQ_MODEL,
-            temperature=0.7,
-            max_tokens=2048,
+            temperature=0.8 if action == "generate" else 0.7,
+            max_tokens=max_tokens,
             top_p=0.9,
         )
         
         result = chat_completion.choices[0].message.content.strip()
+        
+        # Log for debugging
+        print(f"🔥 AI Action: {action}")
+        print(f"🔥 Input length: {len(content)} chars")
+        print(f"🔥 Output length: {len(result)} chars")
+        print(f"🔥 Result preview: {result[:200]}...")
+        
+        # If generate action returned too short, try again with more explicit prompt
+        if action == "generate" and len(result.split()) < 50:
+            print(f"⚠️ Result too short ({len(result.split())} words), retrying with explicit prompt...")
+            
+            retry_prompt = f"""Write a detailed educational article about {content}.
+
+Requirements:
+- Minimum 5 paragraphs
+- Explain what it is, how it works, why it matters
+- Include examples and real-world applications
+- Write in {tone} tone
+- Be thorough and informative
+
+Start writing the article:"""
+            
+            chat_completion = groq_client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": "You are an educational content writer. Write detailed, comprehensive articles."},
+                    {"role": "user", "content": retry_prompt}
+                ],
+                model=GROQ_MODEL,
+                temperature=0.9,
+                max_tokens=4096,
+                top_p=0.95,
+            )
+            
+            result = chat_completion.choices[0].message.content.strip()
+            print(f"🔥 Retry result length: {len(result)} chars")
+            print(f"🔥 Retry result preview: {result[:200]}...")
         
         return {
             "status": "success",

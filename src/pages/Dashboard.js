@@ -379,7 +379,7 @@ const Dashboard = () => {
         window.location.href = '/question-bank';
         break;
       case 'notes':
-        window.location.href = '/notes';
+        window.location.href = '/notes-dashboard';
         break;
       case 'concepts':
         window.location.href = '/concept-web';
@@ -946,7 +946,7 @@ const Dashboard = () => {
   };
   const openNotes = async () => {
     await endDashboardSession();
-    window.location.href = '/notes';
+    window.location.href = '/notes-dashboard';
   };
   const openProfile = async () => {
     await endDashboardSession();
