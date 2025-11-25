@@ -18,56 +18,26 @@ import {
 import { API_URL } from '../config';
 import gamificationService from '../services/gamificationService';
 
-// Enhanced Notes Features
-import SimpleBlockEditor from '../components/SimpleBlockEditor';
-
-// Utility functions
-const htmlToBlocks = (html) => {
-  if (!html || html.trim() === '') {
-    return [{
-      id: Date.now(),
-      type: 'paragraph',
-      content: '',
-      properties: {}
-    }];
-  }
-  
-  // Simple conversion - just create one paragraph block with the HTML content
-  return [{
-    id: Date.now(),
-    type: 'paragraph',
-    content: html.replace(/<[^>]*>/g, ''), // Strip HTML tags
-    properties: {}
-  }];
-};
-
-const blocksToHtml = (blocks) => {
-  if (!blocks || blocks.length === 0) return '';
-  return blocks.map(b => `<p>${b.content || ''}</p>`).join('');
-};
-
-// Stub components
-const QuickSwitcher = null;
-const FormattingToolbar = ({ onAIAssist, showAI, onInsertBlock }) => null;
-const SlashMenu = ({ isOpen, position, onSelect, onClose }) => null;
-const BacklinksPanel = ({ backlinks, onNoteClick }) => null;
-const TagsPanel = ({ tags, selectedTag, onTagSelect, onClose }) => null;
-
-// Stub hooks
-const useQuickSwitcher = (notes, folders, selectNote) => ({ QuickSwitcherComponent: null });
-const useTags = (notes) => ({ allTags: [] });
-const useBacklinks = (selectedNote, notes) => [];
-const useSlashCommands = (quillRef) => ({ 
+// Enhanced Notes Features - Stub functions for missing components
+const useQuickSwitcher = () => ({ QuickSwitcherComponent: null });
+const useTags = () => ({ allTags: [] });
+const useBacklinks = () => [];
+const useSlashCommands = () => ({ 
   showSlashMenu: false, 
   slashMenuPosition: {}, 
   setShowSlashMenu: () => {}, 
   insertBlock: () => {} 
 });
-
-// Utility functions
-const parsePageLinks = (content) => [];
-const parseTags = (content) => [];
-const filterNotesByTag = (notes, tag) => notes;
+const SlashMenu = () => null;
+const FormattingToolbar = () => null;
+const SimpleBlockEditor = ({ blocks, onChange }) => null;
+const BacklinksPanel = () => null;
+const TagsPanel = () => null;
+const parsePageLinks = () => [];
+const parseTags = () => [];
+const filterNotesByTag = (notes) => notes;
+const htmlToBlocks = (html) => [{ id: Date.now(), type: 'paragraph', content: html, properties: {} }];
+const blocksToHtml = (blocks) => blocks.map(b => b.content).join('');
 
 // Remove problematic imports and register them conditionally
 let QuillTableUI;
@@ -2045,106 +2015,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
         {selectedNote ? (
           <div className="editor-with-sidepanel">
-            {/* LEFT SIDE TOOLS PANEL */}
-            <div className={`tools-sidepanel ${sidebarOpen && !isSharedContent ? "open" : "closed"}`}>
-              <div className="tools-panel-header">
-                <h3>Tools</h3>
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="close-panel-btn"
-                  title="Close panel"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="tools-panel-content">
-                {/* View Mode Section */}
-                <div className="tool-section">
-                  <label className="tool-section-label">View Mode</label>
-                  <div className="tool-buttons-group">
-                    <button
-                      className={`tool-panel-btn ${viewMode === "edit" ? "active" : ""}`}
-                      onClick={() => setViewMode("edit")}
-                      title="Edit mode"
-                    >
-                      <Edit3 size={16} />
-                      <span>Edit</span>
-                    </button>
-                    <button
-                      className={`tool-panel-btn ${viewMode === "preview" ? "active" : ""}`}
-                      onClick={() => setViewMode("preview")}
-                      title="Preview mode"
-                    >
-                      <Eye size={16} />
-                      <span>Preview</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Export Section */}
-                <div className="tool-section">
-                  <label className="tool-section-label">Export</label>
-                  <div className="tool-buttons-group">
-                    <button 
-                      className="tool-panel-btn" 
-                      onClick={exportAsPDF} 
-                      title="Export as PDF"
-                    >
-                      <FileDown size={16} />
-                      <span>PDF</span>
-                    </button>
-                    <button 
-                      className="tool-panel-btn" 
-                      onClick={exportAsText} 
-                      title="Export as Text"
-                    >
-                      <Download size={16} />
-                      <span>TXT</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* AI Tools Section */}
-                <div className="tool-section">
-                  <label className="tool-section-label">AI Tools</label>
-                  <div className="tool-buttons-group">
-                    <button
-                      className="tool-panel-btn"
-                      onClick={() => setShowAIAssistant(true)}
-                      title="AI Writing Assistant"
-                    >
-                      <Sparkles size={16} />
-                      <span>AI Assist</span>
-                    </button>
-                    <button
-                      className="tool-panel-btn"
-                      onClick={() => setShowChatImport(true)}
-                      title="Import from AI Chat"
-                    >
-                      <Upload size={16} />
-                      <span>From Chat</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Tags Section */}
-                <div className="tool-section">
-                  <label className="tool-section-label">Organization</label>
-                  <div className="tool-buttons-group">
-                    <button 
-                      onClick={() => setShowTagsPanel(!showTagsPanel)}
-                      className={`tool-panel-btn ${showTagsPanel ? 'active' : ''}`}
-                      title="Toggle tags panel"
-                    >
-                      <Tag size={16} />
-                      <span>Tags</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <div className="editor-content">
               {isSharedContent && !canEdit && (
                 <div className="view-only-banner">
@@ -2257,7 +2127,118 @@ const NotesRedesign = ({ sharedMode = false }) => {
               )}
             </div>
 
+            {/* RIGHT SIDE PANEL - Tools moved from top */}
+            <div className={`tools-sidepanel ${sidebarOpen && !isSharedContent ? "open" : "closed"}`}>
+              <div className="tools-panel-header">
+                <h3>Tools</h3>
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="close-panel-btn"
+                  title="Close panel"
+                >
+                  <X size={18} />
+                </button>
+              </div>
 
+              <div className="tools-panel-content">
+                {/* View Mode Section */}
+                <div className="tool-section">
+                  <label className="tool-section-label">View Mode</label>
+                  <div className="tool-buttons-group">
+                    <button
+                      className={`tool-panel-btn ${viewMode === "edit" ? "active" : ""}`}
+                      onClick={() => setViewMode("edit")}
+                      title="Edit mode"
+                    >
+                      <Edit3 size={16} />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      className={`tool-panel-btn ${viewMode === "preview" ? "active" : ""}`}
+                      onClick={() => setViewMode("preview")}
+                      title="Preview mode"
+                    >
+                      <Eye size={16} />
+                      <span>Preview</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Export Section */}
+                <div className="tool-section">
+                  <label className="tool-section-label">Export</label>
+                  <div className="tool-buttons-group">
+                    <button 
+                      className="tool-panel-btn" 
+                      onClick={exportAsPDF} 
+                      title="Export as PDF"
+                    >
+                      <FileDown size={16} />
+                      <span>PDF</span>
+                    </button>
+                    <button 
+                      className="tool-panel-btn" 
+                      onClick={exportAsText} 
+                      title="Export as Text"
+                    >
+                      <Download size={16} />
+                      <span>TXT</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* AI Tools Section */}
+                <div className="tool-section">
+                  <label className="tool-section-label">AI Tools</label>
+                  <div className="tool-buttons-group">
+                    <button
+                      className="tool-panel-btn"
+                      onClick={() => setShowAIAssistant(true)}
+                      title="AI Writing Assistant"
+                    >
+                      <Sparkles size={16} />
+                      <span>AI Assist</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tags Section */}
+                <div className="tool-section">
+                  <label className="tool-section-label">Organization</label>
+                  <div className="tool-buttons-group">
+                    <button 
+                      onClick={() => setShowTagsPanel(!showTagsPanel)}
+                      className={`tool-panel-btn ${showTagsPanel ? 'active' : ''}`}
+                      title="Toggle tags panel"
+                    >
+                      <Tag size={16} />
+                      <span>Tags</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Note Stats */}
+                <div className="tool-section">
+                  <label className="tool-section-label">Statistics</label>
+                  <div className="note-stats">
+                    <div className="stat-row">
+                      <span className="stat-label">Words:</span>
+                      <span className="stat-value">{wordCount}</span>
+                    </div>
+                    <div className="stat-row">
+                      <span className="stat-label">Characters:</span>
+                      <span className="stat-value">{charCount}</span>
+                    </div>
+                    <div className="stat-row">
+                      <span className="stat-label">Status:</span>
+                      <span className="stat-value">
+                        {saving ? "Saving..." : autoSaved ? "Saved" : "Unsaved"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="empty-state-new">

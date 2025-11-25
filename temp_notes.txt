@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+﻿import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ReactQuill, { Quill } from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -18,56 +18,26 @@ import {
 import { API_URL } from '../config';
 import gamificationService from '../services/gamificationService';
 
-// Enhanced Notes Features
-import SimpleBlockEditor from '../components/SimpleBlockEditor';
-
-// Utility functions
-const htmlToBlocks = (html) => {
-  if (!html || html.trim() === '') {
-    return [{
-      id: Date.now(),
-      type: 'paragraph',
-      content: '',
-      properties: {}
-    }];
-  }
-  
-  // Simple conversion - just create one paragraph block with the HTML content
-  return [{
-    id: Date.now(),
-    type: 'paragraph',
-    content: html.replace(/<[^>]*>/g, ''), // Strip HTML tags
-    properties: {}
-  }];
-};
-
-const blocksToHtml = (blocks) => {
-  if (!blocks || blocks.length === 0) return '';
-  return blocks.map(b => `<p>${b.content || ''}</p>`).join('');
-};
-
-// Stub components
-const QuickSwitcher = null;
-const FormattingToolbar = ({ onAIAssist, showAI, onInsertBlock }) => null;
-const SlashMenu = ({ isOpen, position, onSelect, onClose }) => null;
-const BacklinksPanel = ({ backlinks, onNoteClick }) => null;
-const TagsPanel = ({ tags, selectedTag, onTagSelect, onClose }) => null;
-
-// Stub hooks
-const useQuickSwitcher = (notes, folders, selectNote) => ({ QuickSwitcherComponent: null });
-const useTags = (notes) => ({ allTags: [] });
-const useBacklinks = (selectedNote, notes) => [];
-const useSlashCommands = (quillRef) => ({ 
+// Enhanced Notes Features - Stub functions for missing components
+const useQuickSwitcher = () => ({ QuickSwitcherComponent: null });
+const useTags = () => ({ allTags: [] });
+const useBacklinks = () => [];
+const useSlashCommands = () => ({ 
   showSlashMenu: false, 
   slashMenuPosition: {}, 
   setShowSlashMenu: () => {}, 
   insertBlock: () => {} 
 });
-
-// Utility functions
-const parsePageLinks = (content) => [];
-const parseTags = (content) => [];
-const filterNotesByTag = (notes, tag) => notes;
+const SlashMenu = () => null;
+const FormattingToolbar = () => null;
+const SimpleBlockEditor = ({ blocks, onChange }) => null;
+const BacklinksPanel = () => null;
+const TagsPanel = () => null;
+const parsePageLinks = () => [];
+const parseTags = () => [];
+const filterNotesByTag = (notes) => notes;
+const htmlToBlocks = (html) => [{ id: Date.now(), type: 'paragraph', content: html, properties: {} }];
+const blocksToHtml = (blocks) => blocks.map(b => b.content).join('');
 
 // Remove problematic imports and register them conditionally
 let QuillTableUI;
@@ -975,19 +945,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setNoteContent(n.content);
     
     // Convert HTML content to blocks
-    let blocks = htmlToBlocks(n.content);
-    
-    // Ensure we always have at least one block
-    if (!blocks || blocks.length === 0) {
-      blocks = [{
-        id: Date.now(),
-        type: 'paragraph',
-        content: '',
-        properties: {}
-      }];
-    }
-    
-    console.log('Setting blocks:', blocks);
+    const blocks = htmlToBlocks(n.content);
     setNoteBlocks(blocks);
     
     setViewMode("edit");
@@ -1570,14 +1528,14 @@ const NotesRedesign = ({ sharedMode = false }) => {
       if (!res.ok) throw new Error("AI assist failed");
 
       const data = await res.json();
-      console.log('🔥 FULL AI Response:', JSON.stringify(data, null, 2));
+      console.log('ðŸ”¥ FULL AI Response:', JSON.stringify(data, null, 2));
 
       const resultText = data.result;
-      console.log('🔥 Result text:', resultText);
-      console.log('🔥 Result length:', resultText?.length);
+      console.log('ðŸ”¥ Result text:', resultText);
+      console.log('ðŸ”¥ Result length:', resultText?.length);
       
       if (!resultText || resultText.trim() === '') {
-        console.error('❌ AI returned empty response');
+        console.error('âŒ AI returned empty response');
         showPopup("Error", "AI returned empty response");
         setGeneratingAI(false);
         return;
@@ -1591,12 +1549,12 @@ const NotesRedesign = ({ sharedMode = false }) => {
         properties: {}
       };
       
-      console.log('🔥 New block created:', newBlock);
-      console.log('🔥 Current blocks before:', noteBlocks.length);
+      console.log('ðŸ”¥ New block created:', newBlock);
+      console.log('ðŸ”¥ Current blocks before:', noteBlocks.length);
       
       // Add the new block at the end
       const updatedBlocks = [...noteBlocks, newBlock];
-      console.log('🔥 Updated blocks after:', updatedBlocks.length);
+      console.log('ðŸ”¥ Updated blocks after:', updatedBlocks.length);
       
       // Directly update state
       setNoteBlocks(updatedBlocks);
@@ -1604,7 +1562,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       // Also update via handleBlocksChange to trigger save
       setTimeout(() => {
         handleBlocksChange(updatedBlocks);
-        console.log('🔥 handleBlocksChange called');
+        console.log('ðŸ”¥ handleBlocksChange called');
       }, 100);
       
       setShowAIAssistant(false);
@@ -1989,9 +1947,289 @@ const NotesRedesign = ({ sharedMode = false }) => {
         onClose={() => setShowSlashMenu(false)}
       />
 
-      {/* LEFT SIDEBAR REMOVED - All functionality moved to main dashboard */}
+      <div className={`notes-sidebar-new ${sidebarOpen && !isSharedContent ? "open" : "closed"}`}>
+        <div className="sidebar-header-new">
+          <div className="sidebar-title">
+            <h2>My Notes</h2>
+            <span className="notes-count">{notes.length}</span>
+          </div>
+          <div className="sidebar-actions">
+            <button onClick={createNewNote} className="btn-new-note" title="Create new note" disabled={isSharedContent}>
+              <Plus size={18} /> New Note
+            </button>
+            <button onClick={() => setShowChatImport(true)} className="btn-import-chat" title="Import from AI Chat" disabled={isSharedContent}>
+              <Upload size={16} /> From Chat
+            </button>
+          </div>
+        </div>
 
-      <div className="editor-area-new" style={{ width: '100%' }}>
+        <div className="sidebar-filters">
+          <button
+            className={`filter-btn ${!showFavorites && !showTrash && !selectedFolder && !selectedTagFilter ? 'active' : ''}`}
+            onClick={() => {
+              setShowFavorites(false);
+              setShowTrash(false);
+              setSelectedFolder(null);
+              setSelectedTagFilter(null);
+            }}
+          >
+            <FileText size={16} /> All Notes
+          </button>
+          <button
+            className={`filter-btn ${showFavorites ? 'active' : ''}`}
+            onClick={() => {
+              setShowFavorites(!showFavorites);
+              setShowTrash(false);
+              setSelectedFolder(null);
+              setSelectedTagFilter(null);
+            }}
+          >
+            <Star size={16} /> Favorites
+          </button>
+          {selectedTagFilter && (
+            <button
+              className="filter-btn active"
+              onClick={handleClearTagFilter}
+            >
+              <Tag size={16} /> #{selectedTagFilter}
+              <X size={14} style={{ marginLeft: '4px' }} />
+            </button>
+          )}
+          <button
+            className={`filter-btn ${showTrash ? 'active' : ''}`}
+            onClick={() => {
+              setShowTrash(!showTrash);
+              setShowFavorites(false);
+              setSelectedFolder(null);
+              setSelectedTagFilter(null);
+              if (!showTrash) loadTrash();
+            }}
+          >
+            <Trash2 size={16} /> Trash
+          </button>
+        </div>
+
+        <div className="folders-section">
+          <div className="folders-header">
+            <h3>Folders</h3>
+            <button onClick={() => setShowFolderModal(true)} className="btn-add-folder" disabled={isSharedContent}>
+              <FolderPlus size={18} />
+            </button>
+          </div>
+          <div className="folders-list">
+            {folders.length === 0 && (
+              <div
+                className={`folder-item ${selectedFolder === 0 ? 'active' : ''} ${dragOverFolder === 0 ? 'drag-over' : ''}`}
+                onClick={() => {
+                  setSelectedFolder(0);
+                  setShowFavorites(false);
+                  setShowTrash(false);
+                }}
+                onDragOver={(e) => handleDragOver(e, null)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, null)}
+              >
+                <span>Notes not in a folder</span>
+                <span className="folder-count">
+                  {notes.filter(n => !n.folder_id).length}
+                </span>
+              </div>
+            )}
+            
+            {folders.map((folder) => (
+              <div key={folder.id} className="folder-item-wrapper">
+                <div
+                  className={`folder-item ${selectedFolder === folder.id ? 'active' : ''} ${dragOverFolder === folder.id ? 'drag-over' : ''}`}
+                  onClick={() => {
+                    setSelectedFolder(folder.id);
+                    setShowFavorites(false);
+                    setShowTrash(false);
+                  }}
+                  onDragOver={(e) => handleDragOver(e, folder.id)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, folder.id)}
+                  style={{ borderLeft: `3px solid ${folder.color}` }}
+                >
+                  <span>{folder.name}</span>
+                  <div className="folder-actions">
+                    <span className="folder-count">{folder.note_count || 0}</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        createNoteInFolder(folder.id);
+                      }}
+                      className="folder-add-note-btn"
+                      title="Add note to this folder"
+                      disabled={isSharedContent}
+                    >
+                      <Plus size={14} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteFolder(folder.id);
+                      }}
+                      className="folder-delete-btn"
+                      disabled={isSharedContent}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            {folders.length > 0 && notes.filter(n => !n.folder_id && !n.is_deleted).length > 0 && (
+              <div
+                className={`folder-item unfiled-notes ${selectedFolder === 0 ? 'active' : ''} ${dragOverFolder === 0 ? 'drag-over' : ''}`}
+                onClick={() => {
+                  setSelectedFolder(0);
+                  setShowFavorites(false);
+                  setShowTrash(false);
+                }}
+                onDragOver={(e) => handleDragOver(e, null)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, null)}
+              >
+                <span>Unfiled Notes</span>
+                <span className="folder-count">
+                  {notes.filter(n => !n.folder_id && !n.is_deleted).length}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="search-container">
+          <input
+            type="text"
+            className="search-input-new"
+            placeholder="Search notes..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        <div className="notes-list-new">
+          {showTrash ? (
+            trashedNotes.length === 0 ? (
+              <div className="no-notes-new">
+                <div className="empty-icon"></div>
+                <p>Trash is empty</p>
+              </div>
+            ) : (
+              trashedNotes.map((n) => (
+                <div key={n.id} className="note-item-new trash-item">
+                  <div className="note-title-small">{n.title || "Untitled"}</div>
+                  <div className="note-snippet">
+                    Deleted {Math.max(0, 30 - (30 - n.days_remaining))} days ago - {n.days_remaining} days remaining
+                  </div>
+                  <div className="trash-actions">
+                    <button
+                      onClick={() => restoreNote(n.id)}
+                      className="restore-btn"
+                    >
+                      Restore
+                    </button>
+                    <button
+                      onClick={() => permanentDelete(n.id)}
+                      className="permanent-delete-btn"
+                    >
+                      Delete Forever
+                    </button>
+                  </div>
+                </div>
+              ))
+            )
+          ) : filteredNotes.length === 0 ? (
+            <div className="no-notes-new">
+              <div className="empty-icon"></div>
+              <p>No notes found</p>
+              <button onClick={createNewNote} className="create-first-note" disabled={isSharedContent}>
+                Create your first note
+              </button>
+            </div>
+          ) : (
+            filteredNotes.map((n) => (
+              <div
+                key={n.id}
+                className={`note-item-new ${selectedNote?.id === n.id ? "active" : ""}`}
+                onClick={() => selectNote(n)}
+                draggable={!isSharedContent}
+                onDragStart={(e) => handleDragStart(e, n)}
+                onDragEnd={handleDragEnd}
+              >
+                <div className="note-item-header">
+                  <div className="note-title-small">
+                    {n.is_favorite && <span className="favorite-star"><Star size={14} fill="currentColor" /></span>}
+                    {n.title || "Untitled"}
+                  </div>
+                  <div className="note-actions">
+                    <button
+                      className={`note-action-btn favorite ${n.is_favorite ? 'active' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(n.id);
+                      }}
+                      title={n.is_favorite ? "Remove from favorites" : "Add to favorites"}
+                      disabled={isSharedContent}
+                    >
+                      {n.is_favorite ? <Star size={14} fill="currentColor" /> : <Star size={14} />}
+                    </button>
+                    <button
+                      className="note-action-btn duplicate"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        duplicateNote(n);
+                      }}
+                      title="Duplicate note"
+                      disabled={isSharedContent}
+                    >
+                      <Archive size={14} />
+                    </button>
+                    <button
+                      className="note-action-btn delete"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        moveToTrash(n.id);
+                      }}
+                      title="Move to trash"
+                      disabled={isSharedContent}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+                <div className="note-snippet">
+                  {n.content.replace(/<[^>]+>/g, "").slice(0, 100) || "Empty note"}
+                </div>
+                <div className="note-meta">
+                  <span className="note-date">
+                    {new Date(n.updated_at).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
+                  <span className="note-time">
+                    {new Date(n.updated_at).toLocaleTimeString("en-US", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                  {n.folder_id && (
+                    <span className="note-folder-badge">
+                      {folders.find(f => f.id === n.folder_id)?.name || 'Folder'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      <div className="editor-area-new">
         <div className="top-nav-new">
           <div className="nav-left">
             {isSharedContent ? (
@@ -2006,7 +2244,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="toggle-sidebar"
-                title="Toggle tools panel"
+                title="Toggle sidebar"
               >
                 {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
               </button>
@@ -2030,7 +2268,55 @@ const NotesRedesign = ({ sharedMode = false }) => {
             </div>
           )}
 
+          {!isSharedContent && (
+            <div className="nav-center">
+              {selectedNote && (
+                <div className="editor-tools">
+                  <button
+                    className={`tool-btn ${viewMode === "edit" ? "active" : ""}`}
+                    onClick={() => setViewMode("edit")}
+                    title="Edit mode"
+                  >
+                    <Edit3 size={16} /> Edit
+                  </button>
+                  <button
+                    className={`tool-btn ${viewMode === "preview" ? "active" : ""}`}
+                    onClick={() => setViewMode("preview")}
+                    title="Preview mode"
+                  >
+                    <Eye size={16} /> Preview
+                  </button>
+                  <div className="tool-divider"></div>
+                  <button className="tool-btn" onClick={exportAsPDF} title="Export as PDF">
+                    <FileDown size={16} /> PDF
+                  </button>
+                  <button className="tool-btn" onClick={exportAsText} title="Export as Text">
+                    <Download size={16} /> TXT
+                  </button>
+                  <div className="tool-divider"></div>
+                  <button
+                    className="tool-btn"
+                    onClick={() => setShowAIAssistant(true)}
+                    title="AI Writing Assistant"
+                  >
+                    <Sparkles size={16} /> AI Assist
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="nav-actions-new">
+            {!isSharedContent && (
+              <button 
+                onClick={() => setShowTagsPanel(!showTagsPanel)}
+                className={`nav-btn tags-toggle-btn ${showTagsPanel ? 'active' : ''}`}
+                title="Toggle tags panel"
+              >
+                <Tag size={16} />
+                Tags
+              </button>
+            )}
             <button className="nav-btn" onClick={() => navigate("/dashboard")}>
               Dashboard
             </button>
@@ -2044,116 +2330,15 @@ const NotesRedesign = ({ sharedMode = false }) => {
         </div>
 
         {selectedNote ? (
-          <div className="editor-with-sidepanel">
-            {/* LEFT SIDE TOOLS PANEL */}
-            <div className={`tools-sidepanel ${sidebarOpen && !isSharedContent ? "open" : "closed"}`}>
-              <div className="tools-panel-header">
-                <h3>Tools</h3>
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="close-panel-btn"
-                  title="Close panel"
-                >
-                  <X size={18} />
-                </button>
+          <div className="editor-content">
+            {isSharedContent && !canEdit && (
+              <div className="view-only-banner">
+                <Eye size={16} />
+                <span>View Only - You don't have permission to edit this shared note</span>
               </div>
-
-              <div className="tools-panel-content">
-                {/* View Mode Section */}
-                <div className="tool-section">
-                  <label className="tool-section-label">View Mode</label>
-                  <div className="tool-buttons-group">
-                    <button
-                      className={`tool-panel-btn ${viewMode === "edit" ? "active" : ""}`}
-                      onClick={() => setViewMode("edit")}
-                      title="Edit mode"
-                    >
-                      <Edit3 size={16} />
-                      <span>Edit</span>
-                    </button>
-                    <button
-                      className={`tool-panel-btn ${viewMode === "preview" ? "active" : ""}`}
-                      onClick={() => setViewMode("preview")}
-                      title="Preview mode"
-                    >
-                      <Eye size={16} />
-                      <span>Preview</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Export Section */}
-                <div className="tool-section">
-                  <label className="tool-section-label">Export</label>
-                  <div className="tool-buttons-group">
-                    <button 
-                      className="tool-panel-btn" 
-                      onClick={exportAsPDF} 
-                      title="Export as PDF"
-                    >
-                      <FileDown size={16} />
-                      <span>PDF</span>
-                    </button>
-                    <button 
-                      className="tool-panel-btn" 
-                      onClick={exportAsText} 
-                      title="Export as Text"
-                    >
-                      <Download size={16} />
-                      <span>TXT</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* AI Tools Section */}
-                <div className="tool-section">
-                  <label className="tool-section-label">AI Tools</label>
-                  <div className="tool-buttons-group">
-                    <button
-                      className="tool-panel-btn"
-                      onClick={() => setShowAIAssistant(true)}
-                      title="AI Writing Assistant"
-                    >
-                      <Sparkles size={16} />
-                      <span>AI Assist</span>
-                    </button>
-                    <button
-                      className="tool-panel-btn"
-                      onClick={() => setShowChatImport(true)}
-                      title="Import from AI Chat"
-                    >
-                      <Upload size={16} />
-                      <span>From Chat</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Tags Section */}
-                <div className="tool-section">
-                  <label className="tool-section-label">Organization</label>
-                  <div className="tool-buttons-group">
-                    <button 
-                      onClick={() => setShowTagsPanel(!showTagsPanel)}
-                      className={`tool-panel-btn ${showTagsPanel ? 'active' : ''}`}
-                      title="Toggle tags panel"
-                    >
-                      <Tag size={16} />
-                      <span>Tags</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="editor-content">
-              {isSharedContent && !canEdit && (
-                <div className="view-only-banner">
-                  <Eye size={16} />
-                  <span>View Only - You don't have permission to edit this shared note</span>
-                </div>
-              )}
-              
-              <div className={`title-section ${titleSectionCollapsed ? 'collapsed' : ''}`}>
+            )}
+            
+            <div className={`title-section ${titleSectionCollapsed ? 'collapsed' : ''}`}>
               <div className="title-section-header">
                 <div className="title-section-content">
                   <input
@@ -2246,18 +2431,15 @@ const NotesRedesign = ({ sharedMode = false }) => {
               </div>
             </div>
 
-              {/* Backlinks Panel */}
-              {selectedNote && backlinks.length > 0 && !isSharedContent && (
-                <div style={{ padding: '0 60px 40px' }}>
-                  <BacklinksPanel
-                    backlinks={backlinks}
-                    onNoteClick={selectNote}
-                  />
-                </div>
-              )}
-            </div>
-
-
+            {/* Backlinks Panel */}
+            {selectedNote && backlinks.length > 0 && !isSharedContent && (
+              <div style={{ padding: '0 60px 40px' }}>
+                <BacklinksPanel
+                  backlinks={backlinks}
+                  onNoteClick={selectNote}
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div className="empty-state-new">

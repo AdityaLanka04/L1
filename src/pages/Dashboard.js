@@ -946,7 +946,7 @@ const Dashboard = () => {
   };
   const openNotes = async () => {
     await endDashboardSession();
-    window.location.href = '/notes-dashboard';
+    window.location.href = '/notes';
   };
   const openProfile = async () => {
     await endDashboardSession();

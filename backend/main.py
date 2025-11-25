@@ -2734,6 +2734,78 @@ Use HTML formatting. Start DIRECTLY with the content."""
         logger.error(f"Error expanding content: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to expand content: {str(e)}")
 
+@app.post("/api/generate_notes_from_media")
+async def generate_notes_from_media(
+    user_id: str = Form(...),
+    file: UploadFile = File(None),
+    youtube_url: str = Form(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Generate notes from audio/video files or YouTube URLs
+    """
+    try:
+        logger.info(f"Generating notes from media for user: {user_id}")
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # For now, generate sample notes (you can integrate actual transcription later)
+        if file:
+            content = f"""<h1>Notes from {file.filename}</h1>
+<h2>Overview</h2>
+<p>These are AI-generated notes from your uploaded media file.</p>
+
+<h2>Key Points</h2>
+<ul>
+<li><strong>Main Topic:</strong> Content analysis from audio/video</li>
+<li><strong>Duration:</strong> Estimated processing time</li>
+<li><strong>Format:</strong> {file.content_type}</li>
+</ul>
+
+<h2>Summary</h2>
+<p>This is a placeholder for transcribed and summarized content. In production, this would contain the actual transcription and AI-generated summary of your media file.</p>
+
+<h2>Action Items</h2>
+<ul>
+<li>Review the key concepts</li>
+<li>Create flashcards from important points</li>
+<li>Practice with generated questions</li>
+</ul>"""
+        elif youtube_url:
+            content = f"""<h1>Notes from YouTube Video</h1>
+<h2>Video URL</h2>
+<p>{youtube_url}</p>
+
+<h2>Key Points</h2>
+<ul>
+<li><strong>Source:</strong> YouTube video content</li>
+<li><strong>Format:</strong> Video transcript and summary</li>
+</ul>
+
+<h2>Summary</h2>
+<p>This is a placeholder for YouTube video transcription and summary. In production, this would contain the actual video transcript and AI-generated notes.</p>
+
+<h2>Important Concepts</h2>
+<ul>
+<li>Concept 1: Main idea from the video</li>
+<li>Concept 2: Supporting details</li>
+<li>Concept 3: Practical applications</li>
+</ul>"""
+        else:
+            raise HTTPException(status_code=400, detail="Please provide either a file or YouTube URL")
+        
+        return {
+            "notes": content,
+            "status": "success",
+            "message": "Notes generated successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating notes from media: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate notes: {str(e)}")
+
 @app.post("/api/create_note")
 def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
     try:
