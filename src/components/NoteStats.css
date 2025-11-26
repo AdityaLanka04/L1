@@ -1,0 +1,20 @@
+.note-stats-bar {
+  display: flex;
+  gap: 20px;
+  padding: 8px 16px;
+  background: var(--hover-bg);
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.stat-item svg {
+  opacity: 0.7;
+}

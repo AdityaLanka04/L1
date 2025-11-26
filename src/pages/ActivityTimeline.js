@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   Calendar as CalendarIcon, Clock, FileText, BookOpen, 
   MessageSquare, Award, ChevronLeft, ChevronRight, ArrowLeft,
-  X, TrendingUp, Flame, BarChart3, Plus, Bell, AlertCircle
+  X, TrendingUp, Flame, BarChart3, Plus, Bell, AlertCircle,
+  CheckSquare, Trash2
 } from 'lucide-react';
 import './ActivityTimeline.css';
 import { API_URL } from '../config';
@@ -22,6 +23,11 @@ const ActivityTimeline = () => {
   const [showDayModal, setShowDayModal] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showReminderModal, setShowReminderModal] = useState(false);
+  const [quickAddDate, setQuickAddDate] = useState(null);
+  const [timeFilter, setTimeFilter] = useState('all');
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const [reminderForm, setReminderForm] = useState({
     title: '',
     description: '',
@@ -29,8 +35,76 @@ const ActivityTimeline = () => {
     reminder_type: 'event',
     priority: 'medium',
     color: '#3b82f6',
-    notify_before_minutes: 15
+    notify_before_minutes: 15,
+    recurring: 'none', // none, daily, weekly, monthly
+    recurring_end_date: ''
   });
+
+  const getProductivityScore = () => {
+    const today = new Date();
+    const todayActivities = activities.filter(a => 
+      a.timestamp.toDateString() === today.toDateString()
+    );
+    
+    const score = Math.min(100, (todayActivities.length / 10) * 100);
+    return Math.round(score);
+  };
+
+  const getMostProductiveTime = () => {
+    const hourCounts = {};
+    activities.forEach(a => {
+      const hour = a.timestamp.getHours();
+      hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+    });
+    
+    const maxHour = Object.entries(hourCounts).sort((a, b) => b[1] - a[1])[0];
+    if (!maxHour) return 'N/A';
+    
+    const hour = parseInt(maxHour[0]);
+    return `${hour === 0 ? 12 : hour > 12 ? hour - 12 : hour}${hour >= 12 ? 'PM' : 'AM'}`;
+  };
+
+  const exportCalendarData = () => {
+    const data = {
+      activities: activities.map(a => ({
+        type: a.type,
+        title: a.title,
+        date: a.timestamp.toISOString(),
+        content: a.content
+      })),
+      reminders: reminders.map(r => ({
+        title: r.title,
+        description: r.description,
+        date: r.reminder_date,
+        priority: r.priority,
+        type: r.reminder_type
+      }))
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `calendar-export-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const toggleBulkSelect = (id) => {
+    setSelectedItems(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const bulkDeleteReminders = async () => {
+    if (!window.confirm(`Delete ${selectedItems.length} reminders?`)) return;
+    
+    for (const id of selectedItems) {
+      await deleteReminder(id);
+    }
+    setSelectedItems([]);
+    setBulkMode(false);
+  };
 
   useEffect(() => {
     loadAllActivities();
@@ -453,6 +527,35 @@ const ActivityTimeline = () => {
               <BarChart3 size={16} />
               Stats
             </button>
+            <button
+              className="calendar-stats-btn"
+              onClick={() => setShowAnalytics(!showAnalytics)}
+              title="Analytics"
+            >
+              <TrendingUp size={16} />
+              Analytics
+            </button>
+            <button
+              className="calendar-stats-btn"
+              onClick={exportCalendarData}
+              title="Export Data"
+            >
+              <FileText size={16} />
+              Export
+            </button>
+            {viewMode === 'calendar' && (
+              <button
+                className={`calendar-stats-btn ${bulkMode ? 'active' : ''}`}
+                onClick={() => {
+                  setBulkMode(!bulkMode);
+                  setSelectedItems([]);
+                }}
+                title="Bulk Operations"
+              >
+                <CheckSquare size={16} />
+                Bulk Edit
+              </button>
+            )}
             <div className="calendar-nav-buttons">
               <button
                 className="calendar-nav-btn"
@@ -514,6 +617,53 @@ const ActivityTimeline = () => {
                 <div className="stat-label">Flashcards</div>
               </div>
             </div>
+          </div>
+        )}
+
+        {showAnalytics && (
+          <div className="analytics-panel">
+            <h3>Productivity Analytics</h3>
+            <div className="analytics-grid">
+              <div className="analytics-item">
+                <span className="analytics-label">Today's Productivity</span>
+                <div className="progress-bar">
+                  <div className="progress-fill" style={{ width: `${getProductivityScore()}%` }}></div>
+                </div>
+                <span className="analytics-value">{getProductivityScore()}%</span>
+              </div>
+              <div className="analytics-item">
+                <span className="analytics-label">Most Productive Time</span>
+                <span className="analytics-value">{getMostProductiveTime()}</span>
+              </div>
+              <div className="analytics-item">
+                <span className="analytics-label">Avg Activities/Day</span>
+                <span className="analytics-value">
+                  {activities.length > 0 ? Math.round(activities.length / Math.max(1, getActivityStats().streak)) : 0}
+                </span>
+              </div>
+              <div className="analytics-item">
+                <span className="analytics-label">Upcoming Reminders</span>
+                <span className="analytics-value">
+                  {reminders.filter(r => !r.is_completed && new Date(r.reminder_date) > new Date()).length}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {bulkMode && selectedItems.length > 0 && (
+          <div className="bulk-actions-bar">
+            <span>{selectedItems.length} selected</span>
+            <button className="bulk-action-btn delete" onClick={bulkDeleteReminders}>
+              <Trash2 size={16} />
+              Delete Selected
+            </button>
+            <button className="bulk-action-btn" onClick={() => {
+              setSelectedItems([]);
+              setBulkMode(false);
+            }}>
+              Cancel
+            </button>
           </div>
         )}
         

@@ -617,7 +617,7 @@ def health_check():
         "message": "Brainwave API is running",
         "ai_provider": "Groq",
         "frontend": "https://l1-theta.vercel.app",
-        "timestamp": datetime.now(timezone.utc).isoformat() + 'Z'
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
 @app.on_event("startup")
@@ -1276,8 +1276,8 @@ def create_chat_session(
             "id": chat_session.id,
             "session_id": chat_session.id,
             "title": chat_session.title,
-            "created_at": chat_session.created_at.isoformat() + 'Z',
-            "updated_at": chat_session.updated_at.isoformat() + 'Z',
+            "created_at": chat_session.created_at.isoformat(),
+            "updated_at": chat_session.updated_at.isoformat(),
             "status": "success"
         }
     except HTTPException:
@@ -1349,7 +1349,7 @@ def get_user_achievements(user_id: str = Query(...), db: Session = Depends(get_d
                     "points": achievement.points,
                     "category": achievement.category,
                     "rarity": achievement.rarity,
-                    "earned_at": ua.earned_at.isoformat() + 'Z'
+                    "earned_at": ua.earned_at.isoformat()
                 })
         
         return {
@@ -1406,7 +1406,7 @@ def get_chat_messages(chat_id: int = Query(...), db: Session = Depends(get_db)):
                 "id": f"user_{msg.id}",
                 "type": "user",
                 "content": msg.user_message,
-                "timestamp": msg.timestamp.isoformat() + 'Z'
+                "timestamp": msg.timestamp.isoformat()
             })
             
             # Add AI message
@@ -1414,7 +1414,7 @@ def get_chat_messages(chat_id: int = Query(...), db: Session = Depends(get_db)):
                 "id": f"ai_{msg.id}",
                 "type": "ai",
                 "content": msg.ai_response,
-                "timestamp": msg.timestamp.isoformat() + 'Z',
+                "timestamp": msg.timestamp.isoformat(),
                 "aiConfidence": 0.85,
                 "shouldRequestFeedback": False
             })
@@ -1569,7 +1569,7 @@ async def get_chat_history(session_id: str, db: Session = Depends(get_db)):
             {
                 "user_message": msg.user_message,
                 "ai_response": msg.ai_response,
-                "timestamp": msg.timestamp.isoformat() + 'Z'
+                "timestamp": msg.timestamp.isoformat()
             }
             for msg in messages
         ]
@@ -1635,7 +1635,7 @@ def to_utc_iso(dt):
     """Convert datetime to ISO format with UTC timezone indicator"""
     if dt is None:
         return None
-    return dt.isoformat() + 'Z' if not dt.isoformat() + 'Z'.endswith('Z') else dt.isoformat() + 'Z'
+    return dt.isoformat() + 'Z' if not dt.isoformat().endswith('Z') else dt.isoformat()
 
 def clean_conversational_elements(text: str) -> str:
     """Remove conversational phrases from AI-generated content"""
@@ -1684,8 +1684,8 @@ def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
                     "id": note.id,
                     "title": note.title,
                     "content": note.content,
-                    "created_at": note.created_at.isoformat() + 'Z',
-                    "updated_at": note.updated_at.isoformat() + 'Z',
+                    "created_at": note.created_at.isoformat(),
+                    "updated_at": note.updated_at.isoformat(),
                     "is_favorite": getattr(note, 'is_favorite', False),
                     "folder_id": getattr(note, 'folder_id', None),
                     "custom_font": getattr(note, 'custom_font', 'Inter'),
@@ -1916,7 +1916,7 @@ def get_folders(user_id: str = Query(...), db: Session = Depends(get_db)):
                 "color": folder.color,
                 "parent_id": folder.parent_id,
                 "note_count": note_count,
-                "created_at": folder.created_at.isoformat() + 'Z'
+                "created_at": folder.created_at.isoformat()
             })
         
         return {"folders": result}
@@ -1964,7 +1964,7 @@ def get_trash(user_id: str = Query(...), db: Session = Depends(get_db)):
                 "id": note.id,
                 "title": note.title,
                 "content": note.content,
-                "deleted_at": note.deleted_at.isoformat() + 'Z' if note.deleted_at else None,
+                "deleted_at": note.deleted_at.isoformat() if note.deleted_at else None,
                 "days_remaining": days_remaining
             })
         
@@ -2467,8 +2467,8 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
             "title": new_note.title,
             "content": new_note.content,
             "user_id": user.id,
-            "created_at": new_note.created_at.isoformat() + 'Z',
-            "updated_at": new_note.updated_at.isoformat() + 'Z',
+            "created_at": new_note.created_at.isoformat(),
+            "updated_at": new_note.updated_at.isoformat(),
             "status": "success",
             "message": "Note created successfully"
         }
@@ -2573,7 +2573,7 @@ def update_note(note_data: NoteUpdate, db: Session = Depends(get_db)):
             "id": note.id,
             "title": note.title,
             "content": note.content,
-            "updated_at": note.updated_at.isoformat() + 'Z',
+            "updated_at": note.updated_at.isoformat(),
             "is_deleted": False,
             "status": "success"
         }
@@ -3009,8 +3009,8 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
             "title": new_note.title,
             "content": new_note.content,
             "user_id": user.id,
-            "created_at": new_note.created_at.isoformat() + 'Z',
-            "updated_at": new_note.updated_at.isoformat() + 'Z',
+            "created_at": new_note.created_at.isoformat(),
+            "updated_at": new_note.updated_at.isoformat(),
             "status": "success",
             "message": "Note created successfully"
         }
@@ -3055,7 +3055,7 @@ def update_note(note_data: NoteUpdate, db: Session = Depends(get_db)):
             "id": note.id,
             "title": note.title,
             "content": note.content,
-            "updated_at": note.updated_at.isoformat() + 'Z',
+            "updated_at": note.updated_at.isoformat(),
             "is_deleted": note.is_deleted,
             "status": "success"
         }
@@ -3163,7 +3163,7 @@ def create_folder(folder_data: FolderCreate, db: Session = Depends(get_db)):
             "name": new_folder.name,
             "color": new_folder.color,
             "parent_id": new_folder.parent_id,
-            "created_at": new_folder.created_at.isoformat() + 'Z',
+            "created_at": new_folder.created_at.isoformat(),
             "status": "success"
         }
     except Exception as e:
@@ -3268,8 +3268,8 @@ def get_favorite_notes(user_id: str = Query(...), db: Session = Depends(get_db))
                     "id": note.id,
                     "title": note.title,
                     "content": note.content,
-                    "created_at": note.created_at.isoformat() + 'Z',
-                    "updated_at": note.updated_at.isoformat() + 'Z'
+                    "created_at": note.created_at.isoformat(),
+                    "updated_at": note.updated_at.isoformat()
                 }
                 for note in notes
             ]
@@ -3358,7 +3358,7 @@ def create_chat_folder(folder_data: ChatFolderCreate, db: Session = Depends(get_
             "name": new_folder.name,
             "color": new_folder.color,
             "parent_id": new_folder.parent_id,
-            "created_at": new_folder.created_at.isoformat() + 'Z',
+            "created_at": new_folder.created_at.isoformat(),
             "status": "success"
         }
     except Exception as e:
@@ -3389,8 +3389,8 @@ def get_chat_folders(user_id: str = Query(...), db: Session = Depends(get_db)):
                 "color": folder.color,
                 "parent_id": folder.parent_id,
                 "chat_count": chat_count,
-                "created_at": folder.created_at.isoformat() + 'Z',
-                "updated_at": folder.updated_at.isoformat() + 'Z'
+                "created_at": folder.created_at.isoformat(),
+                "updated_at": folder.updated_at.isoformat()
             })
         
         return result
@@ -3973,14 +3973,14 @@ def get_activity_heatmap(user_id: str = Query(...), db: Session = Depends(get_db
         
         activity_dict = {}
         for activity in activities:
-            date_str = activity.timestamp.date().isoformat() + 'Z'
+            date_str = activity.timestamp.date().isoformat()
             activity_dict[date_str] = activity_dict.get(date_str, 0) + 1
         
         current_date = start_date
         heatmap_data = []
         
         while current_date <= end_date:
-            date_str = current_date.isoformat() + 'Z'
+            date_str = current_date.isoformat()
             count = activity_dict.get(date_str, 0)
             
             if count == 0:
@@ -4009,8 +4009,8 @@ def get_activity_heatmap(user_id: str = Query(...), db: Session = Depends(get_db
             "heatmap_data": heatmap_data,
             "total_count": total_count,
             "date_range": {
-                "start": start_date.isoformat() + 'Z',
-                "end": end_date.isoformat() + 'Z'
+                "start": start_date.isoformat(),
+                "end": end_date.isoformat()
             }
         }
     except Exception as e:
@@ -4062,8 +4062,8 @@ def get_weekly_progress(user_id: str = Query(...), db: Session = Depends(get_db)
             "weekly_data": weekly_data,
             "total_sessions": total_sessions,
             "average_per_day": round(average_per_day, 1),
-            "start_date": start_date.isoformat() + 'Z',
-            "end_date": end_date.isoformat() + 'Z'
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat()
         }
         
     except Exception as e:
@@ -4127,8 +4127,8 @@ def get_learning_analytics(user_id: str = Query(...), period: str = Query("week"
     
     return {
         "period": "week",
-        "start_date": start_date.isoformat() + 'Z',
-        "end_date": end_date.isoformat() + 'Z',
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
         "total_sessions": total_sessions,
         "total_time_minutes": total_time_minutes,
         "total_questions": total_questions,
@@ -4273,7 +4273,7 @@ def start_session(
         return {
             "status": "success",
             "session_id": session_id,
-            "start_time": datetime.now(timezone.utc).isoformat() + 'Z',
+            "start_time": datetime.now(timezone.utc).isoformat(),
             "message": f"Started {session_type} session"
         }
         
@@ -4516,9 +4516,9 @@ def get_learning_reviews(user_id: str = Query(...), db: Session = Depends(get_db
                 "current_attempt": review.current_attempt,
                 "session_titles": session_titles,
                 "slide_filenames": slide_filenames,
-                "created_at": review.created_at.isoformat() + 'Z',
-                "updated_at": review.updated_at.isoformat() + 'Z',
-                "completed_at": review.completed_at.isoformat() + 'Z' if review.completed_at else None,
+                "created_at": review.created_at.isoformat(),
+                "updated_at": review.updated_at.isoformat(),
+                "completed_at": review.completed_at.isoformat() if review.completed_at else None,
                 "can_continue": review.status == "active" and review.current_attempt < 5
             })
 
@@ -4624,7 +4624,7 @@ def get_uploaded_slides(user_id: str = Query(...), db: Session = Depends(get_db)
                     "file_size": slide.file_size,
                     "file_type": slide.file_type,
                     "page_count": slide.page_count,
-                    "uploaded_at": slide.uploaded_at.isoformat() + 'Z',
+                    "uploaded_at": slide.uploaded_at.isoformat(),
                     "preview_url": slide.preview_url,
                     "processing_status": slide.processing_status
                 }
@@ -4852,7 +4852,7 @@ def get_question_sets(user_id: str = Query(...), db: Session = Depends(get_db)):
                     "attempt_count": qs.attempt_count,
                     "status": qs.status,
                     "can_practice": True,
-                    "created_at": qs.created_at.isoformat() + 'Z'
+                    "created_at": qs.created_at.isoformat()
                 }
                 for qs in question_sets
             ]
@@ -5866,7 +5866,7 @@ async def get_knowledge_roadmap(
                 "expansion_status": node.expansion_status,
                 "user_notes": node.user_notes,
                 "position": {"x": node.position_x, "y": node.position_y},
-                "created_at": node.created_at.isoformat() + 'Z'
+                "created_at": node.created_at.isoformat()
             }
             for node in all_nodes
         ]
@@ -5879,8 +5879,8 @@ async def get_knowledge_roadmap(
                 "total_nodes": roadmap.total_nodes,
                 "max_depth_reached": roadmap.max_depth_reached,
                 "status": roadmap.status,
-                "created_at": roadmap.created_at.isoformat() + 'Z',
-                "last_accessed": roadmap.last_accessed.isoformat() + 'Z' if roadmap.last_accessed else None
+                "created_at": roadmap.created_at.isoformat(),
+                "last_accessed": roadmap.last_accessed.isoformat() if roadmap.last_accessed else None
             },
             "nodes_flat": nodes_flat,
             "expanded_nodes": list(expanded_nodes)  # Add this to track which nodes should be expanded
@@ -5923,8 +5923,8 @@ async def get_user_roadmaps(
                 "total_nodes": roadmap.total_nodes,
                 "max_depth_reached": roadmap.max_depth_reached,
                 "status": roadmap.status,
-                "created_at": roadmap.created_at.isoformat() + 'Z',
-                "last_accessed": roadmap.last_accessed.isoformat() + 'Z' if roadmap.last_accessed else roadmap.created_at.isoformat() + 'Z'
+                "created_at": roadmap.created_at.isoformat(),
+                "last_accessed": roadmap.last_accessed.isoformat() if roadmap.last_accessed else roadmap.created_at.isoformat()
             })
         
         return {
@@ -5958,7 +5958,7 @@ def get_generated_questions(user_id: str = Query(...), db: Session = Depends(get
                     "id": qs.id,
                     "title": qs.title,
                     "question_count": qs.question_count,
-                    "created_at": qs.created_at.isoformat() + 'Z',
+                    "created_at": qs.created_at.isoformat(),
                     "status": qs.status,
                     "best_score": round(qs.best_score, 1),
                     "attempt_count": qs.attempt_count
@@ -6250,8 +6250,8 @@ async def get_knowledge_roadmaps(
                     "total_nodes": roadmap.total_nodes,
                     "max_depth_reached": roadmap.max_depth_reached,
                     "status": roadmap.status,
-                    "created_at": roadmap.created_at.isoformat() + 'Z',
-                    "last_accessed": roadmap.last_accessed.isoformat() + 'Z' if roadmap.last_accessed else None
+                    "created_at": roadmap.created_at.isoformat(),
+                    "last_accessed": roadmap.last_accessed.isoformat() if roadmap.last_accessed else None
                 }
                 for roadmap in roadmaps
             ]
@@ -6474,9 +6474,9 @@ def get_learning_reviews(user_id: str = Query(...), db: Session = Depends(get_db
                 "attempt_count": review.attempt_count,
                 "current_attempt": review.current_attempt,
                 "session_titles": session_titles,
-                "created_at": review.created_at.isoformat() + 'Z',
-                "updated_at": review.updated_at.isoformat() + 'Z',
-                "completed_at": review.completed_at.isoformat() + 'Z' if review.completed_at else None,
+                "created_at": review.created_at.isoformat(),
+                "updated_at": review.updated_at.isoformat(),
+                "completed_at": review.completed_at.isoformat() if review.completed_at else None,
                 "can_continue": review.status == "active" and review.current_attempt < 5
             })
 
@@ -7008,7 +7008,7 @@ async def get_friend_requests(
                 "first_name": sender.first_name or "",
                 "last_name": sender.last_name or "",
                 "picture_url": sender.picture_url or "",
-                "created_at": req.created_at.isoformat() + 'Z'
+                "created_at": req.created_at.isoformat()
             })
         
         sent_result = []
@@ -7022,7 +7022,7 @@ async def get_friend_requests(
                 "first_name": receiver.first_name or "",
                 "last_name": receiver.last_name or "",
                 "picture_url": receiver.picture_url or "",
-                "created_at": req.created_at.isoformat() + 'Z'
+                "created_at": req.created_at.isoformat()
             })
         
         return {
@@ -7162,7 +7162,7 @@ async def get_friends(
                     "day_streak": user_stats.day_streak if user_stats else 0,
                     "accuracy_percentage": round(user_stats.accuracy_percentage, 1) if user_stats else 0
                 },
-                "friends_since": friendship.created_at.isoformat() + 'Z'
+                "friends_since": friendship.created_at.isoformat()
             })
         
         return {"friends": result}
@@ -7274,7 +7274,7 @@ async def get_friend_activity_feed(
                 "metadata": json.loads(activity.activity_data) if activity.activity_data else {},
                 "kudos_count": kudos_count,
                 "user_gave_kudos": user_gave_kudos,
-                "created_at": activity.created_at.isoformat() + 'Z'
+                "created_at": activity.created_at.isoformat()
             })
         
         return {"activities": result}
@@ -7585,8 +7585,8 @@ async def get_quiz_battles(
                 "your_completed": battle.challenger_completed if is_challenger else battle.opponent_completed,
                 "opponent_completed": battle.opponent_completed if is_challenger else battle.challenger_completed,
                 "is_challenger": is_challenger,
-                "created_at": battle.created_at.isoformat() + 'Z',
-                "expires_at": battle.expires_at.isoformat() + 'Z' if battle.expires_at else None
+                "created_at": battle.created_at.isoformat(),
+                "expires_at": battle.expires_at.isoformat() if battle.expires_at else None
             })
         
         return {"battles": result}
@@ -7804,8 +7804,8 @@ async def get_challenges(
                 "is_participating": participation is not None,
                 "user_progress": participation.progress if participation else 0,
                 "user_completed": participation.completed if participation else False,
-                "created_at": challenge.created_at.isoformat() + 'Z',
-                "ends_at": challenge.ends_at.isoformat() + 'Z' if challenge.ends_at else None
+                "created_at": challenge.created_at.isoformat(),
+                "ends_at": challenge.ends_at.isoformat() if challenge.ends_at else None
             })
         
         return {"challenges": result}
@@ -8530,7 +8530,7 @@ def get_shared_with_me(
                     "title": title,
                     "permission": item.permission,
                     "message": item.message,
-                    "shared_at": item.shared_at.isoformat() + 'Z' if item.shared_at else None,
+                    "shared_at": item.shared_at.isoformat() if item.shared_at else None,
                     "shared_by": {
                         "id": owner.id,
                         "username": owner.username,
@@ -8578,7 +8578,7 @@ def debug_friendships(
                     "user_id": f.user_id,
                     "friend_id": f.friend_id,
                     "status": f.status,
-                    "created_at": f.created_at.isoformat() + 'Z'
+                    "created_at": f.created_at.isoformat()
                 }
                 for f in friendships
             ],
@@ -8588,7 +8588,7 @@ def debug_friendships(
                     "user_id": f.user_id,
                     "friend_id": f.friend_id,
                     "status": f.status,
-                    "created_at": f.created_at.isoformat() + 'Z'
+                    "created_at": f.created_at.isoformat()
                 }
                 for f in reverse_friendships
             ],
@@ -8635,8 +8635,8 @@ def get_shared_content(
                 "content_id": content.id,
                 "title": content.title,
                 "content": content.content,
-                "created_at": content.created_at.isoformat() + 'Z',
-                "updated_at": content.updated_at.isoformat() + 'Z',
+                "created_at": content.created_at.isoformat(),
+                "updated_at": content.updated_at.isoformat(),
                 "permission": shared.permission if shared else "owner",
                 "is_owner": is_owner,
                 "owner": {
@@ -8669,8 +8669,8 @@ def get_shared_content(
                 "content_type": "chat",
                 "content_id": content.id,
                 "title": content.title,
-                "created_at": content.created_at.isoformat() + 'Z',
-                "updated_at": content.updated_at.isoformat() + 'Z',
+                "created_at": content.created_at.isoformat(),
+                "updated_at": content.updated_at.isoformat(),
                 "permission": shared.permission if shared else "owner",
                 "is_owner": is_owner,
                 "owner": {
@@ -8684,7 +8684,7 @@ def get_shared_content(
                     {
                         "user_message": msg.user_message,
                         "ai_response": msg.ai_response,
-                        "timestamp": msg.timestamp.isoformat() + 'Z'
+                        "timestamp": msg.timestamp.isoformat()
                     }
                     for msg in messages
                 ]
@@ -8730,7 +8730,7 @@ def debug_shared_content(
                     "content_id": item.content_id,
                     "permission": item.permission,
                     "message": item.message,
-                    "shared_at": item.shared_at.isoformat() + 'Z' if item.shared_at else None
+                    "shared_at": item.shared_at.isoformat() if item.shared_at else None
                 }
                 for item in shared_items
             ],
@@ -8849,7 +8849,7 @@ def update_shared_note(
                 "id": note.id,
                 "title": note.title,
                 "content": note.content,
-                "updated_at": note.updated_at.isoformat() + 'Z'
+                "updated_at": note.updated_at.isoformat()
             }
         }
         
@@ -9755,7 +9755,7 @@ async def get_notifications(
                     notification = models.Notification(
                         user_id=user.id,
                         title=f"Reminder: {reminder.title}",
-                        message=f"{reminder.description or 'Upcoming reminder'} at {reminder.reminder_date.isoformat() + 'Z'}",
+                        message=f"{reminder.description or 'Upcoming reminder'} - {reminder.reminder_date.strftime('%I:%M %p')}",
                         notification_type='reminder'
                     )
                     db.add(notification)
@@ -9777,7 +9777,7 @@ async def get_notifications(
                     "message": n.message,
                     "notification_type": n.notification_type,
                     "is_read": n.is_read,
-                    "created_at": n.created_at.isoformat() + 'Z'
+                    "created_at": n.created_at.isoformat()
                 }
                 for n in notifications
             ]
@@ -9988,7 +9988,7 @@ async def get_concept_web(
                     "notes_count": node.notes_count,
                     "quizzes_count": node.quizzes_count,
                     "flashcards_count": node.flashcards_count,
-                    "created_at": node.created_at.isoformat() + 'Z'
+                    "created_at": node.created_at.isoformat()
                 }
                 for node in nodes
             ],
@@ -10790,7 +10790,7 @@ async def create_reminder(
         notification = models.Notification(
             user_id=user.id,
             title=f"Reminder Set: {title}",
-            message=f"Reminder scheduled for {reminder.reminder_date.isoformat() + 'Z'}",
+            message=f"Reminder scheduled for {reminder.reminder_date.strftime('%B %d at %I:%M %p')}",
             notification_type='reminder'
         )
         db.add(notification)
@@ -10946,7 +10946,7 @@ async def get_upcoming_reminders(
             "id": r.id,
             "title": r.title,
             "description": r.description,
-            "reminder_date": r.reminder_date.isoformat() + 'Z',
+            "reminder_date": r.reminder_date.isoformat(),
             "reminder_type": r.reminder_type,
             "priority": r.priority,
             "color": r.color,
@@ -10955,192 +10955,6 @@ async def get_upcoming_reminders(
     except Exception as e:
         logger.error(f"Error getting upcoming reminders: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
-if __name__ == "__main__":
-    import uvicorn
-    
-    logger.info(f"Starting Brainwave AI Backend v3.0.0 with Groq")
-    logger.info(f"All API endpoints loaded successfully")
-    
-    uvicorn.run(app, host="127.0.0.1", port=8000, reload=False)
-
-
-# ==================== FILE IMPORT API ====================
-
-@app.post("/api/import_document")
-async def import_document(
-    file: UploadFile = File(...),
-    user_id: str = Form(...),
-    db: Session = Depends(get_db)
-):
-    """Import PDF or DOCX file and convert to note"""
-    try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        # Read file content
-        content = await file.read()
-        file_extension = file.filename.split('.')[-1].lower()
-        
-        extracted_text = ""
-        
-        # Extract text based on file type
-        if file_extension == 'pdf':
-            # Extract from PDF
-            pdf_file = io.BytesIO(content)
-            pdf_reader = PyPDF2.PdfReader(pdf_file)
-            
-            for page in pdf_reader.pages:
-                extracted_text += page.extract_text() + "\n\n"
-        
-        elif file_extension in ['docx', 'doc']:
-            # Extract from DOCX
-            try:
-                import docx
-                docx_file = io.BytesIO(content)
-                doc = docx.Document(docx_file)
-                
-                for paragraph in doc.paragraphs:
-                    extracted_text += paragraph.text + "\n"
-            except ImportError:
-                raise HTTPException(
-                    status_code=500, 
-                    detail="python-docx not installed. Install with: pip install python-docx"
-                )
-        
-        else:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Unsupported file type: {file_extension}. Supported: PDF, DOCX"
-            )
-        
-        if not extracted_text.strip():
-            raise HTTPException(status_code=400, detail="No text could be extracted from the file")
-        
-        # Convert to HTML blocks
-        paragraphs = extracted_text.strip().split('\n')
-        html_content = ""
-        
-        for para in paragraphs:
-            para = para.strip()
-            if para:
-                # Check if it looks like a heading (short, all caps, or ends with colon)
-                if len(para) < 50 and (para.isupper() or para.endswith(':')):
-                    html_content += f"<h2>{para}</h2>"
-                else:
-                    html_content += f"<p>{para}</p>"
-        
-        # Create note
-        note_title = file.filename.rsplit('.', 1)[0]
-        new_note = models.Note(
-            user_id=user.id,
-            title=note_title,
-            content=html_content
-        )
-        
-        db.add(new_note)
-        db.commit()
-        db.refresh(new_note)
-        
-        logger.info(f"Imported {file_extension.upper()} file as note {new_note.id} for user {user.email}")
-        
-        return {
-            "status": "success",
-            "note_id": new_note.id,
-            "title": note_title,
-            "extracted_length": len(extracted_text),
-            "message": f"Successfully imported {file.filename}"
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error importing document: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to import document: {str(e)}")
-
-
-@app.post("/api/upload-attachment")
-async def upload_attachment(
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db)
-):
-    """Upload PDF or DOCX file as attachment and return URL"""
-    try:
-        # Validate file type
-        file_extension = file.filename.split('.')[-1].lower()
-        if file_extension not in ['pdf', 'docx', 'doc']:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Unsupported file type: {file_extension}. Supported: PDF, DOCX"
-            )
-        
-        # Create attachments directory if it doesn't exist
-        attachments_dir = Path("backend/attachments")
-        attachments_dir.mkdir(exist_ok=True)
-        
-        # Generate unique filename
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe_filename = "".join(c for c in file.filename if c.isalnum() or c in (' ', '.', '_', '-')).rstrip()
-        unique_filename = f"{timestamp}_{safe_filename}"
-        file_path = attachments_dir / unique_filename
-        
-        # Save file
-        content = await file.read()
-        with open(file_path, "wb") as f:
-            f.write(content)
-        
-        # Return file info
-        file_size = len(content)
-        file_url = f"/api/attachments/{unique_filename}"
-        
-        logger.info(f"Uploaded attachment: {unique_filename} ({file_size} bytes)")
-        
-        return {
-            "status": "success",
-            "filename": file.filename,
-            "url": file_url,
-            "size": file_size,
-            "type": file_extension
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error uploading attachment: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to upload attachment: {str(e)}")
-
-
-@app.get("/api/attachments/{filename}")
-async def get_attachment(filename: str):
-    """Serve attachment file"""
-    try:
-        file_path = Path("backend/attachments") / filename
-        
-        if not file_path.exists():
-            raise HTTPException(status_code=404, detail="File not found")
-        
-        # Determine content type
-        file_extension = filename.split('.')[-1].lower()
-        content_types = {
-            'pdf': 'application/pdf',
-            'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'doc': 'application/msword'
-        }
-        content_type = content_types.get(file_extension, 'application/octet-stream')
-        
-        return FileResponse(
-            path=file_path,
-            media_type=content_type,
-            filename=filename
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error serving attachment: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to serve attachment: {str(e)}")
 
 
 if __name__ == "__main__":

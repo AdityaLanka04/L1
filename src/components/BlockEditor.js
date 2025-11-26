@@ -3,9 +3,10 @@ import {
   Type, Heading1, Heading2, Heading3, List, ListOrdered, 
   CheckSquare, Code, Quote, AlertCircle, ChevronRight,
   Minus, Image as ImageIcon, Link2, Table, GripVertical,
-  Plus, Trash2, MoreVertical, Copy, ArrowUp, ArrowDown
+  Plus, Trash2, MoreVertical, Copy, ArrowUp, ArrowDown, FileText, Paperclip
 } from 'lucide-react';
 import './BlockEditor.css';
+import FileViewer from './FileViewer';
 
 const BLOCK_TYPES = [
   { type: 'paragraph', label: 'Text', icon: Type, description: 'Just start writing with plain text' },
@@ -21,6 +22,7 @@ const BLOCK_TYPES = [
   { type: 'callout', label: 'Callout', icon: AlertCircle, description: 'Make writing stand out' },
   { type: 'divider', label: 'Divider', icon: Minus, description: 'Visually divide blocks' },
   { type: 'image', label: 'Image', icon: ImageIcon, description: 'Upload or embed an image' },
+  { type: 'file', label: 'File', icon: Paperclip, description: 'Attach PDF or Word document' },
   { type: 'table', label: 'Table', icon: Table, description: 'Add a table' },
 ];
 
@@ -34,6 +36,7 @@ const BlockEditor = ({ blocks, onChange, readOnly = false }) => {
   const [draggedBlockId, setDraggedBlockId] = useState(null);
   const [showBlockMenu, setShowBlockMenu] = useState(null);
   const [focusedBlockId, setFocusedBlockId] = useState(null);
+  const [viewingFile, setViewingFile] = useState(null);
   
   const editorRef = useRef(null);
   const slashMenuRef = useRef(null);
@@ -276,6 +279,42 @@ const BlockEditor = ({ blocks, onChange, readOnly = false }) => {
     }, 0);
   };
 
+  const handleFileUpload = async (blockId, file) => {
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await fetch('http://localhost:8000/api/upload-attachment', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+      
+      if (!response.ok) throw new Error('Upload failed');
+      
+      const data = await response.json();
+      
+      const newBlocks = blocks.map(block =>
+        block.id === blockId ? {
+          ...block,
+          properties: {
+            ...block.properties,
+            fileName: data.filename,
+            fileUrl: data.url,
+            fileSize: data.size,
+            fileType: data.type
+          }
+        } : block
+      );
+      onChange(newBlocks);
+    } catch (error) {
+      console.error('File upload error:', error);
+      alert('Failed to upload file');
+    }
+  };
+
   const renderBlock = (block, index) => {
     const isHovered = hoveredBlockId === block.id;
     const isDragging = draggedBlockId === block.id;
@@ -344,6 +383,62 @@ const BlockEditor = ({ blocks, onChange, readOnly = false }) => {
         break;
       case 'divider':
         blockContent = <hr className="block-divider-line" />;
+        break;
+      case 'file':
+        blockContent = (
+          <div className="block-file-inner">
+            {!block.properties?.fileUrl ? (
+              <div className="file-upload-zone">
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.doc"
+                  onChange={(e) => handleFileUpload(block.id, e.target.files[0])}
+                  style={{ display: 'none' }}
+                  id={`file-input-${block.id}`}
+                  disabled={readOnly}
+                />
+                <label htmlFor={`file-input-${block.id}`} className="file-upload-label">
+                  <Paperclip size={20} />
+                  <span>Click to upload PDF or Word document</span>
+                </label>
+              </div>
+            ) : (
+              <div className="file-attachment">
+                <FileText size={24} className="file-icon" />
+                <div 
+                  className="file-details"
+                  onClick={() => setViewingFile({
+                    url: block.properties.fileUrl,
+                    name: block.properties.fileName,
+                    type: block.properties.fileType
+                  })}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <span className="file-name">
+                    {block.properties.fileName}
+                  </span>
+                  <span className="file-size">
+                    {(block.properties.fileSize / 1024 / 1024).toFixed(2)} MB
+                  </span>
+                </div>
+                {!readOnly && (
+                  <button
+                    className="file-remove-btn"
+                    onClick={() => {
+                      const newBlocks = blocks.map(b =>
+                        b.id === block.id ? { ...b, properties: {} } : b
+                      );
+                      onChange(newBlocks);
+                    }}
+                    title="Remove file"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        );
         break;
       case 'todo':
         blockContent = (
@@ -483,6 +578,7 @@ const BlockEditor = ({ blocks, onChange, readOnly = false }) => {
   }, []);
 
   return (
+    <>
     <div className="block-editor" ref={editorRef}>
       {blocks.map((block, index) => renderBlock(block, index))}
       
@@ -515,6 +611,16 @@ const BlockEditor = ({ blocks, onChange, readOnly = false }) => {
         </div>
       )}
     </div>
+    
+    {viewingFile && (
+      <FileViewer
+        fileUrl={viewingFile.url}
+        fileName={viewingFile.name}
+        fileType={viewingFile.type}
+        onClose={() => setViewingFile(null)}
+      />
+    )}
+    </>
   );
 };
 

@@ -1380,8 +1380,8 @@ def get_chat_sessions(user_id: str = Query(...), db: Session = Depends(get_db)):
                 "id": session.id,
                 "title": session.title,
                 "folder_id": session.folder_id,
-                "created_at": session.created_at.isoformat() + 'Z' if session.created_at else None,
-                "updated_at": session.updated_at.isoformat() + 'Z' if session.updated_at else None
+                "created_at": session.created_at.isoformat() + 'Z' + 'Z' if session.created_at else None,
+                "updated_at": session.updated_at.isoformat() + 'Z' + 'Z' if session.updated_at else None
             }
             for session in sessions
         ]
@@ -1635,7 +1635,7 @@ def to_utc_iso(dt):
     """Convert datetime to ISO format with UTC timezone indicator"""
     if dt is None:
         return None
-    return dt.isoformat() + 'Z' if not dt.isoformat() + 'Z'.endswith('Z') else dt.isoformat() + 'Z'
+    return dt.isoformat() + 'Z' + 'Z' if not dt.isoformat() + 'Z'.endswith('Z') else dt.isoformat() + 'Z'
 
 def clean_conversational_elements(text: str) -> str:
     """Remove conversational phrases from AI-generated content"""
@@ -2005,8 +2005,8 @@ def get_flashcards(user_id: str = Query(...), db: Session = Depends(get_db)):
                     "question": card.question,
                     "answer": card.answer,
                     "difficulty": card.difficulty,
-                    "created_at": (card.created_at.isoformat() + 'Z' if card.created_at else fs.created_at.isoformat() + 'Z'),
-                    "updated_at": (card.updated_at.isoformat() + 'Z' if card.updated_at else fs.created_at.isoformat() + 'Z')
+                    "created_at": (card.created_at.isoformat() + 'Z' + 'Z' if card.created_at else fs.created_at.isoformat() + 'Z' + 'Z'),
+                    "updated_at": (card.updated_at.isoformat() + 'Z' + 'Z' if card.updated_at else fs.created_at.isoformat() + 'Z' + 'Z')
                 })
         
         logger.info(f"Retrieved {len(result)} flashcards for user {user.email}")
@@ -2041,8 +2041,8 @@ def get_quiz_history(user_id: str = Query(...), db: Session = Depends(get_db)):
                     "score": getattr(session, 'score', 0),
                     "total_questions": getattr(session, 'total_questions', 0),
                     "correct_answers": getattr(session, 'correct_answers', 0),
-                    "completed_at": (session.completed_at.isoformat() + 'Z' if hasattr(session, 'completed_at') and session.completed_at else session.created_at.isoformat() + 'Z'),
-                    "created_at": session.created_at.isoformat() + 'Z'
+                    "completed_at": (session.completed_at.isoformat() + 'Z' + 'Z' if hasattr(session, 'completed_at') and session.completed_at else session.created_at.isoformat() + 'Z' + 'Z'),
+                    "created_at": session.created_at.isoformat() + 'Z' + 'Z'
                 })
         
         # Check if QuestionSet model exists (alternative)
@@ -2058,8 +2058,8 @@ def get_quiz_history(user_id: str = Query(...), db: Session = Depends(get_db)):
                     "score": 0,
                     "total_questions": getattr(qs, 'question_count', 0),
                     "correct_answers": 0,
-                    "completed_at": qs.created_at.isoformat() + 'Z',
-                    "created_at": qs.created_at.isoformat() + 'Z'
+                    "completed_at": qs.created_at.isoformat() + 'Z' + 'Z',
+                    "created_at": qs.created_at.isoformat() + 'Z' + 'Z'
                 })
         
         logger.info(f"Retrieved {len(result)} quiz sessions for user {user.email}")
@@ -2502,8 +2502,8 @@ def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
                 "id": note.id,
                 "title": note.title,
                 "content": note.content,
-                "created_at": note.created_at.isoformat() + 'Z' if note.created_at else None,
-                "updated_at": note.updated_at.isoformat() + 'Z' if note.updated_at else None,
+                "created_at": note.created_at.isoformat() + 'Z' + 'Z' if note.created_at else None,
+                "updated_at": note.updated_at.isoformat() + 'Z' + 'Z' if note.updated_at else None,
                 "is_favorite": getattr(note, 'is_favorite', False),
                 "folder_id": getattr(note, 'folder_id', None),
                 "custom_font": getattr(note, 'custom_font', 'Inter'),
@@ -9755,7 +9755,7 @@ async def get_notifications(
                     notification = models.Notification(
                         user_id=user.id,
                         title=f"Reminder: {reminder.title}",
-                        message=f"{reminder.description or 'Upcoming reminder'} at {reminder.reminder_date.isoformat() + 'Z'}",
+                        message=f"{reminder.description or 'Upcoming reminder'} - {reminder.reminder_date.strftime('%I:%M %p')}",
                         notification_type='reminder'
                     )
                     db.add(notification)
@@ -10790,7 +10790,7 @@ async def create_reminder(
         notification = models.Notification(
             user_id=user.id,
             title=f"Reminder Set: {title}",
-            message=f"Reminder scheduled for {reminder.reminder_date.isoformat() + 'Z'}",
+            message=f"Reminder scheduled for {reminder.reminder_date.strftime('%B %d at %I:%M %p')}",
             notification_type='reminder'
         )
         db.add(notification)
@@ -10801,13 +10801,13 @@ async def create_reminder(
             "id": reminder.id,
             "title": reminder.title,
             "description": reminder.description,
-            "reminder_date": reminder.reminder_date.isoformat() + 'Z',
+            "reminder_date": reminder.reminder_date.isoformat() + 'Z' + 'Z',
             "reminder_type": reminder.reminder_type,
             "priority": reminder.priority,
             "color": reminder.color,
             "is_completed": reminder.is_completed,
             "notify_before_minutes": reminder.notify_before_minutes,
-            "created_at": reminder.created_at.isoformat() + 'Z'
+            "created_at": reminder.created_at.isoformat() + 'Z' + 'Z'
         }
     except Exception as e:
         logger.error(f"Error creating reminder: {str(e)}")
@@ -10840,14 +10840,14 @@ async def get_reminders(
             "id": r.id,
             "title": r.title,
             "description": r.description,
-            "reminder_date": r.reminder_date.isoformat() + 'Z',
+            "reminder_date": r.reminder_date.isoformat() + 'Z' + 'Z',
             "reminder_type": r.reminder_type,
             "priority": r.priority,
             "color": r.color,
             "is_completed": r.is_completed,
             "is_notified": r.is_notified,
             "notify_before_minutes": r.notify_before_minutes,
-            "created_at": r.created_at.isoformat() + 'Z'
+            "created_at": r.created_at.isoformat() + 'Z' + 'Z'
         } for r in reminders]
     except Exception as e:
         logger.error(f"Error getting reminders: {str(e)}")
@@ -10955,192 +10955,6 @@ async def get_upcoming_reminders(
     except Exception as e:
         logger.error(f"Error getting upcoming reminders: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
-if __name__ == "__main__":
-    import uvicorn
-    
-    logger.info(f"Starting Brainwave AI Backend v3.0.0 with Groq")
-    logger.info(f"All API endpoints loaded successfully")
-    
-    uvicorn.run(app, host="127.0.0.1", port=8000, reload=False)
-
-
-# ==================== FILE IMPORT API ====================
-
-@app.post("/api/import_document")
-async def import_document(
-    file: UploadFile = File(...),
-    user_id: str = Form(...),
-    db: Session = Depends(get_db)
-):
-    """Import PDF or DOCX file and convert to note"""
-    try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        # Read file content
-        content = await file.read()
-        file_extension = file.filename.split('.')[-1].lower()
-        
-        extracted_text = ""
-        
-        # Extract text based on file type
-        if file_extension == 'pdf':
-            # Extract from PDF
-            pdf_file = io.BytesIO(content)
-            pdf_reader = PyPDF2.PdfReader(pdf_file)
-            
-            for page in pdf_reader.pages:
-                extracted_text += page.extract_text() + "\n\n"
-        
-        elif file_extension in ['docx', 'doc']:
-            # Extract from DOCX
-            try:
-                import docx
-                docx_file = io.BytesIO(content)
-                doc = docx.Document(docx_file)
-                
-                for paragraph in doc.paragraphs:
-                    extracted_text += paragraph.text + "\n"
-            except ImportError:
-                raise HTTPException(
-                    status_code=500, 
-                    detail="python-docx not installed. Install with: pip install python-docx"
-                )
-        
-        else:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Unsupported file type: {file_extension}. Supported: PDF, DOCX"
-            )
-        
-        if not extracted_text.strip():
-            raise HTTPException(status_code=400, detail="No text could be extracted from the file")
-        
-        # Convert to HTML blocks
-        paragraphs = extracted_text.strip().split('\n')
-        html_content = ""
-        
-        for para in paragraphs:
-            para = para.strip()
-            if para:
-                # Check if it looks like a heading (short, all caps, or ends with colon)
-                if len(para) < 50 and (para.isupper() or para.endswith(':')):
-                    html_content += f"<h2>{para}</h2>"
-                else:
-                    html_content += f"<p>{para}</p>"
-        
-        # Create note
-        note_title = file.filename.rsplit('.', 1)[0]
-        new_note = models.Note(
-            user_id=user.id,
-            title=note_title,
-            content=html_content
-        )
-        
-        db.add(new_note)
-        db.commit()
-        db.refresh(new_note)
-        
-        logger.info(f"Imported {file_extension.upper()} file as note {new_note.id} for user {user.email}")
-        
-        return {
-            "status": "success",
-            "note_id": new_note.id,
-            "title": note_title,
-            "extracted_length": len(extracted_text),
-            "message": f"Successfully imported {file.filename}"
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error importing document: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to import document: {str(e)}")
-
-
-@app.post("/api/upload-attachment")
-async def upload_attachment(
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db)
-):
-    """Upload PDF or DOCX file as attachment and return URL"""
-    try:
-        # Validate file type
-        file_extension = file.filename.split('.')[-1].lower()
-        if file_extension not in ['pdf', 'docx', 'doc']:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Unsupported file type: {file_extension}. Supported: PDF, DOCX"
-            )
-        
-        # Create attachments directory if it doesn't exist
-        attachments_dir = Path("backend/attachments")
-        attachments_dir.mkdir(exist_ok=True)
-        
-        # Generate unique filename
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        safe_filename = "".join(c for c in file.filename if c.isalnum() or c in (' ', '.', '_', '-')).rstrip()
-        unique_filename = f"{timestamp}_{safe_filename}"
-        file_path = attachments_dir / unique_filename
-        
-        # Save file
-        content = await file.read()
-        with open(file_path, "wb") as f:
-            f.write(content)
-        
-        # Return file info
-        file_size = len(content)
-        file_url = f"/api/attachments/{unique_filename}"
-        
-        logger.info(f"Uploaded attachment: {unique_filename} ({file_size} bytes)")
-        
-        return {
-            "status": "success",
-            "filename": file.filename,
-            "url": file_url,
-            "size": file_size,
-            "type": file_extension
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error uploading attachment: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to upload attachment: {str(e)}")
-
-
-@app.get("/api/attachments/{filename}")
-async def get_attachment(filename: str):
-    """Serve attachment file"""
-    try:
-        file_path = Path("backend/attachments") / filename
-        
-        if not file_path.exists():
-            raise HTTPException(status_code=404, detail="File not found")
-        
-        # Determine content type
-        file_extension = filename.split('.')[-1].lower()
-        content_types = {
-            'pdf': 'application/pdf',
-            'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'doc': 'application/msword'
-        }
-        content_type = content_types.get(file_extension, 'application/octet-stream')
-        
-        return FileResponse(
-            path=file_path,
-            media_type=content_type,
-            filename=filename
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error serving attachment: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Failed to serve attachment: {str(e)}")
 
 
 if __name__ == "__main__":

@@ -37,6 +37,11 @@ const MyNotes = () => {
   
   // Templates
   const [showTemplates, setShowTemplates] = useState(false);
+  
+  // Document import
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importProgress, setImportProgress] = useState(false);
 
   useEffect(() => {
     loadNotes();
@@ -89,6 +94,40 @@ const MyNotes = () => {
       }
     } catch (error) {
       console.error('Error loading chat sessions:', error);
+    }
+  };
+
+  const handleFileImport = async () => {
+    if (!importFile) return;
+    
+    setImportProgress(true);
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('file', importFile);
+      formData.append('user_id', userName);
+      
+      const response = await fetch(`${API_URL}/import_document`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        await loadNotes();
+        setShowImportModal(false);
+        setImportFile(null);
+        alert(`Successfully imported: ${data.title}`);
+      } else {
+        const error = await response.json();
+        alert(`Import failed: ${error.detail}`);
+      }
+    } catch (error) {
+      console.error('Error importing document:', error);
+      alert('Failed to import document');
+    } finally {
+      setImportProgress(false);
     }
   };
 
@@ -177,8 +216,8 @@ const MyNotes = () => {
           },
           body: JSON.stringify({
             user_id: userName,
-            chat_id: sessionId,
-            mode: 'summary'
+            chat_session_id: sessionId,
+            format_style: 'comprehensive'
           })
         });
 
@@ -192,7 +231,7 @@ const MyNotes = () => {
             },
             body: JSON.stringify({
               user_id: userName,
-              title: 'Generated Note from Chat',
+              title: data.title || 'Study Notes',
               content: data.content
             })
           });
