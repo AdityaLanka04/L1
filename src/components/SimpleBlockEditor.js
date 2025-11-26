@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import './BlockEditor.css';
 import CodeBlock from './CodeBlock';
+import TableBlock from './TableBlock';
 
 const BLOCK_TYPES = [
   // Basic Text
@@ -27,6 +28,7 @@ const BLOCK_TYPES = [
   { type: 'quote', label: 'Quote', icon: Quote, description: 'Blockquote', category: 'Advanced' },
   { type: 'callout', label: 'Callout', icon: AlertCircle, description: 'Highlighted info box', category: 'Advanced' },
   { type: 'toggle', label: 'Toggle', icon: ChevronRight, description: 'Collapsible section', category: 'Advanced' },
+  { type: 'table', label: 'Table', icon: Table, description: 'Structured data table', category: 'Advanced' },
   
   // Special
   { type: 'divider', label: 'Divider', icon: Minus, description: 'Horizontal line', category: 'Special' },
@@ -499,6 +501,20 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false }) => {
             });
           }}
           readOnly={readOnly}
+        />
+      );
+    }
+
+    // Special handling for table blocks
+    if (block.type === 'table') {
+      return (
+        <TableBlock
+          data={block.properties?.tableData || {}}
+          onChange={(tableData) => {
+            updateBlock(block.id, {
+              properties: { ...block.properties, tableData }
+            });
+          }}
         />
       );
     }
