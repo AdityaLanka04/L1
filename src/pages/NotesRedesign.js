@@ -32,18 +32,185 @@ const htmlToBlocks = (html) => {
     }];
   }
   
-  // Simple conversion - just create one paragraph block with the HTML content
-  return [{
-    id: Date.now(),
-    type: 'paragraph',
-    content: html.replace(/<[^>]*>/g, ''), // Strip HTML tags
-    properties: {}
-  }];
+  const blocks = [];
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  
+  // Process each element in the body
+  const processNode = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent.trim();
+      if (text) {
+        blocks.push({
+          id: Date.now() + Math.random(),
+          type: 'paragraph',
+          content: text,
+          properties: {}
+        });
+      }
+      return;
+    }
+    
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const tagName = node.tagName.toLowerCase();
+      const content = node.innerHTML || node.textContent || '';
+      const textContent = node.textContent.trim();
+      
+      if (!textContent) return;
+      
+      switch (tagName) {
+        case 'h1':
+          blocks.push({
+            id: Date.now() + Math.random(),
+            type: 'heading1',
+            content: textContent,
+            properties: {}
+          });
+          break;
+        case 'h2':
+          blocks.push({
+            id: Date.now() + Math.random(),
+            type: 'heading2',
+            content: textContent,
+            properties: {}
+          });
+          break;
+        case 'h3':
+          blocks.push({
+            id: Date.now() + Math.random(),
+            type: 'heading3',
+            content: textContent,
+            properties: {}
+          });
+          break;
+        case 'ul':
+          // Process each list item as a separate bullet block
+          Array.from(node.querySelectorAll('li')).forEach(li => {
+            blocks.push({
+              id: Date.now() + Math.random(),
+              type: 'bulletList',
+              content: li.textContent.trim(),
+              properties: {}
+            });
+          });
+          break;
+        case 'ol':
+          // Process each list item as a separate numbered block
+          Array.from(node.querySelectorAll('li')).forEach(li => {
+            blocks.push({
+              id: Date.now() + Math.random(),
+              type: 'numberedList',
+              content: li.textContent.trim(),
+              properties: {}
+            });
+          });
+          break;
+        case 'blockquote':
+          blocks.push({
+            id: Date.now() + Math.random(),
+            type: 'quote',
+            content: textContent,
+            properties: {}
+          });
+          break;
+        case 'pre':
+        case 'code':
+          blocks.push({
+            id: Date.now() + Math.random(),
+            type: 'code',
+            content: textContent,
+            properties: {}
+          });
+          break;
+        case 'hr':
+          blocks.push({
+            id: Date.now() + Math.random(),
+            type: 'divider',
+            content: '',
+            properties: {}
+          });
+          break;
+        case 'p':
+          if (textContent) {
+            blocks.push({
+              id: Date.now() + Math.random(),
+              type: 'paragraph',
+              content: content,
+              properties: {}
+            });
+          }
+          break;
+        case 'div':
+        case 'section':
+        case 'article':
+          // Process children
+          Array.from(node.childNodes).forEach(processNode);
+          break;
+        default:
+          // For other elements, create a paragraph with the content
+          if (textContent && !['ul', 'ol', 'li'].includes(tagName)) {
+            blocks.push({
+              id: Date.now() + Math.random(),
+              type: 'paragraph',
+              content: content,
+              properties: {}
+            });
+          }
+      }
+    }
+  };
+  
+  // Process all body children
+  Array.from(doc.body.childNodes).forEach(processNode);
+  
+  // If no blocks were created, create a default paragraph
+  if (blocks.length === 0) {
+    blocks.push({
+      id: Date.now(),
+      type: 'paragraph',
+      content: html.replace(/<[^>]*>/g, ''),
+      properties: {}
+    });
+  }
+  
+  return blocks;
 };
 
 const blocksToHtml = (blocks) => {
   if (!blocks || blocks.length === 0) return '';
-  return blocks.map(b => `<p>${b.content || ''}</p>`).join('');
+  
+  return blocks.map(block => {
+    const content = block.content || '';
+    
+    switch (block.type) {
+      case 'heading1':
+        return `<h1>${content}</h1>`;
+      case 'heading2':
+        return `<h2>${content}</h2>`;
+      case 'heading3':
+        return `<h3>${content}</h3>`;
+      case 'bulletList':
+        return `<ul><li>${content}</li></ul>`;
+      case 'numberedList':
+        return `<ol><li>${content}</li></ol>`;
+      case 'quote':
+        return `<blockquote>${content}</blockquote>`;
+      case 'code':
+        return `<pre><code>${content}</code></pre>`;
+      case 'divider':
+        return '<hr/>';
+      case 'todo':
+        return `<div><input type="checkbox" ${block.properties?.checked ? 'checked' : ''}/> ${content}</div>`;
+      case 'callout':
+      case 'info':
+      case 'warning':
+      case 'success':
+      case 'tip':
+        return `<div class="callout ${block.type}">${content}</div>`;
+      default:
+        return `<p>${content}</p>`;
+    }
+  }).join('\n');
 };
 
 // Stub components
@@ -170,6 +337,12 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [selectedSessions, setSelectedSessions] = useState([]);
   const [importMode, setImportMode] = useState("summary");
   const [importing, setImporting] = useState(false);
+  
+  // Debug: Log when showChatImport changes
+  useEffect(() => {
+    console.log('🔥 showChatImport changed to:', showChatImport);
+    console.log('🔥 chatSessions count:', chatSessions.length);
+  }, [showChatImport, chatSessions]);
 
   // Voice state
   const [isRecording, setIsRecording] = useState(false);
@@ -987,9 +1160,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       }];
     }
     
-    console.log('Setting blocks:', blocks);
     setNoteBlocks(blocks);
-    
     setViewMode("edit");
   };
 
@@ -1625,6 +1796,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const clearAllSessions = () => setSelectedSessions([]);
 
   const convertChatToNote = async () => {
+    console.log('🔥 convertChatToNote called');
+    console.log('🔥 selectedSessions:', selectedSessions);
+    console.log('🔥 chatSessions:', chatSessions);
+    
     if (selectedSessions.length === 0) {
       showPopup("No Sessions Selected", "Please select at least one chat session.");
       return;
@@ -1634,16 +1809,23 @@ const NotesRedesign = ({ sharedMode = false }) => {
       const token = localStorage.getItem("token");
       const allMessages = [];
       
+      console.log('🔥 Fetching chat histories...');
       for (const sid of selectedSessions) {
+        console.log('🔥 Fetching session:', sid);
         const r = await fetch(`${API_URL}/get_chat_history/${sid}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (r.ok) {
           const data = await r.json();
+          console.log('🔥 Chat data:', data);
           const s = chatSessions.find((x) => x.id === sid);
           allMessages.push({ sessionTitle: s?.title || "Chat Session", messages: data.messages });
+        } else {
+          console.error('🔥 Failed to fetch chat history:', r.status);
         }
       }
+      
+      console.log('🔥 All messages:', allMessages);
 
       const conversationData = allMessages
         .map((s) => s.messages.map((m) => `Q: ${m.user_message}\nA: ${m.ai_response}`).join("\n\n"))
@@ -1692,9 +1874,17 @@ const NotesRedesign = ({ sharedMode = false }) => {
       if (createRes.ok) {
         const newNote = await createRes.json();
         setNotes(prev => [newNote, ...prev]);
-        selectNote(newNote);
         setShowChatImport(false);
         setSelectedSessions([]);
+        
+        // Always navigate to the newly created note
+        navigate(`/notes/editor/${newNote.id}`);
+        
+        // Select the note after navigation
+        setTimeout(() => {
+          selectNote(newNote);
+        }, 100);
+        
         showPopup("Conversion Successful", `"${title}" created successfully.`);
       } else {
         throw new Error(`Failed to create note: ${createRes.status}`);
@@ -2119,7 +2309,11 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     </button>
                     <button
                       className="tool-panel-btn"
-                      onClick={() => setShowChatImport(true)}
+                      onClick={() => {
+                        console.log('🔥 From Chat button clicked');
+                        console.log('🔥 Chat sessions:', chatSessions);
+                        setShowChatImport(true);
+                      }}
                       title="Import from AI Chat"
                     >
                       <Upload size={16} />
@@ -2183,11 +2377,194 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
             <div className="block-editor-wrapper">
               {viewMode === "edit" && (!isSharedContent || canEdit) && (
-                <FormattingToolbar
-                  onAIAssist={() => setShowAIAssistant(true)}
-                  showAI={true}
-                  onInsertBlock={handleInsertBlock}
-                />
+                <div className="formatting-toolbar-wrapper">
+                  <div className="formatting-toolbar">
+                    {/* Headers */}
+                    <select 
+                      className="format-select"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value) {
+                          document.execCommand('formatBlock', false, value);
+                          e.target.value = '';
+                        }
+                      }}
+                      defaultValue=""
+                    >
+                      <option value="">Normal</option>
+                      <option value="h1">Heading 1</option>
+                      <option value="h2">Heading 2</option>
+                      <option value="h3">Heading 3</option>
+                      <option value="h4">Heading 4</option>
+                      <option value="h5">Heading 5</option>
+                      <option value="h6">Heading 6</option>
+                    </select>
+                    
+                    {/* Font Size */}
+                    <select 
+                      className="format-select"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value) {
+                          document.execCommand('fontSize', false, value);
+                          e.target.value = '';
+                        }
+                      }}
+                      defaultValue=""
+                    >
+                      <option value="">Size</option>
+                      <option value="1">Small</option>
+                      <option value="3">Normal</option>
+                      <option value="5">Large</option>
+                      <option value="7">Huge</option>
+                    </select>
+                    
+                    <div className="toolbar-divider"></div>
+                    
+                    {/* Text Formatting */}
+                    <button 
+                      className="format-btn" 
+                      onClick={() => document.execCommand('bold')}
+                      title="Bold (Ctrl+B)"
+                    >
+                      <Bold size={16} />
+                    </button>
+                    <button 
+                      className="format-btn" 
+                      onClick={() => document.execCommand('italic')}
+                      title="Italic (Ctrl+I)"
+                    >
+                      <Italic size={16} />
+                    </button>
+                    <button 
+                      className="format-btn" 
+                      onClick={() => document.execCommand('underline')}
+                      title="Underline (Ctrl+U)"
+                    >
+                      <Underline size={16} />
+                    </button>
+                    <button 
+                      className="format-btn" 
+                      onClick={() => document.execCommand('strikeThrough')}
+                      title="Strikethrough"
+                    >
+                      <span style={{ textDecoration: 'line-through', fontSize: '14px', fontWeight: 'bold' }}>S</span>
+                    </button>
+                    
+                    <div className="toolbar-divider"></div>
+                    
+                    {/* Colors */}
+                    <input
+                      type="color"
+                      className="format-color"
+                      onChange={(e) => document.execCommand('foreColor', false, e.target.value)}
+                      title="Text Color"
+                    />
+                    <input
+                      type="color"
+                      className="format-color"
+                      onChange={(e) => document.execCommand('backColor', false, e.target.value)}
+                      title="Background Color"
+                    />
+                    
+                    <div className="toolbar-divider"></div>
+                    
+                    {/* Lists */}
+                    <button 
+                      className="format-btn" 
+                      onClick={() => document.execCommand('insertUnorderedList')}
+                      title="Bullet List"
+                    >
+                      <List size={16} />
+                    </button>
+                    <button 
+                      className="format-btn" 
+                      onClick={() => document.execCommand('insertOrderedList')}
+                      title="Numbered List"
+                    >
+                      <ListOrdered size={16} />
+                    </button>
+                    
+                    {/* Alignment */}
+                    <button 
+                      className="format-btn" 
+                      onClick={() => document.execCommand('justifyLeft')}
+                      title="Align Left"
+                    >
+                      <AlignLeft size={16} />
+                    </button>
+                    <button 
+                      className="format-btn" 
+                      onClick={() => document.execCommand('justifyCenter')}
+                      title="Align Center"
+                    >
+                      <span style={{ fontSize: '16px' }}>≡</span>
+                    </button>
+                    <button 
+                      className="format-btn" 
+                      onClick={() => document.execCommand('justifyRight')}
+                      title="Align Right"
+                    >
+                      <span style={{ fontSize: '16px' }}>≣</span>
+                    </button>
+                    
+                    <div className="toolbar-divider"></div>
+                    
+                    {/* Media & Code */}
+                    <button 
+                      className="format-btn" 
+                      onClick={() => {
+                        const url = prompt('Enter URL:');
+                        if (url) document.execCommand('createLink', false, url);
+                      }}
+                      title="Insert Link"
+                    >
+                      <Link2 size={16} />
+                    </button>
+                    <button 
+                      className="format-btn" 
+                      onClick={() => {
+                        const url = prompt('Enter image URL:');
+                        if (url) document.execCommand('insertImage', false, url);
+                      }}
+                      title="Insert Image"
+                    >
+                      <Image size={16} />
+                    </button>
+                    <button 
+                      className="format-btn" 
+                      onClick={() => {
+                        const selection = window.getSelection();
+                        if (selection.toString()) {
+                          document.execCommand('insertHTML', false, `<code>${selection.toString()}</code>`);
+                        }
+                      }}
+                      title="Code (Ctrl+E)"
+                    >
+                      <Code size={16} />
+                    </button>
+                    
+                    <div className="toolbar-divider"></div>
+                    
+                    {/* AI */}
+                    <button 
+                      className="format-btn" 
+                      onClick={() => setShowAIAssistant(true)}
+                      title="AI Assistant"
+                    >
+                      <Sparkles size={16} />
+                    </button>
+                    
+                    {/* Clear Formatting */}
+                    <button 
+                      className="format-btn" 
+                      onClick={() => document.execCommand('removeFormat')}
+                      title="Clear Formatting"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
               )}
               
               <div className="block-editor-container" style={{ fontFamily: customFont }}>
