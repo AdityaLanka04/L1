@@ -1968,6 +1968,102 @@ def get_trash(user_id: str = Query(...), db: Session = Depends(get_db)):
         logger.error(f"Error getting trash: {str(e)}", exc_info=True)
         return {"trash": []}
 
+
+# ==================== ACTIVITY TIMELINE ENDPOINTS ====================
+
+@app.get("/api/get_flashcards")
+def get_flashcards(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """Get all flashcards for a user (for activity timeline)"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get all flashcard sets for the user
+        flashcard_sets = db.query(models.FlashcardSet).filter(
+            models.FlashcardSet.user_id == user.id
+        ).order_by(models.FlashcardSet.created_at.desc()).all()
+        
+        result = []
+        for fs in flashcard_sets:
+            # Get flashcards in this set
+            flashcards = db.query(models.Flashcard).filter(
+                models.Flashcard.set_id == fs.id
+            ).all()
+            
+            for card in flashcards:
+                result.append({
+                    "id": card.id,
+                    "set_id": fs.id,
+                    "set_title": fs.title,
+                    "question": card.question,
+                    "answer": card.answer,
+                    "difficulty": card.difficulty,
+                    "created_at": card.created_at.isoformat() if card.created_at else fs.created_at.isoformat(),
+                    "updated_at": card.updated_at.isoformat() if card.updated_at else fs.created_at.isoformat()
+                })
+        
+        logger.info(f"Retrieved {len(result)} flashcards for user {user.email}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error getting flashcards: {str(e)}", exc_info=True)
+        return []
+
+
+@app.get("/api/get_quiz_history")
+def get_quiz_history(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """Get quiz history for a user (for activity timeline)"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Try to get quiz sessions from various possible tables
+        result = []
+        
+        # Check if QuizSession model exists
+        if hasattr(models, 'QuizSession'):
+            quiz_sessions = db.query(models.QuizSession).filter(
+                models.QuizSession.user_id == user.id
+            ).order_by(models.QuizSession.created_at.desc()).all()
+            
+            for session in quiz_sessions:
+                result.append({
+                    "id": session.id,
+                    "title": getattr(session, 'title', 'Quiz Session'),
+                    "score": getattr(session, 'score', 0),
+                    "total_questions": getattr(session, 'total_questions', 0),
+                    "correct_answers": getattr(session, 'correct_answers', 0),
+                    "completed_at": session.completed_at.isoformat() if hasattr(session, 'completed_at') and session.completed_at else session.created_at.isoformat(),
+                    "created_at": session.created_at.isoformat()
+                })
+        
+        # Check if QuestionSet model exists (alternative)
+        elif hasattr(models, 'QuestionSet'):
+            question_sets = db.query(models.QuestionSet).filter(
+                models.QuestionSet.user_id == user.id
+            ).order_by(models.QuestionSet.created_at.desc()).all()
+            
+            for qs in question_sets:
+                result.append({
+                    "id": qs.id,
+                    "title": qs.title or 'Quiz Session',
+                    "score": 0,
+                    "total_questions": getattr(qs, 'question_count', 0),
+                    "correct_answers": 0,
+                    "completed_at": qs.created_at.isoformat(),
+                    "created_at": qs.created_at.isoformat()
+                })
+        
+        logger.info(f"Retrieved {len(result)} quiz sessions for user {user.email}")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error getting quiz history: {str(e)}", exc_info=True)
+        return []
+
+
 # ENHANCED AI CONTENT GENERATION WITH SPECIFIC PROMPTS
 @app.post("/api/generate_note_content/")
 async def generate_note_content(
@@ -10567,6 +10663,202 @@ async def delete_all_concepts(
     except Exception as e:
         logger.error(f"Error deleting all concepts: {str(e)}")
         db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ==================== REMINDER/CALENDAR EVENTS API ====================
+
+@app.post("/api/create_reminder")
+async def create_reminder(
+    user_id: str = Form(...),
+    title: str = Form(...),
+    description: str = Form(None),
+    reminder_date: str = Form(...),
+    reminder_type: str = Form("event"),
+    priority: str = Form("medium"),
+    color: str = Form("#3b82f6"),
+    notify_before_minutes: int = Form(15),
+    db: Session = Depends(get_db)
+):
+    """Create a new reminder/event"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        reminder = models.Reminder(
+            user_id=user.id,
+            title=title,
+            description=description,
+            reminder_date=datetime.fromisoformat(reminder_date.replace('Z', '+00:00')),
+            reminder_type=reminder_type,
+            priority=priority,
+            color=color,
+            notify_before_minutes=notify_before_minutes
+        )
+        
+        db.add(reminder)
+        db.commit()
+        db.refresh(reminder)
+        
+        logger.info(f"Created reminder {reminder.id} for user {user.email}")
+        
+        return {
+            "id": reminder.id,
+            "title": reminder.title,
+            "description": reminder.description,
+            "reminder_date": reminder.reminder_date.isoformat(),
+            "reminder_type": reminder.reminder_type,
+            "priority": reminder.priority,
+            "color": reminder.color,
+            "is_completed": reminder.is_completed,
+            "notify_before_minutes": reminder.notify_before_minutes,
+            "created_at": reminder.created_at.isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Error creating reminder: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/get_reminders")
+async def get_reminders(
+    user_id: str = Query(...),
+    start_date: str = Query(None),
+    end_date: str = Query(None),
+    db: Session = Depends(get_db)
+):
+    """Get all reminders for a user, optionally filtered by date range"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        query = db.query(models.Reminder).filter(models.Reminder.user_id == user.id)
+        
+        if start_date:
+            query = query.filter(models.Reminder.reminder_date >= datetime.fromisoformat(start_date.replace('Z', '+00:00')))
+        if end_date:
+            query = query.filter(models.Reminder.reminder_date <= datetime.fromisoformat(end_date.replace('Z', '+00:00')))
+        
+        reminders = query.order_by(models.Reminder.reminder_date).all()
+        
+        return [{
+            "id": r.id,
+            "title": r.title,
+            "description": r.description,
+            "reminder_date": r.reminder_date.isoformat(),
+            "reminder_type": r.reminder_type,
+            "priority": r.priority,
+            "color": r.color,
+            "is_completed": r.is_completed,
+            "is_notified": r.is_notified,
+            "notify_before_minutes": r.notify_before_minutes,
+            "created_at": r.created_at.isoformat()
+        } for r in reminders]
+    except Exception as e:
+        logger.error(f"Error getting reminders: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/update_reminder/{reminder_id}")
+async def update_reminder(
+    reminder_id: int,
+    title: str = Form(None),
+    description: str = Form(None),
+    reminder_date: str = Form(None),
+    reminder_type: str = Form(None),
+    priority: str = Form(None),
+    color: str = Form(None),
+    is_completed: bool = Form(None),
+    notify_before_minutes: int = Form(None),
+    db: Session = Depends(get_db)
+):
+    """Update a reminder"""
+    try:
+        reminder = db.query(models.Reminder).filter(models.Reminder.id == reminder_id).first()
+        if not reminder:
+            raise HTTPException(status_code=404, detail="Reminder not found")
+        
+        if title is not None:
+            reminder.title = title
+        if description is not None:
+            reminder.description = description
+        if reminder_date is not None:
+            reminder.reminder_date = datetime.fromisoformat(reminder_date.replace('Z', '+00:00'))
+        if reminder_type is not None:
+            reminder.reminder_type = reminder_type
+        if priority is not None:
+            reminder.priority = priority
+        if color is not None:
+            reminder.color = color
+        if is_completed is not None:
+            reminder.is_completed = is_completed
+        if notify_before_minutes is not None:
+            reminder.notify_before_minutes = notify_before_minutes
+        
+        reminder.updated_at = datetime.utcnow()
+        db.commit()
+        
+        return {"status": "success", "message": "Reminder updated"}
+    except Exception as e:
+        logger.error(f"Error updating reminder: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/delete_reminder/{reminder_id}")
+async def delete_reminder(
+    reminder_id: int,
+    db: Session = Depends(get_db)
+):
+    """Delete a reminder"""
+    try:
+        reminder = db.query(models.Reminder).filter(models.Reminder.id == reminder_id).first()
+        if not reminder:
+            raise HTTPException(status_code=404, detail="Reminder not found")
+        
+        db.delete(reminder)
+        db.commit()
+        
+        return {"status": "success", "message": "Reminder deleted"}
+    except Exception as e:
+        logger.error(f"Error deleting reminder: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/get_upcoming_reminders")
+async def get_upcoming_reminders(
+    user_id: str = Query(...),
+    hours: int = Query(24),
+    db: Session = Depends(get_db)
+):
+    """Get upcoming reminders within the next X hours"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        now = datetime.utcnow()
+        future = now + timedelta(hours=hours)
+        
+        reminders = db.query(models.Reminder).filter(
+            and_(
+                models.Reminder.user_id == user.id,
+                models.Reminder.reminder_date >= now,
+                models.Reminder.reminder_date <= future,
+                models.Reminder.is_completed == False
+            )
+        ).order_by(models.Reminder.reminder_date).all()
+        
+        return [{
+            "id": r.id,
+            "title": r.title,
+            "description": r.description,
+            "reminder_date": r.reminder_date.isoformat(),
+            "reminder_type": r.reminder_type,
+            "priority": r.priority,
+            "color": r.color,
+            "time_until": str(r.reminder_date - now)
+        } for r in reminders]
+    except Exception as e:
+        logger.error(f"Error getting upcoming reminders: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

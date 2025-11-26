@@ -34,6 +34,8 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
 import SharedItemViewer from './pages/SharedItemViewer';
 import NotesRedesign from './pages/NotesRedesign';
+import NotesDashboard from './pages/NotesDashboard';
+import ActivityTimeline from './pages/ActivityTimeline';
 import Games from './pages/Games';
 import ProactiveNotification from './components/ProactiveNotification';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -95,9 +97,11 @@ function App() {
             <Route path="/statistics" element={<ProtectedRoute><Statistics /></ProtectedRoute>} />
             <Route path="/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
             <Route path="/notes" element={<ProtectedRoute><NotesHub /></ProtectedRoute>} />
+            <Route path="/notes/dashboard" element={<ProtectedRoute><NotesDashboard /></ProtectedRoute>} />
             <Route path="/notes/audio-video" element={<ProtectedRoute><AudioVideoNotes /></ProtectedRoute>} />
             <Route path="/notes/my-notes" element={<ProtectedRoute><MyNotes /></ProtectedRoute>} />
             <Route path="/notes/editor/:noteId" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
+            <Route path="/activity-timeline" element={<ProtectedRoute><ActivityTimeline /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/home" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />

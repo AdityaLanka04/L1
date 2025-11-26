@@ -1384,6 +1384,29 @@ class Notification(Base):
     
     user = relationship("User")
 
+class Reminder(Base):
+    """Calendar reminders and events"""
+    __tablename__ = "reminders"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    
+    title = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    reminder_date = Column(DateTime, nullable=False)
+    reminder_type = Column(String(50), default="event")  # event, reminder, deadline, study_session
+    priority = Column(String(20), default="medium")  # low, medium, high, urgent
+    color = Column(String(20), default="#3b82f6")
+    
+    is_completed = Column(Boolean, default=False)
+    is_notified = Column(Boolean, default=False)
+    notify_before_minutes = Column(Integer, default=15)  # Notify X minutes before
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User")
+
 class ConceptNode(Base):
     """Concept nodes for knowledge graph"""
     __tablename__ = "concept_nodes"

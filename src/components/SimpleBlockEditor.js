@@ -8,6 +8,7 @@ import {
   Hash, AtSign, MapPin, Clock
 } from 'lucide-react';
 import './BlockEditor.css';
+import CodeBlock from './CodeBlock';
 
 const BLOCK_TYPES = [
   // Basic Text
@@ -485,6 +486,23 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false }) => {
   }, [showBlockMenu]);
 
   const renderBlockContent = (block) => {
+    // Special handling for code blocks - don't use contentEditable
+    if (block.type === 'code') {
+      return (
+        <CodeBlock
+          code={block.content || ''}
+          language={block.properties?.language || 'javascript'}
+          onChange={(newCode, newLang) => {
+            updateBlock(block.id, {
+              content: newCode,
+              properties: { ...block.properties, language: newLang }
+            });
+          }}
+          readOnly={readOnly}
+        />
+      );
+    }
+
     const handleContentInput = (e) => {
       // Save cursor position
       const selection = window.getSelection();
@@ -538,8 +556,6 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false }) => {
         return <h2 {...props} />;
       case 'heading3':
         return <h3 {...props} />;
-      case 'code':
-        return <pre className="block-code-wrapper"><code {...props} /></pre>;
       case 'quote':
         return <blockquote {...props} />;
       case 'callout':

@@ -19,7 +19,7 @@ import {
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  CheckCircle, XCircle, Clock, Plus, Users, Bell
+  CheckCircle, XCircle, Clock, Plus, Users, Bell, Calendar as CalendarIcon
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../contexts/ToastContext';
@@ -79,6 +79,7 @@ const Dashboard = () => {
     { id: 'learning-review', type: 'learning-review', title: 'Learning Reviews', enabled: true, size: 'medium' },
     { id: 'stats', type: 'stats', title: 'Learning Stats', enabled: true, size: 'medium' },
     { id: 'social', type: 'social', title: 'Social Hub', enabled: true, size: 'medium' },
+    { id: 'activity-timeline', type: 'activity-timeline', title: 'Activity Timeline', enabled: true, size: 'medium' },
     { id: 'recent-activity', type: 'recent-activity', title: 'Recent Activity', enabled: false, size: 'medium' },
     { id: 'heatmap', type: 'heatmap', title: 'Activity Heatmap', enabled: true, size: 'full' },
     { id: 'progress-chart', type: 'progress-chart', title: 'Weekly Progress', enabled: false, size: 'medium' },
@@ -169,6 +170,7 @@ const Dashboard = () => {
     if (savedWidgets) {
       try {
         let parsedWidgets = JSON.parse(savedWidgets);
+        
         // Migration: Replace daily-goal with social widget
         parsedWidgets = parsedWidgets.map(widget => {
           if (widget.id === 'daily-goal' || widget.type === 'daily-goal') {
@@ -176,6 +178,18 @@ const Dashboard = () => {
           }
           return widget;
         });
+        
+        // Migration: Add new widgets if they don't exist
+        const existingIds = parsedWidgets.map(w => w.id);
+        
+        if (!existingIds.includes('social')) {
+          parsedWidgets.push({ id: 'social', type: 'social', title: 'Social Hub', enabled: true, size: 'medium' });
+        }
+        
+        if (!existingIds.includes('activity-timeline')) {
+          parsedWidgets.push({ id: 'activity-timeline', type: 'activity-timeline', title: 'Activity Timeline', enabled: true, size: 'medium' });
+        }
+        
         setWidgets(parsedWidgets);
         // Save the migrated widgets back to localStorage
         localStorage.setItem('dashboardWidgets', JSON.stringify(parsedWidgets));
@@ -675,10 +689,12 @@ const Dashboard = () => {
     const defaultWidgets = [
       { id: 'quick-actions', type: 'quick-actions', title: 'Quick Actions', enabled: true, size: 'medium' },
       { id: 'ai-assistant', type: 'ai-assistant', title: 'AI Learning Assistant', enabled: true, size: 'large' },
+      { id: 'notifications', type: 'notifications', title: 'AI Notifications', enabled: true, size: 'medium' },
       { id: 'learning-review', type: 'learning-review', title: 'Learning Reviews', enabled: true, size: 'medium' },
       { id: 'stats', type: 'stats', title: 'Learning Stats', enabled: true, size: 'medium' },
+      { id: 'social', type: 'social', title: 'Social Hub', enabled: true, size: 'medium' },
+      { id: 'activity-timeline', type: 'activity-timeline', title: 'Activity Timeline', enabled: true, size: 'medium' },
       { id: 'recent-activity', type: 'recent-activity', title: 'Recent Activity', enabled: false, size: 'medium' },
-      { id: 'daily-goal', type: 'daily-goal', title: 'Daily Goal', enabled: true, size: 'medium' },
       { id: 'heatmap', type: 'heatmap', title: 'Activity Heatmap', enabled: true, size: 'full' },
       { id: 'progress-chart', type: 'progress-chart', title: 'Weekly Progress', enabled: false, size: 'medium' },
       { id: 'motivational-quote', type: 'motivational-quote', title: 'Daily Quote', enabled: false, size: 'small' }
@@ -1623,6 +1639,98 @@ const Dashboard = () => {
       </div>
     </div>
   );
+
+        case 'social':
+          return (
+            <div className="social-widget">
+              <div className="widget-header">
+                <h3 className="widget-title">Social Hub</h3>
+              </div>
+              <div className="social-content">
+                <div className="social-icon-container">
+                  <Users size={64} strokeWidth={1.5} style={{ color: accent }} />
+                </div>
+                <p>
+                  Connect with fellow learners, join study groups, and collaborate.
+                </p>
+                <button
+                  className="social-explore-btn"
+                  onClick={async () => {
+                    await endDashboardSession();
+                    navigate('/social');
+                  }}
+                  disabled={isCustomizing}
+                  style={{
+                    background: accent,
+                    color: bgTop
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isCustomizing) {
+                      e.target.style.background = `color-mix(in srgb, ${accent} 85%, white)`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isCustomizing) {
+                      e.target.style.background = accent;
+                    }
+                  }}
+                >
+                  Explore Social
+                </button>
+              </div>
+            </div>
+          );
+
+        case 'activity-timeline':
+          return (
+            <div className="activity-timeline-widget">
+              <div className="widget-header">
+                <h3 className="widget-title">Activity Timeline</h3>
+              </div>
+              <div className="timeline-widget-content">
+                <div className="timeline-icon-container">
+                  <Clock size={64} strokeWidth={1.5} style={{ color: accent }} />
+                </div>
+                <p>
+                  Track all your learning activities across notes, flashcards, quizzes, and AI chats in one unified timeline.
+                </p>
+                <div className="timeline-features">
+                  <div className="timeline-feature">
+                    <CalendarIcon size={16} style={{ color: accent }} />
+                    <span>Calendar View</span>
+                  </div>
+                  <div className="timeline-feature">
+                    <Clock size={16} style={{ color: accent }} />
+                    <span>Timeline View</span>
+                  </div>
+                </div>
+                <button
+                  className="timeline-explore-btn"
+                  onClick={async () => {
+                    await endDashboardSession();
+                    navigate('/activity-timeline');
+                  }}
+                  disabled={isCustomizing}
+                  style={{
+                    background: accent,
+                    color: bgTop
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isCustomizing) {
+                      e.target.style.background = `color-mix(in srgb, ${accent} 85%, white)`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isCustomizing) {
+                      e.target.style.background = accent;
+                    }
+                  }}
+                >
+                  View Timeline
+                </button>
+              </div>
+            </div>
+          );
 
         default:
           // Handle legacy daily-goal widget by redirecting to social

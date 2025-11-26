@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Plus, Search, Star, Clock, Folder, Trash2, Upload, X, FolderPlus, Grid, List as ListIcon
+  Plus, Search, Star, Clock, Folder, Trash2, Upload, FolderPlus, Grid, List as ListIcon, Layout
 } from 'lucide-react';
 import './MyNotes.css';
 import { API_URL } from '../config';
+import Templates from '../components/Templates';
 
 const MyNotes = () => {
   const navigate = useNavigate();
@@ -33,6 +34,9 @@ const MyNotes = () => {
   // Move to folder
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [noteToMove, setNoteToMove] = useState(null);
+  
+  // Templates
+  const [showTemplates, setShowTemplates] = useState(false);
 
   useEffect(() => {
     loadNotes();
@@ -250,6 +254,77 @@ const MyNotes = () => {
     }
   };
 
+  const handleTemplateSelect = async (template) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Convert blocks to HTML if blocks are provided
+      let content = template.content;
+      if (template.blocks && template.blocks.length > 0) {
+        content = blocksToHtml(template.blocks);
+      }
+      
+      const res = await fetch(`${API_URL}/create_note`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          title: template.title,
+          content: content,
+          folder_id: selectedFolder
+        }),
+      });
+      
+      if (res.ok) {
+        const newNote = await res.json();
+        navigate(`/notes/editor/${newNote.id}`);
+      }
+    } catch (error) {
+      console.error('Error creating note from template:', error);
+    }
+  };
+
+  // Helper function to convert blocks to HTML
+  const blocksToHtml = (blocks) => {
+    if (!blocks || blocks.length === 0) return '';
+    
+    return blocks.map(block => {
+      const content = block.content || '';
+      
+      switch (block.type) {
+        case 'heading1':
+          return `<h1>${content}</h1>`;
+        case 'heading2':
+          return `<h2>${content}</h2>`;
+        case 'heading3':
+          return `<h3>${content}</h3>`;
+        case 'bulletList':
+          return `<ul><li>${content}</li></ul>`;
+        case 'numberedList':
+          return `<ol><li>${content}</li></ol>`;
+        case 'quote':
+          return `<blockquote>${content}</blockquote>`;
+        case 'code':
+          return `<pre><code>${content}</code></pre>`;
+        case 'divider':
+          return '<hr/>';
+        case 'todo':
+          return `<div><input type="checkbox" ${block.properties?.checked ? 'checked' : ''}/> ${content}</div>`;
+        case 'callout':
+        case 'info':
+        case 'warning':
+        case 'success':
+        case 'tip':
+          return `<div class="callout ${block.type}">${content}</div>`;
+        default:
+          return `<p>${content}</p>`;
+      }
+    }).join('\n');
+  };
+
   const getFilteredNotes = () => {
     let filtered = showTrash ? trashedNotes : notes;
     
@@ -302,6 +377,9 @@ const MyNotes = () => {
         <div className="sidebar-actions">
           <button onClick={createNewNote} className="btn-new-note">
             <Plus size={18} /> New Note
+          </button>
+          <button onClick={() => setShowTemplates(true)} className="btn-from-chat">
+            <Layout size={16} /> Templates
           </button>
           <button onClick={() => setShowChatImport(true)} className="btn-from-chat">
             <Upload size={16} /> From Chat
@@ -576,6 +654,18 @@ const MyNotes = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Templates Modal */}
+      {showTemplates && (
+        <>
+          <div className="modal-overlay" onClick={() => setShowTemplates(false)} />
+          <Templates
+            onSelectTemplate={handleTemplateSelect}
+            onClose={() => setShowTemplates(false)}
+            userName={userName}
+          />
+        </>
       )}
     </div>
   );

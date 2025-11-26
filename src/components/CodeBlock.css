@@ -1,0 +1,131 @@
+.code-block-container {
+  background: #1e1e1e;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 8px 0;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+.code-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #2d2d2d;
+  border-bottom: 1px solid #3d3d3d;
+}
+
+.code-lang-select {
+  background: #3d3d3d;
+  color: #d4d4d4;
+  border: 1px solid #4d4d4d;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+}
+
+.code-lang-select:hover {
+  background: #4d4d4d;
+}
+
+.code-block-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.code-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid #4d4d4d;
+  color: #d4d4d4;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.code-action-btn:hover:not(:disabled) {
+  background: #3d3d3d;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.code-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.code-block-content {
+  display: flex;
+  overflow-x: auto;
+}
+
+.code-line-numbers {
+  background: #252525;
+  color: #858585;
+  padding: 16px 12px;
+  text-align: right;
+  user-select: none;
+  font-size: 13px;
+  line-height: 1.6;
+  min-width: 40px;
+  border-right: 1px solid #3d3d3d;
+  font-family: 'Monaco', 'Courier New', monospace;
+  white-space: pre;
+  overflow: hidden;
+}
+
+.code-block-textarea {
+  flex: 1;
+  margin: 0;
+  padding: 16px;
+  background: transparent;
+  border: none;
+  color: #d4d4d4;
+  font-size: 13px;
+  line-height: 1.6;
+  font-family: 'Monaco', 'Courier New', monospace;
+  resize: none;
+  outline: none;
+  overflow-x: auto;
+  overflow-y: auto;
+  white-space: pre;
+  min-height: 200px;
+}
+
+.code-block-textarea::placeholder {
+  color: #666;
+}
+
+/* Syntax highlighting colors */
+.language-javascript .keyword,
+.language-python .keyword {
+  color: #569cd6;
+}
+
+.language-javascript .string,
+.language-python .string {
+  color: #ce9178;
+}
+
+.language-javascript .comment,
+.language-python .comment {
+  color: #6a9955;
+  font-style: italic;
+}
+
+.language-javascript .function,
+.language-python .function {
+  color: #dcdcaa;
+}
+
+.language-javascript .number,
+.language-python .number {
+  color: #b5cea8;
+}

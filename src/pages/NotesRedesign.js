@@ -13,13 +13,15 @@ import {
   MoreVertical, Archive, RefreshCw, Save, Clock,
   AlignLeft, Bold, Italic, Underline, 
   List, ListOrdered, Link2, Image, Code,
-  ArrowLeft, Tag
+  ArrowLeft, Tag, Layout, Filter
 } from 'lucide-react';
 import { API_URL } from '../config';
 import gamificationService from '../services/gamificationService';
 
 // Enhanced Notes Features
 import SimpleBlockEditor from '../components/SimpleBlockEditor';
+import AdvancedSearch from '../components/AdvancedSearch';
+import Templates from '../components/Templates';
 
 // Utility functions
 const htmlToBlocks = (html) => {
@@ -315,10 +317,18 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [customFont, setCustomFont] = useState("Inter");
   const [draggedNote, setDraggedNote] = useState(null);
   const [dragOverFolder, setDragOverFolder] = useState(null);
+
+  // Font options
+  const FONTS = [
+    'Inter', 'Arial', 'Georgia', 'Times New Roman', 'Courier New', 
+    'Monaco', 'Roboto', 'Open Sans', 'Lato', 'Montserrat'
+  ];
   
   // Enhanced features state
   const [showTagsPanel, setShowTagsPanel] = useState(false);
   const [selectedTagFilter, setSelectedTagFilter] = useState(null);
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   
   // Block editor state
   const [noteBlocks, setNoteBlocks] = useState([{
@@ -461,10 +471,15 @@ const NotesRedesign = ({ sharedMode = false }) => {
     const token = localStorage.getItem("token");
     const username = localStorage.getItem("username");
     const profile = localStorage.getItem("userProfile");
+    const savedFont = localStorage.getItem("preferredFont");
 
     if (!token) {
       navigate("/login");
       return;
+    }
+    
+    if (savedFont) {
+      setCustomFont(savedFont);
     }
     
     if (sharedMode && noteId) {
@@ -1195,6 +1210,23 @@ const NotesRedesign = ({ sharedMode = false }) => {
     const newBlocks = [...noteBlocks, newBlock];
     setNoteBlocks(newBlocks);
     handleBlocksChange(newBlocks);
+  };
+
+  const handleTemplateSelect = (template) => {
+    setNoteTitle(template.title);
+    
+    // If template already has blocks, use them
+    if (template.blocks && template.blocks.length > 0) {
+      setNoteBlocks(template.blocks);
+      // Convert blocks to HTML for saving
+      const html = blocksToHtml(template.blocks);
+      setNoteContent(html);
+    } else {
+      // Fallback to HTML conversion
+      const blocks = htmlToBlocks(template.content);
+      setNoteBlocks(blocks);
+      setNoteContent(template.content);
+    }
   };
 
   // Enhanced features hooks (must be after selectNote is defined)
@@ -2221,6 +2253,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
           )}
 
           <div className="nav-actions-new">
+            <button className="nav-btn" onClick={() => navigate("/notes/dashboard")}>
+              <Layout size={16} style={{ marginRight: '6px', display: 'inline' }} />
+              Views
+            </button>
             <button className="nav-btn" onClick={() => navigate("/dashboard")}>
               Dashboard
             </button>
@@ -2322,6 +2358,29 @@ const NotesRedesign = ({ sharedMode = false }) => {
                   </div>
                 </div>
 
+                {/* Search & Templates Section */}
+                <div className="tool-section">
+                  <label className="tool-section-label">Tools</label>
+                  <div className="tool-buttons-group">
+                    <button
+                      className="tool-panel-btn"
+                      onClick={() => setShowAdvancedSearch(true)}
+                      title="Advanced Search"
+                    >
+                      <Filter size={16} />
+                      <span>Search</span>
+                    </button>
+                    <button
+                      className="tool-panel-btn"
+                      onClick={() => setShowTemplates(true)}
+                      title="Templates"
+                    >
+                      <Layout size={16} />
+                      <span>Templates</span>
+                    </button>
+                  </div>
+                </div>
+
                 {/* Tags Section */}
                 <div className="tool-section">
                   <label className="tool-section-label">Organization</label>
@@ -2398,6 +2457,21 @@ const NotesRedesign = ({ sharedMode = false }) => {
                       <option value="h4">Heading 4</option>
                       <option value="h5">Heading 5</option>
                       <option value="h6">Heading 6</option>
+                    </select>
+                    
+                    {/* Font Family */}
+                    <select 
+                      className="format-select"
+                      value={customFont}
+                      onChange={(e) => {
+                        setCustomFont(e.target.value);
+                        localStorage.setItem('preferredFont', e.target.value);
+                      }}
+                      title="Font Family"
+                    >
+                      {FONTS.map(font => (
+                        <option key={font} value={font}>{font}</option>
+                      ))}
                     </select>
                     
                     {/* Font Size */}
@@ -2534,12 +2608,18 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     <button 
                       className="format-btn" 
                       onClick={() => {
-                        const selection = window.getSelection();
-                        if (selection.toString()) {
-                          document.execCommand('insertHTML', false, `<code>${selection.toString()}</code>`);
-                        }
+                        // Insert a new code block
+                        const newBlock = {
+                          id: Date.now() + Math.random(),
+                          type: 'code',
+                          content: '',
+                          properties: { language: 'javascript' }
+                        };
+                        const newBlocks = [...noteBlocks, newBlock];
+                        setNoteBlocks(newBlocks);
+                        handleBlocksChange(newBlocks);
                       }}
-                      title="Code (Ctrl+E)"
+                      title="Insert Code Block"
                     >
                       <Code size={16} />
                     </button>
@@ -3118,6 +3198,31 @@ const NotesRedesign = ({ sharedMode = false }) => {
           onTagSelect={handleTagSelect}
           onClose={() => setShowTagsPanel(false)}
         />
+      )}
+
+      {/* Advanced Search */}
+      {showAdvancedSearch && !isSharedContent && (
+        <>
+          <div className="ai-overlay" onClick={() => setShowAdvancedSearch(false)} />
+          <AdvancedSearch
+            notes={notes}
+            folders={folders}
+            onSelectNote={selectNote}
+            onClose={() => setShowAdvancedSearch(false)}
+          />
+        </>
+      )}
+
+      {/* Templates */}
+      {showTemplates && !isSharedContent && (
+        <>
+          <div className="ai-overlay" onClick={() => setShowTemplates(false)} />
+          <Templates
+            onSelectTemplate={handleTemplateSelect}
+            onClose={() => setShowTemplates(false)}
+            userName={userName}
+          />
+        </>
       )}
     </div>
   );
