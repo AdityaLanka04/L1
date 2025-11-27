@@ -46,7 +46,7 @@ const AIChat = ({ sharedMode = false }) => {
         body: JSON.stringify({
           user_id: userName,
           name: folderName.trim(),
-          color: '#D7B38C'
+          color: 'var(--accent)'
         })
       });
 
@@ -1298,11 +1298,45 @@ const AIChat = ({ sharedMode = false }) => {
 
   return (
     <div className="ai-chat-page">
-      {sidebarOpen && (
-        <div className="chat-sidebar open">
+      {/* Header spanning full width */}
+      <div className="global-chat-header">
+        <button 
+          className="sidebar-toggle" 
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 7h14M3 13h14"/>
+          </svg>
+        </button>
+        
+        <h1 className="chat-title" onClick={handleLogoClick}>
+          Cerbyl
+        </h1>
+
+        <div className="header-right">
+          {userProfile?.profilePicture && (
+            <img 
+              src={userProfile.profilePicture} 
+              alt="Profile" 
+              className="profile-picture" 
+            />
+          )}
+          <button className="header-btn" onClick={goToDashboard}>
+            DASHBOARD
+          </button>
+          <button className="header-btn" onClick={handleLogout}>
+            LOGOUT
+          </button>
+        </div>
+      </div>
+
+      {/* Content area with sidebar and chat */}
+      <div className="chat-content-area">
+        {sidebarOpen && (
+          <div className="chat-sidebar open">
           <div className="sidebar-header">
             <div className="sidebar-title-bar">
-              <div className="sidebar-title">CONVERSATIONS</div>
               <button 
                 className="new-chat-btn" 
                 onClick={handleNewChat}
@@ -1371,7 +1405,6 @@ const AIChat = ({ sharedMode = false }) => {
                 <div key={folder.id} className="folder-item-wrapper">
                   <div
                     className={`folder-item ${selectedFolder === folder.id ? 'active' : ''}`}
-                    style={{ borderLeft: `3px solid ${folder.color}` }}
                     onClick={() => setSelectedFolder(selectedFolder === folder.id ? null : folder.id)}
                   >
                     <span>{folder.name}</span>
@@ -1454,42 +1487,7 @@ const AIChat = ({ sharedMode = false }) => {
         </div>
       )}
 
-      <div className={`chat-main ${!sidebarOpen ? 'fullscreen' : ''}`}>
-        <div className="chat-header">
-          <div className="header-left">
-            <button 
-              className="sidebar-toggle" 
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
-            >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 7h14M3 13h14"/>
-              </svg>
-            </button>
-            
-            <h1 className="chat-title" onClick={handleLogoClick}>
-              Cerbyl
-            </h1>
-          </div>
-
-          {sidebarOpen && (
-            <div className="header-right">
-              {userProfile?.profilePicture && (
-                <img 
-                  src={userProfile.profilePicture} 
-                  alt="Profile" 
-                  className="profile-picture" 
-                />
-              )}
-              <button className="header-btn" onClick={goToDashboard}>
-                DASHBOARD
-              </button>
-              <button className="header-btn" onClick={handleLogout}>
-                LOGOUT
-              </button>
-            </div>
-          )}
-        </div>
+        <div className={`chat-main ${!sidebarOpen ? 'fullscreen' : ''}`}>
 
         <div className="messages-container">
           {messages.length === 0 ? (
@@ -1755,6 +1753,7 @@ const AIChat = ({ sharedMode = false }) => {
           </div>
         </>
       )}
+      </div>
     </div>
   );
 };

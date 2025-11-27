@@ -178,10 +178,38 @@ body {
 
 .ai-chat-page {
   display: flex;
+  flex-direction: column;
   height: 100vh;
   background: var(--bg-bottom);
   overflow: hidden;
   position: relative;
+}
+
+.global-chat-header {
+  width: 100%;
+  background: var(--panel);
+  border-bottom: 2px solid var(--border);
+  padding: 20px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+  z-index: 100;
+  min-height: 70px;
+  gap: 20px;
+}
+
+.global-chat-header .chat-title {
+  font-size: 10
+  px !important;
+  font-weight: 800 !important;
+}
+
+.chat-content-area {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
 }
 
 .chat-sidebar {
@@ -243,6 +271,13 @@ body {
   background: color-mix(in srgb, var(--panel) 80%, var(--accent));
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.sidebar-title-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
 }
 
 .new-chat-btn {
@@ -530,8 +565,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 200px;
-  overflow-y: auto;
 }
 
 .folders-list::-webkit-scrollbar {
@@ -551,6 +584,7 @@ body {
   padding: 10px 12px;
   background: var(--bg-bottom);
   border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
   border-radius: 0;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -597,7 +631,7 @@ body {
 
 .chat-header {
   background: var(--panel);
-  padding: 16px 28px;
+  padding: 20px 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -606,6 +640,9 @@ body {
   box-shadow: var(--shadow-sm);
   position: relative;
   z-index: 50;
+  width: 100%;
+  min-height: 70px;
+  gap: 20px;
 }
 
 .chat-header::after {
@@ -619,12 +656,6 @@ body {
   opacity: 0.3;
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
 .sidebar-toggle {
   background: var(--bg-bottom);
   border: 1px solid var(--border);
@@ -636,6 +667,10 @@ body {
   align-items: center;
   justify-content: center;
   box-shadow: var(--shadow-sm);
+  border-radius: 0;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
 }
 
 .sidebar-toggle:hover {
@@ -647,14 +682,25 @@ body {
 }
 
 .chat-title {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 32px !important;
+  font-weight: 800 !important;
   letter-spacing: -0.5px;
   color: var(--accent);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   text-transform: lowercase;
   position: relative;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  text-align: left;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .chat-title::after {
@@ -762,6 +808,7 @@ body {
 }
 
 .welcome-screen {
+  width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
@@ -771,7 +818,8 @@ body {
 
 .welcome-content {
   text-align: center;
-  max-width: 600px;
+  width: 100%;
+  max-width: 900px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -1781,7 +1829,7 @@ body {
   }
 
   .chat-title {
-    font-size: 16px;
+    font-size: 32px !important;
   }
 
   .ai-chat-page .welcome-title {
