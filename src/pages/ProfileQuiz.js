@@ -7,16 +7,39 @@ const ProfileQuiz = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState('welcome');
   const [subjectInput, setSubjectInput] = useState('');
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-  const [suggestedSubjects, setSuggestedSubjects] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [mainSubjectSuggestions, setMainSubjectSuggestions] = useState([]);
+  const [showMainSuggestions, setShowMainSuggestions] = useState(false);
+  const [otherSubjectSuggestions, setOtherSubjectSuggestions] = useState([]);
+  const [showOtherSuggestions, setShowOtherSuggestions] = useState(false);
+
+  // Common subjects list
+  const commonSubjects = [
+    'Computer Science', 'Mathematics', 'Physics', 'Chemistry', 'Biology',
+    'Engineering', 'Business Administration', 'Economics', 'Psychology', 'Sociology',
+    'English Literature', 'History', 'Political Science', 'Philosophy', 'Art History',
+    'Music', 'Theater', 'Communications', 'Journalism', 'Marketing',
+    'Accounting', 'Finance', 'Statistics', 'Data Science', 'Information Technology',
+    'Mechanical Engineering', 'Electrical Engineering', 'Civil Engineering', 'Chemical Engineering',
+    'Biochemistry', 'Molecular Biology', 'Genetics', 'Neuroscience', 'Medicine',
+    'Nursing', 'Public Health', 'Environmental Science', 'Geography', 'Anthropology',
+    'Architecture', 'Graphic Design', 'Film Studies', 'Creative Writing', 'Linguistics',
+    'Foreign Languages', 'Spanish', 'French', 'German', 'Chinese', 'Japanese',
+    'Calculus', 'Algebra', 'Geometry', 'Trigonometry', 'Linear Algebra',
+    'Organic Chemistry', 'Physical Chemistry', 'Analytical Chemistry', 'Inorganic Chemistry',
+    'Quantum Physics', 'Thermodynamics', 'Electromagnetism', 'Optics', 'Mechanics',
+    'Cell Biology', 'Ecology', 'Microbiology', 'Zoology', 'Botany',
+    'Software Engineering', 'Web Development', 'Mobile Development', 'Artificial Intelligence',
+    'Machine Learning', 'Cybersecurity', 'Database Management', 'Network Administration',
+    'Game Development', 'UI/UX Design', 'Digital Marketing', 'Social Media Marketing',
+    'Human Resources', 'Operations Management', 'Supply Chain Management', 'Project Management',
+    'Law', 'Criminal Justice', 'International Relations', 'Education', 'Special Education'
+  ];
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [selectedAnswers, setSelectedAnswers] = useState([]);
   const [showSkipWarning, setShowSkipWarning] = useState(false);
   const [answers, setAnswers] = useState({
-    isCollegeStudent: null,
-    collegeLevel: '',
+    learningStage: '',
     subjects: [],
     mainSubject: '',
     brainwaveGoal: '',
@@ -46,13 +69,14 @@ const ProfileQuiz = () => {
 
   const randomQuote = inspirationalQuotes[Math.floor(Math.random() * inspirationalQuotes.length)];
 
-  const collegeLevels = [
-    'Freshman (1st year)',
-    'Sophomore (2nd year)',
-    'Junior (3rd year)',
-    'Senior (4th year)',
+  const learningStages = [
+    'High School Student',
+    'Undergraduate Student',
     'Graduate Student',
-    'Not a college student'
+    'Professional / Working',
+    'Self-Learner / Hobbyist',
+    'Career Changer',
+    'Lifelong Learner'
   ];
 
   const brainwaveGoals = [
@@ -274,57 +298,58 @@ const ProfileQuiz = () => {
     }
   };
 
-  const generateSubjectSuggestions = async (input) => {
+  const generateMainSubjectSuggestions = (input) => {
     if (!input || input.length < 2) {
-      setSuggestedSubjects([]);
-      setShowSuggestions(false);
+      setMainSubjectSuggestions([]);
+      setShowMainSuggestions(false);
       return;
     }
 
-    setIsLoadingSuggestions(true);
-    setShowSuggestions(true);
-    
-    try {
-      const response = await fetch(`${API_URL}/api/suggest_subjects`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ 
-          input, 
-          college_level: answers.collegeLevel 
-        })
-      });
+    const filtered = commonSubjects.filter(subject => 
+      subject.toLowerCase().includes(input.toLowerCase())
+    ).slice(0, 8);
 
-      if (response.ok) {
-        const data = await response.json();
-        setSuggestedSubjects(data.suggestions || []);
-      }
-    } catch (error) {
-      console.error('Error getting suggestions:', error);
-      setSuggestedSubjects([]);
-    } finally {
-      setIsLoadingSuggestions(false);
+    setMainSubjectSuggestions(filtered);
+    setShowMainSuggestions(filtered.length > 0);
+  };
+
+  const generateOtherSubjectSuggestions = (input) => {
+    if (!input || input.length < 2) {
+      setOtherSubjectSuggestions([]);
+      setShowOtherSuggestions(false);
+      return;
     }
+
+    const filtered = commonSubjects.filter(subject => 
+      subject.toLowerCase().includes(input.toLowerCase()) &&
+      !answers.subjects.includes(subject) &&
+      subject !== answers.mainSubject
+    ).slice(0, 8);
+
+    setOtherSubjectSuggestions(filtered);
+    setShowOtherSuggestions(filtered.length > 0);
   };
 
   const handleSubjectInputChange = (e) => {
     const value = e.target.value;
     setSubjectInput(value);
-    generateSubjectSuggestions(value);
+    generateOtherSubjectSuggestions(value);
   };
 
   const addSubject = (subject) => {
     if (!answers.subjects.includes(subject)) {
-      setAnswers(prev => ({
-        ...prev,
-        subjects: [...prev.subjects, subject]
-      }));
+      setAnswers(prev => {
+        const newSubjects = [...prev.subjects, subject];
+        console.log('Adding subject:', subject, 'New subjects array:', newSubjects);
+        return {
+          ...prev,
+          subjects: newSubjects
+        };
+      });
     }
     setSubjectInput('');
-    setSuggestedSubjects([]);
-    setShowSuggestions(false);
+    setOtherSubjectSuggestions([]);
+    setShowOtherSuggestions(false);
   };
 
   const removeSubject = (subject) => {
@@ -426,8 +451,7 @@ const ProfileQuiz = () => {
         },
         body: JSON.stringify({
           user_id: userName,
-          is_college_student: answers.isCollegeStudent,
-          college_level: answers.collegeLevel,
+          learning_stage: answers.learningStage,
           preferred_subjects: answers.subjects,
           main_subject: answers.mainSubject,
           brainwave_goal: answers.brainwaveGoal,
@@ -468,8 +492,7 @@ const ProfileQuiz = () => {
         },
         body: JSON.stringify({
           user_id: userName,
-          is_college_student: answers.isCollegeStudent,
-          college_level: answers.collegeLevel,
+          learning_stage: answers.learningStage,
           preferred_subjects: answers.subjects,
           main_subject: answers.mainSubject,
           brainwave_goal: answers.brainwaveGoal,
@@ -490,8 +513,7 @@ const ProfileQuiz = () => {
   };
 
   const isFormValid = () => {
-    return answers.isCollegeStudent !== null && 
-           answers.collegeLevel && 
+    return answers.learningStage && 
            answers.subjects.length > 0 && 
            answers.mainSubject && 
            answers.brainwaveGoal;
@@ -734,43 +756,21 @@ const ProfileQuiz = () => {
 
         <div className="quiz-form">
           <div className="form-section">
-            <label className="form-label">are you a college student?</label>
-            <div className="button-group-horizontal">
-              <button
-                className={`choice-btn ${answers.isCollegeStudent === true ? 'selected' : ''}`}
-                onClick={() => setAnswers(prev => ({ ...prev, isCollegeStudent: true }))}
-              >
-                Yes
-              </button>
-              <button
-                className={`choice-btn ${answers.isCollegeStudent === false ? 'selected' : ''}`}
-                onClick={() => setAnswers(prev => ({ ...prev, isCollegeStudent: false }))}
-              >
-                No
-              </button>
+            <label className="form-label">what best describes your learning journey?</label>
+            <div className="button-group-vertical">
+              {learningStages.map((stage) => (
+                <button
+                  key={stage}
+                  className={`choice-btn-vertical ${answers.learningStage === stage ? 'selected' : ''}`}
+                  onClick={() => setAnswers(prev => ({ ...prev, learningStage: stage }))}
+                >
+                  {stage}
+                </button>
+              ))}
             </div>
           </div>
 
-          {answers.isCollegeStudent !== null && (
-            <div className="form-section">
-              <label className="form-label">
-                {answers.isCollegeStudent ? 'what level are you at?' : 'what best describes you?'}
-              </label>
-              <div className="button-group-vertical">
-                {collegeLevels.map((level) => (
-                  <button
-                    key={level}
-                    className={`choice-btn-vertical ${answers.collegeLevel === level ? 'selected' : ''}`}
-                    onClick={() => setAnswers(prev => ({ ...prev, collegeLevel: level }))}
-                  >
-                    {level}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {answers.collegeLevel && (
+          {answers.learningStage && (
             <div className="form-section">
               <label className="form-label">what's your main subject or field of study?</label>
               <p className="form-hint">type to search or add a custom subject</p>
@@ -783,31 +783,30 @@ const ProfileQuiz = () => {
                   value={answers.mainSubject}
                   onChange={(e) => {
                     setAnswers(prev => ({ ...prev, mainSubject: e.target.value }));
-                    setSubjectInput(e.target.value);
-                    generateSubjectSuggestions(e.target.value);
+                    generateMainSubjectSuggestions(e.target.value);
                   }}
+                  autoComplete="off"
                   onFocus={() => {
                     if (answers.mainSubject.length >= 2) {
-                      setShowSuggestions(true);
+                      generateMainSubjectSuggestions(answers.mainSubject);
                     }
                   }}
                   onBlur={() => {
-                    setTimeout(() => setShowSuggestions(false), 200);
+                    setTimeout(() => setShowMainSuggestions(false), 200);
                   }}
                 />
-                {isLoadingSuggestions && <div className="loading-spinner"></div>}
 
-                {showSuggestions && suggestedSubjects.length > 0 && (
+                {showMainSuggestions && mainSubjectSuggestions.length > 0 && (
                   <div className="suggestions-dropdown">
-                    {suggestedSubjects.map((subject, idx) => (
+                    {mainSubjectSuggestions.map((subject, idx) => (
                       <div
                         key={idx}
                         className="suggestion-item"
-                        onClick={() => {
+                        onMouseDown={(e) => {
+                          e.preventDefault();
                           setAnswers(prev => ({ ...prev, mainSubject: subject }));
-                          setSubjectInput('');
-                          setSuggestedSubjects([]);
-                          setShowSuggestions(false);
+                          setMainSubjectSuggestions([]);
+                          setShowMainSuggestions(false);
                         }}
                       >
                         {subject}
@@ -824,44 +823,6 @@ const ProfileQuiz = () => {
               <label className="form-label">what other subjects are you interested in?</label>
               <p className="form-hint">type to search or add custom subjects (optional)</p>
               
-              <div className="subject-input-container">
-                <input
-                  type="text"
-                  className="subject-input"
-                  placeholder="e.g., Calculus, Organic Chemistry, Data Structures..."
-                  value={subjectInput}
-                  onChange={handleSubjectInputChange}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && subjectInput.trim() && subjectInput !== answers.mainSubject) {
-                      addSubject(subjectInput.trim());
-                    }
-                  }}
-                  onFocus={() => {
-                    if (subjectInput.length >= 2) {
-                      setShowSuggestions(true);
-                    }
-                  }}
-                  onBlur={() => {
-                    setTimeout(() => setShowSuggestions(false), 200);
-                  }}
-                />
-                {isLoadingSuggestions && <div className="loading-spinner"></div>}
-
-                {showSuggestions && suggestedSubjects.length > 0 && (
-                  <div className="suggestions-dropdown">
-                    {suggestedSubjects.map((subject, idx) => (
-                      <div
-                        key={idx}
-                        className="suggestion-item"
-                        onClick={() => addSubject(subject)}
-                      >
-                        {subject}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
               {answers.subjects.length > 0 && (
                 <div className="selected-subjects">
                   {answers.subjects.map((subject, idx) => (
@@ -877,6 +838,47 @@ const ProfileQuiz = () => {
                   ))}
                 </div>
               )}
+
+              <div className="subject-input-container">
+                <input
+                  type="text"
+                  className="subject-input"
+                  placeholder="e.g., Calculus, Organic Chemistry, Data Structures..."
+                  value={subjectInput}
+                  onChange={handleSubjectInputChange}
+                  autoComplete="off"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && subjectInput.trim() && subjectInput !== answers.mainSubject) {
+                      addSubject(subjectInput.trim());
+                    }
+                  }}
+                  onFocus={() => {
+                    if (subjectInput.length >= 2) {
+                      generateOtherSubjectSuggestions(subjectInput);
+                    }
+                  }}
+                  onBlur={() => {
+                    setTimeout(() => setShowOtherSuggestions(false), 200);
+                  }}
+                />
+
+                {showOtherSuggestions && otherSubjectSuggestions.length > 0 && (
+                  <div className="suggestions-dropdown">
+                    {otherSubjectSuggestions.map((subject, idx) => (
+                      <div
+                        key={idx}
+                        className="suggestion-item"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          addSubject(subject);
+                        }}
+                      >
+                        {subject}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

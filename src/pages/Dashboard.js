@@ -73,11 +73,11 @@ const Dashboard = () => {
   // Widget customization states
   const [isCustomizing, setIsCustomizing] = useState(false);
   const [widgets, setWidgets] = useState([
-    { id: 'quick-actions', type: 'quick-actions', title: 'Quick Actions', enabled: true, size: 'medium' },
+    { id: 'stats', type: 'stats', title: 'Learning Stats', enabled: true, size: 'medium' },
     { id: 'ai-assistant', type: 'ai-assistant', title: 'AI Learning Assistant', enabled: true, size: 'large' },
     { id: 'notifications', type: 'notifications', title: 'AI Notifications', enabled: true, size: 'medium' },
     { id: 'learning-review', type: 'learning-review', title: 'Learning Reviews', enabled: true, size: 'medium' },
-    { id: 'stats', type: 'stats', title: 'Learning Stats', enabled: true, size: 'medium' },
+    { id: 'quick-actions', type: 'quick-actions', title: 'Quick Actions', enabled: true, size: 'medium' },
     { id: 'social', type: 'social', title: 'Social Hub', enabled: true, size: 'medium' },
     { id: 'activity-timeline', type: 'activity-timeline', title: 'Activity Timeline', enabled: true, size: 'medium' },
     { id: 'recent-activity', type: 'recent-activity', title: 'Recent Activity', enabled: false, size: 'medium' },
@@ -687,11 +687,11 @@ const Dashboard = () => {
 
   const resetWidgets = () => {
     const defaultWidgets = [
-      { id: 'quick-actions', type: 'quick-actions', title: 'Quick Actions', enabled: true, size: 'medium' },
+      { id: 'stats', type: 'stats', title: 'Learning Stats', enabled: true, size: 'medium' },
       { id: 'ai-assistant', type: 'ai-assistant', title: 'AI Learning Assistant', enabled: true, size: 'large' },
       { id: 'notifications', type: 'notifications', title: 'AI Notifications', enabled: true, size: 'medium' },
       { id: 'learning-review', type: 'learning-review', title: 'Learning Reviews', enabled: true, size: 'medium' },
-      { id: 'stats', type: 'stats', title: 'Learning Stats', enabled: true, size: 'medium' },
+      { id: 'quick-actions', type: 'quick-actions', title: 'Quick Actions', enabled: true, size: 'medium' },
       { id: 'social', type: 'social', title: 'Social Hub', enabled: true, size: 'medium' },
       { id: 'activity-timeline', type: 'activity-timeline', title: 'Activity Timeline', enabled: true, size: 'medium' },
       { id: 'recent-activity', type: 'recent-activity', title: 'Recent Activity', enabled: false, size: 'medium' },
@@ -1085,7 +1085,6 @@ const Dashboard = () => {
             <div className="ai-assistant-card">
               <div className="card-header">
                 <h3 className="card-title">AI Learning Assistant</h3>
-                <div className="status-indicator active">Active</div>
               </div>
 
               <div className="ai-visual-section">
@@ -1232,22 +1231,21 @@ const Dashboard = () => {
             <div className="learning-review-widget">
               <div className="widget-header">
                 <h3 className="widget-title">Learning Reviews</h3>
-                <button
-                  className="create-review-btn"
-                  onClick={createLearningReview}
-                  disabled={isCustomizing}
-                  title="Create Review"
-                  style={{
-                    background: accent,
-                    color: bgTop
-                  }}
-                >
-                  <Plus className="w-3 h-3" />
-                </button>
               </div>
 
               <div className="review-content">
-                {learningReviews.length > 0 ? (
+                <div className="review-center-content">
+                  <p className="review-description">Analyze slides, generate practice questions and view topic roadmaps</p>
+                  <button
+                    className="hub-link-btn-large"
+                    onClick={() => navigate('/notes-hub')}
+                    disabled={isCustomizing}
+                  >
+                    Go to your learning Hub
+                  </button>
+                </div>
+                
+                {learningReviews.length > 0 && (
                   <>
                     <div className="review-list">
                       {learningReviews.slice(0, 3).map((review) => (
@@ -1336,20 +1334,6 @@ const Dashboard = () => {
                       </div>
                     )}
                   </>
-                ) : (
-                  <div className="no-reviews">
-                    <p className="no-reviews-text">Analyze slides, generate practice questions and view topic roadmaps</p>
-                    <p className="no-reviews-subtitle"></p>
-                    <button
-                      className="create-first-btn"
-                      onClick={createLearningReview}
-                      disabled={isCustomizing}
-                      style={{ background: accent, color: bgTop }}
-                    >
-                      <Plus className="w-4 h-4" />
-                      Create First Review
-                    </button>
-                  </div>
                 )}
               </div>
             </div>
@@ -1362,12 +1346,14 @@ const Dashboard = () => {
                 <h3 className="widget-title">Social</h3>
               </div>
               <div className="social-content">
-                <div className="social-icon-container">
-                  <Users size={64} strokeWidth={1.5} style={{ color: accent }} />
+                <div>
+                  <div className="social-icon-container">
+                    <Users size={64} strokeWidth={1.5} style={{ color: accent }} />
+                  </div>
+                  <p>
+                    Connect with fellow learners, join study groups, and collaborate.
+                  </p>
                 </div>
-                <p>
-                  Connect with fellow learners, join study groups, and collaborate.
-                </p>
                 <button
                   className="social-explore-btn"
                   onClick={async () => {
@@ -1688,21 +1674,13 @@ const Dashboard = () => {
                 <h3 className="widget-title">Activity Timeline</h3>
               </div>
               <div className="timeline-widget-content">
-                <div className="timeline-icon-container">
-                  <Clock size={64} strokeWidth={1.5} style={{ color: accent }} />
-                </div>
-                <p>
-                  Track all your learning activities across notes, flashcards, quizzes, and AI chats in one unified timeline.
-                </p>
-                <div className="timeline-features">
-                  <div className="timeline-feature">
-                    <CalendarIcon size={16} style={{ color: accent }} />
-                    <span>Calendar View</span>
+                <div>
+                  <div className="timeline-icon-container">
+                    <Clock size={64} strokeWidth={1.5} style={{ color: accent }} />
                   </div>
-                  <div className="timeline-feature">
-                    <Clock size={16} style={{ color: accent }} />
-                    <span>Timeline View</span>
-                  </div>
+                  <p>
+                    Track your learning activities in one unified timeline.
+                  </p>
                 </div>
                 <button
                   className="timeline-explore-btn"
