@@ -1310,16 +1310,62 @@ async def ask_simple(
             }
         
         # Verify chat belongs to user if chat_id provided
+        chat_id_int = None
         if chat_id:
-            chat_id_int = int(chat_id)
-            chat_session = db.query(models.ChatSession).filter(
-                models.ChatSession.id == chat_id_int,
-                models.ChatSession.user_id == user.id
-            ).first()
-            if not chat_session:
-                raise HTTPException(status_code=404, detail="Chat session not found")
-        else:
-            chat_id_int = None
+            try:
+                chat_id_int = int(chat_id)
+                chat_session = db.query(models.ChatSession).filter(
+                    models.ChatSession.id == chat_id_int,
+                    models.ChatSession.user_id == user.id
+                ).first()
+                if not chat_session:
+                    print(f"⚠️ Chat session {chat_id_int} not found or doesn't belong to user {user.id}")
+                    # Create a new chat session instead of failing
+                    print(f"📝 Creating new chat session for user {user.id}")
+                    new_chat = models.ChatSession(
+                        user_id=user.id,
+                        title="New Chat"
+                    )
+                    db.add(new_chat)
+                    db.commit()
+                    db.refresh(new_chat)
+                    chat_id_int = new_chat.id
+                    print(f"✅ Created new chat session: {chat_id_int}")
+            except Exception as e:
+                print(f"⚠️ Error validating chat_id: {str(e)}")
+                # Create new chat on error too
+                try:
+                    new_chat = models.ChatSession(
+                        user_id=user.id,
+                        title="New Chat"
+                    )
+                    db.add(new_chat)
+                    db.commit()
+                    db.refresh(new_chat)
+                    chat_id_int = new_chat.id
+                    print(f"✅ Created new chat session after error: {chat_id_int}")
+                except:
+                    chat_id_int = None
+        
+        # Load chat history for context
+        chat_history = ""
+        if chat_id_int:
+            try:
+                recent_messages = db.query(models.ChatMessage).filter(
+                    models.ChatMessage.chat_session_id == chat_id_int
+                ).order_by(models.ChatMessage.timestamp.desc()).limit(10).all()
+                
+                if recent_messages:
+                    # Reverse to get chronological order
+                    recent_messages = list(reversed(recent_messages))
+                    chat_history = "\n\nPrevious conversation:\n"
+                    for msg in recent_messages:
+                        # Each message has both user_message and ai_response
+                        chat_history += f"Student: {msg.user_message}\n"
+                        chat_history += f"You: {msg.ai_response}\n"
+                    print(f"📜 Loaded {len(recent_messages)} previous message pairs for context")
+            except Exception as e:
+                print(f"⚠️ Error loading chat history: {str(e)}")
         
         # Build personalized prompt
         first_name = user.first_name or "there"
@@ -1329,8 +1375,9 @@ async def ask_simple(
         
 Be warm, encouraging, and personalized. Address them by name when appropriate.
 Provide clear, educational responses tailored to their level.
+{chat_history}
 
-Question: {question}"""
+Current Question: {question}"""
         
         # Generate response using simple AI call
         print(f"🔥 Calling AI for {first_name}...")
@@ -1412,16 +1459,42 @@ async def ask_with_files(
             }
         
         # Verify chat belongs to user if chat_id provided
+        chat_id_int = None
         if chat_id:
-            chat_id_int = int(chat_id)
-            chat_session = db.query(models.ChatSession).filter(
-                models.ChatSession.id == chat_id_int,
-                models.ChatSession.user_id == user.id
-            ).first()
-            if not chat_session:
-                raise HTTPException(status_code=404, detail="Chat session not found")
-        else:
-            chat_id_int = None
+            try:
+                chat_id_int = int(chat_id)
+                chat_session = db.query(models.ChatSession).filter(
+                    models.ChatSession.id == chat_id_int,
+                    models.ChatSession.user_id == user.id
+                ).first()
+                if not chat_session:
+                    print(f"⚠️ Chat session {chat_id_int} not found or doesn't belong to user {user.id}")
+                    # Create a new chat session instead of failing
+                    print(f"📝 Creating new chat session for user {user.id}")
+                    new_chat = models.ChatSession(
+                        user_id=user.id,
+                        title="New Chat with Files"
+                    )
+                    db.add(new_chat)
+                    db.commit()
+                    db.refresh(new_chat)
+                    chat_id_int = new_chat.id
+                    print(f"✅ Created new chat session: {chat_id_int}")
+            except Exception as e:
+                print(f"⚠️ Error validating chat_id: {str(e)}")
+                # Create new chat on error too
+                try:
+                    new_chat = models.ChatSession(
+                        user_id=user.id,
+                        title="New Chat with Files"
+                    )
+                    db.add(new_chat)
+                    db.commit()
+                    db.refresh(new_chat)
+                    chat_id_int = new_chat.id
+                    print(f"✅ Created new chat session after error: {chat_id_int}")
+                except:
+                    chat_id_int = None
         
         # Process files if provided
         file_summaries = []
@@ -1484,6 +1557,26 @@ async def ask_with_files(
                         })
                         file_context += f"\n[Error reading file: {file.filename}]"
         
+        # Load chat history for context
+        chat_history = ""
+        if chat_id_int:
+            try:
+                recent_messages = db.query(models.ChatMessage).filter(
+                    models.ChatMessage.chat_session_id == chat_id_int
+                ).order_by(models.ChatMessage.timestamp.desc()).limit(10).all()
+                
+                if recent_messages:
+                    # Reverse to get chronological order
+                    recent_messages = list(reversed(recent_messages))
+                    chat_history = "\n\nPrevious conversation:\n"
+                    for msg in recent_messages:
+                        # Each message has both user_message and ai_response
+                        chat_history += f"Student: {msg.user_message}\n"
+                        chat_history += f"You: {msg.ai_response}\n"
+                    print(f"📜 Loaded {len(recent_messages)} previous message pairs for context")
+            except Exception as e:
+                print(f"⚠️ Error loading chat history: {str(e)}")
+        
         # Build personalized prompt
         first_name = user.first_name or "there"
         field_of_study = user.field_of_study or "your studies"
@@ -1494,18 +1587,20 @@ async def ask_with_files(
 
 The user has uploaded file(s) with the following content:
 {file_context}
+{chat_history}
 
-Based on the file content above and the user's question, provide a clear, educational response.
+Based on the file content above, the conversation history, and the user's question, provide a clear, educational response.
 Be warm, encouraging, and personalized. Address them by name when appropriate.
 
-User's Question: {question}"""
+Current Question: {question}"""
         else:
             prompt = f"""You are a helpful AI tutor assisting {first_name}, who is studying {field_of_study}.
         
 Be warm, encouraging, and personalized. Address them by name when appropriate.
 Provide clear, educational responses tailored to their level.
+{chat_history}
 
-Question: {question}"""
+Current Question: {question}"""
         
         # Generate response using simple AI call
         print(f"🔥 Calling AI for {first_name}...")
