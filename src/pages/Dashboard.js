@@ -1238,7 +1238,7 @@ const Dashboard = () => {
                   <p className="review-description">Analyze slides, generate practice questions and view topic roadmaps</p>
                   <button
                     className="hub-link-btn-large"
-                    onClick={() => navigate('/notes-hub')}
+                    onClick={() => navigate('/learning-review')}
                     disabled={isCustomizing}
                   >
                     Go to your learning Hub

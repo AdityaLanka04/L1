@@ -11,15 +11,10 @@ backend/brainwave.db
 node_modules/
 
 # Env
+venv/
 .venv/
 .env
-backend/clear/
-__pycache__/
-*.pyc
-.venv/
-.env
-*.db
-backend/brainwave.db
-node_modules/
+
+# Misc
 .DS_Store
 start.log

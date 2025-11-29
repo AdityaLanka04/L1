@@ -1294,9 +1294,20 @@ async def ask_simple(
     
     try:
         # Get user
+        print(f"🔍 Looking up user: {user_id}")
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+            print(f"❌ User not found in database: {user_id}")
+            return {
+                "answer": "Please log in again - your session may have expired.",
+                "ai_confidence": 0.0,
+                "misconception_detected": False,
+                "should_request_feedback": False,
+                "topics_discussed": ["error"],
+                "query_type": "error",
+                "model_used": "error",
+                "ai_provider": "Error"
+            }
         
         # Verify chat belongs to user if chat_id provided
         if chat_id:
@@ -1366,6 +1377,187 @@ Question: {question}"""
             "query_type": "error",
             "model_used": "error",
             "ai_provider": "Error"
+        }
+
+@app.post("/api/ask_with_files/")
+async def ask_with_files(
+    user_id: str = Form(...),
+    question: str = Form(...),
+    chat_id: Optional[str] = Form(None),
+    files: List[UploadFile] = File(default=[]),
+    db: Session = Depends(get_db)
+):
+    """Handle questions with file attachments"""
+    print(f"\n🔥 ASK_WITH_FILES CALLED 🔥")
+    print(f"🔥 User: {user_id}, Question: {question[:50]}..., Files: {len(files)}")
+    
+    try:
+        # Get user
+        print(f"🔍 Looking up user: {user_id}")
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            print(f"❌ User not found in database: {user_id}")
+            return {
+                "answer": "Please log in again - your session may have expired.",
+                "ai_confidence": 0.0,
+                "misconception_detected": False,
+                "should_request_feedback": False,
+                "topics_discussed": ["error"],
+                "query_type": "error",
+                "model_used": "error",
+                "ai_provider": "Error",
+                "files_processed": 0,
+                "file_summaries": [],
+                "has_file_context": False
+            }
+        
+        # Verify chat belongs to user if chat_id provided
+        if chat_id:
+            chat_id_int = int(chat_id)
+            chat_session = db.query(models.ChatSession).filter(
+                models.ChatSession.id == chat_id_int,
+                models.ChatSession.user_id == user.id
+            ).first()
+            if not chat_session:
+                raise HTTPException(status_code=404, detail="Chat session not found")
+        else:
+            chat_id_int = None
+        
+        # Process files if provided
+        file_summaries = []
+        file_context = ""
+        
+        if files and len(files) > 0:
+            print(f"🔥 Processing {len(files)} files...")
+            for file in files:
+                if file.filename:
+                    file_content = ""
+                    
+                    try:
+                        # Read file content
+                        content = await file.read()
+                        
+                        # Process based on file type
+                        if file.content_type == 'application/pdf' or file.filename.lower().endswith('.pdf'):
+                            # Extract text from PDF
+                            try:
+                                pdf_reader = PyPDF2.PdfReader(io.BytesIO(content))
+                                pdf_text = ""
+                                for page in pdf_reader.pages:
+                                    pdf_text += page.extract_text() + "\n"
+                                file_content = pdf_text[:4000]  # Limit to 4000 chars
+                                print(f"📄 Extracted {len(file_content)} chars from PDF: {file.filename}")
+                            except Exception as pdf_error:
+                                print(f"⚠️ PDF extraction error: {pdf_error}")
+                                file_content = f"[Could not extract text from PDF: {file.filename}]"
+                        
+                        elif file.content_type and file.content_type.startswith('image/'):
+                            # For images, we'll describe them in context
+                            file_content = f"[Image file attached: {file.filename}]"
+                            print(f"🖼️ Image detected: {file.filename}")
+                        
+                        else:
+                            # Try to read as text
+                            try:
+                                file_content = content.decode('utf-8')[:4000]
+                                print(f"📝 Text file read: {file.filename}")
+                            except:
+                                file_content = f"[Binary file: {file.filename}]"
+                        
+                        file_summaries.append({
+                            "file_name": file.filename,
+                            "file_type": file.content_type,
+                            "status": "processed",
+                            "content_length": len(file_content)
+                        })
+                        
+                        # Add to context
+                        file_context += f"\n\n=== Content from {file.filename} ===\n{file_content}\n"
+                        
+                    except Exception as e:
+                        print(f"❌ Error processing file {file.filename}: {str(e)}")
+                        file_summaries.append({
+                            "file_name": file.filename,
+                            "file_type": file.content_type,
+                            "status": "error",
+                            "error": str(e)
+                        })
+                        file_context += f"\n[Error reading file: {file.filename}]"
+        
+        # Build personalized prompt
+        first_name = user.first_name or "there"
+        field_of_study = user.field_of_study or "your studies"
+        
+        # Build prompt with file context if available
+        if file_context:
+            prompt = f"""You are a helpful AI tutor assisting {first_name}, who is studying {field_of_study}.
+
+The user has uploaded file(s) with the following content:
+{file_context}
+
+Based on the file content above and the user's question, provide a clear, educational response.
+Be warm, encouraging, and personalized. Address them by name when appropriate.
+
+User's Question: {question}"""
+        else:
+            prompt = f"""You are a helpful AI tutor assisting {first_name}, who is studying {field_of_study}.
+        
+Be warm, encouraging, and personalized. Address them by name when appropriate.
+Provide clear, educational responses tailored to their level.
+
+Question: {question}"""
+        
+        # Generate response using simple AI call
+        print(f"🔥 Calling AI for {first_name}...")
+        response = call_ai(prompt, max_tokens=2000, temperature=0.7)
+        print(f"🔥 AI response received: {len(response)} chars")
+        
+        # Save to database if chat_id provided
+        if chat_id_int:
+            chat_message = models.ChatMessage(
+                chat_session_id=chat_id_int,
+                user_id=user.id,
+                user_message=question,
+                ai_response=response,
+                is_user=True
+            )
+            db.add(chat_message)
+            db.commit()
+            print(f"🔥 Message saved to database")
+        
+        return {
+            "answer": response,
+            "ai_confidence": 0.9,
+            "misconception_detected": False,
+            "should_request_feedback": False,
+            "topics_discussed": ["general"],
+            "query_type": "with_files",
+            "model_used": "groq",
+            "ai_provider": "Groq",
+            "files_processed": len(file_summaries),
+            "file_summaries": file_summaries,
+            "has_file_context": len(file_summaries) > 0
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"\n❌ ERROR IN ASK_WITH_FILES: {str(e)}")
+        print(f"❌ Traceback:\n{error_details}\n")
+        return {
+            "answer": f"Error processing your request: {str(e)}",
+            "ai_confidence": 0.3,
+            "misconception_detected": False,
+            "should_request_feedback": False,
+            "topics_discussed": ["error"],
+            "query_type": "error",
+            "model_used": "error",
+            "ai_provider": "Error",
+            "files_processed": 0,
+            "file_summaries": [],
+            "has_file_context": False
         }
 
 @app.post("/api/create_chat_session")
