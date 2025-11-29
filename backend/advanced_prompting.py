@@ -65,6 +65,7 @@ def get_relevant_past_conversations(db: Session, user_id: int, current_topic: st
         
     except Exception as e:
         print(f"Error getting relevant conversations: {e}")
+        db.rollback()
         return []
 
 
@@ -94,9 +95,14 @@ def get_user_learning_context(db: Session, user_id: int) -> Dict[str, Any]:
             if daily_metrics else 0
         )
         
-        comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
-            models.ComprehensiveUserProfile.user_id == user_id
-        ).first()
+        try:
+            comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
+                models.ComprehensiveUserProfile.user_id == user_id
+            ).first()
+        except Exception as profile_error:
+            print(f"Could not load comprehensive profile: {profile_error}")
+            db.rollback()
+            comprehensive_profile = None
         
         weak_areas = []
         strong_areas = []
@@ -120,6 +126,7 @@ def get_user_learning_context(db: Session, user_id: int) -> Dict[str, Any]:
         
     except Exception as e:
         print(f"Error building learning context: {str(e)}")
+        db.rollback()
         return {}
 
 
@@ -461,15 +468,30 @@ async def generate_enhanced_ai_response(
     ai_function: Any,  # Now accepts the unified call_ai function
     model: str
 ) -> str:
+    print(f"\n🔥 GENERATE_ENHANCED_AI_RESPONSE CALLED - FIXED VERSION 🔥")
+    print(f"🔥 Question: {question[:50]}...")
     try:
         user_id = user_profile.get('user_id')
         is_first_message = len(conversation_history) == 0
         
         personality_engine = PersonalityEngine()
         adaptive_model = AdaptiveLearningModel()
-        adaptive_model.load_model_state(db, user_id)
         
-        rl_agent = get_rl_agent(db, user_id)
+        # Try to load model state, but don't fail if it errors
+        try:
+            adaptive_model.load_model_state(db, user_id)
+        except Exception as load_error:
+            print(f"Could not load adaptive model state: {load_error}")
+            # Don't rollback here, just continue with defaults
+        
+        # Try to get RL agent, but don't fail if it errors
+        try:
+            rl_agent = get_rl_agent(db, user_id)
+        except Exception as rl_error:
+            print(f"Could not load RL agent: {rl_error}")
+            # Create a dummy RL agent with default behavior
+            from neural_adaptation import RLAgent
+            rl_agent = RLAgent(user_id)
         
         context = {
             'message_length': len(question),
@@ -489,7 +511,12 @@ async def generate_enhanced_ai_response(
         state = rl_agent.encode_state(context)
         response_adjustments = rl_agent.get_response_adjustment()
         
-        weak_topics = analyze_weak_topics(db, user_id) if user_id else []
+        # Try to analyze weak topics, but don't fail if it errors
+        try:
+            weak_topics = analyze_weak_topics(db, user_id) if user_id else []
+        except Exception as weak_error:
+            print(f"Could not analyze weak topics: {weak_error}")
+            weak_topics = []
         
         system_prompt = build_intelligent_system_prompt(
             user_profile,
@@ -590,12 +617,24 @@ Remember: Your goal is to provide such comprehensive, helpful responses that the
         
         rl_agent.remember(state, action, 0.0, next_state)
         
-        save_conversation_memory(db, user_id, question, response, topic_keywords)
+        # Try to save conversation memory, but don't fail if it errors
+        try:
+            save_conversation_memory(db, user_id, question, response, topic_keywords)
+        except Exception as save_error:
+            print(f"Could not save conversation memory: {save_error}")
+            # Continue anyway - the response is already generated
         
         return response
         
     except Exception as e:
-        print(f"Error generating response: {e}")
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"\n{'='*80}")
+        print(f"❌ ERROR IN generate_enhanced_ai_response")
+        print(f"❌ Error: {str(e)}")
+        print(f"❌ Type: {type(e).__name__}")
+        print(f"❌ Traceback:\n{error_details}")
+        print(f"{'='*80}\n")
         return "I apologize, but I encountered an error. Could you please rephrase your question?"
 
 

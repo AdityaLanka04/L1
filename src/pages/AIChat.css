@@ -857,7 +857,7 @@ body {
 
 .message.user {
   align-items: flex-end;
-  display: none;
+  display: flex;
 }
 
 .message.ai {

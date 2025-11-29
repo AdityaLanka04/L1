@@ -92,14 +92,18 @@ class AdaptiveLearningModel:
             db.commit()
     
     def load_model_state(self, db: Session, user_id: int):
-        profile = db.query(models.UserPersonalityProfile).filter(
-            models.UserPersonalityProfile.user_id == user_id
-        ).first()
-        
-        if profile:
-            self.adaptation_weights['explanation_depth'] = profile.detail_preference
-            self.adaptation_weights['example_frequency'] = profile.example_preference
-            self.adaptation_weights['encouragement_level'] = profile.encouragement_preference
+        try:
+            profile = db.query(models.UserPersonalityProfile).filter(
+                models.UserPersonalityProfile.user_id == user_id
+            ).first()
+            
+            if profile:
+                self.adaptation_weights['explanation_depth'] = profile.detail_preference
+                self.adaptation_weights['example_frequency'] = profile.example_preference
+                self.adaptation_weights['encouragement_level'] = profile.encouragement_preference
+        except Exception as e:
+            print(f"Could not load personality profile: {e}")
+            db.rollback()
 
 def build_natural_prompt(
     user_profile: Dict[str, Any],

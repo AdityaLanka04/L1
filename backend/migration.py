@@ -5,11 +5,11 @@ Checks all tables and adds missing columns
 import sqlite3
 import os
 from sqlalchemy import inspect
-from models import engine, Base, User, ChatSession, ChatMessage, QuizSession, QuizQuestion, \
-    Flashcard, Note, LearningReview, ReviewQuestion, UserStats, ActivityLog, \
+from models import engine, Base, User, ChatSession, ChatMessage, \
+    Flashcard, Note, LearningReview, ReviewQuestion, UserStats, \
     ComprehensiveUserProfile, Friendship, FriendRequest, SharedContent, \
     Notification, Achievement, UserAchievement, Leaderboard, Challenge, \
-    ChallengeParticipant, ConceptNode, ConceptEdge, KnowledgeRoadmap, RoadmapNode
+    ChallengeParticipant, ConceptNode, ConceptConnection, KnowledgeRoadmap, RoadmapNode
 
 def get_model_columns(model):
     """Get all columns defined in a SQLAlchemy model"""

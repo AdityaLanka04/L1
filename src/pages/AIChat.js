@@ -422,7 +422,7 @@ const AIChat = ({ sharedMode = false }) => {
 
       const endpoint = selectedFiles.length > 0 ? 
         `${API_URL}/ask_with_files/` : 
-        `${API_URL}/ask/`;
+        `${API_URL}/ask_simple/`;
 
       const response = await fetch(endpoint, {
         method: 'POST',

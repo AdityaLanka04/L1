@@ -91,11 +91,9 @@ class UnifiedAIClient:
                                     logger.error(f"❌ Gemini response has no candidates: {data}")
                                     raise Exception("Gemini response has no candidates")
                             elif response.status_code == 429:
-                                # Rate limit - wait and retry
-                                wait_time = (attempt + 1) * 2
-                                logger.warning(f"⚠️ Gemini rate limited, waiting {wait_time}s before retry...")
-                                time.sleep(wait_time)
-                                continue
+                                # Rate limit - immediately fall back to Groq instead of retrying
+                                logger.warning(f"⚠️ Gemini rate limited (429), falling back to Groq immediately...")
+                                raise Exception(f"Gemini quota exceeded: {response.status_code}")
                             else:
                                 logger.error(f"❌ Gemini REST API error: {response.status_code} - {response.text}")
                                 if attempt == max_retries - 1:

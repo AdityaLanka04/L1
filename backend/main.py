@@ -179,8 +179,10 @@ else:
 
 # Initialize unified AI client
 from ai_utils import UnifiedAIClient
-unified_ai = UnifiedAIClient(gemini_client, groq_client, GEMINI_MODEL, GROQ_MODEL, GEMINI_API_KEY)
-logger.info("✅ Unified AI client initialized")
+# TEMPORARY: Use Groq as primary since Gemini quota is exceeded
+# Swap the order: pass groq_client first, gemini_client second
+unified_ai = UnifiedAIClient(None, groq_client, GEMINI_MODEL, GROQ_MODEL, GEMINI_API_KEY)
+logger.info("✅ Unified AI client initialized (GROQ PRIMARY - Gemini quota exceeded)")
 
 # Unified AI call function - uses the unified_ai client
 def call_ai(prompt: str, max_tokens: int = 2000, temperature: float = 0.7) -> str:
@@ -332,6 +334,16 @@ def get_user_by_username(db, username: str):
 
 def get_user_by_email(db, email: str):
     return db.query(models.User).filter(models.User.email == email).first()
+
+def get_comprehensive_profile_safe(db: Session, user_id: int):
+    """Safely get comprehensive profile, returns None if schema mismatch"""
+    try:
+        return db.query(models.ComprehensiveUserProfile).filter(
+            models.ComprehensiveUserProfile.user_id == user_id
+        ).first()
+    except Exception as e:
+        logger.warning(f"Could not load comprehensive profile: {e}")
+        return None
 
 def authenticate_user(db, username: str, password: str):
     user = get_user_by_username(db, username)
@@ -1044,9 +1056,7 @@ async def ask_ai_enhanced(
             if not chat_session:
                 raise HTTPException(status_code=404, detail="Chat session not found")
         
-        comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
-            models.ComprehensiveUserProfile.user_id == user.id
-        ).first()
+        comprehensive_profile = get_comprehensive_profile_safe(db, user.id)
         
         user_profile = {
             "user_id": user.id,
@@ -1239,7 +1249,16 @@ async def ask_ai_enhanced(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error in ask_ai: {str(e)}", exc_info=True)
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"❌ ERROR IN ASK_AI: {str(e)}")
+        logger.error(f"❌ FULL TRACEBACK:\n{error_details}")
+        print(f"\n{'='*80}")
+        print(f"❌ ERROR IN /api/ask/")
+        print(f"❌ Error: {str(e)}")
+        print(f"❌ Type: {type(e).__name__}")
+        print(f"❌ Traceback:\n{error_details}")
+        print(f"{'='*80}\n")
         return {
             "answer": "I apologize, but I encountered an error. Could you please rephrase your question?",
             "ai_confidence": 0.3,
@@ -1248,9 +1267,107 @@ async def ask_ai_enhanced(
             "topics_discussed": ["error"],
             "query_type": "error",
             "model_used": "error_handler",
-            "ai_provider": "Groq"
+            "ai_provider": "Groq",
+            "error_debug": str(e)  # Add error for debugging
         }
     
+@app.post("/api/test_ai_simple")
+async def test_ai_simple(question: str = Form(...)):
+    """Simple test endpoint that bypasses all complexity"""
+    try:
+        response = call_ai(f"Answer this question in one sentence: {question}", max_tokens=200, temperature=0.7)
+        return {"answer": response, "status": "success"}
+    except Exception as e:
+        import traceback
+        return {"answer": f"Error: {str(e)}", "status": "error", "traceback": traceback.format_exc()}
+
+@app.post("/api/ask_simple/")
+async def ask_simple(
+    user_id: str = Form(...),
+    question: str = Form(...),
+    chat_id: Optional[str] = Form(None),
+    db: Session = Depends(get_db)
+):
+    """Simplified /ask endpoint that bypasses all complex logic"""
+    print(f"\n🔥 ASK_SIMPLE CALLED 🔥")
+    print(f"🔥 User: {user_id}, Question: {question[:50]}...")
+    
+    try:
+        # Get user
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Verify chat belongs to user if chat_id provided
+        if chat_id:
+            chat_id_int = int(chat_id)
+            chat_session = db.query(models.ChatSession).filter(
+                models.ChatSession.id == chat_id_int,
+                models.ChatSession.user_id == user.id
+            ).first()
+            if not chat_session:
+                raise HTTPException(status_code=404, detail="Chat session not found")
+        else:
+            chat_id_int = None
+        
+        # Build personalized prompt
+        first_name = user.first_name or "there"
+        field_of_study = user.field_of_study or "your studies"
+        
+        prompt = f"""You are a helpful AI tutor assisting {first_name}, who is studying {field_of_study}.
+        
+Be warm, encouraging, and personalized. Address them by name when appropriate.
+Provide clear, educational responses tailored to their level.
+
+Question: {question}"""
+        
+        # Generate response using simple AI call
+        print(f"🔥 Calling AI for {first_name}...")
+        response = call_ai(prompt, max_tokens=2000, temperature=0.7)
+        print(f"🔥 AI response received: {len(response)} chars")
+        
+        # Save to database if chat_id provided
+        if chat_id_int:
+            chat_message = models.ChatMessage(
+                chat_session_id=chat_id_int,
+                user_id=user.id,
+                user_message=question,
+                ai_response=response,
+                is_user=True
+            )
+            db.add(chat_message)
+            db.commit()
+            print(f"🔥 Message saved to database")
+        
+        return {
+            "answer": response,
+            "ai_confidence": 0.9,
+            "misconception_detected": False,
+            "should_request_feedback": False,
+            "topics_discussed": ["general"],
+            "query_type": "simple",
+            "model_used": "groq",
+            "ai_provider": "Groq"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"\n❌ ERROR IN ASK_SIMPLE: {str(e)}")
+        print(f"❌ Traceback:\n{error_details}\n")
+        return {
+            "answer": f"Error: {str(e)}",
+            "ai_confidence": 0.3,
+            "misconception_detected": False,
+            "should_request_feedback": False,
+            "topics_discussed": ["error"],
+            "query_type": "error",
+            "model_used": "error",
+            "ai_provider": "Error"
+        }
+
 @app.post("/api/create_chat_session")
 def create_chat_session(
     session_data: ChatSessionCreate,
@@ -3971,16 +4088,18 @@ def get_activity_heatmap(user_id: str = Query(...), db: Session = Depends(get_db
             models.Activity.timestamp >= start_date
         ).all()
         
+        logger.info(f"📊 Found {len(activities)} activities for user {user.id}")
+        
         activity_dict = {}
         for activity in activities:
-            date_str = activity.timestamp.date().isoformat() + 'Z'
+            date_str = activity.timestamp.date().isoformat()
             activity_dict[date_str] = activity_dict.get(date_str, 0) + 1
         
         current_date = start_date
         heatmap_data = []
         
         while current_date <= end_date:
-            date_str = current_date.isoformat() + 'Z'
+            date_str = current_date.isoformat()
             count = activity_dict.get(date_str, 0)
             
             if count == 0:
@@ -9951,7 +10070,33 @@ async def clear_old_notifications(
         logger.error(f"🔔 Error clearing notifications: {str(e)}")
         return {"status": "error", "cleared": 0, "message": str(e)}
 
-
+@app.delete("/api/clear_all_notifications")
+async def clear_all_notifications(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Clear all notifications for a user (used on fresh login)"""
+    try:
+        logger.info(f"🔔 Clearing ALL notifications for user: {user_id}")
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            logger.warning(f"🔔 User not found: {user_id}")
+            return {"status": "success", "cleared": 0, "message": "User not found"}
+        
+        # Delete all notifications for this user
+        deleted = db.query(models.Notification).filter(
+            models.Notification.user_id == user.id
+        ).delete()
+        
+        db.commit()
+        
+        logger.info(f"🔔 Cleared {deleted} notifications for user {user_id}")
+        return {"status": "success", "cleared": deleted, "message": f"Cleared {deleted} notifications"}
+    except Exception as e:
+        logger.error(f"🔔 Error clearing all notifications: {str(e)}")
+        db.rollback()
+        return {"status": "error", "cleared": 0, "message": str(e)}
 
 @app.get("/api/get_concept_web")
 async def get_concept_web(
