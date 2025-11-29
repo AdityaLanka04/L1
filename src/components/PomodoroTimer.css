@@ -1,0 +1,185 @@
+.pomodoro-timer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--bg-bottom);
+  border: 1px solid var(--border);
+  padding: 16px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.pomodoro-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pomodoro-modes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  width: 100%;
+}
+
+.mode-btn {
+  padding: 10px 6px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  min-height: 36px;
+}
+
+.mode-btn:hover {
+  background: var(--hover-bg);
+  border-color: var(--accent);
+}
+
+.mode-btn.active {
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-bottom));
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.mode-btn svg {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+.pomodoro-display {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0;
+  width: 100%;
+  min-height: 180px;
+}
+
+.progress-ring {
+  transform: rotate(-90deg);
+  width: 150px;
+  height: 150px;
+  position: absolute;
+}
+
+.progress-ring-bg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 4;
+}
+
+.progress-ring-fill {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.timer-text {
+  position: relative;
+  z-index: 1;
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--accent);
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+}
+
+.pomodoro-controls {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 0;
+  width: 100%;
+}
+
+.control-btn {
+  width: 48px;
+  height: 48px;
+  background: var(--accent);
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  color: var(--bg-top);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.control-btn:hover {
+  background: color-mix(in srgb, var(--accent) 85%, white);
+  transform: scale(1.05);
+}
+
+.control-btn:active {
+  transform: scale(0.95);
+}
+
+.control-btn svg {
+  width: 20px;
+  height: 20px;
+  color: var(--bg-top);
+  stroke: currentColor;
+  fill: currentColor;
+}
+
+.pomodoro-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  width: 100%;
+}
+
+.pomodoro-stats .stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
+  padding: 12px 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-sizing: border-box;
+  min-height: 70px;
+}
+
+.pomodoro-stats .stat-label {
+  font-size: 9px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+.pomodoro-stats .stat-value {
+  font-size: 24px;
+  color: var(--accent);
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  line-height: 1;
+}

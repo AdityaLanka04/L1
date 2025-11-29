@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Plus, Search, Star, Clock, Folder, Trash2, Upload, FolderPlus, Grid, List as ListIcon, Layout
+  Plus, Search, Star, Clock, Folder, Trash2, Upload, FolderPlus, Grid, List as ListIcon, Layout, Sparkles
 } from 'lucide-react';
 import './MyNotes.css';
 import { API_URL } from '../config';
 import Templates from '../components/Templates';
+import SmartFolders from '../components/SmartFolders';
 
 const MyNotes = () => {
   const navigate = useNavigate();
@@ -37,6 +38,9 @@ const MyNotes = () => {
   
   // Templates
   const [showTemplates, setShowTemplates] = useState(false);
+  
+  // Smart Folders
+  const [showSmartFolders, setShowSmartFolders] = useState(false);
   
   // Document import
   const [showImportModal, setShowImportModal] = useState(false);
@@ -423,6 +427,9 @@ const MyNotes = () => {
           <button onClick={() => setShowChatImport(true)} className="btn-from-chat">
             <Upload size={16} /> From Chat
           </button>
+          <button onClick={() => setShowSmartFolders(true)} className="btn-from-chat">
+            <Sparkles size={16} /> Smart Folders
+          </button>
         </div>
 
         <div className="search-container">
@@ -703,6 +710,21 @@ const MyNotes = () => {
             onSelectTemplate={handleTemplateSelect}
             onClose={() => setShowTemplates(false)}
             userName={userName}
+          />
+        </>
+      )}
+
+      {/* Smart Folders Modal */}
+      {showSmartFolders && (
+        <>
+          <div className="modal-overlay" style={{ zIndex: 10000 }} onClick={() => setShowSmartFolders(false)} />
+          <SmartFolders
+            notes={notes}
+            onFolderSelect={(filteredNotes, folderName) => {
+              console.log(`Smart folder "${folderName}" contains ${filteredNotes.length} notes`);
+              setShowSmartFolders(false);
+            }}
+            onClose={() => setShowSmartFolders(false)}
           />
         </>
       )}

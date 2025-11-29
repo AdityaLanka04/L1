@@ -479,6 +479,14 @@ select {
   display: none;
 }
 
+.title-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.title-action-btn,
 .title-collapse-btn {
   flex-shrink: 0;
   width: 32px;
@@ -497,6 +505,7 @@ select {
   box-shadow: var(--shadow-sm);
 }
 
+.title-action-btn:hover,
 .title-collapse-btn:hover {
   background: color-mix(in srgb, var(--panel) 80%, var(--accent) 20%);
   border-color: var(--accent);
@@ -504,6 +513,7 @@ select {
   transform: scale(1.05);
 }
 
+.title-action-btn:active,
 .title-collapse-btn:active {
   transform: scale(0.95);
 }
@@ -3476,4 +3486,189 @@ select {
 
 .view-only-overlay svg {
   color: var(--warning);
+}
+
+/* 
+==================== RECENTLY VIEWED MODAL ==================== */
+.recently-viewed-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10001;
+  animation: slideIn 0.2s ease;
+}
+
+/* ==================== PAGE PROPERTIES IN EDITOR ==================== */
+.page-properties {
+  margin-bottom: 24px;
+}
+
+
+/* ==================== DARK MODE FOR EDITOR CONTAINER ==================== */
+.editor-content.dark-mode {
+  background: #1a1a1a !important;
+}
+
+.block-editor-container.dark-mode {
+  background: #1a1a1a !important;
+  padding: 20px 100px 40px 100px !important;
+  border-radius: 0 !important;
+  min-height: 500px;
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+
+.block-editor-container.dark-mode .block-editor {
+  background: #1a1a1a !important;
+}
+
+.block-editor-container.dark-mode .block-wrapper {
+  color: #ffffff;
+  background: transparent !important;
+}
+
+.block-editor-container.dark-mode .block-wrapper:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.block-editor-container.dark-mode .block-content {
+  color: #ffffff !important;
+  background: transparent !important;
+}
+
+
+/* ==================== FULLSCREEN PREVIEW MODE ==================== */
+.notes-redesign.preview-mode .top-nav-new,
+.notes-redesign.preview-mode .breadcrumbs,
+.notes-redesign.preview-mode .tools-sidepanel,
+.notes-redesign.preview-mode .title-section {
+  display: none !important;
+}
+
+.notes-redesign.preview-mode .editor-area-new {
+  height: 100vh;
+  overflow: auto;
+}
+
+.notes-redesign.preview-mode .editor-with-sidepanel {
+  height: 100vh;
+}
+
+.notes-redesign.preview-mode .editor-content {
+  height: 100vh;
+  padding: 0;
+}
+
+.notes-redesign.preview-mode .block-editor-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 60px 80px;
+  min-height: 100vh;
+}
+
+/* Add exit preview button */
+.exit-preview-btn {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  padding: 10px 20px;
+  background: var(--bg-bottom);
+  color: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 11px;
+  z-index: 10000;
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.exit-preview-btn:hover {
+  background: color-mix(in srgb, var(--panel) 80%, var(--accent) 20%);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+  transform: translateY(-1px);
+}
+
+.exit-preview-btn:active {
+  transform: translateY(0);
+}
+
+/* ==================== FULLSCREEN MODE ==================== */
+.notes-redesign.fullscreen-mode {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  background: var(--bg-bottom);
+}
+
+.notes-redesign.fullscreen-mode .top-nav-new {
+  display: none;
+}
+
+.notes-redesign.fullscreen-mode .tools-sidepanel {
+  display: none;
+}
+
+/* Toolbar visibility controlled by title collapse state */
+.editor-content.toolbar-hidden .formatting-toolbar-wrapper {
+  display: none;
+}
+
+.editor-content.toolbar-hidden .block-editor-wrapper {
+  padding-top: 0;
+}
+
+.notes-redesign.fullscreen-mode .editor-area-new {
+  width: 100%;
+  height: 100vh;
+}
+
+.notes-redesign.fullscreen-mode .editor-content {
+  height: 100vh;
+}
+
+.notes-redesign.fullscreen-mode .title-section {
+  padding: 24px 80px 16px;
+}
+
+.notes-redesign.fullscreen-mode .block-editor-container {
+  padding: 20px 120px 60px 120px;
+  max-width: 1400px;
+}
+
+.notes-redesign.fullscreen-mode .quill-editor-enhanced .ql-editor {
+  padding: 40px 120px;
+  max-width: 1200px;
+}
+
+.notes-redesign.fullscreen-mode .note-footer {
+  padding: 12px 80px;
+}
+
+/* Fullscreen animation */
+.notes-redesign.fullscreen-mode {
+  animation: fullscreenFadeIn 0.3s ease-out;
+}
+
+@keyframes fullscreenFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }

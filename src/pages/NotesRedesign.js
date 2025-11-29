@@ -13,7 +13,7 @@ import {
   MoreVertical, Archive, RefreshCw, Save, Clock,
   AlignLeft, Bold, Italic, Underline, 
   List, ListOrdered, Link2, Image, Code,
-  ArrowLeft, Tag, Layout, Filter
+  ArrowLeft, Tag, Layout, Filter, Palette, Timer
 } from 'lucide-react';
 import { API_URL } from '../config';
 import gamificationService from '../services/gamificationService';
@@ -22,6 +22,12 @@ import gamificationService from '../services/gamificationService';
 import SimpleBlockEditor from '../components/SimpleBlockEditor';
 import AdvancedSearch from '../components/AdvancedSearch';
 import Templates from '../components/Templates';
+import Breadcrumbs from '../components/Breadcrumbs';
+import RecentlyViewed from '../components/RecentlyViewed';
+import PageProperties from '../components/PageProperties';
+import CanvasMode from '../components/CanvasMode';
+import PomodoroTimer from '../components/PomodoroTimer';
+import SmartFolders from '../components/SmartFolders';
 
 // Utility functions
 const htmlToBlocks = (html) => {
@@ -341,6 +347,24 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [aiFloatingPosition, setAiFloatingPosition] = useState({ top: 0, left: 0 });
   const [selectedTextContent, setSelectedTextContent] = useState('');
   
+  // New features state
+  const [breadcrumbPath, setBreadcrumbPath] = useState([]);
+  const [recentlyViewed, setRecentlyViewed] = useState([]);
+  const [showRecentlyViewed, setShowRecentlyViewed] = useState(false);
+  const [pageProperties, setPageProperties] = useState([
+    { id: '1', name: 'Created', type: 'date', value: new Date().toISOString().split('T')[0] },
+    { id: '2', name: 'Status', type: 'text', value: 'Draft' },
+    { id: '3', name: 'Tags', type: 'tags', value: '' },
+  ]);
+  const [showPageProperties, setShowPageProperties] = useState(false);
+  const [editorDarkMode, setEditorDarkMode] = useState(false);
+  
+  // New features state
+  const [showCanvasMode, setShowCanvasMode] = useState(false);
+  const [showPomodoroTimer, setShowPomodoroTimer] = useState(false);
+  const [showSmartFolders, setShowSmartFolders] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  
   // Chat import state
   const [showChatImport, setShowChatImport] = useState(false);
   const [chatSessions, setChatSessions] = useState([]);
@@ -502,6 +526,16 @@ const NotesRedesign = ({ sharedMode = false }) => {
       loadNotes();
       loadFolders();
       loadChatSessions();
+      
+      // Load recently viewed from localStorage
+      const stored = localStorage.getItem(`recentlyViewed_${userName}`);
+      if (stored) {
+        try {
+          setRecentlyViewed(JSON.parse(stored));
+        } catch (e) {
+          console.error('Error loading recently viewed:', e);
+        }
+      }
     }
   }, [userName, isSharedContent]);
 
@@ -1177,6 +1211,83 @@ const NotesRedesign = ({ sharedMode = false }) => {
     
     setNoteBlocks(blocks);
     setViewMode("edit");
+    
+    // Track recently viewed
+    trackRecentlyViewed(n);
+    
+    // Update breadcrumbs
+    updateBreadcrumbs(n);
+    
+    // Load note properties if they exist
+    if (n.properties) {
+      try {
+        const props = typeof n.properties === 'string' ? JSON.parse(n.properties) : n.properties;
+        if (Array.isArray(props)) {
+          setPageProperties(props);
+        }
+      } catch (e) {
+        console.error('Error parsing note properties:', e);
+      }
+    }
+  };
+  
+  // Track recently viewed notes
+  const trackRecentlyViewed = (note) => {
+    const viewedItem = {
+      id: note.id,
+      title: note.title,
+      viewedAt: new Date().toISOString()
+    };
+    
+    // Add to beginning, remove duplicates, keep last 10
+    const updated = [
+      viewedItem,
+      ...recentlyViewed.filter(item => item.id !== note.id)
+    ].slice(0, 10);
+    
+    setRecentlyViewed(updated);
+    localStorage.setItem(`recentlyViewed_${userName}`, JSON.stringify(updated));
+  };
+  
+  // Update breadcrumbs based on note hierarchy
+  const updateBreadcrumbs = (note) => {
+    const path = [];
+    
+    // If note has a folder, add it to breadcrumbs
+    if (note.folder_id) {
+      const folder = folders.find(f => f.id === note.folder_id);
+      if (folder) {
+        path.push({ id: folder.id, title: folder.name });
+      }
+    }
+    
+    // Add current note
+    path.push({ id: note.id, title: note.title });
+    
+    setBreadcrumbPath(path);
+  };
+  
+  // Handle breadcrumb navigation
+  const handleBreadcrumbNavigate = (id) => {
+    if (id === null) {
+      // Navigate to home/all notes
+      setSelectedFolder(null);
+      setShowFavorites(false);
+      setShowTrash(false);
+      setBreadcrumbPath([]);
+    } else {
+      // Check if it's a folder or note
+      const folder = folders.find(f => f.id === id);
+      if (folder) {
+        setSelectedFolder(id);
+        setBreadcrumbPath([{ id: folder.id, title: folder.name }]);
+      } else {
+        const note = notes.find(n => n.id === id);
+        if (note) {
+          selectNote(note);
+        }
+      }
+    }
   };
 
   // Enhanced features handlers
@@ -1362,6 +1473,20 @@ const NotesRedesign = ({ sharedMode = false }) => {
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [autoSave]);
+
+  // Keyboard shortcut for fullscreen
+  useEffect(() => {
+    const handleFullscreenKey = (e) => {
+      if (e.key === "F11") {
+        e.preventDefault();
+        setIsFullscreen(!isFullscreen);
+      } else if (e.key === "Escape" && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener("keydown", handleFullscreenKey);
+    return () => window.removeEventListener("keydown", handleFullscreenKey);
+  }, [isFullscreen]);
 
   // Handle page link clicks
   useEffect(() => {
@@ -2199,7 +2324,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   };
 
   return (
-    <div className="notes-redesign">
+    <div className={`notes-redesign ${viewMode === "preview" ? "preview-mode" : ""} ${isFullscreen ? "fullscreen-mode" : ""}`}>
       {/* Quick Switcher (Cmd+K) */}
       {QuickSwitcherComponent}
       
@@ -2253,6 +2378,26 @@ const NotesRedesign = ({ sharedMode = false }) => {
           )}
 
           <div className="nav-actions-new">
+            {!isSharedContent && (
+              <>
+                <button 
+                  className="nav-btn" 
+                  onClick={() => setShowRecentlyViewed(!showRecentlyViewed)}
+                  title="Recently Viewed"
+                >
+                  <Clock size={16} style={{ marginRight: '6px', display: 'inline' }} />
+                  Recent
+                </button>
+                <button 
+                  className="nav-btn" 
+                  onClick={() => setShowPageProperties(!showPageProperties)}
+                  title="Page Properties"
+                >
+                  <Tag size={16} style={{ marginRight: '6px', display: 'inline' }} />
+                  Properties
+                </button>
+              </>
+            )}
             <button className="nav-btn" onClick={() => navigate("/notes/dashboard")}>
               <Layout size={16} style={{ marginRight: '6px', display: 'inline' }} />
               Views
@@ -2268,6 +2413,14 @@ const NotesRedesign = ({ sharedMode = false }) => {
             </button>
           </div>
         </div>
+
+        {/* Breadcrumbs Navigation */}
+        {!isSharedContent && breadcrumbPath.length > 0 && (
+          <Breadcrumbs 
+            path={breadcrumbPath}
+            onNavigate={handleBreadcrumbNavigate}
+          />
+        )}
 
         {selectedNote ? (
           <div className="editor-with-sidepanel">
@@ -2304,6 +2457,29 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     >
                       <Eye size={16} />
                       <span>Preview</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Editor Theme Section */}
+                <div className="tool-section">
+                  <label className="tool-section-label">Editor Theme</label>
+                  <div className="tool-buttons-group">
+                    <button
+                      className={`tool-panel-btn ${!editorDarkMode ? "active" : ""}`}
+                      onClick={() => setEditorDarkMode(false)}
+                      title="Light editor"
+                    >
+                      <Eye size={16} />
+                      <span>Light</span>
+                    </button>
+                    <button
+                      className={`tool-panel-btn ${editorDarkMode ? "active" : ""}`}
+                      onClick={() => setEditorDarkMode(true)}
+                      title="Dark editor"
+                    >
+                      <Eye size={16} />
+                      <span>Dark</span>
                     </button>
                   </div>
                 </div>
@@ -2395,10 +2571,53 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     </button>
                   </div>
                 </div>
+
+                {/* Visual & Interactive Features */}
+                <div className="tool-section">
+                  <label className="tool-section-label">Visual Tools</label>
+                  <div className="tool-buttons-group">
+                    <button 
+                      onClick={() => setShowCanvasMode(true)}
+                      className="tool-panel-btn"
+                      title="Canvas Mode - Draw and brainstorm"
+                    >
+                      <Palette size={16} />
+                      <span>Canvas</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Pomodoro Timer */}
+                {showPomodoroTimer && (
+                  <div className="tool-section">
+                    <PomodoroTimer 
+                      noteId={selectedNote?.id}
+                      onTimeTracked={(noteId, minutes) => {
+                        console.log(`Tracked ${minutes} minutes on note ${noteId}`);
+                      }}
+                    />
+                  </div>
+                )}
+                
+                {!showPomodoroTimer && (
+                  <div className="tool-section">
+                    <label className="tool-section-label">Focus</label>
+                    <div className="tool-buttons-group">
+                      <button 
+                        onClick={() => setShowPomodoroTimer(true)}
+                        className="tool-panel-btn"
+                        title="Pomodoro Timer"
+                      >
+                        <Timer size={16} />
+                        <span>Focus Timer</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="editor-content">
+            <div className={`editor-content ${editorDarkMode ? 'dark-mode' : ''} ${titleSectionCollapsed ? 'toolbar-hidden' : ''}`}>
               {isSharedContent && !canEdit && (
                 <div className="view-only-banner">
                   <Eye size={16} />
@@ -2424,13 +2643,22 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     </span>
                   </div>
                 </div>
-                <button
-                  className="title-collapse-btn"
-                  onClick={() => setTitleSectionCollapsed(!titleSectionCollapsed)}
-                  title={titleSectionCollapsed ? "Expand title" : "Collapse title"}
-                >
-                  <ChevronDown size={16} className={titleSectionCollapsed ? '' : 'rotated'} />
-                </button>
+                <div className="title-actions">
+                  <button
+                    className="title-action-btn"
+                    onClick={() => setIsFullscreen(!isFullscreen)}
+                    title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                  >
+                    {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                  </button>
+                  <button
+                    className="title-collapse-btn"
+                    onClick={() => setTitleSectionCollapsed(!titleSectionCollapsed)}
+                    title={titleSectionCollapsed ? "Expand title" : "Collapse title"}
+                  >
+                    <ChevronDown size={16} className={titleSectionCollapsed ? '' : 'rotated'} />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -2647,11 +2875,43 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 </div>
               )}
               
-              <div className="block-editor-container" style={{ fontFamily: customFont }}>
+              {/* Page Properties */}
+              {showPageProperties && !isSharedContent && (
+                <PageProperties
+                  properties={pageProperties}
+                  onChange={(newProps) => {
+                    setPageProperties(newProps);
+                    // Save properties with note
+                    if (selectedNote) {
+                      // You can save this to the note's properties field
+                      console.log('Saving page properties:', newProps);
+                    }
+                  }}
+                  readOnly={viewMode === "preview"}
+                />
+              )}
+
+              {/* Exit Preview Button */}
+              {viewMode === "preview" && (
+                <button
+                  className="exit-preview-btn"
+                  onClick={() => setViewMode("edit")}
+                  title="Exit preview mode"
+                >
+                  <X size={18} />
+                  Exit Preview
+                </button>
+              )}
+
+              <div 
+                className={`block-editor-container ${editorDarkMode ? 'dark-mode' : ''}`} 
+                style={{ fontFamily: customFont }}
+              >
                 <SimpleBlockEditor
                   blocks={noteBlocks}
                   onChange={handleBlocksChange}
                   readOnly={viewMode === "preview" || (isSharedContent && !canEdit)}
+                  darkMode={editorDarkMode}
                 />
               </div>
 
@@ -3221,6 +3481,59 @@ const NotesRedesign = ({ sharedMode = false }) => {
             onSelectTemplate={handleTemplateSelect}
             onClose={() => setShowTemplates(false)}
             userName={userName}
+          />
+        </>
+      )}
+
+      {/* Recently Viewed */}
+      {showRecentlyViewed && !isSharedContent && (
+        <>
+          <div className="ai-overlay" onClick={() => setShowRecentlyViewed(false)} />
+          <div className="recently-viewed-modal">
+            <RecentlyViewed
+              items={recentlyViewed}
+              onSelect={(id) => {
+                const note = notes.find(n => n.id === id);
+                if (note) {
+                  selectNote(note);
+                }
+                setShowRecentlyViewed(false);
+              }}
+              onClose={() => setShowRecentlyViewed(false)}
+            />
+          </div>
+        </>
+      )}
+
+      {/* Canvas Mode */}
+      {showCanvasMode && !isSharedContent && (
+        <>
+          <div className="ai-overlay" style={{ zIndex: 9998 }} onClick={() => setShowCanvasMode(false)} />
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}>
+            <CanvasMode
+              initialContent={noteContent}
+              onClose={() => setShowCanvasMode(false)}
+            />
+          </div>
+        </>
+      )}
+
+      {/* Smart Folders */}
+      {showSmartFolders && !isSharedContent && (
+        <>
+          <div 
+            className="ai-overlay" 
+            style={{ zIndex: 10000 }} 
+            onClick={() => setShowSmartFolders(false)} 
+          />
+          <SmartFolders
+            notes={notes}
+            onFolderSelect={(filteredNotes, folderName) => {
+              console.log(`Smart folder "${folderName}" contains ${filteredNotes.length} notes`);
+              // You can add logic here to display filtered notes
+              setShowSmartFolders(false);
+            }}
+            onClose={() => setShowSmartFolders(false)}
           />
         </>
       )}

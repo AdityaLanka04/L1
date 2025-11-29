@@ -5,7 +5,10 @@ import {
   Minus, GripVertical, Plus, Trash2, MoreVertical, Copy,
   ArrowUp, ArrowDown, Image, Link2, Table, FileText,
   Lightbulb, Star, Zap, BookOpen, Calendar, Tag,
-  Hash, AtSign, MapPin, Clock, Paperclip
+  Hash, AtSign, MapPin, Clock, Paperclip, Palette,
+  AlignLeft, AlignCenter, AlignRight, AlignJustify,
+  Indent, Outdent, Columns, Youtube, ExternalLink,
+  GitBranch, X
 } from 'lucide-react';
 import './BlockEditor.css';
 import CodeBlock from './CodeBlock';
@@ -49,9 +52,112 @@ const BLOCK_TYPES = [
   { type: 'bookmark', label: 'Bookmark', icon: BookOpen, description: 'Bookmark link', category: 'Organization' },
   { type: 'date', label: 'Date', icon: Calendar, description: 'Date mention', category: 'Organization' },
   { type: 'tag', label: 'Tag', icon: Tag, description: 'Tag or label', category: 'Organization' },
+  
+  // Layout
+  { type: 'columns', label: 'Columns', icon: Columns, description: 'Multi-column layout', category: 'Layout' },
+  
+  // Embeds
+  { type: 'youtube', label: 'YouTube', icon: Youtube, description: 'Embed YouTube video', category: 'Embeds' },
+  { type: 'embed', label: 'Embed', icon: ExternalLink, description: 'Embed external content', category: 'Embeds' },
+  { type: 'mermaid', label: 'Mermaid', icon: GitBranch, description: 'Flowchart diagram', category: 'Advanced' },
 ];
 
-const SimpleBlockEditor = ({ blocks, onChange, readOnly = false }) => {
+// Mermaid Block Component
+const MermaidBlock = ({ block, updateBlock, readOnly }) => {
+  const [showPreview, setShowPreview] = React.useState(false);
+  const [renderError, setRenderError] = React.useState(null);
+  const mermaidRef = React.useRef(null);
+  const [mermaid, setMermaid] = React.useState(null);
+
+  // Load Mermaid
+  React.useEffect(() => {
+    import('mermaid').then((m) => {
+      m.default.initialize({ 
+        startOnLoad: false,
+        theme: 'default',
+        securityLevel: 'loose',
+      });
+      setMermaid(m.default);
+    });
+  }, []);
+
+  // Render diagram when preview is shown
+  React.useEffect(() => {
+    if (showPreview && block.content && mermaidRef.current && mermaid) {
+      const renderDiagram = async () => {
+        try {
+          setRenderError(null);
+          mermaidRef.current.innerHTML = '';
+          
+          // Generate a simple valid ID using only alphanumeric characters
+          const timestamp = Date.now();
+          const randomNum = Math.floor(Math.random() * 10000);
+          const id = `mermaid_${timestamp}_${randomNum}`;
+          
+          const { svg } = await mermaid.render(id, block.content);
+          mermaidRef.current.innerHTML = svg;
+        } catch (error) {
+          console.error('Mermaid render error:', error);
+          setRenderError(error.message || 'Invalid diagram syntax');
+          // Clear any partial render
+          if (mermaidRef.current) {
+            mermaidRef.current.innerHTML = '';
+          }
+        }
+      };
+      renderDiagram();
+    }
+  }, [showPreview, block.content, block.id, mermaid]);
+  
+  return (
+    <div className="block-mermaid-wrapper">
+      <div className="mermaid-header">
+        <GitBranch size={18} />
+        <span>Mermaid Diagram</span>
+        <div className="mermaid-actions">
+          <button
+            className="mermaid-toggle-btn"
+            onClick={() => setShowPreview(!showPreview)}
+            title={showPreview ? "Show code" : "Show preview"}
+          >
+            {showPreview ? <Code size={14} /> : <span>👁️</span>}
+            {showPreview ? "Code" : "Preview"}
+          </button>
+        </div>
+      </div>
+      {!showPreview ? (
+        <div className="mermaid-code-editor">
+          <textarea
+            value={block.content || ''}
+            onChange={(e) => updateBlock(block.id, { content: e.target.value })}
+            placeholder="graph TD&#10;    A[Start] --> B{Decision}&#10;    B -->|Yes| C[End]&#10;    B -->|No| D[Continue]"
+            className="mermaid-textarea"
+            readOnly={readOnly}
+            rows={8}
+          />
+        </div>
+      ) : (
+        <div className="mermaid-preview">
+          {block.content ? (
+            <div className="mermaid-render">
+              {renderError ? (
+                <div className="mermaid-error">
+                  <strong>Error:</strong> {renderError}
+                </div>
+              ) : (
+                <div ref={mermaidRef} className="mermaid-diagram" />
+              )}
+            </div>
+          ) : (
+            <div className="mermaid-empty">No diagram code yet</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = false }) => {
   const [hoveredBlockId, setHoveredBlockId] = useState(null);
   const [showBlockMenu, setShowBlockMenu] = useState(null);
   const [draggedBlockId, setDraggedBlockId] = useState(null);
@@ -62,10 +168,13 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false }) => {
   const [selectedMenuIndex, setSelectedMenuIndex] = useState(0);
   const [viewingFile, setViewingFile] = useState(null);
   const [lastKeyPress, setLastKeyPress] = useState({ key: '', time: 0 });
+  const [showStyleMenu, setShowStyleMenu] = useState(null);
+  const [styleMenuPosition, setStyleMenuPosition] = useState({ top: 0, left: 0 });
   const blockRefs = useRef({});
   const blockWrapperRefs = useRef({});
   const slashMenuRef = useRef(null);
   const draggedBlockIdRef = useRef(null);
+  const styleMenuRef = useRef(null);
 
   const updateBlock = useCallback((blockId, updates) => {
     const newBlocks = blocks.map(b =>
@@ -105,18 +214,35 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false }) => {
     }
   };
 
-  const addBlock = useCallback((index) => {
+  const addBlock = useCallback((index, parentId = null) => {
     const newBlock = {
       id: Date.now() + Math.random(),
       type: 'paragraph',
       content: '',
-      properties: {}
+      properties: {},
+      parent_block_id: parentId
     };
     const newBlocks = [...blocks];
     newBlocks.splice(index + 1, 0, newBlock);
     onChange(newBlocks);
     setTimeout(() => blockRefs.current[newBlock.id]?.focus(), 0);
   }, [blocks, onChange]);
+
+  const indentBlock = useCallback((blockId) => {
+    const index = blocks.findIndex(b => b.id === blockId);
+    if (index <= 0) return; // Can't indent first block
+    
+    const prevBlock = blocks[index - 1];
+    updateBlock(blockId, { parent_block_id: prevBlock.id });
+  }, [blocks, updateBlock]);
+
+  const outdentBlock = useCallback((blockId) => {
+    const block = blocks.find(b => b.id === blockId);
+    if (!block?.parent_block_id) return; // Already at root level
+    
+    const parentBlock = blocks.find(b => b.id === block.parent_block_id);
+    updateBlock(blockId, { parent_block_id: parentBlock?.parent_block_id || null });
+  }, [blocks, updateBlock]);
 
   const deleteBlock = useCallback((blockId) => {
     if (blocks.length === 1) return;
@@ -266,7 +392,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false }) => {
   };
 
   const handleInput = (e, blockId) => {
-    const content = e.currentTarget.textContent || '';
+    const content = e.currentTarget.innerHTML || '';
     
     // Markdown shortcuts detection
     const trimmedContent = content.trim();
@@ -412,7 +538,31 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false }) => {
       const rect = blockWrapper.getBoundingClientRect();
       const mouseY = e.clientY;
       const midpoint = rect.top + rect.height / 2;
-      const position = mouseY < midpoint ? 'above' : 'below';
+      
+      // Magnetic snap zone - 30% of block height from edges
+      const snapZone = rect.height * 0.3;
+      const distanceFromTop = mouseY - rect.top;
+      const distanceFromBottom = rect.bottom - mouseY;
+      
+      let position;
+      let inSnapZone = false;
+      
+      if (distanceFromTop < snapZone) {
+        position = 'above';
+        inSnapZone = true;
+      } else if (distanceFromBottom < snapZone) {
+        position = 'below';
+        inSnapZone = true;
+      } else {
+        position = mouseY < midpoint ? 'above' : 'below';
+      }
+      
+      // Add snap zone visual feedback
+      if (inSnapZone) {
+        blockWrapper.classList.add('in-snap-zone');
+      } else {
+        blockWrapper.classList.remove('in-snap-zone');
+      }
       
       setDropIndicator({ blockId: targetBlockId, position });
     }
@@ -425,6 +575,13 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false }) => {
 
   const handleDragLeave = useCallback((e) => {
     e.preventDefault();
+    
+    // Remove snap zone class from all blocks
+    Object.values(blockWrapperRefs.current).forEach(wrapper => {
+      if (wrapper) {
+        wrapper.classList.remove('in-snap-zone');
+      }
+    });
     
     // Only clear indicator if we're leaving the editor entirely
     const relatedTarget = e.relatedTarget;
@@ -472,6 +629,15 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false }) => {
     const [draggedBlock] = newBlocks.splice(dragIndex, 1);
     newBlocks.splice(targetIndex, 0, draggedBlock);
     
+    // Add magnetic snap animation class
+    const targetWrapper = blockWrapperRefs.current[draggedBlock.id];
+    if (targetWrapper) {
+      targetWrapper.classList.add('magnetic-snap');
+      setTimeout(() => {
+        targetWrapper.classList.remove('magnetic-snap');
+      }, 400);
+    }
+    
     onChange(newBlocks);
     
     draggedBlockIdRef.current = null;
@@ -480,6 +646,13 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false }) => {
   }, [blocks, onChange, dropIndicator]);
 
   const handleDragEnd = useCallback(() => {
+    // Remove snap zone class from all blocks
+    Object.values(blockWrapperRefs.current).forEach(wrapper => {
+      if (wrapper) {
+        wrapper.classList.remove('in-snap-zone');
+      }
+    });
+    
     draggedBlockIdRef.current = null;
     setDraggedBlockId(null);
     setDropIndicator(null);
@@ -520,6 +693,17 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showBlockMenu]);
+
+  // Close style menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showStyleMenu && styleMenuRef.current && !styleMenuRef.current.contains(e.target)) {
+        setShowStyleMenu(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showStyleMenu]);
 
   const renderBlockContent = (block) => {
     // Special handling for code blocks - don't use contentEditable
@@ -577,26 +761,36 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false }) => {
       });
     };
     
+    // Apply custom styling from block properties
+    const blockStyle = block.properties?.style || {};
+    const customStyle = {
+      backgroundColor: blockStyle.backgroundColor || 'transparent',
+      color: darkMode ? '#ffffff' : (blockStyle.color || 'inherit'),
+      textAlign: blockStyle.textAlign || 'left',
+      padding: blockStyle.spacing === 'compact' ? '2px' : blockStyle.spacing === 'relaxed' ? '8px' : '4px',
+    };
+    
     const props = {
       ref: (el) => { 
         blockRefs.current[block.id] = el;
         // Set initial content only once
-        if (el && el.textContent !== block.content) {
-          el.textContent = block.content;
+        if (el && el.innerHTML !== block.content) {
+          el.innerHTML = block.content;
         }
       },
       contentEditable: !readOnly && block.type !== 'divider',
       suppressContentEditableWarning: true,
       onInput: handleContentInput,
       onBlur: (e) => {
-        const content = e.currentTarget.textContent || '';
+        const content = e.currentTarget.innerHTML || '';
         if (content !== block.content) {
           updateBlock(block.id, { content });
         }
       },
       onKeyDown: (e) => handleKeyDown(e, block.id, blocks.findIndex(b => b.id === block.id)),
       className: `block-content block-${block.type}`,
-      'data-placeholder': block.content ? '' : `Type something...`
+      'data-placeholder': block.content ? '' : `Type something...`,
+      style: customStyle
     };
 
     switch (block.type) {
@@ -777,6 +971,199 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false }) => {
             <div {...props} placeholder="Tag name..." />
           </div>
         );
+      case 'youtube':
+        const extractYouTubeId = (url) => {
+          if (!url) return null;
+          const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+          const match = url.match(regExp);
+          return (match && match[2].length === 11) ? match[2] : null;
+        };
+        
+        const handleYouTubeInput = (e) => {
+          if (!e || !e.currentTarget) return;
+          const url = e.currentTarget.textContent || '';
+          if (!url.trim()) return;
+          
+          const videoId = extractYouTubeId(url);
+          if (videoId) {
+            updateBlock(block.id, {
+              properties: {
+                ...block.properties,
+                embedUrl: `https://www.youtube.com/embed/${videoId}`,
+                originalUrl: url
+              }
+            });
+          }
+        };
+        
+        return (
+          <div className="block-youtube-wrapper">
+            <div className="youtube-header">
+              <Youtube size={18} />
+              <span>YouTube Video</span>
+              {block.properties?.embedUrl && !readOnly && (
+                <button
+                  className="remove-embed-btn"
+                  onClick={() => updateBlock(block.id, { properties: {} })}
+                  title="Remove video"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+            {block.properties?.embedUrl ? (
+              <div className="youtube-player">
+                <iframe
+                  width="100%"
+                  height="450"
+                  src={block.properties.embedUrl}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title="YouTube video"
+                />
+              </div>
+            ) : (
+              <div 
+                {...props} 
+                placeholder="Paste YouTube URL (e.g., https://youtube.com/watch?v=...)"
+                onBlur={handleYouTubeInput}
+                onPaste={(e) => {
+                  setTimeout(() => handleYouTubeInput(e), 100);
+                }}
+                className="youtube-input"
+              />
+            )}
+          </div>
+        );
+      case 'embed':
+        const handleEmbedInput = (e) => {
+          if (!e || !e.currentTarget) return;
+          const url = (e.currentTarget.textContent || '').trim();
+          if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+            updateBlock(block.id, {
+              properties: {
+                ...block.properties,
+                embedUrl: url
+              }
+            });
+          }
+        };
+        
+        return (
+          <div className="block-generic-embed-wrapper">
+            <div className="embed-header">
+              <ExternalLink size={18} />
+              <span>Embedded Content</span>
+              {block.properties?.embedUrl && !readOnly && (
+                <button
+                  className="remove-embed-btn"
+                  onClick={() => updateBlock(block.id, { properties: {} })}
+                  title="Remove embed"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+            {block.properties?.embedUrl ? (
+              <div className="embed-player">
+                <iframe
+                  width="100%"
+                  height="500"
+                  src={block.properties.embedUrl}
+                  frameBorder="0"
+                  title="Embedded content"
+                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                />
+              </div>
+            ) : (
+              <div 
+                {...props} 
+                placeholder="Paste embed URL (Figma, Google Maps, CodePen, etc.)"
+                onBlur={handleEmbedInput}
+                onPaste={(e) => {
+                  setTimeout(() => handleEmbedInput(e), 100);
+                }}
+                className="embed-input"
+              />
+            )}
+          </div>
+        );
+      case 'mermaid':
+        return <MermaidBlock block={block} updateBlock={updateBlock} readOnly={readOnly} />;
+      case 'columns':
+        const columnCount = block.properties?.columnCount || 2;
+        const columnContents = block.properties?.columns || Array(columnCount).fill('');
+        
+        const updateColumnContent = (colIndex, content) => {
+          const newColumns = [...columnContents];
+          newColumns[colIndex] = content;
+          updateBlock(block.id, {
+            properties: {
+              ...block.properties,
+              columns: newColumns
+            }
+          });
+        };
+        
+        const changeColumnCount = (newCount) => {
+          const newColumns = Array(newCount).fill('').map((_, i) => columnContents[i] || '');
+          updateBlock(block.id, {
+            properties: {
+              ...block.properties,
+              columnCount: newCount,
+              columns: newColumns
+            }
+          });
+        };
+        
+        return (
+          <div className="block-columns-container">
+            <div className="columns-header">
+              <Columns size={18} />
+              <span>Multi-Column Layout</span>
+              {!readOnly && (
+                <div className="column-controls">
+                  <button
+                    className="column-count-btn"
+                    onClick={() => changeColumnCount(Math.max(1, columnCount - 1))}
+                    disabled={columnCount <= 1}
+                    title="Remove column"
+                  >
+                    -
+                  </button>
+                  <span className="column-count">{columnCount} columns</span>
+                  <button
+                    className="column-count-btn"
+                    onClick={() => changeColumnCount(Math.min(4, columnCount + 1))}
+                    disabled={columnCount >= 4}
+                    title="Add column"
+                  >
+                    +
+                  </button>
+                </div>
+              )}
+            </div>
+            <div 
+              className="block-columns-wrapper" 
+              style={{ gridTemplateColumns: `repeat(${columnCount}, 1fr)` }}
+            >
+              {columnContents.map((content, colIndex) => (
+                <div key={colIndex} className="column">
+                  <div className="column-label">Column {colIndex + 1}</div>
+                  <textarea
+                    value={content}
+                    onChange={(e) => updateColumnContent(colIndex, e.target.value)}
+                    placeholder={`Enter content for column ${colIndex + 1}...`}
+                    className="column-textarea"
+                    readOnly={readOnly}
+                    rows={6}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        );
       default:
         return <p {...props} />;
     }
@@ -792,7 +1179,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false }) => {
   return (
     <>
     <div 
-      className="block-editor"
+      className={`block-editor ${darkMode ? 'dark-mode' : ''}`}
       onDragOver={handleEditorDragOver}
       onDrop={handleEditorDrop}
     >
@@ -801,12 +1188,22 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false }) => {
         const showAboveIndicator = dropIndicator?.blockId === block.id && dropIndicator?.position === 'above';
         const showBelowIndicator = dropIndicator?.blockId === block.id && dropIndicator?.position === 'below';
         
+        // Calculate indentation level
+        let indentLevel = 0;
+        let currentBlock = block;
+        while (currentBlock.parent_block_id && indentLevel < 4) {
+          currentBlock = blocks.find(b => b.id === currentBlock.parent_block_id);
+          if (currentBlock) indentLevel++;
+          else break;
+        }
+        
         return (
           <div
             key={block.id}
             ref={(el) => { blockWrapperRefs.current[block.id] = el; }}
             data-block-id={block.id}
-            className={`block-wrapper ${isDragging ? 'dragging' : ''}`}
+            data-indent={indentLevel}
+            className={`block-wrapper ${isDragging ? 'dragging' : ''} ${darkMode ? 'dark-mode' : ''}`}
             onMouseEnter={() => !readOnly && !draggedBlockId && !showBlockMenu && setHoveredBlockId(block.id)}
             onMouseLeave={() => !readOnly && !draggedBlockId && showBlockMenu !== block.id && setHoveredBlockId(null)}
             onDragOver={(e) => handleDragOver(e, block.id)}
@@ -861,6 +1258,29 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false }) => {
                   </button>
                   <button onClick={() => { deleteBlock(block.id); setShowBlockMenu(null); }}>
                     <Trash2 size={14} /> Delete
+                  </button>
+                  
+                  <div className="menu-divider"></div>
+                  <div className="menu-label">Style</div>
+                  <button onClick={() => { 
+                    const wrapper = blockWrapperRefs.current[block.id];
+                    if (wrapper) {
+                      const rect = wrapper.getBoundingClientRect();
+                      setStyleMenuPosition({ top: rect.bottom + 5, left: rect.left });
+                      setShowStyleMenu(block.id);
+                      setShowBlockMenu(null);
+                    }
+                  }}>
+                    <Palette size={14} /> Colors & Style
+                  </button>
+                  
+                  <div className="menu-divider"></div>
+                  <div className="menu-label">Indent</div>
+                  <button onClick={() => { indentBlock(block.id); setShowBlockMenu(null); }} disabled={index === 0}>
+                    <Indent size={14} /> Indent
+                  </button>
+                  <button onClick={() => { outdentBlock(block.id); setShowBlockMenu(null); }} disabled={!block.parent_block_id}>
+                    <Outdent size={14} /> Outdent
                   </button>
                   
                   <div className="menu-divider"></div>
@@ -973,6 +1393,175 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false }) => {
         fileType={viewingFile.type}
         onClose={() => setViewingFile(null)}
       />
+    )}
+    
+    {showStyleMenu && (
+      <div 
+        ref={styleMenuRef}
+        className="style-menu"
+        style={{
+          position: 'fixed',
+          top: styleMenuPosition.top,
+          left: styleMenuPosition.left,
+          zIndex: 10000
+        }}
+      >
+        <div className="style-menu-header">
+          <span>Block Style</span>
+          <button onClick={() => setShowStyleMenu(null)} className="style-close-btn">
+            <X size={16} />
+          </button>
+        </div>
+        
+        <div className="style-menu-section">
+          <div className="style-label">Background Color</div>
+          <div className="color-grid">
+            {[
+              { name: 'Default', bg: 'transparent' },
+              { name: 'Gray', bg: '#f3f4f6' },
+              { name: 'Brown', bg: '#fef3c7' },
+              { name: 'Orange', bg: '#fed7aa' },
+              { name: 'Yellow', bg: '#fef08a' },
+              { name: 'Green', bg: '#d1fae5' },
+              { name: 'Blue', bg: '#dbeafe' },
+              { name: 'Purple', bg: '#e9d5ff' },
+              { name: 'Pink', bg: '#fce7f3' },
+              { name: 'Red', bg: '#fee2e2' },
+            ].map((color) => {
+              const block = blocks.find(b => b.id === showStyleMenu);
+              const currentBg = block?.properties?.style?.backgroundColor;
+              return (
+                <button
+                  key={color.name}
+                  className={`color-btn ${currentBg === color.bg ? 'active' : ''}`}
+                  style={{ backgroundColor: color.bg }}
+                  onClick={() => {
+                    updateBlock(showStyleMenu, {
+                      properties: {
+                        ...block.properties,
+                        style: {
+                          ...block.properties?.style,
+                          backgroundColor: color.bg
+                        }
+                      }
+                    });
+                  }}
+                  title={color.name}
+                />
+              );
+            })}
+          </div>
+        </div>
+        
+        <div className="style-menu-section">
+          <div className="style-label">Text Color</div>
+          <div className="color-grid">
+            {[
+              { name: 'Default', color: 'inherit' },
+              { name: 'Gray', color: '#6b7280' },
+              { name: 'Brown', color: '#92400e' },
+              { name: 'Orange', color: '#ea580c' },
+              { name: 'Yellow', color: '#ca8a04' },
+              { name: 'Green', color: '#059669' },
+              { name: 'Blue', color: '#2563eb' },
+              { name: 'Purple', color: '#7c3aed' },
+              { name: 'Pink', color: '#db2777' },
+              { name: 'Red', color: '#dc2626' },
+            ].map((color) => {
+              const block = blocks.find(b => b.id === showStyleMenu);
+              const currentColor = block?.properties?.style?.color;
+              return (
+                <button
+                  key={color.name}
+                  className={`color-btn ${currentColor === color.color ? 'active' : ''}`}
+                  style={{ backgroundColor: color.color }}
+                  onClick={() => {
+                    updateBlock(showStyleMenu, {
+                      properties: {
+                        ...block.properties,
+                        style: {
+                          ...block.properties?.style,
+                          color: color.color
+                        }
+                      }
+                    });
+                  }}
+                  title={color.name}
+                />
+              );
+            })}
+          </div>
+        </div>
+        
+        <div className="style-menu-section">
+          <div className="style-label">Alignment</div>
+          <div className="alignment-buttons">
+            {[
+              { name: 'Left', value: 'left', icon: AlignLeft },
+              { name: 'Center', value: 'center', icon: AlignCenter },
+              { name: 'Right', value: 'right', icon: AlignRight },
+              { name: 'Justify', value: 'justify', icon: AlignJustify },
+            ].map((align) => {
+              const Icon = align.icon;
+              const block = blocks.find(b => b.id === showStyleMenu);
+              const currentAlign = block?.properties?.style?.textAlign || 'left';
+              return (
+                <button
+                  key={align.value}
+                  className={`align-btn ${currentAlign === align.value ? 'active' : ''}`}
+                  onClick={() => {
+                    updateBlock(showStyleMenu, {
+                      properties: {
+                        ...block.properties,
+                        style: {
+                          ...block.properties?.style,
+                          textAlign: align.value
+                        }
+                      }
+                    });
+                  }}
+                  title={align.name}
+                >
+                  <Icon size={16} />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        
+        <div className="style-menu-section">
+          <div className="style-label">Spacing</div>
+          <div className="spacing-buttons">
+            {[
+              { name: 'Compact', value: 'compact' },
+              { name: 'Normal', value: 'normal' },
+              { name: 'Relaxed', value: 'relaxed' },
+            ].map((space) => {
+              const block = blocks.find(b => b.id === showStyleMenu);
+              const currentSpacing = block?.properties?.style?.spacing || 'normal';
+              return (
+                <button
+                  key={space.value}
+                  className={`spacing-btn ${currentSpacing === space.value ? 'active' : ''}`}
+                  onClick={() => {
+                    updateBlock(showStyleMenu, {
+                      properties: {
+                        ...block.properties,
+                        style: {
+                          ...block.properties?.style,
+                          spacing: space.value
+                        }
+                      }
+                    });
+                  }}
+                >
+                  {space.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
     )}
     </>
   );
