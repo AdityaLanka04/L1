@@ -250,11 +250,23 @@ const Flashcards = () => {
         body: formData
       });
 
-      
-
-      if (!response.ok) throw new Error(`Failed to generate flashcards: ${response.status}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to generate flashcards: ${response.status}`);
+      }
 
       const data = await response.json();
+      
+      if (!data.flashcards || data.flashcards.length === 0) {
+        showPopup('No Cards Generated', 'Unable to generate flashcards. Try reducing the number of cards or providing more detailed content.');
+        setGenerating(false);
+        return;
+      }
+      
+      if (data.flashcards.length < cardCount) {
+        showPopup('Partial Generation', `Generated ${data.flashcards.length} cards instead of ${cardCount}. Not enough content available.`);
+      }
+      
       setFlashcards(data.flashcards);
       setCurrentCard(0);
       setIsFlipped(false);
@@ -599,9 +611,19 @@ const Flashcards = () => {
                         <input
                           type="number"
                           min="1"
-                          max="50"
+                          max="15"
                           value={cardCount}
-                          onChange={(e) => setCardCount(parseInt(e.target.value) || 10)}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            if (val > 15) {
+                              setCardCount(15);
+                              showPopup('Limit Reached', 'Maximum 15 cards allowed per set.');
+                            } else if (val < 1) {
+                              setCardCount(1);
+                            } else {
+                              setCardCount(val || 1);
+                            }
+                          }}
                           className="form-input"
                         />
                       </div>
@@ -701,9 +723,19 @@ const Flashcards = () => {
                         <input
                           type="number"
                           min="1"
-                          max="50"
+                          max="15"
                           value={cardCount}
-                          onChange={(e) => setCardCount(parseInt(e.target.value) || 10)}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            if (val > 15) {
+                              setCardCount(15);
+                              showPopup('Limit Reached', 'Maximum 15 cards allowed per set.');
+                            } else if (val < 1) {
+                              setCardCount(1);
+                            } else {
+                              setCardCount(val || 1);
+                            }
+                          }}
                           className="form-input"
                         />
                       </div>

@@ -9,7 +9,7 @@
   --bg-top: #0b0b0c;
   --bg-bottom: #0f1012;
   --panel: #16181d;
-  --border: #2a2f37;
+  --border: none;
   --text-primary: #EAECEF;
   --text-secondary: #B8C0CC;
   --accent: #FFFFFF;
@@ -66,7 +66,7 @@ body {
 .dashboard-page .dashboard-header {
   background: color-mix(in srgb, var(--bg-top) 80%, transparent);
   backdrop-filter: blur(20px);
-  border-bottom: 2px solid var(--border);
+  border-bottom: none;
   padding: 16px 0;
   position: sticky;
   top: 0;
@@ -158,7 +158,7 @@ body {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 2px solid var(--border);
+  border: none;
   object-fit: cover;
   box-shadow: var(--shadow-sm);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -180,7 +180,7 @@ body {
 /* Header buttons */
 .dashboard-page .customize-btn, .profile-btn, .logout-btn, .help-btn-header {
   background: var(--bg-bottom);
-  border: 1px solid var(--border);
+  border: none;
   color: var(--text-secondary);
   padding: 10px 18px;
   font-size: 11px;
@@ -247,7 +247,7 @@ body {
   width: 34px;
   height: 22px;
   border-radius: 6px;
-  border: 1px solid var(--border);
+  border: none;
   background: var(--panel);
   cursor: pointer;
   display: inline-flex;
@@ -337,15 +337,14 @@ body {
    Customization Panel
 ---------------------------------------------------- */
 .dashboard-page .customization-panel {
-  background: color-mix(in srgb, var(--panel) 12%, transparent);
-  border: 2px solid var(--accent);
+  background: transparent;
+  border: none;
   padding: 25px;
   margin-bottom: 25px;
-  backdrop-filter: blur(10px);
   font-family: 'Inter', sans-serif;
   border-radius: 0;
   animation: slideDown 0.3s ease-out;
-  box-shadow: var(--shadow-md);
+  box-shadow: none;
 }
 
 @keyframes slideDown {
@@ -359,7 +358,7 @@ body {
   align-items: center;
   margin-bottom: 20px;
   padding-bottom: 15px;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-bottom: none;
 }
 
 .dashboard-page .panel-header h3 {
@@ -373,7 +372,7 @@ body {
 
 .dashboard-page .reset-btn {
   background: color-mix(in srgb, var(--danger) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  border: none;
   color: var(--danger);
   padding: 8px 16px;
   font-size: 10px;
@@ -411,7 +410,7 @@ body {
   display: flex; align-items: center; gap: 10px;
   cursor: pointer; padding: 10px 12px; border-radius: 0;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
-  border: 1px solid transparent;
+  border: none;
   background: var(--bg-bottom);
   box-shadow: var(--shadow-sm);
 }
@@ -435,7 +434,7 @@ body {
 
 .dashboard-page .customization-help {
   padding-top: 15px;
-  border-top: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
+  border-top: none;
   text-align: center;
 }
 .dashboard-page .customization-help p {
@@ -449,7 +448,7 @@ body {
 .dashboard-page .dashboard-widgets {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  gap: 20px;
+  gap: 28px;
   grid-auto-rows: minmax(280px, auto);
   position: relative;
   max-width: 1800px;
@@ -468,10 +467,9 @@ body {
    Widget Base Styles
 ---------------------------------------------------- */
 .dashboard-page .dashboard-widget {
-  background: color-mix(in srgb, var(--panel) 10%, transparent);
-  border: 2px solid var(--accent);
+  background: var(--panel);
+  border: 2px solid #000000;
   padding: 25px;
-  backdrop-filter: blur(10px);
   position: relative;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: 'Inter', sans-serif;
@@ -481,26 +479,36 @@ body {
   border-radius: 0;
   height: 100%;
   min-height: 280px;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
+}
+.dashboard-page .dashboard-widget::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--glow), transparent);
+  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+  pointer-events: none;
+}
+.dashboard-page .dashboard-widget:hover::before {
+  left: 100%;
 }
 .dashboard-page .dashboard-widget:hover {
-  background: color-mix(in srgb, var(--panel) 20%, transparent);
-  border-color: color-mix(in srgb, var(--accent) 80%, transparent);
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  border-color: var(--accent);
+  transform: translateY(-8px);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow-lg), 0 0 30px var(--glow);
 }
 .dashboard-page .dashboard-widget.customizing {
-  border-color: var(--accent);
-  box-shadow: var(--shadow-glow);
   cursor: default;
 }
 .dashboard-page .dashboard-widget.customizing:hover { transform: none; }
 .dashboard-page .dashboard-widget.dragging {
   transform: rotate(3deg) scale(1.02);
-  box-shadow: var(--shadow-lg);
   z-index: 1000;
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--panel) 40%, transparent);
+  background: transparent;
   transition: none;
 }
 
@@ -509,7 +517,7 @@ body {
   position: absolute; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 20;
   background: color-mix(in srgb, var(--bg-top) 80%, transparent);
   padding: 4px; border-radius: 0; backdrop-filter: blur(10px);
-  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border: none;
   box-shadow: var(--shadow-sm);
 }
 .dashboard-page .drag-handle {
@@ -569,7 +577,7 @@ body {
 .dashboard-page .widget-header {
   display: flex; justify-content: flex-start; align-items: center;
   margin-bottom: 20px; padding-bottom: 15px;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-bottom: none;
 }
 .dashboard-page .widget-title {
   font-size: 18px !important; font-weight: 700 !important; color: var(--accent) !important;
@@ -588,7 +596,7 @@ body {
 .dashboard-page .card-header {
   display: flex; justify-content: flex-start; align-items: center;
   margin-bottom: 15px; padding-bottom: 7px;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-bottom: none;
 }
 .dashboard-page .card-title { 
   font-size: 18px !important; 
@@ -609,7 +617,7 @@ body {
 .dashboard-page .status-indicator.active {
   background: color-mix(in srgb, var(--success) 20%, transparent);
   color: var(--success);
-  border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
+  border: none;
 }
 
 .dashboard-page .ai-visual-section { 
@@ -629,12 +637,14 @@ body {
   position: relative; transition: all .4s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
   background: var(--accent);
-  box-shadow: var(--shadow-lg), var(--shadow-glow);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  border: 1px solid color-mix(in srgb, var(--accent) 60%, white);
 }
 .dashboard-page .ai-icon-display:hover {
   transform: translateY(-6px) scale(1.05);
-  box-shadow: var(--shadow-lg), 0 0 30px var(--glow);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), 0 0 30px color-mix(in srgb, var(--accent) 40%, transparent);
   background: color-mix(in srgb, var(--accent) 90%, white);
+  border-color: color-mix(in srgb, var(--accent) 80%, white);
 }
 .dashboard-page .ai-icon-display:active { 
   transform: translateY(-2px) scale(1.02); 
@@ -666,11 +676,11 @@ body {
 .dashboard-page .ai-chat-btn {
   width: 100%;
   background: var(--accent);
-  border: 2px solid var(--accent);
-  color: var(--bg-top);
+  border: 1px solid color-mix(in srgb, var(--accent) 60%, white);
+  color: #000;
   padding: 18px 24px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: 1px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -680,7 +690,7 @@ body {
   position: relative;
   overflow: hidden;
   border-radius: 0;
-  box-shadow: var(--shadow-sm), var(--shadow-glow);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   min-height: 50px;
 }
 .dashboard-page .ai-chat-btn::before {
@@ -690,9 +700,10 @@ body {
 }
 .dashboard-page .ai-chat-btn:hover::before { left: 100%; }
 .dashboard-page .ai-chat-btn:hover {
-  background: color-mix(in srgb, var(--accent) 85%, white);
+  background: color-mix(in srgb, var(--accent) 90%, white);
+  border-color: color-mix(in srgb, var(--accent) 80%, white);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md), 0 0 25px var(--glow);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), 0 0 30px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 .dashboard-page .ai-description {
@@ -716,7 +727,7 @@ body {
 .dashboard-page .learning-review-widget .widget-header {
   display: flex; justify-content: flex-start; align-items: center;
   margin-bottom: 20px; padding-bottom: 15px;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-bottom: none;
 }
 .dashboard-page .learning-review-widget .widget-title,
 .dashboard-page .stats-overview-widget .widget-title { 
@@ -732,7 +743,7 @@ body {
   width: 24px;
   height: 24px;
   background: var(--accent);
-  border: 2px solid var(--accent);
+  border: none;
   color: #000;
   padding: 0;
   font-size: 12px;
@@ -780,7 +791,7 @@ body {
   width: 100%;
   max-width: 280px;
   background: var(--accent);
-  border: 2px solid var(--accent);
+  border: none;
   color: var(--bg-top);
   padding: 10px 24px;
   font-size: 12px;
@@ -824,29 +835,35 @@ body {
   margin-right: -4px;
 }
 .dashboard-page .review-item {
-  background: color-mix(in srgb, var(--panel) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  background: var(--panel);
+  border: 2px solid #000000;
   border-radius: 0; 
   padding: 20px; 
-  transition: all .2s cubic-bezier(0.4, 0, 0.2, 1); 
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
   position: relative; 
   cursor: pointer;
   box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 .dashboard-page .review-item::before {
   content: ''; 
   position: absolute; 
   top: 0; 
-  left: 0; 
+  left: -100%; 
   width: 100%; 
-  height: 1px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 30%, transparent), transparent);
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--glow), transparent);
+  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+  pointer-events: none;
+}
+.dashboard-page .review-item:hover::before {
+  left: 100%;
 }
 .dashboard-page .review-item:hover {
-  background: color-mix(in srgb, var(--panel) 30%, transparent);
-  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+  border-color: var(--accent);
+  transform: translateY(-8px);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow-lg), 0 0 30px var(--glow);
 }
 
 .dashboard-page .review-header { 
@@ -880,12 +897,12 @@ body {
 }
 .dashboard-page .review-status.completed {
   background: color-mix(in srgb, var(--success) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
+  border: none;
   color: color-mix(in srgb, var(--success) 90%, white);
 }
 .dashboard-page .review-status.in_progress {
   background: color-mix(in srgb, var(--warning) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent);
+  border: none;
   color: color-mix(in srgb, var(--warning) 90%, white);
 }
 
@@ -937,7 +954,7 @@ body {
 }
 .dashboard-page .continue-btn { 
   background: var(--accent); 
-  border: 2px solid var(--accent); 
+  border: none; 
   color: #000; 
 }
 .dashboard-page .continue-btn:hover { 
@@ -947,7 +964,7 @@ body {
 }
 .dashboard-page .view-btn {
   background: transparent;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border: none;
   color: var(--accent);
 }
 .dashboard-page .view-btn:hover { 
@@ -960,11 +977,11 @@ body {
   margin-top: 20px; 
   text-align: center; 
   padding-top: 15px;
-  border-top: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-top: none;
 }
 .dashboard-page .view-all-btn {
   background: none;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border: none;
   color: color-mix(in srgb, var(--accent) 80%, var(--text-primary));
   padding: 10px 20px; 
   border-radius: 0; 
@@ -1036,7 +1053,7 @@ body {
 /* Delete Review Button */
 .dashboard-page .delete-review-btn {
   background: linear-gradient(135deg, color-mix(in srgb, var(--danger) 15%, transparent) 0%, color-mix(in srgb, var(--danger) 8%, transparent) 100%);
-  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+  border: none;
   color: color-mix(in srgb, var(--danger) 80%, white);
   padding: 6px 8px; 
   font-size: 11px; 
@@ -1086,7 +1103,7 @@ body {
   align-items: center !important; 
   gap: 8px !important; 
   padding-top: 15px;
-  border-top: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
+  border-top: none;
   justify-content: space-between;
 }
 .dashboard-page .learning-review-widget .continue-btn,
@@ -1117,11 +1134,10 @@ body {
   align-items: stretch; 
 }
 .dashboard-page .stat-card-widget {
-  background: color-mix(in srgb, var(--panel) 10%, transparent);
-  border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  background: var(--panel);
+  border: 2px solid #000000;
   padding: 20px 15px; 
-  backdrop-filter: blur(10px); 
-  transition: all .2s cubic-bezier(0.4, 0, 0.2, 1); 
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
   position: relative; 
   overflow: hidden; 
   display: flex; 
@@ -1132,11 +1148,25 @@ body {
   min-height: 100px;
   box-shadow: var(--shadow-sm);
 }
+.dashboard-page .stat-card-widget::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--glow), transparent);
+  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+  pointer-events: none;
+}
+.dashboard-page .stat-card-widget:hover::before {
+  left: 100%;
+}
 .dashboard-page .stat-card-widget:hover {
-  background: color-mix(in srgb, var(--panel) 20%, transparent);
-  border-color: color-mix(in srgb, var(--accent) 80%, transparent);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  border-color: var(--accent);
+  transform: translateY(-8px);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow-lg), 0 0 30px var(--glow);
 }
 .dashboard-page .stat-content { text-align: center; }
 .dashboard-page .stat-number { 
@@ -1221,7 +1251,7 @@ body {
   align-items: center;
   margin-bottom: 20px;
   padding-bottom: 15px;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-bottom: none;
 }
 
 .dashboard-page .social-widget .widget-title {
@@ -1261,7 +1291,7 @@ body {
 .dashboard-page .social-explore-btn {
   background: var(--accent);
   color: var(--bg-top);
-  border: 2px solid var(--accent);
+  border: none;
   padding: 10px 24px;
   font-size: 12px;
   font-weight: 500;
@@ -1306,18 +1336,34 @@ body {
   display: flex; 
   align-items: center; 
   gap: 12px;
-  background: color-mix(in srgb, var(--bg-top) 30%, transparent);
+  background: var(--panel);
   padding: 12px; 
   border-radius: 0;
-  border: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
-  transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid #000000;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+.dashboard-page .activity-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--glow), transparent);
+  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+  pointer-events: none;
+}
+.dashboard-page .activity-item:hover::before {
+  left: 100%;
 }
 .dashboard-page .activity-item:hover {
-  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
-  background: color-mix(in srgb, var(--bg-top) 40%, transparent);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  border-color: var(--accent);
+  transform: translateY(-8px);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow-lg), 0 0 30px var(--glow);
 }
 .dashboard-page .activity-icon {
   background: color-mix(in srgb, var(--accent) 20%, transparent);
@@ -1363,7 +1409,7 @@ body {
 }
 .dashboard-page .start-learning-btn {
   background: color-mix(in srgb, var(--accent) 10%, transparent);
-  border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border: none;
   color: var(--accent);
   padding: 10px 20px; 
   font-size: 10px; 
@@ -1417,7 +1463,7 @@ body {
 .dashboard-page .recent-achievement { 
   margin-top: 20px; 
   padding-top: 15px; 
-  border-top: 1px solid color-mix(in srgb, var(--accent) 20%, transparent); 
+  border-top: none; 
 }
 .dashboard-page .achievement-badge { 
   display: flex; 
@@ -1501,7 +1547,7 @@ body {
   gap: 15px; 
   margin-top: 15px; 
   padding-top: 15px; 
-  border-top: 1px solid color-mix(in srgb, var(--accent) 20%, transparent); 
+  border-top: none; 
 }
 .dashboard-page .analytics-stat { 
   display: flex; 
@@ -1546,7 +1592,7 @@ body {
   max-width: 1000px; 
   margin-bottom: 20px; 
   padding-bottom: 15px;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-bottom: none;
 }
 .dashboard-page .heatmap-container {
   position: relative; 
@@ -1683,12 +1729,12 @@ body {
   border-radius: 2px; 
   cursor: pointer; 
   position: relative;
-  border: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
+  border: none;
   transition: all .2s cubic-bezier(0.4, 0, 0.2, 1); 
   box-shadow: var(--shadow-sm);
 }
 .dashboard-page .heatmap-day:hover {
-  border: 1px solid var(--accent);
+  border: none;
   transform: scale(1.1);
   box-shadow: var(--shadow-md), var(--shadow-glow);
   z-index: 10;
@@ -1719,12 +1765,12 @@ body {
   width: 16px; 
   height: 16px; 
   border-radius: 2px;
-  border: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
+  border: none;
   transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: var(--shadow-sm);
 }
 .dashboard-page .legend-color:hover { 
-  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent); 
+  border: none; 
   transform: scale(1.1); 
   box-shadow: var(--shadow-md);
 }
@@ -1744,7 +1790,7 @@ body {
   color: var(--accent) !important; 
   margin: 0 0 20px 0 !important;
   padding-bottom: 15px !important;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent) !important;
+  border-bottom: none;
   letter-spacing: 0.3px !important; 
   text-transform: lowercase !important;
   display: block !important;
@@ -1758,7 +1804,7 @@ body {
   color: var(--accent) !important;
   margin: 0 0 20px 0 !important;
   padding: 0 0 15px 0 !important;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent) !important;
+  border-bottom: none;
   letter-spacing: 0.3px !important;
   text-transform: lowercase !important;
 }
@@ -1771,11 +1817,11 @@ body {
   justify-content: space-evenly; 
 }
 .dashboard-page .action-btn {
-  background: color-mix(in srgb, var(--panel) 10%, transparent) !important;
-  border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent) !important;
+  background: var(--panel) !important;
+  border: 2px solid #000000 !important;
   padding: 20px 15px !important; 
   cursor: pointer !important; 
-  transition: all .2s cubic-bezier(0.4, 0, 0.2, 1) !important; 
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important; 
   text-align: center !important;
   color: var(--accent) !important;
   display: flex !important; 
@@ -1786,17 +1832,37 @@ body {
   border-radius: 0 !important; 
   min-height: 80px !important;
   box-shadow: var(--shadow-sm) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.dashboard-page .action-btn::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: linear-gradient(90deg, transparent, var(--glow), transparent) !important;
+  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+}
+
+.dashboard-page .action-btn:hover::before {
+  left: 100% !important;
 }
 
 .dashboard-page .action-btn * {
   margin: 0 !important;
   padding: 0 !important;
+  position: relative !important;
+  z-index: 1 !important;
 }
 .dashboard-page .action-btn:hover {
-  background: color-mix(in srgb, var(--panel) 20%, transparent)  !important;
-  border-color: color-mix(in srgb, var(--accent) 80%, transparent) !important;
-  transform: translateY(-2px) !important;
-  box-shadow: var(--shadow-md) !important;
+  border-color: var(--accent) !important;
+  transform: translateY(-8px) !important;
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow-lg), 0 0 30px var(--glow) !important;
 }
 .dashboard-page .action-icon {
   font-size: 9px !important; 
@@ -1805,7 +1871,7 @@ body {
   margin-bottom: 8px !important; 
   padding: 4px 8px !important;
   background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent) !important;
+  border: none;
   display: inline-block !important;
   box-shadow: var(--shadow-sm) !important;
 }
@@ -1829,7 +1895,7 @@ body {
   gap: 15px; 
   margin-top: 15px; 
   padding-top: 15px;
-  border-top: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-top: none;
 }
 .dashboard-page .quick-stat { 
   display: flex; 
@@ -1888,7 +1954,7 @@ input[type="checkbox"] {
   appearance: none; 
   width: 16px; 
   height: 16px;
-  border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border: none;
   border-radius: 3px; 
   background: transparent; 
   cursor: pointer; 
@@ -1926,7 +1992,7 @@ input[type="checkbox"]:checked::after {
 ---------------------------------------------------- */
 .dashboard-page .help-btn-header {
   background: color-mix(in srgb, var(--accent) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border: none;
   color: var(--accent);
   padding: 8px 16px; 
   font-size: 12px; 
@@ -1959,7 +2025,7 @@ input[type="checkbox"]:checked::after {
 .dashboard-page .help-spotlight {
   position: absolute; 
   background: transparent; 
-  border: 3px solid var(--accent); 
+  border: none; 
   border-radius: 8px; 
   z-index: 9999; 
   pointer-events: none; 
@@ -1988,7 +2054,7 @@ input[type="checkbox"]:checked::after {
 .dashboard-page .help-tooltip {
   position: absolute; 
   background: color-mix(in srgb, var(--bg-top) 95%, transparent);
-  border: 2px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border: none;
   border-radius: 12px; 
   z-index: 10000; 
   min-width: 320px; 
@@ -2016,7 +2082,7 @@ input[type="checkbox"]:checked::after {
   justify-content: flex-start; 
   align-items: center; 
   padding: 20px 24px 16px 24px;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-bottom: none;
 }
 .dashboard-page .help-tooltip-title { 
   font-size: 18px; 
@@ -2056,7 +2122,7 @@ input[type="checkbox"]:checked::after {
 }
 .dashboard-page .help-tooltip-footer { 
   padding: 20px 24px; 
-  border-top: 1px solid color-mix(in srgb, var(--accent) 20%, transparent); 
+  border-top: none; 
   background: color-mix(in srgb, var(--accent) 3%, transparent); 
 }
 
@@ -2102,7 +2168,7 @@ input[type="checkbox"]:checked::after {
 }
 .dashboard-page .help-btn {
   background: color-mix(in srgb, var(--accent) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border: none;
   color: var(--accent);
   padding: 8px 16px; 
   font-size: 12px; 
@@ -2161,7 +2227,7 @@ input[type="checkbox"]:checked::after {
   position: absolute; 
   width: 0; 
   height: 0; 
-  border: 8px solid transparent; 
+  border: none; 
 }
 .dashboard-page .help-tooltip[data-position="top"]::before, 
 .dashboard-page .help-tooltip::before {
@@ -2330,7 +2396,7 @@ input[type="checkbox"]:checked::after {
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border: 1px solid var(--border) !important;
+  border: none;
   border-radius: 0;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2358,7 +2424,7 @@ input[type="checkbox"]:checked::after {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: none;
   box-shadow: var(--shadow-sm);
 }
 
@@ -2398,7 +2464,7 @@ input[type="checkbox"]:checked::after {
   min-width: 280px;
   max-height: 400px;
   overflow-y: auto;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 12px;
   backdrop-filter: blur(10px);
   z-index: 1001;
@@ -2424,7 +2490,7 @@ input[type="checkbox"]:checked::after {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
   color: var(--accent);
 }
 
@@ -2433,7 +2499,7 @@ input[type="checkbox"]:checked::after {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border: 1px solid transparent;
+  border: none;
   border-radius: 0;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2496,7 +2562,7 @@ input[type="checkbox"]:checked::after {
 }
 
 .dashboard-page .theme-option.active {
-  border-left: 3px solid var(--accent) !important;
+  border-left: none;
   background: color-mix(in srgb, var(--accent) 5%, transparent) !important;
 }
 
@@ -2731,7 +2797,7 @@ body {
 
 .dashboard-page .dashboard-header {
   background: var(--panel) !important;
-  border-bottom: 2px solid var(--border) !important;
+  border-bottom: none;
   padding: 16px 0 !important;
   position: sticky !important;
   top: 0 !important;
@@ -2823,7 +2889,7 @@ body {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 2px solid var(--border);
+  border: none;
   object-fit: cover;
   box-shadow: var(--shadow-sm);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2845,7 +2911,7 @@ body {
 /* Header buttons */
 .dashboard-page .customize-btn, .profile-btn, .logout-btn, .help-btn-header {
   background: var(--bg-bottom);
-  border: 1px solid var(--border);
+  border: none;
   color: var(--text-secondary);
   padding: 10px 18px;
   font-size: 11px;
@@ -2912,7 +2978,7 @@ body {
   width: 34px;
   height: 22px;
   border-radius: 6px;
-  border: 1px solid var(--border);
+  border: none;
   background: var(--panel);
   cursor: pointer;
   display: inline-flex;
@@ -2961,7 +3027,7 @@ body {
 
 .dashboard-page .notification-bell {
   background: var(--bg-bottom);
-  border: 1px solid var(--border);
+  border: none;
   color: var(--text-secondary);
   padding: 10px 12px;
   cursor: pointer;
@@ -3012,7 +3078,7 @@ body {
 
 .dashboard-page .notif-header {
   padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
   display: flex;
   justify-content: flex-start;
   align-items: center;
@@ -3070,7 +3136,7 @@ body {
 
 .dashboard-page .notif-item {
   padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
   transition: background 0.2s;
 }
 
@@ -3080,7 +3146,7 @@ body {
 
 .dashboard-page .notif-item.notif-unread {
   background: color-mix(in srgb, var(--accent) 8%, transparent);
-  border-left: 3px solid var(--accent);
+  border-left: none;
 }
 
 .dashboard-page .notif-body {
@@ -3158,14 +3224,14 @@ body {
   background: var(--bg-secondary);
   border-radius: 12px;
   padding: 16px;
-  border: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
+  border: none;
   transition: all 0.3s ease;
   position: relative;
 }
 
 .dashboard-page .notification-card.unread {
   background: color-mix(in srgb, var(--accent) 8%, var(--bg-secondary));
-  border-left: 4px solid var(--accent);
+  border-left: none;
   box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
@@ -3267,7 +3333,7 @@ body {
 .dashboard-page .mark-read-btn {
   background: transparent;
   color: var(--text-secondary);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border: none;
   padding: 6px 12px;
   border-radius: 6px;
   font-size: 12px;
@@ -3283,7 +3349,7 @@ body {
 
 .dashboard-page .clear-all-btn {
   background: transparent;
-  border: 1px solid var(--accent);
+  border: none;
   color: var(--accent);
   padding: 6px 12px;
   border-radius: 8px;
@@ -3362,7 +3428,7 @@ body {
 
 .dashboard-page .inactivity-suggestion-modal {
   background: linear-gradient(135deg, var(--panel), color-mix(in srgb, var(--panel) 80%, var(--accent)));
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px var(--glow);
   max-width: 600px;
@@ -3390,7 +3456,7 @@ body {
 
 .dashboard-page .suggestion-header {
   padding: 32px 24px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: none;
   position: relative;
 }
 
@@ -3448,7 +3514,7 @@ body {
 
 .dashboard-page .suggestion-card {
   background: color-mix(in srgb, var(--bg-top) 60%, transparent);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 12px;
   padding: 16px;
   cursor: pointer;
@@ -3534,7 +3600,7 @@ body {
 
 .dashboard-page .suggestion-footer {
   padding: 16px 24px;
-  border-top: 1px solid var(--border);
+  border-top: none;
   display: flex;
   justify-content: center;
   gap: 12px;
@@ -3543,7 +3609,7 @@ body {
 .dashboard-page .suggestion-dismiss-btn {
   background: color-mix(in srgb, var(--accent) 15%, transparent);
   color: var(--accent);
-  border: 1px solid var(--accent);
+  border: none;
   padding: 10px 24px;
   border-radius: 8px;
   font-size: 14px;
@@ -3590,7 +3656,7 @@ body {
 
 .dashboard-page .social-explore-btn {
   padding: 10px 24px;
-  border: 2px solid var(--accent);
+  border: none;
   border-radius: 0;
   font-size: 12px;
   font-weight: 500;
@@ -3655,7 +3721,7 @@ body {
 
 .dashboard-page .timeline-explore-btn {
   padding: 10px 24px;
-  border: 2px solid var(--accent);
+  border: none;
   border-radius: 0;
   font-size: 12px;
   font-weight: 500;
@@ -3757,7 +3823,7 @@ body {
 .dashboard-page .header-right .logout-btn,
 .dashboard-page .header-right .help-btn-header {
   background: var(--bg-bottom) !important;
-  border: 1px solid var(--border) !important;
+  border: none;
   color: var(--text-secondary) !important;
   padding: 10px 18px !important;
   font-size: 11px !important;
@@ -3818,7 +3884,7 @@ body {
 /* ==================== FORCE CONSISTENT SIZES FOR ALL HEADER ELEMENTS ==================== */
 .dashboard-page .header-left .notification-bell {
   background: var(--bg-bottom) !important;
-  border: 1px solid var(--border) !important;
+  border: none;
   color: var(--text-secondary) !important;
   padding: 10px 12px !important;
   font-size: 11px !important;
@@ -3846,7 +3912,7 @@ body {
 .dashboard-page .header-left .theme-switcher button,
 .dashboard-page .header-left .theme-switcher .theme-dropdown-btn {
   background: var(--bg-bottom) !important;
-  border: 1px solid var(--border) !important;
+  border: none;
   color: var(--text-secondary) !important;
   padding: 10px 12px !important;
   font-size: 11px !important;
