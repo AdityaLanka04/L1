@@ -13,7 +13,7 @@ import {
   MoreVertical, Archive, RefreshCw, Save, Clock,
   AlignLeft, Bold, Italic, Underline, 
   List, ListOrdered, Link2, Image, Code,
-  ArrowLeft, Tag, Layout, Filter, Palette, Timer
+  ArrowLeft, Tag, Layout, Filter, Palette, Timer, Command
 } from 'lucide-react';
 import { API_URL } from '../config';
 import gamificationService from '../services/gamificationService';
@@ -22,12 +22,13 @@ import gamificationService from '../services/gamificationService';
 import SimpleBlockEditor from '../components/SimpleBlockEditor';
 import AdvancedSearch from '../components/AdvancedSearch';
 import Templates from '../components/Templates';
-import Breadcrumbs from '../components/Breadcrumbs';
 import RecentlyViewed from '../components/RecentlyViewed';
 import PageProperties from '../components/PageProperties';
 import CanvasMode from '../components/CanvasMode';
 import PomodoroTimer from '../components/PomodoroTimer';
 import SmartFolders from '../components/SmartFolders';
+import KeyboardShortcuts from '../components/KeyboardShortcuts';
+import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
 
 // Utility functions
 const htmlToBlocks = (html) => {
@@ -283,6 +284,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [selectedNote, setSelectedNote] = useState(null);
   const [noteTitle, setNoteTitle] = useState("");
   const [noteContent, setNoteContent] = useState("");
+  const [canvasData, setCanvasData] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   
   // UI state
@@ -348,7 +350,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [selectedTextContent, setSelectedTextContent] = useState('');
   
   // New features state
-  const [breadcrumbPath, setBreadcrumbPath] = useState([]);
   const [recentlyViewed, setRecentlyViewed] = useState([]);
   const [showRecentlyViewed, setShowRecentlyViewed] = useState(false);
   const [pageProperties, setPageProperties] = useState([
@@ -363,6 +364,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [showCanvasMode, setShowCanvasMode] = useState(false);
   const [showPomodoroTimer, setShowPomodoroTimer] = useState(false);
   const [showSmartFolders, setShowSmartFolders] = useState(false);
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   
   // Chat import state
@@ -1195,6 +1197,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setSelectedNote(n);
     setNoteTitle(n.title);
     setNoteContent(n.content);
+    setCanvasData(n.canvas_data || "");
     
     // Convert HTML content to blocks
     let blocks = htmlToBlocks(n.content);
@@ -1214,9 +1217,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
     
     // Track recently viewed
     trackRecentlyViewed(n);
-    
-    // Update breadcrumbs
-    updateBreadcrumbs(n);
     
     // Load note properties if they exist
     if (n.properties) {
@@ -1249,47 +1249,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
     localStorage.setItem(`recentlyViewed_${userName}`, JSON.stringify(updated));
   };
   
-  // Update breadcrumbs based on note hierarchy
-  const updateBreadcrumbs = (note) => {
-    const path = [];
-    
-    // If note has a folder, add it to breadcrumbs
-    if (note.folder_id) {
-      const folder = folders.find(f => f.id === note.folder_id);
-      if (folder) {
-        path.push({ id: folder.id, title: folder.name });
-      }
-    }
-    
-    // Add current note
-    path.push({ id: note.id, title: note.title });
-    
-    setBreadcrumbPath(path);
-  };
-  
-  // Handle breadcrumb navigation
-  const handleBreadcrumbNavigate = (id) => {
-    if (id === null) {
-      // Navigate to home/all notes
-      setSelectedFolder(null);
-      setShowFavorites(false);
-      setShowTrash(false);
-      setBreadcrumbPath([]);
-    } else {
-      // Check if it's a folder or note
-      const folder = folders.find(f => f.id === id);
-      if (folder) {
-        setSelectedFolder(id);
-        setBreadcrumbPath([{ id: folder.id, title: folder.name }]);
-      } else {
-        const note = notes.find(n => n.id === id);
-        if (note) {
-          selectNote(note);
-        }
-      }
-    }
-  };
-
   // Enhanced features handlers
   const handleTagSelect = (tag) => {
     setSelectedTagFilter(tag);
@@ -1301,6 +1260,62 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const handleClearTagFilter = () => {
     setSelectedTagFilter(null);
   };
+
+  // Keyboard shortcuts handlers
+  const keyboardHandlers = {
+    onSave: () => selectedNote && autoSave(),
+    onPrint: () => exportAsPDF(),
+    onQuickSearch: () => setShowAdvancedSearch(true),
+    onNewNote: () => createNewNote(),
+    onDuplicate: () => selectedNote && duplicateNote(selectedNote),
+    onExport: () => selectedNote && exportAsText(),
+    onShowShortcuts: () => setShowKeyboardShortcuts(!showKeyboardShortcuts),
+    onEscape: () => {
+      setShowKeyboardShortcuts(false);
+      setShowAdvancedSearch(false);
+      setShowTemplates(false);
+      setShowRecentlyViewed(false);
+      setShowPageProperties(false);
+      setShowCanvasMode(false);
+      setShowPomodoroTimer(false);
+      setShowSmartFolders(false);
+    },
+    onPreviousNote: () => {
+      const currentIndex = filteredNotes.findIndex(n => n.id === selectedNote?.id);
+      if (currentIndex > 0) {
+        selectNote(filteredNotes[currentIndex - 1]);
+      }
+    },
+    onNextNote: () => {
+      const currentIndex = filteredNotes.findIndex(n => n.id === selectedNote?.id);
+      if (currentIndex < filteredNotes.length - 1) {
+        selectNote(filteredNotes[currentIndex + 1]);
+      }
+    },
+    onScrollTop: () => {
+      const editor = document.querySelector('.block-editor-container');
+      if (editor) editor.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    onScrollBottom: () => {
+      const editor = document.querySelector('.block-editor-container');
+      if (editor) editor.scrollTo({ top: editor.scrollHeight, behavior: 'smooth' });
+    },
+    onToggleSidebar: () => setSidebarOpen(!sidebarOpen),
+    onToggleFocusMode: () => setTitleSectionCollapsed(!titleSectionCollapsed),
+    onGoToDashboard: () => navigate('/dashboard'),
+    onGoToAIChat: () => navigate('/ai-chat'),
+    onGoToNotes: () => navigate('/notes/dashboard'),
+    onFullscreen: () => setTitleSectionCollapsed(!titleSectionCollapsed),
+    onPreviewMode: () => setViewMode('preview'),
+    onEditMode: () => setViewMode('edit'),
+    onToggleDarkEditor: () => setEditorDarkMode(true),
+    onToggleLightEditor: () => setEditorDarkMode(false),
+    onToggleFavorite: () => selectedNote && toggleFavorite(selectedNote.id),
+    onDelete: () => selectedNote && moveToTrash(selectedNote.id),
+  };
+
+  // Use keyboard shortcuts hook
+  useKeyboardShortcuts(keyboardHandlers);
 
   // Block editor handlers
   const handleBlocksChange = (newBlocks) => {
@@ -1370,6 +1385,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
           body: JSON.stringify({
             title: noteTitle,
             content: noteContent,
+            canvas_data: canvasData,
           }),
         });
 
@@ -1406,6 +1422,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
             note_id: selectedNote.id,
             title: noteTitle,
             content: noteContent,
+            canvas_data: canvasData,
           }),
         });
         
@@ -1416,7 +1433,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
           setNotes((prev) =>
             prev.map((n) =>
-              n.id === selectedNote.id ? { ...n, title: noteTitle, content: noteContent } : n
+              n.id === selectedNote.id ? { ...n, title: noteTitle, content: noteContent, canvas_data: canvasData } : n
             )
           );
         } else if (res.status === 400) {
@@ -1460,7 +1477,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         saveTimeout.current = null;
       }
     };
-  }, [noteContent, noteTitle, selectedNote, autoSave, isSharedContent, canEdit]);
+  }, [noteContent, noteTitle, canvasData, selectedNote, autoSave, isSharedContent, canEdit]);
 
   // Keyboard shortcut for save
   useEffect(() => {
@@ -2339,7 +2356,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       {/* LEFT SIDEBAR REMOVED - All functionality moved to main dashboard */}
 
       <div className="editor-area-new" style={{ width: '100%' }}>
-        <div className="top-nav-new">
+        <div className={`top-nav-new ${titleSectionCollapsed ? 'hidden' : ''}`}>
           <div className="nav-left">
             {isSharedContent ? (
               <button
@@ -2358,8 +2375,14 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
               </button>
             )}
-            <div className="nav-title">
-              cerbyl Notes
+            <div 
+              className="nav-title" 
+              onClick={() => navigate("/dashboard")}
+              style={{ cursor: 'pointer' }}
+              title="Back to Dashboard"
+            >
+              <span style={{ fontSize: '32px', fontWeight: '800' }}>cerbyl</span>
+              <span style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-secondary)' }}>notes</span>
               {isSharedContent && <span className="shared-badge">SHARED</span>}
             </div>
           </div>
@@ -2390,11 +2413,11 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 </button>
                 <button 
                   className="nav-btn" 
-                  onClick={() => setShowPageProperties(!showPageProperties)}
-                  title="Page Properties"
+                  onClick={() => setShowCanvasMode(true)}
+                  title="Canvas Mode"
                 >
-                  <Tag size={16} style={{ marginRight: '6px', display: 'inline' }} />
-                  Properties
+                  <Palette size={16} style={{ marginRight: '6px', display: 'inline' }} />
+                  Canvas
                 </button>
               </>
             )}
@@ -2408,19 +2431,19 @@ const NotesRedesign = ({ sharedMode = false }) => {
             <button className="nav-btn" onClick={() => navigate("/ai-chat")}>
               AI Chat
             </button>
+            <button 
+              className="nav-btn" 
+              onClick={() => setShowKeyboardShortcuts(true)}
+              title="Keyboard Shortcuts (Cmd+/)"
+            >
+              <Command size={16} style={{ marginRight: '6px', display: 'inline' }} />
+              Shortcuts
+            </button>
             <button className="logout-btn-new" onClick={handleLogout}>
               Logout
             </button>
           </div>
         </div>
-
-        {/* Breadcrumbs Navigation */}
-        {!isSharedContent && breadcrumbPath.length > 0 && (
-          <Breadcrumbs 
-            path={breadcrumbPath}
-            onNavigate={handleBreadcrumbNavigate}
-          />
-        )}
 
         {selectedNote ? (
           <div className="editor-with-sidepanel">
@@ -2661,6 +2684,17 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 </div>
               </div>
             </div>
+
+            {/* Floating expand button when collapsed */}
+            {titleSectionCollapsed && (
+              <button
+                className="floating-expand-btn"
+                onClick={() => setTitleSectionCollapsed(false)}
+                title="Show navigation"
+              >
+                <ChevronDown size={20} />
+              </button>
+            )}
 
             <div className="block-editor-wrapper">
               {viewMode === "edit" && (!isSharedContent || canEdit) && (
@@ -3507,15 +3541,20 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
       {/* Canvas Mode */}
       {showCanvasMode && !isSharedContent && (
-        <>
-          <div className="ai-overlay" style={{ zIndex: 9998 }} onClick={() => setShowCanvasMode(false)} />
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}>
-            <CanvasMode
-              initialContent={noteContent}
-              onClose={() => setShowCanvasMode(false)}
-            />
-          </div>
-        </>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}>
+          <CanvasMode
+            initialContent={canvasData}
+            onClose={() => setShowCanvasMode(false)}
+            onSave={(newCanvasData, shouldClose = false) => {
+              setCanvasData(newCanvasData);
+              if (shouldClose) {
+                setShowCanvasMode(false);
+              }
+              // Trigger auto-save after a short delay
+              setTimeout(() => autoSave(), 100);
+            }}
+          />
+        </div>
       )}
 
       {/* Smart Folders */}
@@ -3537,6 +3576,12 @@ const NotesRedesign = ({ sharedMode = false }) => {
           />
         </>
       )}
+
+      {/* Keyboard Shortcuts Panel */}
+      <KeyboardShortcuts
+        isOpen={showKeyboardShortcuts}
+        onClose={() => setShowKeyboardShortcuts(false)}
+      />
     </div>
   );
 };

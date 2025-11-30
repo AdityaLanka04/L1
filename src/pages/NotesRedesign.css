@@ -44,8 +44,16 @@ html {
   scroll-behavior: smooth;
 }
 
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
 button {
-  font-family: inherit;
+  font-family: 'Inter', sans-serif;
   user-select: none;
 }
 
@@ -108,28 +116,26 @@ select {
 
 /* ==================== TOP NAVIGATION ==================== */
 .top-nav-new {
-  padding: 16px 24px;
-  border-bottom: 2px solid var(--border);
+  padding: 20px 28px;
+  border-bottom: none;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--panel);
-  backdrop-filter: blur(20px);
+  background: transparent;
   flex-shrink: 0;
   gap: 20px;
   min-height: 70px;
-  box-shadow: var(--shadow-md);
+  box-shadow: none;
+  z-index: 100;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.top-nav-new::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--accent);
-  opacity: 0.3;
+.top-nav-new.hidden {
+  display: none;
+  min-height: 0;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .nav-left {
@@ -141,35 +147,81 @@ select {
 
 .toggle-sidebar {
   padding: 10px 14px;
-  background: var(--bg-bottom);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: none;
   border-radius: 0;
   cursor: pointer;
   font-size: 18px;
   color: var(--accent);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(10px);
+  backdrop-filter: none;
   line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   min-width: 42px;
   height: 42px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 
 .toggle-sidebar:hover {
-  background: color-mix(in srgb, var(--panel) 80%, var(--accent) 20%);
-  border-color: var(--accent);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
-  transform: translateY(-1px);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  transform: scale(1.1);
+  color: color-mix(in srgb, var(--accent) 80%, white);
 }
 
 .nav-title {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 32px !important;
+  font-weight: 800 !important;
+  font-family: 'Inter', sans-serif !important;
+  color: var(--accent) !important;
+  white-space: nowrap !important;
+  letter-spacing: -0.5px !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  user-select: none !important;
+  text-transform: lowercase !important;
+  position: relative !important;
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 8px !important;
+}
+
+.nav-title::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--accent);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-title:hover {
+  color: color-mix(in srgb, var(--accent) 80%, white) !important;
+  transform: translateY(-1px) !important;
+}
+
+.nav-title:hover::after {
+  width: 100%;
+}
+
+.nav-title span:first-child {
   color: var(--accent);
-  white-space: nowrap;
+}
+
+.nav-title span:nth-child(2) {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
+}
+
+.nav-title:hover span:nth-child(2) {
+  color: var(--text-primary);
 }
 
 .nav-center {
@@ -188,67 +240,96 @@ select {
 
 .nav-btn,
 .theme-toggle {
-  padding: 8px 16px;
-  background: var(--bg-bottom);
-  border: 1px solid var(--border);
-  border-radius: 0;
-  cursor: pointer;
-  font-size: 11px;
-  color: var(--accent);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(10px);
-  font-weight: 600;
-  white-space: nowrap;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  box-shadow: var(--shadow-sm);
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-secondary) !important;
+  padding: 10px 18px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  font-family: 'Inter', sans-serif !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  box-shadow: none !important;
+  position: relative !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  border-radius: 0 !important;
+}
+
+.nav-btn::before,
+.theme-toggle::before {
+  display: none !important;
+}
+
+.nav-btn:hover::before,
+.theme-toggle:hover::before {
+  display: none !important;
 }
 
 .nav-btn:hover,
 .theme-toggle:hover {
-  background: color-mix(in srgb, var(--panel) 80%, var(--accent) 20%);
-  border-color: var(--accent);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
+  background: transparent !important;
+  border: none !important;
+  color: var(--accent) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: none !important;
 }
 
 .logout-btn-new {
-  padding: 8px 16px;
-  background: color-mix(in srgb, var(--danger) 15%, var(--panel)) !important;
-  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent) !important;
-  border-radius: 0;
-  cursor: pointer;
-  font-size: 11px;
+  background: transparent !important;
+  border: none !important;
   color: var(--danger) !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(10px);
-  font-weight: 600;
-  white-space: nowrap;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  box-shadow: var(--shadow-sm);
+  padding: 10px 18px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  font-family: 'Inter', sans-serif !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  box-shadow: none !important;
+  position: relative !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  border-radius: 0 !important;
+}
+
+.logout-btn-new::before {
+  display: none !important;
+}
+
+.logout-btn-new:hover::before {
+  display: none !important;
 }
 
 .logout-btn-new:hover {
-  background: color-mix(in srgb, var(--danger) 30%, var(--panel)) !important;
-  border-color: var(--danger) !important;
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
+  background: transparent !important;
+  border: none !important;
+  color: color-mix(in srgb, var(--danger) 80%, white) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: none !important;
 }
 
 /* ==================== LEFT SIDE TOOLS PANEL ==================== */
 .tools-sidepanel {
   width: 240px;
   min-width: 240px;
-  background: var(--panel);
-  backdrop-filter: blur(20px);
-  border-right: 2px solid var(--border);
+  background: transparent;
+  backdrop-filter: none;
+  border-right: none;
   display: flex;
   flex-direction: column;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
   position: relative;
   z-index: 100;
-  box-shadow: var(--shadow-lg);
+  box-shadow: none;
   overflow-y: auto;
   overflow-x: hidden;
   height: 100%;
@@ -267,8 +348,8 @@ select {
 
 .tools-panel-header {
   padding: 16px;
-  border-bottom: 2px solid var(--border);
-  background: var(--panel);
+  border-bottom: none;
+  background: transparent;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -284,8 +365,8 @@ select {
 }
 
 .close-panel-btn {
-  background: var(--bg-bottom);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: none;
   border-radius: 0;
   width: 32px;
   height: 32px;
@@ -295,14 +376,15 @@ select {
   cursor: pointer;
   color: var(--accent);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 
 .close-panel-btn:hover {
-  background: color-mix(in srgb, var(--panel) 80%, var(--accent) 20%);
-  border-color: var(--accent);
-  box-shadow: var(--shadow-md);
-  transform: scale(1.05);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  transform: scale(1.1);
+  color: color-mix(in srgb, var(--accent) 80%, white);
 }
 
 .tools-panel-content {
@@ -356,34 +438,35 @@ select {
 .tool-panel-btn {
   width: 100%;
   padding: 10px 12px;
-  background: var(--bg-bottom);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: none;
   border-radius: 0;
   cursor: pointer;
   font-size: 12px;
   color: var(--text-primary);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(10px);
+  backdrop-filter: none;
   font-weight: 600;
   text-align: left;
   display: flex;
   align-items: center;
   gap: 10px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 
 .tool-panel-btn:hover {
-  background: color-mix(in srgb, var(--panel) 80%, var(--accent) 20%);
-  border-color: var(--accent);
+  background: transparent;
+  border: none;
   transform: translateX(-3px);
-  box-shadow: var(--shadow-md);
+  box-shadow: none;
+  color: var(--accent);
 }
 
 .tool-panel-btn.active {
-  background: color-mix(in srgb, var(--accent) 15%, var(--bg-bottom));
-  border-color: var(--accent);
+  background: transparent;
+  border: none;
   color: var(--accent);
-  box-shadow: var(--shadow-md), inset 0 0 20px var(--glow);
+  box-shadow: none;
 }
 
 .tool-panel-btn svg {
@@ -398,11 +481,11 @@ select {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: var(--bg-bottom);
+  background: transparent;
   padding: 12px;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 0;
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 
 .stat-row {
@@ -435,9 +518,9 @@ select {
 
 .title-section {
   padding: 16px 60px 12px;
-  background: var(--panel);
-  backdrop-filter: blur(15px);
-  border-bottom: 2px solid var(--border);
+  background: transparent;
+  backdrop-filter: none;
+  border-bottom: none;
   width: 100%;
   box-sizing: border-box;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -446,8 +529,54 @@ select {
 }
 
 .title-section.collapsed {
-  max-height: 50px;
-  padding: 8px 60px;
+  display: none;
+  max-height: 0;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Floating expand button */
+.floating-expand-btn {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--bg-top);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 20px var(--glow);
+  z-index: 1000;
+  animation: slideDown 0.3s ease;
+}
+
+.floating-expand-btn:hover {
+  transform: translateX(-50%) scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4), 0 0 30px var(--glow);
+  background: color-mix(in srgb, var(--accent) 85%, white);
+}
+
+.floating-expand-btn svg {
+  transform: rotate(180deg);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    top: 0;
+  }
+  to {
+    opacity: 1;
+    top: 20px;
+  }
 }
 
 .title-section-header {
@@ -494,23 +623,24 @@ select {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-bottom);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: none;
   border-radius: 0;
   cursor: pointer;
   font-size: 14px;
   color: var(--accent);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--shadow-sm);
+  backdrop-filter: none;
+  box-shadow: none;
 }
 
 .title-action-btn:hover,
 .title-collapse-btn:hover {
-  background: color-mix(in srgb, var(--panel) 80%, var(--accent) 20%);
-  border-color: var(--accent);
-  box-shadow: var(--shadow-md);
-  transform: scale(1.05);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  transform: scale(1.1);
+  color: color-mix(in srgb, var(--accent) 80%, white);
 }
 
 .title-action-btn:active,
@@ -555,10 +685,10 @@ select {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: var(--panel);
-  border-bottom: 2px solid var(--border);
+  background: transparent;
+  border-bottom: none;
   padding: 8px 12px;
-  backdrop-filter: blur(20px);
+  backdrop-filter: none;
 }
 
 .formatting-toolbar {
@@ -572,8 +702,8 @@ select {
 
 .format-btn {
   padding: 8px 10px;
-  background: var(--bg-bottom);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: none;
   border-radius: 0;
   cursor: pointer;
   color: var(--accent);
@@ -588,20 +718,21 @@ select {
 }
 
 .format-btn:hover {
-  background: color-mix(in srgb, var(--panel) 80%, var(--accent) 20%);
-  border-color: var(--accent);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+  background: transparent;
+  border: none;
+  transform: scale(1.1);
+  box-shadow: none;
+  color: color-mix(in srgb, var(--accent) 80%, white);
 }
 
 .format-btn:active {
-  transform: translateY(0);
+  transform: scale(0.95);
 }
 
 .format-select {
   padding: 6px 10px;
-  background: var(--bg-bottom);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: none;
   border-radius: 0;
   color: var(--accent);
   font-size: 12px;
@@ -613,8 +744,9 @@ select {
 }
 
 .format-select:hover {
-  background: color-mix(in srgb, var(--panel) 80%, var(--accent) 20%);
-  border-color: var(--accent);
+  background: transparent;
+  border: none;
+  color: color-mix(in srgb, var(--accent) 80%, white);
 }
 
 .format-select option {
@@ -625,23 +757,23 @@ select {
 .format-color {
   width: 36px;
   height: 36px;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 0;
   cursor: pointer;
-  background: var(--bg-bottom);
+  background: transparent;
   padding: 2px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .format-color:hover {
-  border-color: var(--accent);
-  transform: translateY(-1px);
+  border: none;
+  transform: scale(1.1);
 }
 
 .toolbar-divider {
-  width: 1px;
+  width: 0px;
   height: 24px;
-  background: var(--border);
+  background: transparent;
   margin: 0 4px;
 }
 
@@ -655,6 +787,13 @@ select {
   width: 100%;
   background: var(--editor-bg);
   min-height: 500px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* When title section is collapsed, editor takes full height */
+.title-section.collapsed ~ .block-editor-wrapper {
+  height: 100vh;
+  min-height: 100vh;
 }
 
 .block-editor-container {
@@ -680,21 +819,21 @@ select {
 .block-editor-container .block-wrapper {
   margin-bottom: 4px;
   padding: 8px 12px;
-  background: color-mix(in srgb, var(--accent) 5%, transparent);
-  border-left: 3px solid transparent;
+  background: transparent;
+  border-left: none;
   transition: all 0.2s ease;
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 .block-editor-container .block-wrapper:hover {
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-  border-left-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  background: transparent;
+  border-left: none;
 }
 
 .block-editor-container .block-wrapper:focus-within {
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-  border-left-color: var(--accent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
+  background: transparent;
+  border-left: none;
+  box-shadow: none;
 }
 
 .block-editor-container .block-content {
@@ -1166,9 +1305,9 @@ select {
 /* ==================== FOOTER ==================== */
 .note-footer {
   padding: 12px 60px;
-  border-top: 2px solid var(--border);
-  background: var(--panel);
-  backdrop-filter: blur(15px);
+  border-top: none;
+  background: transparent;
+  backdrop-filter: none;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -3540,7 +3679,6 @@ select {
 
 /* ==================== FULLSCREEN PREVIEW MODE ==================== */
 .notes-redesign.preview-mode .top-nav-new,
-.notes-redesign.preview-mode .breadcrumbs,
 .notes-redesign.preview-mode .tools-sidepanel,
 .notes-redesign.preview-mode .title-section {
   display: none !important;

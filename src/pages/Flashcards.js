@@ -24,6 +24,7 @@ const Flashcards = () => {
   const [autoSave, setAutoSave] = useState(true);
   const [editingSetId, setEditingSetId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
+  const [studyMode, setStudyMode] = useState(false);
   const navigate = useNavigate();
   
   // Enhanced flashcard generation parameters
@@ -325,7 +326,7 @@ const Flashcards = () => {
     return `${hours}h ${mins}m`;
   };
 
-  const loadFlashcardSet = async (setId) => {
+  const loadFlashcardSet = async (setId, startStudy = false) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/get_flashcards_in_set?set_id=${setId}`, {
@@ -342,8 +343,12 @@ const Flashcards = () => {
           setTitle: data.set_title,
           cardCount: data.flashcards.length
         });
-        setActivePanel('generator');
-        showPopup('Set Loaded', `Loaded "${data.set_title}" with ${data.flashcards.length} cards`);
+        if (startStudy) {
+          setStudyMode(true);
+        } else {
+          setActivePanel('generator');
+          showPopup('Set Loaded', `Loaded "${data.set_title}" with ${data.flashcards.length} cards`);
+        }
       }
     } catch (error) {
       console.error('Error loading flashcard set:', error);
@@ -427,22 +432,105 @@ const Flashcards = () => {
   };
 
   return (
-    <div className="flashcards-page">
-      <header className="flashcards-header">
-        <div className="header-content">
+    <div className={`flashcards-page ${studyMode ? 'study-mode' : ''}`}>
+      {studyMode && flashcards.length > 0 ? (
+        /* STUDY MODE - Full Screen Flashcards Only */
+        <div className="study-mode-container">
+          <button 
+            className="exit-study-btn"
+            onClick={() => setStudyMode(false)}
+            title="Exit Study Mode"
+          >
+            ✕ Exit Study
+          </button>
           
+          <div className="study-progress">
+            <div className="progress-bar">
+              <div 
+                className="progress-fill" 
+                style={{ width: `${((currentCard + 1) / flashcards.length) * 100}%` }}
+              />
+            </div>
+            <div className="progress-text">{currentCard + 1} / {flashcards.length}</div>
+          </div>
 
-<div className="header-left">
-  <h1 className="page-title clickable-logo" onClick={() => navigate('/dashboard')}>
-    cerbyl
-  </h1>
-  <p className="page-subtitle">flashcards</p>
-</div>
-          <div className="header-right">
-            <button onClick={() => navigate('/dashboard')} className="back-btn">Dashboard</button>
+          <div className="study-flashcard-container">
+            <div 
+              className={`study-flashcard ${isFlipped ? 'flipped' : ''}`}
+              onClick={() => setIsFlipped(!isFlipped)}
+            >
+              <div className="study-flashcard-inner">
+                <div className="study-flashcard-front">
+                  <div className="study-card-label">Question</div>
+                  <div className="study-card-content">
+                    {flashcards[currentCard]?.question}
+                  </div>
+                  <div className="study-flip-hint">Click to reveal answer</div>
+                </div>
+                <div className="study-flashcard-back">
+                  <div className="study-card-label">Answer</div>
+                  <div className="study-card-content">
+                    {flashcards[currentCard]?.answer}
+                  </div>
+                  <div className="study-flip-hint">Click to see question</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="study-navigation">
+            <button 
+              onClick={handlePrevious} 
+              disabled={currentCard === 0} 
+              className="study-nav-btn study-prev"
+            >
+              ← Previous
+            </button>
+            <button 
+              onClick={() => setIsFlipped(!isFlipped)} 
+              className="study-nav-btn study-flip"
+            >
+              {isFlipped ? 'Show Question' : 'Show Answer'}
+            </button>
+            <button 
+              onClick={handleNext} 
+              disabled={currentCard === flashcards.length - 1} 
+              className="study-nav-btn study-next"
+            >
+              Next →
+            </button>
           </div>
         </div>
-      </header>
+      ) : (
+        /* NORMAL MODE - Full Interface */
+        <>
+      <div className="global-flashcards-header">
+        <div className="header-spacer"></div>
+        
+        <h1 className="flashcards-title" onClick={() => navigate('/dashboard')}>
+          <span className="title-main">cerbyl</span>
+          <span className="title-sub">flashcards</span>
+        </h1>
+
+        <div className="header-right">
+          {userProfile?.profilePicture && (
+            <img 
+              src={userProfile.profilePicture} 
+              alt="Profile" 
+              className="profile-picture" 
+            />
+          )}
+          <button className="header-btn" onClick={() => navigate('/dashboard')}>
+            DASHBOARD
+          </button>
+          <button className="header-btn logout-btn" onClick={() => {
+            localStorage.clear();
+            navigate('/login');
+          }}>
+            LOGOUT
+          </button>
+        </div>
+      </div>
 
       <main className="flashcards-main">
         <div className="content-wrapper">
@@ -788,7 +876,7 @@ const Flashcards = () => {
                         </div>
                         <div className="set-actions">
                           <button onClick={() => deleteFlashcardSet(set.id)} className="delete-btn">Delete</button>
-                          <button onClick={() => loadFlashcardSet(set.id)} className="study-btn">Study</button>
+                          <button onClick={() => loadFlashcardSet(set.id, true)} className="study-btn">Study</button>
                         </div>
                       </div>
                     ))}
@@ -834,6 +922,8 @@ const Flashcards = () => {
         title={popup.title}
         message={popup.message}
       />
+        </>
+      )}
     </div>
   );
 };

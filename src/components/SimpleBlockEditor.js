@@ -177,6 +177,19 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
   const slashMenuRef = useRef(null);
   const draggedBlockIdRef = useRef(null);
   const styleMenuRef = useRef(null);
+  const menuCloseTimeoutRef = useRef(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showBlockMenu && !e.target.closest('.block-menu-dropdown') && !e.target.closest('.block-control-btn')) {
+        setShowBlockMenu(null);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showBlockMenu]);
 
   const updateBlock = useCallback((blockId, updates) => {
     const newBlocks = blocks.map(b =>
@@ -1427,11 +1440,25 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                       ref={(el) => { blockWrapperRefs.current[childBlock.id] = el; }}
                       data-block-id={childBlock.id}
                       className={`block-wrapper block-in-column ${childIsDragging ? 'dragging' : ''}`}
-                      onMouseEnter={() => !readOnly && !draggedBlockId && !showBlockMenu && setHoveredBlockId(childBlock.id)}
-                      onMouseLeave={() => !readOnly && !draggedBlockId && showBlockMenu !== childBlock.id && setHoveredBlockId(null)}
+                      onMouseEnter={() => {
+                        if (!readOnly && !draggedBlockId) {
+                          clearTimeout(menuCloseTimeoutRef.current);
+                          setHoveredBlockId(childBlock.id);
+                        }
+                      }}
+                      onMouseLeave={() => {
+                        if (!readOnly && !draggedBlockId && showBlockMenu !== childBlock.id) {
+                          setHoveredBlockId(null);
+                        }
+                      }}
                     >
                       {!readOnly && (
-                        <div className={`block-controls ${shouldShowControls(childBlock.id) ? 'visible' : ''}`}>
+                        <div 
+                          className={`block-controls ${shouldShowControls(childBlock.id) ? 'visible' : ''}`}
+                          onMouseEnter={() => handleControlsMouseEnter(childBlock.id)}
+                          onMouseLeave={handleControlsMouseLeave}
+                          style={shouldShowControls(childBlock.id) ? { opacity: '1 !important', pointerEvents: 'auto !important' } : {}}
+                        >
                           <div 
                             className="block-control-btn drag-handle" 
                             title="Drag to reorder"
@@ -1470,7 +1497,19 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                           </button>
 
                           {showBlockMenu === childBlock.id && (
-                            <div className="block-menu-dropdown">
+                            <div 
+                              className="block-menu-dropdown"
+                              style={{ 
+                                display: 'block !important',
+                                opacity: '1 !important',
+                                pointerEvents: 'auto !important',
+                                visibility: 'visible !important'
+                              }}
+                              onMouseEnter={() => {
+                                clearTimeout(menuCloseTimeoutRef.current);
+                                setHoveredBlockId(childBlock.id);
+                              }}
+                            >
                               <div className="menu-label">Turn into</div>
                               {BLOCK_TYPES.slice(0, 10).map(blockType => (
                                 <button
@@ -1537,6 +1576,19 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     // Always show controls for hovered block, dragged block, or block with open menu
     return hoveredBlockId === blockId || draggedBlockId === blockId || showBlockMenu === blockId;
   };
+  
+  // Keep menu open when hovering over controls or menu
+  const handleControlsMouseEnter = (blockId) => {
+    clearTimeout(menuCloseTimeoutRef.current);
+    setHoveredBlockId(blockId);
+  };
+  
+  const handleControlsMouseLeave = () => {
+    // Don't hide controls if menu is open
+    if (!showBlockMenu) {
+      setHoveredBlockId(null);
+    }
+  };
 
   return (
     <>
@@ -1571,8 +1623,17 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
             data-block-id={block.id}
             data-indent={indentLevel}
             className={`block-wrapper ${isDragging ? 'dragging' : ''} ${darkMode ? 'dark-mode' : ''}`}
-            onMouseEnter={() => !readOnly && !draggedBlockId && !showBlockMenu && setHoveredBlockId(block.id)}
-            onMouseLeave={() => !readOnly && !draggedBlockId && showBlockMenu !== block.id && setHoveredBlockId(null)}
+            onMouseEnter={() => {
+              if (!readOnly && !draggedBlockId) {
+                clearTimeout(menuCloseTimeoutRef.current);
+                setHoveredBlockId(block.id);
+              }
+            }}
+            onMouseLeave={() => {
+              if (!readOnly && !draggedBlockId && showBlockMenu !== block.id) {
+                setHoveredBlockId(null);
+              }
+            }}
             onDragOver={(e) => handleDragOver(e, block.id)}
             onDragEnter={(e) => handleDragEnter(e, block.id)}
             onDragLeave={handleDragLeave}
@@ -1585,7 +1646,12 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
             
             {/* Block controls - only render if not readOnly */}
             {!readOnly && (
-            <div className={`block-controls ${shouldShowControls(block.id) ? 'visible' : ''}`}>
+            <div 
+              className={`block-controls ${shouldShowControls(block.id) ? 'visible' : ''}`}
+              onMouseEnter={() => handleControlsMouseEnter(block.id)}
+              onMouseLeave={handleControlsMouseLeave}
+              style={shouldShowControls(block.id) ? { opacity: '1 !important', pointerEvents: 'auto !important' } : {}}
+            >
               <div 
                 className="block-control-btn drag-handle" 
                 title="Drag to reorder"
@@ -1611,7 +1677,19 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
               </button>
 
               {showBlockMenu === block.id && (
-                <div className="block-menu-dropdown">
+                <div 
+                  className="block-menu-dropdown"
+                  style={{ 
+                    display: 'block !important',
+                    opacity: '1 !important',
+                    pointerEvents: 'auto !important',
+                    visibility: 'visible !important'
+                  }}
+                  onMouseEnter={() => {
+                    clearTimeout(menuCloseTimeoutRef.current);
+                    setHoveredBlockId(block.id);
+                  }}
+                >
                   <div className="menu-label">Actions</div>
                   <button onClick={() => { duplicateBlock(block.id); setShowBlockMenu(null); }}>
                     <Copy size={14} /> Duplicate

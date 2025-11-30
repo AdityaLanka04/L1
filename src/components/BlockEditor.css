@@ -159,17 +159,21 @@
 .block-controls {
   position: absolute !important;
   left: -80px !important;
-  top: 3px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
   display: flex !important;
   gap: 2px !important;
   opacity: 0 !important;
-  transition: opacity 0.15s ease !important;
+  transition: none !important;
   z-index: 10 !important;
+  pointer-events: none !important;
 }
 
 .block-wrapper:hover .block-controls,
-.block-wrapper.dragging .block-controls {
+.block-wrapper.dragging .block-controls,
+.block-controls.visible {
   opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 .block-control-btn {
@@ -249,10 +253,12 @@
   min-width: 200px !important;
   max-width: 280px !important;
   z-index: 10000 !important;
-  animation: slideIn 0.15s ease !important;
   pointer-events: auto !important;
   max-height: 400px !important;
   overflow-y: auto !important;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 @keyframes slideIn {

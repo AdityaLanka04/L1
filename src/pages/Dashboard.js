@@ -1798,11 +1798,6 @@ const Dashboard = () => {
       <header className="dashboard-header">
         <div className="header-content">
           <div className="header-left">
-            <h1 className="dashboard-title">Cerbyl</h1>
-          </div>
-          <div className="header-right">
-            <ThemeSwitcher />
-            
             {/* Notification Bell */}
             <div className="notification-container">
               <button 
@@ -1864,7 +1859,13 @@ const Dashboard = () => {
 )}
               <span className="user-name">{displayName}</span>
             </div>
-
+            
+            <ThemeSwitcher />
+          </div>
+          
+          <h1 className="dashboard-title">cerbyl</h1>
+          
+          <div className="header-right">
             <button
               className={`customize-btn ${isCustomizing ? 'active' : ''}`}
               onClick={() => {
