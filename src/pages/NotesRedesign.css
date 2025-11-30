@@ -821,8 +821,9 @@ select {
   padding: 8px 12px;
   background: transparent;
   border-left: none;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease;
   border-radius: 0;
+  will-change: transform;
 }
 
 .block-editor-container .block-wrapper:hover {

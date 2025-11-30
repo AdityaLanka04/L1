@@ -22,6 +22,7 @@ import gamificationService from '../services/gamificationService';
 import SimpleBlockEditor from '../components/SimpleBlockEditor';
 import AdvancedSearch from '../components/AdvancedSearch';
 import Templates from '../components/Templates';
+import TemplatePreview from '../components/TemplatePreview';
 import RecentlyViewed from '../components/RecentlyViewed';
 import PageProperties from '../components/PageProperties';
 import CanvasMode from '../components/CanvasMode';
@@ -337,6 +338,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [selectedTagFilter, setSelectedTagFilter] = useState(null);
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [previewTemplate, setPreviewTemplate] = useState(null);
   
   // Block editor state
   const [noteBlocks, setNoteBlocks] = useState([{
@@ -2473,14 +2475,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
                       <Edit3 size={16} />
                       <span>Edit</span>
                     </button>
-                    <button
-                      className={`tool-panel-btn ${viewMode === "preview" ? "active" : ""}`}
-                      onClick={() => setViewMode("preview")}
-                      title="Preview mode"
-                    >
-                      <Eye size={16} />
-                      <span>Preview</span>
-                    </button>
                   </div>
                 </div>
 
@@ -2622,21 +2616,19 @@ const NotesRedesign = ({ sharedMode = false }) => {
                   </div>
                 )}
                 
-                {!showPomodoroTimer && (
-                  <div className="tool-section">
-                    <label className="tool-section-label">Focus</label>
-                    <div className="tool-buttons-group">
-                      <button 
-                        onClick={() => setShowPomodoroTimer(true)}
-                        className="tool-panel-btn"
-                        title="Pomodoro Timer"
-                      >
-                        <Timer size={16} />
-                        <span>Focus Timer</span>
-                      </button>
-                    </div>
+                <div className="tool-section">
+                  <label className="tool-section-label">Focus</label>
+                  <div className="tool-buttons-group">
+                    <button 
+                      onClick={() => navigate('/pomodoro')}
+                      className="tool-panel-btn"
+                      title="Pomodoro Timer"
+                    >
+                      <Timer size={16} />
+                      <span>Focus Timer</span>
+                    </button>
                   </div>
-                )}
+                </div>
               </div>
             </div>
 

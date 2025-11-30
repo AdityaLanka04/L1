@@ -42,6 +42,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
   const [opacity, setOpacity] = useState(1);
   const [backgroundPattern, setBackgroundPattern] = useState('none');
   const [showMinimap, setShowMinimap] = useState(false);
+  const [resizing, setResizing] = useState(null); // { element, handle: 'se' | 'sw' | 'ne' | 'nw' }
   const fileInputRef = useRef(null);
   const GRID_SIZE = 20;
 
@@ -274,7 +275,41 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
     }
 
     if (tool === 'select') {
+      // Check for resize handles on sticky notes first
       const clicked = [...elements].reverse().find(el => isPointInElement(pos.x, pos.y, el));
+      
+      if (clicked && clicked.type === 'sticky') {
+        // Check if clicking on resize handles (8px from corners)
+        const handleSize = 8;
+        const rightEdge = clicked.x + clicked.width;
+        const bottomEdge = clicked.y + clicked.height;
+        
+        // Southeast handle (bottom-right)
+        if (Math.abs(pos.x - rightEdge) < handleSize && Math.abs(pos.y - bottomEdge) < handleSize) {
+          setResizing({ element: clicked, handle: 'se', startX: pos.x, startY: pos.y, startWidth: clicked.width, startHeight: clicked.height });
+          setSelectedElement(clicked);
+          return;
+        }
+        // Southwest handle (bottom-left)
+        if (Math.abs(pos.x - clicked.x) < handleSize && Math.abs(pos.y - bottomEdge) < handleSize) {
+          setResizing({ element: clicked, handle: 'sw', startX: pos.x, startY: pos.y, startWidth: clicked.width, startHeight: clicked.height, startPosX: clicked.x });
+          setSelectedElement(clicked);
+          return;
+        }
+        // Northeast handle (top-right)
+        if (Math.abs(pos.x - rightEdge) < handleSize && Math.abs(pos.y - clicked.y) < handleSize) {
+          setResizing({ element: clicked, handle: 'ne', startX: pos.x, startY: pos.y, startWidth: clicked.width, startHeight: clicked.height, startPosY: clicked.y });
+          setSelectedElement(clicked);
+          return;
+        }
+        // Northwest handle (top-left)
+        if (Math.abs(pos.x - clicked.x) < handleSize && Math.abs(pos.y - clicked.y) < handleSize) {
+          setResizing({ element: clicked, handle: 'nw', startX: pos.x, startY: pos.y, startWidth: clicked.width, startHeight: clicked.height, startPosX: clicked.x, startPosY: clicked.y });
+          setSelectedElement(clicked);
+          return;
+        }
+      }
+      
       if (clicked) {
         setSelectedElement(clicked);
         setDragStart({ x: pos.x - clicked.x, y: pos.y - clicked.y });
@@ -390,6 +425,54 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
       return;
     }
 
+    // Handle resizing sticky notes
+    if (resizing) {
+      const pos = getMousePos(e);
+      const deltaX = pos.x - resizing.startX;
+      const deltaY = pos.y - resizing.startY;
+      
+      const newElements = elements.map(el => {
+        if (el.id === resizing.element.id) {
+          let newWidth = resizing.startWidth;
+          let newHeight = resizing.startHeight;
+          let newX = el.x;
+          let newY = el.y;
+          
+          // Minimum size constraints
+          const minWidth = 100;
+          const minHeight = 100;
+          
+          if (resizing.handle === 'se') {
+            // Southeast: resize from bottom-right
+            newWidth = Math.max(minWidth, resizing.startWidth + deltaX);
+            newHeight = Math.max(minHeight, resizing.startHeight + deltaY);
+          } else if (resizing.handle === 'sw') {
+            // Southwest: resize from bottom-left
+            newWidth = Math.max(minWidth, resizing.startWidth - deltaX);
+            newHeight = Math.max(minHeight, resizing.startHeight + deltaY);
+            newX = resizing.startPosX + (resizing.startWidth - newWidth);
+          } else if (resizing.handle === 'ne') {
+            // Northeast: resize from top-right
+            newWidth = Math.max(minWidth, resizing.startWidth + deltaX);
+            newHeight = Math.max(minHeight, resizing.startHeight - deltaY);
+            newY = resizing.startPosY + (resizing.startHeight - newHeight);
+          } else if (resizing.handle === 'nw') {
+            // Northwest: resize from top-left
+            newWidth = Math.max(minWidth, resizing.startWidth - deltaX);
+            newHeight = Math.max(minHeight, resizing.startHeight - deltaY);
+            newX = resizing.startPosX + (resizing.startWidth - newWidth);
+            newY = resizing.startPosY + (resizing.startHeight - newHeight);
+          }
+          
+          return { ...el, width: newWidth, height: newHeight, x: newX, y: newY };
+        }
+        return el;
+      });
+      
+      setElements(newElements);
+      return;
+    }
+
     if (isPanning) {
       const newPanX = e.clientX - panStart.x;
       const newPanY = e.clientY - panStart.y;
@@ -430,6 +513,13 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
     if (draggingRuler) {
       setDraggingRuler(null);
       setRulerDragStart(null);
+      return;
+    }
+
+    // Finish resizing
+    if (resizing) {
+      addToHistory(elements);
+      setResizing(null);
       return;
     }
 
@@ -983,7 +1073,13 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onDoubleClick={handleDoubleClick}
-        style={{ cursor: tool === 'eraser' ? 'not-allowed' : tool === 'select' ? 'default' : 'crosshair' }}
+        style={{ 
+          cursor: resizing 
+            ? (resizing.handle === 'se' || resizing.handle === 'nw' ? 'nwse-resize' : 'nesw-resize')
+            : tool === 'eraser' ? 'crosshair' 
+            : tool === 'select' ? 'default' 
+            : 'crosshair' 
+        }}
       >
         <svg 
           className="canvas-svg"
@@ -1321,6 +1417,52 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                     fill={`color-mix(in srgb, ${el.color} 60%, black)`}
                     opacity="0.3"
                   />
+                  
+                  {/* Resize handles - only show when selected */}
+                  {selectedElement?.id === el.id && tool === 'select' && (
+                    <>
+                      {/* Southeast handle (bottom-right) */}
+                      <circle
+                        cx={el.x + el.width}
+                        cy={el.y + el.height}
+                        r="6"
+                        fill="#D7B38C"
+                        stroke="#000"
+                        strokeWidth="1.5"
+                        style={{ cursor: 'nwse-resize' }}
+                      />
+                      {/* Southwest handle (bottom-left) */}
+                      <circle
+                        cx={el.x}
+                        cy={el.y + el.height}
+                        r="6"
+                        fill="#D7B38C"
+                        stroke="#000"
+                        strokeWidth="1.5"
+                        style={{ cursor: 'nesw-resize' }}
+                      />
+                      {/* Northeast handle (top-right) */}
+                      <circle
+                        cx={el.x + el.width}
+                        cy={el.y}
+                        r="6"
+                        fill="#D7B38C"
+                        stroke="#000"
+                        strokeWidth="1.5"
+                        style={{ cursor: 'nesw-resize' }}
+                      />
+                      {/* Northwest handle (top-left) */}
+                      <circle
+                        cx={el.x}
+                        cy={el.y}
+                        r="6"
+                        fill="#D7B38C"
+                        stroke="#000"
+                        strokeWidth="1.5"
+                        style={{ cursor: 'nwse-resize' }}
+                      />
+                    </>
+                  )}
                 </g>
               );
             }

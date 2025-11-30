@@ -179,10 +179,9 @@ else:
 
 # Initialize unified AI client
 from ai_utils import UnifiedAIClient
-# TEMPORARY: Use Groq as primary since Gemini quota is exceeded
-# Swap the order: pass groq_client first, gemini_client second
-unified_ai = UnifiedAIClient(None, groq_client, GEMINI_MODEL, GROQ_MODEL, GEMINI_API_KEY)
-logger.info("✅ Unified AI client initialized (GROQ PRIMARY - Gemini quota exceeded)")
+# Use Gemini as primary, Groq as fallback
+unified_ai = UnifiedAIClient(gemini_client, groq_client, GEMINI_MODEL, GROQ_MODEL, GEMINI_API_KEY)
+logger.info("✅ Unified AI client initialized (GEMINI PRIMARY, GROQ FALLBACK)")
 
 # Unified AI call function - uses the unified_ai client
 def call_ai(prompt: str, max_tokens: int = 2000, temperature: float = 0.7) -> str:
