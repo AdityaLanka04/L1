@@ -8,7 +8,7 @@ import {
   Hash, AtSign, MapPin, Clock, Paperclip, Palette,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Indent, Outdent, Columns, Youtube, ExternalLink,
-  GitBranch, X
+  GitBranch, X, Minimize2, Download, ArrowRight
 } from 'lucide-react';
 import './BlockEditor.css';
 import CodeBlock from './CodeBlock';
@@ -54,7 +54,8 @@ const BLOCK_TYPES = [
   { type: 'tag', label: 'Tag', icon: Tag, description: 'Tag or label', category: 'Organization' },
   
   // Layout
-  { type: 'columns', label: 'Columns', icon: Columns, description: 'Multi-column layout', category: 'Layout' },
+  { type: 'column', label: 'Column', icon: Columns, description: 'Single column block', category: 'Layout' },
+  { type: 'row', label: 'Row', icon: Minus, description: 'Horizontal row container', category: 'Layout' },
   
   // Embeds
   { type: 'youtube', label: 'YouTube', icon: Youtube, description: 'Embed YouTube video', category: 'Embeds' },
@@ -170,6 +171,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
   const [lastKeyPress, setLastKeyPress] = useState({ key: '', time: 0 });
   const [showStyleMenu, setShowStyleMenu] = useState(null);
   const [styleMenuPosition, setStyleMenuPosition] = useState({ top: 0, left: 0 });
+  const [columnMenuOpen, setColumnMenuOpen] = useState({}); // Track which column menus are open
   const blockRefs = useRef({});
   const blockWrapperRefs = useRef({});
   const slashMenuRef = useRef(null);
@@ -1091,77 +1093,437 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
         );
       case 'mermaid':
         return <MermaidBlock block={block} updateBlock={updateBlock} readOnly={readOnly} />;
-      case 'columns':
-        const columnCount = block.properties?.columnCount || 2;
-        const columnContents = block.properties?.columns || Array(columnCount).fill('');
+      case 'column':
+        // Column block that can contain child blocks
+        const columnWidth = block.properties?.width || '50%';
+        const columnBgColor = block.properties?.bgColor || 'none';
+        const isCollapsed = block.properties?.collapsed || false;
+        const isSticky = block.properties?.sticky || false;
+        const showFullMenu = columnMenuOpen[block.id] || false;
         
-        const updateColumnContent = (colIndex, content) => {
-          const newColumns = [...columnContents];
-          newColumns[colIndex] = content;
+        // Get child blocks
+        const childBlocks = blocks.filter(b => b.parent_block_id === block.id);
+        const hasChildren = childBlocks.length > 0;
+        
+        const isLocked = block.properties?.locked || false;
+        const linkedTo = block.properties?.linkedTo || null;
+        
+        const widthOptions = ['25%', '33%', '50%', '66%', '75%', '100%'];
+        const colorOptions = ['none', 'blue', 'green', 'purple', 'orange', 'pink', 'gray', 'accent'];
+        
+        const setColumnWidth = (width) => {
           updateBlock(block.id, {
-            properties: {
-              ...block.properties,
-              columns: newColumns
-            }
+            properties: { ...block.properties, width }
           });
         };
         
-        const changeColumnCount = (newCount) => {
-          const newColumns = Array(newCount).fill('').map((_, i) => columnContents[i] || '');
+        const setColumnColor = (bgColor) => {
           updateBlock(block.id, {
-            properties: {
-              ...block.properties,
-              columnCount: newCount,
-              columns: newColumns
-            }
+            properties: { ...block.properties, bgColor }
           });
+        };
+        
+        const toggleCollapse = () => {
+          updateBlock(block.id, {
+            properties: { ...block.properties, collapsed: !isCollapsed }
+          });
+        };
+        
+        const toggleSticky = () => {
+          updateBlock(block.id, {
+            properties: { ...block.properties, sticky: !isSticky }
+          });
+        };
+        
+        const toggleLock = () => {
+          updateBlock(block.id, {
+            properties: { ...block.properties, locked: !isLocked }
+          });
+        };
+        
+        const cloneColumn = () => {
+          const newBlock = {
+            ...block,
+            id: Date.now() + Math.random(),
+            properties: { ...block.properties }
+          };
+          const currentIndex = blocks.findIndex(b => b.id === block.id);
+          const newBlocks = [...blocks];
+          newBlocks.splice(currentIndex + 1, 0, newBlock);
+          onChange(newBlocks);
+        };
+        
+        const splitColumn = () => {
+          // Create two columns with half width each
+          const currentWidth = parseInt(columnWidth);
+          const halfWidth = Math.floor(currentWidth / 2) + '%';
+          
+          // Update current column
+          updateBlock(block.id, {
+            properties: { ...block.properties, width: halfWidth }
+          });
+          
+          // Create new column
+          const newBlock = {
+            id: Date.now() + Math.random(),
+            type: 'column',
+            content: '',
+            properties: { width: halfWidth, bgColor: 'none' },
+            parent_block_id: null
+          };
+          
+          const currentIndex = blocks.findIndex(b => b.id === block.id);
+          const newBlocks = [...blocks];
+          newBlocks.splice(currentIndex + 1, 0, newBlock);
+          onChange(newBlocks);
+        };
+        
+        const mergeWithNext = () => {
+          // Find next column
+          const currentIndex = blocks.findIndex(b => b.id === block.id);
+          const nextBlock = blocks[currentIndex + 1];
+          
+          if (nextBlock && nextBlock.type === 'column') {
+            // Move all children from next column to this column
+            const nextChildren = blocks.filter(b => b.parent_block_id === nextBlock.id);
+            const updatedBlocks = blocks.map(b => {
+              if (nextChildren.find(child => child.id === b.id)) {
+                return { ...b, parent_block_id: block.id };
+              }
+              return b;
+            }).filter(b => b.id !== nextBlock.id);
+            
+            onChange(updatedBlocks);
+          }
+        };
+        
+        const exportColumn = () => {
+          // Export column content as text
+          const columnContent = childBlocks.map(b => b.content).join('\n\n');
+          const blob = new Blob([columnContent], { type: 'text/plain' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `column-${block.id}.txt`;
+          a.click();
+          URL.revokeObjectURL(url);
+        };
+        
+        const applyTemplate = (template) => {
+          const currentIndex = blocks.findIndex(b => b.id === block.id);
+          const newBlocks = [...blocks];
+          
+          // Remove current column
+          newBlocks.splice(currentIndex, 1);
+          
+          // Add template columns
+          if (template === 'two-column') {
+            newBlocks.splice(currentIndex, 0,
+              { id: Date.now(), type: 'column', content: '', properties: { width: '50%' }, parent_block_id: null },
+              { id: Date.now() + 1, type: 'column', content: '', properties: { width: '50%' }, parent_block_id: null }
+            );
+          } else if (template === 'three-column') {
+            newBlocks.splice(currentIndex, 0,
+              { id: Date.now(), type: 'column', content: '', properties: { width: '33%' }, parent_block_id: null },
+              { id: Date.now() + 1, type: 'column', content: '', properties: { width: '33%' }, parent_block_id: null },
+              { id: Date.now() + 2, type: 'column', content: '', properties: { width: '33%' }, parent_block_id: null }
+            );
+          } else if (template === 'sidebar-left') {
+            newBlocks.splice(currentIndex, 0,
+              { id: Date.now(), type: 'column', content: '', properties: { width: '25%' }, parent_block_id: null },
+              { id: Date.now() + 1, type: 'column', content: '', properties: { width: '75%' }, parent_block_id: null }
+            );
+          } else if (template === 'sidebar-right') {
+            newBlocks.splice(currentIndex, 0,
+              { id: Date.now(), type: 'column', content: '', properties: { width: '75%' }, parent_block_id: null },
+              { id: Date.now() + 1, type: 'column', content: '', properties: { width: '25%' }, parent_block_id: null }
+            );
+          }
+          
+          onChange(newBlocks);
+          setColumnMenuOpen(prev => ({ ...prev, [block.id]: false }));
+        };
+        
+        const addBlockInside = () => {
+          const newBlock = {
+            id: Date.now() + Math.random(),
+            type: 'paragraph',
+            content: '',
+            properties: {},
+            parent_block_id: block.id
+          };
+          const newBlocks = [...blocks];
+          const currentIndex = blocks.findIndex(b => b.id === block.id);
+          newBlocks.splice(currentIndex + 1, 0, newBlock);
+          onChange(newBlocks);
+          setTimeout(() => blockRefs.current[newBlock.id]?.focus(), 0);
         };
         
         return (
-          <div className="block-columns-container">
-            <div className="columns-header">
-              <Columns size={18} />
-              <span>Multi-Column Layout</span>
-              {!readOnly && (
-                <div className="column-controls">
-                  <button
-                    className="column-count-btn"
-                    onClick={() => changeColumnCount(Math.max(1, columnCount - 1))}
-                    disabled={columnCount <= 1}
-                    title="Remove column"
-                  >
-                    -
+          <div 
+            className={`block-column-container ${isCollapsed ? 'collapsed' : ''} ${isSticky ? 'sticky' : ''}`}
+            data-column-width={columnWidth}
+            data-bg-color={columnBgColor !== 'none' ? columnBgColor : undefined}
+            data-locked={isLocked ? 'true' : undefined}
+          >
+            {!readOnly && (
+              <>
+                <button 
+                  className="column-settings-btn"
+                  onClick={() => setColumnMenuOpen(prev => ({ ...prev, [block.id]: !showFullMenu }))}
+                  title="Column settings"
+                >
+                  {columnWidth}
+                </button>
+                
+                {showFullMenu && (
+                  <div className="column-settings-dialog">
+                    <div className="column-dialog-header">
+                      <span>Column Settings</span>
+                      <button 
+                        className="column-dialog-close"
+                        onClick={() => setColumnMenuOpen(prev => ({ ...prev, [block.id]: false }))}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                    
+                    <div className="column-dialog-body">
+                      <div className="column-dialog-section">
+                        <div className="column-dialog-label">Width</div>
+                        <div className="column-dialog-options">
+                          {widthOptions.map(width => (
+                            <button
+                              key={width}
+                              className={`column-option-btn ${columnWidth === width ? 'active' : ''}`}
+                              onClick={() => setColumnWidth(width)}
+                            >
+                              {width}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div className="column-dialog-section">
+                        <div className="column-dialog-label">Background Color</div>
+                        <div className="column-dialog-colors">
+                          {colorOptions.map(color => (
+                            <button
+                              key={color}
+                              className={`column-color-option ${columnBgColor === color ? 'active' : ''}`}
+                              data-color={color}
+                              onClick={() => setColumnColor(color)}
+                              title={color === 'none' ? 'No background' : color}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div className="column-dialog-section">
+                        <div className="column-dialog-label">Templates</div>
+                        <div className="column-dialog-options">
+                          <button className="column-option-btn" onClick={() => applyTemplate('two-column')}>
+                            2 Col
+                          </button>
+                          <button className="column-option-btn" onClick={() => applyTemplate('three-column')}>
+                            3 Col
+                          </button>
+                          <button className="column-option-btn" onClick={() => applyTemplate('sidebar-left')}>
+                            L Side
+                          </button>
+                          <button className="column-option-btn" onClick={() => applyTemplate('sidebar-right')}>
+                            R Side
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="column-dialog-section">
+                        <div className="column-dialog-label">Actions</div>
+                        <div className="column-dialog-actions">
+                          <button 
+                            className="column-action-btn"
+                            onClick={() => { toggleCollapse(); setColumnMenuOpen(prev => ({ ...prev, [block.id]: false })); }}
+                          >
+                            <Minimize2 size={16} />
+                            <span>{isCollapsed ? 'Expand' : 'Collapse'}</span>
+                          </button>
+                          <button 
+                            className="column-action-btn"
+                            onClick={() => { toggleSticky(); setColumnMenuOpen(prev => ({ ...prev, [block.id]: false })); }}
+                          >
+                            <Star size={16} />
+                            <span>{isSticky ? 'Unpin' : 'Pin'}</span>
+                          </button>
+                          <button 
+                            className={`column-action-btn ${isLocked ? 'active' : ''}`}
+                            onClick={() => { toggleLock(); setColumnMenuOpen(prev => ({ ...prev, [block.id]: false })); }}
+                          >
+                            <Star size={16} />
+                            <span>{isLocked ? 'Unlock' : 'Lock'}</span>
+                          </button>
+                          <button 
+                            className="column-action-btn"
+                            onClick={() => { cloneColumn(); setColumnMenuOpen(prev => ({ ...prev, [block.id]: false })); }}
+                          >
+                            <Copy size={16} />
+                            <span>Clone</span>
+                          </button>
+                          <button 
+                            className="column-action-btn"
+                            onClick={() => { splitColumn(); setColumnMenuOpen(prev => ({ ...prev, [block.id]: false })); }}
+                          >
+                            <Columns size={16} />
+                            <span>Split</span>
+                          </button>
+                          <button 
+                            className="column-action-btn"
+                            onClick={() => { mergeWithNext(); setColumnMenuOpen(prev => ({ ...prev, [block.id]: false })); }}
+                          >
+                            <ArrowRight size={16} />
+                            <span>Merge →</span>
+                          </button>
+                          <button 
+                            className="column-action-btn"
+                            onClick={() => { exportColumn(); setColumnMenuOpen(prev => ({ ...prev, [block.id]: false })); }}
+                          >
+                            <Download size={16} />
+                            <span>Export</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {isCollapsed && (
+                  <button className="column-expand-btn" onClick={toggleCollapse}>
+                    <ChevronRight size={16} /> Expand
                   </button>
-                  <span className="column-count">{columnCount} columns</span>
-                  <button
-                    className="column-count-btn"
-                    onClick={() => changeColumnCount(Math.min(4, columnCount + 1))}
-                    disabled={columnCount >= 4}
-                    title="Add column"
-                  >
-                    +
+                )}
+              </>
+            )}
+            
+            {!isCollapsed && (
+              <div className="column-content-area">
+                {isLocked && (
+                  <div className="column-locked-badge">
+                    <Star size={12} />
+                    <span>Locked</span>
+                  </div>
+                )}
+                {!hasChildren && !readOnly && !isLocked && (
+                  <button className="column-add-first-block" onClick={addBlockInside}>
+                    <Plus size={16} />
+                    <span>Click to add content or type /</span>
                   </button>
-                </div>
-              )}
+                )}
+                {/* Render child blocks inside column */}
+                {childBlocks.map((childBlock, childIndex) => {
+                  const childIsDragging = draggedBlockId === childBlock.id;
+                  
+                  return (
+                    <div
+                      key={childBlock.id}
+                      ref={(el) => { blockWrapperRefs.current[childBlock.id] = el; }}
+                      data-block-id={childBlock.id}
+                      className={`block-wrapper block-in-column ${childIsDragging ? 'dragging' : ''}`}
+                      onMouseEnter={() => !readOnly && !draggedBlockId && !showBlockMenu && setHoveredBlockId(childBlock.id)}
+                      onMouseLeave={() => !readOnly && !draggedBlockId && showBlockMenu !== childBlock.id && setHoveredBlockId(null)}
+                    >
+                      {!readOnly && (
+                        <div className={`block-controls ${shouldShowControls(childBlock.id) ? 'visible' : ''}`}>
+                          <div 
+                            className="block-control-btn drag-handle" 
+                            title="Drag to reorder"
+                            draggable="true"
+                            onDragStart={(e) => handleDragStart(e, childBlock.id)}
+                            onDragEnd={handleDragEnd}
+                          >
+                            <GripVertical size={16} />
+                          </div>
+                          <button
+                            className="block-control-btn"
+                            onClick={() => {
+                              const newBlock = {
+                                id: Date.now() + Math.random(),
+                                type: 'paragraph',
+                                content: '',
+                                properties: {},
+                                parent_block_id: block.id
+                              };
+                              const allBlocks = [...blocks];
+                              const childBlockIndex = allBlocks.findIndex(b => b.id === childBlock.id);
+                              allBlocks.splice(childBlockIndex + 1, 0, newBlock);
+                              onChange(allBlocks);
+                              setTimeout(() => blockRefs.current[newBlock.id]?.focus(), 0);
+                            }}
+                            title="Add block"
+                          >
+                            <Plus size={16} />
+                          </button>
+                          <button
+                            className="block-control-btn"
+                            onClick={() => setShowBlockMenu(showBlockMenu === childBlock.id ? null : childBlock.id)}
+                            title="More"
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+
+                          {showBlockMenu === childBlock.id && (
+                            <div className="block-menu-dropdown">
+                              <div className="menu-label">Turn into</div>
+                              {BLOCK_TYPES.slice(0, 10).map(blockType => (
+                                <button
+                                  key={blockType.type}
+                                  onClick={() => {
+                                    updateBlock(childBlock.id, { type: blockType.type });
+                                    setShowBlockMenu(null);
+                                  }}
+                                  className={childBlock.type === blockType.type ? 'active' : ''}
+                                >
+                                  <blockType.icon size={14} /> {blockType.label}
+                                </button>
+                              ))}
+                              <div className="menu-divider" />
+                              <div className="menu-label">Actions</div>
+                              <button onClick={() => { duplicateBlock(childBlock.id); setShowBlockMenu(null); }}>
+                                <Copy size={14} /> Duplicate
+                              </button>
+                              <button onClick={() => { deleteBlock(childBlock.id); setShowBlockMenu(null); }}>
+                                <Trash2 size={14} /> Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className="block-content-wrapper">
+                        {renderBlockContent(childBlock, {
+                          ref: (el) => { blockRefs.current[childBlock.id] = el; },
+                          contentEditable: !readOnly,
+                          suppressContentEditableWarning: true,
+                          onInput: (e) => handleInput(childBlock.id, e.target.innerHTML),
+                          onKeyDown: (e) => handleKeyDown(e, childBlock.id, childIndex),
+                          className: `block-content block-${childBlock.type}`,
+                          dangerouslySetInnerHTML: { __html: childBlock.content || '' }
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      case 'row':
+        // Row block for horizontal layout
+        return (
+          <div className="block-row-container">
+            <div className="row-label">
+              <Minus size={14} />
+              <span>Row</span>
             </div>
-            <div 
-              className="block-columns-wrapper" 
-              style={{ gridTemplateColumns: `repeat(${columnCount}, 1fr)` }}
-            >
-              {columnContents.map((content, colIndex) => (
-                <div key={colIndex} className="column">
-                  <div className="column-label">Column {colIndex + 1}</div>
-                  <textarea
-                    value={content}
-                    onChange={(e) => updateColumnContent(colIndex, e.target.value)}
-                    placeholder={`Enter content for column ${colIndex + 1}...`}
-                    className="column-textarea"
-                    readOnly={readOnly}
-                    rows={6}
-                  />
-                </div>
-              ))}
-            </div>
+            <div {...props} />
           </div>
         );
       default:
@@ -1183,7 +1545,12 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       onDragOver={handleEditorDragOver}
       onDrop={handleEditorDrop}
     >
-      {blocks.map((block, index) => {
+      {blocks.filter(block => {
+        // Only render root-level blocks and blocks whose parent is NOT a column
+        if (!block.parent_block_id) return true;
+        const parentBlock = blocks.find(b => b.id === block.parent_block_id);
+        return parentBlock?.type !== 'column';
+      }).map((block, index) => {
         const isDragging = draggedBlockId === block.id;
         const showAboveIndicator = dropIndicator?.blockId === block.id && dropIndicator?.position === 'above';
         const showBelowIndicator = dropIndicator?.blockId === block.id && dropIndicator?.position === 'below';

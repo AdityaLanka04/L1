@@ -1759,7 +1759,7 @@ body {
 .dashboard-page .action-btn {
   background: color-mix(in srgb, var(--panel) 10%, transparent) !important;
   border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent) !important;
-  padding: 18px 15px !important; 
+  padding: 20px 15px !important; 
   cursor: pointer !important; 
   transition: all .2s cubic-bezier(0.4, 0, 0.2, 1) !important; 
   text-align: center !important;
@@ -1770,8 +1770,13 @@ body {
   justify-content: center !important; 
   flex: 1 !important; 
   border-radius: 0 !important; 
-  min-height: 70px !important;
+  min-height: 80px !important;
   box-shadow: var(--shadow-sm) !important;
+}
+
+.dashboard-page .action-btn * {
+  margin: 0 !important;
+  padding: 0 !important;
 }
 .dashboard-page .action-btn:hover {
   background: color-mix(in srgb, var(--panel) 20%, transparent)  !important;
@@ -1791,15 +1796,17 @@ body {
   box-shadow: var(--shadow-sm) !important;
 }
 .dashboard-page .action-label { 
-  font-size: 20px; 
-  font-weight: 700; 
-  margin-bottom: 4px; 
-  letter-spacing: .3px; 
+  font-size: 18px !important; 
+  font-weight: 700 !important; 
+  letter-spacing: .3px !important;
+  text-align: center !important;
+  width: 100% !important;
+  line-height: 1 !important;
 }
-.dashboard-page .action-count { 
-  font-size: 1px; 
-  color: var(--text-secondary); 
-  font-weight: 500; 
+
+/* Hide any remaining count elements */
+.dashboard-page .action-count {
+  display: none !important;
 }
 
 .dashboard-page .quick-stats {

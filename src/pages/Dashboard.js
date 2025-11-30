@@ -1578,7 +1578,6 @@ const Dashboard = () => {
           style={{ color: accent, borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
         >
           <div className="action-label" style={{ color: accent }}>Flashcards</div>
-          <div className="action-count">{stats.totalFlashcards}</div>
         </button>
         <button 
           className="action-btn" 
@@ -1587,7 +1586,6 @@ const Dashboard = () => {
           style={{ color: accent, borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
         >
           <div className="action-label" style={{ color: accent }}>Study Notes</div>
-          <div className="action-count">{stats.totalNotes}</div>
         </button>
         <button 
           className="action-btn" 
@@ -1596,7 +1594,6 @@ const Dashboard = () => {
           style={{ color: accent, borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
         >
           <div className="action-label" style={{ color: accent }}>Concept Web</div>
-          <div className="action-count">Build</div>
         </button>
         <button 
           className="action-btn" 
@@ -1605,7 +1602,6 @@ const Dashboard = () => {
           style={{ color: accent, borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
         >
           <div className="action-label" style={{ color: accent }}>Profile</div>
-          <div className="action-count">Setup</div>
         </button>
       </div>
 
