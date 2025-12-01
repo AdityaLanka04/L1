@@ -28,7 +28,6 @@ import ThemeSwitcher from '../components/ThemeSwitcher';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ProactiveNotification from '../components/ProactiveNotification';
 import './Dashboard.css';
-import './HelpTour.css';
 import { API_URL } from '../config';
 
 /* Prevent CSS cascade from other pages */
@@ -1046,36 +1045,95 @@ const Dashboard = () => {
     const widgetContent = () => {
       switch (widget.type) {
         case 'stats':
+          const getShadeOfAccent = (index, total) => {
+            const baseOpacity = 0.4 + (index / total) * 0.6;
+            return `rgba(${parseInt(accent.slice(1, 3), 16)}, ${parseInt(accent.slice(3, 5), 16)}, ${parseInt(accent.slice(5, 7), 16)}, ${baseOpacity})`;
+          };
+          
+          const chartData = [
+            { label: 'Questions', value: stats.totalQuestions },
+            { label: 'Flashcards', value: stats.totalFlashcards },
+            { label: 'Notes', value: stats.totalNotes },
+            { label: 'AI Sessions', value: stats.totalChatSessions },
+          ].filter(item => item.value > 0);
+          
+          const total = chartData.reduce((sum, item) => sum + item.value, 0);
+          
+          let currentAngle = 0;
+          const pieSlices = chartData.map((item, index) => {
+            const percentage = (item.value / total) * 100;
+            const sliceAngle = (percentage / 100) * 360;
+            const startAngle = currentAngle;
+            currentAngle += sliceAngle;
+            
+            return {
+              ...item,
+              percentage,
+              startAngle,
+              sliceAngle,
+              color: getShadeOfAccent(index, chartData.length)
+            };
+          });
+          
           return (
             <div className="stats-overview-widget">
               <div className="widget-header">
                 <h3 className="widget-title">Learning Stats</h3>
               </div>
-              <div className="stat-grid-widget">
-                <div className="stat-card-widget">
-                  <div className="stat-content">
-                    <div className="stat-number" style={{ color: accent }}>{stats.streak}</div>
-                    <div className="stat-label">Day Streak</div>
+              <div className="stats-pie-container">
+                {total > 0 ? (
+                  <>
+                    <svg viewBox="0 0 200 200" className="stats-pie-chart">
+                      <circle cx="100" cy="100" r="80" fill={bgTop} opacity="0.5" />
+                      {pieSlices.map((slice, index) => {
+                        const startX = 100 + 80 * Math.cos((slice.startAngle - 90) * Math.PI / 180);
+                        const startY = 100 + 80 * Math.sin((slice.startAngle - 90) * Math.PI / 180);
+                        const endX = 100 + 80 * Math.cos((slice.startAngle + slice.sliceAngle - 90) * Math.PI / 180);
+                        const endY = 100 + 80 * Math.sin((slice.startAngle + slice.sliceAngle - 90) * Math.PI / 180);
+                        const largeArc = slice.sliceAngle > 180 ? 1 : 0;
+                        
+                        return (
+                          <path
+                            key={index}
+                            d={`M 100 100 L ${startX} ${startY} A 80 80 0 ${largeArc} 1 ${endX} ${endY} Z`}
+                            fill={slice.color}
+                          />
+                        );
+                      })}
+                      <circle cx="100" cy="100" r="50" fill={bgTop} />
+                      <text x="100" y="95" textAnchor="middle" fill={textPrimary} fontSize="24" fontWeight="700">
+                        {total}
+                      </text>
+                      <text x="100" y="110" textAnchor="middle" fill={textPrimary} fontSize="12" opacity="0.7">
+                        Total Items
+                      </text>
+                    </svg>
+                    <div className="stats-legend">
+                      {pieSlices.map((slice, index) => (
+                        <div key={index} className="legend-item">
+                          <div className="legend-color" style={{ background: slice.color }}></div>
+                          <div className="legend-text">
+                            <span className="legend-label">{slice.label}</span>
+                            <span className="legend-value">{slice.value} ({slice.percentage.toFixed(1)}%)</span>
+                          </div>
+                        </div>
+                      ))}
+                      {stats.streak > 0 && (
+                        <div className="stats-streak-info">
+                          <div className="streak-badge">
+                            <span className="streak-emoji">🔥</span>
+                            <span className="streak-value">{stats.streak}</span>
+                          </div>
+                          <span className="streak-label">Day Streak</span>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="stats-empty">
+                    <p>Start learning to see your stats!</p>
                   </div>
-                </div>
-                <div className="stat-card-widget">
-                  <div className="stat-content">
-                    <div className="stat-number" style={{ color: accent }}>{stats.totalQuestions}</div>
-                    <div className="stat-label">Total Questions</div>
-                  </div>
-                </div>
-                <div className="stat-card-widget">
-                  <div className="stat-content">
-                    <div className="stat-number" style={{ color: accent }}>{stats.minutes}</div>
-                    <div className="stat-label">Total Minutes</div>
-                  </div>
-                </div>
-                <div className="stat-card-widget">
-                  <div className="stat-content">
-                    <div className="stat-number" style={{ color: accent }}>{stats.totalChatSessions}</div>
-                    <div className="stat-label">AI Sessions</div>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           );
@@ -1083,10 +1141,6 @@ const Dashboard = () => {
         case 'ai-assistant':
           return (
             <div className="ai-assistant-card">
-              <div className="card-header">
-                <h3 className="card-title">AI Learning Assistant</h3>
-              </div>
-
               <div className="ai-visual-section">
                 <div className="ai-center-content">
                   <div
@@ -1094,9 +1148,6 @@ const Dashboard = () => {
                     onClick={!isCustomizing ? navigateToAI : undefined}
                     style={{
                       cursor: isCustomizing ? 'default' : 'pointer',
-                      background: accent,
-                      color: bgTop,
-                      boxShadow: `0 8px 32px ${rgbaFromHex(accent, 0.35)}, 0 4px 16px ${rgbaFromHex(accent, 0.35)}`
                     }}
                   >
                     AI
@@ -1108,36 +1159,7 @@ const Dashboard = () => {
                 <button
                   onClick={navigateToAI}
                   disabled={isCustomizing}
-                  style={{
-                    width: '100%',
-                    background: accent,
-                    color: bgTop,
-                    border: 'none',
-                    padding: '18px 24px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    letterSpacing: '1.2px',
-                    textTransform: 'uppercase',
-                    fontFamily: 'Quicksand, sans-serif',
-                    cursor: isCustomizing ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.3s ease',
-                    minHeight: '50px',
-                    borderRadius: '0'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isCustomizing) {
-                      e.target.style.background = `color-mix(in srgb, ${accent} 85%, white)`;
-                      e.target.style.transform = 'translateY(-2px)';
-                      e.target.style.boxShadow = `0 8px 25px ${rgbaFromHex(accent, 0.4)}`;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isCustomizing) {
-                      e.target.style.background = accent;
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = 'none';
-                    }
-                  }}
+                  className="start-session-btn"
                 >
                   Start AI Session
                 </button>
@@ -1568,55 +1590,38 @@ const Dashboard = () => {
 
         case 'quick-actions':
   return (
-    <div className="quick-actions">
-      <h3 className="section-title">Quick Actions</h3>
-      <div className="action-grid">
-        <button 
-          className="action-btn" 
-          onClick={generateFlashcards}
-          disabled={isCustomizing}
-          style={{ color: accent, borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
-        >
-          <div className="action-label" style={{ color: accent }}>Flashcards</div>
-        </button>
-        <button 
-          className="action-btn" 
-          onClick={openNotes}
-          disabled={isCustomizing}
-          style={{ color: accent, borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
-        >
-          <div className="action-label" style={{ color: accent }}>Study Notes</div>
-        </button>
-        <button 
-          className="action-btn" 
-          onClick={() => navigate('/concept-web')}
-          disabled={isCustomizing}
-          style={{ color: accent, borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
-        >
-          <div className="action-label" style={{ color: accent }}>Concept Web</div>
-        </button>
-        <button 
-          className="action-btn" 
-          onClick={openProfile}
-          disabled={isCustomizing}
-          style={{ color: accent, borderColor: `color-mix(in srgb, ${accent} 30%, transparent)` }}
-        >
-          <div className="action-label" style={{ color: accent }}>Profile</div>
-        </button>
+    <div className="quick-actions-modern">
+      <div className="widget-header">
+        <h3 className="widget-title">Quick Actions</h3>
       </div>
-
-      <div className="quick-stats">
-        <div className="quick-stat">
-          <span className="quick-stat-label">THIS WEEK:</span>
-          <span className="quick-stat-value">
-            {learningAnalytics?.total_sessions || 0} sessions
-          </span>
+      <div className="quick-actions-list">
+        <div 
+          className="quick-action-item" 
+          onClick={!isCustomizing ? generateFlashcards : undefined}
+        >
+          <span className="action-label-modern">flashcards</span>
+          <span className="action-description">Create study cards instantly</span>
         </div>
-        <div className="quick-stat">
-          <span className="quick-stat-label">TOTAL TIME:</span>
-          <span className="quick-stat-value">
-            {learningAnalytics?.total_time_minutes ? Math.round(learningAnalytics.total_time_minutes / 60) : 0} hrs
-          </span>
+        <div 
+          className="quick-action-item" 
+          onClick={!isCustomizing ? openNotes : undefined}
+        >
+          <span className="action-label-modern">study notes</span>
+          <span className="action-description">Write and organize notes</span>
+        </div>
+        <div 
+          className="quick-action-item" 
+          onClick={!isCustomizing ? (() => navigate('/concept-web')) : undefined}
+        >
+          <span className="action-label-modern">concept web</span>
+          <span className="action-description">Visualize connections</span>
+        </div>
+        <div 
+          className="quick-action-item" 
+          onClick={!isCustomizing ? openProfile : undefined}
+        >
+          <span className="action-label-modern">profile</span>
+          <span className="action-description">View your progress</span>
         </div>
       </div>
     </div>
@@ -1753,12 +1758,20 @@ const Dashboard = () => {
       }
     };
 
+    const isHeroWidget = ['stats', 'quick-actions', 'ai-assistant'].includes(widget.type);
+    const needsBorderedStyle = widget.type === 'stats' || widget.type === 'heatmap' || widget.type === 'social';
+    
     return (
       <div
         ref={setNodeRef}
-        style={style}
+        style={{
+          ...style,
+          background: needsBorderedStyle ? 'var(--panel)' : (isHeroWidget ? accent : accent),
+          border: needsBorderedStyle ? `3px solid ${accent}` : (isHeroWidget ? 'none' : 'none'),
+          borderRadius: 0,
+        }}
         {...attributes}
-        className={`dashboard-widget widget-${widget.size} ${isCustomizing ? 'customizing' : ''} ${isDragging ? 'dragging' : ''}`}
+        className={`dashboard-widget widget-${widget.size} widget-${widget.type} ${isCustomizing ? 'customizing' : ''} ${isDragging ? 'dragging' : ''}`}
       >
         {isCustomizing && (
           <div className="widget-controls" onClick={(e) => e.stopPropagation()}>
@@ -1882,28 +1895,6 @@ const Dashboard = () => {
       </header>
 
       <main className="dashboard-main">
-        <div className="welcome-section">
-          <h2 className="welcome-text">
-            {getGreeting()}, {displayName}
-          </h2>
-          <p className="welcome-subtitle">
-            {getMotivationalMessage()}
-          </p>
-
-          {currentSessionTime > 0 && (
-            <div className="session-info">
-              <span className="session-time">
-                Current session: {currentSessionTime} minutes
-              </span>
-              {totalTimeToday > 0 && (
-                <span className="total-time">
-                  • Total today: {Math.round(totalTimeToday)} minutes
-                </span>
-              )}
-            </div>
-          )}
-        </div>
-
         {isCustomizing && (
           <div className="customization-panel">
             <div className="panel-header">
@@ -1942,10 +1933,43 @@ const Dashboard = () => {
             items={enabledWidgets.map(widget => widget.id)}
             strategy={rectSortingStrategy}
           >
-            <div className="dashboard-widgets">
-              {enabledWidgets.map((widget) => (
-                <SortableWidget key={widget.id} widget={widget} />
-              ))}
+            <div className="dashboard-layout-modern">
+              <div className="dashboard-hero-grid">
+                <div className="greeting-card-modern">
+                  <h2 className="modern-greeting">
+                    {getGreeting()},<br />{displayName}
+                  </h2>
+                  <p className="modern-subtitle">
+                    {getMotivationalMessage()}
+                  </p>
+                  {currentSessionTime > 0 && (
+                    <div className="session-info-modern">
+                      <span className="session-time-modern">
+                        Current session: {currentSessionTime} minutes
+                      </span>
+                      {totalTimeToday > 0 && (
+                        <span className="total-time-modern">
+                          • Total today: {Math.round(totalTimeToday)} minutes
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                <SortableWidget key="stats" widget={widgets.find(w => w.id === 'stats')} />
+                
+                <SortableWidget key="quick-actions" widget={widgets.find(w => w.id === 'quick-actions')} />
+                
+                <SortableWidget key="ai-assistant" widget={widgets.find(w => w.id === 'ai-assistant')} />
+              </div>
+              
+              <div className="dashboard-secondary-section">
+                {enabledWidgets
+                  .filter(w => !['stats', 'quick-actions', 'ai-assistant'].includes(w.id))
+                  .map((widget) => (
+                    <SortableWidget key={widget.id} widget={widget} />
+                  ))}
+              </div>
             </div>
           </SortableContext>
         </DndContext>
