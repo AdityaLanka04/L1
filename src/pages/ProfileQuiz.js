@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ProfileQuiz.css';
 import { API_URL } from '../config';
@@ -11,6 +11,24 @@ const ProfileQuiz = () => {
   const [showMainSuggestions, setShowMainSuggestions] = useState(false);
   const [otherSubjectSuggestions, setOtherSubjectSuggestions] = useState([]);
   const [showOtherSuggestions, setShowOtherSuggestions] = useState(false);
+  
+  // Refs for auto-scroll
+  const mainSubjectRef = useRef(null);
+  const otherSubjectsRef = useRef(null);
+  const goalRef = useRef(null);
+  const submitRef = useRef(null);
+  
+  // Auto-scroll helper function
+  const scrollToRef = (ref) => {
+    setTimeout(() => {
+      if (ref.current) {
+        ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+  
+  // Ref for tracking previous main subject value
+  const prevMainSubjectRef = useRef('');
 
   // Common subjects list
   const commonSubjects = [
@@ -58,6 +76,15 @@ const ProfileQuiz = () => {
     }
   });
   const [userName, setUserName] = useState('');
+
+  // Auto-scroll to other subjects section when main subject is typed
+  useEffect(() => {
+    // Only scroll if mainSubject just became valid (3+ chars) and wasn't before
+    if (answers.mainSubject.length >= 3 && prevMainSubjectRef.current.length < 3 && currentStep === 'form') {
+      scrollToRef(otherSubjectsRef);
+    }
+    prevMainSubjectRef.current = answers.mainSubject;
+  }, [answers.mainSubject, currentStep]);
 
   const inspirationalQuotes = [
     "The capacity to learn is a gift; the ability to learn is a skill; the willingness to learn is a choice.",
@@ -341,6 +368,10 @@ const ProfileQuiz = () => {
       setAnswers(prev => {
         const newSubjects = [...prev.subjects, subject];
         console.log('Adding subject:', subject, 'New subjects array:', newSubjects);
+        // Scroll to goal section after first subject is added
+        if (newSubjects.length === 1) {
+          scrollToRef(goalRef);
+        }
         return {
           ...prev,
           subjects: newSubjects
@@ -762,7 +793,10 @@ const ProfileQuiz = () => {
                 <button
                   key={stage}
                   className={`choice-btn-vertical ${answers.learningStage === stage ? 'selected' : ''}`}
-                  onClick={() => setAnswers(prev => ({ ...prev, learningStage: stage }))}
+                  onClick={() => {
+                    setAnswers(prev => ({ ...prev, learningStage: stage }));
+                    scrollToRef(mainSubjectRef);
+                  }}
                 >
                   {stage}
                 </button>
@@ -771,7 +805,7 @@ const ProfileQuiz = () => {
           </div>
 
           {answers.learningStage && (
-            <div className="form-section">
+            <div className="form-section" ref={mainSubjectRef}>
               <label className="form-label">what's your main subject or field of study?</label>
               <p className="form-hint">type to search or add a custom subject</p>
               
@@ -807,6 +841,7 @@ const ProfileQuiz = () => {
                           setAnswers(prev => ({ ...prev, mainSubject: subject }));
                           setMainSubjectSuggestions([]);
                           setShowMainSuggestions(false);
+                          scrollToRef(otherSubjectsRef);
                         }}
                       >
                         {subject}
@@ -819,7 +854,7 @@ const ProfileQuiz = () => {
           )}
 
           {answers.mainSubject && (
-            <div className="form-section">
+            <div className="form-section" ref={otherSubjectsRef}>
               <label className="form-label">what other subjects are you interested in?</label>
               <p className="form-hint">type to search or add custom subjects (optional)</p>
               
@@ -883,14 +918,17 @@ const ProfileQuiz = () => {
           )}
 
           {answers.mainSubject && (
-            <div className="form-section">
+            <div className="form-section" ref={goalRef}>
               <label className="form-label">what's your main goal?</label>
               <div className="button-group-vertical">
                 {brainwaveGoals.map((goal) => (
                   <button
                     key={goal.value}
                     className={`choice-btn-vertical ${answers.brainwaveGoal === goal.value ? 'selected' : ''}`}
-                    onClick={() => setAnswers(prev => ({ ...prev, brainwaveGoal: goal.value }))}
+                    onClick={() => {
+                      setAnswers(prev => ({ ...prev, brainwaveGoal: goal.value }));
+                      scrollToRef(submitRef);
+                    }}
                   >
                     {goal.label}
                   </button>
@@ -900,7 +938,7 @@ const ProfileQuiz = () => {
           )}
 
           {answers.mainSubject && answers.brainwaveGoal && (
-            <div className="form-section">
+            <div className="form-section" ref={submitRef}>
               <button
                 className="submit-btn"
                 onClick={() => setCurrentStep('archetype')}

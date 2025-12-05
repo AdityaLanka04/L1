@@ -1,666 +1,252 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
-/* =============================================
-   DYNAMIC COLOR THEMING SYSTEM
-   ============================================= */
-
-:root {
-  /* Primary theme colors */
-  --accent: #E7B768;
-  --accent-end: #F5D9B2;
-  --accent-2: #D4A574;
-  --bg-top: #101216;
-  --bg-bottom: #12141A;
-  --panel: #16181d;
-  --border: #2a2f37;
-  --text-primary: #EAECEF;
-  --text-secondary: #B8BCC8;
-  --success: #10B981;
-  --warning: #F59E0B;
-  --danger: #EF4444;
-  --glow: rgba(215, 179, 140, 0.35);
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px var(--glow);
-}
-
-/* Alternative theme presets */
-[data-theme="blue"] {
-  --accent: #4A9EFF;
-  --accent-end: #7BB8FF;
-  --accent-2: #5B9FFF;
-  --glow: rgba(74, 158, 255, 0.35);
-}
-
-[data-theme="purple"] {
-  --accent: #A855F7;
-  --accent-end: #C084FC;
-  --accent-2: #B96AF9;
-  --glow: rgba(168, 85, 247, 0.35);
-}
-
-[data-theme="green"] {
-  --accent: #10B981;
-  --accent-end: #34D399;
-  --accent-2: #22C55E;
-  --glow: rgba(16, 185, 129, 0.35);
-}
-
-[data-theme="red"] {
-  --accent: #EF4444;
-  --accent-end: #F87171;
-  --accent-2: #F56565;
-  --glow: rgba(239, 68, 68, 0.35);
-}
-
-/* =============================================
-   HELP TOUR OVERLAY SYSTEM
-   ============================================= */
-
+/* Help Tour Overlay */
 .help-tour-overlay {
   position: fixed;
-  inset: 0;
-  z-index: 10000;
-  pointer-events: none;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
-
-.help-tour-dim {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  pointer-events: auto;
-  transition: opacity 0.3s ease;
-  backdrop-filter: blur(0px);
-}
-
-.help-tour-blur-pane {
-  position: absolute;
-  backdrop-filter: blur(0px);
-  -webkit-backdrop-filter: blur(8px);
-  background: rgba(0, 0, 0, 0.2);
-  pointer-events: auto;
-  z-index: 10000;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.help-tour-spotlight {
-  position: absolute;
-  background: transparent;
-  border: 3px solid var(--accent);
-  border-radius: 8px;
-  box-shadow: var(--shadow-lg), 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  pointer-events: none;
-  z-index: 10001;
-  animation: helpPulse 2s infinite;
-}
-
-@keyframes helpPulse {
-  0%,100% { 
-    box-shadow: 
-      0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent), 
-      0 0 15px color-mix(in srgb, var(--accent) 40%, transparent); 
-    border-color: color-mix(in srgb, var(--accent) 80%, transparent); 
-  }
-  50% { 
-    box-shadow: 
-      0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent), 
-      0 0 20px color-mix(in srgb, var(--accent) 50%, transparent); 
-    border-color: var(--accent); 
-  }
-}
-
-/* =============================================
-   LOADING INDICATOR
-   ============================================= */
-
-.help-tour-loading {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: var(--panel);
-  color: var(--text-primary);
-  padding: 20px 24px;
-  border-radius: 0;
-  border: 2px solid var(--accent);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  z-index: 10003;
-  pointer-events: auto;
-  box-shadow: var(--shadow-lg), var(--shadow-glow);
-}
-
-.help-tour-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid transparent;
-  border-top: 2px solid var(--accent);
-  border-radius: 50%;
-  animation: helpTourSpin 0.8s linear infinite;
-}
-
-.help-tour-loading-text {
-  font-weight: 700;
-  font-size: 14px;
-  color: var(--accent);
-}
-
-@keyframes helpTourSpin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* =============================================
-   TOOLTIP CONTAINER
-   ============================================= */
-
-.help-tour-tooltip {
-  position: absolute;
-  background: var(--panel);
-  border: 2px solid var(--accent);
-  border-radius: 0;
-  box-shadow: var(--shadow-lg), 0 0 40px rgba(0, 0, 0, 0.5);
-  max-width: 460px;
-  min-width: 330px;
-  z-index: 10002;
-  pointer-events: auto;
-  opacity: 0;
-  transform: scale(0.96) translateY(8px);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
-  color: var(--text-primary);
-}
-
-.help-tour-tooltip::before {
-  content: '';
-  position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  background: var(--accent);
+  bottom: 0;
+  z-index: 10000;
+  pointer-events: none;
 }
 
-.help-tour-arrow {
-  position: absolute;
-  width: 0;
-  height: 0;
-  border-style: solid;
-  border-color: transparent;
-  z-index: 10003;
+.help-tour-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  pointer-events: auto;
 }
 
-/* =============================================
-   TOOLTIP HEADER
-   ============================================= */
+/* Spotlight around target element */
+.help-tour-spotlight {
+  position: fixed;
+  border: 3px solid var(--accent, #E7B768);
+  border-radius: 8px;
+  box-shadow: 
+    0 0 0 9999px rgba(0, 0, 0, 0.75),
+    0 0 20px rgba(231, 183, 104, 0.4);
+  pointer-events: none;
+  transition: all 0.3s ease;
+  z-index: 10001;
+}
+
+/* Tooltip */
+.help-tour-tooltip {
+  position: fixed;
+  background: var(--panel, #16181d);
+  border: 2px solid var(--accent, #E7B768);
+  width: 360px;
+  max-width: calc(100vw - 40px);
+  z-index: 10002;
+  pointer-events: auto;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(231, 183, 104, 0.15);
+}
 
 .help-tour-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 28px 20px;
-  border-bottom: 2px solid var(--border);
-  background: rgba(255, 255, 255, 0.02);
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.help-tour-header-left {
+.help-tour-step-indicator {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent, #E7B768);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.help-tour-close {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #B8C0CC);
+  cursor: pointer;
+  padding: 4px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+  transition: color 0.2s;
 }
 
-.help-tour-icon {
-  font-size: 18px;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 0;
-  background: var(--accent);
-  color: var(--bg-top);
-  font-weight: 800;
-  box-shadow: var(--shadow-sm);
+.help-tour-close:hover {
+  color: var(--accent, #E7B768);
+}
+
+.help-tour-content {
+  padding: 20px;
 }
 
 .help-tour-title {
-  font-size: 16px;
-  font-weight: 800;
-  margin: 0;
-  line-height: 1.2;
-  color: var(--text-primary);
-  text-transform: uppercase;
-  letter-spacing: 1.2px;
-}
-
-.help-tour-close-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 0;
-  color: var(--text-secondary);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-sm);
-}
-
-.help-tour-close-btn:hover {
-  background: color-mix(in srgb, var(--panel) 80%, var(--accent) 20%);
-  border-color: var(--accent);
-  color: var(--accent);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
-}
-
-/* =============================================
-   TOOLTIP CONTENT
-   ============================================= */
-
-.help-tour-content {
-  padding: 24px 28px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent, #E7B768);
+  margin: 0 0 12px 0;
+  text-transform: lowercase;
 }
 
 .help-tour-description {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary, #B8C0CC);
   margin: 0;
-  color: var(--text-secondary);
-  line-height: 1.7;
-  font-size: 14px;
-  font-weight: 500;
 }
 
-.help-tour-missing-target {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  color: var(--text-primary);
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-  padding: 16px;
-  border-radius: 0;
-  box-shadow: var(--shadow-sm);
+.help-tour-missing {
+  font-size: 12px;
+  color: var(--warning, #F59E0B);
+  margin: 12px 0 0 0;
+  padding: 10px;
+  background: rgba(245, 158, 11, 0.1);
+  border-left: 3px solid var(--warning, #F59E0B);
 }
-
-.help-tour-missing-text {
-  font-size: 14px;
-  line-height: 1.5;
-  font-weight: 500;
-}
-
-.help-tour-accent {
-  color: var(--accent);
-  font-weight: 700;
-}
-
-/* =============================================
-   TOOLTIP FOOTER
-   ============================================= */
 
 .help-tour-footer {
-  padding: 20px 28px 24px;
-  border-top: 2px solid var(--border);
-  background: rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 12px;
 }
 
-/* =============================================
-   PROGRESS SECTION
-   ============================================= */
-
-.help-tour-progress-section {
-  margin-bottom: 16px;
+.help-tour-skip {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #B8C0CC);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 12px;
+  transition: color 0.2s;
 }
 
-.help-tour-progress-info {
+.help-tour-skip:hover {
+  color: var(--text-primary, #EAECEF);
+}
+
+.help-tour-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.help-tour-prev,
+.help-tour-next {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.help-tour-step-counter {
+  gap: 4px;
+  padding: 10px 16px;
   font-size: 12px;
-  color: var(--text-secondary);
-  font-weight: 700;
-  letter-spacing: 0.8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.help-tour-progress-bar {
-  flex: 1;
-  height: 4px;
-  background: color-mix(in srgb, var(--accent) 20%, transparent);
-  border-radius: 2px;
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
+.help-tour-prev {
+  background: transparent;
+  border: 1px solid var(--border, #2a2f37);
+  color: var(--text-secondary, #B8C0CC);
 }
 
-.help-tour-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 80%, transparent));
-  border-radius: 2px;
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.help-tour-prev:hover:not(:disabled) {
+  border-color: var(--accent, #E7B768);
+  color: var(--accent, #E7B768);
 }
 
-.help-tour-dots {
+.help-tour-prev:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.help-tour-next {
+  background: var(--accent, #E7B768);
+  border: none;
+  color: var(--bg-top, #0b0b0c);
+}
+
+.help-tour-next:hover {
+  background: color-mix(in srgb, var(--accent, #E7B768) 85%, white);
+}
+
+.help-tour-progress {
   display: flex;
-  gap: 6px;
   justify-content: center;
+  gap: 6px;
+  padding: 12px 20px 16px;
 }
 
 .help-tour-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  border: none;
-  background: color-mix(in srgb, var(--accent) 30%, transparent);
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--shadow-sm);
-}
-
-.help-tour-dot.completed {
-  background: color-mix(in srgb, var(--accent) 60%, transparent);
+  background: var(--border, #2a2f37);
+  transition: all 0.2s;
 }
 
 .help-tour-dot.active {
-  background: var(--accent);
+  background: var(--accent, #E7B768);
   transform: scale(1.2);
-  box-shadow: var(--shadow-glow);
 }
 
-.help-tour-dot:hover {
-  background: var(--accent);
-  transform: scale(1.1);
+.help-tour-dot.completed {
+  background: color-mix(in srgb, var(--accent, #E7B768) 50%, transparent);
 }
 
-/* =============================================
-   CONTROL BUTTONS
-   ============================================= */
-
-.help-tour-controls {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.help-tour-nav-buttons {
-  display: flex;
-  gap: 12px;
-}
-
-.help-tour-missing-controls {
-  display: flex;
-  gap: 12px;
-}
-
-/* Secondary buttons */
-.help-tour-skip-btn,
-.help-tour-prev-btn,
-.help-tour-retry-btn {
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-  background: var(--bg-bottom);
-  padding: 10px 18px;
-  border-radius: 0;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: 'Inter', sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  min-height: 40px;
-  box-shadow: var(--shadow-sm);
-  position: relative;
-  overflow: hidden;
-}
-
-.help-tour-skip-btn::before,
-.help-tour-prev-btn::before,
-.help-tour-retry-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-  transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.help-tour-skip-btn:hover::before,
-.help-tour-prev-btn:hover::before,
-.help-tour-retry-btn:hover::before {
-  left: 100%;
-}
-
-.help-tour-prev-btn {
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--text-primary);
-}
-
-.help-tour-skip-btn:hover,
-.help-tour-prev-btn:hover:not(:disabled),
-.help-tour-retry-btn:hover {
-  background: color-mix(in srgb, var(--panel) 80%, var(--accent) 20%);
-  border-color: var(--accent);
-  color: var(--accent);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
-}
-
-.help-tour-prev-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.help-tour-prev-btn:disabled:hover {
-  background: var(--bg-bottom);
-  border-color: var(--border);
-  color: var(--text-primary);
-  transform: none;
-  box-shadow: var(--shadow-sm);
-}
-
-/* Primary action buttons */
-.help-tour-next-btn,
-.help-tour-skip-step-btn {
-  padding: 10px 20px;
-  border: 2px solid var(--accent);
-  border-radius: 0;
-  background: var(--accent);
-  color: var(--bg-top);
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: 'Inter', sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  box-shadow: var(--shadow-sm), var(--shadow-glow);
-  position: relative;
-  overflow: hidden;
-}
-
-.help-tour-next-btn::before,
-.help-tour-skip-step-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.help-tour-next-btn:hover::before,
-.help-tour-skip-step-btn:hover::before {
-  left: 100%;
-}
-
-.help-tour-next-btn:hover,
-.help-tour-skip-step-btn:hover {
-  background: color-mix(in srgb, var(--accent) 85%, white);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md), 0 0 25px var(--glow);
-}
-
-/* =============================================
-   HELP BUTTON (FLOATING)
-   ============================================= */
-
-.help-button-container {
-  position: relative;
-}
-
+/* Help Button */
 .help-button {
   position: fixed;
   bottom: 24px;
   right: 24px;
-  width: 56px;
-  height: 56px;
-  border-radius: 0;
-  background: var(--accent);
-  color: var(--bg-top);
-  border: 2px solid var(--accent);
+  width: 48px;
+  height: 48px;
+  background: var(--accent, #E7B768);
+  border: none;
+  color: var(--bg-top, #0b0b0c);
   cursor: pointer;
-  display: grid;
-  place-items: center;
-  box-shadow: var(--shadow-md), var(--shadow-glow);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 9999;
-  font-weight: 800;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .help-button:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-lg), 0 0 30px var(--glow);
-  background: color-mix(in srgb, var(--accent) 85%, white);
+  box-shadow: 
+    0 6px 16px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(231, 183, 104, 0.3);
 }
 
-.help-button-tooltip {
-  position: fixed;
-  bottom: 88px;
-  right: 24px;
-  background: var(--panel);
-  border: 2px solid var(--accent);
-  color: var(--text-primary);
-  padding: 12px 16px;
-  border-radius: 0;
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-  box-shadow: var(--shadow-lg);
-  z-index: 10000;
-  animation: helpTooltipFadeIn 0.2s ease;
-  font-family: 'Inter', sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.help-button-tooltip-arrow {
-  position: absolute;
-  top: 100%;
-  right: 20px;
-  border: 5px solid transparent;
-  border-top-color: var(--accent);
-}
-
-@keyframes helpTooltipFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* =============================================
-   RESPONSIVE DESIGN
-   ============================================= */
-
-@media (max-width: 768px) {
+/* Responsive */
+@media (max-width: 480px) {
   .help-tour-tooltip {
-    max-width: calc(100vw - 32px);
-    min-width: 280px;
-    position: fixed !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    margin: 0 !important;
-  }
-  
-  .help-tour-tooltip::before {
-    display: none;
-  }
-  
-  .help-tour-header {
-    padding: 20px 20px 16px;
-  }
-  
-  .help-tour-content {
-    padding: 20px;
+    width: calc(100vw - 32px);
+    left: 16px !important;
+    right: 16px;
   }
   
   .help-tour-footer {
-    padding: 16px 20px 20px;
-  }
-  
-  .help-tour-controls {
     flex-direction: column;
     gap: 12px;
-    align-items: stretch;
   }
   
-  .help-tour-nav-buttons {
+  .help-tour-nav {
     width: 100%;
     justify-content: space-between;
   }
   
   .help-button {
-    width: 48px;
-    height: 48px;
-    bottom: 20px;
-    right: 20px;
-  }
-}
-
-/* =============================================
-   ACCESSIBILITY
-   ============================================= */
-
-.help-tour-close-btn:focus,
-.help-tour-skip-btn:focus,
-.help-tour-prev-btn:focus,
-.help-tour-next-btn:focus,
-.help-tour-retry-btn:focus,
-.help-tour-skip-step-btn:focus,
-.help-tour-dot:focus,
-.help-button:focus {
-  outline: 2px solid var(--accent) !important;
-  outline-offset: 2px !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
+    width: 44px;
+    height: 44px;
+    bottom: 16px;
+    right: 16px;
   }
 }

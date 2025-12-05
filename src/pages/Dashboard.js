@@ -1040,98 +1040,107 @@ const Dashboard = () => {
     const accent = selectedTheme.tokens['--accent'];
     const accent2 = selectedTheme.tokens['--accent-2'];
     const textPrimary = selectedTheme.tokens['--text-primary'];
+    const textSecondary = selectedTheme.tokens['--text-secondary'];
     const bgTop = selectedTheme.tokens['--bg-top'];
 
     const widgetContent = () => {
       switch (widget.type) {
         case 'stats':
-          const getShadeOfAccent = (index, total) => {
-            const baseOpacity = 0.4 + (index / total) * 0.6;
-            return `rgba(${parseInt(accent.slice(1, 3), 16)}, ${parseInt(accent.slice(3, 5), 16)}, ${parseInt(accent.slice(5, 7), 16)}, ${baseOpacity})`;
-          };
+          // Weekly line graph data
+          const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+          const maxWeeklyValue = Math.max(...weeklyProgress, 1);
           
-          const chartData = [
-            { label: 'Questions', value: stats.totalQuestions },
-            { label: 'Flashcards', value: stats.totalFlashcards },
-            { label: 'Notes', value: stats.totalNotes },
-            { label: 'AI Sessions', value: stats.totalChatSessions },
-          ].filter(item => item.value > 0);
-          
-          const total = chartData.reduce((sum, item) => sum + item.value, 0);
-          
-          let currentAngle = 0;
-          const pieSlices = chartData.map((item, index) => {
-            const percentage = (item.value / total) * 100;
-            const sliceAngle = (percentage / 100) * 360;
-            const startAngle = currentAngle;
-            currentAngle += sliceAngle;
-            
-            return {
-              ...item,
-              percentage,
-              startAngle,
-              sliceAngle,
-              color: getShadeOfAccent(index, chartData.length)
-            };
-          });
+          // Calculate totals for display
+          const totalActivities = stats.totalQuestions + stats.totalFlashcards + stats.totalNotes + stats.totalChatSessions;
           
           return (
             <div className="stats-overview-widget">
               <div className="widget-header">
-                <h3 className="widget-title">Learning Stats</h3>
+                <h3 className="widget-title">Weekly Activity</h3>
+                {stats.streak > 0 && (
+                  <div className="streak-badge-header">
+                    <span className="streak-emoji">🔥</span>
+                    <span className="streak-value">{stats.streak}</span>
+                  </div>
+                )}
               </div>
-              <div className="stats-pie-container">
-                {total > 0 ? (
+              <div className="stats-line-container">
+                {weeklyProgress.some(v => v > 0) ? (
                   <>
-                    <svg viewBox="0 0 200 200" className="stats-pie-chart">
-                      <circle cx="100" cy="100" r="80" fill={bgTop} opacity="0.5" />
-                      {pieSlices.map((slice, index) => {
-                        const startX = 100 + 80 * Math.cos((slice.startAngle - 90) * Math.PI / 180);
-                        const startY = 100 + 80 * Math.sin((slice.startAngle - 90) * Math.PI / 180);
-                        const endX = 100 + 80 * Math.cos((slice.startAngle + slice.sliceAngle - 90) * Math.PI / 180);
-                        const endY = 100 + 80 * Math.sin((slice.startAngle + slice.sliceAngle - 90) * Math.PI / 180);
-                        const largeArc = slice.sliceAngle > 180 ? 1 : 0;
+                    <div className="line-chart-wrapper">
+                      <svg viewBox="0 0 280 120" className="stats-line-chart" preserveAspectRatio="none">
+                        {/* Grid lines */}
+                        <line x1="30" y1="100" x2="270" y2="100" stroke={textSecondary} strokeOpacity="0.2" />
+                        <line x1="30" y1="70" x2="270" y2="70" stroke={textSecondary} strokeOpacity="0.1" strokeDasharray="4" />
+                        <line x1="30" y1="40" x2="270" y2="40" stroke={textSecondary} strokeOpacity="0.1" strokeDasharray="4" />
                         
-                        return (
-                          <path
-                            key={index}
-                            d={`M 100 100 L ${startX} ${startY} A 80 80 0 ${largeArc} 1 ${endX} ${endY} Z`}
-                            fill={slice.color}
-                          />
-                        );
-                      })}
-                      <circle cx="100" cy="100" r="50" fill={bgTop} />
-                      <text x="100" y="95" textAnchor="middle" fill={textPrimary} fontSize="24" fontWeight="700">
-                        {total}
-                      </text>
-                      <text x="100" y="110" textAnchor="middle" fill={textPrimary} fontSize="12" opacity="0.7">
-                        Total Items
-                      </text>
-                    </svg>
-                    <div className="stats-legend">
-                      {pieSlices.map((slice, index) => (
-                        <div key={index} className="legend-item">
-                          <div className="legend-color" style={{ background: slice.color }}></div>
-                          <div className="legend-text">
-                            <span className="legend-label">{slice.label}</span>
-                            <span className="legend-value">{slice.value} ({slice.percentage.toFixed(1)}%)</span>
-                          </div>
-                        </div>
-                      ))}
-                      {stats.streak > 0 && (
-                        <div className="stats-streak-info">
-                          <div className="streak-badge">
-                            <span className="streak-emoji">🔥</span>
-                            <span className="streak-value">{stats.streak}</span>
-                          </div>
-                          <span className="streak-label">Day Streak</span>
-                        </div>
-                      )}
+                        {/* Area fill */}
+                        <path
+                          d={`M 30 100 ${weeklyProgress.map((val, i) => {
+                            const x = 30 + (i * 40);
+                            const y = 100 - (val / maxWeeklyValue) * 70;
+                            return `L ${x} ${y}`;
+                          }).join(' ')} L ${30 + 6 * 40} 100 Z`}
+                          fill={`url(#areaGradient-${widget.id})`}
+                        />
+                        
+                        {/* Line */}
+                        <path
+                          d={`M ${weeklyProgress.map((val, i) => {
+                            const x = 30 + (i * 40);
+                            const y = 100 - (val / maxWeeklyValue) * 70;
+                            return `${i === 0 ? '' : 'L '}${x} ${y}`;
+                          }).join(' ')}`}
+                          fill="none"
+                          stroke={accent}
+                          strokeWidth="2"
+                        />
+                        
+                        {/* Data points */}
+                        {weeklyProgress.map((val, i) => {
+                          const x = 30 + (i * 40);
+                          const y = 100 - (val / maxWeeklyValue) * 70;
+                          return (
+                            <circle key={i} cx={x} cy={y} r="4" fill={accent} stroke={bgTop} strokeWidth="2" />
+                          );
+                        })}
+                        
+                        {/* Gradient definition */}
+                        <defs>
+                          <linearGradient id={`areaGradient-${widget.id}`} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor={accent} stopOpacity="0.3" />
+                            <stop offset="100%" stopColor={accent} stopOpacity="0.05" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <div className="line-chart-labels">
+                        {dayLabels.map((day, i) => (
+                          <span key={i} className="day-label">{day}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="stats-summary">
+                      <div className="stat-item">
+                        <span className="stat-value">{stats.totalQuestions}</span>
+                        <span className="stat-label">Questions</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-value">{stats.totalFlashcards}</span>
+                        <span className="stat-label">Flashcards</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-value">{stats.totalNotes}</span>
+                        <span className="stat-label">Notes</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-value">{stats.totalChatSessions}</span>
+                        <span className="stat-label">AI Sessions</span>
+                      </div>
                     </div>
                   </>
                 ) : (
                   <div className="stats-empty">
-                    <p>Start learning to see your stats!</p>
+                    <p>Start learning to see your weekly progress!</p>
                   </div>
                 )}
               </div>
@@ -1142,32 +1151,33 @@ const Dashboard = () => {
           return (
             <div className="ai-assistant-card">
               <div className="ai-visual-section">
-                <div className="ai-center-content">
-                  <div
-                    className="ai-icon-display"
-                    onClick={!isCustomizing ? navigateToAI : undefined}
-                    style={{
-                      cursor: isCustomizing ? 'default' : 'pointer',
-                    }}
-                  >
-                    AI
-                  </div>
+                <div
+                  className="ai-icon-display"
+                  onClick={!isCustomizing ? navigateToAI : undefined}
+                  style={{ cursor: isCustomizing ? 'default' : 'pointer' }}
+                >
+                  AI
                 </div>
               </div>
-
-              <div className="ai-action-section">
-                <button
-                  onClick={navigateToAI}
-                  disabled={isCustomizing}
-                  className="start-session-btn"
-                >
-                  Start AI Session
-                </button>
+              
+              <div className="ai-stats-row">
+                <div className="ai-stat">
+                  <span className="ai-stat-value">{stats.totalQuestions}</span>
+                  <span className="ai-stat-label">Questions</span>
+                </div>
+                <div className="ai-stat">
+                  <span className="ai-stat-value">{stats.totalChatSessions}</span>
+                  <span className="ai-stat-label">Sessions</span>
+                </div>
               </div>
-
-              <div className="ai-description">
-                Personalized AI tutor ready to help with explanations, questions, and study guidance.
-              </div>
+              
+              <button
+                onClick={navigateToAI}
+                disabled={isCustomizing}
+                className="start-session-btn"
+              >
+                Start AI Session
+              </button>
             </div>
           );
 

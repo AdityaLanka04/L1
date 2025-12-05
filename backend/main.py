@@ -4428,10 +4428,6 @@ def get_recent_activities(user_id: str = Query(...), limit: int = Query(5), db: 
 
 @app.get("/api/get_weekly_progress")
 def get_weekly_progress(user_id: str = Query(...), db: Session = Depends(get_db)):
-    return {"weekly_data": [0,0,0,0,0,0,0], "total_sessions": 0, "average_per_day": 0}
-
-@app.get("/api/get_weekly_progress")
-def get_weekly_progress(user_id: str = Query(...), db: Session = Depends(get_db)):
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
@@ -4441,31 +4437,63 @@ def get_weekly_progress(user_id: str = Query(...), db: Session = Depends(get_db)
         end_date = datetime.now(timezone.utc).date()
         start_date = end_date - timedelta(days=6)  # 6 days ago + today = 7 days
         
-        # Get daily metrics for the week
-        daily_metrics = db.query(models.DailyLearningMetrics).filter(
-            models.DailyLearningMetrics.user_id == user.id,
-            models.DailyLearningMetrics.date >= start_date,
-            models.DailyLearningMetrics.date <= end_date
-        ).order_by(models.DailyLearningMetrics.date.asc()).all()
+        # Get all activities for the week
+        activities = db.query(models.Activity).filter(
+            models.Activity.user_id == user.id,
+            models.Activity.timestamp >= start_date
+        ).all()
         
-        # Create a map of date to sessions
-        metrics_map = {metric.date: metric.sessions_completed for metric in daily_metrics}
+        # Count activities per day
+        activity_counts = {}
+        for activity in activities:
+            date_key = activity.timestamp.date()
+            activity_counts[date_key] = activity_counts.get(date_key, 0) + 1
         
-        # Fill in the last 7 days (Monday to Sunday)
+        # Get chat sessions for the week
+        chat_sessions = db.query(models.ChatSession).filter(
+            models.ChatSession.user_id == user.id,
+            models.ChatSession.created_at >= start_date
+        ).all()
+        
+        for session in chat_sessions:
+            date_key = session.created_at.date()
+            activity_counts[date_key] = activity_counts.get(date_key, 0) + 1
+        
+        # Get notes created this week
+        notes = db.query(models.Note).filter(
+            models.Note.user_id == user.id,
+            models.Note.created_at >= start_date
+        ).all()
+        
+        for note in notes:
+            date_key = note.created_at.date()
+            activity_counts[date_key] = activity_counts.get(date_key, 0) + 1
+        
+        # Get flashcards created this week
+        flashcard_sets = db.query(models.FlashcardSet).filter(
+            models.FlashcardSet.user_id == user.id,
+            models.FlashcardSet.created_at >= start_date
+        ).all()
+        
+        for fc_set in flashcard_sets:
+            date_key = fc_set.created_at.date()
+            activity_counts[date_key] = activity_counts.get(date_key, 0) + 1
+        
+        # Fill in the last 7 days
         weekly_data = []
-        total_sessions = 0
+        total_activities = 0
         
         for i in range(7):
             current_date = start_date + timedelta(days=i)
-            sessions = metrics_map.get(current_date, 0)
-            weekly_data.append(sessions)
-            total_sessions += sessions
+            count = activity_counts.get(current_date, 0)
+            weekly_data.append(count)
+            total_activities += count
         
-        average_per_day = total_sessions / 7 if total_sessions > 0 else 0
+        average_per_day = total_activities / 7 if total_activities > 0 else 0
         
         return {
             "weekly_data": weekly_data,
-            "total_sessions": total_sessions,
+            "total_sessions": total_activities,
             "average_per_day": round(average_per_day, 1),
             "start_date": start_date.isoformat() + 'Z',
             "end_date": end_date.isoformat() + 'Z'

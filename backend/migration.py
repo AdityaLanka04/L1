@@ -6,10 +6,10 @@ import sqlite3
 import os
 from sqlalchemy import inspect
 from models import engine, Base, User, ChatSession, ChatMessage, \
-    Flashcard, Note, LearningReview, ReviewQuestion, UserStats, \
-    ComprehensiveUserProfile, Friendship, FriendRequest, SharedContent, \
+    Flashcard, Note, LearningReview, UserStats, \
+    ComprehensiveUserProfile, Friendship, FriendRequest, \
     Notification, Achievement, UserAchievement, Leaderboard, Challenge, \
-    ChallengeParticipant, ConceptNode, ConceptConnection, KnowledgeRoadmap, RoadmapNode
+    ChallengeParticipation, ConceptNode, ConceptConnection, KnowledgeRoadmap
 
 def get_model_columns(model):
     """Get all columns defined in a SQLAlchemy model"""
@@ -100,12 +100,12 @@ def run_migration():
     
     # List of all models to check
     models = [
-        User, ChatSession, ChatMessage, QuizSession, QuizQuestion,
-        Flashcard, Note, LearningReview, ReviewQuestion, UserStats,
-        ActivityLog, ComprehensiveUserProfile, Friendship, FriendRequest,
-        SharedContent, Notification, Achievement, UserAchievement,
-        Leaderboard, Challenge, ChallengeParticipant, ConceptNode,
-        ConceptEdge, KnowledgeRoadmap, RoadmapNode
+        User, ChatSession, ChatMessage,
+        Flashcard, Note, LearningReview, UserStats,
+        ComprehensiveUserProfile, Friendship, FriendRequest,
+        Notification, Achievement, UserAchievement,
+        Leaderboard, Challenge, ChallengeParticipation, ConceptNode,
+        ConceptConnection, KnowledgeRoadmap
     ]
     
     try:
