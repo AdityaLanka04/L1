@@ -2,6 +2,7 @@
 Unified AI utilities for Gemini (primary) and Groq (fallback)
 """
 import logging
+import json
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -159,3 +160,64 @@ class UnifiedAIClient:
             else:
                 logger.error(f"❌ No fallback available. Both clients failed.")
                 raise Exception(f"Both AI clients failed: {e}")
+    
+    def generate_stream(self, prompt: str, max_tokens: int = 2000, temperature: float = 0.7):
+        """
+        Generate AI response with streaming (token-by-token)
+        
+        Args:
+            prompt: The prompt to send
+            max_tokens: Maximum tokens in response
+            temperature: Temperature for generation
+        
+        Yields:
+            Chunks of text as they arrive
+        """
+        # For streaming, prefer Groq as it has better streaming support
+        if self.groq_client:
+            logger.info("📡 Calling Groq API with streaming...")
+            try:
+                stream = self.groq_client.chat.completions.create(
+                    model=self.groq_model,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    stream=True
+                )
+                
+                for chunk in stream:
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        yield chunk.choices[0].delta.content
+                
+                logger.info("✅ Groq streaming completed")
+                return
+                        
+            except Exception as groq_error:
+                logger.error(f"❌ Groq streaming error: {groq_error}")
+                # Don't raise, try Gemini fallback
+        
+        # Fallback to Gemini (non-streaming, but split into chunks)
+        if self.primary_ai == "gemini" and self.gemini_api_key:
+            logger.warning("⚠️ Using Gemini with simulated streaming (Groq unavailable)")
+            try:
+                # Get full response from Gemini
+                full_response = self.generate(prompt, max_tokens, temperature)
+                
+                # Split into word-by-word chunks for streaming effect
+                words = full_response.split(' ')
+                for i, word in enumerate(words):
+                    if i < len(words) - 1:
+                        yield word + ' '
+                    else:
+                        yield word
+                
+                logger.info("✅ Gemini simulated streaming completed")
+                return
+                        
+            except Exception as gemini_error:
+                logger.error(f"❌ Gemini fallback error: {gemini_error}")
+                raise
+        
+        # No AI available
+        logger.error("❌ No AI client available for streaming!")
+        raise Exception("No AI client available for streaming")

@@ -7,6 +7,174 @@ import {
 } from 'lucide-react';
 import './CanvasMode.css';
 
+// Apple Notes Feature: Shape Recognition
+const recognizeShape = (points) => {
+  if (points.length < 8) return null;
+  
+  const firstPoint = points[0];
+  const lastPoint = points[points.length - 1];
+  const closingDistance = Math.sqrt(Math.pow(lastPoint.x - firstPoint.x, 2) + Math.pow(lastPoint.y - firstPoint.y, 2));
+  
+  // Calculate bounding box
+  const xs = points.map(p => p.x);
+  const ys = points.map(p => p.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const width = maxX - minX;
+  const height = maxY - minY;
+  const centerX = (minX + maxX) / 2;
+  const centerY = (minY + maxY) / 2;
+  const size = Math.max(width, height);
+  
+  // Check for straight line FIRST (before closed shapes)
+  const totalDistance = points.reduce((sum, p, i) => {
+    if (i === 0) return 0;
+    const prev = points[i - 1];
+    return sum + Math.sqrt(Math.pow(p.x - prev.x, 2) + Math.pow(p.y - prev.y, 2));
+  }, 0);
+  
+  const directDistance = Math.sqrt(Math.pow(lastPoint.x - firstPoint.x, 2) + Math.pow(lastPoint.y - firstPoint.y, 2));
+  const linearity = directDistance / totalDistance;
+  
+  // If path is very straight (linearity > 0.85), it's a line
+  if (linearity > 0.85 && totalDistance > 50) {
+    return {
+      type: 'line',
+      x1: firstPoint.x,
+      y1: firstPoint.y,
+      x2: lastPoint.x,
+      y2: lastPoint.y
+    };
+  }
+  
+  // Check if path is closed (circle or rectangle)
+  const isClosed = closingDistance < Math.max(30, size * 0.15);
+  
+  if (isClosed && size > 30) {
+    // Calculate how circular the shape is
+    const avgRadius = (width + height) / 4;
+    let radiusVariance = 0;
+    let radiusSum = 0;
+    
+    points.forEach(p => {
+      const r = Math.sqrt(Math.pow(p.x - centerX, 2) + Math.pow(p.y - centerY, 2));
+      radiusSum += r;
+      radiusVariance += Math.abs(r - avgRadius);
+    });
+    
+    const avgActualRadius = radiusSum / points.length;
+    radiusVariance /= points.length;
+    const circularityScore = 1 - (radiusVariance / avgRadius);
+    
+    // Check aspect ratio
+    const aspectRatio = Math.min(width, height) / Math.max(width, height);
+    
+    // If high circularity score (> 0.75) and decent aspect ratio (> 0.7), it's a circle
+    if (circularityScore > 0.75 && aspectRatio > 0.7) {
+      return {
+        type: 'circle',
+        x: centerX,
+        y: centerY,
+        radius: avgActualRadius
+      };
+    }
+    
+    // Check for rectangle by analyzing corners
+    const corners = findCorners(points, centerX, centerY);
+    if (corners.length >= 4 && corners.length <= 6) {
+      // It's likely a rectangle
+      return {
+        type: 'rectangle',
+        x: minX,
+        y: minY,
+        width,
+        height
+      };
+    }
+    
+    // Default to rectangle for closed shapes
+    if (aspectRatio < 0.7 || circularityScore < 0.6) {
+      return {
+        type: 'rectangle',
+        x: minX,
+        y: minY,
+        width,
+        height
+      };
+    }
+  }
+  
+  return null;
+};
+
+// Helper function to find corners in a path
+const findCorners = (points, centerX, centerY) => {
+  const corners = [];
+  const angleThreshold = Math.PI / 4; // 45 degrees
+  
+  for (let i = 2; i < points.length - 2; i++) {
+    const prev = points[i - 2];
+    const curr = points[i];
+    const next = points[i + 2];
+    
+    const angle1 = Math.atan2(curr.y - prev.y, curr.x - prev.x);
+    const angle2 = Math.atan2(next.y - curr.y, next.x - curr.x);
+    let angleDiff = Math.abs(angle2 - angle1);
+    
+    // Normalize angle difference
+    if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
+    
+    if (angleDiff > angleThreshold) {
+      corners.push(curr);
+    }
+  }
+  
+  return corners;
+};
+
+// Removed old checkIfLine and pointToLineDistance - now using improved algorithm above
+
+// Apple Notes Feature: Smooth Drawing (Catmull-Rom spline)
+const smoothPath = (points) => {
+  if (points.length < 4) return points;
+  
+  const smoothed = [points[0]];
+  
+  for (let i = 0; i < points.length - 3; i++) {
+    const p0 = points[i];
+    const p1 = points[i + 1];
+    const p2 = points[i + 2];
+    const p3 = points[i + 3];
+    
+    // Add interpolated points
+    for (let t = 0; t < 1; t += 0.25) {
+      const t2 = t * t;
+      const t3 = t2 * t;
+      
+      const x = 0.5 * (
+        (2 * p1.x) +
+        (-p0.x + p2.x) * t +
+        (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
+        (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3
+      );
+      
+      const y = 0.5 * (
+        (2 * p1.y) +
+        (-p0.y + p2.y) * t +
+        (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
+        (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3
+      );
+      
+      smoothed.push({ x, y });
+    }
+  }
+  
+  smoothed.push(points[points.length - 1]);
+  return smoothed;
+};
+
 const CanvasMode = ({ initialContent, onClose, onSave }) => {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -42,7 +210,14 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
   const [opacity, setOpacity] = useState(1);
   const [backgroundPattern, setBackgroundPattern] = useState('none');
   const [showMinimap, setShowMinimap] = useState(false);
-  const [resizing, setResizing] = useState(null); // { element, handle: 'se' | 'sw' | 'ne' | 'nw' }
+  const [resizing, setResizing] = useState(null); // { element, handle: 'se' | 'sw' | 'ne' | 'nw' | 'n' | 's' | 'e' | 'w' }
+  const [rotating, setRotating] = useState(null); // { element, startAngle }
+  const [previewShape, setPreviewShape] = useState(null); // Live preview while drawing
+  const [shapeRecognition, setShapeRecognition] = useState(true); // Apple Notes feature
+  const [smoothDrawing, setSmoothDrawing] = useState(true); // Smooth curves
+  const [showTableCreator, setShowTableCreator] = useState(false);
+  const [tableRows, setTableRows] = useState(3);
+  const [tableCols, setTableCols] = useState(3);
   const fileInputRef = useRef(null);
   const GRID_SIZE = 20;
 
@@ -225,13 +400,13 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
   };
 
   const isPointInElement = (x, y, element) => {
-    if (element.type === 'rectangle' || element.type === 'sticky') {
-      return x >= element.x && x <= element.x + element.width &&
-             y >= element.y && y <= element.y + element.height;
+    if (element.type === 'rectangle' || element.type === 'sticky' || element.type === 'table') {
+      return x >= element.x && x <= element.x + (element.width || 0) &&
+             y >= element.y && y <= element.y + (element.height || 0);
     } else if (element.type === 'circle') {
       const dx = x - element.x;
       const dy = y - element.y;
-      return Math.sqrt(dx * dx + dy * dy) <= element.radius;
+      return Math.sqrt(dx * dx + dy * dy) <= (element.radius || 0);
     } else if (element.type === 'text') {
       return x >= element.x && x <= element.x + 200 &&
              y >= element.y - 20 && y <= element.y + 20;
@@ -241,8 +416,54 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         const dy = y - point.y;
         return Math.sqrt(dx * dx + dy * dy) <= 10;
       });
+    } else if (element.type === 'line' || element.type === 'arrow') {
+      // Check if point is near the line
+      const dx = element.x2 - element.x1;
+      const dy = element.y2 - element.y1;
+      const length = Math.sqrt(dx * dx + dy * dy);
+      const dot = ((x - element.x1) * dx + (y - element.y1) * dy) / (length * length);
+      if (dot < 0 || dot > 1) return false;
+      const closestX = element.x1 + dot * dx;
+      const closestY = element.y1 + dot * dy;
+      const distance = Math.sqrt(Math.pow(x - closestX, 2) + Math.pow(y - closestY, 2));
+      return distance <= 10;
     }
     return false;
+  };
+
+  const getResizeHandle = (x, y, element) => {
+    if (!element || (element.type !== 'rectangle' && element.type !== 'sticky' && element.type !== 'circle' && element.type !== 'table')) return null;
+    
+    const handleSize = 8;
+    
+    if (element.type === 'circle') {
+      // For circles, only provide handles at cardinal directions
+      const radius = element.radius || 0;
+      if (Math.abs(x - (element.x + radius)) < handleSize && Math.abs(y - element.y) < handleSize) return 'e';
+      if (Math.abs(x - (element.x - radius)) < handleSize && Math.abs(y - element.y) < handleSize) return 'w';
+      if (Math.abs(x - element.x) < handleSize && Math.abs(y - (element.y + radius)) < handleSize) return 's';
+      if (Math.abs(x - element.x) < handleSize && Math.abs(y - (element.y - radius)) < handleSize) return 'n';
+      return null;
+    }
+    
+    const width = element.width || 0;
+    const height = element.height || 0;
+    const right = element.x + width;
+    const bottom = element.y + height;
+    
+    // Check corners first
+    if (Math.abs(x - right) < handleSize && Math.abs(y - bottom) < handleSize) return 'se';
+    if (Math.abs(x - element.x) < handleSize && Math.abs(y - bottom) < handleSize) return 'sw';
+    if (Math.abs(x - right) < handleSize && Math.abs(y - element.y) < handleSize) return 'ne';
+    if (Math.abs(x - element.x) < handleSize && Math.abs(y - element.y) < handleSize) return 'nw';
+    
+    // Check edges
+    if (Math.abs(x - right) < handleSize && y > element.y + handleSize && y < bottom - handleSize) return 'e';
+    if (Math.abs(x - element.x) < handleSize && y > element.y + handleSize && y < bottom - handleSize) return 'w';
+    if (Math.abs(y - bottom) < handleSize && x > element.x + handleSize && x < right - handleSize) return 's';
+    if (Math.abs(y - element.y) < handleSize && x > element.x + handleSize && x < right - handleSize) return 'n';
+    
+    return null;
   };
 
   const handleMouseDown = (e) => {
@@ -275,44 +496,37 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
     }
 
     if (tool === 'select') {
-      // Check for resize handles on sticky notes first
+      // Check for resize handles on all resizable shapes
       const clicked = [...elements].reverse().find(el => isPointInElement(pos.x, pos.y, el));
       
-      if (clicked && clicked.type === 'sticky') {
-        // Check if clicking on resize handles (8px from corners)
-        const handleSize = 8;
-        const rightEdge = clicked.x + clicked.width;
-        const bottomEdge = clicked.y + clicked.height;
-        
-        // Southeast handle (bottom-right)
-        if (Math.abs(pos.x - rightEdge) < handleSize && Math.abs(pos.y - bottomEdge) < handleSize) {
-          setResizing({ element: clicked, handle: 'se', startX: pos.x, startY: pos.y, startWidth: clicked.width, startHeight: clicked.height });
-          setSelectedElement(clicked);
-          return;
-        }
-        // Southwest handle (bottom-left)
-        if (Math.abs(pos.x - clicked.x) < handleSize && Math.abs(pos.y - bottomEdge) < handleSize) {
-          setResizing({ element: clicked, handle: 'sw', startX: pos.x, startY: pos.y, startWidth: clicked.width, startHeight: clicked.height, startPosX: clicked.x });
-          setSelectedElement(clicked);
-          return;
-        }
-        // Northeast handle (top-right)
-        if (Math.abs(pos.x - rightEdge) < handleSize && Math.abs(pos.y - clicked.y) < handleSize) {
-          setResizing({ element: clicked, handle: 'ne', startX: pos.x, startY: pos.y, startWidth: clicked.width, startHeight: clicked.height, startPosY: clicked.y });
-          setSelectedElement(clicked);
-          return;
-        }
-        // Northwest handle (top-left)
-        if (Math.abs(pos.x - clicked.x) < handleSize && Math.abs(pos.y - clicked.y) < handleSize) {
-          setResizing({ element: clicked, handle: 'nw', startX: pos.x, startY: pos.y, startWidth: clicked.width, startHeight: clicked.height, startPosX: clicked.x, startPosY: clicked.y });
-          setSelectedElement(clicked);
-          return;
-        }
-      }
-      
       if (clicked) {
+        const handle = getResizeHandle(pos.x, pos.y, clicked);
+        
+        if (handle) {
+          // Start resizing
+          const resizeData = {
+            element: clicked,
+            handle,
+            startX: pos.x,
+            startY: pos.y,
+            startWidth: clicked.width || 0,
+            startHeight: clicked.height || 0,
+            startRadius: clicked.radius || 0,
+            startPosX: clicked.x,
+            startPosY: clicked.y
+          };
+          setResizing(resizeData);
+          setSelectedElement(clicked);
+          return;
+        }
+        
+        // Not on a handle, start dragging
         setSelectedElement(clicked);
-        setDragStart({ x: pos.x - clicked.x, y: pos.y - clicked.y });
+        if (clicked.type === 'circle') {
+          setDragStart({ x: pos.x - clicked.x, y: pos.y - clicked.y });
+        } else {
+          setDragStart({ x: pos.x - clicked.x, y: pos.y - clicked.y });
+        }
       } else {
         setSelectedElement(null);
         setIsPanning(true);
@@ -425,7 +639,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
       return;
     }
 
-    // Handle resizing sticky notes
+    // Handle resizing all shapes
     if (resizing) {
       const pos = getMousePos(e);
       const deltaX = pos.x - resizing.startX;
@@ -433,38 +647,55 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
       
       const newElements = elements.map(el => {
         if (el.id === resizing.element.id) {
-          let newWidth = resizing.startWidth;
-          let newHeight = resizing.startHeight;
-          let newX = el.x;
-          let newY = el.y;
+          const minSize = el.type === 'sticky' ? 100 : 20;
           
-          // Minimum size constraints
-          const minWidth = 100;
-          const minHeight = 100;
-          
-          if (resizing.handle === 'se') {
-            // Southeast: resize from bottom-right
-            newWidth = Math.max(minWidth, resizing.startWidth + deltaX);
-            newHeight = Math.max(minHeight, resizing.startHeight + deltaY);
-          } else if (resizing.handle === 'sw') {
-            // Southwest: resize from bottom-left
-            newWidth = Math.max(minWidth, resizing.startWidth - deltaX);
-            newHeight = Math.max(minHeight, resizing.startHeight + deltaY);
-            newX = resizing.startPosX + (resizing.startWidth - newWidth);
-          } else if (resizing.handle === 'ne') {
-            // Northeast: resize from top-right
-            newWidth = Math.max(minWidth, resizing.startWidth + deltaX);
-            newHeight = Math.max(minHeight, resizing.startHeight - deltaY);
-            newY = resizing.startPosY + (resizing.startHeight - newHeight);
-          } else if (resizing.handle === 'nw') {
-            // Northwest: resize from top-left
-            newWidth = Math.max(minWidth, resizing.startWidth - deltaX);
-            newHeight = Math.max(minHeight, resizing.startHeight - deltaY);
-            newX = resizing.startPosX + (resizing.startWidth - newWidth);
-            newY = resizing.startPosY + (resizing.startHeight - newHeight);
+          if (el.type === 'circle') {
+            // Handle circle resizing
+            let newRadius = resizing.startRadius;
+            
+            if (resizing.handle === 'e') newRadius = Math.max(minSize, resizing.startRadius + deltaX);
+            else if (resizing.handle === 'w') newRadius = Math.max(minSize, resizing.startRadius - deltaX);
+            else if (resizing.handle === 's') newRadius = Math.max(minSize, resizing.startRadius + deltaY);
+            else if (resizing.handle === 'n') newRadius = Math.max(minSize, resizing.startRadius - deltaY);
+            
+            return { ...el, radius: newRadius };
+          } else {
+            // Handle rectangle/sticky resizing
+            let newWidth = resizing.startWidth;
+            let newHeight = resizing.startHeight;
+            let newX = el.x;
+            let newY = el.y;
+            
+            if (resizing.handle === 'se') {
+              newWidth = Math.max(minSize, resizing.startWidth + deltaX);
+              newHeight = Math.max(minSize, resizing.startHeight + deltaY);
+            } else if (resizing.handle === 'sw') {
+              newWidth = Math.max(minSize, resizing.startWidth - deltaX);
+              newHeight = Math.max(minSize, resizing.startHeight + deltaY);
+              newX = resizing.startPosX + (resizing.startWidth - newWidth);
+            } else if (resizing.handle === 'ne') {
+              newWidth = Math.max(minSize, resizing.startWidth + deltaX);
+              newHeight = Math.max(minSize, resizing.startHeight - deltaY);
+              newY = resizing.startPosY + (resizing.startHeight - newHeight);
+            } else if (resizing.handle === 'nw') {
+              newWidth = Math.max(minSize, resizing.startWidth - deltaX);
+              newHeight = Math.max(minSize, resizing.startHeight - deltaY);
+              newX = resizing.startPosX + (resizing.startWidth - newWidth);
+              newY = resizing.startPosY + (resizing.startHeight - newHeight);
+            } else if (resizing.handle === 'e') {
+              newWidth = Math.max(minSize, resizing.startWidth + deltaX);
+            } else if (resizing.handle === 'w') {
+              newWidth = Math.max(minSize, resizing.startWidth - deltaX);
+              newX = resizing.startPosX + (resizing.startWidth - newWidth);
+            } else if (resizing.handle === 's') {
+              newHeight = Math.max(minSize, resizing.startHeight + deltaY);
+            } else if (resizing.handle === 'n') {
+              newHeight = Math.max(minSize, resizing.startHeight - deltaY);
+              newY = resizing.startPosY + (resizing.startHeight - newHeight);
+            }
+            
+            return { ...el, width: newWidth, height: newHeight, x: newX, y: newY };
           }
-          
-          return { ...el, width: newWidth, height: newHeight, x: newX, y: newY };
         }
         return el;
       });
@@ -492,6 +723,33 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           const newElements = elements.filter(el => el.id !== clicked.id);
           setElements(newElements);
           addToHistory(newElements);
+        }
+      } else if (dragStart) {
+        // Update live preview for shapes
+        if (tool === 'rectangle') {
+          setPreviewShape({
+            type: 'rectangle',
+            x: Math.min(dragStart.x, pos.x),
+            y: Math.min(dragStart.y, pos.y),
+            width: Math.abs(pos.x - dragStart.x),
+            height: Math.abs(pos.y - dragStart.y)
+          });
+        } else if (tool === 'circle') {
+          const radius = Math.sqrt(Math.pow(pos.x - dragStart.x, 2) + Math.pow(pos.y - dragStart.y, 2));
+          setPreviewShape({
+            type: 'circle',
+            x: dragStart.x,
+            y: dragStart.y,
+            radius
+          });
+        } else if (tool === 'line' || tool === 'arrow') {
+          setPreviewShape({
+            type: tool,
+            x1: dragStart.x,
+            y1: dragStart.y,
+            x2: pos.x,
+            y2: pos.y
+          });
         }
       }
     } else if (selectedElement && dragStart && tool === 'select') {
@@ -525,14 +783,30 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
 
     if (drawing) {
       if (tool === 'draw' && currentPath.length > 1) {
-        const newElement = {
-          id: Date.now(),
-          type: 'draw',
-          points: currentPath,
-          color,
-          strokeWidth
-        };
-        const newElements = [...elements, newElement];
+        let finalElement;
+        
+        // Apple Notes Feature: Shape Recognition
+        if (shapeRecognition && currentPath.length > 10) {
+          const recognized = recognizeShape(currentPath);
+          if (recognized) {
+            finalElement = { ...recognized, id: Date.now(), color, strokeWidth, fillColor: 'transparent', opacity };
+          }
+        }
+        
+        // If no shape recognized or recognition disabled, use smooth drawing
+        if (!finalElement) {
+          const smoothedPath = smoothDrawing ? smoothPath(currentPath) : currentPath;
+          finalElement = {
+            id: Date.now(),
+            type: 'draw',
+            points: smoothedPath,
+            color,
+            strokeWidth,
+            fillColor: 'transparent'
+          };
+        }
+        
+        const newElements = [...elements, finalElement];
         setElements(newElements);
         addToHistory(newElements);
         setCurrentPath([]);
@@ -545,7 +819,9 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           width: Math.abs(pos.x - dragStart.x),
           height: Math.abs(pos.y - dragStart.y),
           color,
-          strokeWidth
+          strokeWidth,
+          fillColor,
+          opacity
         };
         if (newElement.width > 5 && newElement.height > 5) {
           const newElements = [...elements, newElement];
@@ -564,7 +840,9 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           y: dragStart.y,
           radius,
           color,
-          strokeWidth
+          strokeWidth,
+          fillColor,
+          opacity
         };
         if (radius > 5) {
           const newElements = [...elements, newElement];
@@ -607,6 +885,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
       }
       setDrawing(false);
       setDragStart(null);
+      setPreviewShape(null); // Clear preview
     }
 
     if (isPanning) {
@@ -819,6 +1098,19 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
             <ArrowRight size={20} />
           </button>
           <button 
+            onClick={() => setShowTableCreator(true)} 
+            className="tool-btn"
+            title="Insert Table"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <line x1="3" y1="9" x2="21" y2="9"/>
+              <line x1="3" y1="15" x2="21" y2="15"/>
+              <line x1="9" y1="3" x2="9" y2="21"/>
+              <line x1="15" y1="3" x2="15" y2="21"/>
+            </svg>
+          </button>
+          <button 
             onClick={() => fileInputRef.current?.click()} 
             className="tool-btn"
             title="Upload Image (I)"
@@ -1014,6 +1306,67 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
             ))}
           </div>
         </div>
+        {(tool === 'rectangle' || tool === 'circle') && (
+          <div className="property-group">
+            <label>Fill:</label>
+            <div className="color-palette">
+              <button
+                className={`color-btn ${fillColor === 'transparent' ? 'active' : ''}`}
+                style={{ 
+                  background: 'transparent',
+                  border: '2px solid #666',
+                  position: 'relative'
+                }}
+                onClick={() => setFillColor('transparent')}
+                title="No Fill"
+              >
+                <div style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%) rotate(45deg)',
+                  width: '100%',
+                  height: '2px',
+                  background: '#ff0000'
+                }} />
+              </button>
+              {COLORS.map(c => (
+                <button
+                  key={`fill-${c}`}
+                  className={`color-btn ${fillColor === c ? 'active' : ''}`}
+                  style={{ 
+                    background: c, 
+                    border: c === '#FFFFFF' ? '2px solid #666' : 'none'
+                  }}
+                  onClick={() => setFillColor(c)}
+                  title={c}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        {tool === 'draw' && (
+          <div className="property-group" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px' }}>
+              <input 
+                type="checkbox" 
+                checked={shapeRecognition}
+                onChange={(e) => setShapeRecognition(e.target.checked)}
+                style={{ cursor: 'pointer' }}
+              />
+              Shape Recognition
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px' }}>
+              <input 
+                type="checkbox" 
+                checked={smoothDrawing}
+                onChange={(e) => setSmoothDrawing(e.target.checked)}
+                style={{ cursor: 'pointer' }}
+              />
+              Smooth Drawing
+            </label>
+          </div>
+        )}
         <div className="property-group">
           <label>Opacity:</label>
           <input 
@@ -1201,30 +1554,58 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
               );
             } else if (el.type === 'rectangle') {
               return (
-                <rect
-                  key={el.id}
-                  x={el.x}
-                  y={el.y}
-                  width={el.width}
-                  height={el.height}
-                  fill="none"
-                  stroke={el.color}
-                  strokeWidth={el.strokeWidth}
-                  className={selectedElement?.id === el.id ? 'selected' : ''}
-                />
+                <g key={el.id}>
+                  <rect
+                    x={el.x}
+                    y={el.y}
+                    width={el.width}
+                    height={el.height}
+                    fill={el.fillColor || 'none'}
+                    stroke={el.color}
+                    strokeWidth={el.strokeWidth}
+                    opacity={el.opacity || 1}
+                    className={selectedElement?.id === el.id ? 'selected' : ''}
+                  />
+                  {/* Resize handles - only show when selected */}
+                  {selectedElement?.id === el.id && tool === 'select' && (
+                    <>
+                      {/* Corner handles */}
+                      <circle cx={el.x} cy={el.y} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'nwse-resize' }} />
+                      <circle cx={el.x + el.width} cy={el.y} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'nesw-resize' }} />
+                      <circle cx={el.x} cy={el.y + el.height} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'nesw-resize' }} />
+                      <circle cx={el.x + el.width} cy={el.y + el.height} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'nwse-resize' }} />
+                      {/* Edge handles */}
+                      <circle cx={el.x + el.width / 2} cy={el.y} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
+                      <circle cx={el.x + el.width / 2} cy={el.y + el.height} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
+                      <circle cx={el.x} cy={el.y + el.height / 2} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
+                      <circle cx={el.x + el.width} cy={el.y + el.height / 2} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
+                    </>
+                  )}
+                </g>
               );
             } else if (el.type === 'circle') {
               return (
-                <circle
-                  key={el.id}
-                  cx={el.x}
-                  cy={el.y}
-                  r={el.radius}
-                  fill="none"
-                  stroke={el.color}
-                  strokeWidth={el.strokeWidth}
-                  className={selectedElement?.id === el.id ? 'selected' : ''}
-                />
+                <g key={el.id}>
+                  <circle
+                    cx={el.x}
+                    cy={el.y}
+                    r={el.radius}
+                    fill={el.fillColor || 'none'}
+                    stroke={el.color}
+                    strokeWidth={el.strokeWidth}
+                    opacity={el.opacity || 1}
+                    className={selectedElement?.id === el.id ? 'selected' : ''}
+                  />
+                  {/* Resize handles - only show when selected */}
+                  {selectedElement?.id === el.id && tool === 'select' && (
+                    <>
+                      <circle cx={el.x + el.radius} cy={el.y} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
+                      <circle cx={el.x - el.radius} cy={el.y} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
+                      <circle cx={el.x} cy={el.y + el.radius} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
+                      <circle cx={el.x} cy={el.y - el.radius} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
+                    </>
+                  )}
+                </g>
               );
             } else if (el.type === 'line') {
               return (
@@ -1465,6 +1846,104 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                   )}
                 </g>
               );
+            } else if (el.type === 'table') {
+              // Apple Notes Feature: Tables
+              return (
+                <g key={el.id} className={selectedElement?.id === el.id ? 'selected' : ''}>
+                  {/* Table background */}
+                  <rect
+                    x={el.x}
+                    y={el.y}
+                    width={el.width}
+                    height={el.height}
+                    fill="#FFFFFF"
+                    stroke={el.color || '#000000'}
+                    strokeWidth={el.strokeWidth || 2}
+                  />
+                  
+                  {/* Header row background */}
+                  <rect
+                    x={el.x}
+                    y={el.y}
+                    width={el.width}
+                    height={el.cellHeight}
+                    fill="#F0F0F0"
+                    opacity="0.8"
+                  />
+                  
+                  {/* Draw horizontal grid lines */}
+                  {Array.from({ length: el.rows - 1 }, (_, i) => (
+                    <line
+                      key={`row-${i}`}
+                      x1={el.x}
+                      y1={el.y + (i + 1) * el.cellHeight}
+                      x2={el.x + el.width}
+                      y2={el.y + (i + 1) * el.cellHeight}
+                      stroke={el.color || '#000000'}
+                      strokeWidth={el.strokeWidth || 2}
+                    />
+                  ))}
+                  
+                  {/* Draw vertical grid lines */}
+                  {Array.from({ length: el.cols - 1 }, (_, i) => (
+                    <line
+                      key={`col-${i}`}
+                      x1={el.x + (i + 1) * el.cellWidth}
+                      y1={el.y}
+                      x2={el.x + (i + 1) * el.cellWidth}
+                      y2={el.y + el.height}
+                      stroke={el.color || '#000000'}
+                      strokeWidth={el.strokeWidth || 2}
+                    />
+                  ))}
+                  
+                  {/* Cell labels for header */}
+                  {Array.from({ length: el.cols }, (_, colIndex) => (
+                    <text
+                      key={`header-${colIndex}`}
+                      x={el.x + colIndex * el.cellWidth + el.cellWidth / 2}
+                      y={el.y + el.cellHeight / 2 + 5}
+                      textAnchor="middle"
+                      fill="#333333"
+                      fontSize="14"
+                      fontWeight="600"
+                      fontFamily="Inter"
+                    >
+                      {String.fromCharCode(65 + colIndex)}
+                    </text>
+                  ))}
+                  
+                  {/* Row numbers */}
+                  {Array.from({ length: el.rows - 1 }, (_, rowIndex) => (
+                    <text
+                      key={`row-label-${rowIndex}`}
+                      x={el.x + 15}
+                      y={el.y + (rowIndex + 1) * el.cellHeight + el.cellHeight / 2 + 5}
+                      textAnchor="start"
+                      fill="#666666"
+                      fontSize="12"
+                      fontFamily="Inter"
+                    >
+                      {rowIndex + 1}
+                    </text>
+                  ))}
+                  
+                  {/* Resize handles */}
+                  {selectedElement?.id === el.id && tool === 'select' && (
+                    <>
+                      <circle cx={el.x + el.width} cy={el.y + el.height} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'nwse-resize' }} />
+                      <circle cx={el.x} cy={el.y + el.height} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'nesw-resize' }} />
+                      <circle cx={el.x + el.width} cy={el.y} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'nesw-resize' }} />
+                      <circle cx={el.x} cy={el.y} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'nwse-resize' }} />
+                      {/* Edge handles */}
+                      <circle cx={el.x + el.width / 2} cy={el.y} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
+                      <circle cx={el.x + el.width / 2} cy={el.y + el.height} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
+                      <circle cx={el.x} cy={el.y + el.height / 2} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
+                      <circle cx={el.x + el.width} cy={el.y + el.height / 2} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
+                    </>
+                  )}
+                </g>
+              );
             }
             return null;
           })}
@@ -1481,21 +1960,128 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
             />
           )}
 
-          {/* Preview shapes while drawing */}
-          {drawing && dragStart && tool === 'rectangle' && (
-            <rect
-              x={Math.min(dragStart.x, (currentPath[currentPath.length - 1] || dragStart).x)}
-              y={Math.min(dragStart.y, (currentPath[currentPath.length - 1] || dragStart).y)}
-              width={Math.abs((currentPath[currentPath.length - 1] || dragStart).x - dragStart.x)}
-              height={Math.abs((currentPath[currentPath.length - 1] || dragStart).y - dragStart.y)}
-              fill="none"
-              stroke={color}
-              strokeWidth={strokeWidth}
-              opacity="0.5"
-            />
+          {/* Live Preview shapes while drawing */}
+          {previewShape && (
+            <>
+              {previewShape.type === 'rectangle' && (
+                <rect
+                  x={previewShape.x}
+                  y={previewShape.y}
+                  width={previewShape.width}
+                  height={previewShape.height}
+                  fill={fillColor === 'transparent' ? 'none' : fillColor}
+                  stroke={color}
+                  strokeWidth={strokeWidth}
+                  opacity="0.6"
+                  strokeDasharray="5,5"
+                />
+              )}
+              {previewShape.type === 'circle' && (
+                <circle
+                  cx={previewShape.x}
+                  cy={previewShape.y}
+                  r={previewShape.radius}
+                  fill={fillColor === 'transparent' ? 'none' : fillColor}
+                  stroke={color}
+                  strokeWidth={strokeWidth}
+                  opacity="0.6"
+                  strokeDasharray="5,5"
+                />
+              )}
+              {(previewShape.type === 'line' || previewShape.type === 'arrow') && (
+                <g opacity="0.6">
+                  <line
+                    x1={previewShape.x1}
+                    y1={previewShape.y1}
+                    x2={previewShape.x2}
+                    y2={previewShape.y2}
+                    stroke={color}
+                    strokeWidth={strokeWidth}
+                    strokeDasharray="5,5"
+                  />
+                  {previewShape.type === 'arrow' && (
+                    <polygon
+                      points={`${previewShape.x2},${previewShape.y2} ${previewShape.x2 - 15 * Math.cos(Math.atan2(previewShape.y2 - previewShape.y1, previewShape.x2 - previewShape.x1) - Math.PI / 6)},${previewShape.y2 - 15 * Math.sin(Math.atan2(previewShape.y2 - previewShape.y1, previewShape.x2 - previewShape.x1) - Math.PI / 6)} ${previewShape.x2 - 15 * Math.cos(Math.atan2(previewShape.y2 - previewShape.y1, previewShape.x2 - previewShape.x1) + Math.PI / 6)},${previewShape.y2 - 15 * Math.sin(Math.atan2(previewShape.y2 - previewShape.y1, previewShape.x2 - previewShape.x1) + Math.PI / 6)}`}
+                      fill={color}
+                    />
+                  )}
+                </g>
+              )}
+            </>
           )}
         </svg>
       </div>
+
+      {/* Table Creator Modal */}
+      {showTableCreator && (
+        <div className="text-edit-modal" onClick={() => setShowTableCreator(false)}>
+          <div className="text-edit-content" onClick={(e) => e.stopPropagation()} style={{ minWidth: '300px' }}>
+            <h3>Create Table</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <label style={{ minWidth: '80px', fontSize: '13px', fontWeight: '600' }}>Rows:</label>
+                <input 
+                  type="number" 
+                  min="1" 
+                  max="20" 
+                  value={tableRows}
+                  onChange={(e) => setTableRows(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
+                  style={{ flex: 1, padding: '8px', fontSize: '14px', background: 'var(--bg-bottom)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '4px' }}
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <label style={{ minWidth: '80px', fontSize: '13px', fontWeight: '600' }}>Columns:</label>
+                <input 
+                  type="number" 
+                  min="1" 
+                  max="20" 
+                  value={tableCols}
+                  onChange={(e) => setTableCols(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
+                  style={{ flex: 1, padding: '8px', fontSize: '14px', background: 'var(--bg-bottom)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '4px' }}
+                />
+              </div>
+            </div>
+            <div className="text-edit-actions">
+              <button onClick={() => {
+                // Create table
+                const cellWidth = 120;
+                const cellHeight = 40;
+                const tableWidth = tableCols * cellWidth;
+                const tableHeight = tableRows * cellHeight;
+                const startX = 200;
+                const startY = 200;
+                
+                const newElement = {
+                  id: Date.now(),
+                  type: 'table',
+                  x: startX,
+                  y: startY,
+                  rows: tableRows,
+                  cols: tableCols,
+                  cellWidth,
+                  cellHeight,
+                  width: tableWidth,
+                  height: tableHeight,
+                  cells: Array(tableRows).fill(null).map(() => Array(tableCols).fill('')),
+                  color,
+                  strokeWidth: 2
+                };
+                
+                const newElements = [...elements, newElement];
+                setElements(newElements);
+                addToHistory(newElements);
+                setShowTableCreator(false);
+                setTool('select');
+              }} className="btn-save">
+                Create
+              </button>
+              <button onClick={() => setShowTableCreator(false)} className="btn-cancel">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Text Editing Modal */}
       {editingText && (
