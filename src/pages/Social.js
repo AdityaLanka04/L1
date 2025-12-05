@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, UserMinus, FileText, Eye, Edit3, Trash2, Clock, Plus, Gamepad2, Activity } from 'lucide-react';
+import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, UserMinus, FileText, Eye, Edit3, Trash2, Clock, Plus, Gamepad2, Activity, BookOpen } from 'lucide-react';
 import ShareModal from './SharedModal';
+import LearningPlaylists from '../components/LearningPlaylists';
 import './Social.css';
 import { API_URL } from '../config';
 
@@ -324,12 +325,22 @@ const Social = () => {
       className: 'activity-card'
     },
     {
-      id: 'games',
+      id: 'playlists',
       size: 'tall',
+      icon: BookOpen,
+      title: 'LEARNING PLAYLISTS',
+      subtitle: 'CURATED PATHS',
+      description: 'Follow & create learning journeys',
+      onClick: () => setActiveTab('playlists'),
+      className: 'playlists-card'
+    },
+    {
+      id: 'games',
+      size: 'small',
       icon: Gamepad2,
-      title: 'GAMES & CHALLENGES',
+      title: 'GAMES',
       subtitle: 'PLAY & COMPETE',
-      description: 'Interactive learning games',
+      description: 'Interactive learning',
       onClick: () => navigate('/games'),
       className: 'games-card'
     },
@@ -591,6 +602,12 @@ const Social = () => {
         </div>
       )}
 
+      {activeTab === 'playlists' && (
+        <div className="friend-section">
+          <LearningPlaylists currentUserId={userId} token={token} />
+        </div>
+      )}
+
       {activeTab === 'shared' && (
         <div className="friend-section">
           <div className="shared-header-actions">
@@ -763,6 +780,13 @@ const Social = () => {
           onClick={() => setActiveTab('friends')}
         >
           Friends ({friends.length})
+        </button>
+        <button 
+          className={`hub-tab ${activeTab === 'playlists' ? 'active' : ''}`}
+          onClick={() => setActiveTab('playlists')}
+        >
+          <BookOpen size={16} />
+          Playlists
         </button>
         <button 
           className={`hub-tab ${activeTab === 'shared' ? 'active' : ''}`}

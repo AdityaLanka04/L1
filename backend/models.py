@@ -1677,6 +1677,133 @@ class NoteActivity(Base):
     
     created_at = Column(DateTime, default=datetime.utcnow)
 
+# ==================== LEARNING PLAYLISTS ====================
+
+class LearningPlaylist(Base):
+    """Learning playlists - curated collections of learning resources"""
+    __tablename__ = "learning_playlists"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    category = Column(String(100), nullable=True)  # e.g., "Mathematics", "Programming", etc.
+    difficulty_level = Column(String(20), default="intermediate")  # beginner, intermediate, advanced
+    estimated_hours = Column(Float, nullable=True)
+    is_public = Column(Boolean, default=True)
+    is_collaborative = Column(Boolean, default=False)
+    cover_color = Column(String(20), default="#4A90E2")
+    tags = Column(JSON, nullable=True)  # Array of tags
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Stats
+    fork_count = Column(Integer, default=0)
+    follower_count = Column(Integer, default=0)
+    completion_count = Column(Integer, default=0)
+    
+    # Relationships
+    creator = relationship("User", foreign_keys=[creator_id])
+    items = relationship("PlaylistItem", back_populates="playlist", cascade="all, delete-orphan")
+    
+class PlaylistItem(Base):
+    """Individual items in a learning playlist"""
+    __tablename__ = "playlist_items"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    playlist_id = Column(Integer, ForeignKey("learning_playlists.id"), nullable=False)
+    order_index = Column(Integer, nullable=False)
+    
+    # Item details
+    item_type = Column(String(50), nullable=False)  # note, chat, external_link, video, article, quiz
+    item_id = Column(Integer, nullable=True)  # Reference to internal content (note_id, chat_id, etc.)
+    
+    # For external resources
+    title = Column(String(300), nullable=True)
+    url = Column(Text, nullable=True)
+    description = Column(Text, nullable=True)
+    duration_minutes = Column(Integer, nullable=True)
+    
+    # Metadata
+    is_required = Column(Boolean, default=True)
+    notes = Column(Text, nullable=True)  # Creator's notes about this item
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    playlist = relationship("LearningPlaylist", back_populates="items")
+
+class PlaylistFollower(Base):
+    """Users following a playlist"""
+    __tablename__ = "playlist_followers"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    playlist_id = Column(Integer, ForeignKey("learning_playlists.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    started_at = Column(DateTime, default=datetime.utcnow)
+    last_accessed = Column(DateTime, default=datetime.utcnow)
+    progress_percentage = Column(Float, default=0.0)
+    completed_items = Column(JSON, nullable=True)  # Array of completed item IDs
+    is_completed = Column(Boolean, default=False)
+    completed_at = Column(DateTime, nullable=True)
+    
+    # Relationships
+    playlist = relationship("LearningPlaylist", foreign_keys=[playlist_id])
+    user = relationship("User", foreign_keys=[user_id])
+
+class PlaylistFork(Base):
+    """Track playlist forks (when someone copies and customizes a playlist)"""
+    __tablename__ = "playlist_forks"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    original_playlist_id = Column(Integer, ForeignKey("learning_playlists.id"), nullable=False)
+    forked_playlist_id = Column(Integer, ForeignKey("learning_playlists.id"), nullable=False)
+    forked_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    forked_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    original_playlist = relationship("LearningPlaylist", foreign_keys=[original_playlist_id])
+    forked_playlist = relationship("LearningPlaylist", foreign_keys=[forked_playlist_id])
+    forked_by = relationship("User", foreign_keys=[forked_by_id])
+
+class PlaylistCollaborator(Base):
+    """Collaborators who can edit a playlist"""
+    __tablename__ = "playlist_collaborators"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    playlist_id = Column(Integer, ForeignKey("learning_playlists.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    permission = Column(String(20), default="edit")  # edit, view
+    
+    added_at = Column(DateTime, default=datetime.utcnow)
+    added_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    
+    # Relationships
+    playlist = relationship("LearningPlaylist", foreign_keys=[playlist_id])
+    user = relationship("User", foreign_keys=[user_id])
+    added_by = relationship("User", foreign_keys=[added_by_id])
+
+class PlaylistComment(Base):
+    """Comments on playlists"""
+    __tablename__ = "playlist_comments"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    playlist_id = Column(Integer, ForeignKey("learning_playlists.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    comment_text = Column(Text, nullable=False)
+    rating = Column(Integer, nullable=True)  # 1-5 stars
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    playlist = relationship("LearningPlaylist", foreign_keys=[playlist_id])
+    user = relationship("User", foreign_keys=[user_id])
+
 def create_tables():
     Base.metadata.create_all(bind=engine)
 

@@ -375,6 +375,50 @@ body {
   opacity: 0.95;
 }
 
+/* PLAYLISTS CARD - Tall card matching theme */
+.playlists-card {
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel) 92%);
+  border: 1px solid var(--border);
+}
+
+.playlists-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.playlists-card .bento-card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.playlists-card .bento-card-icon {
+  color: var(--accent);
+  margin-bottom: 15px;
+}
+
+.playlists-card .bento-card-title {
+  font-size: 1.2rem;
+  color: var(--text-primary);
+}
+
+.playlists-card .bento-card-subtitle {
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  opacity: 0.9;
+}
+
+.playlists-card .bento-card-description {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  opacity: 0.95;
+}
+
 /* BATTLES - Bottom left square */
 .battles-card {
   grid-column: 1 / 2;
@@ -415,6 +459,33 @@ body {
 
 .hub-tabs-bottom {
   display: none;
+}
+
+.hub-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 12px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hub-tab:hover {
+  color: var(--accent);
+}
+
+.hub-tab.active {
+  color: var(--accent);
+}
+
+.hub-tab svg {
+  width: 16px;
+  height: 16px;
 }
 
 .friend-section {

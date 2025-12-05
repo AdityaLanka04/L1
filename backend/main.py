@@ -403,6 +403,8 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(verify_
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
+# Playlist API endpoints are defined below in main.py
+
 def build_user_profile_dict(user, comprehensive_profile=None) -> Dict[str, Any]:
     profile = {
         "user_id": getattr(user, "id", "unknown"),
@@ -11416,13 +11418,7 @@ async def get_upcoming_reminders(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-if __name__ == "__main__":
-    import uvicorn
-    
-    logger.info(f"Starting Brainwave AI Backend v3.0.0 with Groq")
-    logger.info(f"All API endpoints loaded successfully")
-    
-    uvicorn.run(app, host="127.0.0.1", port=8000, reload=False)
+
 
 
 # ==================== FILE IMPORT API ====================
@@ -11601,6 +11597,324 @@ async def get_attachment(filename: str):
         logger.error(f"Error serving attachment: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to serve attachment: {str(e)}")
 
+# ==================== LEARNING PLAYLIST API ====================
+logger.info("🎵 Registering Learning Playlist API endpoints...")
+
+@app.get("/api/playlists/test")
+async def test_playlist_endpoint():
+    """Test endpoint to verify playlist routes are working"""
+    return {"message": "Playlist API is working!"}
+
+logger.info("✅ Playlist test endpoint registered")
+
+@app.get("/api/playlists")
+async def get_playlists(
+    category: Optional[str] = None,
+    difficulty: Optional[str] = None,
+    search: Optional[str] = None,
+    my_playlists: bool = False,
+    following: bool = False,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get playlists with filters"""
+    try:
+        query = db.query(models.LearningPlaylist)
+        
+        if my_playlists:
+            query = query.filter(models.LearningPlaylist.creator_id == current_user.id)
+        elif following:
+            followed_ids = db.query(models.PlaylistFollower.playlist_id).filter(
+                models.PlaylistFollower.user_id == current_user.id
+            ).all()
+            followed_ids = [f[0] for f in followed_ids]
+            query = query.filter(models.LearningPlaylist.id.in_(followed_ids))
+        else:
+            query = query.filter(models.LearningPlaylist.is_public == True)
+        
+        if category:
+            query = query.filter(models.LearningPlaylist.category == category)
+        if difficulty:
+            query = query.filter(models.LearningPlaylist.difficulty_level == difficulty)
+        if search:
+            search_term = f"%{search}%"
+            query = query.filter(
+                or_(
+                    models.LearningPlaylist.title.ilike(search_term),
+                    models.LearningPlaylist.description.ilike(search_term)
+                )
+            )
+        
+        playlists = query.order_by(desc(models.LearningPlaylist.created_at)).all()
+        
+        result = []
+        for p in playlists:
+            result.append({
+                "id": p.id,
+                "title": p.title,
+                "description": p.description,
+                "category": p.category,
+                "difficulty_level": p.difficulty_level,
+                "estimated_hours": p.estimated_hours,
+                "is_public": p.is_public,
+                "cover_color": p.cover_color,
+                "tags": p.tags or [],
+                "fork_count": p.fork_count or 0,
+                "follower_count": p.follower_count or 0,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+                "creator": {
+                    "id": p.creator.id,
+                    "username": p.creator.username,
+                    "first_name": p.creator.first_name,
+                    "picture_url": p.creator.picture_url
+                },
+                "items": [],
+                "is_owner": current_user.id == p.creator_id
+            })
+        
+        return {"playlists": result}
+    except Exception as e:
+        logger.error(f"Error getting playlists: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+from pydantic import field_validator
+
+class PlaylistCreateRequest(BaseModel):
+    model_config = {"extra": "ignore"}
+    
+    title: str
+    description: Optional[str] = None
+    category: Optional[str] = None
+    difficulty_level: str = "intermediate"
+    estimated_hours: Optional[float] = None
+    is_public: bool = True
+    is_collaborative: bool = False
+    cover_color: str = "#4A90E2"
+    tags: Optional[List[str]] = None
+    items: Optional[List] = None  # Allow items but ignore them for now
+    
+    @field_validator('estimated_hours', mode='before')
+    @classmethod
+    def empty_str_to_none(cls, v):
+        if v == '' or v is None:
+            return None
+        return v
+
+@app.post("/api/playlists")
+async def create_playlist(
+    request: Request,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create a new learning playlist"""
+    try:
+        # Get raw body for debugging
+        body = await request.json()
+        logger.info(f"📦 Received playlist data: {body}")
+        
+        # Parse into model
+        playlist_data = PlaylistCreateRequest(**body)
+        new_playlist = models.LearningPlaylist(
+            creator_id=current_user.id,
+            title=playlist_data.title,
+            description=playlist_data.description,
+            category=playlist_data.category,
+            difficulty_level=playlist_data.difficulty_level,
+            estimated_hours=playlist_data.estimated_hours,
+            is_public=playlist_data.is_public,
+            is_collaborative=playlist_data.is_collaborative,
+            cover_color=playlist_data.cover_color,
+            tags=playlist_data.tags or []
+        )
+        
+        db.add(new_playlist)
+        db.commit()
+        db.refresh(new_playlist)
+        
+        return {
+            "id": new_playlist.id,
+            "title": new_playlist.title,
+            "description": new_playlist.description,
+            "category": new_playlist.category,
+            "difficulty_level": new_playlist.difficulty_level,
+            "cover_color": new_playlist.cover_color,
+            "creator": {
+                "id": current_user.id,
+                "username": current_user.username,
+                "first_name": current_user.first_name,
+                "picture_url": current_user.picture_url
+            },
+            "items": [],
+            "is_owner": True,
+            "message": "Playlist created successfully"
+        }
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error creating playlist: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/playlists/{playlist_id}")
+async def get_playlist_detail(
+    playlist_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get detailed playlist with items"""
+    try:
+        playlist = db.query(models.LearningPlaylist).filter(
+            models.LearningPlaylist.id == playlist_id
+        ).first()
+        
+        if not playlist:
+            raise HTTPException(status_code=404, detail="Playlist not found")
+        
+        # Get items
+        items = db.query(models.PlaylistItem).filter(
+            models.PlaylistItem.playlist_id == playlist_id
+        ).order_by(models.PlaylistItem.order_index).all()
+        
+        return {
+            "id": playlist.id,
+            "title": playlist.title,
+            "description": playlist.description,
+            "category": playlist.category,
+            "difficulty_level": playlist.difficulty_level,
+            "estimated_hours": playlist.estimated_hours,
+            "is_public": playlist.is_public,
+            "cover_color": playlist.cover_color,
+            "tags": playlist.tags or [],
+            "fork_count": playlist.fork_count or 0,
+            "follower_count": playlist.follower_count or 0,
+            "created_at": playlist.created_at.isoformat() if playlist.created_at else None,
+            "creator": {
+                "id": playlist.creator.id,
+                "username": playlist.creator.username,
+                "first_name": playlist.creator.first_name,
+                "picture_url": playlist.creator.picture_url
+            },
+            "items": [{
+                "id": item.id,
+                "order_index": item.order_index,
+                "item_type": item.item_type,
+                "title": item.title,
+                "url": item.url,
+                "description": item.description,
+                "duration_minutes": item.duration_minutes,
+                "is_required": item.is_required,
+                "notes": item.notes
+            } for item in items],
+            "is_owner": current_user.id == playlist.creator_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting playlist: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class PlaylistItemRequest(BaseModel):
+    model_config = {"extra": "ignore"}
+    
+    item_type: str
+    item_id: Optional[int] = None
+    title: str
+    url: Optional[str] = None
+    description: Optional[str] = None
+    duration_minutes: Optional[int] = None
+    is_required: bool = True
+    notes: Optional[str] = None
+
+@app.post("/api/playlists/{playlist_id}/items")
+async def add_playlist_item(
+    playlist_id: int,
+    item_data: PlaylistItemRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Add an item to a playlist"""
+    try:
+        playlist = db.query(models.LearningPlaylist).filter(
+            models.LearningPlaylist.id == playlist_id
+        ).first()
+        
+        if not playlist:
+            raise HTTPException(status_code=404, detail="Playlist not found")
+        
+        if playlist.creator_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Only creator can add items")
+        
+        # Get max order index
+        max_order = db.query(func.max(models.PlaylistItem.order_index)).filter(
+            models.PlaylistItem.playlist_id == playlist_id
+        ).scalar() or -1
+        
+        # Create item
+        item = models.PlaylistItem(
+            playlist_id=playlist_id,
+            order_index=max_order + 1,
+            item_type=item_data.item_type,
+            item_id=item_data.item_id,
+            title=item_data.title,
+            url=item_data.url,
+            description=item_data.description,
+            duration_minutes=item_data.duration_minutes,
+            is_required=item_data.is_required,
+            notes=item_data.notes
+        )
+        
+        db.add(item)
+        db.commit()
+        db.refresh(item)
+        
+        return {
+            "id": item.id,
+            "message": "Item added successfully"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error adding item: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/playlists/{playlist_id}/items/{item_id}")
+async def delete_playlist_item(
+    playlist_id: int,
+    item_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete an item from a playlist"""
+    try:
+        playlist = db.query(models.LearningPlaylist).filter(
+            models.LearningPlaylist.id == playlist_id
+        ).first()
+        
+        if not playlist:
+            raise HTTPException(status_code=404, detail="Playlist not found")
+        
+        if playlist.creator_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Only creator can delete items")
+        
+        item = db.query(models.PlaylistItem).filter(
+            and_(
+                models.PlaylistItem.id == item_id,
+                models.PlaylistItem.playlist_id == playlist_id
+            )
+        ).first()
+        
+        if not item:
+            raise HTTPException(status_code=404, detail="Item not found")
+        
+        db.delete(item)
+        db.commit()
+        
+        return {"message": "Item deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error deleting item: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
