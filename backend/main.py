@@ -11649,6 +11649,29 @@ async def get_playlists(
         
         result = []
         for p in playlists:
+            # Check if user is following
+            is_following = db.query(models.PlaylistFollower).filter(
+                and_(
+                    models.PlaylistFollower.playlist_id == p.id,
+                    models.PlaylistFollower.user_id == current_user.id
+                )
+            ).first() is not None
+            
+            # Get user progress if following
+            user_progress = None
+            if is_following:
+                follower = db.query(models.PlaylistFollower).filter(
+                    and_(
+                        models.PlaylistFollower.playlist_id == p.id,
+                        models.PlaylistFollower.user_id == current_user.id
+                    )
+                ).first()
+                if follower:
+                    user_progress = {
+                        "progress_percentage": follower.progress_percentage or 0,
+                        "completed_items": follower.completed_items or []
+                    }
+            
             result.append({
                 "id": p.id,
                 "title": p.title,
@@ -11661,6 +11684,7 @@ async def get_playlists(
                 "tags": p.tags or [],
                 "fork_count": p.fork_count or 0,
                 "follower_count": p.follower_count or 0,
+                "completion_count": p.completion_count or 0,
                 "created_at": p.created_at.isoformat() if p.created_at else None,
                 "creator": {
                     "id": p.creator.id,
@@ -11669,7 +11693,9 @@ async def get_playlists(
                     "picture_url": p.creator.picture_url
                 },
                 "items": [],
-                "is_owner": current_user.id == p.creator_id
+                "is_owner": current_user.id == p.creator_id,
+                "is_following": is_following,
+                "user_progress": user_progress
             })
         
         return {"playlists": result}
@@ -11773,6 +11799,24 @@ async def get_playlist_detail(
             models.PlaylistItem.playlist_id == playlist_id
         ).order_by(models.PlaylistItem.order_index).all()
         
+        # Check if user is following
+        follower = db.query(models.PlaylistFollower).filter(
+            and_(
+                models.PlaylistFollower.playlist_id == playlist_id,
+                models.PlaylistFollower.user_id == current_user.id
+            )
+        ).first()
+        
+        user_progress = None
+        if follower:
+            user_progress = {
+                "progress_percentage": follower.progress_percentage or 0,
+                "completed_items": follower.completed_items or [],
+                "is_completed": follower.is_completed or False,
+                "started_at": follower.started_at.isoformat() if follower.started_at else None,
+                "last_accessed": follower.last_accessed.isoformat() if follower.last_accessed else None
+            }
+        
         return {
             "id": playlist.id,
             "title": playlist.title,
@@ -11781,21 +11825,25 @@ async def get_playlist_detail(
             "difficulty_level": playlist.difficulty_level,
             "estimated_hours": playlist.estimated_hours,
             "is_public": playlist.is_public,
+            "is_collaborative": playlist.is_collaborative,
             "cover_color": playlist.cover_color,
             "tags": playlist.tags or [],
             "fork_count": playlist.fork_count or 0,
             "follower_count": playlist.follower_count or 0,
+            "completion_count": playlist.completion_count or 0,
             "created_at": playlist.created_at.isoformat() if playlist.created_at else None,
             "creator": {
                 "id": playlist.creator.id,
                 "username": playlist.creator.username,
                 "first_name": playlist.creator.first_name,
+                "last_name": playlist.creator.last_name,
                 "picture_url": playlist.creator.picture_url
             },
             "items": [{
                 "id": item.id,
                 "order_index": item.order_index,
                 "item_type": item.item_type,
+                "item_id": item.item_id,
                 "title": item.title,
                 "url": item.url,
                 "description": item.description,
@@ -11803,7 +11851,9 @@ async def get_playlist_detail(
                 "is_required": item.is_required,
                 "notes": item.notes
             } for item in items],
-            "is_owner": current_user.id == playlist.creator_id
+            "is_owner": current_user.id == playlist.creator_id,
+            "is_following": follower is not None,
+            "user_progress": user_progress
         }
     except HTTPException:
         raise
@@ -11914,6 +11964,322 @@ async def delete_playlist_item(
     except Exception as e:
         db.rollback()
         logger.error(f"Error deleting item: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/playlists/{playlist_id}/follow")
+async def follow_playlist(
+    playlist_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Follow a playlist"""
+    try:
+        playlist = db.query(models.LearningPlaylist).filter(
+            models.LearningPlaylist.id == playlist_id
+        ).first()
+        
+        if not playlist:
+            raise HTTPException(status_code=404, detail="Playlist not found")
+        
+        # Check if already following
+        existing = db.query(models.PlaylistFollower).filter(
+            and_(
+                models.PlaylistFollower.playlist_id == playlist_id,
+                models.PlaylistFollower.user_id == current_user.id
+            )
+        ).first()
+        
+        if existing:
+            return {"message": "Already following this playlist"}
+        
+        # Create follower record
+        follower = models.PlaylistFollower(
+            playlist_id=playlist_id,
+            user_id=current_user.id,
+            completed_items=[]
+        )
+        
+        db.add(follower)
+        
+        # Update follower count
+        playlist.follower_count = (playlist.follower_count or 0) + 1
+        
+        db.commit()
+        
+        return {"message": "Successfully following playlist"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error following playlist: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/playlists/{playlist_id}/follow")
+async def unfollow_playlist(
+    playlist_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Unfollow a playlist"""
+    try:
+        follower = db.query(models.PlaylistFollower).filter(
+            and_(
+                models.PlaylistFollower.playlist_id == playlist_id,
+                models.PlaylistFollower.user_id == current_user.id
+            )
+        ).first()
+        
+        if not follower:
+            raise HTTPException(status_code=404, detail="Not following this playlist")
+        
+        db.delete(follower)
+        
+        # Update follower count
+        playlist = db.query(models.LearningPlaylist).filter(
+            models.LearningPlaylist.id == playlist_id
+        ).first()
+        
+        if playlist:
+            playlist.follower_count = max(0, (playlist.follower_count or 0) - 1)
+        
+        db.commit()
+        
+        return {"message": "Successfully unfollowed playlist"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error unfollowing playlist: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/playlists/{playlist_id}/fork")
+async def fork_playlist(
+    playlist_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Fork a playlist (create a copy)"""
+    try:
+        original = db.query(models.LearningPlaylist).filter(
+            models.LearningPlaylist.id == playlist_id
+        ).first()
+        
+        if not original:
+            raise HTTPException(status_code=404, detail="Playlist not found")
+        
+        # Create forked playlist
+        forked = models.LearningPlaylist(
+            creator_id=current_user.id,
+            title=f"{original.title} (Fork)",
+            description=original.description,
+            category=original.category,
+            difficulty_level=original.difficulty_level,
+            estimated_hours=original.estimated_hours,
+            is_public=False,  # Forks start as private
+            is_collaborative=original.is_collaborative,
+            cover_color=original.cover_color,
+            tags=original.tags
+        )
+        
+        db.add(forked)
+        db.flush()
+        
+        # Copy items
+        original_items = db.query(models.PlaylistItem).filter(
+            models.PlaylistItem.playlist_id == playlist_id
+        ).order_by(models.PlaylistItem.order_index).all()
+        
+        for item in original_items:
+            forked_item = models.PlaylistItem(
+                playlist_id=forked.id,
+                order_index=item.order_index,
+                item_type=item.item_type,
+                item_id=item.item_id,
+                title=item.title,
+                url=item.url,
+                description=item.description,
+                duration_minutes=item.duration_minutes,
+                is_required=item.is_required,
+                notes=item.notes
+            )
+            db.add(forked_item)
+        
+        # Create fork record
+        fork_record = models.PlaylistFork(
+            original_playlist_id=playlist_id,
+            forked_playlist_id=forked.id,
+            forked_by_id=current_user.id
+        )
+        db.add(fork_record)
+        
+        # Update fork count
+        original.fork_count = (original.fork_count or 0) + 1
+        
+        db.commit()
+        db.refresh(forked)
+        
+        return {
+            "id": forked.id,
+            "message": "Playlist forked successfully"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error forking playlist: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/playlists/{playlist_id}/items/{item_id}/view")
+async def view_playlist_item(
+    playlist_id: int,
+    item_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """View a playlist item's content (read-only for notes/chats)"""
+    try:
+        # Get the playlist
+        playlist = db.query(models.LearningPlaylist).filter(
+            models.LearningPlaylist.id == playlist_id
+        ).first()
+        
+        if not playlist:
+            raise HTTPException(status_code=404, detail="Playlist not found")
+        
+        # Check if playlist is public or user has access
+        if not playlist.is_public and playlist.creator_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        # Get the item
+        item = db.query(models.PlaylistItem).filter(
+            and_(
+                models.PlaylistItem.id == item_id,
+                models.PlaylistItem.playlist_id == playlist_id
+            )
+        ).first()
+        
+        if not item:
+            raise HTTPException(status_code=404, detail="Item not found")
+        
+        # Return content based on item type
+        if item.item_type == 'note' and item.item_id:
+            note = db.query(models.Note).filter(models.Note.id == item.item_id).first()
+            if note:
+                return {
+                    "type": "note",
+                    "id": note.id,
+                    "title": note.title,
+                    "content": note.content,
+                    "created_at": note.created_at.isoformat() if note.created_at else None,
+                    "owner": {
+                        "id": note.user_id,
+                        "username": note.user.username if note.user else None
+                    },
+                    "can_edit": note.user_id == current_user.id
+                }
+        
+        elif item.item_type == 'chat' and item.item_id:
+            chat = db.query(models.ChatSession).filter(models.ChatSession.id == item.item_id).first()
+            if chat:
+                messages = db.query(models.ChatMessage).filter(
+                    models.ChatMessage.chat_session_id == chat.id
+                ).order_by(models.ChatMessage.timestamp).all()
+                
+                return {
+                    "type": "chat",
+                    "id": chat.id,
+                    "title": chat.title,
+                    "messages": [{
+                        "id": msg.id,
+                        "user_message": msg.user_message,
+                        "ai_response": msg.ai_response,
+                        "timestamp": msg.timestamp.isoformat() if msg.timestamp else None
+                    } for msg in messages],
+                    "created_at": chat.created_at.isoformat() if chat.created_at else None,
+                    "owner": {
+                        "id": chat.user_id,
+                        "username": chat.user.username if chat.user else None
+                    },
+                    "can_edit": chat.user_id == current_user.id
+                }
+        
+        # For other types, return basic info
+        return {
+            "type": item.item_type,
+            "title": item.title,
+            "url": item.url,
+            "description": item.description,
+            "can_edit": False
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error viewing playlist item: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/playlists/{playlist_id}/progress")
+async def update_playlist_progress(
+    playlist_id: int,
+    item_id: int,
+    completed: bool,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update user's progress on a playlist item"""
+    try:
+        follower = db.query(models.PlaylistFollower).filter(
+            and_(
+                models.PlaylistFollower.playlist_id == playlist_id,
+                models.PlaylistFollower.user_id == current_user.id
+            )
+        ).first()
+        
+        if not follower:
+            raise HTTPException(status_code=404, detail="Not following this playlist")
+        
+        completed_items = follower.completed_items or []
+        
+        if completed and item_id not in completed_items:
+            completed_items.append(item_id)
+        elif not completed and item_id in completed_items:
+            completed_items.remove(item_id)
+        
+        follower.completed_items = completed_items
+        follower.last_accessed = datetime.utcnow()
+        
+        # Calculate progress percentage
+        total_items = db.query(func.count(models.PlaylistItem.id)).filter(
+            models.PlaylistItem.playlist_id == playlist_id
+        ).scalar()
+        
+        if total_items > 0:
+            follower.progress_percentage = (len(completed_items) / total_items) * 100
+            
+            # Check if completed
+            if follower.progress_percentage >= 100 and not follower.is_completed:
+                follower.is_completed = True
+                follower.completed_at = datetime.utcnow()
+                
+                # Update completion count
+                playlist = db.query(models.LearningPlaylist).filter(
+                    models.LearningPlaylist.id == playlist_id
+                ).first()
+                if playlist:
+                    playlist.completion_count = (playlist.completion_count or 0) + 1
+        
+        db.commit()
+        
+        return {
+            "message": "Progress updated",
+            "progress_percentage": follower.progress_percentage,
+            "completed_items": completed_items
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error updating progress: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":

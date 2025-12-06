@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Search, Filter, Play, BookOpen, ExternalLink, MessageSquare, 
   FileText, Users, Copy, Check, Star, Clock, TrendingUp, Edit3, 
@@ -9,12 +10,10 @@ import './LearningPlaylists.css';
 import { API_URL } from '../config';
 
 const LearningPlaylists = ({ currentUserId, token }) => {
+  const navigate = useNavigate();
   const [view, setView] = useState('discover'); // discover, my-playlists, following
   const [playlists, setPlaylists] = useState([]);
-  const [selectedPlaylist, setSelectedPlaylist] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showItemModal, setShowItemModal] = useState(false);
-  const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterDifficulty, setFilterDifficulty] = useState('');
@@ -43,8 +42,6 @@ const LearningPlaylists = ({ currentUserId, token }) => {
       
       if (view === 'my-playlists') {
         url += 'my_playlists=true&';
-      } else if (view === 'following') {
-        url += 'following=true&';
       }
       
       if (filterCategory) url += `category=${filterCategory}&`;
@@ -86,126 +83,15 @@ const LearningPlaylists = ({ currentUserId, token }) => {
     }
   };
 
-  const handleFollowPlaylist = async (playlistId) => {
-    try {
-      const response = await fetch(`${API_URL}/playlists/${playlistId}/follow`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
 
-      if (response.ok) {
-        fetchPlaylists();
-        if (selectedPlaylist?.id === playlistId) {
-          fetchPlaylistDetails(playlistId);
-        }
-      }
-    } catch (error) {
-      console.error('Error following playlist:', error);
-    }
-  };
-
-  const handleUnfollowPlaylist = async (playlistId) => {
-    try {
-      const response = await fetch(`${API_URL}/playlists/${playlistId}/follow`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        fetchPlaylists();
-        if (selectedPlaylist?.id === playlistId) {
-          fetchPlaylistDetails(playlistId);
-        }
-      }
-    } catch (error) {
-      console.error('Error unfollowing playlist:', error);
-    }
-  };
-
-  const handleForkPlaylist = async (playlistId) => {
-    try {
-      const response = await fetch(`${API_URL}/playlists/${playlistId}/fork`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setView('my-playlists');
-        fetchPlaylists();
-        setSelectedPlaylist(data);
-      }
-    } catch (error) {
-      console.error('Error forking playlist:', error);
-    }
-  };
 
   const fetchPlaylistDetails = async (playlistId) => {
-    try {
-      const response = await fetch(`${API_URL}/playlists/${playlistId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSelectedPlaylist(data);
-      }
-    } catch (error) {
-      console.error('Error fetching playlist details:', error);
-    }
+    // Navigate to dedicated playlist detail page
+    console.log('Navigating to playlist:', playlistId);
+    navigate(`/social/playlists/${playlistId}`);
   };
 
-  const handleItemComplete = async (playlistId, itemId, completed) => {
-    try {
-      const response = await fetch(`${API_URL}/playlists/${playlistId}/progress?item_id=${itemId}&completed=${completed}`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
 
-      if (response.ok) {
-        fetchPlaylistDetails(playlistId);
-      }
-    } catch (error) {
-      console.error('Error updating progress:', error);
-    }
-  };
-
-  const handleAddItem = async (playlistId, itemData) => {
-    try {
-      const response = await fetch(`${API_URL}/playlists/${playlistId}/items`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(itemData)
-      });
-
-      if (response.ok) {
-        setShowAddItemModal(false);
-        fetchPlaylistDetails(playlistId);
-      }
-    } catch (error) {
-      console.error('Error adding item:', error);
-    }
-  };
-
-  const handleDeleteItem = async (playlistId, itemId) => {
-    if (!window.confirm('Delete this item?')) return;
-    
-    try {
-      const response = await fetch(`${API_URL}/playlists/${playlistId}/items/${itemId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        fetchPlaylistDetails(playlistId);
-      }
-    } catch (error) {
-      console.error('Error deleting item:', error);
-    }
-  };
 
   return (
     <div className="learning-playlists-container">
@@ -234,13 +120,6 @@ const LearningPlaylists = ({ currentUserId, token }) => {
           >
             <Globe size={18} />
             <span>Discover</span>
-          </button>
-          <button 
-            className={`playlist-tab ${view === 'following' ? 'active' : ''}`}
-            onClick={() => setView('following')}
-          >
-            <Play size={18} />
-            <span>Following</span>
           </button>
           <button 
             className={`playlist-tab ${view === 'my-playlists' ? 'active' : ''}`}
@@ -290,18 +169,6 @@ const LearningPlaylists = ({ currentUserId, token }) => {
 
       {loading ? (
         <div className="playlists-loading">Loading playlists...</div>
-      ) : selectedPlaylist ? (
-        <PlaylistDetail
-          playlist={selectedPlaylist}
-          onBack={() => setSelectedPlaylist(null)}
-          onFollow={handleFollowPlaylist}
-          onUnfollow={handleUnfollowPlaylist}
-          onFork={handleForkPlaylist}
-          onItemComplete={handleItemComplete}
-          onAddItem={handleAddItem}
-          onDeleteItem={handleDeleteItem}
-          token={token}
-        />
       ) : (
         <div className="playlists-grid">
           {view === 'my-playlists' && (
@@ -320,11 +187,7 @@ const LearningPlaylists = ({ currentUserId, token }) => {
             <div className="empty-playlists">
               <BookOpen size={64} />
               <h3>No playlists found</h3>
-              <p>
-                {view === 'following'
-                  ? 'Start following playlists to see them here'
-                  : 'Try adjusting your filters'}
-              </p>
+              <p>Try adjusting your filters</p>
             </div>
           ) : (
             playlists.map(playlist => (
@@ -332,9 +195,6 @@ const LearningPlaylists = ({ currentUserId, token }) => {
                 key={playlist.id}
                 playlist={playlist}
                 onClick={() => fetchPlaylistDetails(playlist.id)}
-                onFollow={handleFollowPlaylist}
-                onUnfollow={handleUnfollowPlaylist}
-                onFork={handleForkPlaylist}
               />
             ))
           )}
@@ -359,12 +219,10 @@ export default LearningPlaylists;
 
 // ==================== PLAYLIST CARD ====================
 
-const PlaylistCard = ({ playlist, onClick, onFollow, onUnfollow, onFork }) => {
-  const [showMenu, setShowMenu] = useState(false);
-
+const PlaylistCard = ({ playlist, onClick }) => {
   return (
-    <div className="playlist-card" style={{ borderTop: `4px solid ${playlist.cover_color}` }}>
-      <div className="playlist-card-header" onClick={onClick}>
+    <div className="playlist-card" style={{ borderTop: `4px solid ${playlist.cover_color}` }} onClick={onClick}>
+      <div className="playlist-card-header">
         <div className="playlist-card-title-section">
           <h3 className="playlist-card-title">{playlist.title}</h3>
           <div className="playlist-card-meta">
@@ -390,25 +248,9 @@ const PlaylistCard = ({ playlist, onClick, onFollow, onUnfollow, onFork }) => {
         )}
         <div className="stat-item">
           <Users size={14} />
-          <span>{playlist.follower_count || 0}</span>
-        </div>
-        <div className="stat-item">
-          <Copy size={14} />
-          <span>{playlist.fork_count || 0}</span>
+          <span>{playlist.follower_count || 0} followers</span>
         </div>
       </div>
-
-      {playlist.user_progress && (
-        <div className="playlist-progress-bar">
-          <div 
-            className="playlist-progress-fill" 
-            style={{ width: `${playlist.user_progress.progress_percentage}%` }}
-          />
-          <span className="playlist-progress-text">
-            {Math.round(playlist.user_progress.progress_percentage)}% complete
-          </span>
-        </div>
-      )}
 
       <div className="playlist-card-footer">
         <div className="playlist-creator">
@@ -421,37 +263,6 @@ const PlaylistCard = ({ playlist, onClick, onFollow, onUnfollow, onFork }) => {
           )}
           <span>{playlist.creator.first_name || playlist.creator.username}</span>
         </div>
-
-        <div className="playlist-card-actions">
-          {!playlist.is_owner && (
-            <>
-              {playlist.is_following ? (
-                <button 
-                  className="playlist-action-btn following"
-                  onClick={(e) => { e.stopPropagation(); onUnfollow(playlist.id); }}
-                >
-                  <Check size={16} />
-                  Following
-                </button>
-              ) : (
-                <button 
-                  className="playlist-action-btn follow"
-                  onClick={(e) => { e.stopPropagation(); onFollow(playlist.id); }}
-                >
-                  <Play size={16} />
-                  Follow
-                </button>
-              )}
-              <button 
-                className="playlist-action-btn fork"
-                onClick={(e) => { e.stopPropagation(); onFork(playlist.id); }}
-                title="Fork this playlist"
-              >
-                <Copy size={16} />
-              </button>
-            </>
-          )}
-        </div>
       </div>
 
       {playlist.tags && playlist.tags.length > 0 && (
@@ -461,239 +272,6 @@ const PlaylistCard = ({ playlist, onClick, onFollow, onUnfollow, onFork }) => {
           ))}
         </div>
       )}
-    </div>
-  );
-};
-
-// ==================== PLAYLIST DETAIL ====================
-
-const PlaylistDetail = ({ playlist, onBack, onFollow, onUnfollow, onFork, onItemComplete, onAddItem, onDeleteItem, token }) => {
-  const [expandedItems, setExpandedItems] = useState({});
-  const [showAddItemModal, setShowAddItemModal] = useState(false);
-
-  const toggleItem = (itemId) => {
-    setExpandedItems(prev => ({
-      ...prev,
-      [itemId]: !prev[itemId]
-    }));
-  };
-
-  const getItemIcon = (type) => {
-    const icons = {
-      note: FileText,
-      chat: MessageSquare,
-      external_link: ExternalLink,
-      video: Play,
-      article: BookOpen,
-      quiz: Target
-    };
-    return icons[type] || BookOpen;
-  };
-
-  const completedItems = playlist.user_progress?.completed_items || [];
-
-  return (
-    <div className="playlist-detail">
-      <button className="back-button" onClick={onBack}>
-        ← Back to Playlists
-      </button>
-
-      <div className="playlist-detail-header" style={{ borderLeft: `6px solid ${playlist.cover_color}` }}>
-        <div className="playlist-detail-title-section">
-          <h2 className="playlist-detail-title">{playlist.title}</h2>
-          <div className="playlist-detail-meta">
-            <span className="playlist-category">{playlist.category}</span>
-            <span className="playlist-difficulty">{playlist.difficulty_level}</span>
-            {playlist.is_collaborative && (
-              <span className="collaborative-badge">
-                <Users size={14} />
-                Collaborative
-              </span>
-            )}
-            {!playlist.is_public && (
-              <span className="private-badge">
-                <Lock size={14} />
-                Private
-              </span>
-            )}
-          </div>
-          <p className="playlist-detail-description">{playlist.description}</p>
-        </div>
-
-        <div className="playlist-detail-actions">
-          {!playlist.is_owner && (
-            <>
-              {playlist.is_following ? (
-                <button className="detail-action-btn following" onClick={() => onUnfollow(playlist.id)}>
-                  <Check size={18} />
-                  Following
-                </button>
-              ) : (
-                <button className="detail-action-btn follow" onClick={() => onFollow(playlist.id)}>
-                  <Play size={18} />
-                  Start Following
-                </button>
-              )}
-              <button className="detail-action-btn fork" onClick={() => onFork(playlist.id)}>
-                <Copy size={18} />
-                Fork & Customize
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="playlist-detail-stats">
-        <div className="detail-stat-card">
-          <BookOpen size={24} />
-          <div>
-            <div className="detail-stat-value">{playlist.items?.length || 0}</div>
-            <div className="detail-stat-label">Items</div>
-          </div>
-        </div>
-        <div className="detail-stat-card">
-          <Clock size={24} />
-          <div>
-            <div className="detail-stat-value">{playlist.estimated_hours || 0}h</div>
-            <div className="detail-stat-label">Estimated Time</div>
-          </div>
-        </div>
-        <div className="detail-stat-card">
-          <Users size={24} />
-          <div>
-            <div className="detail-stat-value">{playlist.follower_count || 0}</div>
-            <div className="detail-stat-label">Followers</div>
-          </div>
-        </div>
-        <div className="detail-stat-card">
-          <Award size={24} />
-          <div>
-            <div className="detail-stat-value">{playlist.completion_count || 0}</div>
-            <div className="detail-stat-label">Completed</div>
-          </div>
-        </div>
-      </div>
-
-      {playlist.user_progress && (
-        <div className="playlist-progress-section">
-          <h3>Your Progress</h3>
-          <div className="progress-bar-large">
-            <div 
-              className="progress-fill-large" 
-              style={{ width: `${playlist.user_progress.progress_percentage}%` }}
-            />
-          </div>
-          <div className="progress-stats">
-            <span>{Math.round(playlist.user_progress.progress_percentage)}% Complete</span>
-            <span>{completedItems.length} / {playlist.items?.length || 0} items</span>
-          </div>
-        </div>
-      )}
-
-      <div className="playlist-items-section">
-        <h3>Learning Path</h3>
-        <div className="playlist-items-list">
-          {playlist.items && playlist.items.length > 0 ? (
-            playlist.items.map((item, index) => {
-              const ItemIcon = getItemIcon(item.item_type);
-              const isCompleted = completedItems.includes(item.id);
-              const isExpanded = expandedItems[item.id];
-
-              return (
-                <div key={item.id} className={`playlist-item ${isCompleted ? 'completed' : ''}`}>
-                  <div className="playlist-item-header">
-                    <div className="playlist-item-left">
-                      <div className="item-number">{index + 1}</div>
-                      <ItemIcon size={20} className="item-icon" />
-                      <div className="item-info">
-                        <h4 className="item-title">{item.title}</h4>
-                        <div className="item-meta">
-                          <span className="item-type">{item.item_type.replace('_', ' ')}</span>
-                          {item.duration_minutes && (
-                            <span className="item-duration">
-                              <Clock size={12} />
-                              {item.duration_minutes} min
-                            </span>
-                          )}
-                          {item.is_required && <span className="required-badge">Required</span>}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="playlist-item-actions">
-                      {playlist.is_following && (
-                        <button
-                          className={`complete-checkbox ${isCompleted ? 'checked' : ''}`}
-                          onClick={() => onItemComplete(playlist.id, item.id, !isCompleted)}
-                        >
-                          {isCompleted && <Check size={16} />}
-                        </button>
-                      )}
-                      {(item.description || item.notes || item.url) && (
-                        <button 
-                          className="expand-btn"
-                          onClick={() => toggleItem(item.id)}
-                        >
-                          {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {isExpanded && (
-                    <div className="playlist-item-details">
-                      {item.description && (
-                        <p className="item-description">{item.description}</p>
-                      )}
-                      {item.notes && (
-                        <div className="item-notes">
-                          <strong>Notes:</strong> {item.notes}
-                        </div>
-                      )}
-                      {item.url && (
-                        <a 
-                          href={item.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="item-link"
-                        >
-                          <ExternalLink size={14} />
-                          Open Resource
-                        </a>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          ) : (
-            <div className="empty-items">
-              <BookOpen size={48} />
-              <p>No items in this playlist yet</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="playlist-creator-section">
-        <h3>Created by</h3>
-        <div className="creator-card">
-          {playlist.creator.picture_url ? (
-            <img src={playlist.creator.picture_url} alt={playlist.creator.username} className="creator-avatar" />
-          ) : (
-            <div className="creator-avatar-placeholder large">
-              {(playlist.creator.first_name?.[0] || playlist.creator.username[0]).toUpperCase()}
-            </div>
-          )}
-          <div className="creator-info">
-            <h4>{playlist.creator.first_name && playlist.creator.last_name 
-              ? `${playlist.creator.first_name} ${playlist.creator.last_name}`
-              : playlist.creator.username}
-            </h4>
-            <p>@{playlist.creator.username}</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

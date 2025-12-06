@@ -38,6 +38,7 @@ import NotesRedesign from './pages/NotesRedesign';
 import NotesDashboard from './pages/NotesDashboard';
 import ActivityTimeline from './pages/ActivityTimeline';
 import Games from './pages/Games';
+import PlaylistDetailPage from './pages/PlaylistDetailPage';
 import ProactiveNotification from './components/ProactiveNotification';
 import ProtectedRoute from './components/ProtectedRoute';
 import SafetyProtectedRoute from './components/SafetyProtectedRoute';
@@ -78,6 +79,7 @@ function App() {
             <Route path="/ai-chat/:chatId?" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />
             <Route path="/learning-review" element={<ProtectedRoute><LearningReviewHub /></ProtectedRoute>} />
             <Route path="/social" element={<ProtectedRoute><Social /></ProtectedRoute>} />
+            <Route path="/social/playlists/:playlistId" element={<ProtectedRoute><PlaylistDetailPage /></ProtectedRoute>} />
             <Route path="/friends" element={<ProtectedRoute><FriendsDashboard /></ProtectedRoute>} />
             <Route path="/activity-feed" element={<ProtectedRoute><ActivityFeed /></ProtectedRoute>} />
             <Route path="/leaderboards" element={<ProtectedRoute><Leaderboards /></ProtectedRoute>} />
