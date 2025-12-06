@@ -585,13 +585,22 @@ body {
 }
 
 .quiz-header-single {
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 35px;
+}
+
+.quiz-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .quiz-title-single {
   font-size: 42px;
   font-weight: 800;
+  margin: 0;
   letter-spacing: -2px;
   color: var(--accent);
   margin-bottom: 12px;
@@ -602,6 +611,24 @@ body {
 .quiz-subtitle-single {
   font-size: 15px;
   color: var(--text-secondary);
+  margin: 0;
+}
+
+.back-to-dashboard-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  padding: 8px 16px;
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.back-to-dashboard-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
   font-weight: 500;
   letter-spacing: 0.5px;
 }

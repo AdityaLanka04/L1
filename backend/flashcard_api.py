@@ -374,14 +374,16 @@ class FlashcardAPI:
             card_count: int = Form(10),
             difficulty_level: str = Form("medium"),
             depth_level: str = Form("standard"),
-            save_to_set: bool = Form(False),
+            save_to_set: str = Form("false"),  # Accept as string, convert below
             set_title: str = Form(None),
             focus_areas: str = Form(None),
             db: Session = Depends(get_db)
         ):
+            # Convert string to boolean explicitly
+            save_to_set_bool = save_to_set.lower() in ('true', '1', 'yes', 'on')
             return await self._generate_flashcards(
                 user_id, topic, generation_type, chat_data, card_count,
-                difficulty_level, depth_level, save_to_set, set_title,
+                difficulty_level, depth_level, save_to_set_bool, set_title,
                 focus_areas, db
             )
         

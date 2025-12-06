@@ -781,8 +781,13 @@ const ProfileQuiz = () => {
       
       <div className="quiz-container">
         <div className="quiz-header-single">
-          <h1 className="quiz-title-single">tell us about yourself</h1>
-          <p className="quiz-subtitle-single">help us personalize your learning experience</p>
+          <div className="quiz-header-left">
+            <h1 className="quiz-title-single">profile</h1>
+            <p className="quiz-subtitle-single">customize your ai learning experience</p>
+          </div>
+          <button className="back-to-dashboard-btn" onClick={() => navigate('/dashboard')}>
+            ◄ back to dashboard
+          </button>
         </div>
 
         <div className="quiz-form">

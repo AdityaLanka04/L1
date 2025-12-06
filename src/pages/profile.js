@@ -301,18 +301,19 @@ const Profile = () => {
     <div className="profile-page">
       <div className="profile-container">
         <header className="profile-header">
-          <div className="header-left">
-            <h1 className="page-title">Learning Profile</h1>
-            <p className="page-subtitle">Customize your AI learning experience</p>
-          </div>
-          <div className="header-right">
-            {autoSaving && <span className="profile-save-status saving">Saving...</span>}
-            {lastSaved && !autoSaving && (
-              <span className="profile-save-status saved">Saved at {lastSaved}</span>
-            )}
-              <button className="back-btn" onClick={goBack}>
-                ◄ Back to Dashboard
+          <div className="profile-header-content">
+            <div className="profile-header-left">
+              <h1 className="profile-page-title">profile <span className="profile-page-subtitle">customize your ai learning experience</span></h1>
+            </div>
+            <div className="profile-header-right">
+              {autoSaving && <span className="profile-save-status saving">Saving...</span>}
+              {lastSaved && !autoSaving && (
+                <span className="profile-save-status saved">Saved at {lastSaved}</span>
+              )}
+              <button className="profile-back-btn" onClick={goBack}>
+                ◄ back to dashboard
               </button>
+            </div>
           </div>
         </header>
 
