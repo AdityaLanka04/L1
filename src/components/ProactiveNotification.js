@@ -34,7 +34,7 @@ const ProactiveNotification = ({ message, chatId, onClose }) => {
 
   return (
     <div className={`proactive-notif ${visible ? 'show' : ''}`}>
-      <div className="proactive-notif-card" onClick={handleClick}>
+      <div className="proactive-notif-card">
         <div className="proactive-notif-header">
           <div className="proactive-notif-avatar">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
@@ -56,7 +56,12 @@ const ProactiveNotification = ({ message, chatId, onClose }) => {
         </div>
         <div className="proactive-notif-body">
           <p>{message}</p>
-          <span className="proactive-notif-cta">Click to open chat →</span>
+          <button 
+            className="proactive-notif-cta"
+            onClick={handleClick}
+          >
+            Open AI Chat
+          </button>
         </div>
       </div>
     </div>

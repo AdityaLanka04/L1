@@ -19,7 +19,7 @@ import {
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  CheckCircle, XCircle, Clock, Plus, Users, Bell, Calendar as CalendarIcon
+  CheckCircle, XCircle, Clock, Plus, Users, Bell, Calendar as CalendarIcon, BookOpen
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../contexts/ToastContext';
@@ -1042,6 +1042,7 @@ const Dashboard = () => {
     const textPrimary = selectedTheme.tokens['--text-primary'];
     const textSecondary = selectedTheme.tokens['--text-secondary'];
     const bgTop = selectedTheme.tokens['--bg-top'];
+    const primaryContrast = selectedTheme.tokens['--primary-contrast'];
 
     const widgetContent = () => {
       switch (widget.type) {
@@ -1183,90 +1184,83 @@ const Dashboard = () => {
 
         case 'notifications':
           return (
-            <div className="notifications-widget">
+            <div className="social-widget">
               <div className="widget-header">
-                <h3 className="widget-title">AI Notifications</h3>
-                {notifications.length > 0 && (
-                  <button
-                    className="clear-all-btn"
-                    onClick={markAllNotificationsAsRead}
-                    title="Mark all as read"
-                  >
-                    Mark all read
-                  </button>
-                )}
+                <h3 className="widget-title" style={{ color: '#000000' }}>ai notifications</h3>
               </div>
-              <div className="notifications-widget-content">
-                {notifications.length === 0 ? (
-                  <div className="empty-state">
-                    <svg className="empty-icon-svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                      <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                    </svg>
-                    <p>No notifications</p>
-                    <span className="empty-subtitle">AI notifications will appear here</span>
+              <div className="social-content">
+                <div>
+                  <div className="social-icon-container">
+                    <Bell size={64} strokeWidth={1.5} style={{ color: '#000000' }} />
                   </div>
-                ) : (
-                  <div className="notifications-list-widget">
-                    {notifications.map(notification => (
-                      <div 
-                        key={notification.id}
-                        className={`notification-card ${!notification.is_read ? 'unread' : ''}`}
-                      >
-                        <div className="notification-card-header">
-                          <svg className="notification-icon-svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2L2 7L12 12L22 7L12 2Z" />
-                            <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" fill="none" />
-                            <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" fill="none" />
-                          </svg>
-                          <div className="notification-meta">
-                            <h4>{notification.title}</h4>
-                            <span className="notification-timestamp">
-                              {getRelativeTime(notification.created_at)}
-                            </span>
-                          </div>
-                          <button
-                            className="delete-notification-btn-widget"
-                            onClick={() => deleteNotification(notification.id)}
-                            title="Delete"
-                          >
-                            ×
-                          </button>
-                        </div>
-                        <p className="notification-message">{notification.message}</p>
-                        <div className="notification-actions">
-                          <button
-                            className="go-to-chat-btn"
-                            onClick={() => navigate('/ai-chat')}
-                          >
-                            Open AI Chat
-                          </button>
-                          {!notification.is_read && (
-                            <button
-                              className="mark-read-btn"
-                              onClick={() => markNotificationAsRead(notification.id)}
-                            >
-                              Mark as read
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                  <p style={{ color: '#000000' }}>
+                    No notifications
+                  </p>
+                  <span style={{ color: '#333333', fontSize: '13px' }}>AI notifications will appear here</span>
+                </div>
+                <button
+                  className="social-explore-btn"
+                  onClick={async () => {
+                    await endDashboardSession();
+                    navigate('/ai-chat');
+                  }}
+                  disabled={isCustomizing}
+                  style={{
+                    background: '#000000',
+                    color: accent
+                  }}
+                >
+                  Open AI Chat
+                </button>
               </div>
             </div>
           );
 
         case 'learning-review':
           return (
-            <div className="learning-review-widget">
+            <div className="social-widget">
+              <div className="widget-header">
+                <h3 className="widget-title" style={{ color: '#000000' }}>learning reviews</h3>
+              </div>
+              <div className="social-content">
+                <div>
+                  <div className="social-icon-container">
+                    <BookOpen size={64} strokeWidth={1.5} style={{ color: '#000000' }} />
+                  </div>
+                  <p style={{ color: '#000000' }}>
+                    Analyze slides, generate practice questions and view topic roadmaps
+                  </p>
+                </div>
+                <button
+                  className="social-explore-btn"
+                  onClick={async () => {
+                    await endDashboardSession();
+                    navigate('/learning-review');
+                  }}
+                  disabled={isCustomizing}
+                  style={{
+                    background: '#000000',
+                    color: accent
+                  }}
+                >
+                  Go to Learning Hub
+                </button>
+              </div>
+            </div>
+          );
+
+        case 'learning-review-old':
+          return (
+            <div className="learning-review-widget-old">
               <div className="widget-header">
                 <h3 className="widget-title">Learning Reviews</h3>
               </div>
 
               <div className="review-content">
                 <div className="review-center-content">
+                  <div className="social-icon-container">
+                    <BookOpen size={64} strokeWidth={1.5} style={{ color: primaryContrast }} />
+                  </div>
                   <p className="review-description">Analyze slides, generate practice questions and view topic roadmaps</p>
                   <button
                     className="hub-link-btn-large"
@@ -1680,39 +1674,29 @@ const Dashboard = () => {
 
         case 'activity-timeline':
           return (
-            <div className="activity-timeline-widget">
+            <div className="social-widget">
               <div className="widget-header">
-                <h3 className="widget-title">Activity Timeline</h3>
+                <h3 className="widget-title" style={{ color: '#000000' }}>activity timeline</h3>
               </div>
-              <div className="timeline-widget-content">
+              <div className="social-content">
                 <div>
-                  <div className="timeline-icon-container">
-                    <Clock size={64} strokeWidth={1.5} style={{ color: accent }} />
+                  <div className="social-icon-container">
+                    <Clock size={64} strokeWidth={1.5} style={{ color: '#000000' }} />
                   </div>
-                  <p>
+                  <p style={{ color: '#000000' }}>
                     Track your learning activities in one unified timeline.
                   </p>
                 </div>
                 <button
-                  className="timeline-explore-btn"
+                  className="social-explore-btn"
                   onClick={async () => {
                     await endDashboardSession();
                     navigate('/activity-timeline');
                   }}
                   disabled={isCustomizing}
                   style={{
-                    background: accent,
-                    color: bgTop
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isCustomizing) {
-                      e.target.style.background = `color-mix(in srgb, ${accent} 85%, white)`;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isCustomizing) {
-                      e.target.style.background = accent;
-                    }
+                    background: '#000000',
+                    color: accent
                   }}
                 >
                   View Timeline

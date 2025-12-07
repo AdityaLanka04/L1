@@ -1,9 +1,10 @@
-/* Proactive Notification - Clean & Simple */
+/* Proactive Notification - Fixed Height with Scroll */
 .proactive-notif {
   position: fixed;
   top: 80px;
   right: -400px;
   width: 360px;
+  max-height: 280px;
   z-index: 9999;
   transition: right 0.4s ease;
 }
@@ -13,17 +14,23 @@
 }
 
 .proactive-notif-card {
-  background: var(--bg-primary, #1a1a2e);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  background: var(--panel, #1a1a2e);
+  border-radius: 0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  border: 2px solid #000000;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  height: 280px;
+  max-height: 280px;
+  overflow: hidden;
 }
 
 .proactive-notif-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+  transform: translateY(-8px);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 0 30px var(--glow);
 }
 
 .proactive-notif-header {
@@ -32,17 +39,24 @@
   gap: 12px;
   padding: 14px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
 }
 
 .proactive-notif-avatar {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: var(--accent, #a78bfa);
+  background: var(--accent) !important;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+.proactive-notif-avatar svg {
+  fill: var(--bg-top, #000);
+  width: 16px;
+  height: 16px;
 }
 
 .proactive-notif-title {
@@ -59,23 +73,26 @@
 }
 
 .proactive-notif-time {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .proactive-notif-close {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  border-radius: 0;
   border: none;
   background: transparent;
   color: var(--text-secondary, rgba(255, 255, 255, 0.6));
-  font-size: 24px;
+  font-size: 20px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .proactive-notif-close:hover {
@@ -85,19 +102,59 @@
 
 .proactive-notif-body {
   padding: 16px;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.proactive-notif-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.proactive-notif-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.proactive-notif-body::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+.proactive-notif-body::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 80%, white);
 }
 
 .proactive-notif-body p {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  line-height: 1.5;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
   color: var(--text-primary, #fff);
+  flex: 1;
 }
 
 .proactive-notif-cta {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--accent, #a78bfa);
+  width: 100%;
+  background: var(--accent);
+  border: none;
+  color: var(--bg-top);
+  padding: 10px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  border-radius: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+.proactive-notif-cta:hover {
+  background: color-mix(in srgb, var(--accent) 90%, white);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 @media (max-width: 768px) {
