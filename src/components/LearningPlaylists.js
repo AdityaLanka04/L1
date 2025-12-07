@@ -42,6 +42,8 @@ const LearningPlaylists = ({ currentUserId, token }) => {
       
       if (view === 'my-playlists') {
         url += 'my_playlists=true&';
+      } else if (view === 'following') {
+        url += 'following=true&';
       }
       
       if (filterCategory) url += `category=${filterCategory}&`;
@@ -120,6 +122,13 @@ const LearningPlaylists = ({ currentUserId, token }) => {
           >
             <Globe size={18} />
             <span>Discover</span>
+          </button>
+          <button 
+            className={`playlist-tab ${view === 'following' ? 'active' : ''}`}
+            onClick={() => setView('following')}
+          >
+            <Star size={18} />
+            <span>Following</span>
           </button>
           <button 
             className={`playlist-tab ${view === 'my-playlists' ? 'active' : ''}`}

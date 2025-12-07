@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, UserMinus, FileText, Eye, Edit3, Trash2, Clock, Plus, Gamepad2, Activity, BookOpen } from 'lucide-react';
 import ShareModal from './SharedModal';
-import LearningPlaylists from '../components/LearningPlaylists';
 import './Social.css';
 import { API_URL } from '../config';
 
@@ -331,7 +330,7 @@ const Social = () => {
       title: 'LEARNING PLAYLISTS',
       subtitle: 'CURATED PATHS',
       description: 'Follow & create learning journeys',
-      onClick: () => setActiveTab('playlists'),
+      onClick: () => navigate('/playlists'),
       className: 'playlists-card'
     },
     {
@@ -602,12 +601,6 @@ const Social = () => {
         </div>
       )}
 
-      {activeTab === 'playlists' && (
-        <div className="friend-section">
-          <LearningPlaylists currentUserId={userId} token={token} />
-        </div>
-      )}
-
       {activeTab === 'shared' && (
         <div className="friend-section">
           <div className="shared-header-actions">
@@ -780,13 +773,6 @@ const Social = () => {
           onClick={() => setActiveTab('friends')}
         >
           Friends ({friends.length})
-        </button>
-        <button 
-          className={`hub-tab ${activeTab === 'playlists' ? 'active' : ''}`}
-          onClick={() => setActiveTab('playlists')}
-        >
-          <BookOpen size={16} />
-          Playlists
         </button>
         <button 
           className={`hub-tab ${activeTab === 'shared' ? 'active' : ''}`}

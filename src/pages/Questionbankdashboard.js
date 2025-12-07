@@ -163,6 +163,11 @@ const QuestionBankDashboard = () => {
       return;
     }
 
+    if (questionTypes.length === 0) {
+      alert('Please select at least one question type');
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await fetch(`${API_URL}/qb/generate_from_pdf`, {
@@ -202,6 +207,11 @@ const QuestionBankDashboard = () => {
   const handleGenerateFromChatSlides = async () => {
     if (selectedSources.length === 0) {
       alert('Please select at least one source');
+      return;
+    }
+
+    if (questionTypes.length === 0) {
+      alert('Please select at least one question type');
       return;
     }
 
@@ -248,6 +258,11 @@ const QuestionBankDashboard = () => {
   const handleGenerateCustom = async () => {
     if (!customContent.trim()) {
       alert('Please enter some content');
+      return;
+    }
+
+    if (questionTypes.length === 0) {
+      alert('Please select at least one question type');
       return;
     }
 
@@ -1140,7 +1155,7 @@ const QuestionBankDashboard = () => {
     if (!showStudyModal || !selectedQuestionSet) return null;
 
     return (
-      <div className="qbd-modal-overlay" onClick={() => !showResults && setShowStudyModal(false)}>
+      <div className="qbd-modal-overlay">
         <div className="qbd-modal" onClick={e => e.stopPropagation()}>
           <div className="qbd-modal-header">
             <h3>{selectedQuestionSet.title}</h3>

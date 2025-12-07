@@ -1724,6 +1724,7 @@ class PlaylistItem(Base):
     url = Column(Text, nullable=True)
     description = Column(Text, nullable=True)
     duration_minutes = Column(Integer, nullable=True)
+    platform = Column(String(100), nullable=True)  # For courses: Coursera, edX, etc.
     
     # Metadata
     is_required = Column(Boolean, default=True)

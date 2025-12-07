@@ -265,7 +265,7 @@ class QuestionGeneratorAgent:
         types_str = ", ".join(question_types)
         topics_str = ", ".join(topics) if topics else "all topics in the content"
         
-        prompt = f"""Generate {question_count} high-quality exam-style questions from this content.
+        prompt = f"""Generate {question_count} high-quality, clear, and well-formed exam questions from this content.
 
 Content:
 {content[:10000]}
@@ -274,23 +274,30 @@ Requirements:
 - Question types: {types_str}
 - Difficulty distribution: {json.dumps(difficulty_distribution)}
 - Focus topics: {topics_str}
-- Ensure variety in question topics
-- Make questions clear and unambiguous
-- Provide detailed explanations
+
+IMPORTANT GUIDELINES:
+1. Make questions CLEAR and SPECIFIC - avoid vague or ambiguous wording
+2. Ensure questions are DIRECTLY answerable from the content provided
+3. For short_answer questions, accept reasonable variations (synonyms, different phrasings)
+4. For fill_blank questions, make the blank obvious and have ONE clear answer
+5. For multiple_choice, ensure options are distinct and only ONE is clearly correct
+6. Questions should test understanding, not trick the student
+7. Use proper grammar and complete sentences
+8. Avoid questions that start with "What is the..." unless necessary
 
 For each question, provide:
 {{
-    "question_text": "the question",
+    "question_text": "Clear, specific question with proper grammar",
     "question_type": "multiple_choice|true_false|short_answer|fill_blank",
     "difficulty": "easy|medium|hard",
-    "topic": "specific topic",
-    "correct_answer": "answer",
-    "options": ["A", "B", "C", "D"],
-    "explanation": "detailed explanation why this is correct",
+    "topic": "specific topic from content",
+    "correct_answer": "precise answer (for short_answer, use the most common/simple form)",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "explanation": "Why this answer is correct and others are wrong",
     "points": 1
 }}
 
-Return a JSON array of questions."""
+Return ONLY a valid JSON array of questions, no additional text."""
         
         try:
             content = self.unified_ai.generate(prompt, max_tokens=4000, temperature=0.7)
@@ -1018,7 +1025,26 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 correct_answer = str(question.correct_answer).strip().lower()
                 user_answer_normalized = str(user_answer).strip().lower()
                 
-                is_correct = user_answer_normalized == correct_answer
+                # Improved answer validation with fuzzy matching
+                if question.question_type in ['short_answer', 'fill_blank']:
+                    # Remove extra spaces, punctuation, and check similarity
+                    import re
+                    correct_clean = re.sub(r'[^\w\s]', '', correct_answer).strip()
+                    user_clean = re.sub(r'[^\w\s]', '', user_answer_normalized).strip()
+                    
+                    # Check exact match first
+                    is_correct = user_clean == correct_clean
+                    
+                    # If not exact, check if answer contains the key terms
+                    if not is_correct and correct_clean:
+                        correct_words = set(correct_clean.split())
+                        user_words = set(user_clean.split())
+                        # Accept if user answer contains at least 80% of correct words
+                        if correct_words and len(correct_words & user_words) / len(correct_words) >= 0.8:
+                            is_correct = True
+                else:
+                    # For MCQ and True/False, use exact matching
+                    is_correct = user_answer_normalized == correct_answer
                 
                 if is_correct:
                     correct_count += 1

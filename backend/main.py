@@ -11848,6 +11848,7 @@ async def get_playlist_detail(
                 "url": item.url,
                 "description": item.description,
                 "duration_minutes": item.duration_minutes,
+                "platform": item.platform,
                 "is_required": item.is_required,
                 "notes": item.notes
             } for item in items],
@@ -11870,6 +11871,7 @@ class PlaylistItemRequest(BaseModel):
     url: Optional[str] = None
     description: Optional[str] = None
     duration_minutes: Optional[int] = None
+    platform: Optional[str] = None
     is_required: bool = True
     notes: Optional[str] = None
 
@@ -11907,6 +11909,7 @@ async def add_playlist_item(
             url=item_data.url,
             description=item_data.description,
             duration_minutes=item_data.duration_minutes,
+            platform=item_data.platform,
             is_required=item_data.is_required,
             notes=item_data.notes
         )
