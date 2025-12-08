@@ -3811,10 +3811,10 @@ body {
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
-  max-width: 100% !important;
+  max-width: 1800px !important;
   width: 100% !important;
-  margin: 0 !important;
-  padding: 0 20px !important;
+  margin: 0 auto !important;
+  padding: 0 40px !important;
   position: relative !important;
 }
 
@@ -3823,8 +3823,9 @@ body {
   flex-direction: row !important;
   align-items: center !important;
   gap: 12px !important;
-  flex: 0 0 auto !important;
-  z-index: 1 !important;
+  flex: 1 !important;
+  justify-content: flex-start !important;
+  z-index: 2 !important;
 }
 
 .dashboard-page > .dashboard-header > .header-content > .header-left > .notification-container {
@@ -3846,7 +3847,7 @@ body {
   top: 50% !important;
   transform: translate(-50%, -50%) !important;
   text-align: center !important;
-  z-index: 0 !important;
+  z-index: 1 !important;
   pointer-events: auto !important;
 }
 
@@ -3855,9 +3856,9 @@ body {
   flex-direction: row !important;
   align-items: center !important;
   gap: 12px !important;
-  flex: 0 0 auto !important;
-  margin-left: auto !important;
-  z-index: 1 !important;
+  flex: 1 !important;
+  justify-content: flex-end !important;
+  z-index: 2 !important;
 }
 
 
@@ -4985,4 +4986,466 @@ body {
   color: var(--accent) !important;
   stroke: var(--accent) !important;
   opacity: 1 !important;
+}
+
+/* =====
+=============== FINAL HEADER FIX - OVERRIDE ALL ==================== */
+.dashboard-page .dashboard-header .header-content {
+  max-width: 1800px !important;
+  margin: 0 auto !important;
+  padding: 0 40px !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 20px !important;
+  position: relative !important;
+}
+
+.dashboard-page .dashboard-header .header-left {
+  flex: 1 !important;
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  gap: 12px !important;
+  z-index: 2 !important;
+}
+
+.dashboard-page .dashboard-header .header-right {
+  flex: 1 !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 12px !important;
+  z-index: 2 !important;
+}
+
+.dashboard-page .dashboard-header .dashboard-title {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+
+/* ==================== ABSOLUTE FINAL HEADER FIX ==================== */
+.dashboard-page > header.dashboard-header > .header-content {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  position: relative !important;
+  width: 100% !important;
+  max-width: 1800px !important;
+  margin: 0 auto !important;
+  padding: 0 40px !important;
+}
+
+.dashboard-page > header.dashboard-header > .header-content > .header-left {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 12px !important;
+  flex: 0 0 auto !important;
+  z-index: 10 !important;
+  position: relative !important;
+}
+
+.dashboard-page > header.dashboard-header > .header-content > .dashboard-title {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 5 !important;
+  pointer-events: auto !important;
+}
+
+.dashboard-page > header.dashboard-header > .header-content > .header-right {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  flex: 0 0 auto !important;
+  z-index: 10 !important;
+  position: relative !important;
+  margin-left: auto !important;
+}
+
+
+/* ==================== FIX ICON COLORS FOR NON-SOCIAL WIDGETS ==================== */
+.dashboard-page .dashboard-secondary-section .social-widget:not(.widget-social) svg {
+  color: var(--primary-contrast) !important;
+  stroke: var(--primary-contrast) !important;
+}
+
+.dashboard-page .dashboard-secondary-section .social-widget:not(.widget-social) .social-icon-container svg {
+  color: var(--primary-contrast) !important;
+  stroke: var(--primary-contrast) !important;
+}
+
+/* Keep social widget icons using accent color */
+.dashboard-page .dashboard-secondary-section .widget.widget-social svg,
+.dashboard-page .dashboard-secondary-section .widget.widget-social .social-icon-container svg {
+  color: var(--accent) !important;
+  stroke: var(--accent) !important;
+}
+
+
+/* ==================== SPECIFIC WIDGET ICON OVERRIDES ==================== */
+.dashboard-page .widget-notifications-styled svg,
+.dashboard-page .widget-learning-styled svg,
+.dashboard-page .widget-timeline-styled svg {
+  color: var(--primary-contrast) !important;
+  stroke: var(--primary-contrast) !important;
+}
+
+
+/* ==================== OVERRIDE WIDGET TITLE AND HEADER COLORS ==================== */
+.dashboard-page .widget-notifications-styled .widget-title,
+.dashboard-page .widget-learning-styled .widget-title,
+.dashboard-page .widget-timeline-styled .widget-title {
+  color: inherit !important;
+}
+
+.dashboard-page .widget-notifications-styled .widget-header,
+.dashboard-page .widget-learning-styled .widget-header,
+.dashboard-page .widget-timeline-styled .widget-header {
+  border-bottom-color: inherit !important;
+}
+
+.dashboard-page .dashboard-secondary-section .widget-notifications-styled .widget-title,
+.dashboard-page .dashboard-secondary-section .widget-learning-styled .widget-title,
+.dashboard-page .dashboard-secondary-section .widget-timeline-styled .widget-title {
+  color: inherit !important;
+}
+
+
+/* ==================== FORCE INLINE STYLE COLORS ==================== */
+.dashboard-page .social-widget[style] .widget-title[style] {
+  color: unset !important;
+}
+
+.dashboard-page .social-widget .widget-header[style] {
+  border-bottom: unset !important;
+}
+
+/* Use data attribute for theme mode */
+[data-theme-mode="light"] .dashboard-page .widget-notifications-styled .widget-title,
+[data-theme-mode="light"] .dashboard-page .widget-learning-styled .widget-title,
+[data-theme-mode="light"] .dashboard-page .widget-timeline-styled .widget-title {
+  color: #ffffff !important;
+}
+
+[data-theme-mode="light"] .dashboard-page .widget-notifications-styled .widget-header,
+[data-theme-mode="light"] .dashboard-page .widget-learning-styled .widget-header,
+[data-theme-mode="light"] .dashboard-page .widget-timeline-styled .widget-header {
+  border-bottom: 2px solid #ffffff !important;
+}
+
+[data-theme-mode="dark"] .dashboard-page .widget-notifications-styled .widget-title,
+[data-theme-mode="dark"] .dashboard-page .widget-learning-styled .widget-title,
+[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled .widget-title {
+  color: #000000 !important;
+}
+
+[data-theme-mode="dark"] .dashboard-page .widget-notifications-styled .widget-header,
+[data-theme-mode="dark"] .dashboard-page .widget-learning-styled .widget-header,
+[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled .widget-header {
+  border-bottom: 2px solid #000000 !important;
+}
+
+
+/* ==================== SVG AND BUTTON COLOR OVERRIDES ==================== */
+
+/* LIGHT THEMES: Colored widgets need BLACK icons, text, and buttons */
+[data-theme-mode="light"] .dashboard-page .widget-notifications-styled svg,
+[data-theme-mode="light"] .dashboard-page .widget-learning-styled svg,
+[data-theme-mode="light"] .dashboard-page .widget-timeline-styled svg {
+  color: #000000 !important;
+  stroke: #000000 !important;
+}
+
+[data-theme-mode="light"] .dashboard-page .widget-notifications-styled .social-icon-container svg,
+[data-theme-mode="light"] .dashboard-page .widget-learning-styled .social-icon-container svg,
+[data-theme-mode="light"] .dashboard-page .widget-timeline-styled .social-icon-container svg {
+  color: #000000 !important;
+  stroke: #000000 !important;
+}
+
+[data-theme-mode="light"] .dashboard-page .widget-notifications-styled p,
+[data-theme-mode="light"] .dashboard-page .widget-learning-styled p,
+[data-theme-mode="light"] .dashboard-page .widget-timeline-styled p,
+[data-theme-mode="light"] .dashboard-page .widget-notifications-styled span,
+[data-theme-mode="light"] .dashboard-page .widget-learning-styled span,
+[data-theme-mode="light"] .dashboard-page .widget-timeline-styled span {
+  color: #000000 !important;
+}
+
+[data-theme-mode="light"] .dashboard-page .widget-notifications-styled .social-explore-btn,
+[data-theme-mode="light"] .dashboard-page .widget-learning-styled .social-explore-btn,
+[data-theme-mode="light"] .dashboard-page .widget-timeline-styled .social-explore-btn {
+  background: #000000 !important;
+  color: var(--accent) !important;
+  border: none !important;
+}
+
+[data-theme-mode="light"] .dashboard-page .widget-notifications-styled .social-explore-btn:hover,
+[data-theme-mode="light"] .dashboard-page .widget-learning-styled .social-explore-btn:hover,
+[data-theme-mode="light"] .dashboard-page .widget-timeline-styled .social-explore-btn:hover {
+  background: #222222 !important;
+  color: var(--accent) !important;
+}
+
+/* DARK THEMES: Colored widgets need WHITE icons, text, and buttons */
+[data-theme-mode="dark"] .dashboard-page .widget-notifications-styled svg,
+[data-theme-mode="dark"] .dashboard-page .widget-learning-styled svg,
+[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+[data-theme-mode="dark"] .dashboard-page .widget-notifications-styled .social-icon-container svg,
+[data-theme-mode="dark"] .dashboard-page .widget-learning-styled .social-icon-container svg,
+[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled .social-icon-container svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+[data-theme-mode="dark"] .dashboard-page .widget-notifications-styled p,
+[data-theme-mode="dark"] .dashboard-page .widget-learning-styled p,
+[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled p,
+[data-theme-mode="dark"] .dashboard-page .widget-notifications-styled span,
+[data-theme-mode="dark"] .dashboard-page .widget-learning-styled span,
+[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled span {
+  color: #ffffff !important;
+}
+
+[data-theme-mode="dark"] .dashboard-page .widget-notifications-styled .social-explore-btn,
+[data-theme-mode="dark"] .dashboard-page .widget-learning-styled .social-explore-btn,
+[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled .social-explore-btn {
+  background: #ffffff !important;
+  color: var(--accent) !important;
+  border: none !important;
+}
+
+[data-theme-mode="dark"] .dashboard-page .widget-notifications-styled .social-explore-btn:hover,
+[data-theme-mode="dark"] .dashboard-page .widget-learning-styled .social-explore-btn:hover,
+[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled .social-explore-btn:hover {
+  background: #eeeeee !important;
+  color: var(--accent) !important;
+}
+
+/* Social widget (white/panel background) - accent color for icon and button */
+.dashboard-page .social-widget:not(.widget-notifications-styled):not(.widget-learning-styled):not(.widget-timeline-styled) svg,
+.dashboard-page .social-widget:not(.widget-notifications-styled):not(.widget-learning-styled):not(.widget-timeline-styled) .social-icon-container svg {
+  color: var(--accent) !important;
+  stroke: var(--accent) !important;
+}
+
+.dashboard-page .social-widget:not(.widget-notifications-styled):not(.widget-learning-styled):not(.widget-timeline-styled) p {
+  color: var(--text-secondary) !important;
+}
+
+.dashboard-page .social-widget:not(.widget-notifications-styled):not(.widget-learning-styled):not(.widget-timeline-styled) .social-explore-btn {
+  background: var(--accent) !important;
+  color: var(--bg-top) !important;
+  border: none !important;
+}
+
+.dashboard-page .social-widget:not(.widget-notifications-styled):not(.widget-learning-styled):not(.widget-timeline-styled) .social-explore-btn:hover {
+  background: color-mix(in srgb, var(--accent) 85%, white) !important;
+  color: var(--bg-top) !important;
+}
+
+/* Widget title and header for colored widgets - WHITE */
+.dashboard-page .widget-notifications-styled .widget-title,
+.dashboard-page .widget-learning-styled .widget-title,
+.dashboard-page .widget-timeline-styled .widget-title {
+  color: #ffffff !important;
+}
+
+.dashboard-page .widget-notifications-styled .widget-header,
+.dashboard-page .widget-learning-styled .widget-header,
+.dashboard-page .widget-timeline-styled .widget-header {
+  border-bottom: 2px solid #ffffff !important;
+}
+
+/* Social widget title and header - accent color */
+.dashboard-page .social-widget:not(.widget-notifications-styled):not(.widget-learning-styled):not(.widget-timeline-styled) .widget-title {
+  color: var(--accent) !important;
+}
+
+.dashboard-page .social-widget:not(.widget-notifications-styled):not(.widget-learning-styled):not(.widget-timeline-styled) .widget-header {
+  border-bottom: 2px solid var(--accent) !important;
+}
+
+
+/* ==================== FINAL BUTTON OVERRIDE - MAXIMUM SPECIFICITY ==================== */
+/* Light themes: WHITE button bg with accent text */
+/* Dark themes: BLACK button bg with accent text */
+
+.dashboard-page .social-widget.widget-notifications-styled .social-explore-btn,
+.dashboard-page .social-widget.widget-learning-styled .social-explore-btn,
+.dashboard-page .social-widget.widget-timeline-styled .social-explore-btn,
+.dashboard-page .widget-notifications-styled .social-explore-btn,
+.dashboard-page .widget-learning-styled .social-explore-btn,
+.dashboard-page .widget-timeline-styled .social-explore-btn {
+  background: #ffffff !important;
+  color: var(--accent) !important;
+  border: none !important;
+}
+
+/* Override for dark themes using data attribute */
+[data-theme-mode="dark"] .dashboard-page .social-widget.widget-notifications-styled .social-explore-btn,
+[data-theme-mode="dark"] .dashboard-page .social-widget.widget-learning-styled .social-explore-btn,
+[data-theme-mode="dark"] .dashboard-page .social-widget.widget-timeline-styled .social-explore-btn,
+[data-theme-mode="dark"] .dashboard-page .widget-notifications-styled .social-explore-btn,
+[data-theme-mode="dark"] .dashboard-page .widget-learning-styled .social-explore-btn,
+[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled .social-explore-btn {
+  background: #000000 !important;
+  color: var(--accent) !important;
+}
+
+/* Force override any inline styles */
+.dashboard-page .widget-notifications-styled button[style],
+.dashboard-page .widget-learning-styled button[style],
+.dashboard-page .widget-timeline-styled button[style] {
+  background: #ffffff !important;
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="dark"] .dashboard-page .widget-notifications-styled button[style],
+[data-theme-mode="dark"] .dashboard-page .widget-learning-styled button[style],
+[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled button[style] {
+  background: #000000 !important;
+  color: var(--accent) !important;
+}
+
+
+/* ==================== ABSOLUTE FINAL TEXT/ICON/BUTTON OVERRIDES ==================== */
+
+/* DARK THEMES: BLACK text, BLACK icons, WHITE buttons with accent text */
+[data-theme-mode="dark"] .dashboard-page .widget-notifications-styled,
+[data-theme-mode="dark"] .dashboard-page .widget-learning-styled,
+[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled {
+  color: #000000 !important;
+}
+
+[data-theme-mode="dark"] .dashboard-page .widget-notifications-styled .widget-title,
+[data-theme-mode="dark"] .dashboard-page .widget-learning-styled .widget-title,
+[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled .widget-title,
+[data-theme-mode="dark"] .dashboard-page .widget-notifications-styled p,
+[data-theme-mode="dark"] .dashboard-page .widget-learning-styled p,
+[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled p,
+[data-theme-mode="dark"] .dashboard-page .widget-notifications-styled span,
+[data-theme-mode="dark"] .dashboard-page .widget-learning-styled span,
+[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled span {
+  color: #000000 !important;
+}
+
+[data-theme-mode="dark"] .dashboard-page .widget-notifications-styled svg,
+[data-theme-mode="dark"] .dashboard-page .widget-learning-styled svg,
+[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled svg {
+  color: #000000 !important;
+  stroke: #000000 !important;
+}
+
+[data-theme-mode="dark"] .dashboard-page .widget-notifications-styled .social-explore-btn,
+[data-theme-mode="dark"] .dashboard-page .widget-learning-styled .social-explore-btn,
+[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled .social-explore-btn {
+  background: #ffffff !important;
+  color: var(--accent) !important;
+  border: none !important;
+}
+
+/* LIGHT THEMES: WHITE text, WHITE icons, WHITE buttons with accent text */
+[data-theme-mode="light"] .dashboard-page .widget-notifications-styled,
+[data-theme-mode="light"] .dashboard-page .widget-learning-styled,
+[data-theme-mode="light"] .dashboard-page .widget-timeline-styled {
+  color: #ffffff !important;
+}
+
+[data-theme-mode="light"] .dashboard-page .widget-notifications-styled .widget-title,
+[data-theme-mode="light"] .dashboard-page .widget-learning-styled .widget-title,
+[data-theme-mode="light"] .dashboard-page .widget-timeline-styled .widget-title,
+[data-theme-mode="light"] .dashboard-page .widget-notifications-styled p,
+[data-theme-mode="light"] .dashboard-page .widget-learning-styled p,
+[data-theme-mode="light"] .dashboard-page .widget-timeline-styled p,
+[data-theme-mode="light"] .dashboard-page .widget-notifications-styled span,
+[data-theme-mode="light"] .dashboard-page .widget-learning-styled span,
+[data-theme-mode="light"] .dashboard-page .widget-timeline-styled span {
+  color: #ffffff !important;
+}
+
+[data-theme-mode="light"] .dashboard-page .widget-notifications-styled svg,
+[data-theme-mode="light"] .dashboard-page .widget-learning-styled svg,
+[data-theme-mode="light"] .dashboard-page .widget-timeline-styled svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+[data-theme-mode="light"] .dashboard-page .widget-notifications-styled .social-explore-btn,
+[data-theme-mode="light"] .dashboard-page .widget-learning-styled .social-explore-btn,
+[data-theme-mode="light"] .dashboard-page .widget-timeline-styled .social-explore-btn {
+  background: #ffffff !important;
+  color: var(--accent) !important;
+  border: none !important;
+}
+
+
+/* ==================== ULTIMATE FINAL SVG ICON OVERRIDE ==================== */
+/* This MUST be at the end to override everything else */
+
+/* For LIGHT themes - WHITE icons */
+[data-theme-mode="light"] .dashboard-page .widget-notifications-styled .social-icon-container svg,
+[data-theme-mode="light"] .dashboard-page .widget-learning-styled .social-icon-container svg,
+[data-theme-mode="light"] .dashboard-page .widget-timeline-styled .social-icon-container svg,
+[data-theme-mode="light"] .dashboard-page .social-widget.widget-notifications-styled svg,
+[data-theme-mode="light"] .dashboard-page .social-widget.widget-learning-styled svg,
+[data-theme-mode="light"] .dashboard-page .social-widget.widget-timeline-styled svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  fill: none !important;
+}
+
+/* For DARK themes - BLACK icons */
+[data-theme-mode="dark"] .dashboard-page .widget-notifications-styled .social-icon-container svg,
+[data-theme-mode="dark"] .dashboard-page .widget-learning-styled .social-icon-container svg,
+[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled .social-icon-container svg,
+[data-theme-mode="dark"] .dashboard-page .social-widget.widget-notifications-styled svg,
+[data-theme-mode="dark"] .dashboard-page .social-widget.widget-learning-styled svg,
+[data-theme-mode="dark"] .dashboard-page .social-widget.widget-timeline-styled svg {
+  color: #000000 !important;
+  stroke: #000000 !important;
+  fill: none !important;
+}
+
+
+/* ==================== NUCLEAR OPTION - FORCE WHITE ICONS FOR LIGHT THEMES ==================== */
+/* These rules have maximum specificity and will override EVERYTHING */
+
+html[data-theme-mode="light"] .dashboard-page .widget-notifications-styled svg,
+html[data-theme-mode="light"] .dashboard-page .widget-notifications-styled svg *,
+html[data-theme-mode="light"] .dashboard-page .widget-learning-styled svg,
+html[data-theme-mode="light"] .dashboard-page .widget-learning-styled svg *,
+html[data-theme-mode="light"] .dashboard-page .widget-timeline-styled svg,
+html[data-theme-mode="light"] .dashboard-page .widget-timeline-styled svg * {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  fill: none !important;
+}
+
+html[data-theme-mode="dark"] .dashboard-page .widget-notifications-styled svg,
+html[data-theme-mode="dark"] .dashboard-page .widget-notifications-styled svg *,
+html[data-theme-mode="dark"] .dashboard-page .widget-learning-styled svg,
+html[data-theme-mode="dark"] .dashboard-page .widget-learning-styled svg *,
+html[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled svg,
+html[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled svg * {
+  color: #000000 !important;
+  stroke: #000000 !important;
+  fill: none !important;
 }

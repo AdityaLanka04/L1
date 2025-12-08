@@ -1043,6 +1043,11 @@ const Dashboard = () => {
     const textSecondary = selectedTheme.tokens['--text-secondary'];
     const bgTop = selectedTheme.tokens['--bg-top'];
     const primaryContrast = selectedTheme.tokens['--primary-contrast'];
+    // For colored widgets text/icons: black for light themes, white for dark themes
+    const widgetContrastColor = selectedTheme.mode === 'light' ? '#000000' : '#ffffff';
+    // For colored widgets buttons: WHITE bg for light themes, BLACK bg for dark themes - both with accent text
+    const widgetButtonBg = selectedTheme.mode === 'light' ? '#ffffff' : '#000000';
+    const widgetButtonText = accent;
 
     const widgetContent = () => {
       switch (widget.type) {
@@ -1184,19 +1189,16 @@ const Dashboard = () => {
 
         case 'notifications':
           return (
-            <div className="social-widget">
+            <div className="social-widget widget-notifications-styled">
               <div className="widget-header">
-                <h3 className="widget-title" style={{ color: '#000000' }}>ai notifications</h3>
+                <h3 className="widget-title">ai notifications</h3>
               </div>
               <div className="social-content">
                 <div>
                   <div className="social-icon-container">
-                    <Bell size={64} strokeWidth={1.5} style={{ color: '#000000' }} />
+                    <Bell size={64} strokeWidth={1.5} />
                   </div>
-                  <p style={{ color: '#000000' }}>
-                    No notifications
-                  </p>
-                  <span style={{ color: '#333333', fontSize: '13px' }}>AI notifications will appear here</span>
+                  <p>No notifications</p>
                 </div>
                 <button
                   className="social-explore-btn"
@@ -1205,10 +1207,6 @@ const Dashboard = () => {
                     navigate('/ai-chat');
                   }}
                   disabled={isCustomizing}
-                  style={{
-                    background: '#000000',
-                    color: accent
-                  }}
                 >
                   Open AI Chat
                 </button>
@@ -1218,18 +1216,16 @@ const Dashboard = () => {
 
         case 'learning-review':
           return (
-            <div className="social-widget">
+            <div className="social-widget widget-learning-styled">
               <div className="widget-header">
-                <h3 className="widget-title" style={{ color: '#000000' }}>learning reviews</h3>
+                <h3 className="widget-title">learning reviews</h3>
               </div>
               <div className="social-content">
                 <div>
                   <div className="social-icon-container">
-                    <BookOpen size={64} strokeWidth={1.5} style={{ color: '#000000' }} />
+                    <BookOpen size={64} strokeWidth={1.5} />
                   </div>
-                  <p style={{ color: '#000000' }}>
-                    Analyze slides, generate practice questions and view topic roadmaps
-                  </p>
+                  <p>Analyze slides, generate practice questions and view topic roadmaps</p>
                 </div>
                 <button
                   className="social-explore-btn"
@@ -1238,10 +1234,6 @@ const Dashboard = () => {
                     navigate('/learning-review');
                   }}
                   disabled={isCustomizing}
-                  style={{
-                    background: '#000000',
-                    color: accent
-                  }}
                 >
                   Go to Learning Hub
                 </button>
@@ -1674,18 +1666,16 @@ const Dashboard = () => {
 
         case 'activity-timeline':
           return (
-            <div className="social-widget">
+            <div className="social-widget widget-timeline-styled">
               <div className="widget-header">
-                <h3 className="widget-title" style={{ color: '#000000' }}>activity timeline</h3>
+                <h3 className="widget-title">activity timeline</h3>
               </div>
               <div className="social-content">
                 <div>
                   <div className="social-icon-container">
-                    <Clock size={64} strokeWidth={1.5} style={{ color: '#000000' }} />
+                    <Clock size={64} strokeWidth={1.5} />
                   </div>
-                  <p style={{ color: '#000000' }}>
-                    Track your learning activities in one unified timeline.
-                  </p>
+                  <p>Track your learning activities in one unified timeline.</p>
                 </div>
                 <button
                   className="social-explore-btn"
@@ -1694,10 +1684,6 @@ const Dashboard = () => {
                     navigate('/activity-timeline');
                   }}
                   disabled={isCustomizing}
-                  style={{
-                    background: '#000000',
-                    color: accent
-                  }}
                 >
                   View Timeline
                 </button>
