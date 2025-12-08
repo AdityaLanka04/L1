@@ -3502,11 +3502,12 @@ async def save_media_notes(
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # Create note
+        # Create note with special marker for media notes
         new_note = models.Note(
             user_id=user.id,
             title=title,
             content=content,
+            custom_font="__MEDIA_NOTE__",  # Special marker to identify media-generated notes
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )
@@ -3595,6 +3596,127 @@ async def estimate_processing_cost(
     """Estimate processing cost (all free)"""
     cost_info = ai_media_processor.estimate_processing_cost(duration_seconds, file_size_mb)
     return cost_info
+
+@app.post("/api/media/generate-title")
+async def generate_smart_title(
+    transcript: str = Body(...),
+    key_concepts: list = Body([]),
+    summary: str = Body("")
+):
+    """Generate AI-based 3-4 word title"""
+    try:
+        prompt = f"""Generate a concise 3-4 word title for these notes.
+
+Summary: {summary[:200]}
+Key Concepts: {', '.join(key_concepts[:5])}
+Content: {transcript[:500]}
+
+Return ONLY the title, nothing else. Make it descriptive and catchy."""
+
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": "You are a title generator. Return only the title, 3-4 words maximum."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=20
+        )
+        
+        title = response.choices[0].message.content.strip().strip('"').strip("'")
+        # Ensure it's not too long
+        words = title.split()
+        if len(words) > 4:
+            title = ' '.join(words[:4])
+        
+        return {"title": title}
+        
+    except Exception as e:
+        logger.error(f"Title generation error: {str(e)}")
+        return {"title": "Media Notes"}
+
+@app.get("/api/get_note/{note_id}")
+async def get_single_note(
+    note_id: int,
+    db: Session = Depends(get_db)
+):
+    """Get a single note by ID"""
+    try:
+        note = db.query(models.Note).filter(
+            models.Note.id == note_id,
+            models.Note.is_deleted == False
+        ).first()
+        
+        if not note:
+            raise HTTPException(status_code=404, detail="Note not found")
+        
+        return {
+            "id": note.id,
+            "title": note.title,
+            "content": note.content,
+            "created_at": note.created_at.isoformat(),
+            "updated_at": note.updated_at.isoformat(),
+            "folder_id": note.folder_id,
+            "is_favorite": note.is_favorite,
+            "custom_font": note.custom_font,
+            "transcript": "",  # These would need to be stored separately if needed
+            "analysis": {},
+            "flashcards": [],
+            "quiz_questions": [],
+            "key_moments": []
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching note {note_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/media/history")
+async def get_media_history(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Get user's media processing history - only media-generated notes"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get all recent notes
+        all_notes = db.query(models.Note).filter(
+            models.Note.user_id == user.id,
+            models.Note.is_deleted == False
+        ).order_by(models.Note.created_at.desc()).limit(50).all()
+        
+        history = []
+        for note in all_notes:
+            # Check if note has the media marker OR has flashcards associated with it
+            is_media_note = note.custom_font == "__MEDIA_NOTE__"
+            
+            # Also check if there are flashcards with this note as source
+            if not is_media_note:
+                flashcard_set = db.query(models.FlashcardSet).filter(
+                    models.FlashcardSet.source_type == "media",
+                    models.FlashcardSet.source_id == note.id
+                ).first()
+                if flashcard_set:
+                    is_media_note = True
+            
+            if is_media_note:
+                history.append({
+                    "id": note.id,
+                    "title": note.title,
+                    "created_at": note.created_at.isoformat(),
+                    "preview": note.content[:200] if note.content else ""
+                })
+        
+        logger.info(f"Found {len(history)} media-generated notes for user {user_id}")
+        return {"history": history}
+        
+    except Exception as e:
+        logger.error(f"History fetch error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/create_note")
 def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):

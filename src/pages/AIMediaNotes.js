@@ -1,9 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Upload, Youtube, FileText, Save, Copy, RefreshCw, Mic, Loader,
   ArrowLeft, Settings, Sparkles, Brain, Zap, Clock, Globe,
-  BookOpen, CheckCircle, AlertCircle, Play, Pause, Volume2
+  BookOpen, CheckCircle, AlertCircle, Play, Pause, Volume2, Trash2
 } from 'lucide-react';
 import './AIMediaNotes.css';
 import { API_URL } from '../config';
@@ -35,6 +35,7 @@ const AIMediaNotes = () => {
   // Results
   const [results, setResults] = useState(null);
   const [activeTab, setActiveTab] = useState('notes');
+  const [history, setHistory] = useState([]);
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -186,6 +187,27 @@ const AIMediaNotes = () => {
 
     try {
       const token = localStorage.getItem('token');
+      
+      // Generate AI title
+      const titleResponse = await fetch(`${API_URL}/media/generate-title`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          transcript: results.transcript.substring(0, 1000),
+          key_concepts: results.analysis?.key_concepts || [],
+          summary: results.analysis?.summary || ''
+        })
+      });
+
+      let smartTitle = results.filename || 'Media Notes';
+      if (titleResponse.ok) {
+        const titleData = await titleResponse.json();
+        smartTitle = titleData.title;
+      }
+
       const response = await fetch(`${API_URL}/media/save-notes`, {
         method: 'POST',
         headers: {
@@ -194,7 +216,7 @@ const AIMediaNotes = () => {
         },
         body: JSON.stringify({
           user_id: userName,
-          title: results.filename || 'Media Notes',
+          title: smartTitle,
           content: results.notes.content,
           transcript: results.transcript,
           analysis: results.analysis,
@@ -207,6 +229,7 @@ const AIMediaNotes = () => {
 
       const data = await response.json();
       alert('Notes saved successfully!');
+      fetchHistory(); // Refresh history
       navigate(`/notes/editor/${data.note_id}`);
 
     } catch (error) {
@@ -283,6 +306,99 @@ const AIMediaNotes = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Fetch history on mount
+  useEffect(() => {
+    fetchHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchHistory = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/media/history?user_id=${userName}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Media history fetched:', data.history);
+        setHistory(data.history || []);
+      } else {
+        console.error('Failed to fetch history:', response.status);
+      }
+    } catch (error) {
+      console.error('Error fetching history:', error);
+    }
+  };
+
+  const loadHistoryItem = async (item) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/get_note/${item.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const note = await response.json();
+        
+        // Reconstruct results object from saved note
+        setResults({
+          filename: note.title,
+          notes: {
+            content: note.content,
+            style: 'detailed'
+          },
+          transcript: note.transcript || '',
+          analysis: note.analysis || {},
+          flashcards: note.flashcards || [],
+          quiz_questions: note.quiz_questions || [],
+          key_moments: note.key_moments || [],
+          source_type: 'history',
+          duration: 0,
+          language_name: ''
+        });
+        setActiveTab('notes');
+      } else {
+        throw new Error('Failed to load note');
+      }
+    } catch (error) {
+      console.error('Error loading history item:', error);
+      alert('Failed to load note');
+    }
+  };
+
+  const deleteHistoryItem = async (e, item) => {
+    e.stopPropagation(); // Prevent loading the note when clicking delete
+    
+    if (!window.confirm(`Delete "${item.title}"?`)) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/delete_note/${item.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        fetchHistory(); // Refresh history
+        if (results && results.filename === item.title) {
+          setResults(null); // Clear results if currently viewing deleted note
+        }
+      } else {
+        throw new Error('Delete failed');
+      }
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      alert('Failed to delete note');
+    }
+  };
+
   return (
     <div className="ai-media-notes-page">
       <div className="page-header-bar">
@@ -300,6 +416,10 @@ const AIMediaNotes = () => {
       <div className="content-layout">
         {/* Sidebar - Upload & Settings */}
         <div className="upload-panel">
+          <div className="sidebar-header-section">
+            <h2 className="sidebar-title">media upload</h2>
+          </div>
+          
           <div className="panel-section">
             <h2><Upload size={14} /> upload media</h2>
             
@@ -447,6 +567,42 @@ const AIMediaNotes = () => {
               <p className="processing-stage">{processingStage}</p>
             </div>
           )}
+
+          {/* History Section */}
+          <div className="panel-section">
+            <h2><Clock size={14} /> recent history</h2>
+            {history.length > 0 ? (
+              <div className="history-list">
+                {history.slice(0, 10).map((item, idx) => (
+                  <div 
+                    key={idx} 
+                    className="history-item"
+                    onClick={() => loadHistoryItem(item)}
+                  >
+                    <FileText size={14} />
+                    <div className="history-info">
+                      <span className="history-title">{item.title}</span>
+                      <span className="history-date">
+                        {new Date(item.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <button 
+                      className="history-delete-btn"
+                      onClick={(e) => deleteHistoryItem(e, item)}
+                      title="Delete"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="no-history">
+                <p>No history yet</p>
+                <span>Your processed media will appear here</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right Panel - Results */}
@@ -523,7 +679,7 @@ const AIMediaNotes = () => {
 
             {/* Tab Content */}
             <div className="tab-content">
-              {activeTab === 'notes' && (
+              {activeTab === 'notes' && results.notes && (
                 <div className="notes-content">
                   <div className="content-actions">
                     <button onClick={regenerateNotes} className="action-btn">
