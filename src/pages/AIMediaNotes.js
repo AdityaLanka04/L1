@@ -12,6 +12,7 @@ const AIMediaNotes = () => {
   const navigate = useNavigate();
   const userName = localStorage.getItem('username');
   const fileInputRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
   // Upload state
   const [uploadedFile, setUploadedFile] = useState(null);
@@ -124,6 +125,10 @@ const AIMediaNotes = () => {
       setProgress(95);
 
       const data = await response.json();
+      console.log('Received data from backend:', data);
+      console.log('Analysis data:', data.analysis);
+      console.log('Flashcards count:', data.flashcards?.length || 0);
+      console.log('Quiz questions count:', data.quiz_questions?.length || 0);
       setProgress(100);
       setResults(data);
       setActiveTab('notes');
@@ -312,6 +317,13 @@ const AIMediaNotes = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Scroll to top when tab changes
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [activeTab]);
+
   const fetchHistory = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -401,203 +413,73 @@ const AIMediaNotes = () => {
 
   return (
     <div className="ai-media-notes-page">
-      <div className="page-header-bar">
-        <div className="header-left">
-          <button onClick={() => navigate('/notes')} className="back-btn">
-            <ArrowLeft size={16} />
-            back
+      {/* Header spanning full width - matching AIChat */}
+      <div className="global-chat-header">
+        <button 
+          className="sidebar-toggle" 
+          onClick={() => navigate('/notes')}
+          title="Back to Notes"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        
+        <h1 className="chat-title" onClick={() => navigate('/dashboard')}>
+          ai media notes
+        </h1>
+
+        <div className="header-right">
+          <button className="header-btn" onClick={() => navigate('/dashboard')}>
+            DASHBOARD
           </button>
-          <div className="topbar-divider"></div>
-          <h1 className="page-title-main">ai media notes</h1>
+          <button className="header-btn" onClick={() => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('username');
+            navigate('/');
+          }}>
+            LOGOUT
+          </button>
         </div>
-        <div className="page-subtitle-main">transform audio & video into smart study notes</div>
       </div>
 
-      <div className="content-layout">
-        {/* Sidebar - Upload & Settings */}
-        <div className="upload-panel">
-          <div className="sidebar-header-section">
-            <h2 className="sidebar-title">media upload</h2>
+      {/* Content area with sidebar and main content */}
+      <div className="chat-content-area">
+        {/* Left Sidebar - History */}
+        <div className="chat-sidebar">
+          <div className="sidebar-header">
+            <div className="sidebar-title-bar">
+              <span className="sidebar-title">RECENT HISTORY</span>
+            </div>
           </div>
           
-          <div className="panel-section">
-            <h2><Upload size={14} /> upload media</h2>
-            
-            <div
-              className={`upload-area ${isDragging ? 'dragging' : ''}`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="audio/*,video/*"
-                onChange={handleFileUpload}
-                style={{ display: 'none' }}
-              />
-              <Upload size={48} />
-              <p>Drag & drop or click to upload</p>
-              <span>Audio & Video files supported</span>
-            </div>
-
-            {uploadedFile && (
-              <div className="uploaded-file">
-                <FileText size={20} />
-                <span>{uploadedFile.name}</span>
-                <button onClick={() => setUploadedFile(null)}>×</button>
-              </div>
-            )}
-
-            <div className="divider">
-              <span>or</span>
-            </div>
-
-            <div className="youtube-input">
-              <Youtube size={20} />
-              <input
-                type="text"
-                placeholder="Paste YouTube URL..."
-                value={youtubeUrl}
-                onChange={(e) => {
-                  setYoutubeUrl(e.target.value);
-                  setUploadedFile(null);
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Settings Panel */}
-          <div className="panel-section">
-            <div className="section-header" onClick={() => setShowSettings(!showSettings)}>
-              <h2><Settings size={14} /> ai settings</h2>
-              <span className="toggle-icon">{showSettings ? '−' : '+'}</span>
-            </div>
-
-            {showSettings && (
-              <div className="settings-content">
-                <div className="setting-group">
-                  <label>Note Style</label>
-                  <select value={noteStyle} onChange={(e) => setNoteStyle(e.target.value)}>
-                    <option value="detailed">Detailed Notes</option>
-                    <option value="summary">Summary</option>
-                    <option value="bullet_points">Bullet Points</option>
-                    <option value="mind_map">Mind Map</option>
-                    <option value="cornell">Cornell Notes</option>
-                    <option value="outline">Outline</option>
-                    <option value="qa">Q&A Format</option>
-                  </select>
-                </div>
-
-                <div className="setting-group">
-                  <label>Difficulty Level</label>
-                  <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
-                    <option value="beginner">Beginner</option>
-                    <option value="intermediate">Intermediate</option>
-                    <option value="advanced">Advanced</option>
-                  </select>
-                </div>
-
-                <div className="setting-group">
-                  <label>Subject/Topic (Optional)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g., Biology, History..."
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                  />
-                </div>
-
-                <div className="setting-group">
-                  <label>Custom Instructions (Optional)</label>
-                  <textarea
-                    placeholder="Any specific requirements for the notes..."
-                    value={customInstructions}
-                    onChange={(e) => setCustomInstructions(e.target.value)}
-                    rows={3}
-                  />
-                </div>
-
-                <div className="checkbox-group">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={generateFlashcards}
-                      onChange={(e) => setGenerateFlashcards(e.target.checked)}
-                    />
-                    Generate Flashcards
-                  </label>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={generateQuiz}
-                      onChange={(e) => setGenerateQuiz(e.target.checked)}
-                    />
-                    Generate Quiz
-                  </label>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={processMedia}
-            disabled={isProcessing || (!uploadedFile && !youtubeUrl)}
-            className="process-btn"
-          >
-            {isProcessing ? (
-              <>
-                <Loader size={18} className="spinner" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <Brain size={18} />
-                Generate AI Notes
-              </>
-            )}
-          </button>
-
-          {isProcessing && (
-            <div className="processing-status">
-              <div className="progress-bar">
-                <div className="progress-fill" style={{ width: `${progress}%` }} />
-              </div>
-              <p className="processing-stage">{processingStage}</p>
-            </div>
-          )}
-
-          {/* History Section */}
-          <div className="panel-section">
-            <h2><Clock size={14} /> recent history</h2>
+          <div className="chat-sessions">
             {history.length > 0 ? (
-              <div className="history-list">
+              <>
                 {history.slice(0, 10).map((item, idx) => (
                   <div 
                     key={idx} 
-                    className="history-item"
+                    className="chat-session-item"
                     onClick={() => loadHistoryItem(item)}
                   >
-                    <FileText size={14} />
-                    <div className="history-info">
-                      <span className="history-title">{item.title}</span>
-                      <span className="history-date">
+                    <div className="chat-session-content">
+                      <div className="session-title">{item.title}</div>
+                      <div className="session-date">
                         {new Date(item.created_at).toLocaleDateString()}
-                      </span>
+                      </div>
                     </div>
-                    <button 
-                      className="history-delete-btn"
-                      onClick={(e) => deleteHistoryItem(e, item)}
-                      title="Delete"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <div className="chat-session-actions">
+                      <button 
+                        className="delete-chat-btn"
+                        onClick={(e) => deleteHistoryItem(e, item)}
+                        title="Delete"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
                 ))}
-              </div>
+              </>
             ) : (
-              <div className="no-history">
+              <div className="no-chats">
                 <p>No history yet</p>
                 <span>Your processed media will appear here</span>
               </div>
@@ -605,9 +487,168 @@ const AIMediaNotes = () => {
           </div>
         </div>
 
-        {/* Right Panel - Results */}
-        {results && (
-          <div className="results-panel">
+        {/* Main Content - Upload & Results */}
+        <div className="chat-main">
+          {!results ? (
+            <div className="messages-container">
+              <div className="welcome-screen">
+                <div className="welcome-content">
+                  <h2 className="upload-main-title">Transform Media into Smart Notes</h2>
+                  <p className="upload-subtitle">Upload audio or video files, or paste a YouTube URL to generate AI-powered study notes</p>
+                  
+                  <div className="upload-section-center">
+                    <div
+                      className={`upload-area ${isDragging ? 'dragging' : ''}`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="audio/*,video/*"
+                        onChange={handleFileUpload}
+                        style={{ display: 'none' }}
+                      />
+                      <Upload size={64} />
+                      <p>Drag & drop or click to upload</p>
+                      <span>Audio & Video files supported (Max 10MB)</span>
+                    </div>
+
+                    {uploadedFile && (
+                      <div className="uploaded-file">
+                        <FileText size={20} />
+                        <span>{uploadedFile.name}</span>
+                        <button onClick={() => setUploadedFile(null)}>×</button>
+                      </div>
+                    )}
+
+                    <div className="divider">
+                      <span>or</span>
+                    </div>
+
+                    <div className="youtube-input">
+                      <Youtube size={20} />
+                      <input
+                        type="text"
+                        placeholder="Paste YouTube URL..."
+                        value={youtubeUrl}
+                        onChange={(e) => {
+                          setYoutubeUrl(e.target.value);
+                          setUploadedFile(null);
+                        }}
+                      />
+                    </div>
+
+                    {/* Settings Panel */}
+                    <div className="settings-panel-center">
+                      <div className="section-header" onClick={() => setShowSettings(!showSettings)}>
+                        <h3><Settings size={16} /> AI Settings</h3>
+                        <span className="toggle-icon">{showSettings ? '−' : '+'}</span>
+                      </div>
+
+                      {showSettings && (
+                        <div className="settings-content">
+                          <div className="settings-grid">
+                            <div className="setting-group">
+                              <label>Note Style</label>
+                              <select value={noteStyle} onChange={(e) => setNoteStyle(e.target.value)}>
+                                <option value="detailed">Detailed Notes</option>
+                                <option value="summary">Summary</option>
+                                <option value="bullet_points">Bullet Points</option>
+                                <option value="mind_map">Mind Map</option>
+                                <option value="cornell">Cornell Notes</option>
+                                <option value="outline">Outline</option>
+                                <option value="qa">Q&A Format</option>
+                              </select>
+                            </div>
+
+                            <div className="setting-group">
+                              <label>Difficulty Level</label>
+                              <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
+                                <option value="beginner">Beginner</option>
+                                <option value="intermediate">Intermediate</option>
+                                <option value="advanced">Advanced</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="setting-group">
+                            <label>Subject/Topic (Optional)</label>
+                            <input
+                              type="text"
+                              placeholder="e.g., Biology, History..."
+                              value={subject}
+                              onChange={(e) => setSubject(e.target.value)}
+                            />
+                          </div>
+
+                          <div className="setting-group">
+                            <label>Custom Instructions (Optional)</label>
+                            <textarea
+                              placeholder="Any specific requirements for the notes..."
+                              value={customInstructions}
+                              onChange={(e) => setCustomInstructions(e.target.value)}
+                              rows={3}
+                            />
+                          </div>
+
+                          <div className="checkbox-group">
+                            <label>
+                              <input
+                                type="checkbox"
+                                checked={generateFlashcards}
+                                onChange={(e) => setGenerateFlashcards(e.target.checked)}
+                              />
+                              Generate Flashcards
+                            </label>
+                            <label>
+                              <input
+                                type="checkbox"
+                                checked={generateQuiz}
+                                onChange={(e) => setGenerateQuiz(e.target.checked)}
+                              />
+                              Generate Quiz
+                            </label>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={processMedia}
+                      disabled={isProcessing || (!uploadedFile && !youtubeUrl)}
+                      className="process-btn-center"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <Loader size={18} className="spinner" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Brain size={18} />
+                          Generate AI Notes
+                        </>
+                      )}
+                    </button>
+
+                    {isProcessing && (
+                      <div className="processing-status">
+                        <div className="progress-bar">
+                          <div className="progress-fill" style={{ width: `${progress}%` }} />
+                        </div>
+                        <p className="processing-stage">{processingStage}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="messages-container" ref={messagesContainerRef}>
+              <div className="messages-list">
             <div className="results-header">
               <h2>{results.filename}</h2>
               <div className="results-meta">
@@ -648,31 +689,27 @@ const AIMediaNotes = () => {
                 <Brain size={16} />
                 Analysis
               </button>
-              {results.flashcards?.length > 0 && (
-                <button
-                  className={activeTab === 'flashcards' ? 'active' : ''}
-                  onClick={() => setActiveTab('flashcards')}
-                >
-                  <Sparkles size={16} />
-                  Flashcards ({results.flashcards.length})
-                </button>
-              )}
-              {results.quiz_questions?.length > 0 && (
-                <button
-                  className={activeTab === 'quiz' ? 'active' : ''}
-                  onClick={() => setActiveTab('quiz')}
-                >
-                  <CheckCircle size={16} />
-                  Quiz ({results.quiz_questions.length})
-                </button>
-              )}
+              <button
+                className={activeTab === 'flashcards' ? 'active' : ''}
+                onClick={() => setActiveTab('flashcards')}
+              >
+                <Sparkles size={16} />
+                Flashcards {results.flashcards?.length > 0 && `(${results.flashcards.length})`}
+              </button>
+              <button
+                className={activeTab === 'quiz' ? 'active' : ''}
+                onClick={() => setActiveTab('quiz')}
+              >
+                <CheckCircle size={16} />
+                Quiz {results.quiz_questions?.length > 0 && `(${results.quiz_questions.length})`}
+              </button>
               {results.key_moments?.length > 0 && (
                 <button
                   className={activeTab === 'moments' ? 'active' : ''}
                   onClick={() => setActiveTab('moments')}
                 >
                   <Play size={16} />
-                  Key Moments
+                  Key Moments ({results.key_moments.length})
                 </button>
               )}
             </div>
@@ -704,109 +741,149 @@ const AIMediaNotes = () => {
 
               {activeTab === 'analysis' && (
                 <div className="analysis-content">
-                  {results.analysis?.summary && (
-                    <div className="analysis-section">
-                      <h3>Summary</h3>
-                      <p>{results.analysis.summary}</p>
+                  {!results.analysis || Object.keys(results.analysis).length === 0 ? (
+                    <div className="empty-state">
+                      <AlertCircle size={48} />
+                      <p>No analysis data available</p>
                     </div>
-                  )}
+                  ) : (
+                    <>
+                      {results.analysis?.summary && (
+                        <div className="analysis-section">
+                          <h3>Summary</h3>
+                          <p>{results.analysis.summary}</p>
+                        </div>
+                      )}
 
-                  {results.analysis?.key_concepts && (
-                    <div className="analysis-section">
-                      <h3>Key Concepts</h3>
-                      <div className="concept-tags">
-                        {results.analysis.key_concepts.map((concept, idx) => (
-                          <span key={idx} className="concept-tag">{concept}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {results.analysis?.topics && (
-                    <div className="analysis-section">
-                      <h3>Topics Covered</h3>
-                      <div className="topic-list">
-                        {results.analysis.topics.map((topic, idx) => (
-                          <div key={idx} className="topic-item">
-                            <CheckCircle size={16} />
-                            {topic}
+                      {results.analysis?.key_concepts && results.analysis.key_concepts.length > 0 && (
+                        <div className="analysis-section">
+                          <h3>Key Concepts</h3>
+                          <div className="concept-tags">
+                            {results.analysis.key_concepts.map((concept, idx) => (
+                              <span key={idx} className="concept-tag">{concept}</span>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                        </div>
+                      )}
 
-                  {results.analysis?.estimated_study_time && (
-                    <div className="analysis-section">
-                      <h3>Estimated Study Time</h3>
-                      <p className="study-time">
-                        <Clock size={20} />
-                        {results.analysis.estimated_study_time} minutes
-                      </p>
-                    </div>
+                      {results.analysis?.topics && results.analysis.topics.length > 0 && (
+                        <div className="analysis-section">
+                          <h3>Topics Covered</h3>
+                          <div className="topic-list">
+                            {results.analysis.topics.map((topic, idx) => (
+                              <div key={idx} className="topic-item">
+                                <CheckCircle size={16} />
+                                {topic}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {results.analysis?.estimated_study_time && (
+                        <div className="analysis-section">
+                          <h3>Estimated Study Time</h3>
+                          <p className="study-time">
+                            <Clock size={20} />
+                            {results.analysis.estimated_study_time} minutes
+                          </p>
+                        </div>
+                      )}
+
+                      {results.analysis?.questions && results.analysis.questions.length > 0 && (
+                        <div className="analysis-section">
+                          <h3>Study Questions</h3>
+                          <ol className="study-questions">
+                            {results.analysis.questions.map((q, idx) => (
+                              <li key={idx}>{q}</li>
+                            ))}
+                          </ol>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
 
-              {activeTab === 'flashcards' && results.flashcards && (
+              {activeTab === 'flashcards' && (
                 <>
-                  <div className="content-actions">
-                    <button onClick={saveFlashcards} className="action-btn primary">
-                      <Save size={16} />
-                      Save to Flashcards
-                    </button>
-                    <button onClick={() => copyToClipboard(JSON.stringify(results.flashcards, null, 2))} className="action-btn">
-                      <Copy size={16} />
-                      Copy JSON
-                    </button>
-                  </div>
-                  <div className="flashcards-content">
-                    {results.flashcards.map((card, idx) => (
-                      <div key={idx} className="flashcard">
-                        <div className="flashcard-front">
-                          <span className="card-label">Q{idx + 1}</span>
-                          <p>{card.question}</p>
-                        </div>
-                        <div className="flashcard-back">
-                          <span className="card-label">Answer</span>
-                          <p>{card.answer}</p>
-                          {card.difficulty && (
-                            <span className={`difficulty-badge ${card.difficulty}`}>
-                              {card.difficulty}
-                            </span>
-                          )}
-                        </div>
+                  {!results.flashcards || results.flashcards.length === 0 ? (
+                    <div className="empty-state">
+                      <AlertCircle size={48} />
+                      <p>No flashcards generated</p>
+                      <p className="empty-hint">Enable "Generate Flashcards" in settings before processing</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="content-actions">
+                        <button onClick={saveFlashcards} className="action-btn primary">
+                          <Save size={16} />
+                          Save to Flashcards
+                        </button>
+                        <button onClick={() => copyToClipboard(JSON.stringify(results.flashcards, null, 2))} className="action-btn">
+                          <Copy size={16} />
+                          Copy JSON
+                        </button>
                       </div>
-                    ))}
-                  </div>
+                      <div className="flashcards-content">
+                        {results.flashcards.map((card, idx) => (
+                          <div key={idx} className="flashcard">
+                            <div className="flashcard-front">
+                              <span className="card-label">Q{idx + 1}</span>
+                              <p>{card.question}</p>
+                            </div>
+                            <div className="flashcard-back">
+                              <span className="card-label">Answer</span>
+                              <p>{card.answer}</p>
+                              {card.difficulty && (
+                                <span className={`difficulty-badge ${card.difficulty}`}>
+                                  {card.difficulty}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </>
               )}
 
-              {activeTab === 'quiz' && results.quiz_questions && (
-                <div className="quiz-content">
-                  {results.quiz_questions.map((q, idx) => (
-                    <div key={idx} className="quiz-question">
-                      <h4>Question {idx + 1}</h4>
-                      <p className="question-text">{q.question}</p>
-                      <div className="quiz-options">
-                        {q.options.map((option, optIdx) => (
-                          <div
-                            key={optIdx}
-                            className={`quiz-option ${optIdx === q.correct_answer ? 'correct' : ''}`}
-                          >
-                            <span className="option-letter">{String.fromCharCode(65 + optIdx)}</span>
-                            {option}
-                          </div>
-                        ))}
-                      </div>
-                      {q.explanation && (
-                        <div className="explanation">
-                          <strong>Explanation:</strong> {q.explanation}
-                        </div>
-                      )}
+              {activeTab === 'quiz' && (
+                <>
+                  {!results.quiz_questions || results.quiz_questions.length === 0 ? (
+                    <div className="empty-state">
+                      <AlertCircle size={48} />
+                      <p>No quiz questions generated</p>
+                      <p className="empty-hint">Enable "Generate Quiz" in settings before processing</p>
                     </div>
-                  ))}
-                </div>
+                  ) : (
+                    <div className="quiz-content">
+                      {results.quiz_questions.map((q, idx) => (
+                        <div key={idx} className="quiz-question">
+                          <h4>Question {idx + 1}</h4>
+                          <p className="question-text">{q.question}</p>
+                          <div className="quiz-options">
+                            {q.options.map((option, optIdx) => (
+                              <div
+                                key={optIdx}
+                                className={`quiz-option ${optIdx === q.correct_answer ? 'correct' : ''}`}
+                              >
+                                <span className="option-letter">{String.fromCharCode(65 + optIdx)}</span>
+                                {option}
+                              </div>
+                            ))}
+                          </div>
+                          {q.explanation && (
+                            <div className="explanation">
+                              <strong>Explanation:</strong> {q.explanation}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
 
               {activeTab === 'moments' && results.key_moments && (
@@ -829,8 +906,10 @@ const AIMediaNotes = () => {
                 </div>
               )}
             </div>
-          </div>
-        )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

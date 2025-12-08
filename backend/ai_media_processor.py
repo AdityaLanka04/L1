@@ -210,23 +210,26 @@ class AIMediaProcessor:
             subject = options.get('subject', 'general')
             difficulty = options.get('difficulty', 'intermediate')
             
+            # Use more of the transcript for analysis (up to 30k chars)
+            transcript_sample = transcript[:30000]
+            
             prompt = f"""Analyze this transcript and provide a comprehensive analysis:
 
-Transcript: {transcript[:8000]}
+Transcript: {transcript_sample}
 
 Provide a JSON response with:
-1. key_concepts: Array of main concepts (max 10)
+1. key_concepts: Array of main concepts (max 20)
 2. topics: Array of topics covered
 3. difficulty_level: beginner/intermediate/advanced
 4. estimated_study_time: minutes needed to study this
-5. summary: Brief 2-3 sentence summary
+5. summary: Comprehensive 5-7 sentence summary covering all major points
 6. action_items: Things to remember or do
-7. questions: 5 study questions
+7. questions: 10 study questions covering different sections
 8. language: detected language code
 
 Format as valid JSON."""
 
-            # Use Groq instead of Gemini (better free tier limits)
+            # Use Groq with higher token limit
             response = self.groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[
@@ -234,7 +237,7 @@ Format as valid JSON."""
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
-                max_tokens=2000
+                max_tokens=4000
             )
             
             result_text = response.choices[0].message.content
@@ -274,63 +277,75 @@ Format as valid JSON."""
             }
     
     async def generate_notes_ai(self, transcript: str, analysis: Dict, style: str = "detailed", options: Dict = None) -> Dict:
-        """Generate formatted notes using Groq AI"""
+        """Generate formatted notes using Groq with optimized prompts for detailed output"""
         try:
             options = options or {}
             difficulty = options.get('difficulty', 'intermediate')
             subject = options.get('subject', 'general')
             custom_instructions = options.get('custom_instructions', '')
             
-            # Style-specific prompts
-            style_prompts = {
-                "detailed": "Create comprehensive, detailed notes with full explanations",
-                "summary": "Create concise summary notes highlighting key points",
-                "bullet_points": "Create organized bullet-point notes",
-                "mind_map": "Create a mind map structure with main topics and subtopics",
-                "cornell": "Create Cornell-style notes with cues, notes, and summary sections",
-                "outline": "Create a hierarchical outline format",
-                "qa": "Create question-and-answer format notes"
-            }
+            # Calculate word count
+            word_count = len(transcript.split())
+            logger.info(f"Transcript word count: {word_count}")
             
-            style_instruction = style_prompts.get(style, style_prompts["detailed"])
+            # For very long transcripts, use chunking with Groq
+            if word_count > 8000 and style == "detailed":
+                logger.info("Using chunked processing for long transcript")
+                return await self._generate_notes_chunked_groq(transcript, analysis, difficulty, subject, custom_instructions)
             
-            prompt = f"""Generate {style} study notes from this content.
+            # Single-pass generation with Groq
+            prompt = f"""You are an expert professor creating comprehensive lecture notes for students.
 
-Subject Context: {subject}
-Difficulty Level: {difficulty}
-Style: {style_instruction}
-{f'Additional Instructions: {custom_instructions}' if custom_instructions else ''}
+LECTURE DETAILS:
+- Subject: {subject}
+- Difficulty: {difficulty}
+- Transcript Length: {word_count} words
+{f'- Special Instructions: {custom_instructions}' if custom_instructions else ''}
 
-Content Summary:
-{analysis.get('summary', '')}
+YOUR TASK:
+Create EXTREMELY DETAILED study notes that cover EVERY important point from this lecture.
+Your notes should be AT LEAST 2500-3500 words and include:
 
-Key Concepts:
+1. COMPREHENSIVE COVERAGE: Don't skip any major topics or concepts
+2. DETAILED EXPLANATIONS: Explain each concept thoroughly (4-6 sentences per concept)
+3. EXAMPLES & CONTEXT: Provide examples, analogies, and real-world applications
+4. STRUCTURED FORMAT: Use clear sections and subsections
+5. KEY TERMS: Highlight and define important terminology
+6. CONNECTIONS: Show how concepts relate to each other
+
+KEY CONCEPTS TO ELABORATE ON:
 {json.dumps(analysis.get('key_concepts', []))}
 
-Full Transcript:
-{transcript[:10000]}
+COMPLETE LECTURE TRANSCRIPT:
+{transcript}
 
-Generate well-structured HTML notes with:
-- Clear headings and subheadings
-- Proper formatting (bold, italic, lists)
-- Code blocks if technical content
-- Highlighted key concepts
-- Organized sections
+FORMAT YOUR NOTES AS HTML:
+- Use <h2> for main sections (e.g., "Introduction", "Core Concepts", "Applications")
+- Use <h3> for major topics within sections
+- Use <h4> for subtopics and specific concepts
+- Use <strong> for key terms and important points
+- Use <ul> or <ol> for lists
+- Use <p> for explanatory paragraphs (write MULTIPLE paragraphs per concept)
+- Use <blockquote> for important quotes or key takeaways
+- Use <em> for emphasis
 
-Return ONLY the HTML content, no markdown code blocks."""
+CRITICAL: Make these notes COMPREHENSIVE and DETAILED. Students should be able to study from these notes alone. Do NOT just summarize - EXPAND and EXPLAIN thoroughly.
 
-            # Use Groq for note generation
+Return ONLY the HTML content (no markdown code blocks, no ```html tags)."""
+
+            # Use Groq with maximum output tokens
             response = self.groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[
-                    {"role": "system", "content": "You are an expert educational content writer. Generate well-formatted HTML study notes."},
+                    {"role": "system", "content": "You are an expert educational content writer who creates thorough, comprehensive study notes. You never summarize - you always expand and explain concepts in detail."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
-                max_tokens=4000
+                max_tokens=8000  # Groq allows up to 8k tokens
             )
             
             html_content = response.choices[0].message.content
+            
             
             # Clean up markdown if present
             if "```html" in html_content:
@@ -346,6 +361,95 @@ Return ONLY the HTML content, no markdown code blocks."""
             
         except Exception as e:
             logger.error(f"Note generation error: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+    
+    async def _generate_notes_chunked_groq(self, transcript: str, analysis: Dict, difficulty: str, subject: str, custom_instructions: str) -> Dict:
+        """Generate notes in chunks for very long transcripts using Groq, then combine"""
+        try:
+            # Split transcript into chunks (roughly 7k words each for Groq)
+            words = transcript.split()
+            chunk_size = 7000
+            chunks = []
+            
+            for i in range(0, len(words), chunk_size):
+                chunk = ' '.join(words[i:i + chunk_size])
+                chunks.append(chunk)
+            
+            logger.info(f"Processing {len(chunks)} chunks with Groq")
+            
+            # Generate notes for each chunk
+            all_notes = []
+            for idx, chunk in enumerate(chunks):
+                logger.info(f"Processing chunk {idx + 1}/{len(chunks)}")
+                
+                prompt = f"""Create comprehensive study notes for PART {idx + 1} of {len(chunks)} of a lecture.
+
+Subject: {subject}
+Difficulty: {difficulty}
+Key Concepts: {json.dumps(analysis.get('key_concepts', []))}
+
+LECTURE CONTENT (Part {idx + 1}/{len(chunks)}):
+{chunk}
+
+Create DETAILED HTML notes for this section:
+- Use <h3> for main topics
+- Use <h4> for subtopics  
+- Write thorough explanations (4-6 sentences per concept)
+- Include examples and context
+- Use <strong> for key terms
+- Use <ul>/<ol> for lists
+- Use <p> for detailed paragraphs
+
+Make this comprehensive - students should understand the material from your notes alone.
+
+Return ONLY HTML content (no markdown)."""
+
+                response = self.groq_client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[
+                        {"role": "system", "content": "You are an expert educational content writer creating detailed study notes."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=8000
+                )
+                
+                all_notes.append(response.choices[0].message.content)
+            
+            # Combine all chunks with section headers
+            combined_html = f"""<div class="lecture-notes">
+<h1>{subject} - Comprehensive Lecture Notes</h1>
+<p><em>Generated from {len(words)}-word lecture transcript</em></p>
+"""
+            
+            for idx, note_html in enumerate(all_notes):
+                # Clean up markdown if present
+                if "```html" in note_html:
+                    note_html = note_html.split("```html")[1].split("```")[0]
+                elif "```" in note_html:
+                    note_html = note_html.split("```")[1].split("```")[0]
+                
+                combined_html += f"""
+<section class="lecture-section">
+<h2>Part {idx + 1} of {len(chunks)}</h2>
+{note_html}
+</section>
+"""
+            
+            combined_html += "</div>"
+            
+            return {
+                "success": True,
+                "content": combined_html.strip(),
+                "style": "detailed",
+                "chunks_processed": len(chunks)
+            }
+            
+        except Exception as e:
+            logger.error(f"Chunked note generation error: {str(e)}")
             return {
                 "success": False,
                 "error": str(e)

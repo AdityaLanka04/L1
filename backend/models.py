@@ -73,6 +73,7 @@ class User(Base):
     question_sessions_new = relationship("QuestionSession", back_populates="user")
     performance_metrics = relationship("UserPerformanceMetrics", back_populates="user")
     gamification_stats = relationship("UserGamificationStats", back_populates="user", uselist=False)
+    media_files = relationship("MediaFile", back_populates="user")
 
 
 class ChatSession(Base):
@@ -208,23 +209,57 @@ class UserStats(Base):
 
 # ... (ChatSession, ChatMessage, UserStats remain the same)
 
+class MediaFile(Base):
+    __tablename__ = "media_files"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    # File info
+    file_type = Column(String(20))  # 'pdf', 'audio', 'video', 'youtube'
+    original_filename = Column(String(255))
+    file_size = Column(Integer, nullable=True)
+    
+    # Storage info (optional - only if storing original files)
+    storage_path = Column(String(500), nullable=True)
+    storage_type = Column(String(20), nullable=True)  # 'local', 'supabase', 'r2'
+    
+    # Extracted content (always stored)
+    extracted_text = Column(Text)
+    
+    # Metadata
+    language = Column(String(10), nullable=True)
+    duration = Column(Integer, nullable=True)  # For audio/video in seconds
+    page_count = Column(Integer, nullable=True)  # For PDFs
+    word_count = Column(Integer)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    processed_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = relationship("User", back_populates="media_files")
+    notes = relationship("Note", back_populates="media_file")
+
 class Note(Base):
     __tablename__ = "notes"
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    media_file_id = Column(Integer, ForeignKey("media_files.id"), nullable=True)
     title = Column(String(255), default="Untitled Note")
     content = Column(Text, default="")
     folder_id = Column(Integer, ForeignKey("folders.id"), nullable=True)
     is_favorite = Column(Boolean, default=False)
     is_deleted = Column(Boolean, default=False)
-    deleted_at = Column(DateTime, nullable=True)  # ✅ Removed timezone=True
-    created_at = Column(DateTime, default=datetime.utcnow)  # ✅ Changed from lambda
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)  # ✅ Changed from lambda
+    deleted_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     custom_font = Column(String(50), default="Inter")
     
     user = relationship("User", back_populates="notes")
     folder = relationship("Folder", back_populates="notes")
+    media_file = relationship("MediaFile", back_populates="notes")
 
 class Folder(Base):
     __tablename__ = "folders"

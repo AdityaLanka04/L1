@@ -3403,9 +3403,12 @@ async def process_media(
         )
         
         if not analysis_result.get("success"):
-            raise HTTPException(status_code=500, detail="AI analysis failed")
+            logger.error(f"AI analysis failed: {analysis_result.get('error', 'Unknown error')}")
+            raise HTTPException(status_code=500, detail=f"AI analysis failed: {analysis_result.get('error', 'Unknown error')}")
         
-        analysis_data = analysis_result["analysis"]
+        analysis_data = analysis_result.get("analysis", {})
+        logger.info(f"Analysis data keys: {list(analysis_data.keys())}")
+        logger.info(f"Analysis summary: {analysis_data.get('summary', 'No summary')[:100]}")
         
         # Generate Notes
         logger.info(f"Generating {note_style} notes...")
@@ -3434,6 +3437,9 @@ async def process_media(
             )
             if flashcard_result.get("success"):
                 flashcards = flashcard_result.get("flashcards", [])
+                logger.info(f"Generated {len(flashcards)} flashcards")
+            else:
+                logger.warning(f"Flashcard generation failed: {flashcard_result.get('error', 'Unknown')}")
         
         # Generate Quiz (optional)
         quiz_questions = []
@@ -3446,6 +3452,9 @@ async def process_media(
             )
             if quiz_result.get("success"):
                 quiz_questions = quiz_result.get("questions", [])
+                logger.info(f"Generated {len(quiz_questions)} quiz questions")
+            else:
+                logger.warning(f"Quiz generation failed: {quiz_result.get('error', 'Unknown')}")
         
         # Extract key moments
         key_moments = []
