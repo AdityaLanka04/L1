@@ -26,6 +26,7 @@ import Notes from './pages/NotesRedesign';
 import NotesHub from './pages/NotesHub';
 import PomodoroPage from './pages/PomodoroPage';
 import AudioVideoNotes from './pages/AudioVideoNotes';
+import AIMediaNotes from './pages/AIMediaNotes';
 import MyNotes from './pages/MyNotes';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -105,6 +106,7 @@ function App() {
             <Route path="/notes" element={<ProtectedRoute><NotesHub /></ProtectedRoute>} />
             <Route path="/notes/dashboard" element={<ProtectedRoute><NotesDashboard /></ProtectedRoute>} />
             <Route path="/notes/audio-video" element={<ProtectedRoute><AudioVideoNotes /></ProtectedRoute>} />
+            <Route path="/notes/ai-media" element={<ProtectedRoute><AIMediaNotes /></ProtectedRoute>} />
             <Route path="/notes/my-notes" element={<ProtectedRoute><MyNotes /></ProtectedRoute>} />
             <Route path="/notes/editor/:noteId" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
             <Route path="/activity-timeline" element={<ProtectedRoute><ActivityTimeline /></ProtectedRoute>} />

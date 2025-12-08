@@ -23,6 +23,42 @@ import requests
 from dotenv import load_dotenv
 from groq import Groq
 
+# Media Processing Imports (optional - will be imported when needed)
+try:
+    from youtube_transcript_api import YouTubeTranscriptApi
+    YOUTUBE_AVAILABLE = True
+except ImportError:
+    YOUTUBE_AVAILABLE = False
+    logger.warning("youtube-transcript-api not installed")
+
+try:
+    from pytube import YouTube
+    PYTUBE_AVAILABLE = True
+except ImportError:
+    PYTUBE_AVAILABLE = False
+    logger.warning("pytube not installed")
+
+try:
+    from langdetect import detect, LangDetectException
+    LANGDETECT_AVAILABLE = True
+except ImportError:
+    LANGDETECT_AVAILABLE = False
+    logger.warning("langdetect not installed")
+
+try:
+    import pycountry
+    PYCOUNTRY_AVAILABLE = True
+except ImportError:
+    PYCOUNTRY_AVAILABLE = False
+    logger.warning("pycountry not installed")
+
+try:
+    from pydub import AudioSegment
+    PYDUB_AVAILABLE = True
+except ImportError:
+    PYDUB_AVAILABLE = False
+    logger.warning("pydub not installed")
+
 import models
 from database import SessionLocal, engine, get_db
 from models import get_db
@@ -3285,77 +3321,280 @@ Use HTML formatting. Start DIRECTLY with the content."""
         logger.error(f"Error expanding content: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to expand content: {str(e)}")
 
-@app.post("/api/generate_notes_from_media")
-async def generate_notes_from_media(
+# ==================== AI MEDIA PROCESSING ENDPOINTS ====================
+
+from ai_media_processor import ai_media_processor
+from media_models import MediaUpload, TranscriptionSegment, GeneratedNote, SpeakerSegment
+
+@app.post("/api/media/process")
+async def process_media(
     user_id: str = Form(...),
     file: UploadFile = File(None),
     youtube_url: str = Form(None),
+    note_style: str = Form("detailed"),
+    difficulty: str = Form("intermediate"),
+    subject: str = Form("general"),
+    custom_instructions: str = Form(None),
+    generate_flashcards: bool = Form(False),
+    generate_quiz: bool = Form(False),
     db: Session = Depends(get_db)
 ):
     """
-    Generate notes from audio/video files or YouTube URLs
+    Comprehensive AI-powered media processing
     """
     try:
-        logger.info(f"Generating notes from media for user: {user_id}")
-        
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # For now, generate sample notes (you can integrate actual transcription later)
-        if file:
-            content = f"""<h1>Notes from {file.filename}</h1>
-<h2>Overview</h2>
-<p>These are AI-generated notes from your uploaded media file.</p>
-
-<h2>Key Points</h2>
-<ul>
-<li><strong>Main Topic:</strong> Content analysis from audio/video</li>
-<li><strong>Duration:</strong> Estimated processing time</li>
-<li><strong>Format:</strong> {file.content_type}</li>
-</ul>
-
-<h2>Summary</h2>
-<p>This is a placeholder for transcribed and summarized content. In production, this would contain the actual transcription and AI-generated summary of your media file.</p>
-
-<h2>Action Items</h2>
-<ul>
-<li>Review the key concepts</li>
-<li>Create flashcards from important points</li>
-<li>Practice with generated questions</li>
-</ul>"""
-        elif youtube_url:
-            content = f"""<h1>Notes from YouTube Video</h1>
-<h2>Video URL</h2>
-<p>{youtube_url}</p>
-
-<h2>Key Points</h2>
-<ul>
-<li><strong>Source:</strong> YouTube video content</li>
-<li><strong>Format:</strong> Video transcript and summary</li>
-</ul>
-
-<h2>Summary</h2>
-<p>This is a placeholder for YouTube video transcription and summary. In production, this would contain the actual video transcript and AI-generated notes.</p>
-
-<h2>Important Concepts</h2>
-<ul>
-<li>Concept 1: Main idea from the video</li>
-<li>Concept 2: Supporting details</li>
-<li>Concept 3: Practical applications</li>
-</ul>"""
+        transcript_data = None
+        analysis_data = None
+        source_type = None
+        filename = None
+        file_path = None
+        
+        # Debug logging
+        logger.info(f"Received - File: {file.filename if file else None}, YouTube URL: '{youtube_url}'")
+        
+        # Process YouTube URL
+        if youtube_url and youtube_url.strip():
+            logger.info(f"Processing YouTube URL: {youtube_url}")
+            result = await ai_media_processor.process_youtube_video(youtube_url.strip())
+            
+            if not result.get("success"):
+                raise HTTPException(status_code=400, detail=result.get("error", "Failed to process YouTube video"))
+            
+            transcript_data = result
+            source_type = "youtube"
+            filename = result["video_info"]["title"]
+            
+        # Process uploaded file
+        elif file:
+            logger.info(f"Processing uploaded file: {file.filename}")
+            
+            # Save file temporarily
+            upload_dir = "backend/uploads/media"
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            file_path = os.path.join(upload_dir, f"{user.id}_{int(datetime.now().timestamp())}_{file.filename}")
+            
+            with open(file_path, "wb") as f:
+                content = await file.read()
+                f.write(content)
+            
+            # Transcribe audio
+            result = await ai_media_processor.transcribe_audio_groq(file_path)
+            
+            if not result.get("success"):
+                raise HTTPException(status_code=400, detail=result.get("error", "Failed to transcribe audio"))
+            
+            transcript_data = result
+            source_type = "upload"
+            filename = file.filename
+            
         else:
             raise HTTPException(status_code=400, detail="Please provide either a file or YouTube URL")
         
+        # AI Analysis
+        logger.info("Performing AI analysis...")
+        analysis_result = await ai_media_processor.analyze_transcript_ai(
+            transcript_data["transcript"],
+            {"subject": subject, "difficulty": difficulty}
+        )
+        
+        if not analysis_result.get("success"):
+            raise HTTPException(status_code=500, detail="AI analysis failed")
+        
+        analysis_data = analysis_result["analysis"]
+        
+        # Generate Notes
+        logger.info(f"Generating {note_style} notes...")
+        notes_result = await ai_media_processor.generate_notes_ai(
+            transcript_data["transcript"],
+            analysis_data,
+            note_style,
+            {
+                "difficulty": difficulty,
+                "subject": subject,
+                "custom_instructions": custom_instructions
+            }
+        )
+        
+        if not notes_result.get("success"):
+            raise HTTPException(status_code=500, detail="Note generation failed")
+        
+        # Generate Flashcards (optional)
+        flashcards = []
+        if generate_flashcards:
+            logger.info("Generating flashcards...")
+            flashcard_result = await ai_media_processor.generate_flashcards_ai(
+                transcript_data["transcript"],
+                analysis_data,
+                count=10
+            )
+            if flashcard_result.get("success"):
+                flashcards = flashcard_result.get("flashcards", [])
+        
+        # Generate Quiz (optional)
+        quiz_questions = []
+        if generate_quiz:
+            logger.info("Generating quiz...")
+            quiz_result = await ai_media_processor.generate_quiz_ai(
+                transcript_data["transcript"],
+                analysis_data,
+                count=10
+            )
+            if quiz_result.get("success"):
+                quiz_questions = quiz_result.get("questions", [])
+        
+        # Extract key moments
+        key_moments = []
+        if transcript_data.get("has_timestamps") and transcript_data.get("segments"):
+            key_moments = await ai_media_processor.extract_key_moments(
+                transcript_data["segments"],
+                analysis_data
+            )
+        
+        # Prepare response
+        response = {
+            "success": True,
+            "source_type": source_type,
+            "filename": filename,
+            "transcript": transcript_data["transcript"],
+            "language": transcript_data.get("language", "en"),
+            "language_name": ai_media_processor.get_language_name(transcript_data.get("language", "en")),
+            "duration": transcript_data.get("duration", 0),
+            "has_timestamps": transcript_data.get("has_timestamps", False),
+            "segments": transcript_data.get("segments", [])[:50],  # Limit segments in response
+            "analysis": analysis_data,
+            "notes": {
+                "content": notes_result["content"],
+                "style": note_style
+            },
+            "flashcards": flashcards,
+            "quiz_questions": quiz_questions,
+            "key_moments": key_moments,
+            "video_info": transcript_data.get("video_info") if source_type == "youtube" else None
+        }
+        
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Media processing error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
+
+@app.post("/api/media/save-notes")
+async def save_media_notes(
+    user_id: str = Body(...),
+    title: str = Body(...),
+    content: str = Body(...),
+    transcript: str = Body(None),
+    analysis: dict = Body(None),
+    flashcards: list = Body(None),
+    quiz_questions: list = Body(None),
+    db: Session = Depends(get_db)
+):
+    """Save generated notes to user's notes"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Create note
+        new_note = models.Note(
+            user_id=user.id,
+            title=title,
+            content=content,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        
+        db.add(new_note)
+        db.commit()
+        db.refresh(new_note)
+        
+        # Create flashcards if provided
+        if flashcards and len(flashcards) > 0:
+            flashcard_set = models.FlashcardSet(
+                user_id=user.id,
+                title=f"Flashcards: {title}",
+                source_type="media",
+                source_id=new_note.id
+            )
+            db.add(flashcard_set)
+            db.commit()
+            db.refresh(flashcard_set)
+            
+            for fc in flashcards:
+                flashcard = models.Flashcard(
+                    set_id=flashcard_set.id,
+                    question=fc.get("question", ""),
+                    answer=fc.get("answer", ""),
+                    difficulty=fc.get("difficulty", "medium")
+                )
+                db.add(flashcard)
+            
+            db.commit()
+        
+        # Track activity
+        from gamification_system import award_points
+        award_points(db, user.id, "note_created")
+        
         return {
-            "notes": content,
-            "status": "success",
-            "message": "Notes generated successfully"
+            "success": True,
+            "note_id": new_note.id,
+            "message": "Notes saved successfully"
         }
         
     except Exception as e:
-        logger.error(f"Error generating notes from media: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate notes: {str(e)}")
+        logger.error(f"Error saving notes: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to save notes: {str(e)}")
+
+@app.post("/api/media/regenerate-notes")
+async def regenerate_notes(
+    transcript: str = Body(...),
+    analysis: dict = Body(...),
+    note_style: str = Body("detailed"),
+    difficulty: str = Body("intermediate"),
+    subject: str = Body("general"),
+    custom_instructions: str = Body(None)
+):
+    """Regenerate notes with different style/settings"""
+    try:
+        notes_result = await ai_media_processor.generate_notes_ai(
+            transcript,
+            analysis,
+            note_style,
+            {
+                "difficulty": difficulty,
+                "subject": subject,
+                "custom_instructions": custom_instructions
+            }
+        )
+        
+        if not notes_result.get("success"):
+            raise HTTPException(status_code=500, detail="Note regeneration failed")
+        
+        return {
+            "success": True,
+            "content": notes_result["content"],
+            "style": note_style
+        }
+        
+    except Exception as e:
+        logger.error(f"Error regenerating notes: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to regenerate notes: {str(e)}")
+
+@app.get("/api/media/estimate-cost")
+async def estimate_processing_cost(
+    duration_seconds: int = Query(...),
+    file_size_mb: float = Query(...)
+):
+    """Estimate processing cost (all free)"""
+    cost_info = ai_media_processor.estimate_processing_cost(duration_seconds, file_size_mb)
+    return cost_info
 
 @app.post("/api/create_note")
 def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):

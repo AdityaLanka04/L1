@@ -26,28 +26,28 @@ const NotesHub = () => {
       </div>
 
       <div className="split-container">
-        {/* Left Section - Audio/Video Notes */}
-        <div className="split-section left-section" onClick={() => navigate('/notes/audio-video')}>
+        {/* Left Section - AI Media Notes */}
+        <div className="split-section left-section" onClick={() => navigate('/notes/ai-media')}>
           <div className="section-content">
             <div className="section-icon-box">
               <Mic size={48} strokeWidth={1.5} />
             </div>
             
-            <h2 className="section-title">generate from media</h2>
-            <p className="section-subtitle">GENERATE FROM MEDIA</p>
+            <h2 className="section-title">AI Media Notes</h2>
+            <p className="section-subtitle">AI-POWERED TRANSCRIPTION & NOTES</p>
             
             <div className="section-features">
               <div className="feature-item">
                 <Upload size={14} />
-                <span>Upload Audio Files</span>
-              </div>
-              <div className="feature-item">
-                <Video size={14} />
-                <span>Upload Videos</span>
+                <span>Audio & Video Files</span>
               </div>
               <div className="feature-item">
                 <Youtube size={14} />
-                <span>YouTube Links</span>
+                <span>YouTube Transcripts</span>
+              </div>
+              <div className="feature-item">
+                <FileText size={14} />
+                <span>AI-Generated Notes</span>
               </div>
             </div>
 
