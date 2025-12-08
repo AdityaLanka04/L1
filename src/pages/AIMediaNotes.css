@@ -817,12 +817,21 @@
   opacity: 0.3 !important;
 }
 
+.results-header-top {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  margin-bottom: 12px !important;
+}
+
 .results-header h2 {
   font-size: 24px !important;
   font-weight: 700 !important;
   color: var(--text-primary) !important;
-  margin: 0 0 12px 0 !important;
+  margin: 0 !important;
   letter-spacing: -0.5px !important;
+  flex: 1 !important;
 }
 
 .results-meta {

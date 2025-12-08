@@ -3503,6 +3503,7 @@ async def save_media_notes(
     analysis: dict = Body(None),
     flashcards: list = Body(None),
     quiz_questions: list = Body(None),
+    key_moments: list = Body(None),
     db: Session = Depends(get_db)
 ):
     """Save generated notes to user's notes"""
@@ -3511,12 +3512,19 @@ async def save_media_notes(
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
+        import json
+        
         # Create note with special marker for media notes
         new_note = models.Note(
             user_id=user.id,
             title=title,
             content=content,
             custom_font="__MEDIA_NOTE__",  # Special marker to identify media-generated notes
+            transcript=transcript,
+            analysis=json.dumps(analysis) if analysis else None,
+            flashcards=json.dumps(flashcards) if flashcards else None,
+            quiz_questions=json.dumps(quiz_questions) if quiz_questions else None,
+            key_moments=json.dumps(key_moments) if key_moments else None,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )
@@ -3651,6 +3659,8 @@ async def get_single_note(
 ):
     """Get a single note by ID"""
     try:
+        import json
+        
         note = db.query(models.Note).filter(
             models.Note.id == note_id,
             models.Note.is_deleted == False
@@ -3658,6 +3668,36 @@ async def get_single_note(
         
         if not note:
             raise HTTPException(status_code=404, detail="Note not found")
+        
+        # Parse JSON fields
+        analysis = {}
+        flashcards = []
+        quiz_questions = []
+        key_moments = []
+        
+        try:
+            if note.analysis:
+                analysis = json.loads(note.analysis)
+        except:
+            pass
+        
+        try:
+            if note.flashcards:
+                flashcards = json.loads(note.flashcards)
+        except:
+            pass
+        
+        try:
+            if note.quiz_questions:
+                quiz_questions = json.loads(note.quiz_questions)
+        except:
+            pass
+        
+        try:
+            if note.key_moments:
+                key_moments = json.loads(note.key_moments)
+        except:
+            pass
         
         return {
             "id": note.id,
@@ -3668,11 +3708,11 @@ async def get_single_note(
             "folder_id": note.folder_id,
             "is_favorite": note.is_favorite,
             "custom_font": note.custom_font,
-            "transcript": "",  # These would need to be stored separately if needed
-            "analysis": {},
-            "flashcards": [],
-            "quiz_questions": [],
-            "key_moments": []
+            "transcript": note.transcript or "",
+            "analysis": analysis,
+            "flashcards": flashcards,
+            "quiz_questions": quiz_questions,
+            "key_moments": key_moments
         }
         
     except HTTPException:

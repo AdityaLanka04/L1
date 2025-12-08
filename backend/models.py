@@ -257,6 +257,13 @@ class Note(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     custom_font = Column(String(50), default="Inter")
     
+    # Media note fields (stored as JSON)
+    transcript = Column(Text, nullable=True)
+    analysis = Column(Text, nullable=True)  # JSON string
+    flashcards = Column(Text, nullable=True)  # JSON string
+    quiz_questions = Column(Text, nullable=True)  # JSON string
+    key_moments = Column(Text, nullable=True)  # JSON string
+    
     user = relationship("User", back_populates="notes")
     folder = relationship("Folder", back_populates="notes")
     media_file = relationship("MediaFile", back_populates="notes")

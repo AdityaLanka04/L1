@@ -143,50 +143,6 @@ const AIMediaNotes = () => {
     }
   };
 
-  const regenerateNotes = async () => {
-    if (!results) return;
-
-    setIsProcessing(true);
-    setProcessingStage('Regenerating notes...');
-
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/media/regenerate-notes`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          transcript: results.transcript,
-          analysis: results.analysis,
-          note_style: noteStyle,
-          difficulty: difficulty,
-          subject: subject || 'general',
-          custom_instructions: customInstructions || ''
-        })
-      });
-
-      if (!response.ok) throw new Error('Regeneration failed');
-
-      const data = await response.json();
-      setResults({
-        ...results,
-        notes: {
-          content: data.content,
-          style: data.style
-        }
-      });
-
-    } catch (error) {
-      console.error('Regeneration error:', error);
-      alert('Failed to regenerate notes');
-    } finally {
-      setIsProcessing(false);
-      setProcessingStage('');
-    }
-  };
-
   const saveNotes = async () => {
     if (!results) return;
 
@@ -650,7 +606,22 @@ const AIMediaNotes = () => {
             <div className="messages-container" ref={messagesContainerRef}>
               <div className="messages-list">
             <div className="results-header">
-              <h2>{results.filename}</h2>
+              <div className="results-header-top">
+                <h2>{results.filename}</h2>
+                <button 
+                  onClick={() => {
+                    setResults(null);
+                    setUploadedFile(null);
+                    setYoutubeUrl('');
+                    setActiveTab('notes');
+                  }}
+                  className="action-btn"
+                  title="Create new note from media"
+                >
+                  <Upload size={16} />
+                  New Note
+                </button>
+              </div>
               <div className="results-meta">
                 {results.language_name && (
                   <span className="meta-badge">
@@ -719,10 +690,6 @@ const AIMediaNotes = () => {
               {activeTab === 'notes' && results.notes && (
                 <div className="notes-content">
                   <div className="content-actions">
-                    <button onClick={regenerateNotes} className="action-btn">
-                      <RefreshCw size={16} />
-                      Regenerate
-                    </button>
                     <button onClick={() => copyToClipboard(results.notes.content)} className="action-btn">
                       <Copy size={16} />
                       Copy
