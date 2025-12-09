@@ -4,6 +4,7 @@ import CustomPopup from './CustomPopup';
 import './Flashcards.css';
 import { API_URL } from '../config';
 import gamificationService from '../services/gamificationService';
+import ImportExportModal from '../components/ImportExportModal';
 
 const Flashcards = () => {
   const [userName, setUserName] = useState('');
@@ -34,6 +35,7 @@ const Flashcards = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('recent');
   const [selectedSetForStudy, setSelectedSetForStudy] = useState(null);
+  const [showImportExport, setShowImportExport] = useState(false);
   const navigate = useNavigate();
   
   const [cardCount, setCardCount] = useState(10);
@@ -834,6 +836,18 @@ const Flashcards = () => {
                 <span className="nav-icon">📊</span>
                 {!sidebarCollapsed && <span className="nav-text">Statistics</span>}
               </button>
+              <button 
+                className="nav-item"
+                onClick={() => setShowImportExport(true)}
+                title="Convert flashcards"
+              >
+                <span className="nav-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                  </svg>
+                </span>
+                {!sidebarCollapsed && <span className="nav-text">Convert</span>}
+              </button>
             </nav>
 
             <div className="sidebar-footer">
@@ -1489,6 +1503,17 @@ const Flashcards = () => {
         onClose={closePopup}
         title={popup.title}
         message={popup.message}
+      />
+      {/* Import/Export Modal */}
+      <ImportExportModal
+        isOpen={showImportExport}
+        onClose={() => setShowImportExport(false)}
+        mode="import"
+        sourceType="flashcards"
+        onSuccess={(result) => {
+          showPopup("Success", `Successfully converted flashcards!`);
+          loadFlashcardHistory();
+        }}
       />
     </div>
   );

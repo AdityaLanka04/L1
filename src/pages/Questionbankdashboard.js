@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import './Questionbankdashboard.css';
 import { API_URL } from '../config';
+import ImportExportModal from '../components/ImportExportModal';
 const QuestionBankDashboard = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
@@ -24,6 +25,7 @@ const QuestionBankDashboard = () => {
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showCustomModal, setShowCustomModal] = useState(false);
   const [showStudyModal, setShowStudyModal] = useState(false);
+  const [showImportExport, setShowImportExport] = useState(false);
 
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [selectedSources, setSelectedSources] = useState([]);
@@ -48,6 +50,7 @@ const QuestionBankDashboard = () => {
     if (activeView === 'analytics') {
       fetchAnalytics();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeView]);
 
   const fetchQuestionSets = async () => {
@@ -418,7 +421,7 @@ const QuestionBankDashboard = () => {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        await response.json();
         alert('Similar question generated successfully! Added to your question set.');
         await fetchQuestionSets();
       } else {
@@ -478,6 +481,14 @@ const QuestionBankDashboard = () => {
         >
           <BarChart3 size={20} />
           <span>Analytics</span>
+        </button>
+        
+        <button 
+          className="qbd-sidebar-item"
+          onClick={() => setShowImportExport(true)}
+        >
+          <Zap size={20} />
+          <span>Convert</span>
         </button>
       </nav>
 
@@ -1367,6 +1378,17 @@ const QuestionBankDashboard = () => {
         {activeView === 'analytics' && renderAnalytics()}
       </div>
       {renderStudyModal()}
+      {/* Import/Export Modal */}
+      <ImportExportModal
+        isOpen={showImportExport}
+        onClose={() => setShowImportExport(false)}
+        mode="import"
+        sourceType="questions"
+        onSuccess={(result) => {
+          alert("Successfully converted questions!");
+          fetchQuestionSets();
+        }}
+      />
     </div>
   );
 };

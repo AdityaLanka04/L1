@@ -12695,10 +12695,540 @@ async def update_playlist_progress(
         logger.error(f"Error updating progress: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# ==================== COMPREHENSIVE IMPORT/EXPORT API ====================
+
+from import_export_service import ImportExportService
+
+@app.post("/api/import_export/notes_to_flashcards")
+async def convert_notes_to_flashcards(
+    payload: dict = Body(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Convert notes to flashcards"""
+    try:
+        note_ids = payload.get("note_ids", [])
+        card_count = payload.get("card_count", 10)
+        difficulty = payload.get("difficulty", "medium")
+        
+        service = ImportExportService(db)
+        result = await service.notes_to_flashcards(
+            note_ids=note_ids,
+            user_id=current_user.id,
+            card_count=card_count,
+            difficulty=difficulty
+        )
+        
+        if result["success"]:
+            # Track in history
+            history = models.ImportExportHistory(
+                user_id=current_user.id,
+                operation_type="import",
+                source_type="notes",
+                destination_type="flashcards",
+                source_ids=json.dumps(note_ids),
+                destination_ids=json.dumps([result["set_id"]]),
+                item_count=result["card_count"],
+                status="completed",
+                completed_at=datetime.utcnow()
+            )
+            db.add(history)
+            db.commit()
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error in notes_to_flashcards: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/import_export/notes_to_questions")
+async def convert_notes_to_questions(
+    payload: dict = Body(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Convert notes to practice questions"""
+    try:
+        note_ids = payload.get("note_ids", [])
+        question_count = payload.get("question_count", 10)
+        difficulty = payload.get("difficulty", "medium")
+        
+        service = ImportExportService(db)
+        result = await service.notes_to_questions(
+            note_ids=note_ids,
+            user_id=current_user.id,
+            question_count=question_count,
+            difficulty=difficulty
+        )
+        
+        if result["success"]:
+            history = models.ImportExportHistory(
+                user_id=current_user.id,
+                operation_type="import",
+                source_type="notes",
+                destination_type="questions",
+                source_ids=json.dumps(note_ids),
+                destination_ids=json.dumps([result["set_id"]]),
+                item_count=result["question_count"],
+                status="completed",
+                completed_at=datetime.utcnow()
+            )
+            db.add(history)
+            db.commit()
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error in notes_to_questions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/import_export/flashcards_to_notes")
+async def convert_flashcards_to_notes(
+    payload: dict = Body(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Convert flashcard sets to notes"""
+    try:
+        set_ids = payload.get("set_ids", [])
+        format_style = payload.get("format_style", "structured")
+        
+        service = ImportExportService(db)
+        result = await service.flashcards_to_notes(
+            set_ids=set_ids,
+            user_id=current_user.id,
+            format_style=format_style
+        )
+        
+        if result["success"]:
+            history = models.ImportExportHistory(
+                user_id=current_user.id,
+                operation_type="import",
+                source_type="flashcards",
+                destination_type="notes",
+                source_ids=json.dumps(set_ids),
+                destination_ids=json.dumps([result["note_id"]]),
+                item_count=result["card_count"],
+                status="completed",
+                completed_at=datetime.utcnow()
+            )
+            db.add(history)
+            db.commit()
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error in flashcards_to_notes: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/import_export/flashcards_to_questions")
+async def convert_flashcards_to_questions(
+    payload: dict = Body(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Convert flashcards to quiz questions"""
+    try:
+        set_ids = payload.get("set_ids", [])
+        
+        service = ImportExportService(db)
+        result = await service.flashcards_to_questions(
+            set_ids=set_ids,
+            user_id=current_user.id
+        )
+        
+        if result["success"]:
+            history = models.ImportExportHistory(
+                user_id=current_user.id,
+                operation_type="import",
+                source_type="flashcards",
+                destination_type="questions",
+                source_ids=json.dumps(set_ids),
+                destination_ids=json.dumps([result["set_id"]]),
+                item_count=result["question_count"],
+                status="completed",
+                completed_at=datetime.utcnow()
+            )
+            db.add(history)
+            db.commit()
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error in flashcards_to_questions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/import_export/questions_to_flashcards")
+async def convert_questions_to_flashcards(
+    payload: dict = Body(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Convert question sets to flashcards"""
+    try:
+        set_ids = payload.get("set_ids", [])
+        
+        service = ImportExportService(db)
+        result = await service.questions_to_flashcards(
+            set_ids=set_ids,
+            user_id=current_user.id
+        )
+        
+        if result["success"]:
+            history = models.ImportExportHistory(
+                user_id=current_user.id,
+                operation_type="import",
+                source_type="questions",
+                destination_type="flashcards",
+                source_ids=json.dumps(set_ids),
+                destination_ids=json.dumps([result["set_id"]]),
+                item_count=result["card_count"],
+                status="completed",
+                completed_at=datetime.utcnow()
+            )
+            db.add(history)
+            db.commit()
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error in questions_to_flashcards: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/import_export/questions_to_notes")
+async def convert_questions_to_notes(
+    payload: dict = Body(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Convert question sets to study guide notes"""
+    try:
+        set_ids = payload.get("set_ids", [])
+        
+        service = ImportExportService(db)
+        result = await service.questions_to_notes(
+            set_ids=set_ids,
+            user_id=current_user.id
+        )
+        
+        if result["success"]:
+            history = models.ImportExportHistory(
+                user_id=current_user.id,
+                operation_type="import",
+                source_type="questions",
+                destination_type="notes",
+                source_ids=json.dumps(set_ids),
+                destination_ids=json.dumps([result["note_id"]]),
+                item_count=1,
+                status="completed",
+                completed_at=datetime.utcnow()
+            )
+            db.add(history)
+            db.commit()
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error in questions_to_notes: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/import_export/media_to_questions")
+async def convert_media_to_questions(
+    payload: dict = Body(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Generate questions from media transcripts"""
+    try:
+        media_ids = payload.get("media_ids", [])
+        question_count = payload.get("question_count", 10)
+        
+        service = ImportExportService(db)
+        result = await service.media_to_questions(
+            media_ids=media_ids,
+            user_id=current_user.id,
+            question_count=question_count
+        )
+        
+        if result["success"]:
+            history = models.ImportExportHistory(
+                user_id=current_user.id,
+                operation_type="import",
+                source_type="media",
+                destination_type="questions",
+                source_ids=json.dumps(media_ids),
+                destination_ids=json.dumps([result["set_id"]]),
+                item_count=result["question_count"],
+                status="completed",
+                completed_at=datetime.utcnow()
+            )
+            db.add(history)
+            db.commit()
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error in media_to_questions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/import_export/playlist_to_notes")
+async def convert_playlist_to_notes(
+    payload: dict = Body(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Compile playlist content into notes"""
+    try:
+        playlist_id = payload.get("playlist_id")
+        
+        service = ImportExportService(db)
+        result = await service.playlist_to_notes(
+            playlist_id=playlist_id,
+            user_id=current_user.id
+        )
+        
+        if result["success"]:
+            history = models.ImportExportHistory(
+                user_id=current_user.id,
+                operation_type="import",
+                source_type="playlist",
+                destination_type="notes",
+                source_ids=json.dumps([playlist_id]),
+                destination_ids=json.dumps([result["note_id"]]),
+                item_count=result["items_count"],
+                status="completed",
+                completed_at=datetime.utcnow()
+            )
+            db.add(history)
+            db.commit()
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error in playlist_to_notes: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/import_export/playlist_to_flashcards")
+async def convert_playlist_to_flashcards(
+    payload: dict = Body(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Generate flashcards from playlist content"""
+    try:
+        playlist_id = payload.get("playlist_id")
+        card_count = payload.get("card_count", 15)
+        
+        service = ImportExportService(db)
+        result = await service.playlist_to_flashcards(
+            playlist_id=playlist_id,
+            user_id=current_user.id,
+            card_count=card_count
+        )
+        
+        if result["success"]:
+            history = models.ImportExportHistory(
+                user_id=current_user.id,
+                operation_type="import",
+                source_type="playlist",
+                destination_type="flashcards",
+                source_ids=json.dumps([playlist_id]),
+                destination_ids=json.dumps([result["set_id"]]),
+                item_count=result["card_count"],
+                status="completed",
+                completed_at=datetime.utcnow()
+            )
+            db.add(history)
+            db.commit()
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error in playlist_to_flashcards: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/import_export/merge_notes")
+async def merge_multiple_notes(
+    payload: dict = Body(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Merge multiple notes into one"""
+    try:
+        note_ids = payload.get("note_ids", [])
+        new_title = payload.get("title")
+        
+        service = ImportExportService(db)
+        result = await service.merge_notes(
+            note_ids=note_ids,
+            user_id=current_user.id,
+            new_title=new_title
+        )
+        
+        if result["success"]:
+            history = models.BatchOperation(
+                user_id=current_user.id,
+                operation_name="merge_notes",
+                source_type="notes",
+                source_ids=json.dumps(note_ids),
+                result_id=result["note_id"],
+                result_type="note",
+                status="completed",
+                progress=100,
+                completed_at=datetime.utcnow()
+            )
+            db.add(history)
+            db.commit()
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error in merge_notes: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/import_export/export_flashcards_csv")
+async def export_flashcards_csv(
+    payload: dict = Body(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Export flashcards to CSV"""
+    try:
+        set_ids = payload.get("set_ids", [])
+        
+        service = ImportExportService(db)
+        result = service.export_flashcards_to_csv(
+            set_ids=set_ids,
+            user_id=current_user.id
+        )
+        
+        if result["success"]:
+            # Track export
+            history = models.ImportExportHistory(
+                user_id=current_user.id,
+                operation_type="export",
+                source_type="flashcards",
+                destination_type="csv",
+                source_ids=json.dumps(set_ids),
+                status="completed",
+                completed_at=datetime.utcnow()
+            )
+            db.add(history)
+            db.commit()
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error exporting flashcards to CSV: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/import_export/export_questions_pdf")
+async def export_questions_pdf(
+    payload: dict = Body(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Export questions to PDF-ready HTML"""
+    try:
+        set_ids = payload.get("set_ids", [])
+        
+        service = ImportExportService(db)
+        result = service.export_questions_to_pdf(
+            set_ids=set_ids,
+            user_id=current_user.id
+        )
+        
+        if result["success"]:
+            history = models.ImportExportHistory(
+                user_id=current_user.id,
+                operation_type="export",
+                source_type="questions",
+                destination_type="pdf",
+                source_ids=json.dumps(set_ids),
+                status="completed",
+                completed_at=datetime.utcnow()
+            )
+            db.add(history)
+            db.commit()
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error exporting questions to PDF: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/import_export/export_notes_markdown")
+async def export_notes_markdown(
+    payload: dict = Body(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Export notes to Markdown"""
+    try:
+        note_ids = payload.get("note_ids", [])
+        
+        service = ImportExportService(db)
+        result = service.export_notes_to_markdown(
+            note_ids=note_ids,
+            user_id=current_user.id
+        )
+        
+        if result["success"]:
+            history = models.ImportExportHistory(
+                user_id=current_user.id,
+                operation_type="export",
+                source_type="notes",
+                destination_type="markdown",
+                source_ids=json.dumps(note_ids),
+                status="completed",
+                completed_at=datetime.utcnow()
+            )
+            db.add(history)
+            db.commit()
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error exporting notes to markdown: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/import_export/history")
+async def get_import_export_history(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    limit: int = 50
+):
+    """Get user's import/export history"""
+    try:
+        history = db.query(models.ImportExportHistory).filter(
+            models.ImportExportHistory.user_id == current_user.id
+        ).order_by(models.ImportExportHistory.created_at.desc()).limit(limit).all()
+        
+        return {
+            "history": [
+                {
+                    "id": h.id,
+                    "operation_type": h.operation_type,
+                    "source_type": h.source_type,
+                    "destination_type": h.destination_type,
+                    "item_count": h.item_count,
+                    "status": h.status,
+                    "created_at": h.created_at.isoformat() if h.created_at else None,
+                    "completed_at": h.completed_at.isoformat() if h.completed_at else None
+                }
+                for h in history
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Error getting import/export history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
     import uvicorn
     
     logger.info(f"Starting Brainwave AI Backend v3.0.0 with Groq")
     logger.info(f"All API endpoints loaded successfully")
+    logger.info(f"Import/Export API enabled")
     
     uvicorn.run(app, host="127.0.0.1", port=8000, reload=False)

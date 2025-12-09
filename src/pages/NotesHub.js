@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Upload, Youtube, FileText, Mic, Video, BookOpen, Edit3, User
+  Upload, Youtube, FileText, Mic, Video, BookOpen, Edit3, User, Zap
 } from 'lucide-react';
 import './NotesHub.css';
 import { API_URL } from '../config';
+import ImportExportModal from '../components/ImportExportModal';
 
 const NotesHub = () => {
   const navigate = useNavigate();
+  const [showImportExport, setShowImportExport] = useState(false);
 
 
 
@@ -20,9 +22,22 @@ const NotesHub = () => {
           <h1 className="page-title">CERBYL</h1>
           <span className="page-subtitle">study notes</span>
         </div>
-        <button onClick={() => navigate('/dashboard')} className="back-to-dashboard">
-          back to dashboard
-        </button>
+        <div className="header-actions">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowImportExport(true);
+            }} 
+            className="convert-btn"
+            title="Convert notes"
+          >
+            <Zap size={18} />
+            <span>Convert</span>
+          </button>
+          <button onClick={() => navigate('/dashboard')} className="back-to-dashboard">
+            back to dashboard
+          </button>
+        </div>
       </div>
 
       <div className="split-container">
@@ -92,6 +107,17 @@ const NotesHub = () => {
           </div>
         </div>
       </div>
+      
+      {/* Import/Export Modal */}
+      <ImportExportModal
+        isOpen={showImportExport}
+        onClose={() => setShowImportExport(false)}
+        mode="import"
+        sourceType="notes"
+        onSuccess={(result) => {
+          alert("Successfully converted notes!");
+        }}
+      />
     </div>
   );
 };

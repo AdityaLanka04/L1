@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Search, BookOpen, Users, Clock, Star, TrendingUp,
-  Globe, Lock, Home, Heart, Library, MoreHorizontal, Filter, X
+  Globe, Lock, Home, Heart, Library, MoreHorizontal, Filter, X, Zap
 } from 'lucide-react';
 import './PlaylistsPage.css';
 import { API_URL } from '../config';
+import ImportExportModal from '../components/ImportExportModal';
 
 const PlaylistsPage = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const PlaylistsPage = () => {
   const [filterCategory, setFilterCategory] = useState('');
   const [filterDifficulty, setFilterDifficulty] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showImportExport, setShowImportExport] = useState(false);
 
   const categories = [
     'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science',
@@ -229,6 +231,14 @@ const PlaylistsPage = () => {
                 {view === 'my-playlists' && 'Your created playlists'}
               </p>
             </div>
+            <button 
+              className="convert-btn-playlist"
+              onClick={() => setShowImportExport(true)}
+              title="Convert playlists"
+            >
+              <Zap size={18} />
+              <span>Convert</span>
+            </button>
           </div>
 
           <div className="content-body">
@@ -277,6 +287,17 @@ const PlaylistsPage = () => {
           coverColors={coverColors}
         />
       )}
+      
+      {/* Import/Export Modal */}
+      <ImportExportModal
+        isOpen={showImportExport}
+        onClose={() => setShowImportExport(false)}
+        mode="import"
+        sourceType="playlist"
+        onSuccess={(result) => {
+          alert("Successfully converted playlist!");
+        }}
+      />
     </div>
   );
 };

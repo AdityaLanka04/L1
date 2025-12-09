@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import './AIMediaNotes.css';
 import { API_URL } from '../config';
+import ImportExportModal from '../components/ImportExportModal';
 
 const AIMediaNotes = () => {
   const navigate = useNavigate();
@@ -32,6 +33,7 @@ const AIMediaNotes = () => {
   const [generateFlashcards, setGenerateFlashcards] = useState(true);
   const [generateQuiz, setGenerateQuiz] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
+  const [showImportExport, setShowImportExport] = useState(false);
 
   // Results
   const [results, setResults] = useState(null);
@@ -182,7 +184,8 @@ const AIMediaNotes = () => {
           transcript: results.transcript,
           analysis: results.analysis,
           flashcards: results.flashcards,
-          quiz_questions: results.quiz_questions
+          quiz_questions: results.quiz_questions,
+          key_moments: results.key_moments
         })
       });
 
@@ -605,47 +608,48 @@ const AIMediaNotes = () => {
           ) : (
             <div className="messages-container" ref={messagesContainerRef}>
               <div className="messages-list">
-            <div className="results-header">
-              <div className="results-header-top">
-                <h2>{results.filename}</h2>
-                <button 
-                  onClick={() => {
-                    setResults(null);
-                    setUploadedFile(null);
-                    setYoutubeUrl('');
-                    setActiveTab('notes');
-                  }}
-                  className="action-btn"
-                  title="Create new note from media"
-                >
-                  <Upload size={16} />
-                  New Note
-                </button>
-              </div>
-              <div className="results-meta">
-                {results.language_name && (
-                  <span className="meta-badge">
-                    <Globe size={14} />
-                    {results.language_name}
-                  </span>
-                )}
-                {results.duration > 0 && (
-                  <span className="meta-badge">
-                    <Clock size={14} />
-                    {formatTime(results.duration)}
-                  </span>
-                )}
-                {results.analysis?.difficulty_level && (
-                  <span className="meta-badge">
-                    <Zap size={14} />
-                    {results.analysis.difficulty_level}
-                  </span>
-                )}
-              </div>
-            </div>
+                <div className="results-header-sticky">
+                  <div className="results-header">
+                    <div className="results-header-top">
+                      <h2>{results.filename}</h2>
+                      <button 
+                        onClick={() => {
+                          setResults(null);
+                          setUploadedFile(null);
+                          setYoutubeUrl('');
+                          setActiveTab('notes');
+                        }}
+                        className="action-btn"
+                        title="Create new note from media"
+                      >
+                        <Upload size={16} />
+                        New Note
+                      </button>
+                    </div>
+                    <div className="results-meta">
+                      {results.language_name && (
+                        <span className="meta-badge">
+                          <Globe size={14} />
+                          {results.language_name}
+                        </span>
+                      )}
+                      {results.duration > 0 && (
+                        <span className="meta-badge">
+                          <Clock size={14} />
+                          {formatTime(results.duration)}
+                        </span>
+                      )}
+                      {results.analysis?.difficulty_level && (
+                        <span className="meta-badge">
+                          <Zap size={14} />
+                          {results.analysis.difficulty_level}
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-            {/* Tabs */}
-            <div className="results-tabs">
+                  {/* Tabs */}
+                  <div className="results-tabs">
               <button
                 className={activeTab === 'notes' ? 'active' : ''}
                 onClick={() => setActiveTab('notes')}
@@ -683,10 +687,11 @@ const AIMediaNotes = () => {
                   Key Moments ({results.key_moments.length})
                 </button>
               )}
-            </div>
+                  </div>
+                </div>
 
-            {/* Tab Content */}
-            <div className="tab-content">
+                {/* Tab Content */}
+                <div className="tab-content">
               {activeTab === 'notes' && results.notes && (
                 <div className="notes-content">
                   <div className="content-actions">
@@ -697,6 +702,10 @@ const AIMediaNotes = () => {
                     <button onClick={saveNotes} className="action-btn primary">
                       <Save size={16} />
                       Save to Notes
+                    </button>
+                    <button onClick={() => setShowImportExport(true)} className="action-btn">
+                      <Zap size={16} />
+                      Convert
                     </button>
                   </div>
                   <div
@@ -872,12 +881,23 @@ const AIMediaNotes = () => {
                   ))}
                 </div>
               )}
-            </div>
+              </div>
               </div>
             </div>
           )}
         </div>
       </div>
+      
+      {/* Import/Export Modal */}
+      <ImportExportModal
+        isOpen={showImportExport}
+        onClose={() => setShowImportExport(false)}
+        mode="import"
+        sourceType="media"
+        onSuccess={(result) => {
+          alert("Successfully converted media!");
+        }}
+      />
     </div>
   );
 };

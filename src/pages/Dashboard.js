@@ -19,7 +19,7 @@ import {
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  CheckCircle, XCircle, Clock, Plus, Users, Bell, Calendar as CalendarIcon, BookOpen
+  CheckCircle, XCircle, Clock, Plus, Users, Bell, Calendar as CalendarIcon, BookOpen, Zap
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../contexts/ToastContext';
@@ -27,6 +27,7 @@ import { rgbaFromHex } from '../utils/ThemeManager';
 import ThemeSwitcher from '../components/ThemeSwitcher';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ProactiveNotification from '../components/ProactiveNotification';
+import ImportExportModal from '../components/ImportExportModal';
 import './Dashboard.css';
 import { API_URL } from '../config';
 
@@ -68,6 +69,10 @@ const Dashboard = () => {
   // Learning Review states
   const [learningReviews, setLearningReviews] = useState([]);
   const [activeLearningReview, setActiveLearningReview] = useState(null);
+  
+  // Import/Export state
+  const [showImportExport, setShowImportExport] = useState(false);
+  const [importExportSource, setImportExportSource] = useState('notes');
 
   // Widget customization states
   const [isCustomizing, setIsCustomizing] = useState(false);
@@ -1619,6 +1624,16 @@ const Dashboard = () => {
           <span className="action-label-modern">profile</span>
           <span className="action-description">View your progress</span>
         </div>
+        <div 
+          className="quick-action-item" 
+          onClick={!isCustomizing ? (() => {
+            setImportExportSource('notes');
+            setShowImportExport(true);
+          }) : undefined}
+        >
+          <span className="action-label-modern">convert</span>
+          <span className="action-description">Transform your content</span>
+        </div>
       </div>
     </div>
   );
@@ -2017,6 +2032,18 @@ const Dashboard = () => {
           onClose={() => setProactiveNotif(null)}
         />
       )}
+      
+      {/* Import/Export Modal */}
+      <ImportExportModal
+        isOpen={showImportExport}
+        onClose={() => setShowImportExport(false)}
+        mode="import"
+        sourceType={importExportSource}
+        onSuccess={(result) => {
+          showToast("Successfully converted content!", "success");
+          loadDashboardData();
+        }}
+      />
     </div>
   );
 };

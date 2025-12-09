@@ -1847,6 +1847,110 @@ class PlaylistComment(Base):
     playlist = relationship("LearningPlaylist", foreign_keys=[playlist_id])
     user = relationship("User", foreign_keys=[user_id])
 
+
+# ==================== IMPORT/EXPORT MODELS ====================
+
+class ImportExportHistory(Base):
+    """Track all import/export operations"""
+    __tablename__ = "import_export_history"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    operation_type = Column(String(20), nullable=False)  # import, export
+    source_type = Column(String(50), nullable=False)  # notes, flashcards, questions, chat, media, etc.
+    destination_type = Column(String(50), nullable=False)  # notes, flashcards, questions, pdf, csv, etc.
+    
+    source_ids = Column(JSON, nullable=True)  # IDs of source items
+    destination_ids = Column(JSON, nullable=True)  # IDs of created items
+    
+    item_count = Column(Integer, default=0)
+    status = Column(String(20), default="completed")  # pending, completed, failed
+    error_message = Column(Text, nullable=True)
+    
+    metadata = Column(JSON, nullable=True)  # Additional operation details
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+    
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+
+
+class ExportedFile(Base):
+    """Track exported files (PDF, CSV, etc.)"""
+    __tablename__ = "exported_files"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    history_id = Column(Integer, ForeignKey("import_export_history.id"), nullable=True)
+    
+    file_name = Column(String(255), nullable=False)
+    file_path = Column(String(500), nullable=True)
+    file_type = Column(String(20), nullable=False)  # pdf, csv, json, markdown
+    file_size = Column(Integer, nullable=True)  # bytes
+    
+    content_type = Column(String(50), nullable=False)  # flashcards, questions, notes, etc.
+    download_count = Column(Integer, default=0)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=True)
+    
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+    history = relationship("ImportExportHistory", foreign_keys=[history_id])
+
+
+class BatchOperation(Base):
+    """Track batch operations (merge, combine, etc.)"""
+    __tablename__ = "batch_operations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    operation_name = Column(String(100), nullable=False)  # merge_notes, combine_chats, etc.
+    source_type = Column(String(50), nullable=False)
+    source_ids = Column(JSON, nullable=False)
+    
+    result_id = Column(Integer, nullable=True)
+    result_type = Column(String(50), nullable=True)
+    
+    status = Column(String(20), default="pending")
+    progress = Column(Integer, default=0)  # 0-100
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+    
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+
+
+class ExternalImport(Base):
+    """Track imports from external sources"""
+    __tablename__ = "external_imports"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    source_platform = Column(String(50), nullable=False)  # notion, evernote, google_docs, url, pdf
+    source_url = Column(String(500), nullable=True)
+    source_file_name = Column(String(255), nullable=True)
+    
+    import_type = Column(String(50), nullable=False)  # notes, documents, etc.
+    items_imported = Column(Integer, default=0)
+    
+    status = Column(String(20), default="pending")
+    error_message = Column(Text, nullable=True)
+    
+    metadata = Column(JSON, nullable=True)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+    
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+
+
 def create_tables():
     Base.metadata.create_all(bind=engine)
 

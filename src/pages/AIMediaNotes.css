@@ -784,10 +784,11 @@
 .messages-list {
   display: flex !important;
   flex-direction: column !important;
-  gap: 24px !important;
   max-width: 900px !important;
   margin: 0 auto !important;
   width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
 }
 
 /* ==================== MAIN CONTENT (Results) ==================== */
@@ -799,8 +800,17 @@
   width: 100% !important;
 }
 
+.results-header-sticky {
+  position: relative !important;
+  background: var(--bg-bottom) !important;
+  padding: 24px 0 0 0 !important;
+  margin-bottom: 0 !important;
+  border-bottom: 2px solid var(--border) !important;
+  flex-shrink: 0 !important;
+}
+
 .results-header {
-  margin-bottom: 24px !important;
+  margin-bottom: 16px !important;
   padding-bottom: 16px !important;
   border-bottom: 2px solid var(--border) !important;
   position: relative !important;
@@ -862,9 +872,12 @@
 .results-tabs {
   display: flex !important;
   gap: 4px !important;
-  margin-bottom: 24px !important;
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
   border-bottom: 1px solid var(--border) !important;
   overflow-x: auto !important;
+  background: var(--bg-bottom) !important;
+  flex-shrink: 0 !important;
 }
 
 .results-tabs button {
@@ -900,7 +913,9 @@
 
 /* Tab Content */
 .tab-content {
-  min-height: 400px;
+  flex: 1 !important;
+  overflow-y: auto !important;
+  padding: 24px 0 !important;
 }
 
 .content-actions {

@@ -13,10 +13,11 @@ import {
   MoreVertical, Archive, RefreshCw, Save, Clock,
   AlignLeft, Bold, Italic, Underline, 
   List, ListOrdered, Link2, Image, Code,
-  ArrowLeft, Tag, Layout, Filter, Palette, Timer, Command
+  ArrowLeft, Tag, Layout, Filter, Palette, Timer, Command, Zap
 } from 'lucide-react';
 import { API_URL } from '../config';
 import gamificationService from '../services/gamificationService';
+import ImportExportModal from '../components/ImportExportModal';
 
 // Enhanced Notes Features
 import SimpleBlockEditor from '../components/SimpleBlockEditor';
@@ -375,6 +376,9 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [selectedSessions, setSelectedSessions] = useState([]);
   const [importMode, setImportMode] = useState("summary");
   const [importing, setImporting] = useState(false);
+  
+  // Import/Export state
+  const [showImportExport, setShowImportExport] = useState(false);
   
   // Debug: Log when showChatImport changes
   useEffect(() => {
@@ -2548,6 +2552,14 @@ const NotesRedesign = ({ sharedMode = false }) => {
                       <Upload size={16} />
                       <span>From Chat</span>
                     </button>
+                    <button
+                      className="tool-panel-btn"
+                      onClick={() => setShowImportExport(true)}
+                      title="Convert Notes"
+                    >
+                      <Zap size={16} />
+                      <span>Convert</span>
+                    </button>
                   </div>
                 </div>
 
@@ -3573,6 +3585,18 @@ const NotesRedesign = ({ sharedMode = false }) => {
       <KeyboardShortcuts
         isOpen={showKeyboardShortcuts}
         onClose={() => setShowKeyboardShortcuts(false)}
+      />
+      
+      {/* Import/Export Modal */}
+      <ImportExportModal
+        isOpen={showImportExport}
+        onClose={() => setShowImportExport(false)}
+        mode="import"
+        sourceType="notes"
+        onSuccess={(result) => {
+          showPopup("Success", `Successfully converted notes!`);
+          loadNotes();
+        }}
       />
     </div>
   );
