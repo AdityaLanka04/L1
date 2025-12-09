@@ -1868,7 +1868,7 @@ class ImportExportHistory(Base):
     status = Column(String(20), default="completed")  # pending, completed, failed
     error_message = Column(Text, nullable=True)
     
-    metadata = Column(JSON, nullable=True)  # Additional operation details
+    operation_metadata = Column(JSON, nullable=True)  # Additional operation details
     
     created_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
@@ -1942,7 +1942,7 @@ class ExternalImport(Base):
     status = Column(String(20), default="pending")
     error_message = Column(Text, nullable=True)
     
-    metadata = Column(JSON, nullable=True)
+    import_metadata = Column(JSON, nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)

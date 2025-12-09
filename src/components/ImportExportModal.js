@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
-  X, Upload, Download, FileText, HelpCircle, 
+  X, Download, FileText, HelpCircle, 
   Zap, CheckCircle, Loader, ArrowRight 
 } from 'lucide-react';
 import { API_URL } from '../config';
@@ -74,13 +74,13 @@ const ImportExportModal = ({
           endpoint = `${API_URL}/get_flashcard_history?user_id=${userName}&limit=100`;
           break;
         case 'questions':
-          endpoint = `${API_URL}/api/get_generated_questions?user_id=${userName}`;
+          endpoint = `${API_URL}/get_generated_questions?user_id=${userName}`;
           break;
         case 'media':
-          endpoint = `${API_URL}/api/media/history?user_id=${userName}`;
+          endpoint = `${API_URL}/media/history?user_id=${userName}`;
           break;
         case 'playlist':
-          endpoint = `${API_URL}/api/playlists/my?user_id=${userName}`;
+          endpoint = `${API_URL}/playlists?my_playlists=true`;
           break;
         default:
           return;
@@ -142,51 +142,51 @@ const ImportExportModal = ({
 
       // Determine endpoint and payload based on conversion
       if (sourceType === 'notes' && destinationType === 'flashcards') {
-        endpoint = `${API_URL}/api/import_export/notes_to_flashcards`;
+        endpoint = `${API_URL}/import_export/notes_to_flashcards`;
         payload = {
           note_ids: selectedItems,
           card_count: options.cardCount,
           difficulty: options.difficulty
         };
       } else if (sourceType === 'notes' && destinationType === 'questions') {
-        endpoint = `${API_URL}/api/import_export/notes_to_questions`;
+        endpoint = `${API_URL}/import_export/notes_to_questions`;
         payload = {
           note_ids: selectedItems,
           question_count: options.questionCount,
           difficulty: options.difficulty
         };
       } else if (sourceType === 'flashcards' && destinationType === 'notes') {
-        endpoint = `${API_URL}/api/import_export/flashcards_to_notes`;
+        endpoint = `${API_URL}/import_export/flashcards_to_notes`;
         payload = {
           set_ids: selectedItems,
           format_style: options.formatStyle
         };
       } else if (sourceType === 'flashcards' && destinationType === 'questions') {
-        endpoint = `${API_URL}/api/import_export/flashcards_to_questions`;
+        endpoint = `${API_URL}/import_export/flashcards_to_questions`;
         payload = { set_ids: selectedItems };
       } else if (sourceType === 'flashcards' && destinationType === 'csv') {
-        endpoint = `${API_URL}/api/import_export/export_flashcards_csv`;
+        endpoint = `${API_URL}/import_export/export_flashcards_csv`;
         payload = { set_ids: selectedItems };
       } else if (sourceType === 'questions' && destinationType === 'flashcards') {
-        endpoint = `${API_URL}/api/import_export/questions_to_flashcards`;
+        endpoint = `${API_URL}/import_export/questions_to_flashcards`;
         payload = { set_ids: selectedItems };
       } else if (sourceType === 'questions' && destinationType === 'notes') {
-        endpoint = `${API_URL}/api/import_export/questions_to_notes`;
+        endpoint = `${API_URL}/import_export/questions_to_notes`;
         payload = { set_ids: selectedItems };
       } else if (sourceType === 'questions' && destinationType === 'pdf') {
-        endpoint = `${API_URL}/api/import_export/export_questions_pdf`;
+        endpoint = `${API_URL}/import_export/export_questions_pdf`;
         payload = { set_ids: selectedItems };
       } else if (sourceType === 'media' && destinationType === 'questions') {
-        endpoint = `${API_URL}/api/import_export/media_to_questions`;
+        endpoint = `${API_URL}/import_export/media_to_questions`;
         payload = {
           media_ids: selectedItems,
           question_count: options.questionCount
         };
       } else if (sourceType === 'playlist' && destinationType === 'notes') {
-        endpoint = `${API_URL}/api/import_export/playlist_to_notes`;
+        endpoint = `${API_URL}/import_export/playlist_to_notes`;
         payload = { playlist_id: selectedItems[0] };
       } else if (sourceType === 'playlist' && destinationType === 'flashcards') {
-        endpoint = `${API_URL}/api/import_export/playlist_to_flashcards`;
+        endpoint = `${API_URL}/import_export/playlist_to_flashcards`;
         payload = {
           playlist_id: selectedItems[0],
           card_count: options.cardCount

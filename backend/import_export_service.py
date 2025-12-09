@@ -60,7 +60,7 @@ Return ONLY a JSON array of flashcards with this exact format:
 [{{"question": "...", "answer": "..."}}]"""
 
             response = groq_client.chat.completions.create(
-                model="llama-3.1-70b-versatile",
+                model="llama-3.3-70b-versatile",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
                 max_tokens=2000
@@ -150,7 +150,7 @@ Return ONLY a JSON array with this exact format:
 }}]"""
 
             response = groq_client.chat.completions.create(
-                model="llama-3.1-70b-versatile",
+                model="llama-3.3-70b-versatile",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
                 max_tokens=3000
@@ -345,7 +345,7 @@ Return ONLY a JSON array:
 }}]"""
 
             response = groq_client.chat.completions.create(
-                model="llama-3.1-70b-versatile",
+                model="llama-3.3-70b-versatile",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
                 max_tokens=3000
@@ -590,7 +590,7 @@ Return ONLY a JSON array:
 }}]"""
 
             response = groq_client.chat.completions.create(
-                model="llama-3.1-70b-versatile",
+                model="llama-3.3-70b-versatile",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
                 max_tokens=3000
@@ -650,10 +650,12 @@ Return ONLY a JSON array:
         playlist_id: int,
         user_id: int
     ) -> Dict[str, Any]:
-        """Compile playlist content into notes"""
+        """Generate comprehensive study notes from playlist content using AI"""
         from models import LearningPlaylist, PlaylistItem, Note
         
         try:
+            logger.info(f"Looking for playlist with ID: {playlist_id} (type: {type(playlist_id)})")
+            
             playlist = self.db.query(LearningPlaylist).filter(
                 LearningPlaylist.id == playlist_id
             ).first()
@@ -661,32 +663,103 @@ Return ONLY a JSON array:
             if not playlist:
                 return {"success": False, "error": "Playlist not found"}
             
+            logger.info(f"Found playlist: {playlist.title} (ID: {playlist.id})")
+            
             # Get playlist items
             items = self.db.query(PlaylistItem).filter(
                 PlaylistItem.playlist_id == playlist_id
             ).order_by(PlaylistItem.order_index).all()
             
-            # Build note content
-            content = f"<h1>{playlist.title}</h1>\n"
-            if playlist.description:
-                content += f"<p>{playlist.description}</p>\n\n"
+            logger.info(f"Query returned {len(items)} items for playlist_id={playlist_id}")
             
+            # Debug: Check all items in the table
+            all_items = self.db.query(PlaylistItem).all()
+            logger.info(f"Total PlaylistItems in database: {len(all_items)}")
+            for item in all_items[:5]:
+                logger.info(f"  Item {item.id}: playlist_id={item.playlist_id}, title={item.title}")
+            
+            if not items:
+                return {"success": False, "error": f"Playlist has no items (checked playlist_id={playlist_id})"}
+            
+            # Build detailed context from playlist items
+            playlist_context = f"# {playlist.title}\n\n"
+            if playlist.description:
+                playlist_context += f"{playlist.description}\n\n"
+            
+            playlist_context += "## Learning Materials:\n\n"
             for idx, item in enumerate(items, 1):
-                content += f"<h2>{idx}. {item.title}</h2>\n"
+                playlist_context += f"### {idx}. {item.title or 'Untitled'}\n"
+                playlist_context += f"**Type:** {item.item_type}\n"
                 if item.description:
-                    content += f"<p>{item.description}</p>\n"
-                if item.content:
-                    content += f"<div>{item.content}</div>\n"
-                content += "<br>\n"
+                    playlist_context += f"**Description:** {item.description}\n"
+                if item.notes:
+                    playlist_context += f"**Notes:** {item.notes}\n"
+                if item.url:
+                    playlist_context += f"**Resource:** {item.url}\n"
+                if item.duration_minutes:
+                    playlist_context += f"**Duration:** {item.duration_minutes} minutes\n"
+                playlist_context += "\n"
+            
+            # Generate comprehensive notes using AI
+            prompt = f"""You are an expert educator. Create comprehensive, detailed study notes from this learning playlist.
+
+{playlist_context[:4000]}
+
+Write detailed educational content that:
+- Explains each topic thoroughly with 3-4 paragraphs minimum per topic
+- Includes key concepts, definitions, and explanations
+- Provides context and real-world applications
+- Uses clear structure with headings and subheadings
+- Makes complex topics easy to understand
+
+Output ONLY HTML content with these tags: <h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>.
+Start with <h1>{playlist.title}</h1> then write comprehensive content for each topic.
+Write at least 500 words of educational content."""
+
+            response = groq_client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=6000
+            )
+            
+            ai_content = response.choices[0].message.content.strip()
+            
+            # Clean up markdown code blocks
+            if "```html" in ai_content:
+                ai_content = ai_content.split("```html")[1].split("```")[0].strip()
+            elif "```" in ai_content:
+                parts = ai_content.split("```")
+                if len(parts) >= 3:
+                    ai_content = parts[1].strip()
+            
+            # Remove any remaining markdown artifacts
+            if ai_content.startswith("html"):
+                ai_content = ai_content[4:].strip()
+            
+            # Validate content
+            if not ai_content or len(ai_content) < 100:
+                raise Exception(f"AI generated insufficient content (length: {len(ai_content)})")
+            
+            # Ensure HTML structure
+            if not ai_content.startswith("<"):
+                ai_content = f"<div>{ai_content}</div>"
             
             # Create note
             note = Note(
                 user_id=user_id,
-                title=f"Notes: {playlist.title}",
-                content=content
+                title=f"Study Notes: {playlist.title}",
+                content=ai_content
             )
             self.db.add(note)
             self.db.commit()
+            self.db.refresh(note)
+            
+            # Verify note was saved with content
+            if not note.content or len(note.content) < 100:
+                raise Exception("Note content was not saved properly")
+            
+            logger.info(f"Created note {note.id} with {len(note.content)} characters")
             
             return {
                 "success": True,
@@ -721,9 +794,13 @@ Return ONLY a JSON array:
                 PlaylistItem.playlist_id == playlist_id
             ).all()
             
-            # Combine content
+            # Combine content from playlist items
             combined_content = "\n\n".join([
-                f"{item.title}\n{item.description or ''}\n{item.content or ''}"
+                f"Title: {item.title or 'Untitled'}\n"
+                f"Type: {item.item_type}\n"
+                f"Description: {item.description or ''}\n"
+                f"Notes: {item.notes or ''}\n"
+                f"URL: {item.url or ''}"
                 for item in items
             ])
             
@@ -737,7 +814,7 @@ Return ONLY a JSON array:
 [{{"question": "...", "answer": "..."}}]"""
 
             response = groq_client.chat.completions.create(
-                model="llama-3.1-70b-versatile",
+                model="llama-3.3-70b-versatile",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
                 max_tokens=2000

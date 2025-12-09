@@ -1,15 +1,24 @@
 """
-Migration script to add import/export tables
+Fix import/export tables - rename metadata columns
 """
 
 import sqlite3
-from datetime import datetime
 
-def add_import_export_tables():
+def fix_tables():
     conn = sqlite3.connect('backend/brainwave_tutor.db')
     cursor = conn.cursor()
     
-    print("🔄 Adding import/export tables...")
+    print("🔄 Fixing import/export tables...")
+    
+    # Drop existing tables
+    print("Dropping old tables...")
+    cursor.execute("DROP TABLE IF EXISTS import_export_history")
+    cursor.execute("DROP TABLE IF EXISTS exported_files")
+    cursor.execute("DROP TABLE IF EXISTS batch_operations")
+    cursor.execute("DROP TABLE IF EXISTS external_imports")
+    
+    # Recreate with correct column names
+    print("Creating tables with correct column names...")
     
     # Import/Export History table
     cursor.execute("""
@@ -94,7 +103,7 @@ def add_import_export_tables():
     conn.commit()
     conn.close()
     
-    print("✅ All import/export tables created successfully!")
+    print("✅ All tables fixed successfully!")
 
 if __name__ == "__main__":
-    add_import_export_tables()
+    fix_tables()

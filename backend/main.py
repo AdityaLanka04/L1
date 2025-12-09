@@ -12082,6 +12082,11 @@ async def get_playlists(
                         "completed_items": follower.completed_items or []
                     }
             
+            # Get item count
+            item_count = db.query(models.PlaylistItem).filter(
+                models.PlaylistItem.playlist_id == p.id
+            ).count()
+            
             result.append({
                 "id": p.id,
                 "title": p.title,
@@ -12095,6 +12100,7 @@ async def get_playlists(
                 "fork_count": p.fork_count or 0,
                 "follower_count": p.follower_count or 0,
                 "completion_count": p.completion_count or 0,
+                "item_count": item_count,
                 "created_at": p.created_at.isoformat() if p.created_at else None,
                 "creator": {
                     "id": p.creator.id,
@@ -12979,7 +12985,7 @@ async def convert_playlist_to_notes(
 ):
     """Compile playlist content into notes"""
     try:
-        playlist_id = payload.get("playlist_id")
+        playlist_id = int(payload.get("playlist_id"))
         
         service = ImportExportService(db)
         result = await service.playlist_to_notes(
@@ -13016,8 +13022,8 @@ async def convert_playlist_to_flashcards(
 ):
     """Generate flashcards from playlist content"""
     try:
-        playlist_id = payload.get("playlist_id")
-        card_count = payload.get("card_count", 15)
+        playlist_id = int(payload.get("playlist_id"))
+        card_count = int(payload.get("card_count", 15))
         
         service = ImportExportService(db)
         result = await service.playlist_to_flashcards(
