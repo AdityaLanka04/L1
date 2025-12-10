@@ -501,6 +501,37 @@
   color: var(--accent);
 }
 
+.result-stat.points-earned {
+  background: linear-gradient(135deg, rgba(var(--success-rgb, 16, 185, 129), 0.15), rgba(var(--success-rgb, 16, 185, 129), 0.05));
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--success, #10b981);
+}
+
+.result-stat.points-earned .stat-value.highlight {
+  color: var(--success, #10b981);
+  font-size: 36px;
+}
+
+.bonus-badges {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.bonus-badge {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 80%, #fff));
+  color: var(--bg-bottom);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .result-message {
   margin-bottom: 32px;
   padding: 20px;

@@ -23,7 +23,10 @@ const Games = () => {
     notes_created: 0,
     questions_answered: 0,
     quizzes_completed: 0,
-    flashcards_created: 0
+    flashcards_created: 0,
+    solo_quizzes: 0,
+    flashcards_reviewed: 0,
+    flashcards_mastered: 0
   });
   
   const [recentActivities, setRecentActivities] = useState([]);
@@ -38,13 +41,13 @@ const Games = () => {
     { id: 6, title: 'Create 10 Flashcards', stat: 'flashcards_created', target: 10, points: 100 },
     { id: 7, title: '7 Day Streak', stat: 'streak', target: 7, points: 300 },
     { id: 8, title: 'Win 3 Battles', stat: 'battles_won', target: 3, points: 150 },
-    { id: 9, title: 'Study 10 Hours', stat: 'study_hours', target: 10, points: 400 },
+    { id: 9, title: 'Solo Quiz Master', stat: 'solo_quizzes', target: 5, points: 200 },
     { id: 10, title: 'Chat 100 Times', stat: 'ai_chats', target: 100, points: 100 },
     { id: 11, title: 'Create 10 Notes', stat: 'notes_created', target: 10, points: 100 },
     { id: 12, title: 'Answer 50 Questions', stat: 'questions_answered', target: 50, points: 200 },
     { id: 13, title: 'Complete 5 Quizzes', stat: 'quizzes_completed', target: 5, points: 250 },
     { id: 14, title: 'Win 5 Battles', stat: 'battles_won', target: 5, points: 250 },
-    { id: 15, title: 'Study 20 Hours', stat: 'study_hours', target: 20, points: 800 },
+    { id: 15, title: 'Review 50 Cards', stat: 'flashcards_reviewed', target: 50, points: 150 },
     { id: 16, title: 'Master Level', stat: 'level', target: 5, points: 1000 }
   ];
 
@@ -272,6 +275,11 @@ const Games = () => {
               <span className="activity-stat-value">{weeklyProgress.quizzes_completed}</span>
               <span className="activity-stat-points">+{weeklyProgress.quizzes_completed * 15} pts</span>
             </div>
+            <div className="activity-stat-box highlight-box">
+              <span className="activity-stat-label">solo quizzes</span>
+              <span className="activity-stat-value">{weeklyProgress.solo_quizzes || 0}</span>
+              <span className="activity-stat-points">up to +40 pts each</span>
+            </div>
             <div className="activity-stat-box">
               <span className="activity-stat-label">flashcard sets</span>
               <span className="activity-stat-value">{weeklyProgress.flashcards_created}</span>
@@ -396,9 +404,16 @@ const Games = () => {
                 <span>quiz 80%+ score</span>
                 <span>+30</span>
               </div>
+              <div className="points-item highlight">
+                <span>solo quiz (max)</span>
+                <span>+40</span>
+              </div>
               <div className="points-item">
                 <span>study 1 hour</span>
                 <span>+50</span>
+              </div>
+              <div className="points-item-note">
+                Solo quiz points scale with difficulty, questions & score
               </div>
             </div>
           </div>

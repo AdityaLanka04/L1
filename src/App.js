@@ -14,6 +14,7 @@ import QuizBattle from './pages/QuizBattle';
 import QuizBattleSession from './pages/QuizBattleSession';
 import SoloQuiz from './pages/SoloQuiz';
 import SoloQuizSession from './pages/SoloQuizSession';
+import Analytics from './pages/Analytics';
 import ChallengeSession from './pages/ChallengeSession';
 import SharedContent from './pages/SharedContent';
 import KnowledgeRoadmap from './pages/KnowledgeRoadmap';
@@ -91,6 +92,7 @@ function App() {
             <Route path="/quiz-battle/:battleId" element={<ProtectedRoute><QuizBattleSession /></ProtectedRoute>} />
             <Route path="/solo-quiz" element={<ProtectedRoute><SoloQuiz /></ProtectedRoute>} />
             <Route path="/solo-quiz/:quizId" element={<ProtectedRoute><SoloQuizSession /></ProtectedRoute>} />
+            <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
             <Route path="/games" element={<ProtectedRoute><Games /></ProtectedRoute>} />
             <Route path="/challenges" element={<ProtectedRoute><Games /></ProtectedRoute>} />
             <Route path="/challenge/:challengeId" element={<ProtectedRoute><ChallengeSession /></ProtectedRoute>} />

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Calendar, Award, Flame, TrendingUp, X, Zap, BookOpen } from 'lucide-react';
+import { Bell, Calendar, Award, Flame, TrendingUp, X, Zap, BookOpen, UserPlus, Users, Share2, Swords } from 'lucide-react';
 import './SlideNotification.css';
 
 const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) => {
@@ -54,6 +54,19 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
       case 'proactive_ai':
         navigate('/ai-chat');
         break;
+      case 'friend_request':
+      case 'friend_accepted':
+      case 'friend_rejected':
+        navigate('/friends');
+        break;
+      case 'share_received':
+      case 'content_shared':
+        navigate('/social');
+        break;
+      case 'battle_challenge':
+      case 'battle_result':
+        navigate('/quiz-battle');
+        break;
       default:
         navigate('/dashboard');
     }
@@ -81,6 +94,17 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
         return <BookOpen size={20} />;
       case 'proactive_ai':
         return <Zap size={20} />;
+      case 'friend_request':
+        return <UserPlus size={20} />;
+      case 'friend_accepted':
+      case 'friend_rejected':
+        return <Users size={20} />;
+      case 'share_received':
+      case 'content_shared':
+        return <Share2 size={20} />;
+      case 'battle_challenge':
+      case 'battle_result':
+        return <Swords size={20} />;
       default:
         return <Bell size={20} />;
     }
@@ -107,6 +131,18 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
         return '#f59e0b';
       case 'proactive_ai':
         return '#06b6d4';
+      case 'friend_request':
+        return '#3b82f6';
+      case 'friend_accepted':
+        return '#10b981';
+      case 'friend_rejected':
+        return '#ef4444';
+      case 'share_received':
+      case 'content_shared':
+        return '#8b5cf6';
+      case 'battle_challenge':
+      case 'battle_result':
+        return '#f59e0b';
       default:
         return 'var(--accent)';
     }
@@ -137,6 +173,19 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
         return 'Study Suggestion';
       case 'proactive_ai':
         return 'AI Tutor';
+      case 'friend_request':
+        return 'Friend Request';
+      case 'friend_accepted':
+        return 'Friend Accepted';
+      case 'friend_rejected':
+        return 'Friend Request';
+      case 'share_received':
+      case 'content_shared':
+        return 'Shared Content';
+      case 'battle_challenge':
+        return 'Battle Challenge';
+      case 'battle_result':
+        return 'Battle Result';
       default:
         return 'Notification';
     }

@@ -18,6 +18,7 @@ const SoloQuizSession = () => {
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showResult, setShowResult] = useState(false);
+  const [pointsEarned, setPointsEarned] = useState(null);
 
   useEffect(() => {
     loadQuiz();
@@ -102,7 +103,7 @@ const SoloQuizSession = () => {
         ? Math.round((finalScore / questions.length) * 100) 
         : 0;
       
-      await fetch(`${API_URL}/complete_solo_quiz`, {
+      const response = await fetch(`${API_URL}/complete_solo_quiz`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -114,6 +115,11 @@ const SoloQuizSession = () => {
           answers: answers
         })
       });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPointsEarned(data);
+      }
 
       setShowResult(true);
     } catch (error) {
@@ -158,7 +164,21 @@ const SoloQuizSession = () => {
               <span className="stat-label">Accuracy</span>
               <span className="stat-value">{Math.round((score / questions.length) * 100)}%</span>
             </div>
+            {pointsEarned && (
+              <div className="result-stat points-earned">
+                <span className="stat-label">Points Earned</span>
+                <span className="stat-value highlight">+{pointsEarned.points_earned}</span>
+              </div>
+            )}
           </div>
+          
+          {pointsEarned?.points_breakdown?.bonus_reasons?.length > 0 && (
+            <div className="bonus-badges">
+              {pointsEarned.points_breakdown.bonus_reasons.map((reason, idx) => (
+                <span key={idx} className="bonus-badge">{reason}</span>
+              ))}
+            </div>
+          )}
 
           <div className="question-by-question">
             <h3>Review Your Answers</h3>

@@ -1352,6 +1352,14 @@ class UserGamificationStats(Base):
     total_flashcards_created = Column(Integer, default=0)
     total_study_minutes = Column(Integer, default=0)
     total_battles_won = Column(Integer, default=0)
+    total_solo_quizzes = Column(Integer, default=0)
+    total_flashcards_reviewed = Column(Integer, default=0)
+    total_flashcards_mastered = Column(Integer, default=0)
+    
+    # Weekly Solo Quiz & Flashcard Stats
+    weekly_solo_quizzes = Column(Integer, default=0)
+    weekly_flashcards_reviewed = Column(Integer, default=0)
+    weekly_flashcards_mastered = Column(Integer, default=0)
     
     # Streaks
     current_streak = Column(Integer, default=0)

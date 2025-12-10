@@ -95,6 +95,8 @@ const Dashboard = () => {
   // Backend data states
   const [recentActivities, setRecentActivities] = useState([]);
   const [weeklyProgress, setWeeklyProgress] = useState([]);
+  const [dailyBreakdown, setDailyBreakdown] = useState([]);
+  const [weeklyStats, setWeeklyStats] = useState({});
   const [motivationalQuote, setMotivationalQuote] = useState('');
   const [achievements, setAchievements] = useState([]);
   const [learningAnalytics, setLearningAnalytics] = useState(null);
@@ -700,11 +702,13 @@ const Dashboard = () => {
   const headers = { 'Authorization': `Bearer ${token}` };
 
   try {
-    // Weekly Progress
+    // Weekly Progress with full breakdown
     const weeklyResponse = await fetch(`${API_URL}/get_weekly_progress?user_id=${userName}`, { headers });
     if (weeklyResponse.ok) {
       const weeklyData = await weeklyResponse.json();
       setWeeklyProgress(weeklyData.weekly_data || []);
+      setDailyBreakdown(weeklyData.daily_breakdown || []);
+      setWeeklyStats(weeklyData.weekly_stats || {});
     }
 
     // Achievements
@@ -1187,12 +1191,17 @@ const Dashboard = () => {
             <div className="stats-overview-widget">
               <div className="widget-header">
                 <h3 className="widget-title">Weekly Activity</h3>
-                {stats.streak > 0 && (
-                  <div className="streak-badge-header">
-                    <span className="streak-emoji">🔥</span>
-                    <span className="streak-value">{stats.streak}</span>
-                  </div>
-                )}
+                <div className="widget-header-right">
+                  {stats.streak > 0 && (
+                    <div className="streak-badge-header">
+                      <span className="streak-emoji">🔥</span>
+                      <span className="streak-value">{stats.streak}</span>
+                    </div>
+                  )}
+                  <button className="analytics-btn" onClick={() => navigate('/analytics')}>
+                    Analytics →
+                  </button>
+                </div>
               </div>
               <div className="stats-line-container">
                 {weeklyProgress.some(v => v > 0) ? (
@@ -1580,10 +1589,14 @@ const Dashboard = () => {
           );
 
         case 'progress-chart':
+          const totalWeeklyPoints = weeklyProgress.reduce((a, b) => a + b, 0);
           return (
             <div className="progress-chart-widget">
               <div className="widget-header">
-                <h3 className="widget-title">Weekly Progress</h3>
+                <h3 className="widget-title">Weekly Points</h3>
+                <button className="analytics-btn" onClick={() => navigate('/analytics')}>
+                  View Analytics →
+                </button>
               </div>
               <div className="chart-container">
                 <div className="chart-bars">
@@ -1596,12 +1609,12 @@ const Dashboard = () => {
                           <div
                             className="bar-fill"
                             style={{
-                              height: `${height}%`,
+                              height: `${Math.max(height, 5)}%`,
                               background: `linear-gradient(180deg, ${accent} 0%, ${rgbaFromHex(accent, 0.35)} 100%)`
                             }}
                           />
                           <div className="bar-label">
-                            {['M', 'T', 'W', 'T', 'F', 'S', 'S'][idx]}
+                            {dailyBreakdown[idx]?.day || ['M', 'T', 'W', 'T', 'F', 'S', 'S'][idx]}
                           </div>
                           <div className="bar-value">{value}</div>
                         </div>
@@ -1614,18 +1627,9 @@ const Dashboard = () => {
                   )}
                 </div>
               </div>
-              {learningAnalytics && (
-                <div className="analytics-summary">
-                  <div className="analytics-stat">
-                    <span className="stat-label">Avg. Sessions:</span>
-                    <span className="stat-value">{learningAnalytics.average_per_day?.toFixed(1) || '0'}</span>
-                  </div>
-                  <div className="analytics-stat">
-                    <span className="stat-label">Accuracy:</span>
-                    <span className="stat-value">{learningAnalytics.accuracy_percentage?.toFixed(1) || '0'}%</span>
-                  </div>
-                </div>
-              )}
+              <div className="widget-footer">
+                <span className="widget-total">{totalWeeklyPoints} pts this week</span>
+              </div>
             </div>
           );
 

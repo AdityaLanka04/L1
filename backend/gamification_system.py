@@ -18,8 +18,95 @@ POINT_VALUES = {
     "question_answered": 2, # Answer question
     "battle_win": 10,       # Battle win
     "battle_draw": 5,       # Battle draw
-    "battle_loss": 2        # Battle loss (participation)
+    "battle_loss": 2,       # Battle loss (participation)
+    "flashcard_reviewed": 1, # Review a flashcard
+    "flashcard_mastered": 5, # Master a flashcard
 }
+
+# ==================== SOLO QUIZ POINT FORMULA ====================
+# Max points: 40 (hard difficulty, max questions)
+# Formula: base_points * difficulty_multiplier * question_multiplier * score_multiplier
+
+DIFFICULTY_MULTIPLIERS = {
+    "easy": 0.5,
+    "intermediate": 0.75,
+    "hard": 1.0
+}
+
+QUESTION_COUNT_MULTIPLIERS = {
+    5: 0.5,
+    10: 0.75,
+    15: 0.9,
+    20: 1.0
+}
+
+def calculate_solo_quiz_points(difficulty: str, question_count: int, score_percentage: float) -> dict:
+    """
+    Calculate points for solo quiz completion.
+    
+    Formula: base_points * difficulty_mult * question_mult * score_mult
+    Max possible: 40 points (hard, 20 questions, 100% score)
+    
+    Args:
+        difficulty: easy, intermediate, hard
+        question_count: 5, 10, 15, or 20
+        score_percentage: 0-100
+    
+    Returns:
+        dict with points_earned, breakdown, bonus info
+    """
+    base_points = 40  # Maximum possible points
+    
+    # Get multipliers
+    diff_mult = DIFFICULTY_MULTIPLIERS.get(difficulty.lower(), 0.75)
+    
+    # Find closest question count multiplier
+    q_mult = 0.5
+    for q_count, mult in sorted(QUESTION_COUNT_MULTIPLIERS.items()):
+        if question_count >= q_count:
+            q_mult = mult
+    
+    # Score multiplier (0-1 based on percentage)
+    score_mult = score_percentage / 100.0
+    
+    # Calculate base points
+    points = int(base_points * diff_mult * q_mult * score_mult)
+    
+    # Bonus points
+    bonus = 0
+    bonus_reasons = []
+    
+    # Perfect score bonus
+    if score_percentage == 100:
+        bonus += 5
+        bonus_reasons.append("Perfect Score (+5)")
+    
+    # High score bonus (90%+)
+    elif score_percentage >= 90:
+        bonus += 3
+        bonus_reasons.append("Excellent Score (+3)")
+    
+    # Hard difficulty bonus
+    if difficulty.lower() == "hard" and score_percentage >= 70:
+        bonus += 2
+        bonus_reasons.append("Hard Mode Bonus (+2)")
+    
+    total_points = points + bonus
+    
+    return {
+        "points_earned": total_points,
+        "base_points": points,
+        "bonus_points": bonus,
+        "bonus_reasons": bonus_reasons,
+        "breakdown": {
+            "difficulty": difficulty,
+            "difficulty_multiplier": diff_mult,
+            "question_count": question_count,
+            "question_multiplier": q_mult,
+            "score_percentage": score_percentage,
+            "score_multiplier": score_mult
+        }
+    }
 
 # ==================== LEVEL THRESHOLDS ====================
 LEVEL_THRESHOLDS = [0, 100, 282, 500, 800, 1200, 1700, 2300, 3000]
@@ -72,6 +159,13 @@ def check_and_reset_weekly_stats(stats):
         stats.weekly_flashcards_created = 0
         stats.weekly_study_minutes = 0
         stats.weekly_battles_won = 0
+        # Reset new weekly stats
+        if hasattr(stats, 'weekly_solo_quizzes'):
+            stats.weekly_solo_quizzes = 0
+        if hasattr(stats, 'weekly_flashcards_reviewed'):
+            stats.weekly_flashcards_reviewed = 0
+        if hasattr(stats, 'weekly_flashcards_mastered'):
+            stats.weekly_flashcards_mastered = 0
         stats.week_start_date = datetime.combine(week_start, datetime.min.time()).replace(tzinfo=timezone.utc)
 
 def award_points(db: Session, user_id: int, activity_type: str, metadata: dict = None):
@@ -157,6 +251,44 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
     elif activity_type == "battle_loss":
         points_earned = POINT_VALUES["battle_loss"]
         description = "Participated in Battle"
+    
+    elif activity_type == "solo_quiz":
+        # Use the new formula for solo quiz points
+        difficulty = metadata.get("difficulty", "intermediate")
+        question_count = metadata.get("question_count", 10)
+        score_percentage = metadata.get("score_percentage", 0)
+        
+        quiz_result = calculate_solo_quiz_points(difficulty, question_count, score_percentage)
+        points_earned = quiz_result["points_earned"]
+        
+        # Update solo quiz stats
+        if hasattr(stats, 'total_solo_quizzes'):
+            stats.total_solo_quizzes += 1
+        if hasattr(stats, 'weekly_solo_quizzes'):
+            stats.weekly_solo_quizzes += 1
+        
+        # Also count as quiz completed
+        stats.total_quizzes_completed += 1
+        stats.weekly_quizzes_completed += 1
+        
+        bonus_str = f" ({', '.join(quiz_result['bonus_reasons'])})" if quiz_result['bonus_reasons'] else ""
+        description = f"Solo Quiz: {difficulty.title()} {question_count}Q - {score_percentage}%{bonus_str}"
+    
+    elif activity_type == "flashcard_reviewed":
+        points_earned = POINT_VALUES["flashcard_reviewed"]
+        if hasattr(stats, 'total_flashcards_reviewed'):
+            stats.total_flashcards_reviewed += 1
+        if hasattr(stats, 'weekly_flashcards_reviewed'):
+            stats.weekly_flashcards_reviewed += 1
+        description = "Reviewed Flashcard"
+    
+    elif activity_type == "flashcard_mastered":
+        points_earned = POINT_VALUES["flashcard_mastered"]
+        if hasattr(stats, 'total_flashcards_mastered'):
+            stats.total_flashcards_mastered += 1
+        if hasattr(stats, 'weekly_flashcards_mastered'):
+            stats.weekly_flashcards_mastered += 1
+        description = "Mastered Flashcard"
     
     # Update points and level
     old_level = stats.level
@@ -269,6 +401,9 @@ def get_user_stats(db: Session, user_id: int):
         "weekly_flashcards_created": stats.weekly_flashcards_created,
         "weekly_study_minutes": stats.weekly_study_minutes,
         "weekly_battles_won": stats.weekly_battles_won,
+        "weekly_solo_quizzes": getattr(stats, 'weekly_solo_quizzes', 0),
+        "weekly_flashcards_reviewed": getattr(stats, 'weekly_flashcards_reviewed', 0),
+        "weekly_flashcards_mastered": getattr(stats, 'weekly_flashcards_mastered', 0),
         # Total stats
         "total_ai_chats": stats.total_ai_chats,
         "total_notes_created": stats.total_notes_created,
@@ -276,7 +411,10 @@ def get_user_stats(db: Session, user_id: int):
         "total_quizzes_completed": stats.total_quizzes_completed,
         "total_flashcards_created": stats.total_flashcards_created,
         "total_study_minutes": stats.total_study_minutes,
-        "total_battles_won": stats.total_battles_won
+        "total_battles_won": stats.total_battles_won,
+        "total_solo_quizzes": getattr(stats, 'total_solo_quizzes', 0),
+        "total_flashcards_reviewed": getattr(stats, 'total_flashcards_reviewed', 0),
+        "total_flashcards_mastered": getattr(stats, 'total_flashcards_mastered', 0)
     }
 
 def recalculate_all_stats(db: Session):

@@ -972,7 +972,7 @@ class FlashcardAPI:
         return {"status": "success", "message": "Flashcard deleted"}
     
     def _record_study_session(self, session_data: FlashcardStudySession, db: Session):
-        """Record a flashcard study session"""
+        """Record a flashcard study session with gamification"""
         user = self._get_user_by_username(db, session_data.user_id) or self._get_user_by_email(db, session_data.user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -993,12 +993,34 @@ class FlashcardAPI:
         # Calculate accuracy
         accuracy = round((session_data.correct_answers / session_data.cards_studied * 100), 1) if session_data.cards_studied > 0 else 0
         
+        # Award gamification points for flashcard review
+        total_points = 0
+        try:
+            from gamification_system import award_points
+            
+            # Award points for each card reviewed (1 point each)
+            for _ in range(session_data.cards_studied):
+                result = award_points(db, user.id, "flashcard_reviewed")
+                total_points += result.get("points_earned", 0)
+            
+            # Award bonus points for mastered cards (correct answers with high accuracy)
+            if accuracy >= 80:
+                mastered_count = session_data.correct_answers
+                for _ in range(mastered_count):
+                    result = award_points(db, user.id, "flashcard_mastered")
+                    total_points += result.get("points_earned", 0)
+            
+            db.commit()
+            logger.info(f"Awarded {total_points} points for flashcard session")
+        except Exception as e:
+            logger.error(f"Error awarding flashcard points: {e}")
+        
         # Create notification based on performance
         if accuracy >= 90:
             notification = models.Notification(
                 user_id=user.id,
                 title="🎯 Excellent Flashcard Session!",
-                message=f"Amazing! You got {accuracy}% accuracy studying {session_data.cards_studied} cards. Keep up the great work!",
+                message=f"Amazing! You got {accuracy}% accuracy studying {session_data.cards_studied} cards. You earned {total_points} points!",
                 notification_type="flashcard_excellent"
             )
             db.add(notification)
@@ -1016,6 +1038,7 @@ class FlashcardAPI:
         return {
             "id": study_session.id,
             "accuracy": accuracy,
+            "points_earned": total_points,
             "status": "success"
         }
 

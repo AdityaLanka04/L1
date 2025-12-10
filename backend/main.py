@@ -4867,66 +4867,92 @@ def get_weekly_progress(user_id: str = Query(...), db: Session = Depends(get_db)
         end_date = datetime.now(timezone.utc).date()
         start_date = end_date - timedelta(days=6)  # 6 days ago + today = 7 days
         
-        # Get all activities for the week
-        activities = db.query(models.Activity).filter(
-            models.Activity.user_id == user.id,
-            models.Activity.timestamp >= start_date
+        # Initialize daily data structure
+        daily_data = {}
+        for i in range(7):
+            current_date = start_date + timedelta(days=i)
+            daily_data[current_date] = {
+                "date": current_date.isoformat(),
+                "day": ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][current_date.weekday()],
+                "points": 0,
+                "ai_chats": 0,
+                "notes": 0,
+                "flashcards": 0,
+                "quizzes": 0,
+                "solo_quizzes": 0,
+                "battles": 0,
+                "study_minutes": 0
+            }
+        
+        # Get point transactions for the week (most accurate source)
+        transactions = db.query(models.PointTransaction).filter(
+            models.PointTransaction.user_id == user.id,
+            models.PointTransaction.created_at >= datetime.combine(start_date, datetime.min.time()).replace(tzinfo=timezone.utc)
         ).all()
         
-        # Count activities per day
-        activity_counts = {}
-        for activity in activities:
-            date_key = activity.timestamp.date()
-            activity_counts[date_key] = activity_counts.get(date_key, 0) + 1
+        for t in transactions:
+            date_key = t.created_at.date()
+            if date_key in daily_data:
+                daily_data[date_key]["points"] += t.points_earned
+                
+                # Categorize by activity type
+                if t.activity_type == "ai_chat":
+                    daily_data[date_key]["ai_chats"] += 1
+                elif t.activity_type == "note_created":
+                    daily_data[date_key]["notes"] += 1
+                elif t.activity_type in ["flashcard_set", "flashcard_reviewed", "flashcard_mastered"]:
+                    daily_data[date_key]["flashcards"] += 1
+                elif t.activity_type == "quiz_completed":
+                    daily_data[date_key]["quizzes"] += 1
+                elif t.activity_type == "solo_quiz":
+                    daily_data[date_key]["solo_quizzes"] += 1
+                elif t.activity_type in ["battle_win", "battle_draw", "battle_loss"]:
+                    daily_data[date_key]["battles"] += 1
+                elif t.activity_type == "study_time":
+                    # Extract minutes from metadata if available
+                    try:
+                        if t.activity_metadata:
+                            import ast
+                            meta = ast.literal_eval(t.activity_metadata)
+                            daily_data[date_key]["study_minutes"] += meta.get("minutes", 0)
+                    except:
+                        pass
         
-        # Get chat sessions for the week
-        chat_sessions = db.query(models.ChatSession).filter(
-            models.ChatSession.user_id == user.id,
-            models.ChatSession.created_at >= start_date
-        ).all()
-        
-        for session in chat_sessions:
-            date_key = session.created_at.date()
-            activity_counts[date_key] = activity_counts.get(date_key, 0) + 1
-        
-        # Get notes created this week
-        notes = db.query(models.Note).filter(
-            models.Note.user_id == user.id,
-            models.Note.created_at >= start_date
-        ).all()
-        
-        for note in notes:
-            date_key = note.created_at.date()
-            activity_counts[date_key] = activity_counts.get(date_key, 0) + 1
-        
-        # Get flashcards created this week
-        flashcard_sets = db.query(models.FlashcardSet).filter(
-            models.FlashcardSet.user_id == user.id,
-            models.FlashcardSet.created_at >= start_date
-        ).all()
-        
-        for fc_set in flashcard_sets:
-            date_key = fc_set.created_at.date()
-            activity_counts[date_key] = activity_counts.get(date_key, 0) + 1
-        
-        # Fill in the last 7 days
+        # Convert to list format for frontend
         weekly_data = []
-        total_activities = 0
+        daily_breakdown = []
+        total_points = 0
         
         for i in range(7):
             current_date = start_date + timedelta(days=i)
-            count = activity_counts.get(current_date, 0)
-            weekly_data.append(count)
-            total_activities += count
+            day_data = daily_data[current_date]
+            weekly_data.append(day_data["points"])
+            daily_breakdown.append(day_data)
+            total_points += day_data["points"]
         
-        average_per_day = total_activities / 7 if total_activities > 0 else 0
+        average_per_day = total_points / 7 if total_points > 0 else 0
+        
+        # Get gamification stats for totals
+        stats = db.query(models.UserGamificationStats).filter(
+            models.UserGamificationStats.user_id == user.id
+        ).first()
         
         return {
             "weekly_data": weekly_data,
-            "total_sessions": total_activities,
+            "daily_breakdown": daily_breakdown,
+            "total_points": total_points,
             "average_per_day": round(average_per_day, 1),
-            "start_date": start_date.isoformat() + 'Z',
-            "end_date": end_date.isoformat() + 'Z'
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "weekly_stats": {
+                "ai_chats": stats.weekly_ai_chats if stats else 0,
+                "notes_created": stats.weekly_notes_created if stats else 0,
+                "flashcards_created": stats.weekly_flashcards_created if stats else 0,
+                "quizzes_completed": stats.weekly_quizzes_completed if stats else 0,
+                "solo_quizzes": getattr(stats, 'weekly_solo_quizzes', 0) if stats else 0,
+                "battles_won": stats.weekly_battles_won if stats else 0,
+                "study_minutes": stats.weekly_study_minutes if stats else 0
+            }
         }
         
     except Exception as e:
@@ -4936,6 +4962,191 @@ def get_weekly_progress(user_id: str = Query(...), db: Session = Depends(get_db)
             "total_sessions": 0,
             "average_per_day": 0
         }
+
+
+@app.get("/api/get_analytics_history")
+def get_analytics_history(
+    user_id: str = Query(...),
+    period: str = Query("week"),
+    db: Session = Depends(get_db)
+):
+    """Get historical analytics data for charts with full metric breakdown"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Determine date range and grouping based on period
+        end_date = datetime.now(timezone.utc).date()
+        if period == "week":
+            start_date = end_date - timedelta(days=6)
+            group_by = "day"
+        elif period == "month":
+            start_date = end_date - timedelta(days=29)
+            group_by = "day"
+        elif period == "year":
+            start_date = end_date - timedelta(days=364)
+            group_by = "week"  # Group by week for year view
+        else:  # all
+            # Get earliest transaction date
+            earliest = db.query(func.min(models.PointTransaction.created_at)).filter(
+                models.PointTransaction.user_id == user.id
+            ).scalar()
+            start_date = earliest.date() if earliest else end_date - timedelta(days=364)
+            group_by = "month"  # Group by month for all-time view
+        
+        # Get point transactions for the period
+        transactions = db.query(models.PointTransaction).filter(
+            models.PointTransaction.user_id == user.id,
+            models.PointTransaction.created_at >= datetime.combine(start_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+        ).order_by(models.PointTransaction.created_at.asc()).all()
+        
+        # Initialize data structure based on grouping
+        data_points = {}
+        
+        if group_by == "day":
+            # Daily breakdown
+            current = start_date
+            while current <= end_date:
+                key = current.isoformat()
+                day_names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+                data_points[key] = {
+                    "date": key,
+                    "day": day_names[current.weekday()],
+                    "label": current.strftime("%b %d") if period == "month" else day_names[current.weekday()],
+                    "points": 0,
+                    "ai_chats": 0,
+                    "notes": 0,
+                    "flashcards": 0,
+                    "quizzes": 0,
+                    "solo_quizzes": 0,
+                    "battles": 0,
+                    "study_minutes": 0
+                }
+                current += timedelta(days=1)
+        elif group_by == "week":
+            # Weekly breakdown for year view
+            current = start_date
+            week_num = 0
+            while current <= end_date:
+                week_start = current
+                week_end = min(current + timedelta(days=6), end_date)
+                key = f"W{week_num}"
+                data_points[key] = {
+                    "date": week_start.isoformat(),
+                    "day": key,
+                    "label": week_start.strftime("%b %d"),
+                    "points": 0,
+                    "ai_chats": 0,
+                    "notes": 0,
+                    "flashcards": 0,
+                    "quizzes": 0,
+                    "solo_quizzes": 0,
+                    "battles": 0,
+                    "study_minutes": 0,
+                    "_start": week_start,
+                    "_end": week_end
+                }
+                current += timedelta(days=7)
+                week_num += 1
+        else:  # month
+            # Monthly breakdown for all-time view
+            current = start_date.replace(day=1)
+            while current <= end_date:
+                key = current.strftime("%Y-%m")
+                data_points[key] = {
+                    "date": current.isoformat(),
+                    "day": current.strftime("%b"),
+                    "label": current.strftime("%b %Y"),
+                    "points": 0,
+                    "ai_chats": 0,
+                    "notes": 0,
+                    "flashcards": 0,
+                    "quizzes": 0,
+                    "solo_quizzes": 0,
+                    "battles": 0,
+                    "study_minutes": 0,
+                    "_month": current.month,
+                    "_year": current.year
+                }
+                # Move to next month
+                if current.month == 12:
+                    current = current.replace(year=current.year + 1, month=1)
+                else:
+                    current = current.replace(month=current.month + 1)
+        
+        # Process transactions
+        for t in transactions:
+            t_date = t.created_at.date()
+            
+            # Find the right bucket
+            if group_by == "day":
+                key = t_date.isoformat()
+            elif group_by == "week":
+                # Find which week this belongs to
+                key = None
+                for k, v in data_points.items():
+                    if "_start" in v and v["_start"] <= t_date <= v["_end"]:
+                        key = k
+                        break
+                if not key:
+                    continue
+            else:  # month
+                key = t_date.strftime("%Y-%m")
+            
+            if key not in data_points:
+                continue
+                
+            data_points[key]["points"] += t.points_earned
+            
+            # Categorize by activity type
+            if t.activity_type == "ai_chat":
+                data_points[key]["ai_chats"] += 1
+            elif t.activity_type == "note_created":
+                data_points[key]["notes"] += 1
+            elif t.activity_type in ["flashcard_set", "flashcard_reviewed", "flashcard_mastered"]:
+                data_points[key]["flashcards"] += 1
+            elif t.activity_type == "quiz_completed":
+                data_points[key]["quizzes"] += 1
+            elif t.activity_type == "solo_quiz":
+                data_points[key]["solo_quizzes"] += 1
+            elif t.activity_type in ["battle_win", "battle_draw", "battle_loss"]:
+                data_points[key]["battles"] += 1
+            elif t.activity_type == "study_time":
+                try:
+                    if t.activity_metadata:
+                        import ast
+                        meta = ast.literal_eval(t.activity_metadata)
+                        data_points[key]["study_minutes"] += meta.get("minutes", 0)
+                except:
+                    pass
+        
+        # Convert to list and clean up internal fields
+        history = []
+        for key in sorted(data_points.keys()):
+            item = {k: v for k, v in data_points[key].items() if not k.startswith("_")}
+            history.append(item)
+        
+        # Calculate totals for the period
+        total_points = sum(h["points"] for h in history)
+        total_activities = sum(h["ai_chats"] + h["notes"] + h["flashcards"] + h["quizzes"] + h["solo_quizzes"] + h["battles"] for h in history)
+        
+        return {
+            "history": history,
+            "period": period,
+            "group_by": group_by,
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "total_points": total_points,
+            "total_activities": total_activities,
+            "data_points_count": len(history)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting analytics history: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {"history": [], "period": period, "error": str(e)}
 
 
 # OLD endpoint removed - using newer comprehensive version at line ~9123
@@ -10212,7 +10423,7 @@ async def complete_solo_quiz(
     username: str = Depends(verify_token),
     db: Session = Depends(get_db)
 ):
-    """Complete a solo quiz"""
+    """Complete a solo quiz with gamification points"""
     try:
         current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
         if not current_user:
@@ -10241,6 +10452,21 @@ async def complete_solo_quiz(
         db.commit()
         logger.info(f"Quiz saved successfully")
         
+        # Award gamification points using the new formula
+        from gamification_system import award_points, calculate_solo_quiz_points
+        
+        points_result = award_points(db, current_user.id, "solo_quiz", {
+            "difficulty": quiz.difficulty,
+            "question_count": quiz.question_count,
+            "score_percentage": score
+        })
+        
+        # Get detailed breakdown for response
+        quiz_points = calculate_solo_quiz_points(quiz.difficulty, quiz.question_count, score)
+        
+        db.commit()
+        logger.info(f"Awarded {points_result['points_earned']} points for solo quiz")
+        
         # Create notifications based on quiz performance
         logger.info(f"Checking notification conditions - Score: {score}")
         notification = None
@@ -10263,7 +10489,7 @@ async def complete_solo_quiz(
             notification = models.Notification(
                 user_id=current_user.id,
                 title="Excellent Work!",
-                message=f"Amazing! You scored {score}% on your quiz. Keep up the great work!",
+                message=f"Amazing! You scored {score}% on your quiz. You earned {points_result['points_earned']} points!",
                 notification_type="quiz_excellent"
             )
             db.add(notification)
@@ -10274,7 +10500,11 @@ async def complete_solo_quiz(
         
         response = {
             "status": "success",
-            "message": "Quiz completed"
+            "message": "Quiz completed",
+            "points_earned": points_result["points_earned"],
+            "total_points": points_result["total_points"],
+            "level": points_result["level"],
+            "points_breakdown": quiz_points
         }
         
         # Include notification in response if created
@@ -10476,7 +10706,10 @@ async def get_weekly_bingo_stats(
                 "flashcards_created": stats.weekly_flashcards_created,
                 "streak": stats.current_streak,
                 "battles_won": stats.weekly_battles_won,
-                "level": stats.level
+                "level": stats.level,
+                "solo_quizzes": getattr(stats, 'weekly_solo_quizzes', 0),
+                "flashcards_reviewed": getattr(stats, 'weekly_flashcards_reviewed', 0),
+                "flashcards_mastered": getattr(stats, 'weekly_flashcards_mastered', 0)
             }
         }
     
@@ -10506,7 +10739,10 @@ async def get_weekly_activity_progress(
                 "notes_created": 0,
                 "questions_answered": 0,
                 "quizzes_completed": 0,
-                "flashcards_created": 0
+                "flashcards_created": 0,
+                "solo_quizzes": 0,
+                "flashcards_reviewed": 0,
+                "flashcards_mastered": 0
             }
         
         return {
@@ -10515,7 +10751,10 @@ async def get_weekly_activity_progress(
             "notes_created": stats.weekly_notes_created,
             "questions_answered": stats.weekly_questions_answered,
             "quizzes_completed": stats.weekly_quizzes_completed,
-            "flashcards_created": stats.weekly_flashcards_created
+            "flashcards_created": stats.weekly_flashcards_created,
+            "solo_quizzes": getattr(stats, 'weekly_solo_quizzes', 0),
+            "flashcards_reviewed": getattr(stats, 'weekly_flashcards_reviewed', 0),
+            "flashcards_mastered": getattr(stats, 'weekly_flashcards_mastered', 0)
         }
     
     except Exception as e:

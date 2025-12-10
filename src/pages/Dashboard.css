@@ -577,6 +577,11 @@ body {
 .dashboard-page .widget-header {
   display: flex; justify-content: space-between; align-items: center;
   margin-bottom: 20px; padding-bottom: 16px;
+}
+.dashboard-page .widget-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   border-bottom: 2px solid var(--accent);
   gap: 12px;
 }
@@ -1525,6 +1530,51 @@ body {
   flex-direction: column; 
   height: 100%; 
   justify-content: flex-start; 
+}
+.dashboard-page .progress-chart-widget.clickable-widget {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.dashboard-page .progress-chart-widget.clickable-widget:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  border-color: var(--accent);
+}
+.dashboard-page .widget-total {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.dashboard-page .analytics-btn {
+  background: var(--accent);
+  color: var(--bg-bottom);
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.dashboard-page .analytics-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.3);
+}
+.dashboard-page .widget-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+.dashboard-page .view-details {
+  font-size: 0.75rem;
+  color: var(--accent);
+  font-weight: 500;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+.dashboard-page .clickable-widget:hover .view-details {
+  opacity: 1;
 }
 .dashboard-page .chart-container { 
   flex: 1; 
