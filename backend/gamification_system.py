@@ -10,14 +10,15 @@ import models
 # ==================== POINT VALUES ====================
 POINT_VALUES = {
     "ai_chat": 1,           # AI chat message
-    "note_created": 10,     # Create note
-    "question_answered": 2, # Answer question (quiz/learning review only)
-    "flashcard_set": 10,    # Flashcard set
-    "quiz_completed": 50,   # Complete quiz
-    "study_hour": 10,       # Study 1 hour
-    "battle_win": 3,        # Battle win
-    "battle_draw": 2,       # Battle draw
-    "battle_loss": 1        # Battle loss
+    "note_created": 20,     # Create note (AI chat, audio, or own)
+    "flashcard_set": 10,    # Flashcard set created
+    "quiz_high_score": 30,  # Quiz with 80%+ score
+    "quiz_completed": 15,   # Complete quiz (any score)
+    "study_hour": 50,       # Study 1 hour on app
+    "question_answered": 2, # Answer question
+    "battle_win": 10,       # Battle win
+    "battle_draw": 5,       # Battle draw
+    "battle_loss": 2        # Battle loss (participation)
 }
 
 # ==================== LEVEL THRESHOLDS ====================
@@ -122,18 +123,26 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
         description = "Created Flashcard Set"
         
     elif activity_type == "quiz_completed":
-        points_earned = POINT_VALUES["quiz_completed"]
+        score_percentage = metadata.get("score_percentage", 0)
+        if score_percentage >= 80:
+            points_earned = POINT_VALUES["quiz_high_score"]
+            description = f"Completed Quiz with {score_percentage}% (High Score Bonus!)"
+        else:
+            points_earned = POINT_VALUES["quiz_completed"]
+            description = f"Completed Quiz with {score_percentage}%"
         stats.total_quizzes_completed += 1
         stats.weekly_quizzes_completed += 1
-        description = "Completed Quiz"
         
     elif activity_type == "study_time":
         minutes = metadata.get("minutes", 0)
         hours = minutes / 60
-        points_earned = int(hours * POINT_VALUES["study_hour"])
+        points_earned = int(hours * POINT_VALUES["study_hour"])  # 50 pts per hour
         stats.total_study_minutes += minutes
         stats.weekly_study_minutes += minutes
-        description = f"Studied {minutes} minutes"
+        if minutes >= 60:
+            description = f"Studied {int(hours)}h {minutes % 60}m (+{points_earned} pts)"
+        else:
+            description = f"Studied {minutes} minutes"
         
     elif activity_type == "battle_win":
         points_earned = POINT_VALUES["battle_win"]

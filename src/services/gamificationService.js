@@ -42,13 +42,15 @@ class GamificationService {
   }
 
   async trackFlashcardSet(userName, cardCount) {
-    return this.trackActivity(userName, 'flashcard_set_created', { card_count: cardCount });
+    return this.trackActivity(userName, 'flashcard_set', { card_count: cardCount });
   }
 
   async trackQuizCompleted(userName, score, totalQuestions) {
+    const scorePercentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
     return this.trackActivity(userName, 'quiz_completed', { 
       score: score, 
-      total_questions: totalQuestions 
+      total_questions: totalQuestions,
+      score_percentage: scorePercentage
     });
   }
 

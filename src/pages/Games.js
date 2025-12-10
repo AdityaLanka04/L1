@@ -260,7 +260,7 @@ const Games = () => {
             <div className="activity-stat-box">
               <span className="activity-stat-label">notes created</span>
               <span className="activity-stat-value">{weeklyProgress.notes_created}</span>
-              <span className="activity-stat-points">+{weeklyProgress.notes_created * 10} pts</span>
+              <span className="activity-stat-points">+{weeklyProgress.notes_created * 20} pts</span>
             </div>
             <div className="activity-stat-box">
               <span className="activity-stat-label">questions answered</span>
@@ -270,7 +270,7 @@ const Games = () => {
             <div className="activity-stat-box">
               <span className="activity-stat-label">quizzes completed</span>
               <span className="activity-stat-value">{weeklyProgress.quizzes_completed}</span>
-              <span className="activity-stat-points">+{weeklyProgress.quizzes_completed * 50} pts</span>
+              <span className="activity-stat-points">+{weeklyProgress.quizzes_completed * 15} pts</span>
             </div>
             <div className="activity-stat-box">
               <span className="activity-stat-label">flashcard sets</span>
@@ -280,7 +280,7 @@ const Games = () => {
             <div className="activity-stat-box">
               <span className="activity-stat-label">study time</span>
               <span className="activity-stat-value">{studyHoursCompleted}h {weeklyProgress.study_minutes % 60}m</span>
-              <span className="activity-stat-points">+{studyHoursCompleted * 10} pts</span>
+              <span className="activity-stat-points">+{studyHoursCompleted * 50} pts</span>
             </div>
           </div>
         </div>
@@ -365,35 +365,39 @@ const Games = () => {
                 <span>+1</span>
               </div>
               <div className="points-item">
-                <span>battle loss</span>
-                <span>+1</span>
-              </div>
-              <div className="points-item">
                 <span>answer question</span>
                 <span>+2</span>
               </div>
               <div className="points-item">
-                <span>battle draw</span>
+                <span>battle loss</span>
                 <span>+2</span>
               </div>
               <div className="points-item">
-                <span>battle win</span>
-                <span>+3</span>
-              </div>
-              <div className="points-item">
-                <span>create note</span>
-                <span>+10</span>
+                <span>battle draw</span>
+                <span>+5</span>
               </div>
               <div className="points-item">
                 <span>flashcard set</span>
                 <span>+10</span>
               </div>
               <div className="points-item">
-                <span>study 1 hour</span>
+                <span>battle win</span>
                 <span>+10</span>
               </div>
               <div className="points-item">
                 <span>complete quiz</span>
+                <span>+15</span>
+              </div>
+              <div className="points-item">
+                <span>create note</span>
+                <span>+20</span>
+              </div>
+              <div className="points-item">
+                <span>quiz 80%+ score</span>
+                <span>+30</span>
+              </div>
+              <div className="points-item">
+                <span>study 1 hour</span>
                 <span>+50</span>
               </div>
             </div>

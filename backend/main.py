@@ -1258,6 +1258,13 @@ async def ask_ai_enhanced(
             except:
                 daily_metric.topics_studied = json.dumps([topic])
         
+        # Award points for AI chat message
+        try:
+            from gamification_system import award_points
+            award_points(db, user.id, "ai_chat")
+        except Exception as gam_error:
+            logger.warning(f"Failed to award AI chat points: {gam_error}")
+        
         db.commit()
         
         action = rl_agent.network.predict(state)
@@ -2902,6 +2909,14 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
         db.add(new_note)
         db.commit()
         db.refresh(new_note)
+        
+        # Award points for note creation (20 pts)
+        try:
+            from gamification_system import award_points
+            award_points(db, user.id, "note_created")
+            db.commit()
+        except Exception as gam_error:
+            logger.warning(f"Failed to award note creation points: {gam_error}")
         
         return {
             "id": new_note.id,
