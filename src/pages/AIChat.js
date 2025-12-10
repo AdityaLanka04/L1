@@ -1684,9 +1684,10 @@ const AIChat = ({ sharedMode = false }) => {
                 <path d="M1 8l14-6-6 14-2-8z"/>
               </svg>
             </button>
-              </div>
-            </div>
           </div>
+        </div>
+        </div>
+      </div>
       
       {showDeleteConfirmation && (
         <div className="modal-overlay">
@@ -1753,7 +1754,6 @@ const AIChat = ({ sharedMode = false }) => {
           </div>
         </>
       )}
-      </div>
     </div>
   );
 };

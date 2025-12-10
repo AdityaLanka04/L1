@@ -565,10 +565,43 @@ const Flashcards = () => {
   };
 
   const getMasteryLevel = (accuracy) => {
-    if (accuracy >= 90) return { level: 'Master', color: '#10B981', icon: '🏆' };
-    if (accuracy >= 70) return { level: 'Proficient', color: '#3B82F6', icon: '⭐' };
-    if (accuracy >= 50) return { level: 'Learning', color: '#F59E0B', icon: '📚' };
-    return { level: 'Beginner', color: '#EF4444', icon: '🌱' };
+    if (accuracy >= 90) return { level: 'Master', color: '#22c55e' };
+    if (accuracy >= 70) return { level: 'Proficient', color: '#3b82f6' };
+    if (accuracy >= 50) return { level: 'Learning', color: '#f59e0b' };
+    return { level: 'Beginner', color: '#ef4444' };
+  };
+
+  // SVG Icons
+  const Icons = {
+    fire: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2c.5 2.5 2 4.5 2 7a4 4 0 1 1-8 0c0-2.5 1.5-4.5 2-7 1.5 1.5 2.5 2 4 0z"/></svg>,
+    book: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
+    target: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
+    cards: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>,
+    sparkle: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3z"/></svg>,
+    chart: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>,
+    bolt: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+    home: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+    chat: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+    logout: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+    search: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>,
+    edit: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+    trash: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
+    file: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>,
+    calendar: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+    play: <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
+    eye: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+    shuffle: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/></svg>,
+    check: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>,
+    x: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+    arrowRight: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>,
+    arrowLeft: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
+    refresh: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>,
+    plus: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+    trophy: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
+    lightbulb: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/></svg>,
+    clock: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+    tap: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>,
+    celebration: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5.8 11.3 2 22l10.7-3.79"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="m22 2-2.24.75a2.9 2.9 0 0 0-1.96 3.12v0c.1.86-.57 1.63-1.45 1.63h-.38c-.86 0-1.6.6-1.76 1.44L14 10"/><path d="m22 13-.82-.33c-.86-.34-1.82.2-1.98 1.11v0c-.11.7-.72 1.22-1.43 1.22H17"/><path d="m11 2 .33.82c.34.86-.2 1.82-1.11 1.98v0C9.52 4.9 9 5.52 9 6.23V7"/><path d="M11 13c1.93 1.93 2.83 4.17 2 5-.83.83-3.07-.07-5-2-1.93-1.93-2.83-4.17-2-5 .83-.83 3.07.07 5 2Z"/></svg>,
   };
 
   const currentStudyCards = studySettings.shuffle ? shuffledCards : flashcards;
@@ -581,24 +614,24 @@ const Flashcards = () => {
             <div className="study-results-screen">
               <div className="results-card">
                 <div className="results-header">
-                  <div className="results-icon">🎉</div>
+                  <div className="results-icon">{Icons.celebration}</div>
                   <h2>Session Complete!</h2>
                   <p className="results-subtitle">{currentSetInfo?.setTitle || 'Study Session'}</p>
                 </div>
                 
                 <div className="results-stats">
                   <div className="result-stat correct">
-                    <div className="stat-icon">✓</div>
+                    <div className="stat-icon">{Icons.check}</div>
                     <div className="stat-number">{studySessionStats.correct}</div>
                     <div className="stat-label">Correct</div>
                   </div>
                   <div className="result-stat incorrect">
-                    <div className="stat-icon">✗</div>
+                    <div className="stat-icon">{Icons.x}</div>
                     <div className="stat-number">{studySessionStats.incorrect}</div>
                     <div className="stat-label">Needs Review</div>
                   </div>
                   <div className="result-stat skipped">
-                    <div className="stat-icon">→</div>
+                    <div className="stat-icon">{Icons.arrowRight}</div>
                     <div className="stat-number">{studySessionStats.skipped}</div>
                     <div className="stat-label">Skipped</div>
                   </div>
@@ -627,11 +660,11 @@ const Flashcards = () => {
 
                 <div className="results-actions">
                   <button className="results-btn restart" onClick={restartStudy}>
-                    <span className="btn-icon">↺</span>
+                    <span className="btn-icon">{Icons.refresh}</span>
                     Study Again
                   </button>
                   <button className="results-btn exit" onClick={exitStudyMode}>
-                    <span className="btn-icon">←</span>
+                    <span className="btn-icon">{Icons.arrowLeft}</span>
                     Back to Dashboard
                   </button>
                 </div>
@@ -641,7 +674,7 @@ const Flashcards = () => {
             <>
               <div className="study-header">
                 <button className="exit-study-btn" onClick={exitStudyMode}>
-                  <span className="exit-icon">←</span>
+                  <span className="exit-icon">{Icons.arrowLeft}</span>
                   Exit
                 </button>
                 <div className="study-title-area">
@@ -656,7 +689,7 @@ const Flashcards = () => {
                     onClick={() => setStudySettings(prev => ({ ...prev, shuffle: !prev.shuffle }))}
                     title="Shuffle Cards"
                   >
-                    🔀
+                    {Icons.shuffle}
                   </button>
                 </div>
               </div>
@@ -689,7 +722,7 @@ const Flashcards = () => {
                           {currentStudyCards[currentCard]?.question}
                         </div>
                         <div className="tap-hint">
-                          <span className="tap-icon">👆</span>
+                          <span className="tap-icon">{Icons.tap}</span>
                           Tap to reveal answer
                         </div>
                       </div>
@@ -699,7 +732,7 @@ const Flashcards = () => {
                           {currentStudyCards[currentCard]?.answer}
                         </div>
                         <div className="tap-hint">
-                          <span className="tap-icon">👆</span>
+                          <span className="tap-icon">{Icons.tap}</span>
                           Tap to see question
                         </div>
                       </div>
@@ -721,21 +754,21 @@ const Flashcards = () => {
                   className="response-btn incorrect"
                   onClick={() => handleStudyResponse('incorrect')}
                 >
-                  <span className="response-icon">✗</span>
+                  <span className="response-icon">{Icons.x}</span>
                   <span className="response-text">Needs Review</span>
                 </button>
                 <button 
                   className="response-btn skip"
                   onClick={() => handleStudyResponse('skipped')}
                 >
-                  <span className="response-icon">→</span>
+                  <span className="response-icon">{Icons.arrowRight}</span>
                   <span className="response-text">Skip</span>
                 </button>
                 <button 
                   className="response-btn correct"
                   onClick={() => handleStudyResponse('correct')}
                 >
-                  <span className="response-icon">✓</span>
+                  <span className="response-icon">{Icons.check}</span>
                   <span className="response-text">Got It!</span>
                 </button>
               </div>
@@ -786,7 +819,7 @@ const Flashcards = () => {
 
             <div className="sidebar-stats">
               <div className="quick-stat">
-                <div className="stat-icon-small">🔥</div>
+                <div className="stat-icon-small">{Icons.fire}</div>
                 {!sidebarCollapsed && (
                   <div className="stat-details">
                     <span className="stat-value-small">{currentStreak}</span>
@@ -795,7 +828,7 @@ const Flashcards = () => {
                 )}
               </div>
               <div className="quick-stat">
-                <div className="stat-icon-small">📚</div>
+                <div className="stat-icon-small">{Icons.book}</div>
                 {!sidebarCollapsed && (
                   <div className="stat-details">
                     <span className="stat-value-small">{flashcardStats?.total_sets || 0}</span>
@@ -804,7 +837,7 @@ const Flashcards = () => {
                 )}
               </div>
               <div className="quick-stat">
-                <div className="stat-icon-small">🎯</div>
+                <div className="stat-icon-small">{Icons.target}</div>
                 {!sidebarCollapsed && (
                   <div className="stat-details">
                     <span className="stat-value-small">{flashcardStats?.total_cards || 0}</span>
@@ -819,21 +852,21 @@ const Flashcards = () => {
                 className={`nav-item ${activePanel === 'cards' ? 'active' : ''}`}
                 onClick={() => setActivePanel('cards')}
               >
-                <span className="nav-icon">📖</span>
+                <span className="nav-icon">{Icons.cards}</span>
                 {!sidebarCollapsed && <span className="nav-text">My Flashcards</span>}
               </button>
               <button 
                 className={`nav-item ${activePanel === 'generator' ? 'active' : ''}`}
                 onClick={() => setActivePanel('generator')}
               >
-                <span className="nav-icon">✨</span>
+                <span className="nav-icon">{Icons.sparkle}</span>
                 {!sidebarCollapsed && <span className="nav-text">Generator</span>}
               </button>
               <button 
                 className={`nav-item ${activePanel === 'statistics' ? 'active' : ''}`}
                 onClick={() => setActivePanel('statistics')}
               >
-                <span className="nav-icon">📊</span>
+                <span className="nav-icon">{Icons.chart}</span>
                 {!sidebarCollapsed && <span className="nav-text">Statistics</span>}
               </button>
               <button 
@@ -841,29 +874,25 @@ const Flashcards = () => {
                 onClick={() => setShowImportExport(true)}
                 title="Convert flashcards"
               >
-                <span className="nav-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                  </svg>
-                </span>
+                <span className="nav-icon">{Icons.bolt}</span>
                 {!sidebarCollapsed && <span className="nav-text">Convert</span>}
               </button>
             </nav>
 
             <div className="sidebar-footer">
               <button className="nav-item" onClick={() => navigate('/dashboard')}>
-                <span className="nav-icon">🏠</span>
+                <span className="nav-icon">{Icons.home}</span>
                 {!sidebarCollapsed && <span className="nav-text">Dashboard</span>}
               </button>
               <button className="nav-item" onClick={() => navigate('/chat')}>
-                <span className="nav-icon">💬</span>
+                <span className="nav-icon">{Icons.chat}</span>
                 {!sidebarCollapsed && <span className="nav-text">AI Chat</span>}
               </button>
               <button className="nav-item logout" onClick={() => {
                 localStorage.clear();
                 navigate('/login');
               }}>
-                <span className="nav-icon">🚪</span>
+                <span className="nav-icon">{Icons.logout}</span>
                 {!sidebarCollapsed && <span className="nav-text">Logout</span>}
               </button>
             </div>
@@ -881,7 +910,7 @@ const Flashcards = () => {
                   </div>
                   <div className="header-actions">
                     <div className="search-box">
-                      <span className="search-icon">🔍</span>
+                      <span className="search-icon">{Icons.search}</span>
                       <input 
                         type="text"
                         placeholder="Search sets..."
@@ -907,7 +936,7 @@ const Flashcards = () => {
                       }}
                       disabled={loadingHistory}
                     >
-                      {loadingHistory ? '↻' : '↻'} Refresh
+                      {Icons.refresh} Refresh
                     </button>
                     <button 
                       className="create-new-btn"
@@ -926,14 +955,14 @@ const Flashcards = () => {
                     </div>
                   ) : flashcardHistory.length === 0 ? (
                     <div className="empty-state">
-                      <div className="empty-icon">📚</div>
+                      <div className="empty-icon">{Icons.book}</div>
                       <h3>No Flashcard Sets Yet</h3>
                       <p>Create your first set to start learning!</p>
                       <button 
                         className="get-started-btn"
                         onClick={() => setActivePanel('generator')}
                       >
-                        <span>✨</span> Create Your First Set
+                        {Icons.sparkle} Create Your First Set
                       </button>
                     </div>
                   ) : (
@@ -943,18 +972,18 @@ const Flashcards = () => {
                         return (
                           <div key={set.id} className="flashcard-set-card">
                             <div className="set-card-header">
-                              <div className="set-icon" style={{ background: `linear-gradient(135deg, ${mastery.color}22, ${mastery.color}44)` }}>
-                                {mastery.icon}
+                              <div className="set-icon" style={{ background: `linear-gradient(135deg, ${mastery.color}22, ${mastery.color}44)`, color: mastery.color }}>
+                                {Icons.cards}
                               </div>
                               <div className="set-menu">
                                 <button className="menu-btn" onClick={(e) => {
                                   e.stopPropagation();
                                   startRenaming(set.id, set.title);
-                                }}>✏️</button>
+                                }}>{Icons.edit}</button>
                                 <button className="menu-btn delete" onClick={(e) => {
                                   e.stopPropagation();
                                   deleteFlashcardSet(set.id);
-                                }}>🗑️</button>
+                                }}>{Icons.trash}</button>
                               </div>
                             </div>
                             
@@ -974,11 +1003,11 @@ const Flashcards = () => {
                               )}
                               <div className="set-meta">
                                 <span className="meta-item">
-                                  <span className="meta-icon">📄</span>
+                                  <span className="meta-icon">{Icons.file}</span>
                                   {set.card_count} cards
                                 </span>
                                 <span className="meta-item">
-                                  <span className="meta-icon">📅</span>
+                                  <span className="meta-icon">{Icons.calendar}</span>
                                   {formatDate(set.created_at)}
                                 </span>
                               </div>
@@ -1013,7 +1042,7 @@ const Flashcards = () => {
                                 className="action-btn study"
                                 onClick={() => loadFlashcardSet(set.id, true)}
                               >
-                                <span>▶</span> Study
+                                {Icons.play} Study
                               </button>
                             </div>
                           </div>
@@ -1040,7 +1069,7 @@ const Flashcards = () => {
                       className={`mode-option ${generationMode === 'topic' ? 'active' : ''}`}
                       onClick={() => setGenerationMode('topic')}
                     >
-                      <span className="mode-icon">📝</span>
+                      <span className="mode-icon">{Icons.edit}</span>
                       <span className="mode-label">By Topic</span>
                       <span className="mode-desc">Enter any topic to generate cards</span>
                     </button>
@@ -1048,7 +1077,7 @@ const Flashcards = () => {
                       className={`mode-option ${generationMode === 'chat_history' ? 'active' : ''}`}
                       onClick={() => setGenerationMode('chat_history')}
                     >
-                      <span className="mode-icon">💬</span>
+                      <span className="mode-icon">{Icons.chat}</span>
                       <span className="mode-label">From Chat History</span>
                       <span className="mode-desc">Convert your AI conversations to cards</span>
                     </button>
@@ -1072,7 +1101,7 @@ const Flashcards = () => {
                       <div className="form-grid">
                         <div className="form-group">
                           <label className="form-label">
-                            <span className="label-icon">🔢</span>
+                            <span className="label-icon">{Icons.cards}</span>
                             Number of Cards
                           </label>
                           <div className="number-input-wrapper">
@@ -1107,7 +1136,7 @@ const Flashcards = () => {
 
                         <div className="form-group">
                           <label className="form-label">
-                            <span className="label-icon">📊</span>
+                            <span className="label-icon">{Icons.chart}</span>
                             Difficulty Level
                           </label>
                           <select
@@ -1124,7 +1153,7 @@ const Flashcards = () => {
 
                         <div className="form-group">
                           <label className="form-label">
-                            <span className="label-icon">📏</span>
+                            <span className="label-icon">{Icons.target}</span>
                             Answer Depth
                           </label>
                           <select
@@ -1142,7 +1171,7 @@ const Flashcards = () => {
 
                       <div className="form-section">
                         <label className="form-label">
-                          <span className="label-icon">🎯</span>
+                          <span className="label-icon">{Icons.target}</span>
                           Focus Areas (Optional)
                         </label>
                         <div className="focus-input-group">
@@ -1196,7 +1225,7 @@ const Flashcards = () => {
                           </>
                         ) : (
                           <>
-                            <span className="btn-icon">✨</span>
+                            <span className="btn-icon">{Icons.sparkle}</span>
                             Generate {cardCount} Flashcards
                           </>
                         )}
@@ -1273,7 +1302,7 @@ const Flashcards = () => {
 
                       {chatSessions.length === 0 ? (
                         <div className="no-sessions-state">
-                          <div className="empty-icon">💬</div>
+                          <div className="empty-icon">{Icons.chat}</div>
                           <h4>No Chat Sessions Found</h4>
                           <p>Start a conversation with the AI to generate flashcards from your discussions.</p>
                           <button onClick={goToChat} className="go-to-chat-btn">
@@ -1316,7 +1345,7 @@ const Flashcards = () => {
                           </>
                         ) : (
                           <>
-                            <span className="btn-icon">✨</span>
+                            <span className="btn-icon">{Icons.sparkle}</span>
                             Generate from {selectedSessions.length} Session{selectedSessions.length !== 1 ? 's' : ''}
                           </>
                         )}
@@ -1328,7 +1357,7 @@ const Flashcards = () => {
                     <div className="preview-section">
                       <div className="preview-header">
                         <h3>
-                          <span className="preview-icon">👁️</span>
+                          <span className="preview-icon">{Icons.eye}</span>
                           Preview: {currentSetInfo?.setTitle || 'Generated Cards'}
                         </h3>
                         <span className="card-counter">{currentCard + 1} / {flashcards.length}</span>
@@ -1377,7 +1406,7 @@ const Flashcards = () => {
                             updateStreak();
                           }}
                         >
-                          <span>▶</span> Start Studying
+                          {Icons.play} Start Studying
                         </button>
                       </div>
                     </div>
@@ -1399,28 +1428,28 @@ const Flashcards = () => {
                   <div className="statistics-content">
                     <div className="stats-overview">
                       <div className="stat-card primary">
-                        <div className="stat-icon-large">📚</div>
+                        <div className="stat-icon-large">{Icons.book}</div>
                         <div className="stat-info">
                           <span className="stat-value-large">{flashcardStats.total_sets}</span>
                           <span className="stat-label-large">Total Sets</span>
                         </div>
                       </div>
                       <div className="stat-card">
-                        <div className="stat-icon-large">🎴</div>
+                        <div className="stat-icon-large">{Icons.cards}</div>
                         <div className="stat-info">
                           <span className="stat-value-large">{flashcardStats.total_cards}</span>
                           <span className="stat-label-large">Total Cards</span>
                         </div>
                       </div>
                       <div className="stat-card">
-                        <div className="stat-icon-large">🎯</div>
+                        <div className="stat-icon-large">{Icons.target}</div>
                         <div className="stat-info">
                           <span className="stat-value-large">{flashcardStats.overall_accuracy}%</span>
                           <span className="stat-label-large">Overall Accuracy</span>
                         </div>
                       </div>
                       <div className="stat-card">
-                        <div className="stat-icon-large">🔥</div>
+                        <div className="stat-icon-large">{Icons.fire}</div>
                         <div className="stat-info">
                           <span className="stat-value-large">{currentStreak}</span>
                           <span className="stat-label-large">Day Streak</span>
@@ -1447,7 +1476,7 @@ const Flashcards = () => {
                             const mastery = getMasteryLevel(flashcardStats.overall_accuracy || 0);
                             return (
                               <div className="current-mastery">
-                                <span className="mastery-icon">{mastery.icon}</span>
+                                <span className="mastery-icon" style={{ color: mastery.color }}>{Icons.trophy}</span>
                                 <span className="mastery-level" style={{ color: mastery.color }}>{mastery.level}</span>
                                 <span className="mastery-desc">Current Level</span>
                               </div>
@@ -1460,19 +1489,19 @@ const Flashcards = () => {
                         <h3 className="detail-title">Study Tips</h3>
                         <div className="tips-list">
                           <div className="tip-item">
-                            <span className="tip-icon">💡</span>
+                            <span className="tip-icon">{Icons.lightbulb}</span>
                             <span>Review cards you marked as "Needs Review" more frequently</span>
                           </div>
                           <div className="tip-item">
-                            <span className="tip-icon">⏰</span>
+                            <span className="tip-icon">{Icons.clock}</span>
                             <span>Study in short sessions (15-20 min) for better retention</span>
                           </div>
                           <div className="tip-item">
-                            <span className="tip-icon">🔄</span>
+                            <span className="tip-icon">{Icons.shuffle}</span>
                             <span>Use shuffle mode to prevent memorizing card order</span>
                           </div>
                           <div className="tip-item">
-                            <span className="tip-icon">📅</span>
+                            <span className="tip-icon">{Icons.calendar}</span>
                             <span>Maintain your streak for consistent learning</span>
                           </div>
                         </div>
@@ -1481,7 +1510,7 @@ const Flashcards = () => {
                   </div>
                 ) : (
                   <div className="empty-state">
-                    <div className="empty-icon">📊</div>
+                    <div className="empty-icon">{Icons.chart}</div>
                     <h3>No Statistics Yet</h3>
                     <p>Start studying flashcards to see your analytics here!</p>
                     <button 

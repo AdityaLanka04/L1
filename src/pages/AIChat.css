@@ -208,8 +208,10 @@ body {
 
 .chat-content-area {
   display: flex;
-  flex: 1;
+  flex: 1 1 auto;
   overflow: hidden;
+  min-height: 0;
+  height: calc(100vh - 70px);
 }
 
 .chat-sidebar {
@@ -621,12 +623,14 @@ body {
 }
 
 .chat-main {
-  flex: 1;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   background: var(--bg-bottom);
   min-width: 0;
-  position: relative;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .chat-header {
@@ -783,10 +787,15 @@ body {
 }
 
 .messages-container {
-  flex: 1;
-  overflow-y: auto;
+  flex: 1 1 auto;
+  overflow-y: auto !important;
+  overflow-x: hidden;
   padding: 28px 24px;
   background: var(--bg-bottom);
+  min-height: 0;
+  max-height: 100%;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .messages-container::-webkit-scrollbar {
@@ -1496,6 +1505,7 @@ body {
   flex-shrink: 0;
   box-shadow: var(--shadow-md);
   position: relative;
+  width: 100%;
 }
 
 .input-container::before {
@@ -1510,8 +1520,9 @@ body {
 }
 
 .input-wrapper {
-  max-width: 900px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   background: transparent;
   border: 2px solid var(--border);
   display: flex;
