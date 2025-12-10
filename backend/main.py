@@ -23,6 +23,9 @@ import requests
 from dotenv import load_dotenv
 from groq import Groq
 
+# Set up logger early so it's available for import warnings
+logger = logging.getLogger(__name__)
+
 # Media Processing Imports (optional - will be imported when needed)
 try:
     from youtube_transcript_api import YouTubeTranscriptApi
