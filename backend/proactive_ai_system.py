@@ -406,6 +406,7 @@ Generate a friendly, personalized message that:
 3. Sounds like a caring human tutor, not a bot
 4. Keeps it brief (2-3 sentences)
 5. Makes them want to engage
+6. Does NOT use emojis - keep it professional and clean
 
 Be warm, personal, and encouraging."""
 
@@ -420,6 +421,7 @@ Generate a friendly check-in message that:
 3. Sounds natural and caring
 4. Keeps it brief (2 sentences)
 5. Encourages them to continue learning
+6. Does NOT use emojis - keep it professional and clean
 
 Be warm and supportive."""
 

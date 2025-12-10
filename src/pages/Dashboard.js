@@ -19,7 +19,8 @@ import {
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  CheckCircle, XCircle, Clock, Plus, Users, Bell, Calendar as CalendarIcon, BookOpen, Zap
+  CheckCircle, XCircle, Clock, Plus, Users, Bell, Calendar as CalendarIcon, BookOpen, Zap,
+  MessageSquare, HelpCircle, FileText, Network, ChevronRight
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useToast } from '../contexts/ToastContext';
@@ -27,6 +28,7 @@ import { rgbaFromHex } from '../utils/ThemeManager';
 import ThemeSwitcher from '../components/ThemeSwitcher';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ProactiveNotification from '../components/ProactiveNotification';
+import SlideNotification from '../components/SlideNotification';
 import ImportExportModal from '../components/ImportExportModal';
 import './Dashboard.css';
 import { API_URL } from '../config';
@@ -105,16 +107,21 @@ const Dashboard = () => {
   
   // Proactive notification state
   const [proactiveNotif, setProactiveNotif] = useState(null);
+  
+  // Slide-in notification queue for all notification types
+  const [slideNotifQueue, setSlideNotifQueue] = useState([]);
+  const [lastNotificationIds, setLastNotificationIds] = useState(new Set());
+  const notificationPollRef = useRef(null);
 
   // Inactivity engagement states
   const [showInactivitySuggestion, setShowInactivitySuggestion] = useState(false);
   const [engagementSuggestions, setEngagementSuggestions] = useState([
-    { id: 1, title: 'Start an AI Chat', description: 'Ask your AI tutor any question about your studies', icon: '💬', action: 'ai' },
-    { id: 2, title: 'Practice with Flashcards', description: 'Review and master key concepts with interactive flashcards', icon: '📚', action: 'flashcards' },
-    { id: 3, title: 'Generate Quiz Questions', description: 'Test your knowledge with auto-generated questions', icon: '❓', action: 'quiz' },
-    { id: 4, title: 'Review Your Notes', description: 'Browse through your notes and organize concepts', icon: '📝', action: 'notes' },
-    { id: 5, title: 'Explore Concept Web', description: 'Visualize connections between topics', icon: '🕸️', action: 'concepts' },
-    { id: 6, title: 'Join Study Group', description: 'Connect and collaborate with other learners', icon: '👥', action: 'social' }
+    { id: 1, title: 'Start an AI Chat', description: 'Ask your AI tutor any question about your studies', icon: 'chat', action: 'ai' },
+    { id: 2, title: 'Practice with Flashcards', description: 'Review and master key concepts with interactive flashcards', icon: 'flashcards', action: 'flashcards' },
+    { id: 3, title: 'Generate Quiz Questions', description: 'Test your knowledge with auto-generated questions', icon: 'quiz', action: 'quiz' },
+    { id: 4, title: 'Review Your Notes', description: 'Browse through your notes and organize concepts', icon: 'notes', action: 'notes' },
+    { id: 5, title: 'Explore Concept Web', description: 'Visualize connections between topics', icon: 'web', action: 'concepts' },
+    { id: 6, title: 'Join Study Group', description: 'Connect and collaborate with other learners', icon: 'social', action: 'social' }
   ]);
 
   const timeIntervalRef = useRef(null);
@@ -278,12 +285,40 @@ const Dashboard = () => {
       loadDashboardData();
     }, 10000);
     
+    // Poll for new notifications every 30 seconds to show slide-in notifications
+    // This catches calendar reminders, achievements, level ups, etc.
+    notificationPollRef.current = setInterval(() => {
+      // First check for any upcoming calendar reminders
+      checkReminderNotifications();
+      // Then load all notifications (with slide-in for new ones)
+      loadNotifications(true);
+    }, 30000);
+    
+    // Initial load of notifications (without slide-in to avoid duplicates on login)
+    loadNotifications(false);
+    
+    // Check for reminder notifications on initial load
+    setTimeout(() => {
+      checkReminderNotifications();
+    }, 3000);
+    
+    // Initialize the known notification IDs after first load
+    setTimeout(() => {
+      setLastNotificationIds(new Set(notifications.map(n => n.id)));
+    }, 2000);
+    
+    // Request browser notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+    
     return () => {
       if (sessionStartTime && sessionId && userName) {
         endDashboardSession();
       }
       if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
       if (sessionUpdateRef.current) clearInterval(sessionUpdateRef.current);
+      if (notificationPollRef.current) clearInterval(notificationPollRef.current);
       clearInterval(goalPollInterval);
     };
   }
@@ -347,11 +382,9 @@ const Dashboard = () => {
     if (!userName) return;
 
     const trackActivity = () => {
+      // Only track activity time, don't dismiss the modal
+      // Modal should only be dismissed by clicking Dismiss button
       lastActivityRef.current = Date.now();
-      setShowInactivitySuggestion(false);
-      if (inactivityTimerRef.current) {
-        clearTimeout(inactivityTimerRef.current);
-      }
     };
 
     window.addEventListener('click', trackActivity);
@@ -361,12 +394,12 @@ const Dashboard = () => {
 
     const inactivityCheckInterval = setInterval(() => {
       const inactiveTime = Date.now() - lastActivityRef.current;
-      const INACTIVITY_THRESHOLD = 90 * 1000; // 90 seconds (1.5 minutes)
+      const INACTIVITY_THRESHOLD = 5 * 60 * 1000; // 5 minutes
 
       if (inactiveTime > INACTIVITY_THRESHOLD && !showInactivitySuggestion) {
         setShowInactivitySuggestion(true);
       }
-    }, 10 * 1000); // Check every 10 seconds
+    }, 30 * 1000); // Check every 30 seconds
 
     return () => {
       window.removeEventListener('click', trackActivity);
@@ -374,9 +407,6 @@ const Dashboard = () => {
       window.removeEventListener('mousemove', trackActivity);
       window.removeEventListener('scroll', trackActivity);
       clearInterval(inactivityCheckInterval);
-      if (inactivityTimerRef.current) {
-        clearTimeout(inactivityTimerRef.current);
-      }
     };
   }, [userName, showInactivitySuggestion]);
 
@@ -442,7 +472,7 @@ const Dashboard = () => {
     }
   };
 
-  const loadNotifications = async () => {
+  const loadNotifications = async (showSlideNotifs = false) => {
     if (!userName) return;
     try {
       const token = localStorage.getItem('token');
@@ -458,6 +488,28 @@ const Dashboard = () => {
         const newNotifications = data.notifications || [];
         console.log('📬 Loaded notifications:', newNotifications.length, newNotifications);
         
+        // Check for new unread notifications to show as slide-in
+        if (showSlideNotifs) {
+          const unreadNotifs = newNotifications.filter(n => !n.is_read);
+          const newUnreadNotifs = unreadNotifs.filter(n => !lastNotificationIds.has(n.id));
+          
+          if (newUnreadNotifs.length > 0) {
+            console.log('📬 New notifications to show as slide-in:', newUnreadNotifs.length);
+            // Add new notifications to the slide queue (max 3 at a time)
+            const notifsToShow = newUnreadNotifs.slice(0, 3);
+            setSlideNotifQueue(prev => [...prev, ...notifsToShow]);
+            
+            // Play notification sound
+            playNotificationSound();
+            
+            // Request browser notification permission and show
+            showBrowserNotification(notifsToShow[0]);
+          }
+          
+          // Update the set of known notification IDs
+          setLastNotificationIds(new Set(newNotifications.map(n => n.id)));
+        }
+        
         setNotifications(newNotifications);
         setUnreadCount(newNotifications.filter(n => !n.is_read).length);
         console.log('📬 Notifications state updated:', newNotifications.length);
@@ -469,6 +521,73 @@ const Dashboard = () => {
       // If endpoint doesn't exist, set empty array
       setNotifications([]);
       setUnreadCount(0);
+    }
+  };
+  
+  // Play notification sound
+  const playNotificationSound = () => {
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (e) {
+      console.log('Could not play notification sound:', e);
+    }
+  };
+  
+  // Show browser notification
+  const showBrowserNotification = async (notification) => {
+    if ('Notification' in window) {
+      if (Notification.permission === 'default') {
+        await Notification.requestPermission();
+      }
+      
+      if (Notification.permission === 'granted') {
+        new Notification(notification.title, {
+          body: notification.message,
+          icon: '/favicon.ico',
+          tag: `notif-${notification.id}`,
+          requireInteraction: false
+        });
+      }
+    }
+  };
+  
+  // Remove a slide notification from queue
+  const removeSlideNotification = (notifId) => {
+    setSlideNotifQueue(prev => prev.filter(n => n.id !== notifId));
+  };
+  
+  // Check for upcoming calendar reminders and create notifications
+  const checkReminderNotifications = async () => {
+    if (!userName) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/check_reminder_notifications?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.notifications_created > 0) {
+          console.log('📅 Created reminder notifications:', data.notifications_created);
+          // Reload notifications to show the new ones
+          loadNotifications(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking reminder notifications:', error);
     }
   };
 
@@ -1624,16 +1743,7 @@ const Dashboard = () => {
           <span className="action-label-modern">profile</span>
           <span className="action-description">View your progress</span>
         </div>
-        <div 
-          className="quick-action-item" 
-          onClick={!isCustomizing ? (() => {
-            setImportExportSource('notes');
-            setShowImportExport(true);
-          }) : undefined}
-        >
-          <span className="action-label-modern">convert</span>
-          <span className="action-description">Transform your content</span>
-        </div>
+
       </div>
     </div>
   );
@@ -1995,20 +2105,33 @@ const Dashboard = () => {
             </div>
             
             <div className="suggestion-grid">
-              {engagementSuggestions.map(suggestion => (
-                <div 
-                  key={suggestion.id}
-                  className="suggestion-card"
-                  onClick={() => handleEngagementSuggestion(suggestion.action)}
-                >
-                  <div className="suggestion-icon">{suggestion.icon}</div>
-                  <div className="suggestion-content">
-                    <h3>{suggestion.title}</h3>
-                    <p>{suggestion.description}</p>
+              {engagementSuggestions.map(suggestion => {
+                const getIcon = () => {
+                  switch(suggestion.icon) {
+                    case 'chat': return <MessageSquare size={20} />;
+                    case 'flashcards': return <BookOpen size={20} />;
+                    case 'quiz': return <HelpCircle size={20} />;
+                    case 'notes': return <FileText size={20} />;
+                    case 'web': return <Network size={20} />;
+                    case 'social': return <Users size={20} />;
+                    default: return <Zap size={20} />;
+                  }
+                };
+                return (
+                  <div 
+                    key={suggestion.id}
+                    className="suggestion-card"
+                    onClick={() => handleEngagementSuggestion(suggestion.action)}
+                  >
+                    <div className="suggestion-icon">{getIcon()}</div>
+                    <div className="suggestion-content">
+                      <h3>{suggestion.title}</h3>
+                      <p>{suggestion.description}</p>
+                    </div>
+                    <div className="suggestion-arrow"><ChevronRight size={18} /></div>
                   </div>
-                  <div className="suggestion-arrow">→</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             
             <div className="suggestion-footer">
@@ -2032,6 +2155,17 @@ const Dashboard = () => {
           onClose={() => setProactiveNotif(null)}
         />
       )}
+      
+      {/* Slide-in Notifications for all notification types */}
+      {slideNotifQueue.slice(0, 3).map((notif, index) => (
+        <SlideNotification
+          key={notif.id}
+          notification={notif}
+          onClose={() => removeSlideNotification(notif.id)}
+          onMarkRead={markNotificationAsRead}
+          style={{ top: `${80 + (index * 130)}px` }}
+        />
+      ))}
       
       {/* Import/Export Modal */}
       <ImportExportModal

@@ -7815,6 +7815,16 @@ async def send_friend_request(
             status="pending"
         )
         db.add(friend_request)
+        
+        # Create notification for the receiver
+        notification = models.Notification(
+            user_id=receiver_id,
+            title="New Friend Request",
+            message=f"{current_user.username} wants to be your friend!",
+            notification_type="friend_request",
+            is_read=False
+        )
+        db.add(notification)
         db.commit()
         
         return {
@@ -7942,6 +7952,16 @@ async def respond_friend_request(
             
             db.add(friendship1)
             db.add(friendship2)
+            
+            # Create notification for the sender that their request was accepted
+            notification = models.Notification(
+                user_id=friend_request.sender_id,
+                title="Friend Request Accepted!",
+                message=f"{current_user.username} accepted your friend request. You're now friends!",
+                notification_type="friend_accepted",
+                is_read=False
+            )
+            db.add(notification)
             db.commit()
             
             return {
@@ -8357,6 +8377,17 @@ async def create_quiz_battle(
         
         logger.info(f"⚔️ Battle created: ID={battle.id}")
         
+        # Create persistent notification for opponent
+        battle_notification = models.Notification(
+            user_id=opponent_id,
+            title="Quiz Battle Challenge! ⚔️",
+            message=f"{current_user.username} has challenged you to a quiz battle on {subject}!",
+            notification_type="battle_challenge",
+            is_read=False
+        )
+        db.add(battle_notification)
+        db.commit()
+        
         # Prepare notification data
         battle_data = {
             "id": battle.id,
@@ -8524,11 +8555,16 @@ async def complete_quiz_battle(
             db.add(activity)
             
             # Create notifications for both players
+            # Calculate percentage scores
+            total_questions = battle.question_count or 10
+            winner_percentage = round((winner_score / total_questions) * 100) if total_questions > 0 else 0
+            loser_percentage = round((loser_score / total_questions) * 100) if total_questions > 0 else 0
+            
             # Winner notification
             winner_notification = models.Notification(
                 user_id=winner_id,
-                title="Battle Victory!",
-                message=f"You won the quiz battle against {loser.username} with a score of {winner_score}%!",
+                title="Battle Victory! 🏆",
+                message=f"You won the quiz battle against {loser.username}! Score: {winner_score}/{total_questions} ({winner_percentage}%)",
                 notification_type="battle_won"
             )
             db.add(winner_notification)
@@ -8537,7 +8573,7 @@ async def complete_quiz_battle(
             loser_notification = models.Notification(
                 user_id=loser.id,
                 title="Battle Complete",
-                message=f"Good effort! You scored {loser_score}% against {winner.username}. Practice and challenge them again!",
+                message=f"Good effort! You scored {loser_score}/{total_questions} ({loser_percentage}%) against {winner.username}. Practice and challenge them again!",
                 notification_type="battle_lost"
             )
             db.add(loser_notification)
@@ -9219,6 +9255,16 @@ async def update_challenge_progress(
                 })
             )
             db.add(activity)
+            
+            # Create notification for challenge completion
+            notification = models.Notification(
+                user_id=current_user.id,
+                title="Challenge Completed! 🏆",
+                message=f"Congratulations! You've completed the challenge '{challenge.title}' with {progress:.0f}% progress!",
+                notification_type="challenge_completed",
+                is_read=False
+            )
+            db.add(notification)
         
         db.commit()
         
@@ -9314,6 +9360,17 @@ async def share_content(
                 db.add(shared_content)
                 shared_records.append(shared_content)
                 logger.info(f"✅ Created new share for friend {friend_id}")
+                
+                # Create notification for the friend
+                content_title = content.title if hasattr(content, 'title') else share_data.content_type
+                share_notification = models.Notification(
+                    user_id=friend_id,
+                    title="New Shared Content 📤",
+                    message=f"{current_user.username} shared a {share_data.content_type} with you: {content_title}",
+                    notification_type="content_shared",
+                    is_read=False
+                )
+                db.add(share_notification)
         
         db.commit()
         
@@ -10839,6 +10896,108 @@ async def clear_all_notifications(
         db.rollback()
         return {"status": "error", "cleared": 0, "message": str(e)}
 
+@app.get("/api/check_reminder_notifications")
+async def check_reminder_notifications(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Check for upcoming reminders and create notifications for them"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            return {"status": "error", "message": "User not found", "notifications_created": 0}
+        
+        now = datetime.utcnow()
+        notifications_created = []
+        
+        # Get all upcoming reminders that haven't been notified yet
+        upcoming_reminders = db.query(models.Reminder).filter(
+            models.Reminder.user_id == user.id,
+            models.Reminder.is_completed == False,
+            models.Reminder.is_notified == False,
+            models.Reminder.reminder_date > now
+        ).all()
+        
+        for reminder in upcoming_reminders:
+            time_until = reminder.reminder_date - now
+            minutes_until = time_until.total_seconds() / 60
+            
+            # Create notification if within notify_before_minutes window
+            if minutes_until <= reminder.notify_before_minutes:
+                # Check if notification already exists for this reminder
+                existing = db.query(models.Notification).filter(
+                    models.Notification.user_id == user.id,
+                    models.Notification.notification_type == 'reminder',
+                    models.Notification.title.contains(reminder.title)
+                ).first()
+                
+                if not existing:
+                    # Format the time nicely
+                    reminder_time = reminder.reminder_date.strftime('%I:%M %p')
+                    
+                    notification = models.Notification(
+                        user_id=user.id,
+                        title=f"⏰ {reminder.title}",
+                        message=f"{reminder.description or 'Your scheduled reminder'} - Due at {reminder_time}",
+                        notification_type='reminder'
+                    )
+                    db.add(notification)
+                    reminder.is_notified = True
+                    
+                    notifications_created.append({
+                        "reminder_id": reminder.id,
+                        "title": reminder.title,
+                        "minutes_until": round(minutes_until)
+                    })
+                    
+                    logger.info(f"🔔 Created reminder notification for: {reminder.title}")
+        
+        # Also check for reminders that are NOW (within 1 minute)
+        due_now_reminders = db.query(models.Reminder).filter(
+            models.Reminder.user_id == user.id,
+            models.Reminder.is_completed == False,
+            models.Reminder.reminder_date <= now,
+            models.Reminder.reminder_date >= now - timedelta(minutes=5)
+        ).all()
+        
+        for reminder in due_now_reminders:
+            # Check if we already have a "due now" notification
+            existing = db.query(models.Notification).filter(
+                models.Notification.user_id == user.id,
+                models.Notification.notification_type == 'calendar_event',
+                models.Notification.title.contains(reminder.title)
+            ).first()
+            
+            if not existing:
+                notification = models.Notification(
+                    user_id=user.id,
+                    title=f"🔔 {reminder.title} - NOW!",
+                    message=f"{reminder.description or 'Your event is happening now!'}",
+                    notification_type='calendar_event'
+                )
+                db.add(notification)
+                
+                notifications_created.append({
+                    "reminder_id": reminder.id,
+                    "title": reminder.title,
+                    "status": "due_now"
+                })
+                
+                logger.info(f"🔔 Created DUE NOW notification for: {reminder.title}")
+        
+        if notifications_created:
+            db.commit()
+        
+        return {
+            "status": "success",
+            "notifications_created": len(notifications_created),
+            "details": notifications_created
+        }
+    except Exception as e:
+        logger.error(f"🔔 Error checking reminder notifications: {str(e)}")
+        db.rollback()
+        return {"status": "error", "message": str(e), "notifications_created": 0}
+
 @app.get("/api/get_concept_web")
 async def get_concept_web(
     user_id: str = Query(...),
@@ -11673,11 +11832,13 @@ async def create_reminder(
         logger.info(f"Created reminder {reminder.id} for user {user.email}")
         
         # Create an immediate notification for the reminder
+        # Format the date nicely for the notification
+        formatted_date = reminder.reminder_date.strftime('%B %d, %Y at %I:%M %p')
         notification = models.Notification(
             user_id=user.id,
-            title=f"Reminder Set: {title}",
-            message=f"Reminder scheduled for {reminder.reminder_date.isoformat() + 'Z'}",
-            notification_type='reminder'
+            title=f"📅 Reminder Set: {title}",
+            message=f"You'll be notified {notify_before_minutes} minutes before: {formatted_date}",
+            notification_type='calendar_event'
         )
         db.add(notification)
         db.commit()

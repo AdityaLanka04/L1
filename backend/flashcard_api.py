@@ -787,7 +787,47 @@ class FlashcardAPI:
                             
                             db.commit()
                             
-                            return {
+                            # Check for flashcard set milestones and create notifications
+                            total_sets = db.query(models.FlashcardSet).filter(
+                                models.FlashcardSet.user_id == user.id
+                            ).count()
+                            
+                            notification_data = None
+                            if total_sets == 1:
+                                notification = models.Notification(
+                                    user_id=user.id,
+                                    title="First Flashcard Set! 🎉",
+                                    message="Great start! You've created your first flashcard set. Keep learning!",
+                                    notification_type="milestone",
+                                    is_read=False
+                                )
+                                db.add(notification)
+                                db.commit()
+                                notification_data = {"title": notification.title, "message": notification.message}
+                            elif total_sets == 10:
+                                notification = models.Notification(
+                                    user_id=user.id,
+                                    title="10 Flashcard Sets! 📚",
+                                    message="Amazing! You've created 10 flashcard sets. Your knowledge base is growing!",
+                                    notification_type="milestone",
+                                    is_read=False
+                                )
+                                db.add(notification)
+                                db.commit()
+                                notification_data = {"title": notification.title, "message": notification.message}
+                            elif total_sets == 25:
+                                notification = models.Notification(
+                                    user_id=user.id,
+                                    title="25 Flashcard Sets! 🏆",
+                                    message="Incredible! You've created 25 flashcard sets. You're a dedicated learner!",
+                                    notification_type="milestone",
+                                    is_read=False
+                                )
+                                db.add(notification)
+                                db.commit()
+                                notification_data = {"title": notification.title, "message": notification.message}
+                            
+                            result = {
                                 "flashcards": valid_flashcards,
                                 "saved_to_set": True,
                                 "set_id": flashcard_set.id,
@@ -797,6 +837,9 @@ class FlashcardAPI:
                                 "depth_level": depth_level,
                                 "status": "success"
                             }
+                            if notification_data:
+                                result["notification"] = notification_data
+                            return result
                         else:
                             return {
                                 "flashcards": valid_flashcards,
@@ -947,9 +990,32 @@ class FlashcardAPI:
         db.commit()
         db.refresh(study_session)
         
+        # Calculate accuracy
+        accuracy = round((session_data.correct_answers / session_data.cards_studied * 100), 1) if session_data.cards_studied > 0 else 0
+        
+        # Create notification based on performance
+        if accuracy >= 90:
+            notification = models.Notification(
+                user_id=user.id,
+                title="🎯 Excellent Flashcard Session!",
+                message=f"Amazing! You got {accuracy}% accuracy studying {session_data.cards_studied} cards. Keep up the great work!",
+                notification_type="flashcard_excellent"
+            )
+            db.add(notification)
+            db.commit()
+        elif accuracy < 50 and session_data.cards_studied >= 5:
+            notification = models.Notification(
+                user_id=user.id,
+                title="📚 Keep Practicing!",
+                message=f"You scored {accuracy}% on {session_data.cards_studied} cards. Review the material and try again!",
+                notification_type="flashcard_review"
+            )
+            db.add(notification)
+            db.commit()
+        
         return {
             "id": study_session.id,
-            "accuracy": round((session_data.correct_answers / session_data.cards_studied * 100), 1) if session_data.cards_studied > 0 else 0,
+            "accuracy": accuracy,
             "status": "success"
         }
 

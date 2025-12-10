@@ -97,6 +97,11 @@ const SoloQuizSession = () => {
 
   const submitQuiz = async (finalScore, answers) => {
     try {
+      // Calculate percentage score
+      const percentageScore = questions.length > 0 
+        ? Math.round((finalScore / questions.length) * 100) 
+        : 0;
+      
       await fetch(`${API_URL}/complete_solo_quiz`, {
         method: 'POST',
         headers: {
@@ -105,7 +110,7 @@ const SoloQuizSession = () => {
         },
         body: JSON.stringify({
           quiz_id: parseInt(quizId),
-          score: finalScore,
+          score: percentageScore,
           answers: answers
         })
       });

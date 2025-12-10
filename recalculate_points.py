@@ -13,7 +13,11 @@ Script to recalculate all user points with the new point values:
 """
 
 import sys
+import os
 sys.path.insert(0, 'backend')
+
+# Set the correct database URL before importing
+os.environ['DATABASE_URL'] = 'sqlite:///./backend/brainwave_tutor.db'
 
 from database import SessionLocal
 from gamification_system import recalculate_all_stats

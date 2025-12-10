@@ -8,9 +8,11 @@ import {
 } from 'lucide-react';
 import './ActivityTimeline.css';
 import { API_URL } from '../config';
+import { useToast } from '../contexts/ToastContext';
 
 const ActivityTimeline = () => {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const userName = localStorage.getItem('username');
   
   const [viewMode, setViewMode] = useState('timeline');
@@ -164,9 +166,13 @@ const ActivityTimeline = () => {
           color: '#3b82f6',
           notify_before_minutes: 15
         });
+        showToast(`Reminder "${reminderForm.title}" created! You'll be notified ${reminderForm.notify_before_minutes} minutes before.`, 'success');
+      } else {
+        showToast('Failed to create reminder', 'error');
       }
     } catch (error) {
       console.error('Error creating reminder:', error);
+      showToast('Error creating reminder', 'error');
     }
   };
 

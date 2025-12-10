@@ -9,13 +9,8 @@ const ProactiveNotification = ({ message, chatId, onClose }) => {
   useEffect(() => {
     // Show notification after brief delay
     setTimeout(() => setVisible(true), 100);
-
-    // Auto-dismiss after 30 seconds
-    const timer = setTimeout(() => {
-      handleClose();
-    }, 30000);
-
-    return () => clearTimeout(timer);
+    
+    // No auto-dismiss - notification stays until user clicks dismiss
   }, []);
 
   const handleClose = () => {
