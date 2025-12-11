@@ -11141,31 +11141,56 @@ async def clear_all_notifications(
 @app.get("/api/check_reminder_notifications")
 async def check_reminder_notifications(
     user_id: str = Query(...),
+    current_time: str = Query(None),  # User's current local time as ISO string
     db: Session = Depends(get_db)
 ):
-    """Check for upcoming reminders and create notifications for them"""
+    """Check for upcoming reminders and create notifications for them.
+    
+    Reminders are stored in user's local time, so we need the user's current local time
+    to compare properly. Frontend sends current_time as ISO string.
+    """
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             return {"status": "error", "message": "User not found", "notifications_created": 0}
         
-        now = datetime.utcnow()
+        # Parse the user's current local time from frontend
+        # If not provided, fall back to server time (less accurate but works)
+        if current_time:
+            try:
+                now = datetime.fromisoformat(current_time.replace('Z', '').replace('+00:00', ''))
+                logger.info(f"🔔 Using client time: {now}")
+            except:
+                now = datetime.now()
+                logger.info(f"🔔 Failed to parse client time, using server time: {now}")
+        else:
+            now = datetime.now()
+            logger.info(f"🔔 No client time provided, using server time: {now}")
+        
         notifications_created = []
         
-        # Get all upcoming reminders that haven't been notified yet
-        upcoming_reminders = db.query(models.Reminder).filter(
+        # Get ALL reminders that haven't been notified yet (not just future ones)
+        # This catches reminders that might have been missed
+        pending_reminders = db.query(models.Reminder).filter(
             models.Reminder.user_id == user.id,
             models.Reminder.is_completed == False,
-            models.Reminder.is_notified == False,
-            models.Reminder.reminder_date > now
+            models.Reminder.is_notified == False
         ).all()
         
-        for reminder in upcoming_reminders:
+        logger.info(f"🔔 Found {len(pending_reminders)} pending reminders for user {user_id}")
+        
+        for reminder in pending_reminders:
             time_until = reminder.reminder_date - now
             minutes_until = time_until.total_seconds() / 60
             
-            # Create notification if within notify_before_minutes window
-            if minutes_until <= reminder.notify_before_minutes:
+            logger.info(f"🔔 Reminder '{reminder.title}': scheduled={reminder.reminder_date}, now={now}, minutes_until={minutes_until:.1f}, notify_before={reminder.notify_before_minutes}")
+            
+            # Create notification if:
+            # 1. Within notify_before_minutes window (upcoming)
+            # 2. OR past due (missed reminder)
+            should_notify = minutes_until <= reminder.notify_before_minutes
+            
+            if should_notify:
                 # Check if notification already exists for this reminder
                 existing = db.query(models.Notification).filter(
                     models.Notification.user_id == user.id,
@@ -11174,69 +11199,62 @@ async def check_reminder_notifications(
                 ).first()
                 
                 if not existing:
-                    # Format the time nicely
+                    # Format the time for display (already in user's local time)
                     reminder_time = reminder.reminder_date.strftime('%I:%M %p')
+                    reminder_date_str = reminder.reminder_date.strftime('%B %d, %Y at %I:%M %p')
                     
-                    notification = models.Notification(
-                        user_id=user.id,
-                        title=f"⏰ {reminder.title}",
-                        message=f"{reminder.description or 'Your scheduled reminder'} - Due at {reminder_time}",
-                        notification_type='reminder'
-                    )
+                    if minutes_until <= 0:
+                        # Past due
+                        notification = models.Notification(
+                            user_id=user.id,
+                            title=f"🔔 {reminder.title} - NOW!",
+                            message=f"{reminder.description or 'Your event is happening now!'} - Scheduled for {reminder_time}",
+                            notification_type='reminder'
+                        )
+                    elif minutes_until <= 5:
+                        # Due very soon
+                        notification = models.Notification(
+                            user_id=user.id,
+                            title=f"⏰ {reminder.title} - In {int(minutes_until)} min!",
+                            message=f"{reminder.description or 'Your reminder is coming up!'} - Due at {reminder_time}",
+                            notification_type='reminder'
+                        )
+                    else:
+                        # Upcoming
+                        notification = models.Notification(
+                            user_id=user.id,
+                            title=f"⏰ {reminder.title}",
+                            message=f"{reminder.description or 'Your scheduled reminder'} - Due at {reminder_time} ({int(minutes_until)} min)",
+                            notification_type='reminder'
+                        )
+                    
                     db.add(notification)
                     reminder.is_notified = True
                     
                     notifications_created.append({
                         "reminder_id": reminder.id,
                         "title": reminder.title,
-                        "minutes_until": round(minutes_until)
+                        "minutes_until": round(minutes_until),
+                        "reminder_time": reminder_date_str
                     })
                     
-                    logger.info(f"🔔 Created reminder notification for: {reminder.title}")
-        
-        # Also check for reminders that are NOW (within 1 minute)
-        due_now_reminders = db.query(models.Reminder).filter(
-            models.Reminder.user_id == user.id,
-            models.Reminder.is_completed == False,
-            models.Reminder.reminder_date <= now,
-            models.Reminder.reminder_date >= now - timedelta(minutes=5)
-        ).all()
-        
-        for reminder in due_now_reminders:
-            # Check if we already have a "due now" notification
-            existing = db.query(models.Notification).filter(
-                models.Notification.user_id == user.id,
-                models.Notification.notification_type == 'calendar_event',
-                models.Notification.title.contains(reminder.title)
-            ).first()
-            
-            if not existing:
-                notification = models.Notification(
-                    user_id=user.id,
-                    title=f"🔔 {reminder.title} - NOW!",
-                    message=f"{reminder.description or 'Your event is happening now!'}",
-                    notification_type='calendar_event'
-                )
-                db.add(notification)
-                
-                notifications_created.append({
-                    "reminder_id": reminder.id,
-                    "title": reminder.title,
-                    "status": "due_now"
-                })
-                
-                logger.info(f"🔔 Created DUE NOW notification for: {reminder.title}")
+                    logger.info(f"🔔 Created reminder notification for: {reminder.title} at {reminder_date_str}")
         
         if notifications_created:
             db.commit()
+            logger.info(f"🔔 Created {len(notifications_created)} notifications")
         
         return {
             "status": "success",
             "notifications_created": len(notifications_created),
-            "details": notifications_created
+            "details": notifications_created,
+            "server_time": datetime.now().isoformat(),
+            "client_time_received": current_time
         }
     except Exception as e:
         logger.error(f"🔔 Error checking reminder notifications: {str(e)}")
+        import traceback
+        traceback.print_exc()
         db.rollback()
         return {"status": "error", "message": str(e), "notifications_created": 0}
 
@@ -12048,19 +12066,31 @@ async def create_reminder(
     priority: str = Form("medium"),
     color: str = Form("#3b82f6"),
     notify_before_minutes: int = Form(15),
+    user_timezone: str = Form("UTC"),
+    timezone_offset: int = Form(0),
     db: Session = Depends(get_db)
 ):
-    """Create a new reminder/event"""
+    """Create a new reminder/event - stores time as user's local time"""
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
+        # Parse the datetime - frontend sends local time from datetime-local input
+        # Format: "2025-12-11T17:37" (user's local time)
+        # IMPORTANT: Store as-is without any timezone conversion
+        parsed_date = datetime.fromisoformat(reminder_date.replace('Z', '').replace('+00:00', ''))
+        
+        # Store the original local time string for display purposes
+        local_time_display = parsed_date.strftime('%B %d, %Y at %I:%M %p')
+        
+        logger.info(f"📅 Creating reminder: {title} at {local_time_display} (raw: {reminder_date})")
+        
         reminder = models.Reminder(
             user_id=user.id,
             title=title,
             description=description,
-            reminder_date=datetime.fromisoformat(reminder_date.replace('Z', '+00:00')),
+            reminder_date=parsed_date,  # Store as user's local time (no conversion!)
             reminder_type=reminder_type,
             priority=priority,
             color=color,
@@ -12071,20 +12101,18 @@ async def create_reminder(
         db.commit()
         db.refresh(reminder)
         
-        logger.info(f"Created reminder {reminder.id} for user {user.email}")
+        logger.info(f"📅 Created reminder {reminder.id} for user {user.email} at {local_time_display}")
         
         # Create an immediate notification for the reminder
-        # Format the date nicely for the notification
-        formatted_date = reminder.reminder_date.strftime('%B %d, %Y at %I:%M %p')
         notification = models.Notification(
             user_id=user.id,
             title=f"📅 Reminder Set: {title}",
-            message=f"You'll be notified {notify_before_minutes} minutes before: {formatted_date}",
+            message=f"You'll be notified {notify_before_minutes} minutes before: {local_time_display}",
             notification_type='calendar_event'
         )
         db.add(notification)
         db.commit()
-        logger.info(f"Created notification for reminder {reminder.id}")
+        logger.info(f"📅 Created notification for reminder {reminder.id}")
         
         return {
             "id": reminder.id,

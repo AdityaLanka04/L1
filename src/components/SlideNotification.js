@@ -5,19 +5,37 @@ import './SlideNotification.css';
 
 const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) => {
   const [visible, setVisible] = useState(false);
+  const [isValid, setIsValid] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Show notification after brief delay
-    setTimeout(() => setVisible(true), 100);
+    // Validate notification
+    if (!notification || !notification.id || (!notification.title && !notification.message)) {
+      console.log('📬 Invalid notification, closing:', notification);
+      setIsValid(false);
+      if (onClose) {
+        setTimeout(() => onClose(), 0);
+      }
+      return;
+    }
 
-    // Auto-dismiss after 15 seconds
-    const timer = setTimeout(() => {
+    // Show notification immediately (no delay)
+    setVisible(true);
+
+    // Auto-dismiss after 12 seconds
+    const dismissTimer = setTimeout(() => {
       handleClose();
-    }, 15000);
+    }, 12000);
 
-    return () => clearTimeout(timer);
-  }, []);
+    return () => {
+      clearTimeout(dismissTimer);
+    };
+  }, [notification]);
+
+  // Don't render if invalid
+  if (!isValid || !notification || !notification.id) {
+    return null;
+  }
 
   const handleClose = () => {
     setVisible(false);

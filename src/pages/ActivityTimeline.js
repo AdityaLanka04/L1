@@ -135,16 +135,25 @@ const ActivityTimeline = () => {
       const formData = new FormData();
       formData.append('user_id', userName);
       
-      // Convert datetime-local format to ISO format
-      const isoDate = reminderForm.reminder_date ? new Date(reminderForm.reminder_date).toISOString() : '';
+      // Send the datetime-local value as-is (user's local time)
+      // Don't convert to ISO/UTC - we want to preserve the user's intended time
+      const localDateTime = reminderForm.reminder_date || '';
+      
+      // Also send the user's timezone offset for reference
+      const timezoneOffset = new Date().getTimezoneOffset(); // in minutes
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       
       Object.keys(reminderForm).forEach(key => {
         if (key === 'reminder_date') {
-          formData.append(key, isoDate);
+          formData.append(key, localDateTime);
         } else {
           formData.append(key, reminderForm[key]);
         }
       });
+      
+      // Add timezone info
+      formData.append('user_timezone', timezone);
+      formData.append('timezone_offset', timezoneOffset.toString());
 
       const res = await fetch(`${API_URL}/create_reminder`, {
         method: 'POST',

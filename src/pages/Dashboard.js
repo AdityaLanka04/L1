@@ -23,11 +23,9 @@ import {
   MessageSquare, HelpCircle, FileText, Network, ChevronRight
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
-import { useToast } from '../contexts/ToastContext';
 import { rgbaFromHex } from '../utils/ThemeManager';
 import ThemeSwitcher from '../components/ThemeSwitcher';
 import LoadingSpinner from '../components/LoadingSpinner';
-import ProactiveNotification from '../components/ProactiveNotification';
 import SlideNotification from '../components/SlideNotification';
 import ImportExportModal from '../components/ImportExportModal';
 import './Dashboard.css';
@@ -42,7 +40,6 @@ if (document.querySelector('link[href*="Flashcards.css"]')) {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { selectedTheme } = useTheme();
-  const { showToast } = useToast();
   
   const [userName, setUserName] = useState('');
   const [userProfile, setUserProfile] = useState(null);
@@ -106,9 +103,6 @@ const Dashboard = () => {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  
-  // Proactive notification state
-  const [proactiveNotif, setProactiveNotif] = useState(null);
   
   // Slide-in notification queue for all notification types
   const [slideNotifQueue, setSlideNotifQueue] = useState([]);
@@ -234,52 +228,10 @@ const Dashboard = () => {
     
     console.log('🔔 Dashboard mounted, justLoggedIn:', justLoggedIn, 'alreadyShown:', notificationAlreadyShown);
     
-    if (justLoggedIn === 'true' && notificationAlreadyShown !== 'true') {
-      console.log('🔔 Fresh login detected - clearing old notifications and showing ONE notification');
+    if (justLoggedIn === 'true') {
+      console.log('🔔 Fresh login detected');
       sessionStorage.removeItem('justLoggedIn');
       sessionStorage.setItem('notificationShown', 'true');
-      
-      // Clear all previous notifications on fresh login
-      clearAllNotifications();
-      
-      // Show notification after 2 seconds
-      setTimeout(async () => {
-        try {
-          const token = localStorage.getItem('token');
-          const url = `${API_URL}/check_proactive_message?user_id=${userName}&is_login=true`;
-          console.log('🔔 Calling backend ONCE:', url);
-          
-          const response = await fetch(url, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-          
-          const data = await response.json();
-          console.log('🔔 Backend response:', data);
-          
-          if (data.should_notify && data.message) {
-            console.log('🔔 Showing notification popup');
-            
-            setProactiveNotif({
-              message: data.message,
-              chatId: data.chat_id,
-              urgencyScore: data.urgency_score || 0.8
-            });
-            
-            // Reload notifications after 2 seconds
-            setTimeout(() => {
-              loadNotifications();
-            }, 2000);
-          }
-        } catch (error) {
-          console.error('🔔 Error:', error);
-        }
-      }, 2000);
-    } else if (notificationAlreadyShown === 'true') {
-      console.log('🔔 Notification already shown this session, skipping');
     }
     
     // Poll for daily goal updates every 10 seconds
@@ -287,27 +239,42 @@ const Dashboard = () => {
       loadDashboardData();
     }, 10000);
     
-    // Poll for new notifications every 30 seconds to show slide-in notifications
+    // Poll for new notifications every 15 seconds to show slide-in notifications
     // This catches calendar reminders, achievements, level ups, etc.
+    // Poll every 5 seconds for fast notification delivery
     notificationPollRef.current = setInterval(() => {
       // First check for any upcoming calendar reminders
       checkReminderNotifications();
       // Then load all notifications (with slide-in for new ones)
       loadNotifications(true);
-    }, 30000);
+    }, 5000);
     
-    // Initial load of notifications (without slide-in to avoid duplicates on login)
-    loadNotifications(false);
+    // Initial load of notifications - mark all existing as "known" to avoid showing them as slide-ins
+    const initializeNotifications = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/get_notifications?user_id=${userName}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const existingNotifs = data.notifications || [];
+          // Mark all existing notification IDs as known
+          setLastNotificationIds(new Set(existingNotifs.map(n => n.id)));
+          setNotifications(existingNotifs);
+          setUnreadCount(existingNotifs.filter(n => !n.is_read).length);
+          console.log('📬 Initialized with', existingNotifs.length, 'existing notifications');
+        }
+      } catch (error) {
+        console.error('📬 Error initializing notifications:', error);
+      }
+    };
+    initializeNotifications();
     
-    // Check for reminder notifications on initial load
+    // Check for reminder notifications after a delay
     setTimeout(() => {
       checkReminderNotifications();
-    }, 3000);
-    
-    // Initialize the known notification IDs after first load
-    setTimeout(() => {
-      setLastNotificationIds(new Set(notifications.map(n => n.id)));
-    }, 2000);
+    }, 5000);
     
     // Request browser notification permission
     if ('Notification' in window && Notification.permission === 'default') {
@@ -326,7 +293,7 @@ const Dashboard = () => {
   }
 }, [userName]);
 
-  // ML-based idle detection for proactive notifications
+  // ML-based idle detection for slide notifications
   useEffect(() => {
     if (!userName) return;
 
@@ -340,36 +307,16 @@ const Dashboard = () => {
     window.addEventListener('keypress', trackActivity);
     window.addEventListener('scroll', trackActivity);
 
-    // Check for idle every 2 minutes
-    const idleCheckInterval = setInterval(async () => {
+    // Check for idle every 5 seconds - show full screen inactivity modal
+    const idleCheckInterval = setInterval(() => {
       const idleTime = Date.now() - lastActivityRef.current;
-      const IDLE_THRESHOLD = 3 * 60 * 1000; // 3 minutes
+      const IDLE_THRESHOLD = 10 * 1000; // 10 seconds
 
-      if (idleTime > IDLE_THRESHOLD && !proactiveNotif) {
-        console.log('🔔 User is idle, checking for ML-based notification...');
-        
-        try {
-          const token = localStorage.getItem('token');
-          const response = await fetch(
-            `${API_URL}/check_proactive_message?user_id=${userName}&is_idle=true`,
-            { headers: { 'Authorization': `Bearer ${token}` } }
-          );
-          
-          const data = await response.json();
-          
-          if (data.should_notify && data.message) {
-            console.log('🔔 ML system suggests idle notification:', data.reason);
-            setProactiveNotif({
-              message: data.message,
-              chatId: data.chat_id,
-              urgencyScore: data.urgency_score || 0.7
-            });
-          }
-        } catch (error) {
-          console.error('🔔 Idle notification check failed:', error);
-        }
+      if (idleTime > IDLE_THRESHOLD && !showInactivitySuggestion) {
+        console.log('🔔 User is idle for 10 seconds, showing inactivity modal');
+        setShowInactivitySuggestion(true);
       }
-    }, 2 * 60 * 1000); // Check every 2 minutes
+    }, 5 * 1000); // Check every 5 seconds
 
     return () => {
       window.removeEventListener('click', trackActivity);
@@ -377,40 +324,9 @@ const Dashboard = () => {
       window.removeEventListener('scroll', trackActivity);
       clearInterval(idleCheckInterval);
     };
-  }, [userName, proactiveNotif]);
+  }, [userName]);
 
-  // Inactivity engagement suggestions
-  useEffect(() => {
-    if (!userName) return;
 
-    const trackActivity = () => {
-      // Only track activity time, don't dismiss the modal
-      // Modal should only be dismissed by clicking Dismiss button
-      lastActivityRef.current = Date.now();
-    };
-
-    window.addEventListener('click', trackActivity);
-    window.addEventListener('keypress', trackActivity);
-    window.addEventListener('mousemove', trackActivity);
-    window.addEventListener('scroll', trackActivity);
-
-    const inactivityCheckInterval = setInterval(() => {
-      const inactiveTime = Date.now() - lastActivityRef.current;
-      const INACTIVITY_THRESHOLD = 5 * 60 * 1000; // 5 minutes
-
-      if (inactiveTime > INACTIVITY_THRESHOLD && !showInactivitySuggestion) {
-        setShowInactivitySuggestion(true);
-      }
-    }, 30 * 1000); // Check every 30 seconds
-
-    return () => {
-      window.removeEventListener('click', trackActivity);
-      window.removeEventListener('keypress', trackActivity);
-      window.removeEventListener('mousemove', trackActivity);
-      window.removeEventListener('scroll', trackActivity);
-      clearInterval(inactivityCheckInterval);
-    };
-  }, [userName, showInactivitySuggestion]);
 
   const handleEngagementSuggestion = async (action) => {
     setShowInactivitySuggestion(false);
@@ -576,14 +492,25 @@ const Dashboard = () => {
     if (!userName) return;
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/check_reminder_notifications?user_id=${userName}`, {
+      // Send current local time so backend can compare properly
+      // Format: "2025-12-11T17:45:30" (no timezone suffix)
+      const now = new Date();
+      const currentTime = now.getFullYear() + '-' + 
+        String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(now.getDate()).padStart(2, '0') + 'T' + 
+        String(now.getHours()).padStart(2, '0') + ':' + 
+        String(now.getMinutes()).padStart(2, '0') + ':' + 
+        String(now.getSeconds()).padStart(2, '0');
+      
+      const response = await fetch(`${API_URL}/check_reminder_notifications?user_id=${userName}&current_time=${encodeURIComponent(currentTime)}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
       if (response.ok) {
         const data = await response.json();
+        console.log('📅 Reminder check result:', data);
         if (data.notifications_created > 0) {
-          console.log('📅 Created reminder notifications:', data.notifications_created);
+          console.log('📅 Created reminder notifications:', data.notifications_created, data.details);
           // Reload notifications to show the new ones
           loadNotifications(true);
         }
@@ -628,10 +555,8 @@ const Dashboard = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       loadNotifications();
-      showToast('Notification deleted', 'success');
     } catch (error) {
       console.error('Error deleting notification:', error);
-      showToast('Failed to delete notification', 'error');
     }
   };
 
@@ -2150,18 +2075,11 @@ const Dashboard = () => {
         </div>
       )}
       
-      {/* Proactive Notification */}
-      {proactiveNotif && (
-        <ProactiveNotification
-          message={proactiveNotif.message}
-          chatId={proactiveNotif.chatId}
-          urgencyScore={proactiveNotif.urgencyScore}
-          onClose={() => setProactiveNotif(null)}
-        />
-      )}
-      
       {/* Slide-in Notifications for all notification types */}
-      {slideNotifQueue.slice(0, 3).map((notif, index) => (
+      {slideNotifQueue
+        .filter(notif => notif && notif.id && (notif.title || notif.message))
+        .slice(0, 3)
+        .map((notif, index) => (
         <SlideNotification
           key={notif.id}
           notification={notif}
@@ -2178,7 +2096,6 @@ const Dashboard = () => {
         mode="import"
         sourceType={importExportSource}
         onSuccess={(result) => {
-          showToast("Successfully converted content!", "success");
           loadDashboardData();
         }}
       />

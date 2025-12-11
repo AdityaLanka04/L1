@@ -62,8 +62,15 @@ class ProactiveAIEngine:
         
         if user:
             # Check if user was created recently (within last hour)
-            if user.created_at and user.created_at >= datetime.now(timezone.utc) - timedelta(hours=1):
-                is_new_user = True
+            # Handle both naive and aware datetimes
+            if user.created_at:
+                user_created = user.created_at
+                now = datetime.now(timezone.utc)
+                # Make user_created timezone-aware if it's naive
+                if user_created.tzinfo is None:
+                    user_created = user_created.replace(tzinfo=timezone.utc)
+                if user_created >= now - timedelta(hours=1):
+                    is_new_user = True
             
             # Check if user has profile data but very few chat sessions (just completed quiz)
             chat_count = db.query(models.ChatSession).filter(
