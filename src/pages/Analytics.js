@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, TrendingUp, Download,
   BarChart3, Activity, Zap, BookOpen, MessageSquare,
-  Trophy, Target, Flame, Clock, Brain, Swords
+  Trophy, Target, Flame, Clock, Brain, Swords, Calendar
 } from 'lucide-react';
 import './Analytics.css';
 import { API_URL } from '../config';
@@ -14,11 +14,10 @@ const Analytics = () => {
   const userName = localStorage.getItem('username');
   
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState('week'); // week, month, year, all
-  const [chartType, setChartType] = useState('bar'); // bar, line, area
+  const [timeRange, setTimeRange] = useState('week');
+  const [chartType, setChartType] = useState('bar');
   const [selectedMetrics, setSelectedMetrics] = useState(['points', 'ai_chats', 'quizzes', 'flashcards']);
   
-  // Data states
   const [weeklyData, setWeeklyData] = useState([]);
   const [dailyBreakdown, setDailyBreakdown] = useState([]);
   const [weeklyStats, setWeeklyStats] = useState({});
@@ -118,9 +117,7 @@ const Analytics = () => {
     );
   };
 
-  // Get the chart data based on time range
   const getChartData = () => {
-    // Use historicalData for all time ranges (it's now properly formatted)
     return historicalData.length > 0 ? historicalData : dailyBreakdown;
   };
 
@@ -166,12 +163,10 @@ const Analytics = () => {
     );
   }
 
-  // Calculate totals based on current time range
   const totalPoints = periodStats.totalPoints || weeklyData.reduce((a, b) => a + b, 0);
   const avgPoints = chartData.length > 0 ? totalPoints / chartData.length : 0;
   const maxValue = getMaxValue();
   
-  // Get period label for display
   const getPeriodLabel = () => {
     switch(timeRange) {
       case 'week': return 'Weekly';
@@ -186,155 +181,140 @@ const Analytics = () => {
   return (
     <div className="analytics-page">
       <header className="analytics-header">
-        <div className="header-left">
-          <button className="back-btn" onClick={() => navigate('/dashboard')}>
-            <ArrowLeft size={20} />
-          </button>
-          <div className="header-title">
-            <h1>Analytics Dashboard</h1>
-            <p>Track your learning progress</p>
+        <div className="analytics-header-inner">
+          <div className="header-left">
+            <div className="header-title">
+              <h1>analytics dashboard</h1>
+              <p>track your learning progress</p>
+            </div>
           </div>
-        </div>
-        <div className="header-actions">
-          <button className="export-btn" onClick={exportData}>
-            <Download size={16} />
-            Export
-          </button>
+          <div className="header-right">
+            <button className="back-btn" onClick={() => navigate('/dashboard')} title="Back to Dashboard">
+              <ArrowLeft size={20} />
+            </button>
+            <button className="export-btn" onClick={exportData}>
+              <Download size={16} />
+              Export
+            </button>
+          </div>
         </div>
       </header>
 
       <div className="analytics-container">
-        {/* Summary Cards */}
         <div className="summary-cards">
           <div className="summary-card accent">
-            <div className="card-icon"><Zap size={24} /></div>
+            <div className="card-icon"><Zap size={28} /></div>
             <div className="card-content">
               <span className="card-value">{totalPoints}</span>
               <span className="card-label">{getPeriodLabel()} Points</span>
             </div>
           </div>
           <div className="summary-card">
-            <div className="card-icon"><TrendingUp size={24} /></div>
+            <div className="card-icon"><TrendingUp size={28} /></div>
             <div className="card-content">
               <span className="card-value">{avgPoints.toFixed(1)}</span>
               <span className="card-label">Avg/{periodStats.groupBy === 'month' ? 'Month' : periodStats.groupBy === 'week' ? 'Week' : 'Day'}</span>
             </div>
           </div>
           <div className="summary-card">
-            <div className="card-icon"><Flame size={24} /></div>
+            <div className="card-icon"><Flame size={28} /></div>
             <div className="card-content">
               <span className="card-value">{gamificationStats.current_streak || 0}</span>
               <span className="card-label">Day Streak</span>
             </div>
           </div>
           <div className="summary-card">
-            <div className="card-icon"><Trophy size={24} /></div>
+            <div className="card-icon"><Trophy size={28} /></div>
             <div className="card-content">
-              <span className="card-value">#{gamificationStats.rank || '-'}</span>
+              <span className="card-value">#{gamificationStats.global_rank || '-'}</span>
               <span className="card-label">Global Rank</span>
             </div>
           </div>
         </div>
 
-        {/* Filters */}
         <div className="filters-section">
           <div className="filter-group">
             <label>Time Range</label>
             <div className="filter-buttons">
-              {['week', 'month', 'year', 'all'].map(range => (
-                <button
-                  key={range}
-                  className={`filter-btn ${timeRange === range ? 'active' : ''}`}
-                  onClick={() => setTimeRange(range)}
-                >
-                  {range.charAt(0).toUpperCase() + range.slice(1)}
-                </button>
-              ))}
+              <button className={`filter-btn ${timeRange === 'week' ? 'active' : ''}`} onClick={() => setTimeRange('week')}>
+                <Clock size={14} /> week
+              </button>
+              <button className={`filter-btn ${timeRange === 'month' ? 'active' : ''}`} onClick={() => setTimeRange('month')}>
+                <Calendar size={14} /> month
+              </button>
+              <button className={`filter-btn ${timeRange === 'year' ? 'active' : ''}`} onClick={() => setTimeRange('year')}>
+                <Calendar size={14} /> year
+              </button>
+              <button className={`filter-btn ${timeRange === 'all' ? 'active' : ''}`} onClick={() => setTimeRange('all')}>
+                <Activity size={14} /> all
+              </button>
             </div>
           </div>
+          
           <div className="filter-group">
             <label>Chart Type</label>
             <div className="filter-buttons">
-              <button
-                className={`filter-btn ${chartType === 'bar' ? 'active' : ''}`}
-                onClick={() => setChartType('bar')}
-              >
-                <BarChart3 size={16} />
+              <button className={`filter-btn ${chartType === 'bar' ? 'active' : ''}`} onClick={() => setChartType('bar')}>
+                <BarChart3 size={14} /> bar
               </button>
-              <button
-                className={`filter-btn ${chartType === 'line' ? 'active' : ''}`}
-                onClick={() => setChartType('line')}
-              >
-                <Activity size={16} />
+              <button className={`filter-btn ${chartType === 'line' ? 'active' : ''}`} onClick={() => setChartType('line')}>
+                <Activity size={14} /> line
               </button>
             </div>
           </div>
         </div>
 
-        {/* Metric Toggles */}
         <div className="metrics-toggles">
           <label>Show Metrics:</label>
           <div className="metric-chips">
-            {Object.entries(metricConfig).map(([key, config]) => {
-              const Icon = config.icon;
-              return (
-                <button
-                  key={key}
-                  className={`metric-chip ${selectedMetrics.includes(key) ? 'active' : ''}`}
-                  onClick={() => toggleMetric(key)}
-                  style={{ 
-                    '--chip-color': config.color,
-                    borderColor: selectedMetrics.includes(key) ? config.color : 'transparent'
-                  }}
-                >
-                  <Icon size={14} />
-                  {config.label}
-                </button>
-              );
-            })}
+            {Object.entries(metricConfig).map(([key, config]) => (
+              <button
+                key={key}
+                className={`metric-chip ${selectedMetrics.includes(key) ? 'active' : ''}`}
+                onClick={() => toggleMetric(key)}
+                style={{
+                  '--chip-color': config.color,
+                  '--chip-color-rgb': config.color.replace('#', '').match(/.{2}/g).map(x => parseInt(x, 16)).join(',')
+                }}
+              >
+                {React.createElement(config.icon, { size: 14 })}
+                {config.label}
+              </button>
+            ))}
           </div>
         </div>
 
-
-        {/* Main Chart */}
         <div className="main-chart-section">
           <div className="chart-header">
             <div className="chart-title-section">
-              <h2>Activity Overview</h2>
-              <span className="chart-subtitle">
-                {chartData.length} {periodStats.groupBy === 'month' ? 'months' : periodStats.groupBy === 'week' ? 'weeks' : 'days'} of data
-              </span>
+              <h2>activity overview</h2>
+              <span className="chart-subtitle">{chartData.length} {periodStats.groupBy === 'month' ? 'months' : periodStats.groupBy === 'week' ? 'weeks' : 'days'} of data</span>
             </div>
             <div className="chart-legend">
               {selectedMetrics.map(metric => (
                 <div key={metric} className="legend-item">
-                  <span className="legend-dot" style={{ background: metricConfig[metric].color }}></span>
+                  <span className="legend-dot" style={{ backgroundColor: metricConfig[metric].color }}></span>
                   <span>{metricConfig[metric].label}</span>
                 </div>
               ))}
             </div>
           </div>
-          
+
           <div className="chart-area">
             {chartData.length === 0 ? (
-              <div className="chart-empty">
-                <p>No activity data yet. Start learning to see your progress!</p>
-              </div>
+              <div className="chart-empty">No data available for this period</div>
             ) : chartType === 'bar' ? (
               <div className="bar-chart">
                 <div className="y-axis">
-                  {[100, 75, 50, 25, 0].map(pct => (
-                    <span key={pct} className="y-label">{Math.round(maxValue * pct / 100)}</span>
+                  {[...Array(6)].map((_, i) => (
+                    <span key={i} className="y-label">
+                      {Math.round((maxValue * (5 - i)) / 5)}
+                    </span>
                   ))}
                 </div>
-                <div className="bars-container" style={{ 
-                  overflowX: chartData.length > 15 ? 'auto' : 'visible',
-                  minWidth: chartData.length > 15 ? `${chartData.length * 50}px` : 'auto'
-                }}>
+                <div className="bars-container">
                   {chartData.map((day, idx) => (
-                    <div key={idx} className="bar-group" style={{
-                      minWidth: chartData.length > 30 ? '30px' : chartData.length > 15 ? '40px' : 'auto'
-                    }}>
+                    <div key={idx} className="bar-group">
                       <div className="bars">
                         {selectedMetrics.map(metric => {
                           const value = day[metric] || 0;
@@ -344,27 +324,39 @@ const Analytics = () => {
                               key={metric}
                               className="bar"
                               style={{
-                                height: `${Math.max(height, 4)}%`,
-                                background: metricConfig[metric].color,
-                                width: chartData.length > 30 ? '6px' : chartData.length > 15 ? '8px' : '12px'
+                                height: `${height}%`,
+                                backgroundColor: metricConfig[metric].color
                               }}
                               title={`${day.label || day.day}: ${metricConfig[metric].label}: ${value}`}
                             />
                           );
                         })}
                       </div>
-                      <span className="x-label" style={{
-                        fontSize: chartData.length > 30 ? '0.6rem' : chartData.length > 15 ? '0.65rem' : '0.75rem',
-                        writingMode: chartData.length > 20 ? 'vertical-rl' : 'horizontal-tb',
-                        transform: chartData.length > 20 ? 'rotate(180deg)' : 'none'
-                      }}>{day.label || day.day}</span>
+                      <span className="x-label">{day.label || day.day}</span>
                     </div>
                   ))}
                 </div>
               </div>
             ) : (
               <div className="line-chart">
-                <svg viewBox={`0 0 ${Math.max(700, chartData.length * 20)} 300`} preserveAspectRatio="none">
+                <svg viewBox={`0 0 ${Math.max(700, chartData.length * 18)} 300`} preserveAspectRatio="xMidYMid meet">
+                  <defs>
+                    <linearGradient id="grid-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="rgba(255,255,255,0.05)" />
+                      <stop offset="100%" stopColor="rgba(255,255,255,0.01)" />
+                    </linearGradient>
+                  </defs>
+                  {[...Array(6)].map((_, i) => (
+                    <line
+                      key={i}
+                      x1="10"
+                      y1={10 + (i * 280) / 5}
+                      x2={Math.max(690, chartData.length * 18)}
+                      y2={10 + (i * 280) / 5}
+                      stroke="rgba(255,255,255,0.05)"
+                      strokeWidth="1"
+                    />
+                  ))}
                   {selectedMetrics.map(metric => {
                     const points = chartData.map((day, idx) => {
                       const x = (idx / Math.max(chartData.length - 1, 1)) * (Math.max(680, chartData.length * 18)) + 10;
@@ -372,6 +364,7 @@ const Analytics = () => {
                       const y = 290 - (maxValue > 0 ? (value / maxValue) * 280 : 0);
                       return `${x},${y}`;
                     }).join(' ');
+
                     return (
                       <g key={metric}>
                         <polyline
@@ -406,7 +399,6 @@ const Analytics = () => {
                   overflowX: chartData.length > 15 ? 'auto' : 'visible'
                 }}>
                   {chartData.map((day, idx) => {
-                    // Show fewer labels for large datasets
                     const showLabel = chartData.length <= 15 || 
                       idx === 0 || 
                       idx === chartData.length - 1 || 
@@ -426,7 +418,6 @@ const Analytics = () => {
         </div>
 
 
-        {/* Detailed Stats Grid */}
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-header">
@@ -565,9 +556,8 @@ const Analytics = () => {
           </div>
         </div>
 
-        {/* Point System Reference */}
         <div className="points-reference">
-          <h3>Point System</h3>
+          <h3>point system</h3>
           <div className="points-grid">
             <div className="point-item"><span>AI Chat</span><span>+1</span></div>
             <div className="point-item"><span>Answer Question</span><span>+2</span></div>
