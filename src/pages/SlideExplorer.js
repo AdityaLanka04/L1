@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Loader, FileText, Trash2, Eye, Sparkles } from 'lucide-react';
+import { Upload, Loader, FileText, Trash2, Eye, Sparkles, ChevronLeft, ChevronRight, BookOpen, Tag, Lightbulb, X } from 'lucide-react';
 import './SlideExplorer.css';
 import { API_URL } from '../config';
+
 const SlideExplorer = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
@@ -12,13 +13,12 @@ const SlideExplorer = () => {
   const [uploadedSlides, setUploadedSlides] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedSlide, setSelectedSlide] = useState(null);
-  const [slideContent, setSlideContent] = useState([]);
+  const [analyzedSlides, setAnalyzedSlides] = useState([]);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
-
-  useEffect(() => {
-    fetchUploadedSlides();
-  }, [fetchUploadedSlides]);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [imageErrors, setImageErrors] = useState({});
 
   const fetchUploadedSlides = useCallback(async () => {
     try {
@@ -35,7 +35,11 @@ const SlideExplorer = () => {
     } finally {
       setLoading(false);
     }
-  }, [userId, token, API_URL, setLoading, setUploadedSlides]);
+  }, [userId, token]);
+
+  useEffect(() => {
+    fetchUploadedSlides();
+  }, [fetchUploadedSlides]);
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -51,7 +55,6 @@ const SlideExplorer = () => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleUpload(e.dataTransfer.files);
     }
@@ -63,8 +66,8 @@ const SlideExplorer = () => {
     }
   };
 
+
   const handleUpload = async (files) => {
-    // Validate files
     const validFiles = Array.from(files).filter(file => 
       file.name.match(/\.(pdf|pptx|ppt)$/i)
     );
@@ -77,21 +80,14 @@ const SlideExplorer = () => {
     try {
       setUploading(true);
       const formData = new FormData();
-      
-      // Append user_id as form field
       formData.append('user_id', userId);
-      
-      // Append all files
       validFiles.forEach(file => {
         formData.append('files', file);
       });
 
       const response = await fetch(`${API_URL}/upload_slides`, {
         method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`
-          // Don't set Content-Type, browser will set it with boundary for FormData
-        },
+        headers: { 'Authorization': `Bearer ${token}` },
         body: formData
       });
 
@@ -111,40 +107,69 @@ const SlideExplorer = () => {
     }
   };
 
-  const viewSlide = async (slideId) => {
+  // View slides without AI analysis (just show images)
+  const viewSlide = (slideId) => {
+    const slide = uploadedSlides.find(s => s.id === slideId);
+    if (!slide) {
+      alert('Slide not found');
+      return;
+    }
+    
+    setSelectedSlide(slide);
+    setImageErrors({});
+    
+    // Create basic slide data without AI analysis
+    const basicSlides = [];
+    for (let i = 1; i <= (slide.page_count || 1); i++) {
+      basicSlides.push({
+        slide_number: i,
+        title: `Slide ${i}`,
+        content: '',
+        explanation: '',
+        key_points: [],
+        keywords: []
+      });
+    }
+    setAnalyzedSlides(basicSlides);
+    setCurrentSlideIndex(0);
+  };
+
+  // Analyze slides with AI-generated insights
+  const analyzeSlide = async (slideId) => {
     try {
-      setLoading(true);
+      setAnalyzing(true);
+      setImageErrors({});
       
-      // Find the slide in our list
       const slide = uploadedSlides.find(s => s.id === slideId);
       if (!slide) {
         alert('Slide not found');
+        setAnalyzing(false);
         return;
       }
 
-      // For now, we'll show basic info since the backend doesn't have get_slide_content endpoint
-      // You can add this endpoint or extract text on upload
-      setSelectedSlide({
-        id: slide.id,
-        filename: slide.filename,
-        page_count: slide.page_count || 0
+      setSelectedSlide(slide);
+
+      const response = await fetch(`${API_URL}/analyze_slide/${slideId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      
-      // Generate placeholder content based on page count
-      const placeholderContent = [];
-      for (let i = 1; i <= (slide.page_count || 1); i++) {
-        placeholderContent.push({
-          page: i,
-          text: `Content from page ${i} - Text extraction available after processing`
-        });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.slides && data.slides.length > 0) {
+          setAnalyzedSlides(data.slides);
+          setCurrentSlideIndex(0);
+        } else {
+          alert('No slides found in the presentation');
+        }
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to analyze: ${errorData.detail || 'Unknown error'}`);
       }
-      setSlideContent(placeholderContent);
-      
     } catch (error) {
-      console.error('Error viewing slide:', error);
-      alert('Error loading slide content');
+      console.error('Error analyzing slide:', error);
+      alert('Error analyzing slides. Please try again.');
     } finally {
-      setLoading(false);
+      setAnalyzing(false);
     }
   };
 
@@ -159,10 +184,9 @@ const SlideExplorer = () => {
 
       if (response.ok) {
         await fetchUploadedSlides();
-        // Clear selected slide if it was deleted
         if (selectedSlide && selectedSlide.id === slideId) {
           setSelectedSlide(null);
-          setSlideContent([]);
+          setAnalyzedSlides([]);
         }
       } else {
         alert('Failed to delete slide');
@@ -173,10 +197,25 @@ const SlideExplorer = () => {
     }
   };
 
-  const generateInsight = async (slideId) => {
-    alert('AI insights generation will be available soon! This will analyze your slides and provide key takeaways.');
-    // This endpoint doesn't exist in main.py yet, but we can implement it later
+  const goToSlide = (index) => {
+    if (index >= 0 && index < analyzedSlides.length) {
+      setCurrentSlideIndex(index);
+    }
   };
+
+  const handleImageError = (slideNumber) => {
+    setImageErrors(prev => ({ ...prev, [slideNumber]: true }));
+  };
+
+  const closeViewer = () => {
+    setSelectedSlide(null);
+    setAnalyzedSlides([]);
+    setCurrentSlideIndex(0);
+    setImageErrors({});
+  };
+
+  const currentSlide = analyzedSlides[currentSlideIndex];
+
 
   return (
     <div className="se-page">
@@ -203,7 +242,7 @@ const SlideExplorer = () => {
         <div className="se-upload-section">
           <div className="se-section-header">
             <h2 className="se-section-title">Upload Presentations</h2>
-            <p className="se-section-subtitle">Upload PDF or PowerPoint files to explore and analyze</p>
+            <p className="se-section-subtitle">Upload PDF or PowerPoint files to explore and analyze with AI</p>
           </div>
 
           <div
@@ -298,10 +337,11 @@ const SlideExplorer = () => {
                     </button>
                     <button 
                       className="se-action-btn se-action-insight"
-                      onClick={() => generateInsight(slide.id)}
+                      onClick={() => analyzeSlide(slide.id)}
+                      disabled={analyzing}
                     >
                       <Sparkles size={16} />
-                      <span>Insights</span>
+                      <span>{analyzing && selectedSlide?.id === slide.id ? 'Analyzing...' : 'Insights'}</span>
                     </button>
                   </div>
                 </div>
@@ -310,35 +350,169 @@ const SlideExplorer = () => {
           )}
         </div>
 
-        {/* Slide Viewer */}
-        {selectedSlide && slideContent.length > 0 && (
+
+        {/* Enhanced Slide Viewer with AI Analysis */}
+        {selectedSlide && analyzedSlides.length > 0 && (
           <div className="se-viewer-section">
             <div className="se-section-header">
               <div className="se-viewer-header-content">
                 <div>
-                  <h2 className="se-section-title">Viewing: {selectedSlide.filename}</h2>
-                  <p className="se-section-subtitle">{slideContent.length} page{slideContent.length !== 1 ? 's' : ''}</p>
+                  <h2 className="se-section-title">Analyzing: {selectedSlide.filename}</h2>
+                  <p className="se-section-subtitle">
+                    Slide {currentSlideIndex + 1} of {analyzedSlides.length}
+                  </p>
                 </div>
-                <button 
-                  className="se-close-viewer"
-                  onClick={() => { setSelectedSlide(null); setSlideContent([]); }}
-                >
-                  Close Viewer
+                <button className="se-close-viewer" onClick={closeViewer}>
+                  <X size={16} />
+                  Close
                 </button>
               </div>
             </div>
 
-            <div className="se-slides-viewer">
-              {slideContent.map((content, idx) => (
-                <div key={idx} className="se-slide-item">
-                  <div className="se-slide-number">{content.page || idx + 1}</div>
-                  <div className="se-slide-content">
-                    <p className="se-slide-text">
-                      {content.text || content.content || 'No text content available'}
-                    </p>
+            {/* Slide Navigation */}
+            <div className="se-slide-nav">
+              <button 
+                className="se-nav-arrow"
+                onClick={() => goToSlide(currentSlideIndex - 1)}
+                disabled={currentSlideIndex === 0}
+              >
+                <ChevronLeft size={24} />
+              </button>
+              
+              <div className="se-slide-thumbnails">
+                {analyzedSlides.map((slide, idx) => (
+                  <button
+                    key={idx}
+                    className={`se-thumbnail ${idx === currentSlideIndex ? 'active' : ''}`}
+                    onClick={() => goToSlide(idx)}
+                  >
+                    {slide.slide_number}
+                  </button>
+                ))}
+              </div>
+              
+              <button 
+                className="se-nav-arrow"
+                onClick={() => goToSlide(currentSlideIndex + 1)}
+                disabled={currentSlideIndex === analyzedSlides.length - 1}
+              >
+                <ChevronRight size={24} />
+              </button>
+            </div>
+
+            {/* Current Slide Display */}
+            {currentSlide && (
+              <div className="se-slide-display">
+                {/* Slide Preview */}
+                <div className="se-slide-preview">
+                  <div className="se-slide-image-container">
+                    {!imageErrors[currentSlide.slide_number] ? (
+                      <img 
+                        src={`${API_URL}/slide_image/${selectedSlide.id}/${currentSlide.slide_number}`}
+                        alt={`Slide ${currentSlide.slide_number}`}
+                        className="se-slide-image"
+                        onError={() => handleImageError(currentSlide.slide_number)}
+                      />
+                    ) : (
+                      <div className="se-slide-placeholder">
+                        <FileText size={48} />
+                        <span className="se-slide-number-large">{currentSlide.slide_number}</span>
+                        <span className="se-slide-title-display">{currentSlide.title}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
+
+                {/* AI Analysis Section */}
+                <div className="se-analysis-section">
+                  {/* Slide Title */}
+                  <div className="se-analysis-header">
+                    <h3 className="se-slide-title">{currentSlide.title || `Slide ${currentSlide.slide_number}`}</h3>
+                    {!currentSlide.explanation && (
+                      <button 
+                        className="se-generate-insights-btn"
+                        onClick={() => analyzeSlide(selectedSlide.id)}
+                        disabled={analyzing}
+                      >
+                        <Sparkles size={16} />
+                        {analyzing ? 'Generating...' : 'Generate AI Insights'}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Explanation */}
+                  {currentSlide.explanation ? (
+                    <div className="se-analysis-block">
+                      <div className="se-analysis-label">
+                        <BookOpen size={16} />
+                        <span>Explanation</span>
+                      </div>
+                      <p className="se-explanation-text">
+                        {currentSlide.explanation}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="se-no-insights">
+                      <Sparkles size={32} />
+                      <p>Click "Generate AI Insights" to get explanations, key points, and keywords for this slide.</p>
+                    </div>
+                  )}
+
+                  {/* Key Points */}
+                  {currentSlide.key_points && currentSlide.key_points.length > 0 && (
+                    <div className="se-analysis-block">
+                      <div className="se-analysis-label">
+                        <Lightbulb size={16} />
+                        <span>Key Points</span>
+                      </div>
+                      <ul className="se-key-points">
+                        {currentSlide.key_points.map((point, idx) => (
+                          <li key={idx} className="se-key-point">{point}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Keywords */}
+                  {currentSlide.keywords && currentSlide.keywords.length > 0 && (
+                    <div className="se-analysis-block">
+                      <div className="se-analysis-label">
+                        <Tag size={16} />
+                        <span>Keywords</span>
+                      </div>
+                      <div className="se-keywords">
+                        {currentSlide.keywords.map((keyword, idx) => (
+                          <span key={idx} className="se-keyword-tag">{keyword}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Original Content (Collapsible) */}
+                  {currentSlide.content && currentSlide.content.trim() && (
+                    <details className="se-content-details">
+                      <summary className="se-content-summary">
+                        <Eye size={16} />
+                        <span>View Original Content</span>
+                      </summary>
+                      <div className="se-original-content">
+                        <pre>{currentSlide.content}</pre>
+                      </div>
+                    </details>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Loading State for Analysis */}
+        {analyzing && (
+          <div className="se-analyzing-overlay">
+            <div className="se-analyzing-content">
+              <Loader size={48} className="se-spinner" />
+              <h3>Analyzing Presentation</h3>
+              <p>Extracting content and generating AI insights...</p>
             </div>
           </div>
         )}

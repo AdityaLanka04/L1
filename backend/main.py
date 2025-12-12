@@ -5649,6 +5649,24 @@ async def upload_slides(
                 except Exception as e:
                     logger.error(f"Error extracting PDF text: {str(e)}")
             
+            elif file.filename.lower().endswith(('.ppt', '.pptx')):
+                try:
+                    from pptx import Presentation
+                    prs = Presentation(io.BytesIO(file_content))
+                    page_count = len(prs.slides)
+                    
+                    # Extract text from first 10 slides
+                    for slide_idx, ppt_slide in enumerate(prs.slides):
+                        if slide_idx >= 10:
+                            break
+                        for shape in ppt_slide.shapes:
+                            if hasattr(shape, "text") and shape.text:
+                                extracted_text += shape.text.strip() + "\n"
+                    
+                    extracted_text = extracted_text[:10000]
+                except Exception as e:
+                    logger.error(f"Error extracting PowerPoint content: {str(e)}")
+            
             slide = models.UploadedSlide(
                 user_id=user.id,
                 filename=safe_filename,
@@ -5737,6 +5755,283 @@ def delete_slide(slide_id: int, db: Session = Depends(get_db)):
         logger.error(f"Error deleting slide: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/analyze_slide/{slide_id}")
+async def analyze_slide(slide_id: int, db: Session = Depends(get_db)):
+    """Analyze a slide presentation and return per-slide explanations with AI"""
+    try:
+        slide = db.query(models.UploadedSlide).filter(
+            models.UploadedSlide.id == slide_id
+        ).first()
+        
+        if not slide:
+            raise HTTPException(status_code=404, detail="Slide not found")
+        
+        file_path = Path(slide.file_path)
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="Slide file not found")
+        
+        slides_data = []
+        
+        # Extract content based on file type
+        if slide.original_filename.lower().endswith('.pdf'):
+            # PDF extraction
+            try:
+                with open(file_path, 'rb') as f:
+                    pdf_reader = PyPDF2.PdfReader(f)
+                    for page_num, page in enumerate(pdf_reader.pages, 1):
+                        text = page.extract_text() or ""
+                        slides_data.append({
+                            "slide_number": page_num,
+                            "content": text.strip(),
+                            "title": f"Page {page_num}"
+                        })
+            except Exception as e:
+                logger.error(f"Error reading PDF: {e}")
+                raise HTTPException(status_code=500, detail=f"Error reading PDF: {str(e)}")
+                
+        elif slide.original_filename.lower().endswith(('.ppt', '.pptx')):
+            # PowerPoint extraction using python-pptx
+            try:
+                from pptx import Presentation
+                from pptx.util import Inches, Pt
+                
+                prs = Presentation(str(file_path))
+                
+                for slide_num, ppt_slide in enumerate(prs.slides, 1):
+                    slide_text = []
+                    slide_title = f"Slide {slide_num}"
+                    
+                    for shape in ppt_slide.shapes:
+                        if hasattr(shape, "text") and shape.text:
+                            # Check if this is the title
+                            if shape.is_placeholder and hasattr(shape, 'placeholder_format'):
+                                if shape.placeholder_format.type == 1:  # Title placeholder
+                                    slide_title = shape.text.strip()
+                            slide_text.append(shape.text.strip())
+                        
+                        # Extract text from tables
+                        if shape.has_table:
+                            table = shape.table
+                            for row in table.rows:
+                                row_text = [cell.text for cell in row.cells if cell.text]
+                                if row_text:
+                                    slide_text.append(" | ".join(row_text))
+                    
+                    slides_data.append({
+                        "slide_number": slide_num,
+                        "content": "\n".join(slide_text),
+                        "title": slide_title
+                    })
+                    
+            except ImportError:
+                logger.error("python-pptx not installed")
+                raise HTTPException(status_code=500, detail="PowerPoint processing not available. Install python-pptx.")
+            except Exception as e:
+                logger.error(f"Error reading PowerPoint: {e}")
+                raise HTTPException(status_code=500, detail=f"Error reading PowerPoint: {str(e)}")
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported file type")
+        
+        # Generate AI explanations for each slide
+        analyzed_slides = []
+        for slide_data in slides_data:
+            content = slide_data["content"]
+            
+            if content and len(content.strip()) > 10:
+                # Generate AI explanation
+                prompt = f"""Analyze this slide content and provide:
+1. A brief explanation (2-3 sentences) of what this slide is about
+2. 3-5 key points or takeaways
+3. 3-5 important keywords/terms
+
+Slide Title: {slide_data['title']}
+Slide Content:
+{content[:2000]}
+
+Respond in this exact JSON format:
+{{
+    "explanation": "Brief explanation here",
+    "key_points": ["point 1", "point 2", "point 3"],
+    "keywords": ["keyword1", "keyword2", "keyword3"]
+}}"""
+                
+                try:
+                    ai_response = call_ai(prompt, max_tokens=500, temperature=0.3)
+                    
+                    # Parse JSON from response
+                    import re
+                    json_match = re.search(r'\{[\s\S]*\}', ai_response)
+                    if json_match:
+                        analysis = json.loads(json_match.group())
+                    else:
+                        analysis = {
+                            "explanation": "This slide contains educational content.",
+                            "key_points": ["Content extracted from slide"],
+                            "keywords": []
+                        }
+                except Exception as e:
+                    logger.error(f"AI analysis error: {e}")
+                    analysis = {
+                        "explanation": "This slide contains educational content that covers important concepts.",
+                        "key_points": ["Review the slide content for details"],
+                        "keywords": []
+                    }
+            else:
+                analysis = {
+                    "explanation": "This slide appears to be a title slide or contains minimal text content.",
+                    "key_points": [],
+                    "keywords": []
+                }
+            
+            analyzed_slides.append({
+                "slide_number": slide_data["slide_number"],
+                "title": slide_data["title"],
+                "content": content,
+                "explanation": analysis.get("explanation", ""),
+                "key_points": analysis.get("key_points", []),
+                "keywords": analysis.get("keywords", [])
+            })
+        
+        return {
+            "status": "success",
+            "filename": slide.original_filename,
+            "total_slides": len(analyzed_slides),
+            "slides": analyzed_slides
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error analyzing slide: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error analyzing slide: {str(e)}")
+
+
+@app.get("/api/slide_image/{slide_id}/{page_number}")
+async def get_slide_image(slide_id: int, page_number: int, db: Session = Depends(get_db)):
+    """Render a specific page/slide as an image"""
+    from fastapi.responses import Response
+    import base64
+    
+    try:
+        slide = db.query(models.UploadedSlide).filter(
+            models.UploadedSlide.id == slide_id
+        ).first()
+        
+        if not slide:
+            raise HTTPException(status_code=404, detail="Slide not found")
+        
+        file_path = Path(slide.file_path)
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="Slide file not found")
+        
+        # Handle PDF files using PyMuPDF
+        if slide.original_filename.lower().endswith('.pdf'):
+            try:
+                import fitz  # PyMuPDF
+                doc = fitz.open(str(file_path))
+                
+                if page_number < 1 or page_number > len(doc):
+                    doc.close()
+                    raise HTTPException(status_code=400, detail=f"Invalid page number. File has {len(doc)} pages.")
+                
+                page = doc[page_number - 1]  # 0-indexed
+                
+                # Render at 2x resolution for better quality
+                mat = fitz.Matrix(2.0, 2.0)
+                pix = page.get_pixmap(matrix=mat)
+                
+                # Convert to PNG bytes
+                img_bytes = pix.tobytes("png")
+                doc.close()
+                
+                return Response(content=img_bytes, media_type="image/png")
+                
+            except ImportError:
+                raise HTTPException(status_code=500, detail="PyMuPDF not installed for PDF rendering")
+            except Exception as e:
+                logger.error(f"Error rendering PDF page: {e}")
+                raise HTTPException(status_code=500, detail=f"Error rendering PDF: {str(e)}")
+        
+        # Handle PowerPoint files
+        elif slide.original_filename.lower().endswith(('.ppt', '.pptx')):
+            try:
+                # For PPT files, we'll try to convert using LibreOffice if available
+                # Otherwise return a placeholder or the extracted text
+                import subprocess
+                import tempfile
+                
+                # Create temp directory for conversion
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    # Try to convert PPT to PDF first, then render
+                    pdf_path = os.path.join(temp_dir, "converted.pdf")
+                    
+                    # Try LibreOffice conversion
+                    try:
+                        result = subprocess.run([
+                            'soffice', '--headless', '--convert-to', 'pdf',
+                            '--outdir', temp_dir, str(file_path)
+                        ], capture_output=True, timeout=60)
+                        
+                        # Find the converted PDF
+                        converted_files = [f for f in os.listdir(temp_dir) if f.endswith('.pdf')]
+                        if converted_files:
+                            pdf_path = os.path.join(temp_dir, converted_files[0])
+                            
+                            import fitz
+                            doc = fitz.open(pdf_path)
+                            
+                            if page_number < 1 or page_number > len(doc):
+                                doc.close()
+                                raise HTTPException(status_code=400, detail=f"Invalid page number")
+                            
+                            page = doc[page_number - 1]
+                            mat = fitz.Matrix(2.0, 2.0)
+                            pix = page.get_pixmap(matrix=mat)
+                            img_bytes = pix.tobytes("png")
+                            doc.close()
+                            
+                            return Response(content=img_bytes, media_type="image/png")
+                    except (subprocess.TimeoutExpired, FileNotFoundError):
+                        pass
+                
+                # If LibreOffice not available, return a placeholder image with slide info
+                # Generate a simple placeholder image using PIL
+                try:
+                    from PIL import Image, ImageDraw, ImageFont
+                    
+                    # Create placeholder image
+                    img = Image.new('RGB', (800, 600), color='#1a1a2e')
+                    draw = ImageDraw.Draw(img)
+                    
+                    # Draw slide number
+                    draw.text((400, 280), f"Slide {page_number}", fill='#d7b38c', anchor='mm')
+                    draw.text((400, 320), "PowerPoint preview not available", fill='#888888', anchor='mm')
+                    draw.text((400, 350), "View analysis below for content", fill='#666666', anchor='mm')
+                    
+                    # Convert to bytes
+                    img_buffer = io.BytesIO()
+                    img.save(img_buffer, format='PNG')
+                    img_bytes = img_buffer.getvalue()
+                    
+                    return Response(content=img_bytes, media_type="image/png")
+                except ImportError:
+                    raise HTTPException(status_code=500, detail="Cannot render PowerPoint preview")
+                    
+            except Exception as e:
+                logger.error(f"Error rendering PowerPoint: {e}")
+                raise HTTPException(status_code=500, detail=f"Error rendering PowerPoint: {str(e)}")
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported file type")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting slide image: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error getting slide image: {str(e)}")
 
 
 @app.post("/api/generate_questions")
@@ -11160,90 +11455,88 @@ async def check_reminder_notifications(
         if current_time:
             try:
                 now = datetime.fromisoformat(current_time.replace('Z', '').replace('+00:00', ''))
-                logger.info(f"🔔 Using client time: {now}")
+                logger.info(f"Using client time: {now}")
             except:
                 now = datetime.now()
-                logger.info(f"🔔 Failed to parse client time, using server time: {now}")
+                logger.info(f"Failed to parse client time, using server time: {now}")
         else:
             now = datetime.now()
-            logger.info(f"🔔 No client time provided, using server time: {now}")
+            logger.info(f"No client time provided, using server time: {now}")
         
         notifications_created = []
         
-        # Get ALL reminders that haven't been notified yet (not just future ones)
-        # This catches reminders that might have been missed
+        # Get reminders that haven't been notified yet and have a reminder_date
         pending_reminders = db.query(models.Reminder).filter(
             models.Reminder.user_id == user.id,
             models.Reminder.is_completed == False,
-            models.Reminder.is_notified == False
+            models.Reminder.is_notified == False,
+            models.Reminder.reminder_date != None
         ).all()
         
-        logger.info(f"🔔 Found {len(pending_reminders)} pending reminders for user {user_id}")
+        logger.info(f"Found {len(pending_reminders)} pending reminders for user {user_id}")
         
         for reminder in pending_reminders:
+            if not reminder.reminder_date:
+                continue
+                
             time_until = reminder.reminder_date - now
             minutes_until = time_until.total_seconds() / 60
             
-            logger.info(f"🔔 Reminder '{reminder.title}': scheduled={reminder.reminder_date}, now={now}, minutes_until={minutes_until:.1f}, notify_before={reminder.notify_before_minutes}")
+            logger.info(f"Reminder '{reminder.title}': scheduled={reminder.reminder_date}, now={now}, minutes_until={minutes_until:.1f}, notify_before={reminder.notify_before_minutes}")
             
-            # Create notification if:
-            # 1. Within notify_before_minutes window (upcoming)
-            # 2. OR past due (missed reminder)
-            should_notify = minutes_until <= reminder.notify_before_minutes
+            # Only notify if:
+            # 1. Time is within the notify window (minutes_until <= notify_before_minutes)
+            # 2. AND the reminder hasn't passed by more than 30 minutes (to avoid old reminders)
+            # 3. AND we're actually close to the notify time (not just created)
             
-            if should_notify:
-                # Check if notification already exists for this reminder
-                existing = db.query(models.Notification).filter(
-                    models.Notification.user_id == user.id,
-                    models.Notification.notification_type == 'reminder',
-                    models.Notification.title.contains(reminder.title)
-                ).first()
+            notify_window_start = reminder.notify_before_minutes
+            is_in_notify_window = minutes_until <= notify_window_start and minutes_until >= -30
+            
+            if is_in_notify_window:
+                # Format the time for display (already in user's local time)
+                reminder_time = reminder.reminder_date.strftime('%I:%M %p')
+                reminder_date_str = reminder.reminder_date.strftime('%B %d, %Y at %I:%M %p')
                 
-                if not existing:
-                    # Format the time for display (already in user's local time)
-                    reminder_time = reminder.reminder_date.strftime('%I:%M %p')
-                    reminder_date_str = reminder.reminder_date.strftime('%B %d, %Y at %I:%M %p')
-                    
-                    if minutes_until <= 0:
-                        # Past due
-                        notification = models.Notification(
-                            user_id=user.id,
-                            title=f"🔔 {reminder.title} - NOW!",
-                            message=f"{reminder.description or 'Your event is happening now!'} - Scheduled for {reminder_time}",
-                            notification_type='reminder'
-                        )
-                    elif minutes_until <= 5:
-                        # Due very soon
-                        notification = models.Notification(
-                            user_id=user.id,
-                            title=f"⏰ {reminder.title} - In {int(minutes_until)} min!",
-                            message=f"{reminder.description or 'Your reminder is coming up!'} - Due at {reminder_time}",
-                            notification_type='reminder'
-                        )
-                    else:
-                        # Upcoming
-                        notification = models.Notification(
-                            user_id=user.id,
-                            title=f"⏰ {reminder.title}",
-                            message=f"{reminder.description or 'Your scheduled reminder'} - Due at {reminder_time} ({int(minutes_until)} min)",
-                            notification_type='reminder'
-                        )
-                    
-                    db.add(notification)
-                    reminder.is_notified = True
-                    
-                    notifications_created.append({
-                        "reminder_id": reminder.id,
-                        "title": reminder.title,
-                        "minutes_until": round(minutes_until),
-                        "reminder_time": reminder_date_str
-                    })
-                    
-                    logger.info(f"🔔 Created reminder notification for: {reminder.title} at {reminder_date_str}")
+                if minutes_until <= 0:
+                    # Past due / happening now
+                    notification = models.Notification(
+                        user_id=user.id,
+                        title=f"{reminder.title} - NOW!",
+                        message=f"{reminder.description or 'Your event is happening now!'} - Scheduled for {reminder_time}",
+                        notification_type='reminder'
+                    )
+                elif minutes_until <= 5:
+                    # Due very soon (within 5 minutes)
+                    notification = models.Notification(
+                        user_id=user.id,
+                        title=f"{reminder.title} - In {int(minutes_until)} min!",
+                        message=f"{reminder.description or 'Your reminder is coming up!'} - Due at {reminder_time}",
+                        notification_type='reminder'
+                    )
+                else:
+                    # Upcoming (within notify_before_minutes window)
+                    notification = models.Notification(
+                        user_id=user.id,
+                        title=f"{reminder.title}",
+                        message=f"{reminder.description or 'Your scheduled reminder'} - Due at {reminder_time} (in {int(minutes_until)} min)",
+                        notification_type='reminder'
+                    )
+                
+                db.add(notification)
+                reminder.is_notified = True
+                
+                notifications_created.append({
+                    "reminder_id": reminder.id,
+                    "title": reminder.title,
+                    "minutes_until": round(minutes_until),
+                    "reminder_time": reminder_date_str
+                })
+                
+                logger.info(f"Created reminder notification for: {reminder.title} at {reminder_date_str}")
         
         if notifications_created:
             db.commit()
-            logger.info(f"🔔 Created {len(notifications_created)} notifications")
+            logger.info(f"Created {len(notifications_created)} reminder notifications")
         
         return {
             "status": "success",
@@ -11253,7 +11546,7 @@ async def check_reminder_notifications(
             "client_time_received": current_time
         }
     except Exception as e:
-        logger.error(f"🔔 Error checking reminder notifications: {str(e)}")
+        logger.error(f"Error checking reminder notifications: {str(e)}")
         import traceback
         traceback.print_exc()
         db.rollback()
@@ -12055,78 +12348,302 @@ async def delete_all_concepts(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-# ==================== REMINDER/CALENDAR EVENTS API ====================
+# ==================== REMINDER/CALENDAR EVENTS API (Apple Reminders Style) ====================
+
+def serialize_reminder(r):
+    """Helper to serialize a reminder object"""
+    return {
+        "id": r.id,
+        "list_id": r.list_id,
+        "parent_id": r.parent_id,
+        "title": r.title,
+        "description": r.description,
+        "notes": r.notes,
+        "url": r.url,
+        "reminder_date": r.reminder_date.isoformat() + 'Z' if r.reminder_date else None,
+        "due_date": r.due_date.isoformat() + 'Z' if r.due_date else None,
+        "reminder_type": r.reminder_type,
+        "priority": r.priority,
+        "color": r.color,
+        "is_completed": r.is_completed,
+        "completed_at": r.completed_at.isoformat() + 'Z' if r.completed_at else None,
+        "is_flagged": r.is_flagged,
+        "is_notified": r.is_notified,
+        "notify_before_minutes": r.notify_before_minutes,
+        "recurring": r.recurring,
+        "recurring_interval": r.recurring_interval,
+        "recurring_end_date": r.recurring_end_date.isoformat() + 'Z' if r.recurring_end_date else None,
+        "location": r.location,
+        "tags": json.loads(r.tags) if r.tags else [],
+        "sort_order": r.sort_order,
+        "created_at": r.created_at.isoformat() + 'Z',
+        "subtasks": [serialize_reminder(s) for s in r.subtasks] if r.subtasks else []
+    }
+
+# ==================== REMINDER LISTS API ====================
+
+@app.post("/api/create_reminder_list")
+async def create_reminder_list(
+    user_id: str = Form(...),
+    name: str = Form(...),
+    color: str = Form("#3b82f6"),
+    icon: str = Form("list"),
+    db: Session = Depends(get_db)
+):
+    """Create a new reminder list"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get max sort order
+        max_order = db.query(func.max(models.ReminderList.sort_order)).filter(
+            models.ReminderList.user_id == user.id
+        ).scalar() or 0
+        
+        reminder_list = models.ReminderList(
+            user_id=user.id,
+            name=name,
+            color=color,
+            icon=icon,
+            sort_order=max_order + 1
+        )
+        
+        db.add(reminder_list)
+        db.commit()
+        db.refresh(reminder_list)
+        
+        return {
+            "id": reminder_list.id,
+            "name": reminder_list.name,
+            "color": reminder_list.color,
+            "icon": reminder_list.icon,
+            "sort_order": reminder_list.sort_order,
+            "reminder_count": 0
+        }
+    except Exception as e:
+        logger.error(f"Error creating reminder list: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/get_reminder_lists")
+async def get_reminder_lists(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Get all reminder lists for a user with counts"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        lists = db.query(models.ReminderList).filter(
+            models.ReminderList.user_id == user.id,
+            models.ReminderList.is_smart_list == False
+        ).order_by(models.ReminderList.sort_order).all()
+        
+        # Get counts for each list
+        result = []
+        for lst in lists:
+            count = db.query(models.Reminder).filter(
+                models.Reminder.list_id == lst.id,
+                models.Reminder.is_completed == False,
+                models.Reminder.parent_id == None
+            ).count()
+            
+            result.append({
+                "id": lst.id,
+                "name": lst.name,
+                "color": lst.color,
+                "icon": lst.icon,
+                "sort_order": lst.sort_order,
+                "reminder_count": count
+            })
+        
+        # Add smart list counts
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        tomorrow = today + timedelta(days=1)
+        
+        today_count = db.query(models.Reminder).filter(
+            models.Reminder.user_id == user.id,
+            models.Reminder.is_completed == False,
+            models.Reminder.reminder_date >= today,
+            models.Reminder.reminder_date < tomorrow
+        ).count()
+        
+        scheduled_count = db.query(models.Reminder).filter(
+            models.Reminder.user_id == user.id,
+            models.Reminder.is_completed == False,
+            models.Reminder.reminder_date != None
+        ).count()
+        
+        flagged_count = db.query(models.Reminder).filter(
+            models.Reminder.user_id == user.id,
+            models.Reminder.is_completed == False,
+            models.Reminder.is_flagged == True
+        ).count()
+        
+        all_count = db.query(models.Reminder).filter(
+            models.Reminder.user_id == user.id,
+            models.Reminder.is_completed == False,
+            models.Reminder.parent_id == None
+        ).count()
+        
+        completed_count = db.query(models.Reminder).filter(
+            models.Reminder.user_id == user.id,
+            models.Reminder.is_completed == True
+        ).count()
+        
+        smart_lists = {
+            "today": today_count,
+            "scheduled": scheduled_count,
+            "flagged": flagged_count,
+            "all": all_count,
+            "completed": completed_count
+        }
+        
+        return {
+            "lists": result,
+            "smart_lists": smart_lists
+        }
+    except Exception as e:
+        logger.error(f"Error getting reminder lists: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/update_reminder_list/{list_id}")
+async def update_reminder_list(
+    list_id: int,
+    name: str = Form(None),
+    color: str = Form(None),
+    icon: str = Form(None),
+    db: Session = Depends(get_db)
+):
+    """Update a reminder list"""
+    try:
+        reminder_list = db.query(models.ReminderList).filter(models.ReminderList.id == list_id).first()
+        if not reminder_list:
+            raise HTTPException(status_code=404, detail="List not found")
+        
+        if name is not None:
+            reminder_list.name = name
+        if color is not None:
+            reminder_list.color = color
+        if icon is not None:
+            reminder_list.icon = icon
+        
+        reminder_list.updated_at = datetime.utcnow()
+        db.commit()
+        
+        return {"status": "success", "message": "List updated"}
+    except Exception as e:
+        logger.error(f"Error updating reminder list: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/delete_reminder_list/{list_id}")
+async def delete_reminder_list(
+    list_id: int,
+    db: Session = Depends(get_db)
+):
+    """Delete a reminder list and all its reminders"""
+    try:
+        reminder_list = db.query(models.ReminderList).filter(models.ReminderList.id == list_id).first()
+        if not reminder_list:
+            raise HTTPException(status_code=404, detail="List not found")
+        
+        db.delete(reminder_list)
+        db.commit()
+        
+        return {"status": "success", "message": "List deleted"}
+    except Exception as e:
+        logger.error(f"Error deleting reminder list: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ==================== REMINDERS API ====================
 
 @app.post("/api/create_reminder")
 async def create_reminder(
     user_id: str = Form(...),
     title: str = Form(...),
     description: str = Form(None),
-    reminder_date: str = Form(...),
-    reminder_type: str = Form("event"),
-    priority: str = Form("medium"),
+    notes: str = Form(None),
+    url: str = Form(None),
+    reminder_date: str = Form(None),
+    due_date: str = Form(None),
+    reminder_type: str = Form("reminder"),
+    priority: str = Form("none"),
     color: str = Form("#3b82f6"),
+    is_flagged: bool = Form(False),
     notify_before_minutes: int = Form(15),
+    list_id: int = Form(None),
+    parent_id: int = Form(None),
+    recurring: str = Form("none"),
+    recurring_interval: int = Form(1),
+    recurring_end_date: str = Form(None),
+    location: str = Form(None),
+    tags: str = Form(None),
     user_timezone: str = Form("UTC"),
     timezone_offset: int = Form(0),
     db: Session = Depends(get_db)
 ):
-    """Create a new reminder/event - stores time as user's local time"""
+    """Create a new reminder with Apple Reminders-style features"""
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # Parse the datetime - frontend sends local time from datetime-local input
-        # Format: "2025-12-11T17:37" (user's local time)
-        # IMPORTANT: Store as-is without any timezone conversion
-        parsed_date = datetime.fromisoformat(reminder_date.replace('Z', '').replace('+00:00', ''))
+        # Parse dates
+        parsed_reminder_date = None
+        parsed_due_date = None
+        parsed_recurring_end = None
         
-        # Store the original local time string for display purposes
-        local_time_display = parsed_date.strftime('%B %d, %Y at %I:%M %p')
+        if reminder_date:
+            parsed_reminder_date = datetime.fromisoformat(reminder_date.replace('Z', '').replace('+00:00', ''))
+        if due_date:
+            parsed_due_date = datetime.fromisoformat(due_date.replace('Z', '').replace('+00:00', ''))
+        if recurring_end_date:
+            parsed_recurring_end = datetime.fromisoformat(recurring_end_date.replace('Z', '').replace('+00:00', ''))
         
-        logger.info(f"📅 Creating reminder: {title} at {local_time_display} (raw: {reminder_date})")
+        # Get max sort order for the list
+        max_order = db.query(func.max(models.Reminder.sort_order)).filter(
+            models.Reminder.user_id == user.id,
+            models.Reminder.list_id == list_id
+        ).scalar() or 0
         
         reminder = models.Reminder(
             user_id=user.id,
+            list_id=list_id,
+            parent_id=parent_id,
             title=title,
             description=description,
-            reminder_date=parsed_date,  # Store as user's local time (no conversion!)
+            notes=notes,
+            url=url,
+            reminder_date=parsed_reminder_date,
+            due_date=parsed_due_date,
             reminder_type=reminder_type,
             priority=priority,
             color=color,
-            notify_before_minutes=notify_before_minutes
+            is_flagged=is_flagged,
+            notify_before_minutes=notify_before_minutes,
+            recurring=recurring,
+            recurring_interval=recurring_interval,
+            recurring_end_date=parsed_recurring_end,
+            location=location,
+            tags=tags,
+            sort_order=max_order + 1
         )
         
         db.add(reminder)
         db.commit()
         db.refresh(reminder)
         
-        logger.info(f"📅 Created reminder {reminder.id} for user {user.email} at {local_time_display}")
+        # Don't create immediate notification - let the reminder notification system handle it
+        # when the time comes (notify_before_minutes before the reminder_date)
         
-        # Create an immediate notification for the reminder
-        notification = models.Notification(
-            user_id=user.id,
-            title=f"📅 Reminder Set: {title}",
-            message=f"You'll be notified {notify_before_minutes} minutes before: {local_time_display}",
-            notification_type='calendar_event'
-        )
-        db.add(notification)
-        db.commit()
-        logger.info(f"📅 Created notification for reminder {reminder.id}")
+        logger.info(f"Created reminder {reminder.id} for user {user.email}")
         
-        return {
-            "id": reminder.id,
-            "title": reminder.title,
-            "description": reminder.description,
-            "reminder_date": reminder.reminder_date.isoformat() + 'Z',
-            "reminder_type": reminder.reminder_type,
-            "priority": reminder.priority,
-            "color": reminder.color,
-            "is_completed": reminder.is_completed,
-            "notify_before_minutes": reminder.notify_before_minutes,
-            "created_at": reminder.created_at.isoformat() + 'Z'
-        }
+        return serialize_reminder(reminder)
     except Exception as e:
         logger.error(f"Error creating reminder: {str(e)}")
         db.rollback()
@@ -12135,38 +12652,69 @@ async def create_reminder(
 @app.get("/api/get_reminders")
 async def get_reminders(
     user_id: str = Query(...),
+    list_id: int = Query(None),
+    smart_list: str = Query(None),  # today, scheduled, flagged, all, completed
     start_date: str = Query(None),
     end_date: str = Query(None),
+    include_completed: bool = Query(False),
     db: Session = Depends(get_db)
 ):
-    """Get all reminders for a user, optionally filtered by date range"""
+    """Get reminders with smart list filtering"""
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        query = db.query(models.Reminder).filter(models.Reminder.user_id == user.id)
+        query = db.query(models.Reminder).filter(
+            models.Reminder.user_id == user.id,
+            models.Reminder.parent_id == None  # Only top-level reminders
+        )
         
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        tomorrow = today + timedelta(days=1)
+        
+        # Smart list filtering
+        if smart_list == "today":
+            query = query.filter(
+                models.Reminder.is_completed == False,
+                models.Reminder.reminder_date >= today,
+                models.Reminder.reminder_date < tomorrow
+            )
+        elif smart_list == "scheduled":
+            query = query.filter(
+                models.Reminder.is_completed == False,
+                models.Reminder.reminder_date != None
+            )
+        elif smart_list == "flagged":
+            query = query.filter(
+                models.Reminder.is_completed == False,
+                models.Reminder.is_flagged == True
+            )
+        elif smart_list == "all":
+            query = query.filter(models.Reminder.is_completed == False)
+        elif smart_list == "completed":
+            query = query.filter(models.Reminder.is_completed == True)
+        elif list_id:
+            query = query.filter(models.Reminder.list_id == list_id)
+            if not include_completed:
+                query = query.filter(models.Reminder.is_completed == False)
+        else:
+            if not include_completed:
+                query = query.filter(models.Reminder.is_completed == False)
+        
+        # Date range filtering
         if start_date:
-            query = query.filter(models.Reminder.reminder_date >= datetime.fromisoformat(start_date.replace('Z', '+00:00')))
+            query = query.filter(models.Reminder.reminder_date >= datetime.fromisoformat(start_date.replace('Z', '').replace('+00:00', '')))
         if end_date:
-            query = query.filter(models.Reminder.reminder_date <= datetime.fromisoformat(end_date.replace('Z', '+00:00')))
+            query = query.filter(models.Reminder.reminder_date <= datetime.fromisoformat(end_date.replace('Z', '').replace('+00:00', '')))
         
-        reminders = query.order_by(models.Reminder.reminder_date).all()
+        reminders = query.order_by(
+            models.Reminder.is_completed,
+            models.Reminder.reminder_date.nullslast(),
+            models.Reminder.sort_order
+        ).all()
         
-        return [{
-            "id": r.id,
-            "title": r.title,
-            "description": r.description,
-            "reminder_date": r.reminder_date.isoformat() + 'Z',
-            "reminder_type": r.reminder_type,
-            "priority": r.priority,
-            "color": r.color,
-            "is_completed": r.is_completed,
-            "is_notified": r.is_notified,
-            "notify_before_minutes": r.notify_before_minutes,
-            "created_at": r.created_at.isoformat() + 'Z'
-        } for r in reminders]
+        return [serialize_reminder(r) for r in reminders]
     except Exception as e:
         logger.error(f"Error getting reminders: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -12176,15 +12724,25 @@ async def update_reminder(
     reminder_id: int,
     title: str = Form(None),
     description: str = Form(None),
+    notes: str = Form(None),
+    url: str = Form(None),
     reminder_date: str = Form(None),
+    due_date: str = Form(None),
     reminder_type: str = Form(None),
     priority: str = Form(None),
     color: str = Form(None),
     is_completed: bool = Form(None),
+    is_flagged: bool = Form(None),
     notify_before_minutes: int = Form(None),
+    list_id: int = Form(None),
+    recurring: str = Form(None),
+    recurring_interval: int = Form(None),
+    recurring_end_date: str = Form(None),
+    location: str = Form(None),
+    tags: str = Form(None),
     db: Session = Depends(get_db)
 ):
-    """Update a reminder"""
+    """Update a reminder with all Apple Reminders features"""
     try:
         reminder = db.query(models.Reminder).filter(models.Reminder.id == reminder_id).first()
         if not reminder:
@@ -12194,8 +12752,20 @@ async def update_reminder(
             reminder.title = title
         if description is not None:
             reminder.description = description
+        if notes is not None:
+            reminder.notes = notes
+        if url is not None:
+            reminder.url = url
         if reminder_date is not None:
-            reminder.reminder_date = datetime.fromisoformat(reminder_date.replace('Z', '+00:00'))
+            if reminder_date == '':
+                reminder.reminder_date = None
+            else:
+                reminder.reminder_date = datetime.fromisoformat(reminder_date.replace('Z', '').replace('+00:00', ''))
+        if due_date is not None:
+            if due_date == '':
+                reminder.due_date = None
+            else:
+                reminder.due_date = datetime.fromisoformat(due_date.replace('Z', '').replace('+00:00', ''))
         if reminder_type is not None:
             reminder.reminder_type = reminder_type
         if priority is not None:
@@ -12204,24 +12774,99 @@ async def update_reminder(
             reminder.color = color
         if is_completed is not None:
             reminder.is_completed = is_completed
+            if is_completed:
+                reminder.completed_at = datetime.utcnow()
+                # Handle recurring reminders
+                if reminder.recurring != "none" and reminder.recurring:
+                    await create_next_recurring_reminder(db, reminder)
+            else:
+                reminder.completed_at = None
+        if is_flagged is not None:
+            reminder.is_flagged = is_flagged
         if notify_before_minutes is not None:
             reminder.notify_before_minutes = notify_before_minutes
+        if list_id is not None:
+            reminder.list_id = list_id if list_id > 0 else None
+        if recurring is not None:
+            reminder.recurring = recurring
+        if recurring_interval is not None:
+            reminder.recurring_interval = recurring_interval
+        if recurring_end_date is not None:
+            if recurring_end_date == '':
+                reminder.recurring_end_date = None
+            else:
+                reminder.recurring_end_date = datetime.fromisoformat(recurring_end_date.replace('Z', '').replace('+00:00', ''))
+        if location is not None:
+            reminder.location = location
+        if tags is not None:
+            reminder.tags = tags
         
         reminder.updated_at = datetime.utcnow()
         db.commit()
         
-        return {"status": "success", "message": "Reminder updated"}
+        return {"status": "success", "message": "Reminder updated", "reminder": serialize_reminder(reminder)}
     except Exception as e:
         logger.error(f"Error updating reminder: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+async def create_next_recurring_reminder(db: Session, original: models.Reminder):
+    """Create the next occurrence of a recurring reminder"""
+    if not original.reminder_date or original.recurring == "none":
+        return
+    
+    next_date = original.reminder_date
+    interval = original.recurring_interval or 1
+    
+    if original.recurring == "daily":
+        next_date += timedelta(days=interval)
+    elif original.recurring == "weekly":
+        next_date += timedelta(weeks=interval)
+    elif original.recurring == "monthly":
+        # Add months
+        month = next_date.month + interval
+        year = next_date.year + (month - 1) // 12
+        month = ((month - 1) % 12) + 1
+        day = min(next_date.day, [31, 29 if year % 4 == 0 else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1])
+        next_date = next_date.replace(year=year, month=month, day=day)
+    elif original.recurring == "yearly":
+        next_date = next_date.replace(year=next_date.year + interval)
+    
+    # Check if past end date
+    if original.recurring_end_date and next_date > original.recurring_end_date:
+        return
+    
+    # Create new reminder
+    new_reminder = models.Reminder(
+        user_id=original.user_id,
+        list_id=original.list_id,
+        title=original.title,
+        description=original.description,
+        notes=original.notes,
+        url=original.url,
+        reminder_date=next_date,
+        due_date=original.due_date,
+        reminder_type=original.reminder_type,
+        priority=original.priority,
+        color=original.color,
+        is_flagged=original.is_flagged,
+        notify_before_minutes=original.notify_before_minutes,
+        recurring=original.recurring,
+        recurring_interval=original.recurring_interval,
+        recurring_end_date=original.recurring_end_date,
+        location=original.location,
+        tags=original.tags
+    )
+    
+    db.add(new_reminder)
+    db.commit()
 
 @app.delete("/api/delete_reminder/{reminder_id}")
 async def delete_reminder(
     reminder_id: int,
     db: Session = Depends(get_db)
 ):
-    """Delete a reminder"""
+    """Delete a reminder and its subtasks"""
     try:
         reminder = db.query(models.Reminder).filter(models.Reminder.id == reminder_id).first()
         if not reminder:
@@ -12233,6 +12878,57 @@ async def delete_reminder(
         return {"status": "success", "message": "Reminder deleted"}
     except Exception as e:
         logger.error(f"Error deleting reminder: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/add_subtask/{reminder_id}")
+async def add_subtask(
+    reminder_id: int,
+    title: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """Add a subtask to a reminder"""
+    try:
+        parent = db.query(models.Reminder).filter(models.Reminder.id == reminder_id).first()
+        if not parent:
+            raise HTTPException(status_code=404, detail="Parent reminder not found")
+        
+        subtask = models.Reminder(
+            user_id=parent.user_id,
+            parent_id=reminder_id,
+            list_id=parent.list_id,
+            title=title,
+            color=parent.color
+        )
+        
+        db.add(subtask)
+        db.commit()
+        db.refresh(subtask)
+        
+        return serialize_reminder(subtask)
+    except Exception as e:
+        logger.error(f"Error adding subtask: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/toggle_reminder_flag/{reminder_id}")
+async def toggle_reminder_flag(
+    reminder_id: int,
+    db: Session = Depends(get_db)
+):
+    """Toggle the flagged status of a reminder"""
+    try:
+        reminder = db.query(models.Reminder).filter(models.Reminder.id == reminder_id).first()
+        if not reminder:
+            raise HTTPException(status_code=404, detail="Reminder not found")
+        
+        reminder.is_flagged = not reminder.is_flagged
+        reminder.updated_at = datetime.utcnow()
+        db.commit()
+        
+        return {"status": "success", "is_flagged": reminder.is_flagged}
+    except Exception as e:
+        logger.error(f"Error toggling flag: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -12248,7 +12944,7 @@ async def get_upcoming_reminders(
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        now = datetime.utcnow()
+        now = datetime.now()
         future = now + timedelta(hours=hours)
         
         reminders = db.query(models.Reminder).filter(
@@ -12260,18 +12956,31 @@ async def get_upcoming_reminders(
             )
         ).order_by(models.Reminder.reminder_date).all()
         
-        return [{
-            "id": r.id,
-            "title": r.title,
-            "description": r.description,
-            "reminder_date": r.reminder_date.isoformat() + 'Z',
-            "reminder_type": r.reminder_type,
-            "priority": r.priority,
-            "color": r.color,
-            "time_until": str(r.reminder_date - now)
-        } for r in reminders]
+        return [serialize_reminder(r) for r in reminders]
     except Exception as e:
         logger.error(f"Error getting upcoming reminders: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/search_reminders")
+async def search_reminders(
+    user_id: str = Query(...),
+    query: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Search reminders by title or description"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        reminders = db.query(models.Reminder).filter(
+            models.Reminder.user_id == user.id,
+            (models.Reminder.title.ilike(f"%{query}%") | models.Reminder.description.ilike(f"%{query}%"))
+        ).order_by(models.Reminder.reminder_date.nullslast()).all()
+        
+        return [serialize_reminder(r) for r in reminders]
+    except Exception as e:
+        logger.error(f"Error searching reminders: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

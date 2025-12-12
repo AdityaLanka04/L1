@@ -3,7 +3,7 @@ from sqlalchemy import (
     Boolean, Float, JSON, Date, func  # ✅ ADD func here
 )
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker
+from sqlalchemy.orm import relationship, sessionmaker, backref
 from datetime import datetime, timezone
 from typing import Optional, List
 from pydantic import BaseModel
@@ -1434,28 +1434,75 @@ class Notification(Base):
     
     user = relationship("User")
 
-class Reminder(Base):
-    """Calendar reminders and events"""
-    __tablename__ = "reminders"
+class ReminderList(Base):
+    """Lists for organizing reminders (like Apple Reminders lists)"""
+    __tablename__ = "reminder_lists"
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     
-    title = Column(String(200), nullable=False)
-    description = Column(Text, nullable=True)
-    reminder_date = Column(DateTime, nullable=False)
-    reminder_type = Column(String(50), default="event")  # event, reminder, deadline, study_session
-    priority = Column(String(20), default="medium")  # low, medium, high, urgent
+    name = Column(String(100), nullable=False)
     color = Column(String(20), default="#3b82f6")
-    
-    is_completed = Column(Boolean, default=False)
-    is_notified = Column(Boolean, default=False)
-    notify_before_minutes = Column(Integer, default=15)  # Notify X minutes before
+    icon = Column(String(50), default="list")  # list, star, book, briefcase, home, etc.
+    is_smart_list = Column(Boolean, default=False)  # For Today, Scheduled, Flagged, All
+    smart_list_type = Column(String(50), nullable=True)  # today, scheduled, flagged, all, completed
+    sort_order = Column(Integer, default=0)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     user = relationship("User")
+    reminders = relationship("Reminder", back_populates="list", cascade="all, delete-orphan")
+
+
+class Reminder(Base):
+    """Calendar reminders and events - Apple Reminders style"""
+    __tablename__ = "reminders"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    list_id = Column(Integer, ForeignKey("reminder_lists.id"), nullable=True)
+    parent_id = Column(Integer, ForeignKey("reminders.id"), nullable=True)  # For subtasks
+    
+    title = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    notes = Column(Text, nullable=True)  # Additional notes
+    url = Column(String(500), nullable=True)  # Attached URL
+    
+    reminder_date = Column(DateTime, nullable=True)  # Can be null for undated reminders
+    due_date = Column(DateTime, nullable=True)  # Separate due date
+    reminder_type = Column(String(50), default="reminder")  # reminder, event, deadline, study_session
+    priority = Column(String(20), default="none")  # none, low, medium, high
+    color = Column(String(20), default="#3b82f6")
+    
+    is_completed = Column(Boolean, default=False)
+    completed_at = Column(DateTime, nullable=True)
+    is_flagged = Column(Boolean, default=False)  # Flagged/starred
+    is_notified = Column(Boolean, default=False)
+    notify_before_minutes = Column(Integer, default=15)
+    
+    # Recurring settings
+    recurring = Column(String(20), default="none")  # none, daily, weekly, monthly, yearly, custom
+    recurring_interval = Column(Integer, default=1)  # Every X days/weeks/months
+    recurring_end_date = Column(DateTime, nullable=True)
+    recurring_days = Column(String(50), nullable=True)  # JSON array for custom days [0,1,2,3,4,5,6]
+    
+    # Location-based (optional)
+    location = Column(String(200), nullable=True)
+    location_reminder = Column(Boolean, default=False)
+    
+    # Tags
+    tags = Column(Text, nullable=True)  # JSON array of tags
+    
+    # Sort order within list
+    sort_order = Column(Integer, default=0)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User")
+    list = relationship("ReminderList", back_populates="reminders")
+    subtasks = relationship("Reminder", backref=backref("parent", remote_side=[id]), cascade="all, delete-orphan")
 
 class ConceptNode(Base):
     """Concept nodes for knowledge graph"""

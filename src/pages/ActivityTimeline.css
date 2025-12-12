@@ -1847,3 +1847,715 @@
   border-color: var(--accent);
   color: white;
 }
+
+
+/* ==================== REMINDERS TAB STYLES (Apple Reminders Style) ==================== */
+
+.tab-badge {
+  background: var(--accent);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+.reminders-container {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  min-height: calc(100vh - 250px);
+}
+
+/* Sidebar */
+.reminders-sidebar {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  height: fit-content;
+  position: sticky;
+  top: 24px;
+}
+
+.sidebar-section {
+  margin-bottom: 24px;
+}
+
+.sidebar-section:last-child {
+  margin-bottom: 0;
+}
+
+.sidebar-section h4 {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 12px 0;
+  padding: 0 8px;
+}
+
+.sidebar-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 0 8px;
+}
+
+.sidebar-section-header h4 {
+  margin: 0;
+}
+
+.add-list-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.add-list-btn:hover {
+  background: var(--hover-bg);
+  color: var(--accent);
+}
+
+/* Smart Lists */
+.smart-lists {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.smart-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  text-align: left;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.smart-list-item:hover {
+  background: var(--hover-bg);
+}
+
+.smart-list-item.active {
+  background: var(--accent);
+  color: white;
+}
+
+.smart-list-item.active .smart-list-count {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.smart-list-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.smart-list-icon.today { background: #3b82f6; }
+.smart-list-icon.scheduled { background: #ef4444; }
+.smart-list-icon.flagged { background: #f59e0b; }
+.smart-list-icon.all { background: #6b7280; }
+.smart-list-icon.completed { background: #10b981; }
+
+.smart-list-item span:not(.smart-list-count) {
+  flex: 1;
+}
+
+.smart-list-count {
+  background: var(--hover-bg);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  min-width: 24px;
+  text-align: center;
+}
+
+/* User Lists */
+.user-lists {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  text-align: left;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.user-list-item:hover {
+  background: var(--hover-bg);
+}
+
+.user-list-item.active {
+  background: var(--hover-bg);
+  border: 1px solid var(--accent);
+}
+
+.user-list-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.user-list-item span:not(.user-list-count) {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-list-count {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.delete-list-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: all 0.2s;
+}
+
+.user-list-item:hover .delete-list-btn {
+  opacity: 1;
+}
+
+.delete-list-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+/* Main Reminders Content */
+.reminders-main {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  min-height: 500px;
+}
+
+.reminders-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.reminders-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.reminders-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  min-width: 200px;
+}
+
+.search-box input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+}
+
+.search-box svg {
+  color: var(--text-secondary);
+}
+
+.add-reminder-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-reminder-btn:hover {
+  background: color-mix(in srgb, var(--accent) 85%, white);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Empty State */
+.empty-reminders {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+
+.empty-reminders svg {
+  opacity: 0.3;
+  margin-bottom: 16px;
+}
+
+.empty-reminders h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  color: var(--text-primary);
+}
+
+.empty-reminders p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Reminder Items */
+.reminders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reminder-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: all 0.2s;
+}
+
+.reminder-item:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.reminder-item.completed {
+  opacity: 0.6;
+}
+
+.reminder-item.flagged {
+  border-left: 3px solid #f59e0b;
+}
+
+.reminder-checkbox {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 2px;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.reminder-checkbox:hover {
+  transform: scale(1.1);
+}
+
+.reminder-checkbox .checked {
+  color: var(--accent);
+}
+
+.reminder-content {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.reminder-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.reminder-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.reminder-title.completed {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+
+.priority-indicator {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.reminder-description {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.reminder-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.reminder-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.reminder-list-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* Subtasks */
+.subtasks-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.subtasks-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.subtasks-toggle:hover {
+  color: var(--accent);
+}
+
+.subtasks-list {
+  margin-top: 8px;
+  padding-left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.subtask-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.subtask-item.completed span {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+}
+
+.subtask-checkbox {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: var(--text-secondary);
+}
+
+.subtask-checkbox .checked {
+  color: var(--accent);
+}
+
+/* Reminder Actions */
+.reminder-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.reminder-item:hover .reminder-actions {
+  opacity: 1;
+}
+
+.flag-btn,
+.delete-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.flag-btn:hover {
+  background: #fef3c7;
+  color: #f59e0b;
+}
+
+.flag-btn.flagged {
+  color: #f59e0b;
+}
+
+.delete-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+/* List Modal Styles */
+.list-modal {
+  max-width: 400px;
+}
+
+.color-picker-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.color-option {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.color-option:hover {
+  transform: scale(1.1);
+}
+
+.color-option.selected {
+  border-color: var(--text-primary);
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+.custom-color {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px dashed var(--border);
+  cursor: pointer;
+  padding: 0;
+}
+
+.icon-picker-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.icon-option {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 2px solid var(--border);
+  background: var(--bg);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+
+.icon-option:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.icon-option.selected {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+/* Flag Toggle */
+.flag-toggle {
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 8px;
+}
+
+.flag-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.flag-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .reminders-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .reminders-sidebar {
+    position: static;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  
+  .sidebar-section {
+    margin-bottom: 0;
+  }
+  
+  .smart-lists,
+  .user-lists {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+  }
+  
+  .smart-list-item,
+  .user-list-item {
+    flex-direction: column;
+    text-align: center;
+    padding: 12px;
+  }
+  
+  .smart-list-item span:not(.smart-list-count),
+  .user-list-item span:not(.user-list-count) {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 600px) {
+  .reminders-sidebar {
+    grid-template-columns: 1fr;
+  }
+  
+  .reminders-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .reminders-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+  
+  .search-box {
+    width: 100%;
+  }
+  
+  .add-reminder-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .reminder-item {
+    flex-wrap: wrap;
+  }
+  
+  .reminder-actions {
+    opacity: 1;
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+}
+
+/* Enhanced Form Styles */
+.form-group label svg {
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.reminder-form .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 500px) {
+  .reminder-form .form-row {
+    grid-template-columns: 1fr;
+  }
+}
