@@ -232,6 +232,11 @@ const Dashboard = () => {
       console.log('🔔 Fresh login detected');
       sessionStorage.removeItem('justLoggedIn');
       sessionStorage.setItem('notificationShown', 'true');
+      
+      // Trigger AI work notification on fresh login
+      setTimeout(() => {
+        checkProactiveAIMessage(true); // true = is_login
+      }, 3000); // Wait 3 seconds after login
     }
     
     // Poll for daily goal updates every 10 seconds
@@ -517,6 +522,35 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error('Error checking reminder notifications:', error);
+    }
+  };
+
+  // Check for proactive AI messages (work notifications on login)
+  const checkProactiveAIMessage = async (isLogin = false) => {
+    if (!userName) return;
+    try {
+      const token = localStorage.getItem('token');
+      
+      console.log('🤖 Checking for proactive AI message, isLogin:', isLogin);
+      
+      const response = await fetch(`${API_URL}/check_proactive_message?user_id=${userName}&is_login=${isLogin}&is_idle=false`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('🤖 Proactive AI result:', data);
+        
+        if (data.should_notify && data.message) {
+          console.log('🤖 AI work notification created:', data.message);
+          // Reload notifications to show the new AI notification
+          setTimeout(() => {
+            loadNotifications(true);
+          }, 1000);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking proactive AI message:', error);
     }
   };
 

@@ -730,6 +730,72 @@ async def fix_database_sequences():
     except Exception as e:
         logger.error(f"❌ Sequence fix failed: {str(e)}")
 
+@app.get("/api/fix-reminder-timezones")
+async def fix_reminder_timezones(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """
+    Fix existing reminders that were stored as UTC time.
+    This converts early morning times (likely UTC) to reasonable local times.
+    """
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get user's reminders with dates
+        reminders = db.query(models.Reminder).filter(
+            models.Reminder.user_id == user.id,
+            models.Reminder.reminder_date != None
+        ).all()
+        
+        fixed_reminders = []
+        
+        for reminder in reminders:
+            if not reminder.reminder_date:
+                continue
+                
+            original_time = reminder.reminder_date
+            hour = original_time.hour
+            
+            # If it's between midnight and 6 AM, it might be a UTC time
+            # that was meant to be a reasonable local time
+            if 0 <= hour <= 6:
+                # For very early times like 3:05 AM, assume it should be 9:05 AM
+                if hour <= 3:
+                    adjusted_time = original_time + timedelta(hours=6)
+                # For 4-6 AM, assume it should be 9-11 AM  
+                else:
+                    adjusted_time = original_time + timedelta(hours=5)
+                
+                fixed_reminders.append({
+                    "id": reminder.id,
+                    "title": reminder.title,
+                    "original": original_time.strftime('%Y-%m-%d %H:%M'),
+                    "fixed": adjusted_time.strftime('%Y-%m-%d %H:%M')
+                })
+                
+                reminder.reminder_date = adjusted_time
+        
+        if fixed_reminders:
+            db.commit()
+            return {
+                "status": "success",
+                "message": f"Fixed {len(fixed_reminders)} reminders",
+                "fixed_reminders": fixed_reminders
+            }
+        else:
+            return {
+                "status": "success", 
+                "message": "No reminders needed fixing",
+                "fixed_reminders": []
+            }
+            
+    except Exception as e:
+        db.rollback()
+        return {
+            "status": "error",
+            "message": str(e)
+        }
+
 @app.get("/api/fix-sequences")
 async def fix_sequences_now(db: Session = Depends(get_db)):
     """
@@ -11185,7 +11251,8 @@ async def get_notifications(
         logger.info(f"Found user with id: {user.id}")
         
         # Check for upcoming reminders and create notifications
-        now = datetime.utcnow()
+        # Use local time since reminders are stored in local time
+        now = datetime.now()
         upcoming_reminders = db.query(models.Reminder).filter(
             models.Reminder.user_id == user.id,
             models.Reminder.is_completed == False,
@@ -11199,18 +11266,19 @@ async def get_notifications(
             
             # Create notification if within notify_before_minutes window
             if minutes_until <= reminder.notify_before_minutes:
-                # Check if notification already exists
+                # Check if notification already exists for this specific reminder
                 existing = db.query(models.Notification).filter(
                     models.Notification.user_id == user.id,
                     models.Notification.notification_type == 'reminder',
-                    models.Notification.title.contains(reminder.title)
+                    models.Notification.title.contains(f"Reminder: {reminder.title}"),
+                    models.Notification.created_at >= datetime.now() - timedelta(hours=1)  # Only check recent notifications
                 ).first()
                 
                 if not existing:
                     notification = models.Notification(
                         user_id=user.id,
                         title=f"Reminder: {reminder.title}",
-                        message=f"{reminder.description or 'Upcoming reminder'} at {reminder.reminder_date.isoformat() + 'Z'}",
+                        message=f"{reminder.description or 'Upcoming reminder'} at {reminder.reminder_date.isoformat()}",
                         notification_type='reminder'
                     )
                     db.add(notification)
@@ -11493,6 +11561,18 @@ async def check_reminder_notifications(
             is_in_notify_window = minutes_until <= notify_window_start and minutes_until >= -30
             
             if is_in_notify_window:
+                # Check if we already created a notification for this reminder recently
+                existing_notification = db.query(models.Notification).filter(
+                    models.Notification.user_id == user.id,
+                    models.Notification.notification_type == 'reminder',
+                    models.Notification.title.contains(reminder.title),
+                    models.Notification.created_at >= datetime.now() - timedelta(hours=1)
+                ).first()
+                
+                if existing_notification:
+                    logger.info(f"Skipping duplicate notification for: {reminder.title}")
+                    continue
+                
                 # Format the time for display (already in user's local time)
                 reminder_time = reminder.reminder_date.strftime('%I:%M %p')
                 reminder_date_str = reminder.reminder_date.strftime('%B %d, %Y at %I:%M %p')
@@ -12352,6 +12432,12 @@ async def delete_all_concepts(
 
 def serialize_reminder(r):
     """Helper to serialize a reminder object"""
+    # Debug logging for timezone issues (only log first few to avoid spam)
+    if r.reminder_date and r.id % 10 == 1:  # Only log every 10th reminder
+        logger.info(f"📤 SERIALIZING REMINDER: {r.title}")
+        logger.info(f"   Stored date: {r.reminder_date}")
+        logger.info(f"   Serialized as: {r.reminder_date.isoformat()} (no Z suffix = local time)")
+    
     return {
         "id": r.id,
         "list_id": r.list_id,
@@ -12360,8 +12446,8 @@ def serialize_reminder(r):
         "description": r.description,
         "notes": r.notes,
         "url": r.url,
-        "reminder_date": r.reminder_date.isoformat() + 'Z' if r.reminder_date else None,
-        "due_date": r.due_date.isoformat() + 'Z' if r.due_date else None,
+        "reminder_date": r.reminder_date.isoformat() if r.reminder_date else None,
+        "due_date": r.due_date.isoformat() if r.due_date else None,
         "reminder_type": r.reminder_type,
         "priority": r.priority,
         "color": r.color,
@@ -12372,7 +12458,7 @@ def serialize_reminder(r):
         "notify_before_minutes": r.notify_before_minutes,
         "recurring": r.recurring,
         "recurring_interval": r.recurring_interval,
-        "recurring_end_date": r.recurring_end_date.isoformat() + 'Z' if r.recurring_end_date else None,
+        "recurring_end_date": r.recurring_end_date.isoformat() if r.recurring_end_date else None,
         "location": r.location,
         "tags": json.loads(r.tags) if r.tags else [],
         "sort_order": r.sort_order,
@@ -12587,23 +12673,37 @@ async def create_reminder(
     timezone_offset: int = Form(0),
     db: Session = Depends(get_db)
 ):
-    """Create a new reminder with Apple Reminders-style features"""
+    """Create a new reminder with Apple Reminders-style features
+    
+    Note: Reminder dates are stored as naive datetime objects representing the user's local time.
+    This approach ensures that when a user sets a reminder for 9:35 AM, it triggers at 9:35 AM
+    in their local timezone, regardless of server timezone or daylight saving changes.
+    """
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # Parse dates
+        # Parse dates - treat as local time, not UTC
         parsed_reminder_date = None
         parsed_due_date = None
         parsed_recurring_end = None
         
         if reminder_date:
+            # Parse as naive datetime (local time) and store as-is
+            # The datetime-local input sends time in user's local timezone
             parsed_reminder_date = datetime.fromisoformat(reminder_date.replace('Z', '').replace('+00:00', ''))
+            logger.info(f"📅 REMINDER CREATION DEBUG:")
+            logger.info(f"   Raw input: {reminder_date}")
+            logger.info(f"   Parsed as: {parsed_reminder_date} (treated as local time)")
+            logger.info(f"   User timezone: {user_timezone}")
+            logger.info(f"   Timezone offset: {timezone_offset} minutes")
         if due_date:
             parsed_due_date = datetime.fromisoformat(due_date.replace('Z', '').replace('+00:00', ''))
+            logger.info(f"Parsed due_date: {parsed_due_date} (treated as local time)")
         if recurring_end_date:
             parsed_recurring_end = datetime.fromisoformat(recurring_end_date.replace('Z', '').replace('+00:00', ''))
+            logger.info(f"Parsed recurring_end_date: {parsed_recurring_end} (treated as local time)")
         
         # Get max sort order for the list
         max_order = db.query(func.max(models.Reminder.sort_order)).filter(

@@ -87,68 +87,10 @@ const ActivityTimeline = () => {
     }
   }, []);
 
-  // Check for upcoming reminders and show notifications
-  const checkUpcomingReminders = useCallback(() => {
-    const now = new Date();
-    reminders.forEach(reminder => {
-      if (reminder.is_completed || reminder.is_notified) return;
-      if (!reminder.reminder_date) return;
-      
-      const reminderTime = new Date(reminder.reminder_date);
-      const notifyTime = new Date(reminderTime.getTime() - (reminder.notify_before_minutes || 15) * 60000);
-      
-      if (now >= notifyTime && now < reminderTime) {
-        showBrowserNotification(reminder);
-        // Mark as notified in backend
-        markReminderNotified(reminder.id);
-      }
-    });
-  }, [reminders]);
+  // Reminder notifications are now handled by the Dashboard component
+  // to prevent duplicates. This component focuses on display only.
 
-  useEffect(() => {
-    // Check every minute
-    notificationCheckRef.current = setInterval(checkUpcomingReminders, 60000);
-    checkUpcomingReminders(); // Check immediately
-    
-    return () => {
-      if (notificationCheckRef.current) {
-        clearInterval(notificationCheckRef.current);
-      }
-    };
-  }, [checkUpcomingReminders]);
-
-  const showBrowserNotification = (reminder) => {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      const notification = new Notification(`${reminder.title}`, {
-        body: reminder.description || `Reminder in ${reminder.notify_before_minutes} minutes`,
-        icon: '/favicon.ico',
-        tag: `reminder-${reminder.id}`,
-        requireInteraction: true
-      });
-      
-      notification.onclick = () => {
-        window.focus();
-        setViewMode('reminders');
-        notification.close();
-      };
-    }
-  };
-
-  const markReminderNotified = async (reminderId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const formData = new FormData();
-      formData.append('is_notified', 'true');
-      
-      await fetch(`${API_URL}/update_reminder/${reminderId}`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
-      });
-    } catch (error) {
-      console.error('Error marking reminder as notified:', error);
-    }
-  };
+  // Browser notifications are now handled centrally by the Dashboard component
 
   useEffect(() => {
     loadAllActivities();
@@ -256,6 +198,10 @@ const ActivityTimeline = () => {
         }
       });
       
+      // Add timezone information for better time handling
+      formData.append('user_timezone', Intl.DateTimeFormat().resolvedOptions().timeZone);
+      formData.append('timezone_offset', new Date().getTimezoneOffset());
+      
       if (selectedListId && !reminderForm.list_id) {
         formData.append('list_id', selectedListId);
       }
@@ -274,6 +220,30 @@ const ActivityTimeline = () => {
       }
     } catch (error) {
       console.error('Error creating reminder:', error);
+    }
+  };
+
+  const fixReminderTimezones = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/fix-reminder-timezones?user_id=${userName}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        console.log('Timezone fix result:', data);
+        
+        if (data.fixed_reminders && data.fixed_reminders.length > 0) {
+          alert(`Fixed ${data.fixed_reminders.length} reminders with incorrect timezones!`);
+          await loadReminders(); // Reload to show updated times
+        } else {
+          alert('No reminders needed timezone fixing.');
+        }
+      }
+    } catch (error) {
+      console.error('Error fixing reminder timezones:', error);
+      alert('Error fixing reminder timezones. Please try again.');
     }
   };
 
@@ -774,6 +744,21 @@ const ActivityTimeline = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
+              <button 
+                className="fix-timezone-btn" 
+                onClick={fixReminderTimezones}
+                style={{ 
+                  background: '#f59e0b', 
+                  color: 'white', 
+                  marginRight: '8px',
+                  fontSize: '12px',
+                  padding: '6px 12px'
+                }}
+                title="Fix reminder times that show wrong due to timezone issues"
+              >
+                <Clock size={14} />
+                Fix Times
+              </button>
               <button className="add-reminder-btn" onClick={() => { resetReminderForm(); setShowReminderModal(true); }}>
                 <Plus size={16} />
                 New Reminder
