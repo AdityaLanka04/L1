@@ -1117,96 +1117,84 @@ const Dashboard = () => {
               <div className="widget-header">
                 <h3 className="widget-title">Weekly Activity</h3>
                 <div className="widget-header-right">
-                  {stats.streak > 0 && (
-                    <div className="streak-badge-header">
-                      <span className="streak-emoji">🔥</span>
-                      <span className="streak-value">{stats.streak}</span>
-                    </div>
-                  )}
                   <button className="analytics-btn" onClick={() => navigate('/analytics')}>
-                    Analytics →
+                    Analytics <span className="analytics-triangle">▶</span>
                   </button>
                 </div>
               </div>
               <div className="stats-line-container">
-                {weeklyProgress.some(v => v > 0) ? (
-                  <>
-                    <div className="line-chart-wrapper">
-                      <svg viewBox="0 0 280 120" className="stats-line-chart" preserveAspectRatio="none">
-                        {/* Grid lines */}
-                        <line x1="30" y1="100" x2="270" y2="100" stroke={textSecondary} strokeOpacity="0.2" />
-                        <line x1="30" y1="70" x2="270" y2="70" stroke={textSecondary} strokeOpacity="0.1" strokeDasharray="4" />
-                        <line x1="30" y1="40" x2="270" y2="40" stroke={textSecondary} strokeOpacity="0.1" strokeDasharray="4" />
-                        
-                        {/* Area fill */}
-                        <path
-                          d={`M 30 100 ${weeklyProgress.map((val, i) => {
-                            const x = 30 + (i * 40);
-                            const y = 100 - (val / maxWeeklyValue) * 70;
-                            return `L ${x} ${y}`;
-                          }).join(' ')} L ${30 + 6 * 40} 100 Z`}
-                          fill={`url(#areaGradient-${widget.id})`}
-                        />
-                        
-                        {/* Line */}
-                        <path
-                          d={`M ${weeklyProgress.map((val, i) => {
-                            const x = 30 + (i * 40);
-                            const y = 100 - (val / maxWeeklyValue) * 70;
-                            return `${i === 0 ? '' : 'L '}${x} ${y}`;
-                          }).join(' ')}`}
-                          fill="none"
-                          stroke={accent}
-                          strokeWidth="2"
-                        />
-                        
-                        {/* Data points */}
-                        {weeklyProgress.map((val, i) => {
+                <div className="stats-graph-section">
+                  <div className="line-chart-wrapper">
+                    <svg viewBox="0 0 280 120" className="stats-line-chart" preserveAspectRatio="xMidYMid meet">
+                      {/* Grid lines */}
+                      <line x1="30" y1="100" x2="270" y2="100" stroke={textSecondary} strokeOpacity="0.2" />
+                      <line x1="30" y1="70" x2="270" y2="70" stroke={textSecondary} strokeOpacity="0.1" strokeDasharray="4" />
+                      <line x1="30" y1="40" x2="270" y2="40" stroke={textSecondary} strokeOpacity="0.1" strokeDasharray="4" />
+                      
+                      {/* Area fill */}
+                      <path
+                        d={`M 30 100 ${weeklyProgress.map((val, i) => {
                           const x = 30 + (i * 40);
                           const y = 100 - (val / maxWeeklyValue) * 70;
-                          return (
-                            <circle key={i} cx={x} cy={y} r="4" fill={accent} stroke={bgTop} strokeWidth="2" />
-                          );
-                        })}
-                        
-                        {/* Gradient definition */}
-                        <defs>
-                          <linearGradient id={`areaGradient-${widget.id}`} x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={accent} stopOpacity="0.3" />
-                            <stop offset="100%" stopColor={accent} stopOpacity="0.05" />
-                          </linearGradient>
-                        </defs>
-                      </svg>
-                      <div className="line-chart-labels">
-                        {dayLabels.map((day, i) => (
-                          <span key={i} className="day-label">{day}</span>
-                        ))}
-                      </div>
+                          return `L ${x} ${y}`;
+                        }).join(' ')} L ${30 + 6 * 40} 100 Z`}
+                        fill={`url(#areaGradient-${widget.id})`}
+                      />
+                      
+                      {/* Line */}
+                      <path
+                        d={`M ${weeklyProgress.map((val, i) => {
+                          const x = 30 + (i * 40);
+                          const y = 100 - (val / maxWeeklyValue) * 70;
+                          return `${i === 0 ? '' : 'L '}${x} ${y}`;
+                        }).join(' ')}`}
+                        fill="none"
+                        stroke={accent}
+                        strokeWidth="2"
+                      />
+                      
+                      {/* Data points */}
+                      {weeklyProgress.map((val, i) => {
+                        const x = 30 + (i * 40);
+                        const y = 100 - (val / maxWeeklyValue) * 70;
+                        return (
+                          <circle key={i} cx={x} cy={y} r="4" fill={accent} stroke={bgTop} strokeWidth="2" />
+                        );
+                      })}
+                      
+                      {/* Gradient definition */}
+                      <defs>
+                        <linearGradient id={`areaGradient-${widget.id}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={accent} stopOpacity="0.3" />
+                          <stop offset="100%" stopColor={accent} stopOpacity="0.05" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                    <div className="line-chart-labels">
+                      {dayLabels.map((day, i) => (
+                        <span key={i} className="day-label">{day}</span>
+                      ))}
                     </div>
-                    <div className="stats-summary">
-                      <div className="stat-item">
-                        <span className="stat-value">{stats.totalQuestions}</span>
-                        <span className="stat-label">Questions</span>
-                      </div>
-                      <div className="stat-item">
-                        <span className="stat-value">{stats.totalFlashcards}</span>
-                        <span className="stat-label">Flashcards</span>
-                      </div>
-                      <div className="stat-item">
-                        <span className="stat-value">{stats.totalNotes}</span>
-                        <span className="stat-label">Notes</span>
-                      </div>
-                      <div className="stat-item">
-                        <span className="stat-value">{stats.totalChatSessions}</span>
-                        <span className="stat-label">AI Sessions</span>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="stats-empty">
-                    <p>Start learning to see your weekly progress!</p>
                   </div>
-                )}
+                </div>
+                <div className="stats-numbers-section">
+                  <div className="stat-item">
+                    <span className="stat-value">{stats.totalQuestions}</span>
+                    <span className="stat-label">Questions</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-value">{stats.totalFlashcards}</span>
+                    <span className="stat-label">Flashcards</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-value">{stats.totalNotes}</span>
+                    <span className="stat-label">Notes</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-value">{stats.totalChatSessions}</span>
+                    <span className="stat-label">AI Sessions</span>
+                  </div>
+                </div>
               </div>
             </div>
           );

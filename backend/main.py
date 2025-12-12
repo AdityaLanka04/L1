@@ -1443,6 +1443,12 @@ Current Question: {question}"""
             db.add(chat_message)
             db.commit()
             print(f"🔥 Message saved to database")
+            
+            try:
+                from gamification_system import award_points
+                award_points(db, user.id, "ai_chat")
+            except Exception as gam_error:
+                logger.warning(f"Failed to award AI chat points: {gam_error}")
         
         return {
             "answer": response,
@@ -1666,6 +1672,12 @@ Current Question: {question}"""
             db.add(chat_message)
             db.commit()
             print(f"🔥 Message saved to database")
+            
+            try:
+                from gamification_system import award_points
+                award_points(db, user.id, "ai_chat")
+            except Exception as gam_error:
+                logger.warning(f"Failed to award AI chat points: {gam_error}")
         
         return {
             "answer": response,
@@ -2051,6 +2063,12 @@ def save_chat_message(message_data: ChatMessageSave, db: Session = Depends(get_d
         words = message_data.user_message.strip().split()
         new_title = " ".join(words[:4]) + ("..." if len(words) > 4 else "")
         chat_session.title = new_title[:50] if new_title else "New Chat"
+    
+    try:
+        from gamification_system import award_points
+        award_points(db, chat_session.user_id, "ai_chat")
+    except Exception as gam_error:
+        logger.warning(f"Failed to award AI chat points: {gam_error}")
     
     db.commit()
     return {"status": "success", "message": "Message saved successfully"}
@@ -4731,33 +4749,17 @@ def get_enhanced_user_stats(user_id: str = Query(...), db: Session = Depends(get
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        total_questions = db.query(models.Activity).filter(
-            models.Activity.user_id == user.id
-        ).count()
+        from gamification_system import get_user_stats as get_gamification_stats
+        gamification_stats = get_gamification_stats(db, user.id)
         
-        total_sessions = db.query(models.DailyLearningMetrics.sessions_completed).filter(
-            models.DailyLearningMetrics.user_id == user.id
-        ).all()
-        total_sessions_count = sum(s[0] for s in total_sessions) if total_sessions else 0
+        total_questions = gamification_stats.get("total_questions_answered", 0)
+        total_ai_chats = gamification_stats.get("total_ai_chats", 0)
+        total_notes = gamification_stats.get("total_notes_created", 0)
+        total_flashcards = gamification_stats.get("total_flashcards_created", 0)
+        total_quizzes = gamification_stats.get("total_quizzes_completed", 0)
+        total_study_minutes = gamification_stats.get("total_study_minutes", 0)
         
-        total_time = db.query(models.DailyLearningMetrics.time_spent_minutes).filter(
-            models.DailyLearningMetrics.user_id == user.id
-        ).all()
-        total_minutes = sum(t[0] for t in total_time) if total_time else 0
-        
-        total_flashcards = db.query(models.Flashcard).join(models.FlashcardSet).filter(
-            models.FlashcardSet.user_id == user.id
-        ).count()
-        
-        total_notes = db.query(models.Note).filter(
-            models.Note.user_id == user.id
-        ).count()
-        
-        total_chat_sessions = db.query(models.ChatSession).filter(
-            models.ChatSession.user_id == user.id
-        ).count()
-        
-        streak = calculate_day_streak(db, user.id)
+        streak = gamification_stats.get("current_streak", 0)
         
         user_stats = db.query(models.UserStats).filter(
             models.UserStats.user_id == user.id
@@ -4765,20 +4767,19 @@ def get_enhanced_user_stats(user_id: str = Query(...), db: Session = Depends(get
         
         if user_stats:
             user_stats.day_streak = streak
-            user_stats.total_lessons = total_sessions_count
-            user_stats.total_hours = total_minutes / 60
+            user_stats.total_hours = total_study_minutes / 60
             db.commit()
         
         return {
             "streak": streak,
-            "lessons": total_sessions_count,
-            "hours": round(total_minutes / 60, 1),
-            "minutes": total_minutes,
+            "lessons": total_quizzes,
+            "hours": round(total_study_minutes / 60, 1),
+            "minutes": total_study_minutes,
             "accuracy": user_stats.accuracy_percentage if user_stats else 0,
             "totalQuestions": total_questions,
             "totalFlashcards": total_flashcards,
             "totalNotes": total_notes,
-            "totalChatSessions": total_chat_sessions,
+            "totalChatSessions": total_ai_chats,
             "total_time_today": 0
         }
         
@@ -4799,16 +4800,16 @@ def get_activity_heatmap(user_id: str = Query(...), db: Session = Depends(get_db
         end_date = datetime.now(timezone.utc).date()
         start_date = end_date - timedelta(days=365)
         
-        activities = db.query(models.Activity).filter(
-            models.Activity.user_id == user.id,
-            models.Activity.timestamp >= start_date
+        transactions = db.query(models.PointTransaction).filter(
+            models.PointTransaction.user_id == user.id,
+            models.PointTransaction.created_at >= datetime.combine(start_date, datetime.min.time()).replace(tzinfo=timezone.utc)
         ).all()
         
-        logger.info(f"📊 Found {len(activities)} activities for user {user.id}")
+        logger.info(f"Found {len(transactions)} point transactions for user {user.id}")
         
         activity_dict = {}
-        for activity in activities:
-            date_str = activity.timestamp.date().isoformat()
+        for tx in transactions:
+            date_str = tx.created_at.date().isoformat()
             activity_dict[date_str] = activity_dict.get(date_str, 0) + 1
         
         current_date = start_date

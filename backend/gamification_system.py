@@ -359,6 +359,7 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
         activity_metadata=str(metadata) if metadata else None
     )
     db.add(transaction)
+    db.commit()
     
     return {
         "points_earned": points_earned,
@@ -391,6 +392,7 @@ def get_user_stats(db: Session, user_id: int):
         "xp_to_next_level": xp_to_next_level,
         "next_level_xp": next_level_xp,
         "rank": rank,
+        "global_rank": rank,
         "current_streak": stats.current_streak,
         "longest_streak": stats.longest_streak,
         # Weekly stats

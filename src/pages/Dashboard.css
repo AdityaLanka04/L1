@@ -597,7 +597,10 @@ body {
   display: flex; 
   flex-direction: column; 
   height: 100%; 
-  justify-content: flex-start; 
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  padding: 20px 0;
 }
 .dashboard-page .card-header {
   display: flex; justify-content: flex-start; align-items: center;
@@ -627,11 +630,10 @@ body {
 }
 
 .dashboard-page .ai-visual-section { 
-  flex: 1; 
+  flex: 0 0 auto; 
   display: flex; 
   align-items: center; 
   justify-content: center; 
-  margin: 15px 0; 
 }
 .dashboard-page .ai-action-section { margin: 15px 0; }
 
@@ -716,6 +718,69 @@ body {
   font-size: 12px; line-height: 1.6; color: var(--text-secondary); text-align: center; margin-top: auto;
   letter-spacing: .3px;
   font-weight: 500;
+}
+
+/* AI Stats Row - Dashboard Page */
+.dashboard-page .ai-stats-row {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin: 20px 0;
+}
+
+.dashboard-page .ai-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.dashboard-page .ai-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.dashboard-page .ai-stat-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Start Session Button */
+.dashboard-page .start-session-btn {
+  width: calc(100% - 40px);
+  max-width: 400px;
+  background: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 60%, white);
+  color: #000;
+  padding: 16px 24px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  margin: 10px 20px 0 20px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.dashboard-page .start-session-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 90%, white);
+  border-color: color-mix(in srgb, var(--accent) 80%, white);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), 0 0 30px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.dashboard-page .start-session-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* ----------------------------------------------------
@@ -4135,10 +4200,17 @@ body {
 .dashboard-page .stats-line-container {
   flex: 1;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   padding: 10px 15px;
-  gap: 15px;
+  gap: 20px;
   overflow: hidden;
+}
+
+.dashboard-page .stats-graph-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .dashboard-page .line-chart-wrapper {
@@ -4150,7 +4222,9 @@ body {
 
 .dashboard-page .stats-line-chart {
   width: 100%;
-  height: 100px;
+  height: auto;
+  min-height: 100px;
+  max-height: 120px;
   flex-shrink: 0;
 }
 
@@ -4167,11 +4241,51 @@ body {
   letter-spacing: 0.5px;
 }
 
-.dashboard-page .stats-summary {
+.dashboard-page .stats-numbers-section {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  justify-content: center;
   gap: 8px;
-  padding-top: 10px;
+  min-width: 80px;
+  padding-left: 15px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dashboard-page .stats-numbers-section .stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+}
+
+.dashboard-page .stats-numbers-section .stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.dashboard-page .stats-numbers-section .stat-label {
+  font-size: 8px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  text-align: center;
+}
+
+/* Analytics button triangle */
+.dashboard-page .analytics-triangle {
+  font-size: 8px;
+  margin-left: 4px;
+}
+
+.dashboard-page .stats-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding-top: 20px;
+  margin-top: auto;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -4179,14 +4293,15 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  flex: 1;
+  gap: 4px;
+  padding: 8px 4px;
 }
 
 .dashboard-page .stats-summary .stat-value {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--accent);
+  line-height: 1;
 }
 
 .dashboard-page .stats-summary .stat-label {
@@ -4194,6 +4309,7 @@ body {
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  text-align: center;
 }
 
 .dashboard-page .streak-badge-header {

@@ -302,7 +302,10 @@ const Analytics = () => {
 
           <div className="chart-area">
             {chartData.length === 0 ? (
-              <div className="chart-empty">No data available for this period</div>
+              <div className="chart-empty">
+                <BarChart3 size={48} style={{ opacity: 0.3 }} />
+                No activity data yet. Start learning to see your progress!
+              </div>
             ) : chartType === 'bar' ? (
               <div className="bar-chart">
                 <div className="y-axis">
