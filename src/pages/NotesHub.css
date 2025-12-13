@@ -187,9 +187,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, 
-    color-mix(in srgb, var(--accent) 20%, var(--panel)) 0%, 
-    color-mix(in srgb, var(--accent) 30%, var(--panel)) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, white) 100%);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -200,9 +198,26 @@
 
 .back-to-dashboard:hover {
   border-color: var(--accent);
-  color: var(--accent);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(215, 179, 140, 0.25), 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Light mode: hover text should be BLACK on accent background */
+[data-theme-mode="light"] .back-to-dashboard:hover {
+  color: #000000 !important;
+}
+
+[data-theme-mode="light"] .back-to-dashboard:hover svg {
+  color: #000000 !important;
+}
+
+/* Dark mode: hover text should be WHITE on accent background */
+[data-theme-mode="dark"] .back-to-dashboard:hover {
+  color: #ffffff !important;
+}
+
+[data-theme-mode="dark"] .back-to-dashboard:hover svg {
+  color: #ffffff !important;
 }
 
 .split-container {

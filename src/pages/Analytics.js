@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ArrowLeft, TrendingUp, Download,
+  ChevronLeft, TrendingUp, Download,
   BarChart3, Activity, Zap, BookOpen, MessageSquare,
   Trophy, Target, Flame, Clock, Brain, Swords, Calendar
 } from 'lucide-react';
@@ -190,7 +190,7 @@ const Analytics = () => {
           </div>
           <div className="header-right">
             <button className="back-btn" onClick={() => navigate('/dashboard')} title="Back to Dashboard">
-              <ArrowLeft size={20} />
+              <ChevronLeft size={20} />
             </button>
             <button className="export-btn" onClick={exportData}>
               <Download size={16} />

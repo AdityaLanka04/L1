@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Upload, Youtube, FileText, Mic, Video, BookOpen, Edit3, User, Zap
+  Upload, Youtube, FileText, Mic, Video, BookOpen, Edit3, User, Zap, ChevronLeft
 } from 'lucide-react';
 import './NotesHub.css';
 import { API_URL } from '../config';
@@ -33,7 +33,8 @@ const NotesHub = () => {
             <span>Convert</span>
           </button>
           <button onClick={() => navigate('/dashboard')} className="back-to-dashboard">
-            back to dashboard
+            <ChevronLeft size={18} />
+            <span>back to dashboard</span>
           </button>
         </div>
       </div>

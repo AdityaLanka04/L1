@@ -1138,7 +1138,8 @@ const Dashboard = () => {
                 <h3 className="widget-title">Weekly Activity</h3>
                 <div className="widget-header-right">
                   <button className="analytics-btn" onClick={() => navigate('/analytics')}>
-                    Analytics <span className="analytics-triangle">▶</span>
+                    <span>Analytics</span>
+                    <ChevronRight size={16} />
                   </button>
                 </div>
               </div>

@@ -1611,6 +1611,10 @@ body {
   color: var(--text-secondary);
 }
 .dashboard-page .analytics-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   background: var(--accent);
   color: var(--bg-bottom);
   border: none;

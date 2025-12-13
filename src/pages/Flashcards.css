@@ -3,19 +3,19 @@
 
 /* CSS Variables */
 .flashcards-page {
-  --fc-bg-primary: #0a0a0b;
-  --fc-bg-secondary: #111113;
-  --fc-bg-tertiary: #18181b;
-  --fc-bg-card: #1c1c1f;
-  --fc-bg-elevated: #222225;
-  --fc-border-subtle: #27272a;
-  --fc-border-default: #3f3f46;
-  --fc-text-primary: #fafafa;
-  --fc-text-secondary: #a1a1aa;
-  --fc-text-muted: #71717a;
-  --fc-accent: #D7B38C;
-  --fc-accent-dark: #b8956e;
-  --fc-accent-glow: rgba(215, 179, 140, 0.15);
+  --fc-bg-primary: var(--bg);
+  --fc-bg-secondary: var(--panel);
+  --fc-bg-tertiary: var(--hover-bg);
+  --fc-bg-card: var(--panel);
+  --fc-bg-elevated: var(--hover-bg);
+  --fc-border-subtle: var(--border);
+  --fc-border-default: var(--border);
+  --fc-text-primary: var(--text-primary);
+  --fc-text-secondary: var(--text-secondary);
+  --fc-text-muted: var(--text-secondary);
+  --fc-accent: var(--accent);
+  --fc-accent-dark: color-mix(in srgb, var(--accent) 85%, black);
+  --fc-accent-glow: color-mix(in srgb, var(--accent) 15%, transparent);
   --fc-success: #22c55e;
   --fc-warning: #f59e0b;
   --fc-danger: #ef4444;
