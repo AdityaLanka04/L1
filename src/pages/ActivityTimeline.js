@@ -736,7 +736,7 @@ const ActivityTimeline = () => {
             </h2>
             <div className="reminders-actions">
               <div className="search-box">
-                <Search size={16} />
+                <Search size={18} />
                 <input 
                   type="text" 
                   placeholder="Search reminders..." 
@@ -744,24 +744,9 @@ const ActivityTimeline = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <button 
-                className="fix-timezone-btn" 
-                onClick={fixReminderTimezones}
-                style={{ 
-                  background: '#f59e0b', 
-                  color: 'white', 
-                  marginRight: '8px',
-                  fontSize: '12px',
-                  padding: '6px 12px'
-                }}
-                title="Fix reminder times that show wrong due to timezone issues"
-              >
-                <Clock size={14} />
-                Fix Times
-              </button>
               <button className="add-reminder-btn" onClick={() => { resetReminderForm(); setShowReminderModal(true); }}>
-                <Plus size={16} />
-                New Reminder
+                <Plus size={18} />
+                <span>New Reminder</span>
               </button>
             </div>
           </div>
@@ -1101,14 +1086,15 @@ const ActivityTimeline = () => {
   return (
     <div className="activity-timeline-page">
       <div className="timeline-header">
-        <div className="timeline-header-title">
-          <button className="timeline-back-btn" onClick={() => navigate('/dashboard')} title="Back to Dashboard">
-            <ArrowLeft size={18} />
-          </button>
-          <div>
-            <h1>Activity Timeline</h1>
-            <p>Track all your learning activities in one place</p>
+        <div className="timeline-header-content">
+          <div className="timeline-header-left">
+            <h1>cerbyl</h1>
+            <span className="timeline-subtitle">activity timeline</span>
           </div>
+          <button className="timeline-back-btn" onClick={() => navigate('/dashboard')} title="Back to Dashboard">
+            <ChevronLeft size={18} />
+            <span>Back</span>
+          </button>
         </div>
       </div>
 

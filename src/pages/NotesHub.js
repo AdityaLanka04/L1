@@ -13,13 +13,11 @@ const NotesHub = () => {
 
 
 
-
-
   return (
-    <div className="notes-hub-split">
+    <div className="notes-hub-page notes-hub-split">
       <div className="notes-hub-header">
         <div className="header-left">
-          <h1 className="page-title">CERBYL</h1>
+          <h1 className="page-title">cerbyl</h1>
           <span className="page-subtitle">study notes</span>
         </div>
         <div className="header-actions">

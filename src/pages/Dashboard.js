@@ -31,12 +31,6 @@ import ImportExportModal from '../components/ImportExportModal';
 import './Dashboard.css';
 import { API_URL } from '../config';
 
-/* Prevent CSS cascade from other pages */
-if (document.querySelector('link[href*="Flashcards.css"]')) {
-  const link = document.querySelector('link[href*="Flashcards.css"]');
-  if (link) link.remove();
-}
-
 const Dashboard = () => {
   const navigate = useNavigate();
   const { selectedTheme } = useTheme();
@@ -108,6 +102,7 @@ const Dashboard = () => {
   const [slideNotifQueue, setSlideNotifQueue] = useState([]);
   const [lastNotificationIds, setLastNotificationIds] = useState(new Set());
   const notificationPollRef = useRef(null);
+  const lastNotificationCheckRef = useRef(0);
 
   // Inactivity engagement states
   const [showInactivitySuggestion, setShowInactivitySuggestion] = useState(false);
@@ -125,33 +120,7 @@ const Dashboard = () => {
   const lastActivityRef = useRef(Date.now());
   const inactivityTimerRef = useRef(null);
 
-  // Remove Flashcards.css to prevent style cascade
-  useEffect(() => {
-    const removeFlashcardsCSS = () => {
-      const links = document.querySelectorAll('link[href*="Flashcards.css"]');
-      links.forEach(link => link.remove());
-      
-      // Also remove any style elements from Flashcards.css
-      const styles = document.querySelectorAll('style');
-      styles.forEach(style => {
-        if (style.textContent && style.textContent.includes('Flashcards')) {
-          style.remove();
-        }
-      });
-    };
-    
-    // Remove immediately
-    removeFlashcardsCSS();
-    
-    // Check multiple times to catch late-loaded styles
-    const timers = [
-      setTimeout(removeFlashcardsCSS, 100),
-      setTimeout(removeFlashcardsCSS, 300),
-      setTimeout(removeFlashcardsCSS, 500)
-    ];
-    
-    return () => timers.forEach(timer => clearTimeout(timer));
-  }, []);
+
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -397,6 +366,14 @@ const Dashboard = () => {
 
   const loadNotifications = async (showSlideNotifs = false) => {
     if (!userName) return;
+    
+    // Debounce: Don't check too frequently (minimum 2 seconds between checks)
+    const now = Date.now();
+    if (showSlideNotifs && (now - lastNotificationCheckRef.current) < 2000) {
+      console.log('📬 Skipping notification check - too soon since last check');
+      return;
+    }
+    
     try {
       const token = localStorage.getItem('token');
       const url = `${API_URL}/get_notifications?user_id=${userName}`;
@@ -413,6 +390,8 @@ const Dashboard = () => {
         
         // Check for new unread notifications to show as slide-in
         if (showSlideNotifs) {
+          lastNotificationCheckRef.current = now;
+          
           const unreadNotifs = newNotifications.filter(n => !n.is_read);
           const newUnreadNotifs = unreadNotifs.filter(n => !lastNotificationIds.has(n.id));
           
@@ -420,13 +399,20 @@ const Dashboard = () => {
             console.log('📬 New notifications to show as slide-in:', newUnreadNotifs.length);
             // Add new notifications to the slide queue (max 3 at a time)
             const notifsToShow = newUnreadNotifs.slice(0, 3);
-            setSlideNotifQueue(prev => [...prev, ...notifsToShow]);
             
-            // Play notification sound
-            playNotificationSound();
-            
-            // Request browser notification permission and show
-            showBrowserNotification(notifsToShow[0]);
+            // Only add notifications that aren't already in the queue
+            setSlideNotifQueue(prev => {
+              const existingIds = new Set(prev.map(n => n.id));
+              const uniqueNotifs = notifsToShow.filter(n => !existingIds.has(n.id));
+              if (uniqueNotifs.length > 0) {
+                console.log('📬 Adding unique notifications to queue:', uniqueNotifs.length);
+                // Play notification sound only for truly new notifications
+                playNotificationSound();
+                // Show browser notification for the first one
+                showBrowserNotification(uniqueNotifs[0]);
+              }
+              return [...prev, ...uniqueNotifs];
+            });
           }
           
           // Update the set of known notification IDs
@@ -516,8 +502,8 @@ const Dashboard = () => {
         console.log('📅 Reminder check result:', data);
         if (data.notifications_created > 0) {
           console.log('📅 Created reminder notifications:', data.notifications_created, data.details);
-          // Reload notifications to show the new ones
-          loadNotifications(true);
+          // Don't reload here - the polling interval will pick it up
+          // This prevents duplicate notifications
         }
       }
     } catch (error) {
@@ -1213,7 +1199,7 @@ const Dashboard = () => {
                 </div>
                 <div className="stats-numbers-section">
                   <div className="stat-item">
-                    <span className="stat-value">{stats.totalQuestions}</span>
+                    <span className="stat-value">{totalQuestions}</span>
                     <span className="stat-label">Questions</span>
                   </div>
                   <div className="stat-item">
@@ -1248,7 +1234,7 @@ const Dashboard = () => {
               
               <div className="ai-stats-row">
                 <div className="ai-stat">
-                  <span className="ai-stat-value">{stats.totalQuestions}</span>
+                  <span className="ai-stat-value">{totalQuestions}</span>
                   <span className="ai-stat-label">Questions</span>
                 </div>
                 <div className="ai-stat">

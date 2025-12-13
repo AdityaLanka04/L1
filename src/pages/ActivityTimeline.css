@@ -6,104 +6,241 @@
 }
 
 .timeline-header {
-  padding: 24px 32px;
+  padding: 20px 40px;
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--bg) 95%, var(--accent)) 0%, 
+    var(--bg) 50%,
+    color-mix(in srgb, var(--bg) 95%, var(--panel)) 100%);
   border-bottom: 1px solid var(--border);
-  background: var(--panel);
+  border-image: linear-gradient(90deg, transparent, var(--accent), transparent) 1;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 0 40px rgba(215, 179, 140, 0.05);
 }
 
-.timeline-header-title {
+.timeline-header-content {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: flex-start;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.timeline-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-right: auto;
+}
+
+.timeline-header-left h1 {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--accent);
+  text-transform: lowercase;
+  line-height: 1;
+}
+
+.timeline-subtitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: lowercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
 .timeline-back-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 8px 12px;
-  background: var(--hover-bg);
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, var(--panel) 0%, color-mix(in srgb, var(--panel) 90%, var(--accent)) 100%);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 10px;
   color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: lowercase;
+  letter-spacing: 0.5px;
+  position: relative;
+  overflow: hidden;
+  margin-left: auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.timeline-back-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 20%, var(--panel)) 0%, 
+    color-mix(in srgb, var(--accent) 30%, var(--panel)) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.timeline-back-btn:hover::before {
+  opacity: 1;
+}
+
+.timeline-back-btn span,
+.timeline-back-btn svg {
+  position: relative;
+  z-index: 1;
 }
 
 .timeline-back-btn:hover {
-  background: var(--accent);
   border-color: var(--accent);
-  color: white;
-}
-
-.timeline-header h1 {
-  margin: 0 0 8px 0;
-  font-size: 28px;
-  font-weight: 700;
-}
-
-.timeline-header p {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 14px;
+  color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(215, 179, 140, 0.25), 0 3px 8px rgba(0, 0, 0, 0.15);
 }
 
 .timeline-tabs {
   display: flex;
-  gap: 8px;
-  padding: 16px 32px;
-  background: var(--hover-bg);
+  gap: 12px;
+  padding: 20px 40px;
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
+  max-width: 1600px;
+  margin: 0 auto;
 }
 
 .timeline-tab {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 20px;
-  background: transparent;
-  border: none;
-  border-radius: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, var(--panel) 0%, color-mix(in srgb, var(--panel) 95%, var(--accent)) 100%);
+  border: 1px solid var(--border);
+  border-radius: 12px;
   font-size: 14px;
   font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.timeline-tab::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 15%, var(--panel)) 0%, 
+    color-mix(in srgb, var(--accent) 25%, var(--panel)) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.timeline-tab:hover::before {
+  opacity: 0;
 }
 
 .timeline-tab:hover {
-  background: var(--bg);
-  color: var(--text-primary);
+  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, white) 100%) !important;
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.3), 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Light mode: hover text should be white on accent background */
+[data-theme-mode="light"] .timeline-tab:hover {
+  color: white !important;
+}
+
+[data-theme-mode="light"] .timeline-tab:hover svg {
+  color: white !important;
+}
+
+/* Dark mode: hover text should be dark on accent background */
+[data-theme-mode="dark"] .timeline-tab:hover {
+  color: var(--bg-dark) !important;
+}
+
+[data-theme-mode="dark"] .timeline-tab:hover svg {
+  color: var(--bg-dark) !important;
 }
 
 .timeline-tab.active {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, white) 100%);
+  border-color: var(--accent);
+  box-shadow: 0 6px 20px rgba(215, 179, 140, 0.35), 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+.timeline-tab.active::before {
+  opacity: 0;
+}
+
+/* Light mode: active tab text should be white */
+[data-theme-mode="light"] .timeline-tab.active {
+  color: white !important;
+}
+
+[data-theme-mode="light"] .timeline-tab.active svg {
+  color: white !important;
+}
+
+/* Dark mode: active tab text should be dark */
+[data-theme-mode="dark"] .timeline-tab.active {
+  color: var(--bg-dark) !important;
+}
+
+[data-theme-mode="dark"] .timeline-tab.active svg {
+  color: var(--bg-dark) !important;
+}
+
+.timeline-tab span,
+.timeline-tab svg {
+  position: relative;
+  z-index: 1;
+}
+
+.tab-badge {
+  background: rgba(255, 255, 255, 0.3);
   color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
 }
 
 .timeline-content {
-  padding: 32px;
-  max-width: 1400px;
+  padding: 32px 40px;
+  max-width: 1600px;
   margin: 0 auto;
 }
 
 .timeline-filters {
   display: flex;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
   flex-wrap: wrap;
 }
 
 .filter-chip {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+  gap: 8px;
+  padding: 10px 20px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: 24px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s;
@@ -112,20 +249,24 @@
 .filter-chip:hover {
   border-color: var(--accent);
   background: var(--hover-bg);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .filter-chip.active {
   background: var(--accent);
   border-color: var(--accent);
   color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 /* Calendar View */
 .calendar-container {
-  background: var(--bg);
+  background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 24px;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .calendar-nav {
@@ -351,10 +492,10 @@
 
 .calendar-day {
   min-height: 120px;
-  background: var(--panel);
+  background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px;
+  border-radius: 12px;
+  padding: 10px;
   transition: all 0.2s;
   cursor: pointer;
   position: relative;
@@ -362,7 +503,7 @@
 
 .calendar-day:hover {
   border-color: var(--accent);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   background: var(--hover-bg);
   transform: translateY(-2px);
 }
@@ -1026,8 +1167,8 @@
 .timeline-card {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 12px;
+  padding: 18px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -1035,7 +1176,7 @@
 .timeline-card:hover {
   border-color: var(--accent);
   transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
 }
 
 .timeline-card-header {
@@ -1109,24 +1250,31 @@
 
 .empty-timeline {
   text-align: center;
-  padding: 60px 20px;
+  padding: 80px 20px;
   color: var(--text-secondary);
+  background: var(--panel);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  margin: 20px 0;
 }
 
 .empty-timeline svg {
-  margin-bottom: 16px;
-  opacity: 0.3;
+  margin-bottom: 20px;
+  opacity: 0.2;
+  color: var(--accent);
 }
 
 .empty-timeline h3 {
-  margin: 0 0 8px 0;
-  font-size: 18px;
+  margin: 0 0 10px 0;
+  font-size: 20px;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
 .empty-timeline p {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 500;
 }
 
 .loading-spinner {
@@ -1395,25 +1543,25 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
 }
 
 .reminder-modal {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 20px;
   width: 90%;
-  max-width: 500px;
+  max-width: 520px;
   max-height: 90vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
 }
 
 .reminder-modal-header {
@@ -1863,20 +2011,22 @@
 
 .reminders-container {
   display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 24px;
+  grid-template-columns: 300px 1fr;
+  gap: 28px;
   min-height: calc(100vh - 250px);
 }
 
 /* Sidebar */
 .reminders-sidebar {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
-  height: fit-content;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 16px;
+  padding: 24px;
+  height: 100%;
+  min-height: calc(100vh - 300px);
   position: sticky;
   top: 24px;
+  box-shadow: 0 4px 16px rgba(215, 179, 140, 0.2), 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .sidebar-section {
@@ -1888,40 +2038,76 @@
 }
 
 .sidebar-section h4 {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin: 0 0 12px 0;
+  letter-spacing: 0.8px;
+  margin: 0 0 14px 0;
   padding: 0 8px;
+  opacity: 0.9;
+}
+
+/* Light mode: sidebar text should be WHITE on accent background */
+[data-theme-mode="light"] .reminders-sidebar .sidebar-section h4,
+[data-theme-mode="light"] .reminders-sidebar .smart-list-item,
+[data-theme-mode="light"] .reminders-sidebar .smart-list-item span,
+[data-theme-mode="light"] .reminders-sidebar .add-list-btn {
+  color: #ffffff !important;
+}
+
+/* Dark mode: sidebar text should be BLACK on accent background */
+[data-theme-mode="dark"] .reminders-sidebar .sidebar-section h4,
+[data-theme-mode="dark"] .reminders-sidebar .smart-list-item,
+[data-theme-mode="dark"] .reminders-sidebar .smart-list-item span,
+[data-theme-mode="dark"] .reminders-sidebar .add-list-btn {
+  color: #000000 !important;
 }
 
 .sidebar-section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   padding: 0 8px;
 }
 
 .sidebar-section-header h4 {
   margin: 0;
+  opacity: 0.9;
 }
 
 .add-list-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
+  padding: 6px;
+  border-radius: 6px;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.add-list-btn:hover {
-  background: var(--hover-bg);
-  color: var(--accent);
+/* Light mode: button has white semi-transparent background */
+[data-theme-mode="light"] .reminders-sidebar .add-list-btn {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme-mode="light"] .reminders-sidebar .add-list-btn:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  transform: scale(1.1);
+}
+
+/* Dark mode: button has black semi-transparent background */
+[data-theme-mode="dark"] .reminders-sidebar .add-list-btn {
+  background: rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="dark"] .reminders-sidebar .add-list-btn:hover {
+  background: rgba(0, 0, 0, 0.25) !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+  transform: scale(1.1);
 }
 
 /* Smart Lists */
@@ -1935,102 +2121,170 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
-  background: transparent;
-  border: none;
-  border-radius: 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
   text-align: left;
-  color: var(--text-primary);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
+}
+
+/* Light mode: base state has white semi-transparent background */
+[data-theme-mode="light"] .reminders-sidebar .smart-list-item {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Dark mode: base state has black semi-transparent background */
+[data-theme-mode="dark"] .reminders-sidebar .smart-list-item {
+  background: rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
 }
 
 .smart-list-item:hover {
-  background: var(--hover-bg);
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Light mode: hover has white semi-transparent overlay */
+[data-theme-mode="light"] .reminders-sidebar .smart-list-item:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Dark mode: hover has black semi-transparent overlay */
+[data-theme-mode="dark"] .reminders-sidebar .smart-list-item:hover {
+  background: rgba(0, 0, 0, 0.25) !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
 }
 
 .smart-list-item.active {
-  background: var(--accent);
-  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* Light mode: active state has WHITE background with accent text */
+[data-theme-mode="light"] .reminders-sidebar .smart-list-item.active {
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .reminders-sidebar .smart-list-item.active span {
+  color: var(--accent) !important;
+}
+
+/* Dark mode: active state has BLACK background with accent text */
+[data-theme-mode="dark"] .reminders-sidebar .smart-list-item.active {
+  background: #000000 !important;
+  border-color: #000000 !important;
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="dark"] .reminders-sidebar .smart-list-item.active span {
+  color: var(--accent) !important;
 }
 
 .smart-list-item.active .smart-list-count {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: var(--accent) !important;
+}
+
+/* Light mode: active count has accent background with WHITE text */
+[data-theme-mode="light"] .reminders-sidebar .smart-list-item.active .smart-list-count {
+  background: var(--accent) !important;
+  color: #ffffff !important;
+}
+
+/* Dark mode: active count has accent background with BLACK text */
+[data-theme-mode="dark"] .reminders-sidebar .smart-list-item.active .smart-list-count {
+  background: var(--accent) !important;
+  color: #000000 !important;
 }
 
 .smart-list-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.smart-list-icon.today { background: #3b82f6; }
-.smart-list-icon.scheduled { background: #ef4444; }
-.smart-list-icon.flagged { background: #f59e0b; }
-.smart-list-icon.all { background: #6b7280; }
-.smart-list-icon.completed { background: #10b981; }
+.smart-list-icon.today { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+.smart-list-icon.scheduled { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+.smart-list-icon.flagged { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+.smart-list-icon.all { background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); }
+.smart-list-icon.completed { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
 
 .smart-list-item span:not(.smart-list-count) {
   flex: 1;
 }
 
 .smart-list-count {
-  background: var(--hover-bg);
-  color: var(--text-secondary);
+  background: rgba(0, 0, 0, 0.2);
   font-size: 12px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 10px;
-  min-width: 24px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 12px;
+  min-width: 26px;
   text-align: center;
+}
+
+/* Light mode: count text is WHITE (on semi-transparent dark background) */
+[data-theme-mode="light"] .reminders-sidebar .smart-list-count {
+  background: rgba(255, 255, 255, 0.3) !important;
+  color: #ffffff !important;
+}
+
+/* Dark mode: count text is BLACK (on semi-transparent light background) */
+[data-theme-mode="dark"] .reminders-sidebar .smart-list-count {
+  background: rgba(0, 0, 0, 0.3) !important;
+  color: #000000 !important;
 }
 
 /* User Lists */
 .user-lists {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .user-list-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
+  gap: 12px;
+  padding: 10px 14px;
   background: transparent;
-  border: none;
-  border-radius: 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s;
   width: 100%;
   text-align: left;
   color: var(--text-primary);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .user-list-item:hover {
   background: var(--hover-bg);
+  transform: translateX(2px);
 }
 
 .user-list-item.active {
   background: var(--hover-bg);
   border: 1px solid var(--accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .user-list-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 5px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2048,7 +2302,12 @@
 .user-list-count {
   color: var(--text-secondary);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
+  background: var(--hover-bg);
+  padding: 2px 8px;
+  border-radius: 10px;
+  min-width: 24px;
+  text-align: center;
 }
 
 .delete-list-btn {
@@ -2056,8 +2315,8 @@
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
+  padding: 5px;
+  border-radius: 5px;
   opacity: 0;
   transition: all 0.2s;
 }
@@ -2069,50 +2328,67 @@
 .delete-list-btn:hover {
   background: #fee2e2;
   color: #ef4444;
+  transform: scale(1.1);
 }
 
 /* Main Reminders Content */
 .reminders-main {
   background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 24px;
-  min-height: 500px;
+  border: 2px solid var(--accent);
+  border-radius: 16px;
+  padding: 28px;
+  min-height: calc(100vh - 300px);
+  height: 100%;
+  box-shadow: 0 4px 16px rgba(215, 179, 140, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .reminders-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
   border-bottom: 1px solid var(--border);
-  flex-wrap: wrap;
-  gap: 16px;
+  gap: 20px;
 }
 
 .reminders-header h2 {
   margin: 0;
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
   color: var(--text-primary);
+  letter-spacing: -0.5px;
 }
 
 .reminders-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+  margin-left: auto;
 }
 
 .search-box {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  min-width: 200px;
+  gap: 12px;
+  padding: 12px 24px;
+  background: var(--panel);
+  border: 2px solid var(--accent);
+  border-radius: 12px;
+  min-width: 280px;
+  height: 47px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(215, 179, 140, 0.15);
+}
+
+.search-box:focus-within {
+  box-shadow: 0 4px 16px rgba(215, 179, 140, 0.3), 0 0 0 3px rgba(215, 179, 140, 0.1);
+  transform: translateY(-1px);
+}
+
+.search-box svg {
+  color: var(--accent);
+  flex-shrink: 0;
 }
 
 .search-box input {
@@ -2120,33 +2396,84 @@
   border: none;
   background: transparent;
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 15px;
+  font-weight: 500;
   outline: none;
 }
 
-.search-box svg {
+.search-box input::placeholder {
   color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+/* Light mode text color fix */
+[data-theme-mode="light"] .search-box input,
+[data-theme-mode="light"] .search-box input::placeholder {
+  color: var(--text-primary);
+}
+
+[data-theme-mode="light"] .search-box input::placeholder {
+  opacity: 0.6;
 }
 
 .add-reminder-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 20px;
-  background: var(--accent);
+  gap: 10px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, white) 100%);
   border: none;
-  border-radius: 8px;
-  color: white;
-  font-size: 14px;
+  border-radius: 12px;
+  color: var(--bg-dark);
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+  height: 47px;
+}
+
+/* Light mode button text color */
+[data-theme-mode="light"] .add-reminder-btn {
+  color: white !important;
+}
+
+/* Dark mode button text color */
+[data-theme-mode="dark"] .add-reminder-btn {
+  color: var(--bg-dark) !important;
+}
+
+.add-reminder-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 90%, white) 0%, 
+    var(--accent) 50%,
+    color-mix(in srgb, var(--accent) 80%, black) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.add-reminder-btn:hover::before {
+  opacity: 1;
+}
+
+.add-reminder-btn span,
+.add-reminder-btn svg {
+  position: relative;
+  z-index: 1;
 }
 
 .add-reminder-btn:hover {
-  background: color-mix(in srgb, var(--accent) 85%, white);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(215, 179, 140, 0.4), 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Empty State */
@@ -2155,47 +2482,54 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
+  padding: 80px 20px;
   color: var(--text-secondary);
+  background: var(--bg);
+  border-radius: 12px;
+  margin: 20px 0;
 }
 
 .empty-reminders svg {
-  opacity: 0.3;
-  margin-bottom: 16px;
+  opacity: 0.2;
+  margin-bottom: 20px;
+  color: var(--accent);
 }
 
 .empty-reminders h3 {
-  margin: 0 0 8px 0;
-  font-size: 18px;
+  margin: 0 0 10px 0;
+  font-size: 20px;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
 .empty-reminders p {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 500;
 }
 
 /* Reminder Items */
 .reminders-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .reminder-item {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
+  gap: 14px;
+  padding: 18px;
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   transition: all 0.2s;
 }
 
 .reminder-item:hover {
   border-color: var(--accent);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
 }
 
 .reminder-item.completed {
@@ -2514,13 +2848,20 @@
     align-items: flex-start;
   }
   
+  .reminders-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
   .reminders-actions {
     width: 100%;
     flex-direction: column;
+    margin-left: 0;
   }
   
   .search-box {
     width: 100%;
+    min-width: auto;
   }
   
   .add-reminder-btn {
