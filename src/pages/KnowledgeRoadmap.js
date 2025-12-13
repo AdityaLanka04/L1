@@ -88,6 +88,11 @@ const KnowledgeRoadmap = () => {
   const [exploredNodesCache, setExploredNodesCache] = useState(new Map()); // Cache for explored nodes
   const [exporting, setExporting] = useState(false);
 
+  // Chat states
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+
   // Save the current UI state (which nodes are actually expanded in the current view)
   useEffect(() => {
     if (currentRoadmap && currentRoadmap.id && nodes.length > 0) {
@@ -774,6 +779,79 @@ const createRoadmapFromChat = async () => {
   // Store exploreNode in ref immediately
   exploreNodeRef.current = exploreNode;
 
+  // Chat functionality
+  const sendChatMessage = async () => {
+    if (!chatInput.trim() || chatLoading || !nodeExplanation) return;
+
+    const userMessage = {
+      id: `user_${Date.now()}`,
+      type: 'user',
+      content: chatInput,
+      timestamp: new Date().toISOString()
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
+    const messageText = chatInput;
+    setChatInput('');
+    setChatLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('user_id', userId);
+      formData.append('question', `Context: I'm exploring the topic "${nodeExplanation.topic_name}" in a knowledge roadmap. Here's what I know about it: ${nodeExplanation.ai_explanation || 'No explanation available yet.'}
+
+User question: ${messageText}`);
+      formData.append('chat_id', ''); // Empty for new session
+
+      const response = await fetch(`${API_URL}/ask/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const aiMessage = {
+          id: `ai_${Date.now()}`,
+          type: 'assistant',
+          content: data.answer || data.response || 'No response received',
+          timestamp: new Date().toISOString()
+        };
+        setChatMessages(prev => [...prev, aiMessage]);
+      } else {
+        throw new Error('Failed to get AI response');
+      }
+    } catch (error) {
+      console.error('Error sending chat message:', error);
+      const errorMessage = {
+        id: `error_${Date.now()}`,
+        type: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date().toISOString()
+      };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  const handleChatKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendChatMessage();
+    }
+  };
+
+  // Clear chat when node explanation changes
+  useEffect(() => {
+    if (nodeExplanation) {
+      setChatMessages([]);
+      setChatInput('');
+    }
+  }, [nodeExplanation]);
+
   // FIXED: viewRoadmap using saved UI state as source of truth for what user was viewing
   const viewRoadmap = async (roadmapId) => {
     try {
@@ -1336,6 +1414,60 @@ const createRoadmapFromChat = async () => {
                         <p>{nodeExplanation.learning_tips}</p>
                       </div>
                     )}
+
+                    {/* Chat Section */}
+                    <div className="kr-chat-section">
+                      <h4>Ask Questions About This Topic</h4>
+                      <div className="kr-chat-messages">
+                        {chatMessages.length === 0 ? (
+                          <div className="kr-chat-placeholder">
+                            <p>Ask me anything about "{nodeExplanation.topic_name}"</p>
+                          </div>
+                        ) : (
+                          chatMessages.map(message => (
+                            <div key={message.id} className={`kr-chat-message ${message.type}`}>
+                              <div className="kr-chat-message-content">
+                                {message.content}
+                              </div>
+                              <div className="kr-chat-message-time">
+                                {new Date(message.timestamp).toLocaleTimeString()}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                        {chatLoading && (
+                          <div className="kr-chat-message assistant">
+                            <div className="kr-chat-message-content">
+                              <div className="kr-chat-typing">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="kr-chat-input-container">
+                        <textarea
+                          value={chatInput}
+                          onChange={(e) => setChatInput(e.target.value)}
+                          onKeyDown={handleChatKeyDown}
+                          placeholder={`Ask about ${nodeExplanation.topic_name}...`}
+                          className="kr-chat-input"
+                          disabled={chatLoading}
+                          rows="2"
+                        />
+                        <button
+                          onClick={sendChatMessage}
+                          disabled={chatLoading || !chatInput.trim()}
+                          className="kr-chat-send-btn"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M1 8l14-6-6 14-2-8z"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

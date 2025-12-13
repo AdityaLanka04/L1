@@ -463,22 +463,37 @@ const ActivityTimeline = () => {
         });
       }
 
-      // Load Flashcards
+      // Load Flashcard Sets (not individual cards)
       try {
         const flashcardsRes = await fetch(`${API_URL}/get_flashcards?user_id=${userName}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (flashcardsRes.ok) {
-          const flashcards = await flashcardsRes.json();
-          if (Array.isArray(flashcards)) {
-            flashcards.forEach(card => {
+          const flashcardData = await flashcardsRes.json();
+          if (Array.isArray(flashcardData)) {
+            // Group flashcards by set and create one activity per set
+            const setGroups = {};
+            flashcardData.forEach(card => {
+              const setId = card.set_id || 'default';
+              if (!setGroups[setId]) {
+                setGroups[setId] = {
+                  cards: [],
+                  setTitle: card.set_title || 'Flashcard Set',
+                  createdAt: card.created_at || card.updated_at
+                };
+              }
+              setGroups[setId].cards.push(card);
+            });
+
+            // Create one activity per flashcard set
+            Object.entries(setGroups).forEach(([setId, setData]) => {
               allActivities.push({
-                id: `flashcard-${card.id}`,
+                id: `flashcard-set-${setId}`,
                 type: 'flashcard',
-                title: 'Flashcard',
-                content: card.question?.substring(0, 150),
-                timestamp: new Date(card.created_at || card.updated_at),
-                data: card
+                title: setData.setTitle,
+                content: `${setData.cards.length} flashcard${setData.cards.length !== 1 ? 's' : ''}`,
+                timestamp: new Date(setData.createdAt),
+                data: { setId, cards: setData.cards, cardCount: setData.cards.length }
               });
             });
           }

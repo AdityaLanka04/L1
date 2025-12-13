@@ -81,41 +81,31 @@
   overflow: hidden;
 }
 
-.quiz-option::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  opacity: 0;
-  transition: opacity 0.4s ease;
-  z-index: 0;
-}
-
 .quiz-option.solo {
-  background: var(--accent);
+  background: var(--accent) !important;
   border-right: none;
+  transition: all 0.4s ease;
 }
 
-.quiz-option.solo::before {
-  background: color-mix(in srgb, var(--accent) 90%, black);
+.quiz-option.solo:hover {
+  background: var(--accent) !important;
 }
 
 .quiz-option.battle {
   background: var(--panel);
   border-left: none;
+  transition: all 0.4s ease;
 }
 
-.quiz-option.battle::before {
-  background: color-mix(in srgb, var(--panel) 90%, white);
+.quiz-option.battle:hover {
+  background: #1a1d23;
 }
 
-.quiz-option:hover::before {
-  opacity: 1;
+.quiz-option.solo:hover {
+  transform: scale(1.02);
 }
 
-.quiz-option:hover {
+.quiz-option.battle:hover {
   transform: scale(1.02);
 }
 

@@ -2256,28 +2256,71 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
-  background: transparent;
-  border: 1px solid transparent;
+  padding: 12px 14px;
   border-radius: 10px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
   text-align: left;
-  color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
 }
 
+/* Light mode: base state has white semi-transparent background */
+[data-theme-mode="light"] .reminders-sidebar .user-list-item {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+}
+
+/* Dark mode: base state has black semi-transparent background */
+[data-theme-mode="dark"] .reminders-sidebar .user-list-item {
+  background: rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  color: #000000 !important;
+}
+
 .user-list-item:hover {
-  background: var(--hover-bg);
   transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Light mode: hover has white semi-transparent overlay */
+[data-theme-mode="light"] .reminders-sidebar .user-list-item:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Dark mode: hover has black semi-transparent overlay */
+[data-theme-mode="dark"] .reminders-sidebar .user-list-item:hover {
+  background: rgba(0, 0, 0, 0.25) !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
 }
 
 .user-list-item.active {
-  background: var(--hover-bg);
-  border: 1px solid var(--accent);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* Light mode: active state has WHITE background with accent text */
+[data-theme-mode="light"] .reminders-sidebar .user-list-item.active {
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .reminders-sidebar .user-list-item.active span {
+  color: var(--accent) !important;
+}
+
+/* Dark mode: active state has BLACK background with accent text */
+[data-theme-mode="dark"] .reminders-sidebar .user-list-item.active {
+  background: #000000 !important;
+  border-color: #000000 !important;
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="dark"] .reminders-sidebar .user-list-item.active span {
+  color: var(--accent) !important;
 }
 
 .user-list-icon {
@@ -2299,14 +2342,40 @@
 }
 
 .user-list-count {
-  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 700;
-  background: var(--hover-bg);
-  padding: 2px 8px;
-  border-radius: 10px;
-  min-width: 24px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  min-width: 26px;
   text-align: center;
+}
+
+/* Light mode: count text is WHITE (on semi-transparent dark background) */
+[data-theme-mode="light"] .reminders-sidebar .user-list-count {
+  background: rgba(255, 255, 255, 0.3) !important;
+  color: #ffffff !important;
+}
+
+/* Dark mode: count text is BLACK (on semi-transparent light background) */
+[data-theme-mode="dark"] .reminders-sidebar .user-list-count {
+  background: rgba(0, 0, 0, 0.3) !important;
+  color: #000000 !important;
+}
+
+.user-list-item.active .user-list-count {
+  background: var(--accent) !important;
+}
+
+/* Light mode: active count has accent background with WHITE text */
+[data-theme-mode="light"] .reminders-sidebar .user-list-item.active .user-list-count {
+  background: var(--accent) !important;
+  color: #ffffff !important;
+}
+
+/* Dark mode: active count has accent background with BLACK text */
+[data-theme-mode="dark"] .reminders-sidebar .user-list-item.active .user-list-count {
+  background: var(--accent) !important;
+  color: #000000 !important;
 }
 
 .delete-list-btn {
