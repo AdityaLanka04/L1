@@ -885,6 +885,18 @@ class UploadedSlide(Base):
     user = relationship("User")
 
 
+class SlideAnalysis(Base):
+    __tablename__ = "slide_analyses"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    slide_id = Column(Integer, ForeignKey("uploaded_slides.id"), nullable=False, unique=True)
+    analysis_data = Column(Text, nullable=False)  # JSON string of comprehensive analysis
+    analyzed_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    slide = relationship("UploadedSlide", backref="analysis")
+
+
 
 
 

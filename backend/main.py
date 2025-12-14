@@ -5824,9 +5824,18 @@ def delete_slide(slide_id: int, db: Session = Depends(get_db)):
 
 
 @app.get("/api/analyze_slide/{slide_id}")
-async def analyze_slide(slide_id: int, db: Session = Depends(get_db)):
-    """Analyze a slide presentation and return per-slide explanations with AI"""
+async def analyze_slide(
+    slide_id: int, 
+    force_reanalyze: bool = Query(False),
+    db: Session = Depends(get_db)
+):
+    """
+    Get comprehensive slide analysis with persistent storage
+    Returns cached analysis if available, unless force_reanalyze=True
+    """
     try:
+        from comprehensive_slide_analyzer import get_or_create_analysis
+        
         slide = db.query(models.UploadedSlide).filter(
             models.UploadedSlide.id == slide_id
         ).first()
@@ -5838,133 +5847,27 @@ async def analyze_slide(slide_id: int, db: Session = Depends(get_db)):
         if not file_path.exists():
             raise HTTPException(status_code=404, detail="Slide file not found")
         
-        slides_data = []
-        
-        # Extract content based on file type
-        if slide.original_filename.lower().endswith('.pdf'):
-            # PDF extraction
-            try:
-                with open(file_path, 'rb') as f:
-                    pdf_reader = PyPDF2.PdfReader(f)
-                    for page_num, page in enumerate(pdf_reader.pages, 1):
-                        text = page.extract_text() or ""
-                        slides_data.append({
-                            "slide_number": page_num,
-                            "content": text.strip(),
-                            "title": f"Page {page_num}"
-                        })
-            except Exception as e:
-                logger.error(f"Error reading PDF: {e}")
-                raise HTTPException(status_code=500, detail=f"Error reading PDF: {str(e)}")
-                
-        elif slide.original_filename.lower().endswith(('.ppt', '.pptx')):
-            # PowerPoint extraction using python-pptx
-            try:
-                from pptx import Presentation
-                from pptx.util import Inches, Pt
-                
-                prs = Presentation(str(file_path))
-                
-                for slide_num, ppt_slide in enumerate(prs.slides, 1):
-                    slide_text = []
-                    slide_title = f"Slide {slide_num}"
-                    
-                    for shape in ppt_slide.shapes:
-                        if hasattr(shape, "text") and shape.text:
-                            # Check if this is the title
-                            if shape.is_placeholder and hasattr(shape, 'placeholder_format'):
-                                if shape.placeholder_format.type == 1:  # Title placeholder
-                                    slide_title = shape.text.strip()
-                            slide_text.append(shape.text.strip())
-                        
-                        # Extract text from tables
-                        if shape.has_table:
-                            table = shape.table
-                            for row in table.rows:
-                                row_text = [cell.text for cell in row.cells if cell.text]
-                                if row_text:
-                                    slide_text.append(" | ".join(row_text))
-                    
-                    slides_data.append({
-                        "slide_number": slide_num,
-                        "content": "\n".join(slide_text),
-                        "title": slide_title
-                    })
-                    
-            except ImportError:
-                logger.error("python-pptx not installed")
-                raise HTTPException(status_code=500, detail="PowerPoint processing not available. Install python-pptx.")
-            except Exception as e:
-                logger.error(f"Error reading PowerPoint: {e}")
-                raise HTTPException(status_code=500, detail=f"Error reading PowerPoint: {str(e)}")
-        else:
+        # Determine file type
+        file_ext = slide.original_filename.lower().split('.')[-1]
+        if file_ext not in ['pdf', 'ppt', 'pptx']:
             raise HTTPException(status_code=400, detail="Unsupported file type")
         
-        # Generate AI explanations for each slide
-        analyzed_slides = []
-        for slide_data in slides_data:
-            content = slide_data["content"]
-            
-            if content and len(content.strip()) > 10:
-                # Generate AI explanation
-                prompt = f"""Analyze this slide content and provide:
-1. A brief explanation (2-3 sentences) of what this slide is about
-2. 3-5 key points or takeaways
-3. 3-5 important keywords/terms
-
-Slide Title: {slide_data['title']}
-Slide Content:
-{content[:2000]}
-
-Respond in this exact JSON format:
-{{
-    "explanation": "Brief explanation here",
-    "key_points": ["point 1", "point 2", "point 3"],
-    "keywords": ["keyword1", "keyword2", "keyword3"]
-}}"""
-                
-                try:
-                    ai_response = call_ai(prompt, max_tokens=500, temperature=0.3)
-                    
-                    # Parse JSON from response
-                    import re
-                    json_match = re.search(r'\{[\s\S]*\}', ai_response)
-                    if json_match:
-                        analysis = json.loads(json_match.group())
-                    else:
-                        analysis = {
-                            "explanation": "This slide contains educational content.",
-                            "key_points": ["Content extracted from slide"],
-                            "keywords": []
-                        }
-                except Exception as e:
-                    logger.error(f"AI analysis error: {e}")
-                    analysis = {
-                        "explanation": "This slide contains educational content that covers important concepts.",
-                        "key_points": ["Review the slide content for details"],
-                        "keywords": []
-                    }
-            else:
-                analysis = {
-                    "explanation": "This slide appears to be a title slide or contains minimal text content.",
-                    "key_points": [],
-                    "keywords": []
-                }
-            
-            analyzed_slides.append({
-                "slide_number": slide_data["slide_number"],
-                "title": slide_data["title"],
-                "content": content,
-                "explanation": analysis.get("explanation", ""),
-                "key_points": analysis.get("key_points", []),
-                "keywords": analysis.get("keywords", [])
-            })
+        # Get or create comprehensive analysis
+        analysis_result = get_or_create_analysis(
+            slide_id=slide_id,
+            file_path=file_path,
+            file_type=file_ext,
+            db=db,
+            force_reanalyze=force_reanalyze
+        )
         
         return {
             "status": "success",
             "filename": slide.original_filename,
-            "total_slides": len(analyzed_slides),
-            "slides": analyzed_slides
+            "total_slides": analysis_result["total_slides"],
+            "presentation_summary": analysis_result["presentation_summary"],
+            "slides": analysis_result["slides"],
+            "analyzed_at": analysis_result["analyzed_at"]
         }
         
     except HTTPException:

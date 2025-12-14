@@ -40,7 +40,7 @@ body {
 /* ==================== PAGE CONTAINER ==================== */
 .hub-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, var(--bg-bottom) 0%, color-mix(in srgb, var(--bg-top) 50%, transparent) 100%);
+  background: var(--accent);
   display: flex;
   flex-direction: column;
   font-family: 'Inter', sans-serif;
@@ -151,6 +151,7 @@ body {
   background: var(--panel);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  text-align: center;
 }
 
 .hub-welcome-title {
@@ -202,7 +203,7 @@ body {
 /* ==================== CARD ==================== */
 .hub-card {
   background: var(--panel);
-  border: 2px solid #000000;
+  border: none;
   padding: 40px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -230,9 +231,8 @@ body {
 }
 
 .hub-card:hover {
-  border-color: var(--accent);
   transform: translateY(-8px);
-  box-shadow: 0 0 0 1px var(--accent), var(--shadow-lg), 0 0 30px var(--glow);
+  box-shadow: 0 0 0 2px var(--accent), var(--shadow-lg), 0 0 30px var(--glow);
 }
 
 .hub-card:hover::before {
@@ -393,4 +393,130 @@ body {
     width: 100%;
     text-align: center;
   }
+}
+
+
+/* ==================== THEME-SPECIFIC COLORS ==================== */
+
+/* Light mode: background is WHITE to PINK gradient, cards stay as panel, text is white */
+[data-theme-mode="light"] .hub-page {
+  background: linear-gradient(135deg, #ffffff 0%, var(--accent) 100%) !important;
+  color: #ffffff !important;
+}
+
+[data-theme-mode="light"] .hub-logo {
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .hub-subtitle {
+  color: #8b3a3a !important;
+}
+
+[data-theme-mode="light"] .hub-header {
+  background: transparent !important;
+  border-bottom-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme-mode="light"] .hub-welcome {
+  background: linear-gradient(135deg, #ffffff 0%, var(--accent) 100%) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme-mode="light"] .hub-welcome-title {
+  color: #8b3a3a !important;
+}
+
+[data-theme-mode="light"] .hub-welcome-subtitle {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Dark mode: background is CHARCOAL to GOLD gradient, cards are CHARCOAL, text is gold */
+[data-theme-mode="dark"] .hub-page {
+  background: linear-gradient(135deg, #1a1a1a 0%, var(--accent) 100%) !important;
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="dark"] .hub-logo,
+[data-theme-mode="dark"] .hub-subtitle {
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="dark"] .hub-welcome-title {
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="dark"] .hub-welcome-subtitle {
+  color: rgba(215, 179, 140, 0.8) !important;
+}
+
+[data-theme-mode="dark"] .hub-header {
+  background: var(--accent) !important;
+  border-bottom-color: rgba(26, 26, 26, 0.2) !important;
+}
+
+[data-theme-mode="dark"] .hub-welcome {
+  background: linear-gradient(135deg, #1a1a1a 0%, var(--accent) 100%) !important;
+  border-bottom-color: rgba(26, 26, 26, 0.2) !important;
+}
+
+[data-theme-mode="dark"] .hub-card {
+  background: #1a1a1a !important;
+  border: none !important;
+}
+
+[data-theme-mode="dark"] .hub-card-title,
+[data-theme-mode="dark"] .hub-card-description {
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="dark"] .hub-card-icon {
+  background: rgba(215, 179, 140, 0.1) !important;
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="dark"] .hub-card-action {
+  background: var(--accent) !important;
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="dark"] .hub-card-action:hover {
+  background: color-mix(in srgb, var(--accent) 90%, white) !important;
+}
+
+
+/* Light mode: nav buttons with white text */
+[data-theme-mode="light"] .hub-nav-btn {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #ffffff !important;
+}
+
+[data-theme-mode="light"] .hub-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Dark mode: nav buttons with charcoal text */
+[data-theme-mode="dark"] .hub-nav-btn {
+  background: rgba(26, 26, 26, 0.15) !important;
+  border-color: rgba(26, 26, 26, 0.2) !important;
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="dark"] .hub-nav-btn:hover {
+  background: rgba(26, 26, 26, 0.25) !important;
+  border-color: rgba(26, 26, 26, 0.4) !important;
+}
+
+
+/* Light mode: left two cards (in white region) have pink borders */
+[data-theme-mode="light"] .hub-card:nth-child(1),
+[data-theme-mode="light"] .hub-card:nth-child(3) {
+  border: 2px solid var(--accent) !important;
+}
+
+/* Dark mode: left two cards (in charcoal region) have gold borders */
+[data-theme-mode="dark"] .hub-card:nth-child(1),
+[data-theme-mode="dark"] .hub-card:nth-child(3) {
+  border: 2px solid var(--accent) !important;
 }

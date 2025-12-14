@@ -4519,7 +4519,15 @@ body {
 .dashboard-page .dashboard-hero-grid .widget-quick-actions .widget-header {
   padding: 28px 24px !important;
   text-align: center !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.15) !important;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme-mode="light"] .dashboard-page .dashboard-hero-grid .widget-quick-actions .widget-header {
+  border-bottom: 2px solid rgba(255, 255, 255, 0.4) !important;
+}
+
+[data-theme-mode="dark"] .dashboard-page .dashboard-hero-grid .widget-quick-actions .widget-header {
+  border-bottom: 2px solid rgba(0, 0, 0, 0.2) !important;
 }
 
 .dashboard-page .dashboard-hero-grid .widget-quick-actions .widget-title {
@@ -4552,11 +4560,19 @@ body {
   align-items: center !important;
   justify-content: center !important;
   padding: 24px 32px !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.15) !important;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.15) !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
   background: transparent !important;
   gap: 6px !important;
+}
+
+[data-theme-mode="light"] .dashboard-page .dashboard-hero-grid .quick-action-item {
+  border-bottom: 2px solid rgba(255, 255, 255, 0.4) !important;
+}
+
+[data-theme-mode="dark"] .dashboard-page .dashboard-hero-grid .quick-action-item {
+  border-bottom: 2px solid rgba(0, 0, 0, 0.2) !important;
 }
 
 .dashboard-page .dashboard-hero-grid .quick-action-item:last-child {
@@ -4577,6 +4593,14 @@ body {
   font-family: 'Inter', sans-serif !important;
 }
 
+[data-theme-mode="light"] .dashboard-page .dashboard-hero-grid .action-label-modern {
+  color: white !important;
+}
+
+[data-theme-mode="dark"] .dashboard-page .dashboard-hero-grid .action-label-modern {
+  color: #1a1a1a !important;
+}
+
 .dashboard-page .dashboard-hero-grid .action-description {
   font-size: 12px !important;
   font-weight: 400 !important;
@@ -4585,6 +4609,16 @@ body {
   text-align: center !important;
   line-height: 1.4 !important;
   max-width: 200px !important;
+}
+
+[data-theme-mode="light"] .dashboard-page .dashboard-hero-grid .action-description {
+  color: white !important;
+  opacity: 0.8 !important;
+}
+
+[data-theme-mode="dark"] .dashboard-page .dashboard-hero-grid .action-description {
+  color: #1a1a1a !important;
+  opacity: 0.7 !important;
 }
 
 .dashboard-page .dashboard-hero-grid .widget.widget-ai-assistant {

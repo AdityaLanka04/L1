@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Loader, FileText, Trash2, Eye, Sparkles, ChevronLeft, ChevronRight, BookOpen, Tag, Lightbulb, X } from 'lucide-react';
+import { Upload, Loader, FileText, Trash2, Eye, Sparkles, ChevronLeft, ChevronRight, BookOpen, Tag, Lightbulb, X, UploadCloud, Presentation } from 'lucide-react';
 import './SlideExplorer.css';
 import { API_URL } from '../config';
 
@@ -10,6 +10,7 @@ const SlideExplorer = () => {
   const userId = localStorage.getItem('user_id') || localStorage.getItem('username');
 
   // State
+  const [activeTab, setActiveTab] = useState('viewer'); // 'viewer' or 'myslides'
   const [uploadedSlides, setUploadedSlides] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedSlide, setSelectedSlide] = useState(null);
@@ -19,6 +20,7 @@ const SlideExplorer = () => {
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [imageErrors, setImageErrors] = useState({});
+  const [showUpload, setShowUpload] = useState(true); // Show upload by default
 
   const fetchUploadedSlides = useCallback(async () => {
     try {
@@ -66,7 +68,6 @@ const SlideExplorer = () => {
     }
   };
 
-
   const handleUpload = async (files) => {
     const validFiles = Array.from(files).filter(file => 
       file.name.match(/\.(pdf|pptx|ppt)$/i)
@@ -107,7 +108,6 @@ const SlideExplorer = () => {
     }
   };
 
-  // View slides without AI analysis (just show images)
   const viewSlide = (slideId) => {
     const slide = uploadedSlides.find(s => s.id === slideId);
     if (!slide) {
@@ -117,8 +117,9 @@ const SlideExplorer = () => {
     
     setSelectedSlide(slide);
     setImageErrors({});
+    setShowUpload(false); // Hide upload when viewing
+    setActiveTab('viewer'); // Switch to viewer tab
     
-    // Create basic slide data without AI analysis
     const basicSlides = [];
     for (let i = 1; i <= (slide.page_count || 1); i++) {
       basicSlides.push({
@@ -134,7 +135,6 @@ const SlideExplorer = () => {
     setCurrentSlideIndex(0);
   };
 
-  // Analyze slides with AI-generated insights
   const analyzeSlide = async (slideId) => {
     try {
       setAnalyzing(true);
@@ -148,6 +148,8 @@ const SlideExplorer = () => {
       }
 
       setSelectedSlide(slide);
+      setShowUpload(false);
+      setActiveTab('viewer');
 
       const response = await fetch(`${API_URL}/analyze_slide/${slideId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -187,6 +189,7 @@ const SlideExplorer = () => {
         if (selectedSlide && selectedSlide.id === slideId) {
           setSelectedSlide(null);
           setAnalyzedSlides([]);
+          setShowUpload(true);
         }
       } else {
         alert('Failed to delete slide');
@@ -207,316 +210,418 @@ const SlideExplorer = () => {
     setImageErrors(prev => ({ ...prev, [slideNumber]: true }));
   };
 
-  const closeViewer = () => {
+  const handleUploadNew = () => {
+    setShowUpload(true);
     setSelectedSlide(null);
     setAnalyzedSlides([]);
     setCurrentSlideIndex(0);
-    setImageErrors({});
   };
 
   const currentSlide = analyzedSlides[currentSlideIndex];
-
 
   return (
     <div className="se-page">
       {/* Header */}
       <header className="se-header">
         <div className="se-header-left">
-          <button className="se-back-btn" onClick={() => navigate('/learning-review')}>
-            ◄ Back
-          </button>
           <div className="se-header-title-group">
             <h1 className="se-logo">cerbyl</h1>
             <span className="se-subtitle">SLIDE EXPLORER</span>
           </div>
         </div>
         <div className="se-header-right">
+          <button className="se-back-btn" onClick={() => navigate('/learning-review')}>
+            <ChevronLeft size={18} />
+            <span>Back</span>
+          </button>
           <button className="se-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
           <button className="se-nav-btn logout" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>Logout</button>
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="se-content">
-        {/* Upload Section */}
-        <div className="se-upload-section">
-          <div className="se-section-header">
-            <h2 className="se-section-title">Upload Presentations</h2>
-            <p className="se-section-subtitle">Upload PDF or PowerPoint files to explore and analyze with AI</p>
-          </div>
-
-          <div
-            className={`se-upload-area ${dragActive ? 'active' : ''} ${uploading ? 'disabled' : ''}`}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-            onClick={() => !uploading && document.getElementById('se-file-input').click()}
+      {/* Main Layout with Sidebar */}
+      <div className="se-main-layout">
+        {/* Sidebar */}
+        <aside className="se-sidebar">
+          <button 
+            className={`se-tab-btn ${activeTab === 'viewer' ? 'active' : ''}`}
+            onClick={() => setActiveTab('viewer')}
           >
-            <div className="se-upload-icon">
-              {uploading ? <Loader size={32} className="se-spinner" /> : <Upload size={32} />}
-            </div>
-            <p className="se-upload-title">
-              {uploading ? 'Uploading...' : 'Drag files here or click to upload'}
-            </p>
-            <p className="se-upload-subtitle">Supports PDF and PowerPoint (.pptx, .ppt)</p>
-            <input
-              type="file"
-              id="se-file-input"
-              accept=".pdf,.pptx,.ppt"
-              onChange={handleFileSelect}
-              disabled={uploading}
-              className="se-file-input"
-              multiple
-            />
-          </div>
-        </div>
+            <Eye size={20} />
+            <span>View/Upload</span>
+          </button>
+          <button 
+            className={`se-tab-btn ${activeTab === 'myslides' ? 'active' : ''}`}
+            onClick={() => setActiveTab('myslides')}
+          >
+            <Presentation size={20} />
+            <span>My Slides</span>
+          </button>
+        </aside>
 
-        {/* Slides Grid */}
-        <div className="se-slides-section">
-          <div className="se-section-header">
-            <h2 className="se-section-title">Your Presentations</h2>
-            <p className="se-section-subtitle">
-              {uploadedSlides.length} presentation{uploadedSlides.length !== 1 ? 's' : ''} uploaded
-            </p>
-          </div>
-
-          {loading && uploadedSlides.length === 0 ? (
-            <div className="se-loading">
-              <Loader size={40} className="se-spinner" />
-              <p>Loading slides...</p>
-            </div>
-          ) : uploadedSlides.length === 0 ? (
-            <div className="se-empty">
-              <FileText size={64} className="se-empty-icon" />
-              <p>No presentations uploaded yet. Upload one to get started!</p>
-            </div>
-          ) : (
-            <div className="se-grid">
-              {uploadedSlides.map(slide => (
-                <div key={slide.id} className="se-card">
-                  <div className="se-card-header">
-                    <div className="se-card-icon">
-                      <FileText size={24} />
-                    </div>
-                    <button 
-                      className="se-delete-btn"
-                      onClick={() => deleteSlide(slide.id)}
-                      title="Delete"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-
-                  <div className="se-card-content">
-                    <h3 className="se-card-title">{slide.filename || 'Untitled'}</h3>
-                    <div className="se-card-meta">
-                      <div className="se-meta-item">
-                        <span className="se-meta-label">Pages:</span>
-                        <span className="se-meta-value">{slide.page_count || 0}</span>
-                      </div>
-                      <div className="se-meta-item">
-                        <span className="se-meta-label">Size:</span>
-                        <span className="se-meta-value">
-                          {slide.file_size ? `${(slide.file_size / 1024 / 1024).toFixed(1)} MB` : 'N/A'}
-                        </span>
-                      </div>
-                    </div>
-                    <p className="se-card-date">
-                      Uploaded: {new Date(slide.uploaded_at).toLocaleDateString()}
-                    </p>
-                  </div>
-
-                  <div className="se-card-actions">
-                    <button 
-                      className="se-action-btn se-action-view"
-                      onClick={() => viewSlide(slide.id)}
-                    >
-                      <Eye size={16} />
-                      <span>View</span>
-                    </button>
-                    <button 
-                      className="se-action-btn se-action-insight"
-                      onClick={() => analyzeSlide(slide.id)}
-                      disabled={analyzing}
-                    >
-                      <Sparkles size={16} />
-                      <span>{analyzing && selectedSlide?.id === slide.id ? 'Analyzing...' : 'Insights'}</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-
-        {/* Enhanced Slide Viewer with AI Analysis */}
-        {selectedSlide && analyzedSlides.length > 0 && (
-          <div className="se-viewer-section">
-            <div className="se-section-header">
-              <div className="se-viewer-header-content">
-                <div>
-                  <h2 className="se-section-title">Analyzing: {selectedSlide.filename}</h2>
-                  <p className="se-section-subtitle">
-                    Slide {currentSlideIndex + 1} of {analyzedSlides.length}
-                  </p>
-                </div>
-                <button className="se-close-viewer" onClick={closeViewer}>
-                  <X size={16} />
-                  Close
-                </button>
-              </div>
-            </div>
-
-            {/* Slide Navigation */}
-            <div className="se-slide-nav">
-              <button 
-                className="se-nav-arrow"
-                onClick={() => goToSlide(currentSlideIndex - 1)}
-                disabled={currentSlideIndex === 0}
-              >
-                <ChevronLeft size={24} />
-              </button>
-              
-              <div className="se-slide-thumbnails">
-                {analyzedSlides.map((slide, idx) => (
-                  <button
-                    key={idx}
-                    className={`se-thumbnail ${idx === currentSlideIndex ? 'active' : ''}`}
-                    onClick={() => goToSlide(idx)}
+        {/* Main Content */}
+        <main className="se-main-content">
+          {/* View/Upload Tab */}
+          {activeTab === 'viewer' && (
+            <div className="se-viewer-tab">
+              {showUpload && !selectedSlide ? (
+                // Upload Area
+                <div className="se-upload-container">
+                  <h2 className="se-content-title">Upload Presentation</h2>
+                  <p className="se-content-subtitle">Upload PDF or PowerPoint files to explore and analyze with AI</p>
+                  
+                  <div
+                    className={`se-upload-area ${dragActive ? 'active' : ''} ${uploading ? 'disabled' : ''}`}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                    onClick={() => !uploading && document.getElementById('se-file-input').click()}
                   >
-                    {slide.slide_number}
-                  </button>
-                ))}
-              </div>
-              
-              <button 
-                className="se-nav-arrow"
-                onClick={() => goToSlide(currentSlideIndex + 1)}
-                disabled={currentSlideIndex === analyzedSlides.length - 1}
-              >
-                <ChevronRight size={24} />
-              </button>
-            </div>
-
-            {/* Current Slide Display */}
-            {currentSlide && (
-              <div className="se-slide-display">
-                {/* Slide Preview */}
-                <div className="se-slide-preview">
-                  <div className="se-slide-image-container">
-                    {!imageErrors[currentSlide.slide_number] ? (
-                      <img 
-                        src={`${API_URL}/slide_image/${selectedSlide.id}/${currentSlide.slide_number}`}
-                        alt={`Slide ${currentSlide.slide_number}`}
-                        className="se-slide-image"
-                        onError={() => handleImageError(currentSlide.slide_number)}
-                      />
-                    ) : (
-                      <div className="se-slide-placeholder">
-                        <FileText size={48} />
-                        <span className="se-slide-number-large">{currentSlide.slide_number}</span>
-                        <span className="se-slide-title-display">{currentSlide.title}</span>
-                      </div>
-                    )}
+                    <div className="se-upload-icon">
+                      {uploading ? <Loader size={48} className="se-spinner" /> : <UploadCloud size={48} />}
+                    </div>
+                    <p className="se-upload-title">
+                      {uploading ? 'Uploading...' : 'Drag files here or click to upload'}
+                    </p>
+                    <p className="se-upload-subtitle">Supports PDF and PowerPoint (.pptx, .ppt)</p>
+                    <input
+                      type="file"
+                      id="se-file-input"
+                      accept=".pdf,.pptx,.ppt"
+                      onChange={handleFileSelect}
+                      disabled={uploading}
+                      className="se-file-input"
+                      multiple
+                    />
                   </div>
                 </div>
-
-                {/* AI Analysis Section */}
-                <div className="se-analysis-section">
-                  {/* Slide Title */}
-                  <div className="se-analysis-header">
-                    <h3 className="se-slide-title">{currentSlide.title || `Slide ${currentSlide.slide_number}`}</h3>
-                    {!currentSlide.explanation && (
-                      <button 
-                        className="se-generate-insights-btn"
-                        onClick={() => analyzeSlide(selectedSlide.id)}
-                        disabled={analyzing}
-                      >
-                        <Sparkles size={16} />
-                        {analyzing ? 'Generating...' : 'Generate AI Insights'}
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Explanation */}
-                  {currentSlide.explanation ? (
-                    <div className="se-analysis-block">
-                      <div className="se-analysis-label">
-                        <BookOpen size={16} />
-                        <span>Explanation</span>
-                      </div>
-                      <p className="se-explanation-text">
-                        {currentSlide.explanation}
+              ) : selectedSlide && analyzedSlides.length > 0 ? (
+                // Slide Viewer
+                <div className="se-viewer-container">
+                  <div className="se-viewer-header">
+                    <div>
+                      <h2 className="se-content-title">{selectedSlide.filename}</h2>
+                      <p className="se-content-subtitle">
+                        Slide {currentSlideIndex + 1} of {analyzedSlides.length}
                       </p>
                     </div>
-                  ) : (
-                    <div className="se-no-insights">
-                      <Sparkles size={32} />
-                      <p>Click "Generate AI Insights" to get explanations, key points, and keywords for this slide.</p>
-                    </div>
-                  )}
+                    <button className="se-upload-new-btn" onClick={handleUploadNew}>
+                      <Upload size={16} />
+                      <span>Upload New</span>
+                    </button>
+                  </div>
 
-                  {/* Key Points */}
-                  {currentSlide.key_points && currentSlide.key_points.length > 0 && (
-                    <div className="se-analysis-block">
-                      <div className="se-analysis-label">
-                        <Lightbulb size={16} />
-                        <span>Key Points</span>
-                      </div>
-                      <ul className="se-key-points">
-                        {currentSlide.key_points.map((point, idx) => (
-                          <li key={idx} className="se-key-point">{point}</li>
-                        ))}
-                      </ul>
+                  {/* Slide Navigation */}
+                  <div className="se-slide-nav">
+                    <button 
+                      className="se-nav-arrow"
+                      onClick={() => goToSlide(currentSlideIndex - 1)}
+                      disabled={currentSlideIndex === 0}
+                    >
+                      <ChevronLeft size={24} />
+                    </button>
+                    
+                    <div className="se-slide-thumbnails">
+                      {analyzedSlides.map((slide, idx) => (
+                        <button
+                          key={idx}
+                          className={`se-thumbnail ${idx === currentSlideIndex ? 'active' : ''}`}
+                          onClick={() => goToSlide(idx)}
+                        >
+                          {slide.slide_number}
+                        </button>
+                      ))}
                     </div>
-                  )}
+                    
+                    <button 
+                      className="se-nav-arrow"
+                      onClick={() => goToSlide(currentSlideIndex + 1)}
+                      disabled={currentSlideIndex === analyzedSlides.length - 1}
+                    >
+                      <ChevronRight size={24} />
+                    </button>
+                  </div>
 
-                  {/* Keywords */}
-                  {currentSlide.keywords && currentSlide.keywords.length > 0 && (
-                    <div className="se-analysis-block">
-                      <div className="se-analysis-label">
-                        <Tag size={16} />
-                        <span>Keywords</span>
+                  {/* Slide Display - Full Width on Top, Scrollable Content Below */}
+                  {currentSlide && (
+                    <div className="se-slide-display-vertical">
+                      {/* Slide Image - Full Width */}
+                      <div className="se-slide-preview-full">
+                        <div className="se-slide-image-container-full">
+                          {!imageErrors[currentSlide.slide_number] ? (
+                            <img 
+                              src={`${API_URL}/slide_image/${selectedSlide.id}/${currentSlide.slide_number}`}
+                              alt={`Slide ${currentSlide.slide_number}`}
+                              className="se-slide-image-full"
+                              onError={() => handleImageError(currentSlide.slide_number)}
+                            />
+                          ) : (
+                            <div className="se-slide-placeholder-full">
+                              <FileText size={64} />
+                              <span className="se-slide-number-large">{currentSlide.slide_number}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="se-keywords">
-                        {currentSlide.keywords.map((keyword, idx) => (
-                          <span key={idx} className="se-keyword-tag">{keyword}</span>
-                        ))}
+
+                      {/* Comprehensive Analysis - Scrollable Below */}
+                      <div className="se-comprehensive-analysis">
+                        <div className="se-analysis-header-main">
+                          <h2 className="se-slide-title-main">{currentSlide.title || `Slide ${currentSlide.slide_number}`}</h2>
+                          {currentSlide.difficulty_level && (
+                            <span className={`se-difficulty-badge se-difficulty-${currentSlide.difficulty_level}`}>
+                              {currentSlide.difficulty_level}
+                            </span>
+                          )}
+                          {currentSlide.estimated_study_time && (
+                            <span className="se-study-time-badge">
+                              ⏱️ {currentSlide.estimated_study_time}
+                            </span>
+                          )}
+                        </div>
+
+                        {currentSlide.detailed_explanation ? (
+                          <>
+                            {/* Detailed Explanation */}
+                            <div className="se-analysis-section-main">
+                              <div className="se-section-header">
+                                <BookOpen size={20} />
+                                <h3>Detailed Explanation</h3>
+                              </div>
+                              <div className="se-detailed-explanation">
+                                {currentSlide.detailed_explanation.split('\n\n').map((para, idx) => (
+                                  <p key={idx}>{para}</p>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Key Concepts */}
+                            {currentSlide.key_concepts && currentSlide.key_concepts.length > 0 && (
+                              <div className="se-analysis-section-main">
+                                <div className="se-section-header">
+                                  <Lightbulb size={20} />
+                                  <h3>Key Concepts</h3>
+                                </div>
+                                <ul className="se-key-concepts-list">
+                                  {currentSlide.key_concepts.map((concept, idx) => (
+                                    <li key={idx}>{concept}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Definitions */}
+                            {currentSlide.definitions && Object.keys(currentSlide.definitions).length > 0 && (
+                              <div className="se-analysis-section-main">
+                                <div className="se-section-header">
+                                  <Tag size={20} />
+                                  <h3>Important Definitions</h3>
+                                </div>
+                                <div className="se-definitions-grid">
+                                  {Object.entries(currentSlide.definitions).map(([term, definition], idx) => (
+                                    <div key={idx} className="se-definition-card">
+                                      <h4 className="se-definition-term">{term}</h4>
+                                      <p className="se-definition-text">{definition}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Exam Questions */}
+                            {currentSlide.exam_questions && currentSlide.exam_questions.length > 0 && (
+                              <div className="se-analysis-section-main se-exam-section">
+                                <div className="se-section-header">
+                                  <FileText size={20} />
+                                  <h3>Potential Exam Questions</h3>
+                                </div>
+                                <div className="se-exam-questions">
+                                  {currentSlide.exam_questions.map((q, idx) => (
+                                    <div key={idx} className="se-exam-question-card">
+                                      <div className="se-question-header">
+                                        <span className="se-question-number">Q{idx + 1}</span>
+                                        <span className={`se-question-type ${q.type}`}>{q.type}</span>
+                                        <span className={`se-question-difficulty ${q.difficulty}`}>{q.difficulty}</span>
+                                      </div>
+                                      <p className="se-question-text">{q.question}</p>
+                                      {q.answer_hint && (
+                                        <div className="se-answer-hint">
+                                          <strong>Hint:</strong> {q.answer_hint}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Practical Applications */}
+                            {currentSlide.practical_applications && currentSlide.practical_applications.length > 0 && (
+                              <div className="se-analysis-section-main">
+                                <div className="se-section-header">
+                                  <Sparkles size={20} />
+                                  <h3>Practical Applications</h3>
+                                </div>
+                                <ul className="se-applications-list">
+                                  {currentSlide.practical_applications.map((app, idx) => (
+                                    <li key={idx}>{app}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Common Misconceptions */}
+                            {currentSlide.common_misconceptions && currentSlide.common_misconceptions.length > 0 && (
+                              <div className="se-analysis-section-main se-misconceptions-section">
+                                <div className="se-section-header">
+                                  <X size={20} />
+                                  <h3>Common Misconceptions</h3>
+                                </div>
+                                <ul className="se-misconceptions-list">
+                                  {currentSlide.common_misconceptions.map((misc, idx) => (
+                                    <li key={idx}>{misc}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Study Tips */}
+                            {currentSlide.study_tips && currentSlide.study_tips.length > 0 && (
+                              <div className="se-analysis-section-main se-study-tips-section">
+                                <div className="se-section-header">
+                                  <Lightbulb size={20} />
+                                  <h3>Study Tips</h3>
+                                </div>
+                                <ul className="se-study-tips-list">
+                                  {currentSlide.study_tips.map((tip, idx) => (
+                                    <li key={idx}>{tip}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Cross References */}
+                            {currentSlide.cross_references && currentSlide.cross_references.length > 0 && (
+                              <div className="se-analysis-section-main">
+                                <div className="se-section-header">
+                                  <ChevronRight size={20} />
+                                  <h3>Related Content</h3>
+                                </div>
+                                <div className="se-cross-references">
+                                  {currentSlide.cross_references.map((ref, idx) => (
+                                    <span key={idx} className="se-cross-ref-tag">{ref}</span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="se-no-insights">
+                            <Loader size={48} className="se-spinner" />
+                            <p>Loading comprehensive analysis...</p>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
-
-                  {/* Original Content (Collapsible) */}
-                  {currentSlide.content && currentSlide.content.trim() && (
-                    <details className="se-content-details">
-                      <summary className="se-content-summary">
-                        <Eye size={16} />
-                        <span>View Original Content</span>
-                      </summary>
-                      <div className="se-original-content">
-                        <pre>{currentSlide.content}</pre>
-                      </div>
-                    </details>
                   )}
                 </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Loading State for Analysis */}
-        {analyzing && (
-          <div className="se-analyzing-overlay">
-            <div className="se-analyzing-content">
-              <Loader size={48} className="se-spinner" />
-              <h3>Analyzing Presentation</h3>
-              <p>Extracting content and generating AI insights...</p>
+              ) : null}
             </div>
-          </div>
-        )}
+          )}
+
+          {/* My Slides Tab */}
+          {activeTab === 'myslides' && (
+            <div className="se-myslides-tab">
+              <h2 className="se-content-title">My Presentations</h2>
+              <p className="se-content-subtitle">
+                {uploadedSlides.length} presentation{uploadedSlides.length !== 1 ? 's' : ''} uploaded
+              </p>
+
+              {loading ? (
+                <div className="se-loading">
+                  <Loader size={40} className="se-spinner" />
+                  <p>Loading slides...</p>
+                </div>
+              ) : uploadedSlides.length === 0 ? (
+                <div className="se-empty">
+                  <FileText size={64} className="se-empty-icon" />
+                  <p>No presentations uploaded yet. Upload one to get started!</p>
+                </div>
+              ) : (
+                <div className="se-grid">
+                  {uploadedSlides.map(slide => (
+                    <div key={slide.id} className="se-card">
+                      <div className="se-card-thumbnail">
+                        {!imageErrors[`card-${slide.id}`] ? (
+                          <img 
+                            src={`${API_URL}/slide_image/${slide.id}/1`}
+                            alt={`${slide.filename} preview`}
+                            className="se-card-thumbnail-img"
+                            onError={() => setImageErrors(prev => ({ ...prev, [`card-${slide.id}`]: true }))}
+                          />
+                        ) : (
+                          <div className="se-card-thumbnail-placeholder">
+                            <FileText size={48} />
+                          </div>
+                        )}
+                        <button 
+                          className="se-delete-btn"
+                          onClick={() => deleteSlide(slide.id)}
+                          title="Delete"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+
+                      <div className="se-card-content">
+                        <h3 className="se-card-title">{slide.filename || 'Untitled'}</h3>
+                        <div className="se-card-meta">
+                          <div className="se-meta-item">
+                            <span className="se-meta-label">Pages:</span>
+                            <span className="se-meta-value">{slide.page_count || 0}</span>
+                          </div>
+                          <div className="se-meta-item">
+                            <span className="se-meta-label">Size:</span>
+                            <span className="se-meta-value">
+                              {slide.file_size ? `${(slide.file_size / 1024 / 1024).toFixed(1)} MB` : 'N/A'}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="se-card-date">
+                          Uploaded: {new Date(slide.uploaded_at).toLocaleDateString()}
+                        </p>
+                      </div>
+
+                      <div className="se-card-actions">
+                        <button 
+                          className="se-action-btn se-action-open"
+                          onClick={() => analyzeSlide(slide.id)}
+                          disabled={analyzing && selectedSlide?.id === slide.id}
+                        >
+                          <Sparkles size={16} />
+                          <span>{analyzing && selectedSlide?.id === slide.id ? 'Opening...' : 'Open'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </main>
       </div>
+
+      {/* Analyzing Overlay */}
+      {analyzing && (
+        <div className="se-analyzing-overlay">
+          <div className="se-analyzing-content">
+            <Loader size={48} className="se-spinner" />
+            <h3>Analyzing Presentation</h3>
+            <p>Extracting content and generating AI insights...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

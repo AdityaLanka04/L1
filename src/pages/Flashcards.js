@@ -23,6 +23,9 @@ const Flashcards = () => {
   // Card navigation
   const [currentCard, setCurrentCard] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [mcqOptions, setMcqOptions] = useState([]);
   
   // Generation
   const [generating, setGenerating] = useState(false);
@@ -39,6 +42,7 @@ const Flashcards = () => {
   
   // Study mode
   const [studyMode, setStudyMode] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
   const [studySessionStats, setStudySessionStats] = useState({ correct: 0, incorrect: 0, skipped: 0 });
   const [showStudyResults, setShowStudyResults] = useState(false);
   const [shuffledCards, setShuffledCards] = useState([]);
@@ -349,11 +353,19 @@ const Flashcards = () => {
         });
         loadFlashcardHistory();
         loadFlashcardStats();
-        showPopup('Success!', `Created "${data.set_title}" with ${data.flashcards.length} cards.`);
         gamificationService.trackFlashcardSet(userName, data.flashcards.length);
+        
+        // Auto-open preview mode after generation
+        const cards = studySettings.shuffle ? [...data.flashcards].sort(() => Math.random() - 0.5) : data.flashcards;
+        setShuffledCards(cards);
+        setPreviewMode(true);
       } else {
         setCurrentSetInfo({ saved: false, cardCount: data.flashcards.length });
-        showPopup('Generated!', `Created ${data.flashcards.length} flashcards.`);
+        
+        // Auto-open preview mode after generation
+        const cards = studySettings.shuffle ? [...data.flashcards].sort(() => Math.random() - 0.5) : data.flashcards;
+        setShuffledCards(cards);
+        setPreviewMode(true);
       }
     } catch (error) {
       console.error('Error generating flashcards:', error);
@@ -362,7 +374,7 @@ const Flashcards = () => {
     setGenerating(false);
   };
 
-  const loadFlashcardSet = async (setId, startStudy = false) => {
+  const loadFlashcardSet = async (setId, mode = 'study') => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/get_flashcards_in_set?set_id=${setId}`, {
@@ -379,15 +391,21 @@ const Flashcards = () => {
           setTitle: data.set_title,
           cardCount: data.flashcards.length
         });
-        if (startStudy) {
+        
+        if (mode === 'preview') {
+          // Preview mode = Flippable cards in full screen
+          const cards = studySettings.shuffle ? [...data.flashcards].sort(() => Math.random() - 0.5) : data.flashcards;
+          setShuffledCards(cards);
+          setPreviewMode(true);
+        } else if (mode === 'study') {
+          // Study mode = MCQ quiz with mastery tracking
+          const cards = studySettings.shuffle ? [...data.flashcards].sort(() => Math.random() - 0.5) : data.flashcards;
           setStudySessionStats({ correct: 0, incorrect: 0, skipped: 0 });
           setShowStudyResults(false);
-          setShuffledCards(studySettings.shuffle ? [...data.flashcards].sort(() => Math.random() - 0.5) : data.flashcards);
+          setShuffledCards(cards);
+          generateMCQOptions(cards, 0);
           setStudyMode(true);
           updateStreak();
-        } else {
-          setActivePanel('generator');
-          showPopup('Set Loaded', `Loaded "${data.set_title}" with ${data.flashcards.length} cards`);
         }
       }
     } catch (error) {
@@ -457,6 +475,60 @@ const Flashcards = () => {
     }
   };
 
+  const generateMCQOptions = (cards, cardIndex) => {
+    if (!cards || !cards[cardIndex]) return;
+    
+    const currentCardData = cards[cardIndex];
+    const correctAnswer = currentCardData.answer;
+    
+    // Get 3 random wrong answers from other cards
+    const otherCards = cards.filter((_, idx) => idx !== cardIndex);
+    const shuffledOthers = [...otherCards].sort(() => Math.random() - 0.5);
+    const wrongAnswers = shuffledOthers.slice(0, 3).map(card => card.answer);
+    
+    // Combine and shuffle all options
+    const allOptions = [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5);
+    setMcqOptions(allOptions);
+    setSelectedOption(null);
+    setShowAnswer(false);
+  };
+
+  const handleMCQSelection = (option) => {
+    if (showAnswer) return; // Already answered
+    
+    setSelectedOption(option);
+    setShowAnswer(true);
+    
+    const cards = shuffledCards.length > 0 ? shuffledCards : flashcards;
+    const isCorrect = option === cards[currentCard]?.answer;
+    
+    // Update stats
+    setStudySessionStats(prev => ({
+      ...prev,
+      correct: isCorrect ? prev.correct + 1 : prev.correct,
+      incorrect: !isCorrect ? prev.incorrect + 1 : prev.incorrect
+    }));
+  };
+
+  const handleNextMCQ = () => {
+    const cards = shuffledCards.length > 0 ? shuffledCards : flashcards;
+    
+    // Scroll to top
+    const studyContent = document.querySelector('.fc-study-content');
+    if (studyContent) {
+      studyContent.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
+    if (currentCard < cards.length - 1) {
+      const nextIndex = currentCard + 1;
+      setCurrentCard(nextIndex);
+      generateMCQOptions(cards, nextIndex);
+      setIsFlipped(false);
+    } else {
+      setShowStudyResults(true);
+    }
+  };
+
   const handleStudyResponse = (response) => {
     setStudySessionStats(prev => ({ ...prev, [response]: prev[response] + 1 }));
     const cards = studySettings.shuffle ? shuffledCards : flashcards;
@@ -470,10 +542,14 @@ const Flashcards = () => {
 
   const exitStudyMode = () => {
     setStudyMode(false);
+    setPreviewMode(false);
     setShowStudyResults(false);
     setStudySessionStats({ correct: 0, incorrect: 0, skipped: 0 });
     setCurrentCard(0);
     setIsFlipped(false);
+    setSelectedOption(null);
+    setShowAnswer(false);
+    setMcqOptions([]);
   };
 
   const restartStudy = () => {
@@ -481,9 +557,12 @@ const Flashcards = () => {
     setIsFlipped(false);
     setShowStudyResults(false);
     setStudySessionStats({ correct: 0, incorrect: 0, skipped: 0 });
+    const cards = studySettings.shuffle ? [...flashcards].sort(() => Math.random() - 0.5) : flashcards;
     if (studySettings.shuffle) {
-      setShuffledCards([...flashcards].sort(() => Math.random() - 0.5));
+      setShuffledCards(cards);
     }
+    // Regenerate MCQ options for first card
+    generateMCQOptions(cards, 0);
   };
 
   const handleNext = () => {
@@ -503,7 +582,95 @@ const Flashcards = () => {
   const currentStudyCards = studySettings.shuffle ? shuffledCards : flashcards;
 
 
-  // Study Mode UI
+  // Preview Mode UI (Flippable Cards)
+  if (previewMode && flashcards.length > 0) {
+    const previewCards = shuffledCards.length > 0 ? shuffledCards : flashcards;
+    
+    const ChevronLeft = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>;
+    const ChevronRight = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>;
+    
+    return (
+      <div className="flashcards-page">
+        <div className="fc-study-mode">
+          <div className="fc-study-header">
+            <button className="fc-exit-btn" onClick={exitStudyMode}>
+              {ChevronLeft} Exit
+            </button>
+            <div className="fc-study-title">
+              <h2>{currentSetInfo?.setTitle || 'Preview Mode'}</h2>
+              <p>Card {currentCard + 1} of {previewCards.length}</p>
+            </div>
+            <button 
+              className={`fc-shuffle-btn ${studySettings.shuffle ? 'active' : ''}`}
+              onClick={() => setStudySettings(prev => ({ ...prev, shuffle: !prev.shuffle }))}
+            >
+              {Icons.shuffle}
+            </button>
+          </div>
+
+          <div className="fc-study-progress">
+            <div 
+              className="fc-study-progress-fill" 
+              style={{ width: `${((currentCard + 1) / previewCards.length) * 100}%` }}
+            />
+          </div>
+
+          <div className="fc-study-content">
+            <div className="fc-preview-card-container">
+              <div 
+                className={`fc-study-card ${isFlipped ? 'flipped' : ''}`}
+                onClick={() => setIsFlipped(!isFlipped)}
+              >
+                <div className="fc-study-card-inner">
+                  <div className="fc-study-card-front">
+                    <div className="fc-study-badge">Question</div>
+                    <div className="fc-study-card-text">{previewCards[currentCard]?.question}</div>
+                    <div className="fc-study-hint">Click to flip</div>
+                  </div>
+                  <div className="fc-study-card-back">
+                    <div className="fc-study-badge">Answer</div>
+                    <div className="fc-study-card-text">{previewCards[currentCard]?.answer}</div>
+                    <div className="fc-study-hint">Click to flip back</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="fc-knowledge-btns">
+              <button 
+                className="fc-knowledge-btn fc-dont-know"
+                onClick={() => {
+                  handleStudyResponse('incorrect');
+                  if (currentCard < previewCards.length - 1) {
+                    setCurrentCard(currentCard + 1);
+                    setIsFlipped(false);
+                  }
+                }}
+              >
+                {Icons.x}
+                <span>I don't know this</span>
+              </button>
+              <button 
+                className="fc-knowledge-btn fc-know"
+                onClick={() => {
+                  handleStudyResponse('correct');
+                  if (currentCard < previewCards.length - 1) {
+                    setCurrentCard(currentCard + 1);
+                    setIsFlipped(false);
+                  }
+                }}
+              >
+                {Icons.check}
+                <span>I know this</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Study Mode UI (MCQ Quiz)
   if (studyMode && flashcards.length > 0) {
     return (
       <div className="flashcards-page">
@@ -538,7 +705,7 @@ const Flashcards = () => {
                     {Icons.refresh} Study Again
                   </button>
                   <button className="fc-btn fc-btn-primary" onClick={exitStudyMode}>
-                    {Icons.arrowLeft} Back
+                    Back
                   </button>
                 </div>
               </div>
@@ -569,43 +736,49 @@ const Flashcards = () => {
               </div>
 
               <div className="fc-study-content">
-                <div className="fc-study-card-area">
-                  <button className="fc-study-nav" onClick={handlePrevious} disabled={currentCard === 0}>‹</button>
-                  
-                  <div 
-                    className={`fc-study-card ${isFlipped ? 'flipped' : ''}`}
-                    onClick={() => setIsFlipped(!isFlipped)}
-                  >
-                    <div className="fc-study-card-inner">
-                      <div className="fc-study-card-front">
-                        <div className="fc-study-badge">Question</div>
-                        <div className="fc-study-card-text">{currentStudyCards[currentCard]?.question}</div>
-                        <div className="fc-study-hint">Tap to reveal answer</div>
-                      </div>
-                      <div className="fc-study-card-back">
-                        <div className="fc-study-badge">Answer</div>
-                        <div className="fc-study-card-text">{currentStudyCards[currentCard]?.answer}</div>
-                        <div className="fc-study-hint">Tap to see question</div>
-                      </div>
-                    </div>
+                <div className="fc-study-mcq-area">
+                  <div className="fc-study-question-card">
+                    <div className="fc-study-badge">Question</div>
+                    <div className="fc-study-question-text">{currentStudyCards[currentCard]?.question}</div>
                   </div>
 
-                  <button className="fc-study-nav" onClick={handleNext} disabled={currentCard === currentStudyCards.length - 1}>›</button>
-                </div>
+                  <div className="fc-mcq-options">
+                    {mcqOptions.map((option, index) => {
+                      const isCorrect = option === currentStudyCards[currentCard]?.answer;
+                      const isSelected = option === selectedOption;
+                      let optionClass = 'fc-mcq-option';
+                      
+                      if (showAnswer) {
+                        if (isCorrect) {
+                          optionClass += ' correct';
+                        } else if (isSelected && !isCorrect) {
+                          optionClass += ' incorrect';
+                        } else {
+                          optionClass += ' disabled';
+                        }
+                      }
+                      
+                      return (
+                        <button
+                          key={index}
+                          className={optionClass}
+                          onClick={() => handleMCQSelection(option)}
+                          disabled={showAnswer}
+                        >
+                          <span className="fc-mcq-letter">{String.fromCharCode(65 + index)}</span>
+                          <span className="fc-mcq-text">{option}</span>
+                          {showAnswer && isCorrect && <span className="fc-mcq-icon">{Icons.check}</span>}
+                          {showAnswer && isSelected && !isCorrect && <span className="fc-mcq-icon">{Icons.x}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                <div className="fc-response-btns">
-                  <button className="fc-response-btn incorrect" onClick={() => handleStudyResponse('incorrect')}>
-                    {Icons.x}
-                    <span>Needs Review</span>
-                  </button>
-                  <button className="fc-response-btn skip" onClick={() => handleStudyResponse('skipped')}>
-                    {Icons.arrowRight}
-                    <span>Skip</span>
-                  </button>
-                  <button className="fc-response-btn correct" onClick={() => handleStudyResponse('correct')}>
-                    {Icons.check}
-                    <span>Got It!</span>
-                  </button>
+                  {showAnswer && (
+                    <button className="fc-next-question-btn" onClick={handleNextMCQ}>
+                      {currentCard < currentStudyCards.length - 1 ? 'Next Question' : 'Finish'}
+                    </button>
+                  )}
                 </div>
               </div>
             </>
@@ -680,9 +853,6 @@ const Flashcards = () => {
               <header className="fc-header">
                 <div className="fc-header-left">
                   <h1 className="fc-header-title">My Flashcards</h1>
-                  <p className="fc-header-subtitle">
-                    {flashcardHistory.length} {flashcardHistory.length === 1 ? 'set' : 'sets'} • {flashcardStats?.total_cards || 0} cards total
-                  </p>
                 </div>
                 <div className="fc-header-actions">
                   <div className="fc-search">
@@ -709,6 +879,12 @@ const Flashcards = () => {
                 </div>
               </header>
 
+              <div className="fc-stats-bar">
+                <p className="fc-stats-text">
+                  {flashcardHistory.length} {flashcardHistory.length === 1 ? 'set' : 'sets'} • {flashcardStats?.total_cards || 0} cards total
+                </p>
+              </div>
+
               <div className="fc-content">
                 {loadingHistory ? (
                   <div className="fc-loading">
@@ -726,55 +902,89 @@ const Flashcards = () => {
                   </div>
                 ) : (
                   <div className="fc-grid">
-                    {getFilteredAndSortedSets().map((set) => {
+                    {getFilteredAndSortedSets().map((set, index) => {
                       const mastery = getMasteryLevel(set.accuracy_percentage || 0);
+                      // Generate different colors for each set
+                      const colors = [
+                        '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+                        '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788'
+                      ];
+                      const cardColor = colors[index % colors.length];
+                      
                       return (
-                        <div key={set.id} className="fc-set-card">
-                          <div className="fc-set-header">
-                            <div className="fc-set-icon" style={{ background: `${mastery.color}22`, color: mastery.color }}>
-                              {Icons.cards}
+                        <div key={set.id} className="fc-set-card-new">
+                          {/* Colored Thumbnail with Title */}
+                          <div className="fc-set-thumbnail" style={{ background: `linear-gradient(135deg, ${cardColor} 0%, ${cardColor}dd 100%)` }}>
+                            <div className="fc-set-thumbnail-content">
+                              {editingSetId === set.id ? (
+                                <input
+                                  type="text"
+                                  className="fc-input-title-thumb"
+                                  value={editingTitle}
+                                  onChange={(e) => setEditingTitle(e.target.value)}
+                                  onKeyDown={(e) => e.key === 'Enter' && handleRenameSubmit(set.id)}
+                                  onBlur={() => handleRenameSubmit(set.id)}
+                                  autoFocus
+                                />
+                              ) : (
+                                <h2 className="fc-thumbnail-title">{set.title.replace(/^Flashcards:\s*/i, '')}</h2>
+                              )}
                             </div>
-                            <div className="fc-set-menu">
-                              <button className="fc-set-menu-btn" onClick={() => { setEditingSetId(set.id); setEditingTitle(set.title); }}>
-                                {Icons.edit}
-                              </button>
-                              <button className="fc-set-menu-btn delete" onClick={() => deleteFlashcardSet(set.id)}>
-                                {Icons.trash}
-                              </button>
+                            <button 
+                              className="fc-delete-btn-thumb" 
+                              onClick={() => deleteFlashcardSet(set.id)} 
+                              title="Delete"
+                              style={{ 
+                                background: 'rgba(0, 0, 0, 0.3)',
+                                borderColor: 'rgba(0, 0, 0, 0.5)',
+                                color: 'white'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.6)';
+                                e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.8)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.3)';
+                                e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.5)';
+                              }}
+                            >
+                              {Icons.trash}
+                            </button>
+                          </div>
+
+                          {/* Content Section */}
+                          <div className="fc-set-content-new">
+                            <div className="fc-set-meta-new">
+                              <div className="fc-meta-item-new">
+                                <span className="fc-meta-label">Cards:</span>
+                                <span className="fc-meta-value">{set.card_count}</span>
+                              </div>
                             </div>
+                            
+                            <div className="fc-mastery-section">
+                              <div className="fc-mastery-info">
+                                <span className="fc-mastery-label">Mastery:</span>
+                                <span className="fc-mastery-value" style={{ color: mastery.color }}>{mastery.level}</span>
+                              </div>
+                              <div className="fc-set-progress-new">
+                                <div className="fc-set-progress-fill-new" style={{ width: `${set.accuracy_percentage || 0}%`, background: mastery.color }} />
+                              </div>
+                              <span className="fc-mastery-percentage">{set.accuracy_percentage || 0}%</span>
+                            </div>
+                            
+                            <p className="fc-set-date-new">Created: {formatDate(set.created_at)}</p>
                           </div>
-                          
-                          {editingSetId === set.id ? (
-                            <input
-                              type="text"
-                              className="fc-input"
-                              value={editingTitle}
-                              onChange={(e) => setEditingTitle(e.target.value)}
-                              onKeyDown={(e) => e.key === 'Enter' && handleRenameSubmit(set.id)}
-                              onBlur={() => handleRenameSubmit(set.id)}
-                              autoFocus
-                            />
-                          ) : (
-                            <h3 className="fc-set-title">{set.title}</h3>
-                          )}
-                          
-                          <div className="fc-set-meta">
-                            <span className="fc-set-meta-item">{Icons.file} {set.card_count} cards</span>
-                            <span className="fc-set-meta-item">{Icons.calendar} {formatDate(set.created_at)}</span>
-                          </div>
-                          
-                          <div className="fc-set-progress">
-                            <div className="fc-set-progress-fill" style={{ width: `${set.accuracy_percentage || 0}%`, background: mastery.color }} />
-                          </div>
-                          
-                          <div className="fc-set-stats">
-                            <span className="fc-set-mastery" style={{ color: mastery.color }}>{mastery.level}</span>
-                            <span className="fc-set-accuracy">{set.accuracy_percentage || 0}% mastery</span>
-                          </div>
-                          
-                          <div className="fc-set-actions">
-                            <button className="fc-set-btn preview" onClick={() => loadFlashcardSet(set.id, false)}>Preview</button>
-                            <button className="fc-set-btn study" onClick={() => loadFlashcardSet(set.id, true)}>{Icons.play} Study</button>
+
+                          {/* Actions */}
+                          <div className="fc-set-actions-new">
+                            <button className="fc-action-btn-new fc-action-preview" onClick={() => loadFlashcardSet(set.id, 'preview')}>
+                              {Icons.eye}
+                              <span>Preview</span>
+                            </button>
+                            <button className="fc-action-btn-new fc-action-study" onClick={() => loadFlashcardSet(set.id, 'study')}>
+                              {Icons.play}
+                              <span>Study</span>
+                            </button>
                           </div>
                         </div>
                       );
@@ -789,10 +999,10 @@ const Flashcards = () => {
           {/* Generator Panel */}
           {activePanel === 'generator' && (
             <>
-              <header className="fc-header">
-                <div className="fc-header-left">
+              <header className="fc-header fc-header-centered">
+                <div className="fc-header-title-group">
                   <h1 className="fc-header-title">Generate Flashcards</h1>
-                  <p className="fc-header-subtitle">Create AI-powered flashcards from topics or chat history</p>
+                  <p className="fc-header-subtitle-inline">Create AI-powered flashcards from topics or chat history</p>
                 </div>
               </header>
 
@@ -936,57 +1146,6 @@ const Flashcards = () => {
                   >
                     {generating ? 'Generating...' : <>{Icons.sparkle} Generate {cardCount} Flashcards</>}
                   </button>
-
-                  {/* Preview Section */}
-                  {flashcards.length > 0 && (
-                    <div className="fc-preview">
-                      <div className="fc-preview-header">
-                        <div className="fc-preview-title">
-                          {Icons.eye} Preview: {currentSetInfo?.setTitle || 'Generated Cards'}
-                        </div>
-                        <span className="fc-preview-counter">{currentCard + 1} / {flashcards.length}</span>
-                      </div>
-
-                      <div className="fc-preview-card-area">
-                        <button className="fc-preview-nav" onClick={handlePrevious} disabled={currentCard === 0}>‹</button>
-                        
-                        <div 
-                          className={`fc-preview-card ${isFlipped ? 'flipped' : ''}`}
-                          onClick={() => setIsFlipped(!isFlipped)}
-                        >
-                          <div className="fc-preview-card-inner">
-                            <div className="fc-preview-card-front">
-                              <div className="fc-card-label">Question</div>
-                              <div className="fc-card-text">{flashcards[currentCard]?.question}</div>
-                              <div className="fc-flip-hint">Click to flip</div>
-                            </div>
-                            <div className="fc-preview-card-back">
-                              <div className="fc-card-label">Answer</div>
-                              <div className="fc-card-text">{flashcards[currentCard]?.answer}</div>
-                              <div className="fc-flip-hint">Click to flip back</div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <button className="fc-preview-nav" onClick={handleNext} disabled={currentCard === flashcards.length - 1}>›</button>
-                      </div>
-
-                      <div className="fc-preview-actions">
-                        <button 
-                          className="fc-btn fc-btn-primary"
-                          onClick={() => {
-                            setStudySessionStats({ correct: 0, incorrect: 0, skipped: 0 });
-                            setShowStudyResults(false);
-                            setShuffledCards(studySettings.shuffle ? [...flashcards].sort(() => Math.random() - 0.5) : flashcards);
-                            setStudyMode(true);
-                            updateStreak();
-                          }}
-                        >
-                          {Icons.play} Start Studying
-                        </button>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </>
