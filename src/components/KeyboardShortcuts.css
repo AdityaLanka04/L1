@@ -1,3 +1,10 @@
+/* ==================== FORCE BOXY DESIGN ==================== */
+.shortcuts-overlay *,
+.shortcuts-overlay *::before,
+.shortcuts-overlay *::after {
+  border-radius: 0 !important;
+}
+
 /* Keyboard Shortcuts Modal */
 .shortcuts-overlay {
   position: fixed;

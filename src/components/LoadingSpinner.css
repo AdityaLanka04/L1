@@ -1,3 +1,10 @@
+/* ==================== FORCE BOXY DESIGN ==================== */
+.loading-spinner-overlay *,
+.loading-spinner-overlay *::before,
+.loading-spinner-overlay *::after {
+  border-radius: 0 !important;
+}
+
 /* Loading Spinner - Scoped to avoid conflicts */
 .loading-spinner-overlay {
   position: fixed !important;

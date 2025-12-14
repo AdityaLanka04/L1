@@ -1,3 +1,10 @@
+/* ==================== FORCE BOXY DESIGN ==================== */
+.proactive-notif *,
+.proactive-notif *::before,
+.proactive-notif *::after {
+  border-radius: 0 !important;
+}
+
 /* Proactive Notification - Fixed Height with Scroll */
 .proactive-notif {
   position: fixed;

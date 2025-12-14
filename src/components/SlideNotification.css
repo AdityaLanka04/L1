@@ -1,3 +1,10 @@
+/* ==================== FORCE BOXY DESIGN ==================== */
+.slide-notif *,
+.slide-notif *::before,
+.slide-notif *::after {
+  border-radius: 0 !important;
+}
+
 /* Slide Notification - Push notification style */
 .slide-notif {
   position: fixed;

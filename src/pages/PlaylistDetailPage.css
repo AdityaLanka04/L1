@@ -1,3 +1,10 @@
+/* ==================== FORCE BOXY DESIGN ==================== */
+.playlist-detail-container *,
+.playlist-detail-container *::before,
+.playlist-detail-container *::after {
+  border-radius: 0 !important;
+}
+
 /* ==================== LAYOUT ==================== */
 
 .playlist-detail-container {

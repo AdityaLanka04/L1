@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Target, Clock, BookOpen, Zap, TrendingUp, Play } from 'lucide-react';
+import { Target, BookOpen, Zap, TrendingUp, Play } from 'lucide-react';
 import './SoloQuiz.css';
 import { API_URL } from '../config';
 
@@ -48,44 +48,45 @@ const SoloQuiz = () => {
   };
 
   return (
-    <div className="solo-quiz-page">
-      <header className="solo-header">
-        <div className="solo-header-left">
-          <h1 className="solo-logo">cerbyl</h1>
-          <span className="solo-subtitle">SOLO PRACTICE</span>
+    <div className="sq-page">
+      <header className="sq-header">
+        <div className="sq-header-left">
+          <h1 className="sq-logo">cerbyl</h1>
+          <span className="sq-subtitle">SOLO PRACTICE</span>
         </div>
-        <div className="solo-header-right">
-          <button className="solo-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
+        <div className="sq-header-right">
+          <button className="sq-nav-btn" onClick={() => navigate('/social')}>Back to Social</button>
+          <button className="sq-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
         </div>
       </header>
 
-      <div className="solo-container">
-        <div className="solo-welcome">
-          <div className="solo-welcome-content">
-            <BookOpen size={48} className="solo-icon" />
-            <h2 className="solo-title">Practice Solo</h2>
-            <p className="solo-description">
+      <div className="sq-content">
+        <div className="sq-welcome">
+          <div className="sq-welcome-inner">
+            <BookOpen size={48} className="sq-icon" />
+            <h2 className="sq-title">Practice Solo</h2>
+            <p className="sq-desc">
               Test your knowledge with AI-generated quizzes. Choose your subject, difficulty, and start learning!
             </p>
           </div>
-          <button className="start-quiz-btn" onClick={() => setShowCreateModal(true)}>
+          <button className="sq-start-btn" onClick={() => setShowCreateModal(true)}>
             <Play size={20} />
             <span>Start New Quiz</span>
           </button>
         </div>
 
-        <div className="solo-features">
-          <div className="feature-card">
+        <div className="sq-features">
+          <div className="sq-feature-card">
             <Target size={32} />
             <h3>Personalized</h3>
             <p>Choose your subject and difficulty level</p>
           </div>
-          <div className="feature-card">
+          <div className="sq-feature-card">
             <Zap size={32} />
             <h3>Instant Feedback</h3>
             <p>See correct answers and explanations</p>
           </div>
-          <div className="feature-card">
+          <div className="sq-feature-card">
             <TrendingUp size={32} />
             <h3>Track Progress</h3>
             <p>Monitor your learning journey</p>
@@ -94,15 +95,15 @@ const SoloQuiz = () => {
       </div>
 
       {showCreateModal && (
-        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
+        <div className="sq-modal-overlay" onClick={() => setShowCreateModal(false)}>
+          <div className="sq-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="sq-modal-header">
               <h3>Create Solo Quiz</h3>
-              <button className="modal-close" onClick={() => setShowCreateModal(false)}>×</button>
+              <button className="sq-modal-close" onClick={() => setShowCreateModal(false)}>×</button>
             </div>
 
-            <form onSubmit={handleStartQuiz} className="quiz-form">
-              <div className="form-group">
+            <form onSubmit={handleStartQuiz} className="sq-form">
+              <div className="sq-form-group">
                 <label>Subject</label>
                 <input
                   type="text"
@@ -113,7 +114,7 @@ const SoloQuiz = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="sq-form-group">
                 <label>Difficulty</label>
                 <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
                   <option value="beginner">Beginner</option>
@@ -122,7 +123,7 @@ const SoloQuiz = () => {
                 </select>
               </div>
 
-              <div className="form-group">
+              <div className="sq-form-group">
                 <label>Number of Questions</label>
                 <input
                   type="number"
@@ -134,7 +135,7 @@ const SoloQuiz = () => {
                 />
               </div>
 
-              <button type="submit" className="submit-quiz-btn">
+              <button type="submit" className="sq-submit-btn">
                 <Play size={16} />
                 <span>Start Quiz</span>
               </button>

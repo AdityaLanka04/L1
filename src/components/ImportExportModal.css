@@ -1,3 +1,10 @@
+/* ==================== FORCE BOXY DESIGN ==================== */
+.import-export-overlay *,
+.import-export-overlay *::before,
+.import-export-overlay *::after {
+  border-radius: 0 !important;
+}
+
 /* CSS Variables for ImportExportModal */
 .import-export-overlay {
   --surface: #1a1a1a;

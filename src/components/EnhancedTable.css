@@ -1,3 +1,10 @@
+/* ==================== FORCE BOXY DESIGN ==================== */
+.enhanced-table-wrapper *,
+.enhanced-table-wrapper *::before,
+.enhanced-table-wrapper *::after {
+  border-radius: 0 !important;
+}
+
 .enhanced-table-wrapper {
   margin: 16px 0;
   border: 1px solid var(--border);

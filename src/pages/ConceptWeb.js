@@ -756,250 +756,222 @@ const ConceptWeb = () => {
     setNodePositions(initializeNodePositions(concepts));
   };
 
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Icons for sidebar
+  const Icons = {
+    network: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><line x1="12" y1="8" x2="5" y2="16"/><line x1="12" y1="8" x2="19" y2="16"/></svg>,
+    grid: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
+    chart: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>,
+    home: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+    chat: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+    logout: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+  };
+
   return (
-    <div className={`concept-web-page ${isFullscreen ? 'fullscreen' : ''} ${fadeIn ? 'fade-in' : ''}`}>
-      {/* Ethereal Header */}
-      <header className="concept-web-header-ethereal">
-        <div className="header-left">
-          <button className="back-btn-ethereal" onClick={() => navigate('/dashboard')}>
-            <ArrowLeft size={16} />
-            <span>BACK</span>
-          </button>
-          <div className="header-title-section">
-            <h1 className="page-title-ethereal">CONCEPT WEB</h1>
-            <p className="page-subtitle-ethereal">Your Knowledge Universe</p>
+    <div className={`concept-web-page ${isFullscreen ? 'fullscreen' : ''}`}>
+      <div className="cw-layout">
+        {/* Sidebar */}
+        <aside className={`cw-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+          <div className="cw-sidebar-header">
+            <div className="cw-logo" onClick={() => navigate('/dashboard')}>
+              <div className="cw-logo-icon">
+                <Brain size={22} />
+              </div>
+              <span className="cw-logo-text">cerbyl</span>
+            </div>
+            <button className="cw-collapse-btn" onClick={() => setSidebarCollapsed(!sidebarCollapsed)}>
+              {sidebarCollapsed ? '›' : '‹'}
+            </button>
           </div>
-        </div>
-        <div className="header-right-ethereal">
-          {concepts.length > 0 && (
-            <>
-              <div className="stats-mini">
-                <div className="stat-mini">
-                  <span className="stat-mini-value">{getStats().totalConcepts}</span>
-                  <span className="stat-mini-label">Concepts</span>
+
+          <nav className="cw-sidebar-nav">
+            <button className={`cw-nav-item ${viewMode === 'network' ? 'active' : ''}`} onClick={() => setViewMode('network')}>
+              <span className="cw-nav-icon">{Icons.network}</span>
+              <span className="cw-nav-text">Network View</span>
+            </button>
+            <button className={`cw-nav-item ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')}>
+              <span className="cw-nav-icon">{Icons.grid}</span>
+              <span className="cw-nav-text">Grid View</span>
+            </button>
+            <button className={`cw-nav-item ${showAnalytics ? 'active' : ''}`} onClick={() => setShowAnalytics(!showAnalytics)}>
+              <span className="cw-nav-icon">{Icons.chart}</span>
+              <span className="cw-nav-text">Analytics</span>
+            </button>
+          </nav>
+
+          <div className="cw-sidebar-footer">
+            <button className="cw-nav-item" onClick={() => navigate('/dashboard')}>
+              <span className="cw-nav-icon">{Icons.home}</span>
+              <span className="cw-nav-text">Dashboard</span>
+            </button>
+            <button className="cw-nav-item" onClick={() => navigate('/ai-chat')}>
+              <span className="cw-nav-icon">{Icons.chat}</span>
+              <span className="cw-nav-text">AI Chat</span>
+            </button>
+            <button className="cw-nav-item" onClick={() => { localStorage.clear(); navigate('/login'); }}>
+              <span className="cw-nav-icon">{Icons.logout}</span>
+              <span className="cw-nav-text">Logout</span>
+            </button>
+          </div>
+        </aside>
+
+        {/* Show Sidebar Button */}
+        {sidebarCollapsed && (
+          <button className="cw-show-sidebar-btn" onClick={() => setSidebarCollapsed(false)} title="Show Sidebar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+              <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
+        )}
+
+        {/* Main Content */}
+        <main className="cw-main">
+          <header className="cw-header">
+            <div className="cw-header-left">
+              <h1 className="cw-header-title">Concept Web</h1>
+              <p className="cw-header-subtitle">Your Knowledge Universe</p>
+            </div>
+            <div className="cw-header-actions">
+              {concepts.length > 0 && (
+                <div className="cw-stats-bar">
+                  <div className="cw-stat-mini">
+                    <span className="cw-stat-value">{getStats().totalConcepts}</span>
+                    <span className="cw-stat-label">Concepts</span>
+                  </div>
+                  <div className="cw-stat-mini">
+                    <span className="cw-stat-value">{getStats().totalConnections}</span>
+                    <span className="cw-stat-label">Links</span>
+                  </div>
+                  <div className="cw-stat-mini">
+                    <span className="cw-stat-value">{getStats().avgMastery}%</span>
+                    <span className="cw-stat-label">Mastery</span>
+                  </div>
                 </div>
-                <div className="stat-mini">
-                  <span className="stat-mini-value">{getStats().totalConnections}</span>
-                  <span className="stat-mini-label">Links</span>
+              )}
+              {viewMode === 'network' && concepts.length > 0 && (
+                <>
+                  <button className="cw-icon-btn" onClick={resetPositions} title="Reset Layout">
+                    <Move size={18} />
+                  </button>
+                  <button className="cw-icon-btn" onClick={toggleFullscreen} title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}>
+                    {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                  </button>
+                </>
+              )}
+              <button className="cw-icon-btn" onClick={exportData} title="Export">
+                <Download size={18} />
+              </button>
+              <button 
+                className="cw-icon-btn" 
+                onClick={async () => {
+                  if (!window.confirm('Regenerate concept web from your latest content?')) return;
+                  setGenerating(true);
+                  const token = localStorage.getItem('token');
+                  try {
+                    await fetch(`${API_URL}/generate_concept_web`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                      body: JSON.stringify({ user_id: userName })
+                    });
+                    await loadConceptWeb(userName, false);
+                  } finally {
+                    setGenerating(false);
+                  }
+                }}
+                title="Regenerate"
+                disabled={generating}
+              >
+                {generating ? <Loader size={18} className="cw-spinner" /> : <RefreshCw size={18} />}
+              </button>
+              <button className="cw-btn cw-btn-primary" onClick={() => setShowAddModal(true)}>
+                <Plus size={16} />
+                <span>Add Concept</span>
+              </button>
+            </div>
+          </header>
+
+          <div className="cw-content" ref={containerRef}>
+            {loading && initialLoad ? (
+              <div className="cw-loading">
+                <Loader size={32} className="cw-spinner" />
+                <p className="cw-loading-text">Loading your knowledge universe...</p>
+              </div>
+            ) : concepts.length === 0 ? (
+              <div className="cw-empty">
+                <div className="cw-empty-icon">
+                  <Brain size={48} />
                 </div>
-                <div className="stat-mini">
-                  <span className="stat-mini-value">{getStats().avgMastery}%</span>
-                  <span className="stat-mini-label">Mastery</span>
+                <h3 className="cw-empty-title">No Concepts Yet</h3>
+                <p className="cw-empty-text">Start building your knowledge web by adding concepts or generating from your content</p>
+                <div className="cw-empty-actions">
+                  <button className="cw-btn cw-btn-primary" onClick={() => setShowAddModal(true)}>
+                    <Plus size={18} />
+                    Add Concept
+                  </button>
                 </div>
               </div>
-              <div className="header-divider"></div>
-            </>
-          )}
-          <button 
-            className="icon-btn-ethereal" 
-            onClick={() => setViewMode(viewMode === 'grid' ? 'network' : 'grid')}
-            title={viewMode === 'grid' ? 'Network View' : 'Grid View'}
-          >
-            {viewMode === 'grid' ? <Network size={18} /> : <Grid size={18} />}
-          </button>
-          {viewMode === 'network' && concepts.length > 0 && (
-            <>
-              <button 
-                className="icon-btn-ethereal" 
-                onClick={resetPositions}
-                title="Reset Layout"
-              >
-                <Move size={18} />
-              </button>
-              <button 
-                className="icon-btn-ethereal" 
-                onClick={toggleFullscreen}
-                title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-              >
-                {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-              </button>
-            </>
-          )}
-          <button className="icon-btn-ethereal" onClick={() => setShowAnalytics(!showAnalytics)} title="Analytics">
-            <BarChart3 size={18} />
-          </button>
-          <button className="icon-btn-ethereal" onClick={exportData} title="Export">
-            <Download size={18} />
-          </button>
-          <button 
-            className="icon-btn-ethereal" 
-            onClick={async () => {
-              if (!window.confirm('Regenerate concept web from your latest content? This will update all concepts and connections.')) return;
-              
-              setGenerating(true);
-              const token = localStorage.getItem('token');
-              
-              try {
-                // Regenerate from content
-                await fetch(`${API_URL}/generate_concept_web`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                  },
-                  body: JSON.stringify({ user_id: userName })
-                });
-                
-                // Reload to show updated concepts
-                await loadConceptWeb(userName, false);
-              } finally {
-                setGenerating(false);
-              }
-            }}
-            title="Regenerate from Content"
-            disabled={generating}
-          >
-            {generating ? <Loader size={18} className="spinner" /> : <RefreshCw size={18} />}
-          </button>
-          <button className="add-btn-ethereal" onClick={() => setShowAddModal(true)}>
-            <Plus size={16} />
-            <span>ADD</span>
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content Area */}
-      <div className={`concept-web-container-ethereal ${isFullscreen ? 'fullscreen-container' : ''}`} ref={containerRef}>
-        {loading && initialLoad ? (
-          <div className="loading-state-ethereal">
-            <div className="loading-animation">
-              <div className="loading-circle"></div>
-              <div className="loading-circle"></div>
-              <div className="loading-circle"></div>
-            </div>
-            <h3 className="loading-title">Loading Your Map</h3>
-            <p className="loading-subtitle">Preparing your knowledge universe...</p>
-          </div>
-        ) : concepts.length === 0 ? (
-          <div className="empty-state-ethereal">
-            <div className="empty-icon-container">
-              <Brain size={80} />
-            </div>
-            <h3>No Concepts Yet</h3>
-            <p>Start building your knowledge web by adding concepts or generating from your content</p>
-            <div className="empty-actions">
-              <button className="empty-action-btn secondary" onClick={() => setShowAddModal(true)}>
-                <Plus size={18} />
-                Add Manually
-              </button>
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* Analytics Panel */}
-            {showAnalytics && (
-              <div className="analytics-panel-ethereal">
-                <div className="analytics-header-ethereal">
-                  <h3>ANALYTICS DASHBOARD</h3>
-                  <button className="close-btn-ethereal" onClick={() => setShowAnalytics(false)}>×</button>
-                </div>
-                <div className="analytics-grid-ethereal">
-                  <div className="analytics-card-ethereal">
-                    <div className="analytics-card-header">
-                      <Target size={20} />
-                      <h4>MASTERY DISTRIBUTION</h4>
+            ) : (
+              <>
+                {/* Analytics Panel */}
+                {showAnalytics && (
+                  <div className="cw-analytics-panel">
+                    <div className="cw-analytics-header">
+                      <h3 className="cw-analytics-title">Analytics</h3>
+                      <button className="cw-detail-close" onClick={() => setShowAnalytics(false)}>×</button>
                     </div>
-                    <div className="mastery-bars-ethereal">
-                      <div className="mastery-bar-item-ethereal">
-                        <span className="mastery-label-ethereal">BEGINNER</span>
-                        <div className="mastery-bar-bg-ethereal">
-                          <div 
-                            className="mastery-bar-fill-ethereal beginner"
-                            style={{ width: `${(getStats().masteryDistribution.beginner / concepts.length) * 100}%` }}
-                          ></div>
+                    <div className="cw-analytics-content">
+                      <div className="cw-analytics-grid">
+                        <div className="cw-analytics-card">
+                          <span className="cw-analytics-value">{getStats().totalConcepts}</span>
+                          <span className="cw-analytics-label">Concepts</span>
                         </div>
-                        <span className="mastery-count-ethereal">{getStats().masteryDistribution.beginner}</span>
-                      </div>
-                      <div className="mastery-bar-item-ethereal">
-                        <span className="mastery-label-ethereal">INTERMEDIATE</span>
-                        <div className="mastery-bar-bg-ethereal">
-                          <div 
-                            className="mastery-bar-fill-ethereal intermediate"
-                            style={{ width: `${(getStats().masteryDistribution.intermediate / concepts.length) * 100}%` }}
-                          ></div>
+                        <div className="cw-analytics-card">
+                          <span className="cw-analytics-value">{getStats().totalConnections}</span>
+                          <span className="cw-analytics-label">Links</span>
                         </div>
-                        <span className="mastery-count-ethereal">{getStats().masteryDistribution.intermediate}</span>
-                      </div>
-                      <div className="mastery-bar-item-ethereal">
-                        <span className="mastery-label-ethereal">ADVANCED</span>
-                        <div className="mastery-bar-bg-ethereal">
-                          <div 
-                            className="mastery-bar-fill-ethereal advanced"
-                            style={{ width: `${(getStats().masteryDistribution.advanced / concepts.length) * 100}%` }}
-                          ></div>
+                        <div className="cw-analytics-card">
+                          <span className="cw-analytics-value">{getStats().avgMastery}%</span>
+                          <span className="cw-analytics-label">Avg Mastery</span>
                         </div>
-                        <span className="mastery-count-ethereal">{getStats().masteryDistribution.advanced}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="analytics-card-ethereal">
-                    <div className="analytics-card-header">
-                      <Zap size={20} />
-                      <h4>MOST CONNECTED</h4>
-                    </div>
-                    {getStats().mostConnected?.concept ? (
-                      <div className="highlight-concept-ethereal">
-                        <h5>{getStats().mostConnected.concept.concept_name}</h5>
-                        <p className="highlight-category">{getStats().mostConnected.concept.category}</p>
-                        <div className="highlight-stat">
-                          <LinkIcon size={16} />
-                          <span>{getStats().mostConnected.count} connections</span>
-                        </div>
-                        <button 
-                          className="view-btn-ethereal"
-                          onClick={() => {
-                            setSelectedNode(getStats().mostConnected.concept);
-                            setShowAnalytics(false);
-                          }}
-                        >
-                          VIEW DETAILS
-                        </button>
-                      </div>
-                    ) : (
-                      <p className="no-data">No connections yet</p>
-                    )}
-                  </div>
-
-                  <div className="analytics-card-ethereal">
-                    <div className="analytics-card-header">
-                      <BookOpen size={20} />
-                      <h4>CONTENT OVERVIEW</h4>
-                    </div>
-                    <div className="content-stats-ethereal">
-                      <div className="content-stat-item-ethereal">
-                        <FileText size={28} />
-                        <div>
-                          <span className="content-number-ethereal">{concepts.reduce((sum, c) => sum + c.notes_count, 0)}</span>
-                          <span className="content-label-ethereal">NOTES</span>
+                        <div className="cw-analytics-card">
+                          <span className="cw-analytics-value">{getStats().categories}</span>
+                          <span className="cw-analytics-label">Categories</span>
                         </div>
                       </div>
-                      <div className="content-stat-item-ethereal">
-                        <Brain size={28} />
-                        <div>
-                          <span className="content-number-ethereal">{concepts.reduce((sum, c) => sum + c.quizzes_count, 0)}</span>
-                          <span className="content-label-ethereal">QUIZZES</span>
+                      <div className="cw-mastery-distribution">
+                        <div className="cw-mastery-item">
+                          <span className="cw-mastery-label">Beginner</span>
+                          <div className="cw-mastery-bar-container">
+                            <div className="cw-mastery-bar-fill beginner" style={{ width: `${(getStats().masteryDistribution.beginner / concepts.length) * 100}%` }}></div>
+                          </div>
+                          <span className="cw-mastery-count">{getStats().masteryDistribution.beginner}</span>
                         </div>
-                      </div>
-                      <div className="content-stat-item-ethereal">
-                        <BookOpen size={28} />
-                        <div>
-                          <span className="content-number-ethereal">{concepts.reduce((sum, c) => sum + c.flashcards_count, 0)}</span>
-                          <span className="content-label-ethereal">FLASHCARDS</span>
+                        <div className="cw-mastery-item">
+                          <span className="cw-mastery-label">Intermediate</span>
+                          <div className="cw-mastery-bar-container">
+                            <div className="cw-mastery-bar-fill intermediate" style={{ width: `${(getStats().masteryDistribution.intermediate / concepts.length) * 100}%` }}></div>
+                          </div>
+                          <span className="cw-mastery-count">{getStats().masteryDistribution.intermediate}</span>
+                        </div>
+                        <div className="cw-mastery-item">
+                          <span className="cw-mastery-label">Advanced</span>
+                          <div className="cw-mastery-bar-container">
+                            <div className="cw-mastery-bar-fill advanced" style={{ width: `${(getStats().masteryDistribution.advanced / concepts.length) * 100}%` }}></div>
+                          </div>
+                          <span className="cw-mastery-count">{getStats().masteryDistribution.advanced}</span>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            )}
+                )}
 
-            {/* View Mode: Network or Grid */}
-            {viewMode === 'network' ? (
-              <div className={`network-view-ethereal ${selectedNode ? 'with-sidebar' : ''}`}>
-                <svg 
-                  ref={svgRef}
-                  className="network-svg-ethereal" 
+                {/* View Mode: Network or Grid */}
+                {viewMode === 'network' ? (
+                  <div className="cw-network-container">
+                        <svg 
+                      ref={svgRef}
+                      className="cw-network-svg" 
                   viewBox={`${50 - (50 / zoomLevel) + panOffset.x} ${50 - (50 / zoomLevel) + panOffset.y} ${100 / zoomLevel} ${100 / zoomLevel}`}
                   preserveAspectRatio="xMidYMid meet"
                   onMouseDown={handlePanStart}
@@ -1358,279 +1330,233 @@ const ConceptWeb = () => {
                   )}
                 </div>
               </div>
-            ) : (
-              // Grid View
-              <div className="grid-view-ethereal">
-                {/* Search and Filters */}
-                <div className="controls-bar-ethereal">
-                  <div className="search-box-ethereal">
-                    <Search size={16} />
-                    <input
-                      type="text"
-                      placeholder="Search concepts..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="filter-group-ethereal">
-                    <label>CATEGORY</label>
-                    <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
-                      {getCategories().map(cat => (
-                        <option key={cat} value={cat}>{cat === 'all' ? 'All' : cat}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="filter-group-ethereal">
-                    <label>SORT</label>
-                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                      <option value="name">Name</option>
-                      <option value="mastery">Mastery</option>
-                      <option value="connections">Connections</option>
-                      <option value="content">Content</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Concept Cards Grid */}
-                <div className="concepts-grid-ethereal">
-                  {getFilteredAndSortedConcepts().map((concept, index) => {
-                    const connectedConcepts = getConnectedConcepts(concept.id);
-                    const totalContent = concept.notes_count + concept.quizzes_count + concept.flashcards_count;
-                    const isSelected = selectedNode?.id === concept.id;
-
-                    return (
-                      <div 
-                        key={concept.id}
-                        className={`concept-card-ethereal ${isSelected ? 'selected' : ''}`}
-                        onClick={() => setSelectedNode(concept)}
-                        style={{ 
-                          animationDelay: `${index * 0.05}s`,
-                          borderLeftColor: getMasteryColor(concept.mastery_level)
-                        }}
-                      >
-                        {/* Top Half - Topic */}
-                        <div className="card-top-half" style={{ background: `linear-gradient(135deg, ${getCategoryColor(concept.category)}15, ${getCategoryColor(concept.category)}05)` }}>
-                          <h3 className="card-title-poster">{concept.concept_name}</h3>
-                          {concept.description && (
-                            <p className="card-description-poster">{concept.description}</p>
-                          )}
-                        </div>
-
-                        {/* Bottom Half - Stats */}
-                        <div className="card-bottom-half">
-                          <div className="card-category-badge">{concept.category}</div>
-                          <div className="card-mastery-display">
-                            <span className="mastery-label-poster">MASTERY</span>
-                            <span className="mastery-value-poster" style={{ color: getMasteryColor(concept.mastery_level) }}>
-                              {Math.round(concept.mastery_level * 100)}%
-                            </span>
-                          </div>
-                          
-                          <div className="card-stats-poster">
-                            <div className="stat-item-poster">
-                              <FileText size={14} />
-                              <span>{concept.notes_count} Notes</span>
-                            </div>
-                            <div className="stat-item-poster">
-                              <Brain size={14} />
-                              <span>{concept.quizzes_count} Quizzes</span>
-                            </div>
-                            <div className="stat-item-poster">
-                              <BookOpen size={14} />
-                              <span>{concept.flashcards_count} Cards</span>
-                            </div>
-                          </div>
-
-                          {connectedConcepts.length > 0 && (
-                            <div className="card-connections-poster">
-                              <LinkIcon size={12} />
-                              <span>{connectedConcepts.length} Connection{connectedConcepts.length !== 1 ? 's' : ''}</span>
-                            </div>
-                          )}
-                        </div>
+                ) : (
+                  // Grid View
+                  <div className="cw-grid-container">
+                    {/* Search and Filters */}
+                    <div className="cw-toolbar">
+                      <div className="cw-search">
+                        <span className="cw-search-icon"><Search size={16} /></span>
+                        <input
+                          type="text"
+                          placeholder="Search concepts..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                        />
                       </div>
-                    );
-                  })}
+                      
+                      <select className="cw-select" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+                        {getCategories().map(cat => (
+                          <option key={cat} value={cat}>{cat === 'all' ? 'All Categories' : cat}</option>
+                        ))}
+                      </select>
+
+                      <select className="cw-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                        <option value="name">Sort by Name</option>
+                        <option value="mastery">Sort by Mastery</option>
+                        <option value="connections">Sort by Connections</option>
+                        <option value="content">Sort by Content</option>
+                      </select>
+                    </div>
+
+                    {/* Concept Cards Grid */}
+                    <div className="cw-grid">
+                      {getFilteredAndSortedConcepts().map((concept) => {
+                        const connectedConcepts = getConnectedConcepts(concept.id);
+                        const isSelected = selectedNode?.id === concept.id;
+
+                        return (
+                          <div 
+                            key={concept.id}
+                            className={`cw-card ${isSelected ? 'selected' : ''}`}
+                            onClick={() => setSelectedNode(concept)}
+                          >
+                            <div className="cw-card-header">
+                              <div className="cw-card-icon">
+                                <Brain size={24} />
+                              </div>
+                              <div className="cw-card-actions">
+                                <button 
+                                  className="cw-card-action-btn delete"
+                                  onClick={(e) => { e.stopPropagation(); deleteConcept(concept.id); }}
+                                  title="Delete"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </div>
+                            <div className="cw-card-content">
+                              <h3 className="cw-card-title">{concept.concept_name}</h3>
+                              <span className="cw-card-category">{concept.category}</span>
+                              {concept.description && (
+                                <p className="cw-card-description">{concept.description}</p>
+                              )}
+                              <div className="cw-card-stats">
+                                <div className="cw-card-stat">
+                                  <span className="cw-card-stat-value">{Math.round(concept.mastery_level * 100)}%</span>
+                                  <span className="cw-card-stat-label">Mastery</span>
+                                </div>
+                                <div className="cw-card-stat">
+                                  <span className="cw-card-stat-value">{connectedConcepts.length}</span>
+                                  <span className="cw-card-stat-label">Links</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="cw-card-footer">
+                              <div className="cw-mastery-bar">
+                                <div className="cw-mastery-fill" style={{ width: `${concept.mastery_level * 100}%` }}></div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                 </div>
 
-                {getFilteredAndSortedConcepts().length === 0 && (
-                  <div className="no-results-ethereal">
-                    <Search size={48} />
-                    <p>No concepts match your search</p>
+                    {getFilteredAndSortedConcepts().length === 0 && (
+                      <div className="cw-empty">
+                        <Search size={48} />
+                        <p className="cw-empty-text">No concepts match your search</p>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
+              </>
             )}
-          </>
-        )}
-      </div>
-
-      {/* Detail Panel */}
-      {selectedNode && (
-        <div className="detail-panel-ethereal">
-          <div className="panel-header-ethereal">
-            <div className="panel-title-section">
-              <h3>{selectedNode.concept_name}</h3>
-              <span className="panel-category">{selectedNode.category}</span>
-            </div>
-            <button 
-              className="panel-close-btn" 
-              onClick={() => setSelectedNode(null)}
-              title="Close"
-            >
-              ×
-            </button>
           </div>
-          
-          <div className="panel-content-ethereal">
-              {/* Description */}
-              {selectedNode.description && (
-                <div className="panel-section">
-                  <label className="panel-label">DESCRIPTION</label>
-                  <p className="panel-text">{selectedNode.description}</p>
-                </div>
-              )}
 
-              {/* Mastery Level */}
-              <div className="panel-section">
-                <label className="panel-label">MASTERY LEVEL</label>
-                <div className="mastery-display-ethereal">
-                  <div className="mastery-bar-large-ethereal">
-                    <div 
-                      className="mastery-fill-ethereal" 
-                      style={{ 
-                        width: `${selectedNode.mastery_level * 100}%`,
-                        background: getMasteryColor(selectedNode.mastery_level)
-                      }}
-                    ></div>
+          {/* Detail Panel */}
+          {selectedNode && (
+            <div className="cw-detail-panel">
+              <div className="cw-detail-header">
+                <div>
+                  <h3 className="cw-detail-title">{selectedNode.concept_name}</h3>
+                  <span className="cw-detail-category">{selectedNode.category}</span>
+                </div>
+                <button className="cw-detail-close" onClick={() => setSelectedNode(null)}>×</button>
+              </div>
+              
+              <div className="cw-detail-content">
+                {selectedNode.description && (
+                  <div className="cw-detail-section">
+                    <h4 className="cw-detail-section-title">Description</h4>
+                    <p className="cw-detail-description">{selectedNode.description}</p>
                   </div>
-                  <span 
-                    className="mastery-percent-ethereal"
-                    style={{ color: getMasteryColor(selectedNode.mastery_level) }}
-                  >
+                )}
+
+                <div className="cw-detail-section">
+                  <h4 className="cw-detail-section-title">Mastery Level</h4>
+                  <div className="cw-mastery-bar">
+                    <div className="cw-mastery-fill" style={{ width: `${selectedNode.mastery_level * 100}%` }}></div>
+                  </div>
+                  <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--cw-accent)' }}>
                     {Math.round(selectedNode.mastery_level * 100)}%
                   </span>
                 </div>
-              </div>
 
-              {/* Content Generation */}
-              <div className="panel-section">
-                <label className="panel-label">GENERATE CONTENT</label>
-                <div className="content-generation-grid">
-                  <button 
-                    className={`gen-btn-ethereal ${generatingContent === 'notes' ? 'generating' : ''}`}
-                    onClick={() => generateConceptContent('notes')}
-                    disabled={generatingContent !== null}
-                  >
-                    <FileText size={18} />
-                    <div className="gen-btn-content">
-                      <span className="gen-btn-count">{selectedNode.notes_count}</span>
-                      <span className="gen-btn-label">NOTES</span>
+                <div className="cw-detail-section">
+                  <h4 className="cw-detail-section-title">Statistics</h4>
+                  <div className="cw-detail-stats-grid">
+                    <div className="cw-detail-stat">
+                      <span className="cw-detail-stat-value">{selectedNode.notes_count}</span>
+                      <span className="cw-detail-stat-label">Notes</span>
                     </div>
-                    {generatingContent === 'notes' ? (
-                      <Loader size={14} className="spinner" />
-                    ) : (
-                      <Sparkles size={14} className="gen-btn-icon" />
-                    )}
-                  </button>
-                  
-                  <button 
-                    className={`gen-btn-ethereal ${generatingContent === 'quiz' ? 'generating' : ''}`}
-                    onClick={() => generateConceptContent('quiz')}
-                    disabled={generatingContent !== null}
-                  >
-                    <Brain size={18} />
-                    <div className="gen-btn-content">
-                      <span className="gen-btn-count">{selectedNode.quizzes_count}</span>
-                      <span className="gen-btn-label">QUIZZES</span>
+                    <div className="cw-detail-stat">
+                      <span className="cw-detail-stat-value">{selectedNode.quizzes_count}</span>
+                      <span className="cw-detail-stat-label">Quizzes</span>
                     </div>
-                    {generatingContent === 'quiz' ? (
-                      <Loader size={14} className="spinner" />
-                    ) : (
-                      <Sparkles size={14} className="gen-btn-icon" />
-                    )}
-                  </button>
-                  
-                  <button 
-                    className={`gen-btn-ethereal ${generatingContent === 'flashcards' ? 'generating' : ''}`}
-                    onClick={() => generateConceptContent('flashcards')}
-                    disabled={generatingContent !== null}
-                  >
-                    <BookOpen size={18} />
-                    <div className="gen-btn-content">
-                      <span className="gen-btn-count">{selectedNode.flashcards_count}</span>
-                      <span className="gen-btn-label">FLASHCARDS</span>
+                    <div className="cw-detail-stat">
+                      <span className="cw-detail-stat-value">{selectedNode.flashcards_count}</span>
+                      <span className="cw-detail-stat-label">Flashcards</span>
                     </div>
-                    {generatingContent === 'flashcards' ? (
-                      <Loader size={14} className="spinner" />
-                    ) : (
-                      <Sparkles size={14} className="gen-btn-icon" />
-                    )}
-                  </button>
-                </div>
-                <div className="gen-hint-ethereal">
-                  <Zap size={12} />
-                  <span>Generate content to boost mastery by 10%</span>
-                </div>
-              </div>
-
-              {/* Connections */}
-              {getConnectedConcepts(selectedNode.id).length > 0 && (
-                <div className="panel-section">
-                  <label className="panel-label">CONNECTIONS</label>
-                  <div className="connections-list-ethereal">
-                    {getConnectedConcepts(selectedNode.id).map(conn => {
-                      const targetId = conn.source_id === selectedNode.id ? conn.target_id : conn.source_id;
-                      const targetConcept = concepts.find(c => c.id === targetId);
-                      if (!targetConcept) return null;
-                      
-                      return (
-                        <div 
-                          key={conn.id} 
-                          className="connection-item-ethereal"
-                          onClick={() => setSelectedNode(targetConcept)}
-                        >
-                          <div 
-                            className="connection-type-badge"
-                            style={{ background: getConnectionColor(conn.connection_type) }}
-                          >
-                            {conn.connection_type.replace('_', ' ')}
-                          </div>
-                          <span className="connection-target">{targetConcept.concept_name}</span>
-                          <ArrowLeft size={14} className="connection-arrow" />
-                        </div>
-                      );
-                    })}
+                    <div className="cw-detail-stat">
+                      <span className="cw-detail-stat-value">{getConnectedConcepts(selectedNode.id).length}</span>
+                      <span className="cw-detail-stat-label">Links</span>
+                    </div>
                   </div>
                 </div>
-              )}
 
-              {/* Delete Button */}
-              <button 
-                className="delete-btn-ethereal" 
-                onClick={() => deleteConcept(selectedNode.id)}
-              >
-                <Trash2 size={16} />
-                DELETE CONCEPT
-              </button>
+                <div className="cw-detail-section">
+                  <h4 className="cw-detail-section-title">Generate Content</h4>
+                  <div className="cw-detail-actions">
+                    <button 
+                      className="cw-detail-action-btn"
+                      onClick={() => generateConceptContent('notes')}
+                      disabled={generatingContent !== null}
+                    >
+                      <FileText size={18} />
+                      <span>{generatingContent === 'notes' ? 'Generating...' : 'Generate Notes'}</span>
+                    </button>
+                    <button 
+                      className="cw-detail-action-btn"
+                      onClick={() => generateConceptContent('quiz')}
+                      disabled={generatingContent !== null}
+                    >
+                      <Brain size={18} />
+                      <span>{generatingContent === 'quiz' ? 'Generating...' : 'Generate Quiz'}</span>
+                    </button>
+                    <button 
+                      className="cw-detail-action-btn"
+                      onClick={() => generateConceptContent('flashcards')}
+                      disabled={generatingContent !== null}
+                    >
+                      <BookOpen size={18} />
+                      <span>{generatingContent === 'flashcards' ? 'Generating...' : 'Generate Flashcards'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {getConnectedConcepts(selectedNode.id).length > 0 && (
+                  <div className="cw-detail-section">
+                    <h4 className="cw-detail-section-title">Connections</h4>
+                    <div className="cw-connections-list">
+                      {getConnectedConcepts(selectedNode.id).map(conn => {
+                        const targetId = conn.source_id === selectedNode.id ? conn.target_id : conn.source_id;
+                        const targetConcept = concepts.find(c => c.id === targetId);
+                        if (!targetConcept) return null;
+                        
+                        return (
+                          <div 
+                            key={conn.id} 
+                            className="cw-connection-item"
+                            onClick={() => setSelectedNode(targetConcept)}
+                          >
+                            <span className="cw-connection-name">{targetConcept.concept_name}</span>
+                            <span className="cw-connection-type">{conn.connection_type.replace('_', ' ')}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <button 
+                  className="cw-btn cw-btn-secondary" 
+                  style={{ width: '100%', marginTop: '16px', color: 'var(--cw-danger)' }}
+                  onClick={() => deleteConcept(selectedNode.id)}
+                >
+                  <Trash2 size={16} />
+                  Delete Concept
+                </button>
+              </div>
             </div>
-        </div>
-      )}
+          )}
+
+        </main>
+      </div>
 
       {/* Add Concept Modal */}
       {showAddModal && (
-        <div className="modal-overlay-ethereal" onClick={() => setShowAddModal(false)}>
-          <div className="modal-ethereal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header-ethereal">
-              <h3>ADD NEW CONCEPT</h3>
-              <button className="modal-close-btn" onClick={() => setShowAddModal(false)}>×</button>
+        <div className="cw-modal-overlay" onClick={() => setShowAddModal(false)}>
+          <div className="cw-modal" onClick={e => e.stopPropagation()}>
+            <div className="cw-modal-header">
+              <h3 className="cw-modal-title">Add New Concept</h3>
+              <button className="cw-modal-close" onClick={() => setShowAddModal(false)}>×</button>
             </div>
-            <div className="modal-body-ethereal">
-              <div className="form-group-ethereal">
-                <label>CONCEPT NAME *</label>
+            <div className="cw-modal-content">
+              <div className="cw-form-group">
+                <label className="cw-form-label">Concept Name *</label>
                 <input
+                  className="cw-form-input"
                   type="text"
                   value={newConcept.name}
                   onChange={e => setNewConcept({...newConcept, name: e.target.value})}
@@ -1638,18 +1564,20 @@ const ConceptWeb = () => {
                   autoFocus
                 />
               </div>
-              <div className="form-group-ethereal">
-                <label>CATEGORY</label>
+              <div className="cw-form-group">
+                <label className="cw-form-label">Category</label>
                 <input
+                  className="cw-form-input"
                   type="text"
                   value={newConcept.category}
                   onChange={e => setNewConcept({...newConcept, category: e.target.value})}
                   placeholder="e.g., Computer Science"
                 />
               </div>
-              <div className="form-group-ethereal">
-                <label>DESCRIPTION</label>
+              <div className="cw-form-group">
+                <label className="cw-form-label">Description</label>
                 <textarea
+                  className="cw-form-textarea"
                   value={newConcept.description}
                   onChange={e => setNewConcept({...newConcept, description: e.target.value})}
                   placeholder="Brief description of the concept..."
@@ -1657,25 +1585,15 @@ const ConceptWeb = () => {
                 />
               </div>
             </div>
-            <div className="modal-footer-ethereal">
-              <button className="modal-btn-cancel" onClick={() => setShowAddModal(false)}>
-                CANCEL
+            <div className="cw-modal-footer">
+              <button className="cw-btn cw-btn-secondary" onClick={() => setShowAddModal(false)}>
+                Cancel
               </button>
-              <button className="modal-btn-create" onClick={addConcept}>
+              <button className="cw-btn cw-btn-primary" onClick={addConcept}>
                 <Plus size={16} />
-                ADD CONCEPT
+                Add Concept
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Floating Action Hint */}
-      {!selectedNode && concepts.length > 0 && !showAnalytics && viewMode === 'network' && (
-        <div className="floating-hint-ethereal">
-          <div className="hint-content">
-            <Eye size={14} />
-            <span>Hover over nodes for info • Click to view details</span>
           </div>
         </div>
       )}

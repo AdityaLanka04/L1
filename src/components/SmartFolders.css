@@ -1,3 +1,10 @@
+/* ==================== FORCE BOXY DESIGN ==================== */
+.smart-folders-panel *,
+.smart-folders-panel *::before,
+.smart-folders-panel *::after {
+  border-radius: 0 !important;
+}
+
 .smart-folders-panel {
   position: fixed;
   top: 0;

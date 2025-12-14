@@ -316,3 +316,11 @@
     padding: 20px;
   }
 }
+
+
+/* ==================== FORCE BOXY DESIGN ==================== */
+.feed-page *,
+.feed-page *::before,
+.feed-page *::after {
+  border-radius: 0 !important;
+}

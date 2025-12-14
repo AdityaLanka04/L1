@@ -97,6 +97,7 @@ const AIChat = ({ sharedMode = false }) => {
   const [processedFiles, setProcessedFiles] = useState([]);
   
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
   const fileInputRef = useRef(null);
   const isLoadingRef = useRef(false);
 
@@ -106,6 +107,8 @@ const AIChat = ({ sharedMode = false }) => {
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [copiedCode, setCopiedCode] = useState(null);
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
 
   const greetings = [
     "Welcome back! How can I help you today?",
@@ -160,8 +163,56 @@ const AIChat = ({ sharedMode = false }) => {
     return randomGreeting.replace(/{name}/g, name);
   };
 
+  // Enhanced scroll to bottom from Knowledge Roadmap
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesContainerRef.current) {
+      const container = messagesContainerRef.current;
+      container.scrollTo({
+        top: container.scrollHeight,
+        left: 0,
+        behavior: 'smooth'
+      });
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  // Enhanced scroll handling from Knowledge Roadmap
+  const handleScroll = () => {
+    if (messagesContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+      
+      // Add scrolled class for visual indicator (more precise detection)
+      if (scrollTop > 10) {
+        messagesContainerRef.current.classList.add('scrolled');
+      } else {
+        messagesContainerRef.current.classList.remove('scrolled');
+      }
+      
+      // Show scroll to top button when scrolled down significantly
+      setShowScrollToTop(scrollTop > 200);
+      
+      // Show scroll to bottom button when not at bottom
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 30;
+      setShowScrollToBottom(!isAtBottom && messages.length > 3);
+    }
+  };
+
+  // Enhanced scroll to top from Knowledge Roadmap
+  const scrollToTop = () => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: 'smooth'
+      });
+      // Force scroll to absolute top after smooth scroll completes
+      setTimeout(() => {
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop = 0;
+        }
+      }, 500);
+    }
   };
 
   const handleFileSelect = (files) => {
@@ -1296,461 +1347,518 @@ const AIChat = ({ sharedMode = false }) => {
     }
   }, [selectedTheme]);
 
+  // Enhanced scroll event listener setup from Knowledge Roadmap
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll, { passive: true });
+      
+      // Initial scroll state check
+      handleScroll();
+      
+      return () => {
+        container.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, [messages]); // Re-run when messages change
+
+  // Icons matching Flashcards
+  const Icons = {
+    chat: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+    home: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+    logout: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+    plus: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+    folder: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>,
+    trash: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
+    check: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>,
+    x: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+    chevronLeft: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>,
+    chevronRight: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>,
+    send: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
+    attach: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>,
+    arrowUp: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 15l-6-6-6 6"/></svg>,
+    arrowDown: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>,
+  };
+
   return (
     <div className="ai-chat-page">
-      {/* Header spanning full width */}
-      <div className="global-chat-header">
-        <button 
-          className="sidebar-toggle" 
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
-        >
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M3 7h14M3 13h14"/>
-          </svg>
-        </button>
-        
-        <h1 className="chat-title" onClick={handleLogoClick}>
-          Cerbyl
-        </h1>
-
-        <div className="header-right">
-          {userProfile?.profilePicture && (
-            <img 
-              src={userProfile.profilePicture} 
-              alt="Profile" 
-              className="profile-picture" 
-            />
-          )}
-          <button className="header-btn" onClick={goToDashboard}>
-            DASHBOARD
-          </button>
-          <button className="header-btn" onClick={handleLogout}>
-            LOGOUT
-          </button>
-        </div>
-      </div>
-
-      {/* Content area with sidebar and chat */}
-      <div className="chat-content-area">
-        {sidebarOpen && (
-          <div className="chat-sidebar open">
-          <div className="sidebar-header">
-            <div className="sidebar-title-bar">
-              <button 
-                className="new-chat-btn" 
-                onClick={handleNewChat}
-                disabled={loading}
-                title="Create new chat"
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M6 1v10M1 6h10"/>
-                </svg>
-                NEW CHAT
-              </button>
+      <div className="ac-layout">
+        {/* Sidebar - Matching Flashcards */}
+        <aside className={`ac-sidebar ${!sidebarOpen ? 'collapsed' : ''}`}>
+          <div className="ac-sidebar-header">
+            <div className="ac-logo" onClick={handleLogoClick}>
+              <div className="ac-logo-icon">{Icons.chat}</div>
+              <span className="ac-logo-text">Cerbyl</span>
             </div>
+            <button 
+              className="ac-collapse-btn"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              {sidebarOpen ? Icons.chevronLeft : Icons.chevronRight}
+            </button>
           </div>
 
-          <div className="folders-section">
-            <div className="folders-header">
-              <h3>Folders</h3>
-              <button onClick={() => setShowFolderCreation(true)} className="btn-add-folder">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                  <line x1="12" y1="11" x2="12" y2="17"/>
-                  <line x1="9" y1="14" x2="15" y2="14"/>
-                </svg>
-              </button>
-            </div>
-            
-            {showFolderCreation && (
-              <div className="folder-input-group">
-                <input
-                  type="text"
-                  className="folder-input"
-                  placeholder="Folder name"
-                  value={folderName}
-                  onChange={(e) => setFolderName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleFolderCreation();
-                    else if (e.key === 'Escape') {
+          {/* New Chat Button */}
+          <button 
+            className="ac-new-chat-btn" 
+            onClick={handleNewChat}
+            disabled={loading}
+          >
+            {Icons.plus}
+            <span>New Chat</span>
+          </button>
+
+          <nav className="ac-sidebar-nav">
+            {/* Folders Section */}
+            <div className="ac-folders-section">
+              <div className="ac-folders-header">
+                <h4>Folders</h4>
+                <button 
+                  className="ac-add-folder-btn"
+                  onClick={() => setShowFolderCreation(true)}
+                >
+                  {Icons.plus}
+                </button>
+              </div>
+              
+              {showFolderCreation && (
+                <div className="ac-folder-input-group">
+                  <input
+                    type="text"
+                    className="ac-folder-input"
+                    placeholder="Folder name"
+                    value={folderName}
+                    onChange={(e) => setFolderName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleFolderCreation();
+                      else if (e.key === 'Escape') {
+                        setShowFolderCreation(false);
+                        setFolderName('');
+                      }
+                    }}
+                    autoFocus
+                  />
+                  <button className="ac-folder-submit" onClick={handleFolderCreation}>
+                    {Icons.check}
+                  </button>
+                  <button 
+                    className="ac-folder-cancel" 
+                    onClick={() => {
                       setShowFolderCreation(false);
                       setFolderName('');
-                    }
-                  }}
-                  autoFocus
-                />
-                <button className="folder-submit" onClick={handleFolderCreation}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
-                </button>
-                <button 
-                  className="folder-cancel" 
-                  onClick={() => {
-                    setShowFolderCreation(false);
-                    setFolderName('');
-                  }}
+                    }}
+                  >
+                    {Icons.x}
+                  </button>
+                </div>
+              )}
+              
+              {folders.map((folder) => (
+                <button
+                  key={folder.id}
+                  className={`ac-folder-item ${selectedFolder === folder.id ? 'active' : ''}`}
+                  onClick={() => setSelectedFolder(selectedFolder === folder.id ? null : folder.id)}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
+                  <span className="ac-folder-icon">{Icons.folder}</span>
+                  <span className="ac-folder-name">{folder.name}</span>
+                  <span className="ac-folder-count">
+                    {chatSessions.filter(s => s.folder_id === folder.id).length}
+                  </span>
                 </button>
+              ))}
+            </div>
+
+            {/* Chats Section */}
+            <div className="ac-nav-section">
+              <div className="ac-nav-section-title">
+                Chats
+                {selectedFolder && (
+                  <button 
+                    className="ac-add-folder-btn"
+                    onClick={() => setSelectedFolder(null)}
+                    title="Show all"
+                  >
+                    {Icons.x}
+                  </button>
+                )}
+              </div>
+              <div className="ac-sessions-list">
+                {chatSessions.length === 0 ? (
+                  <div className="ac-empty">
+                    <p>No conversations yet</p>
+                  </div>
+                ) : (
+                  chatSessions
+                    .filter(session => selectedFolder ? session.folder_id === selectedFolder : true)
+                    .map(session => (
+                      <div
+                        key={session.id}
+                        className={`ac-session-item ${activeChatId === session.id ? 'active' : ''}`}
+                        onClick={() => selectChat(session.id)}
+                      >
+                        <span className="ac-session-icon">{Icons.chat}</span>
+                        <div className="ac-session-info">
+                          <div className="ac-session-title">{session.title}</div>
+                          <div className="ac-session-date">
+                            {new Date(session.updated_at).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric' 
+                            })}
+                          </div>
+                        </div>
+                        <div className="ac-session-actions">
+                          <button
+                            className="ac-session-btn"
+                            onClick={(e) => handleContextMenu(e, session.id)}
+                            title="Move to folder"
+                          >
+                            {Icons.folder}
+                          </button>
+                          <button
+                            className="ac-session-btn delete"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteChat(session.id, session.title);
+                            }}
+                            title="Delete"
+                          >
+                            {Icons.trash}
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                )}
+              </div>
+            </div>
+          </nav>
+
+          <div className="ac-sidebar-footer">
+            <button className="ac-nav-item" onClick={goToDashboard}>
+              <span className="ac-nav-icon">{Icons.home}</span>
+              <span className="ac-nav-text">Dashboard</span>
+            </button>
+            <button className="ac-nav-item" onClick={handleLogout}>
+              <span className="ac-nav-icon">{Icons.logout}</span>
+              <span className="ac-nav-text">Logout</span>
+            </button>
+          </div>
+        </aside>
+
+        {/* Show Sidebar Button - appears when sidebar is collapsed */}
+        {!sidebarOpen && (
+          <button 
+            className="ac-show-sidebar-btn" 
+            onClick={() => setSidebarOpen(true)}
+            title="Show Sidebar"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
+        )}
+
+        {/* Main Content */}
+        <main className="ac-main">
+          {/* Header */}
+          <header className="ac-header">
+            <div className="ac-header-left">
+              <h1 className="ac-header-title">AI Chat</h1>
+              <p className="ac-header-subtitle">Your personal AI tutor</p>
+            </div>
+            <div className="ac-header-actions">
+              {userProfile?.profilePicture && (
+                <img 
+                  src={userProfile.profilePicture} 
+                  alt="Profile" 
+                  className="ac-profile-picture" 
+                />
+              )}
+            </div>
+          </header>
+
+          {/* Chat Content */}
+          <div 
+            className="ac-content"
+            ref={messagesContainerRef}
+            onScroll={handleScroll}
+          >
+            {messages.length === 0 ? (
+              <div className="ac-welcome">
+                <div className="ac-welcome-icon">{Icons.chat}</div>
+                <h2>{greeting}</h2>
+                <p>I'm your personal AI tutor. Ask me anything about any subject, and I'll help you learn with detailed explanations and examples.</p>
+              </div>
+            ) : (
+              <div className="ac-messages">
+                {messages.map((message) => (
+                  <div key={message.id} className={`ac-message ${message.type}`}>
+                    <div className="ac-message-bubble">
+                      <div className="ac-message-content">
+                        {renderMessageContent(message.content)}
+                      </div>
+                      
+                      {message.files && message.files.length > 0 && (
+                        <div className="ac-file-analysis">
+                          {message.files.map((file, index) => (
+                            <div key={index} className="ac-file-tag">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                              </svg>
+                              <span>{file.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {message.type === 'ai' && message.fileSummaries && message.fileSummaries.length > 0 && (
+                        <div className="ac-file-analysis">
+                          <div className="ac-file-analysis-header">
+                            {message.filesProcessed} FILE(S) ANALYZED
+                          </div>
+                          {message.fileSummaries.map((file, index) => (
+                            <div key={index} className="ac-file-analysis-item">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                              </svg>
+                              <span>{file.file_name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="ac-message-meta">
+                      <span className="ac-message-time">
+                        {new Date(message.timestamp).toLocaleTimeString('en-US', { 
+                          hour: 'numeric', 
+                          minute: '2-digit',
+                          hour12: true
+                        })}
+                      </span>
+                      
+                      {message.type === 'ai' && message.aiConfidence !== undefined && (
+                        <span className={`ac-confidence ${getConfidenceClass(message.aiConfidence)}`}>
+                          {Math.round(message.aiConfidence * 100)}%
+                        </span>
+                      )}
+                    </div>
+
+                    {message.type === 'ai' && !message.userRating && !message.feedbackSubmitted && (
+                      <div className="ac-rating">
+                        <span className="ac-rating-label">Rate this response</span>
+                        <div className="ac-rating-buttons">
+                          {[1, 2, 3, 4, 5].map(rating => (
+                            <button
+                              key={rating}
+                              className="ac-rating-btn"
+                              onClick={() => rateResponse(message.id, rating)}
+                            >
+                              {rating}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {showFeedbackFor === message.id && (
+                      <div className="ac-feedback">
+                        <textarea
+                          placeholder="What could be improved?"
+                          value={feedbackText}
+                          onChange={(e) => setFeedbackText(e.target.value)}
+                        />
+                        <div className="ac-feedback-actions">
+                          <button 
+                            className="ac-btn ac-btn-secondary"
+                            onClick={() => setShowFeedbackFor(null)}
+                          >
+                            Cancel
+                          </button>
+                          <button 
+                            className="ac-btn ac-btn-primary"
+                            onClick={() => submitFeedback(message.id)}
+                          >
+                            Submit
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                {loading && (
+                  <div className="ac-message ai">
+                    <div className="ac-message-bubble">
+                      <div className="ac-typing">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div ref={messagesEndRef} />
               </div>
             )}
-            
-            <div className="folders-list">
-              {folders.map((folder) => (
-                <div key={folder.id} className="folder-item-wrapper">
-                  <div
-                    className={`folder-item ${selectedFolder === folder.id ? 'active' : ''}`}
-                    onClick={() => setSelectedFolder(selectedFolder === folder.id ? null : folder.id)}
-                  >
-                    <span>{folder.name}</span>
-                    <span className="folder-count">{chatSessions.filter(s => s.folder_id === folder.id).length}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
-
-          <div className="chats-section">
-            <div className="chats-header">
-              <h3>CHATS</h3>
-              {selectedFolder && (
-                <button 
-                  className="clear-filter-btn"
-                  onClick={() => setSelectedFolder(null)}
-                  title="Show all chats"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
-              )}
-            </div>
-            <div className="chat-sessions">
-              {chatSessions.length === 0 ? (
-                <div className="no-chats">
-                  <p>No conversations yet</p>
-                  <span>Start a new chat to begin</span>
-                </div>
-              ) : (
-                chatSessions
-                  .filter(session => selectedFolder ? session.folder_id === selectedFolder : true)
-                  .map(session => (
-                <div
-                  key={session.id}
-                  className={`chat-session-item ${activeChatId === session.id ? 'active' : ''}`}
-                  onClick={() => selectChat(session.id)}
-                >
-                  <div className="chat-session-content">
-                    <div className="session-title">{session.title}</div>
-                    <div className="session-date">
-                      {new Date(session.updated_at).toLocaleDateString('en-US', { 
-                        month: 'short', 
-                        day: 'numeric' 
-                      })}
-                    </div>
-                  </div>
-                  <div className="chat-session-actions">
-                    <button
-                      className="move-to-folder-btn"
-                      onClick={(e) => handleContextMenu(e, session.id)}
-                      title="Move to folder"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                      </svg>
-                    </button>
-                    <button
-                      className="delete-chat-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteChat(session.id, session.title);
-                      }}
-                      title="Delete chat"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-        <div className={`chat-main ${!sidebarOpen ? 'fullscreen' : ''}`}>
-
-        <div className="messages-container">
-          {messages.length === 0 ? (
-            <div className="welcome-screen">
-              <div className="welcome-content">
-                <h2 className="welcome-title">{greeting}</h2>
-                <p className="welcome-subtitle">
-                  I'm your personal AI tutor. Ask me anything about any subject, and I'll help you learn with detailed explanations and examples.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="messages-list">
-              {messages.map((message) => (
-                <div key={message.id} className={`message ${message.type}`}>
-                  <div className="message-bubble">
-                    <div className="message-content">
-                      {renderMessageContent(message.content)}
-                    </div>
-                    
-                    {message.files && message.files.length > 0 && (
-                      <div className="message-files">
-                        {message.files.map((file, index) => (
-                          <div key={index} className="message-file-tag">
-                            <span className="file-icon">{getFileIcon(file.name, file.type)}</span>
-                            <span className="file-name">{file.name}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    
-                    {message.type === 'ai' && message.fileSummaries && message.fileSummaries.length > 0 && (
-                      <div className="file-analysis">
-                        <div className="file-analysis-header">
-                          {message.filesProcessed} FILE(S) ANALYZED
-                        </div>
-                        {message.fileSummaries.map((file, index) => (
-                          <div key={index} className="file-analysis-item">
-                            <div className="file-analysis-name">
-                              {getFileIcon(file.file_name, file.file_type)} {file.file_name}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="message-meta">
-                    <span className="message-time">
-                      {new Date(message.timestamp).toLocaleTimeString('en-US', { 
-                        hour: 'numeric', 
-                        minute: '2-digit',
-                        hour12: true
-                      }).toUpperCase()}
-                    </span>
-                    
-                    {message.type === 'ai' && message.aiConfidence !== undefined && (
-                      <span className={`confidence-badge ${getConfidenceClass(message.aiConfidence)}`}>
-                        {Math.round(message.aiConfidence * 100)}%
-                      </span>
-                    )}
-                  </div>
-
-                  {message.type === 'ai' && !message.userRating && !message.feedbackSubmitted && (
-                    <div className="rating-section">
-                      <span className="rating-label">RATE THIS RESPONSE</span>
-                      <div className="rating-buttons">
-                        {[1, 2, 3, 4, 5].map(rating => (
-                          <button
-                            key={rating}
-                            className="rating-btn"
-                            onClick={() => rateResponse(message.id, rating)}
-                            title={`${rating} star${rating > 1 ? 's' : ''}`}
-                          >
-                            {rating}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {showFeedbackFor === message.id && (
-                    <div className="feedback-form">
-                      <textarea
-                        className="feedback-input"
-                        placeholder="What could be improved?"
-                        value={feedbackText}
-                        onChange={(e) => setFeedbackText(e.target.value)}
-                      />
-                      <div className="feedback-actions">
-                        <button 
-                          className="btn-secondary"
-                          onClick={() => setShowFeedbackFor(null)}
-                        >
-                          CANCEL
-                        </button>
-                        <button 
-                          className="btn-primary"
-                          onClick={() => submitFeedback(message.id)}
-                        >
-                          SUBMIT
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-              
-              {loading && (
-                <div className="message ai">
-                  <div className="message-bubble">
-                    <div className="typing-indicator">
-                      <span></span>
-                      <span></span>
-                      <span></span>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <div ref={messagesEndRef} />
-            </div>
+          
+          {/* Scroll Buttons */}
+          {showScrollToTop && (
+            <button 
+              className="ac-scroll-btn top"
+              onClick={scrollToTop}
+              title="Scroll to top"
+            >
+              {Icons.arrowUp}
+            </button>
           )}
-        </div>
+          
+          {showScrollToBottom && (
+            <button 
+              className="ac-scroll-btn bottom"
+              onClick={scrollToBottom}
+              title="Scroll to bottom"
+            >
+              {Icons.arrowDown}
+            </button>
+          )}
 
-        {selectedFiles.length > 0 && (
-          <div className="file-preview-bar">
-            <div className="file-preview-header">
-              <span className="file-count">{selectedFiles.length} FILE(S) SELECTED</span>
-              <button className="clear-files" onClick={clearAllFiles}>
-                CLEAR ALL
-              </button>
-            </div>
-            <div className="file-preview-list">
+          {/* File Preview */}
+          {selectedFiles.length > 0 && (
+            <div className="ac-file-preview">
               {selectedFiles.map((file, index) => (
-                <div key={index} className="file-preview-item">
-                  <span className="file-icon">{getFileIcon(file.name, file.type)}</span>
-                  <span className="file-name">{file.name}</span>
+                <div key={index} className="ac-file-tag">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                  </svg>
+                  <span>{file.name}</span>
                   <button 
-                    className="remove-file" 
+                    className="ac-file-remove" 
                     onClick={() => removeFile(index)}
                   >
-                    ×
+                    {Icons.x}
                   </button>
                 </div>
               ))}
+              <button 
+                className="ac-btn ac-btn-secondary"
+                onClick={clearAllFiles}
+              >
+                Clear All
+              </button>
+            </div>
+          )}
+
+          {/* Input Area */}
+          <div className="ac-input-area">
+            <div className="ac-input-container">
+              <div 
+                className={`ac-input-wrapper ${dragActive ? 'drag-active' : ''}`}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept=".pdf,image/*"
+                  onChange={handleFileInputChange}
+                  style={{ display: 'none' }}
+                />
+                
+                <button
+                  className="ac-input-btn"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={loading}
+                  title="Attach files"
+                >
+                  {Icons.attach}
+                </button>
+                
+                <textarea
+                  value={inputMessage}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Type your message or drag files here..."
+                  className="ac-textarea"
+                  disabled={loading}
+                  rows="1"
+                />
+                
+                <button
+                  onClick={sendMessage}
+                  disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}
+                  className="ac-send-btn"
+                >
+                  {Icons.send}
+                </button>
+              </div>
             </div>
           </div>
-        )}
-
-        <div className="input-container">
-          <div 
-            className={`input-wrapper ${dragActive ? 'drag-active' : ''}`}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept=".pdf,image/*"
-              onChange={handleFileInputChange}
-              style={{ display: 'none' }}
-            />
-            
-            <button
-              className="attach-btn"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={loading}
-              title="Attach files"
-            >
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 3v12M3 9h12"/>
-              </svg>
-            </button>
-            
-            <textarea
-              value={inputMessage}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              placeholder="Type your message or drag files here..."
-              className="message-input"
-              disabled={loading}
-              rows="1"
-            />
-            
-            <button
-              onClick={sendMessage}
-              disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}
-              className="send-btn"
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M1 8l14-6-6 14-2-8z"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-        </div>
+        </main>
       </div>
       
+      {/* Delete Confirmation Modal */}
       {showDeleteConfirmation && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h3 className="modal-title">DELETE CONVERSATION</h3>
-            </div>
-            <div className="modal-body">
-              <p className="modal-text">
-                Are you sure you want to delete "<strong>{chatToDelete?.title}</strong>"? This action cannot be undone.
-              </p>
-            </div>
-            <div className="modal-footer">
+        <div className="ac-modal-overlay">
+          <div className="ac-modal">
+            <h3>Delete Conversation</h3>
+            <p>
+              Are you sure you want to delete "{chatToDelete?.title}"? This action cannot be undone.
+            </p>
+            <div className="ac-modal-actions">
               <button
-                className="btn-secondary"
+                className="ac-modal-btn cancel"
                 onClick={() => setShowDeleteConfirmation(false)}
               >
-                CANCEL
+                Cancel
               </button>
               <button
-                className="btn-danger"
+                className="ac-modal-btn delete"
                 onClick={confirmDeleteChat}
               >
-                DELETE
+                Delete
               </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Move to Folder Menu */}
       {showMoveMenu && (
         <>
-          <div className="context-menu-overlay" onClick={() => setShowMoveMenu(null)} />
+          <div className="ac-modal-overlay" onClick={() => setShowMoveMenu(null)} />
           <div 
-            className="context-menu" 
+            className="ac-move-menu" 
             style={{ 
               top: `${menuPosition.y}px`, 
               left: `${menuPosition.x}px` 
             }}
           >
-            <div className="context-menu-header">Move to Folder</div>
             {folders.map(folder => (
-              <div
+              <button
                 key={folder.id}
-                className="context-menu-item"
+                className="ac-move-menu-item"
                 onClick={() => handleMoveToFolder(showMoveMenu, folder.id)}
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                </svg>
+                {Icons.folder}
                 {folder.name}
-              </div>
+              </button>
             ))}
-            <div className="context-menu-divider" />
-            <div
-              className="context-menu-item"
+            <button
+              className="ac-move-menu-item"
               onClick={() => handleMoveToFolder(showMoveMenu, null)}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
+              {Icons.x}
               Remove from Folder
-            </div>
+            </button>
           </div>
         </>
       )}

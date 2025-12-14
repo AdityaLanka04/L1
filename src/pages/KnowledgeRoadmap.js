@@ -19,18 +19,18 @@ const CustomNode = ({ data }) => {
       <Handle 
         type="target" 
         position={Position.Top}
-        style={{ background: '#D7B38C', width: '10px', height: '10px', border: '2px solid #1a1a1a' }}
+        style={{ background: 'var(--accent)', width: '8px', height: '8px', border: '2px solid var(--panel)' }}
       />
       <div className="kr-node-content-flow">
         <div className="kr-node-icon-flow">
-          <MapPin size={18} />
+          <MapPin size={16} />
         </div>
         <div className="kr-node-text-flow">
           <h4>{data.label}</h4>
           <p>{data.description}</p>
           {data.isExplored && (
             <span className="kr-explored-badge-flow">
-              <Sparkles size={12} />
+              <Sparkles size={10} />
               Explored
             </span>
           )}
@@ -45,8 +45,8 @@ const CustomNode = ({ data }) => {
           }}
           disabled={data.isExploring || data.isExpanding}
         >
-          <Book size={14} />
-          {data.isExploring ? 'Exploring...' : 'Explore'}
+          <Book size={12} />
+          {data.isExploring ? '...' : 'Explore'}
         </button>
         {(data.expansionStatus === 'unexpanded' || !data.expansionStatus) && (
           <button 
@@ -57,15 +57,15 @@ const CustomNode = ({ data }) => {
             }}
             disabled={data.isExpanding || data.isExploring}
           >
-            <Plus size={14} />
-            {data.isExpanding ? 'Expanding...' : 'Expand'}
+            <Plus size={12} />
+            {data.isExpanding ? '...' : 'Expand'}
           </button>
         )}
       </div>
       <Handle 
         type="source" 
         position={Position.Bottom}
-        style={{ background: '#D7B38C', width: '10px', height: '10px', border: '2px solid #1a1a1a' }}
+        style={{ background: 'var(--accent)', width: '8px', height: '8px', border: '2px solid var(--panel)' }}
       />
     </div>
   );
@@ -1180,18 +1180,18 @@ User question: ${messageText}`);
   return (
     <div className="kr-page">
       <header className="kr-header">
-        <div className="kr-header-container">
-          <div className="kr-header-left">
-            <div className="kr-header-title-group">
-              <h1 className="kr-logo">cerbyl</h1>
-              <span className="kr-subtitle">KNOWLEDGE ROADMAP</span>
-            </div>
+        <div className="kr-header-left">
+          <button className="kr-back-btn" onClick={() => navigate('/learning-review')}>
+            ← Back
+          </button>
+          <div className="kr-header-title-group">
+            <h1 className="kr-logo">Knowledge Roadmap</h1>
+            <span className="kr-subtitle">Build interactive learning maps</span>
           </div>
-          <div className="kr-header-right">
-            <button className="kr-nav-btn" onClick={() => navigate('/learning-review')}>LEARNING REVIEW</button>
-            <button className="kr-nav-btn" onClick={() => navigate('/dashboard')}>DASHBOARD</button>
-            <button className="kr-nav-btn kr-logout" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>LOGOUT</button>
-          </div>
+        </div>
+        <div className="kr-header-right">
+          <button className="kr-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
+          <button className="kr-nav-btn logout" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>Logout</button>
         </div>
       </header>
 
@@ -1201,88 +1201,80 @@ User question: ${messageText}`);
             <div className="kr-section-header">
               <div className="kr-header-content">
                 <div>
-                  <h2 className="kr-section-title">Knowledge Roadmaps</h2>
+                  <h2 className="kr-section-title">My Roadmaps</h2>
                   <p className="kr-section-subtitle">Build interactive learning maps with expandable topics</p>
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
-  <button className="kr-create-btn" onClick={() => setShowCreateModal(true)}>
-    <Plus size={20} />
-    <span>Create Roadmap</span>
-  </button>
-  <button 
-    className="kr-create-btn" 
-    onClick={() => {
-      setShowChatSelectModal(true);
-      fetchChatSessions();
-    }}
-  >
-    <Book size={20} />
-    <span>From Chat</span>
-  </button>
-</div>
+                  <button className="kr-create-btn" onClick={() => setShowCreateModal(true)}>
+                    <Plus size={18} />
+                    <span>Create Roadmap</span>
+                  </button>
+                  <button 
+                    className="kr-create-btn" 
+                    onClick={() => {
+                      setShowChatSelectModal(true);
+                      fetchChatSessions();
+                    }}
+                  >
+                    <Book size={18} />
+                    <span>From Chat</span>
+                  </button>
+                </div>
               </div>
             </div>
 
             <div className="kr-main">
               {loading && roadmaps.length === 0 ? (
                 <div className="kr-loading">
-                  <Loader size={40} className="kr-spinner" />
+                  <Loader size={32} className="kr-spinner" />
                   <p>Loading roadmaps...</p>
                 </div>
               ) : roadmaps.length === 0 ? (
                 <div className="kr-empty">
-                  <MapPin size={64} className="kr-empty-icon" />
+                  <MapPin size={48} className="kr-empty-icon" />
                   <p>No roadmaps yet. Create your first roadmap to start exploring!</p>
                 </div>
               ) : (
                 <div className="kr-grid">
-  {roadmaps.map(roadmap => (
-    <div 
-      key={roadmap.id} 
-      className="kr-card"
-    >
-      {/* Delete Button - Similar to QuestionBank */}
-      <div className="kr-card-header">
-        <div className="kr-card-icon">
-          <MapPin size={28} />
-        </div>
-        <button 
-          className="kr-delete-btn"
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent card click event
-            deleteRoadmap(roadmap.id);
-          }}
-          title="Delete Roadmap"
-        >
-          <Trash2 size={16} />
-        </button>
-      </div>
-
-      <div 
-        className="kr-card-content" 
-        onClick={() => viewRoadmap(roadmap.id)}
-      >
-        <h3 className="kr-card-title">{roadmap.title}</h3>
-        <p className="kr-card-topic">{roadmap.root_topic}</p>
-        <div className="kr-card-stats">
-          <div className="kr-stat">
-            <span className="kr-stat-value">{roadmap.total_nodes}</span>
-            <span className="kr-stat-label">Nodes</span>
-          </div>
-          <div className="kr-stat">
-            <span className="kr-stat-value">{roadmap.max_depth_reached}</span>
-            <span className="kr-stat-label">Depth</span>
-          </div>
-        </div>
-      </div>
-      <div className="kr-card-footer">
-        <span className="kr-card-date">
-          Last accessed: {new Date(roadmap.last_accessed).toLocaleDateString()}
-        </span>
-      </div>
-    </div>
-  ))}
-</div>
+                  {roadmaps.map(roadmap => (
+                    <div key={roadmap.id} className="kr-card">
+                      <div className="kr-card-header">
+                        <div className="kr-card-icon">
+                          <MapPin size={24} />
+                        </div>
+                        <button 
+                          className="kr-delete-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteRoadmap(roadmap.id);
+                          }}
+                          title="Delete Roadmap"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                      <div className="kr-card-content" onClick={() => viewRoadmap(roadmap.id)}>
+                        <h3 className="kr-card-title">{roadmap.title}</h3>
+                        <p className="kr-card-topic">{roadmap.root_topic}</p>
+                        <div className="kr-card-stats">
+                          <div className="kr-stat">
+                            <span className="kr-stat-value">{roadmap.total_nodes}</span>
+                            <span className="kr-stat-label">Nodes</span>
+                          </div>
+                          <div className="kr-stat">
+                            <span className="kr-stat-value">{roadmap.max_depth_reached}</span>
+                            <span className="kr-stat-label">Depth</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="kr-card-footer">
+                        <span className="kr-card-date">
+                          Last accessed: {new Date(roadmap.last_accessed).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </>
@@ -1294,9 +1286,8 @@ User question: ${messageText}`);
                 setNodes([]); 
                 setEdges([]); 
                 setNodeExplanation(null);
-                // Don't clear cache or expanded nodes - keep them for when user returns
               }}>
-                Back to Roadmaps
+                ← Back to Roadmaps
               </button>
               <div className="kr-viewer-title-section">
                 <h2 className="kr-viewer-title-compact">{currentRoadmap.title || `Exploring ${currentRoadmap.root_topic}`}</h2>
@@ -1314,12 +1305,12 @@ User question: ${messageText}`);
               >
                 {exporting ? (
                   <>
-                    <Loader size={18} className="kr-spinner" />
+                    <Loader size={16} className="kr-spinner" />
                     <span>Exporting...</span>
                   </>
                 ) : (
                   <>
-                    <FileDown size={18} />
+                    <FileDown size={16} />
                     <span>Export to Notes</span>
                   </>
                 )}
@@ -1331,6 +1322,7 @@ User question: ${messageText}`);
                 {loading && nodes.length === 0 ? (
                   <div className="kr-loading">
                     <Loader size={32} className="kr-spinner" />
+                    <p>Loading roadmap...</p>
                   </div>
                 ) : (
                   <ReactFlow
@@ -1345,15 +1337,15 @@ User question: ${messageText}`);
                     defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
                     attributionPosition="bottom-left"
                   >
-                    <Background color="var(--border)" gap={16} />
+                    <Background color="var(--kr-border-subtle)" gap={20} />
                     <Controls />
                     <MiniMap 
                       nodeColor={(node) => {
-                        if (node.data.isExplored) return '#10B981';
-                        if (node.data.expansionStatus === 'expanded') return '#D7B38C';
-                        return '#B8C0CC';
+                        if (node.data.isExplored) return 'var(--kr-success)';
+                        if (node.data.expansionStatus === 'expanded') return 'var(--kr-accent)';
+                        return 'var(--kr-text-secondary)';
                       }}
-                      maskColor="rgba(0, 0, 0, 0.7)"
+                      maskColor="rgba(0, 0, 0, 0.6)"
                     />
                   </ReactFlow>
                 )}

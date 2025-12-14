@@ -1,3 +1,10 @@
+/* ==================== FORCE BOXY DESIGN ==================== */
+.tags-panel *,
+.tags-panel *::before,
+.tags-panel *::after {
+  border-radius: 0 !important;
+}
+
 .tags-panel {
   width: 280px;
   background: var(--panel);

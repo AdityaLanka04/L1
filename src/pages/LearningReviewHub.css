@@ -1,100 +1,88 @@
+/* LearningReviewHub - Flashcards Style Layout */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-:root {
-  --bg-top: #0b0b0c;
-  --bg-bottom: #0f1012;
-  --panel: #16181d;
-  --border: #2a2f37;
-  --text-primary: #EAECEF;
-  --text-secondary: #B8C0CC;
-  --accent: #D7B38C;
-  --glow: rgba(215, 179, 140, 0.35);
-  --success: #10B981;
-  --warning: #F59E0B;
-  --danger: #EF4444;
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px var(--glow);
+/* ==================== FORCE BOXY DESIGN ==================== */
+.hub-page *,
+.hub-page *::before,
+.hub-page *::after {
+  border-radius: 0 !important;
 }
 
-* {
+/* CSS Variables - Matching Flashcards */
+.hub-page {
+  --hub-bg-primary: var(--bg);
+  --hub-bg-secondary: var(--panel);
+  --hub-bg-tertiary: var(--hover-bg);
+  --hub-bg-card: var(--panel);
+  --hub-border-subtle: var(--border);
+  --hub-text-primary: var(--text-primary);
+  --hub-text-secondary: var(--text-secondary);
+  --hub-accent: var(--accent);
+  --hub-accent-glow: color-mix(in srgb, var(--accent) 15%, transparent);
+  --hub-header-height: 70px;
+}
+
+.hub-page * {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: var(--bg-bottom);
-  color: var(--text-primary);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  line-height: 1.6;
-}
-
-/* ==================== PAGE CONTAINER ==================== */
+/* ==================== PAGE CONTAINER - Flashcards Style ==================== */
 .hub-page {
-  min-height: 100vh;
-  background: var(--accent);
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: var(--hub-bg-primary) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--hub-text-primary);
+  overflow: hidden !important;
+  z-index: 9999 !important;
   display: flex;
   flex-direction: column;
-  font-family: 'Inter', sans-serif;
-  position: relative;
 }
 
 .hub-page::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: 
-    radial-gradient(ellipse at top left, var(--glow) 0%, transparent 60%),
-    radial-gradient(ellipse at bottom right, color-mix(in srgb, var(--accent) 8%, transparent) 0%, transparent 50%);
-  pointer-events: none;
-  z-index: -1;
+  display: none;
 }
 
-/* ==================== HEADER ==================== */
+/* ==================== HEADER - Flashcards Style ==================== */
 .hub-header {
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
-  padding: 24px 32px;
+  height: var(--hub-header-height);
+  min-height: var(--hub-header-height);
+  padding: 0 32px;
+  background: var(--hub-bg-primary);
+  border-bottom: 1px solid var(--hub-border-subtle);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: var(--shadow-md);
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  flex-shrink: 0;
 }
 
 .hub-header-left {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 16px;
 }
 
 .hub-logo {
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--accent);
-  text-transform: lowercase;
-  letter-spacing: -0.5px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--hub-text-primary);
+}
+
+[data-theme-mode="dark"] .hub-logo {
+  color: var(--hub-accent) !important;
 }
 
 .hub-subtitle {
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-weight: 600;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
+  font-size: 13px;
+  color: var(--hub-text-secondary);
+  font-weight: 500;
 }
 
 .hub-header-right {
@@ -104,36 +92,33 @@ body {
 }
 
 .hub-nav-btn {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  padding: 10px 20px;
-  font-size: 11px;
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--hub-bg-tertiary);
+  border: 1px solid var(--hub-border-subtle);
+  border-radius: 8px;
+  color: var(--hub-text-primary);
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  border-radius: 0;
-  font-family: 'Inter', sans-serif;
+  transition: all 0.2s;
 }
 
 .hub-nav-btn:hover {
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-  border-color: var(--accent);
-  color: var(--accent);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  background: var(--hub-bg-secondary);
 }
 
-.hub-nav-btn:active {
-  transform: translateY(0);
+.hub-nav-btn.logout {
+  background: linear-gradient(135deg, var(--hub-accent), color-mix(in srgb, var(--hub-accent) 85%, black));
+  border: none;
+  color: var(--hub-bg-primary);
 }
 
 .hub-nav-btn.logout:hover {
-  border-color: var(--danger);
-  color: var(--danger);
-  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--hub-accent) 30%, transparent);
 }
 
 /* ==================== MAIN CONTENT ==================== */
@@ -141,81 +126,62 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 0;
   overflow: hidden;
+  min-height: 0;
 }
 
 /* ==================== WELCOME SECTION ==================== */
 .hub-welcome {
-  padding: 40px 32px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
+  padding: 32px;
+  background: var(--hub-bg-primary);
+  border-bottom: 1px solid var(--hub-border-subtle);
   flex-shrink: 0;
   text-align: center;
 }
 
 .hub-welcome-title {
-  font-size: 32px;
-  font-weight: 800;
-  color: var(--text-primary);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--hub-text-primary);
   margin-bottom: 8px;
-  letter-spacing: -0.5px;
+}
+
+[data-theme-mode="dark"] .hub-welcome-title {
+  color: var(--hub-accent) !important;
 }
 
 .hub-welcome-subtitle {
   font-size: 14px;
-  color: var(--text-secondary);
+  color: var(--hub-text-secondary);
   font-weight: 400;
-  line-height: 1.5;
 }
 
-/* ==================== GRID LAYOUT - 2x2 COVERING FULL HEIGHT ==================== */
+/* ==================== GRID LAYOUT ==================== */
 .hub-grid {
   flex: 1;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(2, 1fr);
-  gap: 8px;
-  padding: 8px;
-  height: 100%;
+  gap: 0;
   overflow: hidden;
+  min-height: 0;
 }
 
-@media (max-width: 1024px) {
-  .hub-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
-    gap: 20px;
-    padding: 20px;
-    overflow-y: auto;
-  }
-}
-
-@media (max-width: 768px) {
-  .hub-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
-    gap: 16px;
-    padding: 16px;
-  }
-}
-
-/* ==================== CARD ==================== */
+/* ==================== CARD - Bento Style ==================== */
 .hub-card {
-  background: var(--panel);
-  border: none;
+  background: var(--hub-bg-card);
+  border: 1px solid var(--hub-border-subtle);
   padding: 40px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   gap: 24px;
   position: relative;
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
-  min-height: 0;
-  border-radius: 0;
 }
 
 .hub-card::before {
@@ -225,298 +191,165 @@ body {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, var(--glow), transparent);
-  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 0;
-}
-
-.hub-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 0 0 2px var(--accent), var(--shadow-lg), 0 0 30px var(--glow);
+  background: linear-gradient(90deg, transparent, var(--hub-accent-glow), transparent);
+  transition: left 0.6s ease;
+  pointer-events: none;
 }
 
 .hub-card:hover::before {
   left: 100%;
 }
 
-.hub-card-header {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: flex-start;
+.hub-card:hover {
+  background: color-mix(in srgb, var(--hub-bg-card) 90%, var(--hub-accent));
+  border-color: var(--hub-accent);
 }
 
-.hub-card-icon {
-  width: 64px;
-  height: 64px;
+.hub-card-header {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--accent) 10%, var(--bg-bottom));
-  border-radius: 8px;
-  color: var(--accent);
-  flex-shrink: 0;
+}
+
+.hub-card-icon {
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--hub-accent-glow);
+  border: 2px solid var(--hub-accent);
+  color: var(--hub-accent);
+  transition: all 0.3s ease;
+}
+
+.hub-card:hover .hub-card-icon {
+  background: var(--hub-accent);
+  color: #000;
+}
+
+.hub-card-icon svg {
+  width: 56px !important;
+  height: 56px !important;
 }
 
 .hub-card-content {
-  position: relative;
-  z-index: 1;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 12px;
-  flex: 1;
 }
 
 .hub-card-title {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.3px;
+  color: var(--hub-text-primary);
+  letter-spacing: -0.5px;
 }
 
 .hub-card-description {
-  font-size: 13px;
-  color: var(--text-secondary);
+  font-size: 14px;
+  color: var(--hub-text-secondary);
   line-height: 1.6;
-  font-weight: 400;
+  max-width: 320px;
 }
 
 .hub-card-footer {
-  position: relative;
-  z-index: 1;
   margin-top: auto;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding-top: 16px;
 }
 
 .hub-card-action {
-  background: var(--accent);
-  border: none;
-  color: var(--bg-bottom);
-  padding: 12px 24px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  border-radius: 0;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: 'Inter', sans-serif;
-  display: inline-block;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  padding: 18px 48px !important;
+  background: var(--hub-accent) !important;
+  border: none !important;
+  color: #000 !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1.5px !important;
+  cursor: pointer !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  text-transform: uppercase !important;
+  min-width: 220px !important;
+  min-height: 52px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.hub-card-action::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: left 0.5s ease;
+}
+
+.hub-card-action:hover::before {
+  left: 100%;
 }
 
 .hub-card-action:hover {
-  background: color-mix(in srgb, var(--accent) 85%, transparent);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.3);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--hub-accent) 50%, transparent);
 }
 
-.hub-card-action:active {
-  transform: translateY(0);
-}
-
-/* ==================== RESPONSIVE - TABLET ==================== */
+/* ==================== RESPONSIVE ==================== */
 @media (max-width: 1024px) {
   .hub-grid {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    overflow-y: auto;
   }
-
+  
   .hub-card {
-    flex-direction: row;
-    gap: 20px;
-    padding: 24px;
-  }
-
-  .hub-card-header {
-    flex-shrink: 0;
-  }
-
-  .hub-card-icon {
-    width: 56px;
-    height: 56px;
-  }
-
-  .hub-card-content {
-    flex: 1;
-    justify-content: center;
-  }
-
-  .hub-card-footer {
-    margin-top: 0;
+    min-height: 300px;
   }
 }
 
-/* ==================== RESPONSIVE - MOBILE ==================== */
 @media (max-width: 768px) {
-  .hub-page {
-    min-height: 100vh;
-  }
-
   .hub-header {
-    flex-direction: column;
-    gap: 12px;
-    padding: 16px;
+    padding: 0 16px;
   }
-
-  .hub-header-left,
-  .hub-header-right {
-    width: 100%;
-    justify-content: space-between;
-  }
-
+  
   .hub-welcome {
     padding: 24px 16px;
   }
-
+  
   .hub-welcome-title {
-    font-size: 24px;
+    font-size: 22px;
   }
-
+  
   .hub-card {
-    flex-direction: column;
-    padding: 20px;
-    gap: 16px;
+    padding: 24px;
   }
-
+  
   .hub-card-icon {
-    width: 48px;
-    height: 48px;
+    width: 80px;
+    height: 80px;
   }
-
+  
+  .hub-card-icon svg {
+    width: 40px !important;
+    height: 40px !important;
+  }
+  
   .hub-card-title {
-    font-size: 16px;
+    font-size: 20px;
   }
-
-  .hub-card-description {
+  
+  .hub-card-action {
+    padding: 14px 40px;
+    min-width: 200px;
     font-size: 12px;
   }
-
-  .hub-card-action {
-    width: 100%;
-    text-align: center;
-  }
-}
-
-
-/* ==================== THEME-SPECIFIC COLORS ==================== */
-
-/* Light mode: background is WHITE to PINK gradient, cards stay as panel, text is white */
-[data-theme-mode="light"] .hub-page {
-  background: linear-gradient(135deg, #ffffff 0%, var(--accent) 100%) !important;
-  color: #ffffff !important;
-}
-
-[data-theme-mode="light"] .hub-logo {
-  color: var(--accent) !important;
-}
-
-[data-theme-mode="light"] .hub-subtitle {
-  color: #8b3a3a !important;
-}
-
-[data-theme-mode="light"] .hub-header {
-  background: transparent !important;
-  border-bottom-color: rgba(255, 255, 255, 0.2) !important;
-}
-
-[data-theme-mode="light"] .hub-welcome {
-  background: linear-gradient(135deg, #ffffff 0%, var(--accent) 100%) !important;
-  border-bottom-color: rgba(255, 255, 255, 0.2) !important;
-}
-
-[data-theme-mode="light"] .hub-welcome-title {
-  color: #8b3a3a !important;
-}
-
-[data-theme-mode="light"] .hub-welcome-subtitle {
-  color: rgba(255, 255, 255, 0.9) !important;
-}
-
-/* Dark mode: background is CHARCOAL to GOLD gradient, cards are CHARCOAL, text is gold */
-[data-theme-mode="dark"] .hub-page {
-  background: linear-gradient(135deg, #1a1a1a 0%, var(--accent) 100%) !important;
-  color: #1a1a1a !important;
-}
-
-[data-theme-mode="dark"] .hub-logo,
-[data-theme-mode="dark"] .hub-subtitle {
-  color: #1a1a1a !important;
-}
-
-[data-theme-mode="dark"] .hub-welcome-title {
-  color: var(--accent) !important;
-}
-
-[data-theme-mode="dark"] .hub-welcome-subtitle {
-  color: rgba(215, 179, 140, 0.8) !important;
-}
-
-[data-theme-mode="dark"] .hub-header {
-  background: var(--accent) !important;
-  border-bottom-color: rgba(26, 26, 26, 0.2) !important;
-}
-
-[data-theme-mode="dark"] .hub-welcome {
-  background: linear-gradient(135deg, #1a1a1a 0%, var(--accent) 100%) !important;
-  border-bottom-color: rgba(26, 26, 26, 0.2) !important;
-}
-
-[data-theme-mode="dark"] .hub-card {
-  background: #1a1a1a !important;
-  border: none !important;
-}
-
-[data-theme-mode="dark"] .hub-card-title,
-[data-theme-mode="dark"] .hub-card-description {
-  color: var(--accent) !important;
-}
-
-[data-theme-mode="dark"] .hub-card-icon {
-  background: rgba(215, 179, 140, 0.1) !important;
-  color: var(--accent) !important;
-}
-
-[data-theme-mode="dark"] .hub-card-action {
-  background: var(--accent) !important;
-  color: #1a1a1a !important;
-}
-
-[data-theme-mode="dark"] .hub-card-action:hover {
-  background: color-mix(in srgb, var(--accent) 90%, white) !important;
-}
-
-
-/* Light mode: nav buttons with white text */
-[data-theme-mode="light"] .hub-nav-btn {
-  background: rgba(255, 255, 255, 0.15) !important;
-  border-color: rgba(255, 255, 255, 0.2) !important;
-  color: #ffffff !important;
-}
-
-[data-theme-mode="light"] .hub-nav-btn:hover {
-  background: rgba(255, 255, 255, 0.25) !important;
-  border-color: rgba(255, 255, 255, 0.4) !important;
-}
-
-/* Dark mode: nav buttons with charcoal text */
-[data-theme-mode="dark"] .hub-nav-btn {
-  background: rgba(26, 26, 26, 0.15) !important;
-  border-color: rgba(26, 26, 26, 0.2) !important;
-  color: #1a1a1a !important;
-}
-
-[data-theme-mode="dark"] .hub-nav-btn:hover {
-  background: rgba(26, 26, 26, 0.25) !important;
-  border-color: rgba(26, 26, 26, 0.4) !important;
-}
-
-
-/* Light mode: left two cards (in white region) have pink borders */
-[data-theme-mode="light"] .hub-card:nth-child(1),
-[data-theme-mode="light"] .hub-card:nth-child(3) {
-  border: 2px solid var(--accent) !important;
-}
-
-/* Dark mode: left two cards (in charcoal region) have gold borders */
-[data-theme-mode="dark"] .hub-card:nth-child(1),
-[data-theme-mode="dark"] .hub-card:nth-child(3) {
-  border: 2px solid var(--accent) !important;
 }

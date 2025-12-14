@@ -1,3 +1,10 @@
+/* ==================== FORCE BOXY DESIGN ==================== */
+.activity-timeline-page *,
+.activity-timeline-page *::before,
+.activity-timeline-page *::after {
+  border-radius: 0 !important;
+}
+
 .activity-timeline-page {
   width: 100%;
   min-height: 100vh;

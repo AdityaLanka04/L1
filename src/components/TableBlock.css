@@ -1,3 +1,10 @@
+/* ==================== FORCE BOXY DESIGN ==================== */
+.table-block *,
+.table-block *::before,
+.table-block *::after {
+  border-radius: 0 !important;
+}
+
 .table-block {
   margin: 16px 0;
   width: 100%;

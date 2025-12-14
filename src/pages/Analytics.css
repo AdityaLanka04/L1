@@ -1,5 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
+/* ==================== FORCE BOXY DESIGN ==================== */
+.analytics-page *,
+.analytics-page *::before,
+.analytics-page *::after {
+  border-radius: 0 !important;
+}
+
 /* ============================================
    ANALYTICS DASHBOARD - BENTO SWISS DESIGN
    Premium aesthetic with vibrant colors

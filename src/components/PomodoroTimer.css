@@ -1,3 +1,10 @@
+/* ==================== FORCE BOXY DESIGN ==================== */
+.pomodoro-timer *,
+.pomodoro-timer *::before,
+.pomodoro-timer *::after {
+  border-radius: 0 !important;
+}
+
 .pomodoro-timer {
   display: flex;
   flex-direction: column;

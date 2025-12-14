@@ -1,3 +1,10 @@
+/* ==================== FORCE BOXY DESIGN ==================== */
+.notes-dashboard *,
+.notes-dashboard *::before,
+.notes-dashboard *::after {
+  border-radius: 0 !important;
+}
+
 .notes-dashboard {
   width: 100%;
   height: 100vh;

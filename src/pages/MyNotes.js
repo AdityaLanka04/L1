@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Plus, Search, Star, Clock, Folder, Trash2, Upload, FolderPlus, Grid, List as ListIcon, Layout, Sparkles
+  Plus, Search, Star, Clock, Folder, Trash2, Upload, FolderPlus, 
+  Grid, List as ListIcon, Layout, Sparkles, ChevronLeft, ChevronRight,
+  Home, LogOut, FileText, Menu
 } from 'lucide-react';
 import './MyNotes.css';
 import { API_URL } from '../config';
@@ -11,6 +13,9 @@ import SmartFolders from '../components/SmartFolders';
 const MyNotes = () => {
   const navigate = useNavigate();
   const userName = localStorage.getItem('username');
+
+  // Sidebar state
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const [notes, setNotes] = useState([]);
   const [folders, setFolders] = useState([]);
@@ -22,30 +27,24 @@ const MyNotes = () => {
   const [showTrash, setShowTrash] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  // Folder modal
+  // Modals
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
-  
-  // Chat import modal
   const [showChatImport, setShowChatImport] = useState(false);
   const [chatSessions, setChatSessions] = useState([]);
   const [selectedSessions, setSelectedSessions] = useState([]);
   const [importing, setImporting] = useState(false);
-  
-  // Move to folder
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [noteToMove, setNoteToMove] = useState(null);
-  
-  // Templates
   const [showTemplates, setShowTemplates] = useState(false);
-  
-  // Smart Folders
   const [showSmartFolders, setShowSmartFolders] = useState(false);
-  
-  // Document import
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [importFile, setImportFile] = useState(null);
-  const [importProgress, setImportProgress] = useState(false);
+
+  // Icons
+  const Icons = {
+    notes: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+    home: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+    logout: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+  };
 
   useEffect(() => {
     loadNotes();
@@ -98,40 +97,6 @@ const MyNotes = () => {
       }
     } catch (error) {
       console.error('Error loading chat sessions:', error);
-    }
-  };
-
-  const handleFileImport = async () => {
-    if (!importFile) return;
-    
-    setImportProgress(true);
-    try {
-      const token = localStorage.getItem('token');
-      const formData = new FormData();
-      formData.append('file', importFile);
-      formData.append('user_id', userName);
-      
-      const response = await fetch(`${API_URL}/import_document`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        await loadNotes();
-        setShowImportModal(false);
-        setImportFile(null);
-        alert(`Successfully imported: ${data.title}`);
-      } else {
-        const error = await response.json();
-        alert(`Import failed: ${error.detail}`);
-      }
-    } catch (error) {
-      console.error('Error importing document:', error);
-      alert('Failed to import document');
-    } finally {
-      setImportProgress(false);
     }
   };
 
@@ -300,8 +265,6 @@ const MyNotes = () => {
   const handleTemplateSelect = async (template) => {
     try {
       const token = localStorage.getItem('token');
-      
-      // Convert blocks to HTML if blocks are provided
       let content = template.content;
       if (template.blocks && template.blocks.length > 0) {
         content = blocksToHtml(template.blocks);
@@ -330,60 +293,34 @@ const MyNotes = () => {
     }
   };
 
-  // Helper function to convert blocks to HTML
   const blocksToHtml = (blocks) => {
     if (!blocks || blocks.length === 0) return '';
-    
     return blocks.map(block => {
       const content = block.content || '';
-      
       switch (block.type) {
-        case 'heading1':
-          return `<h1>${content}</h1>`;
-        case 'heading2':
-          return `<h2>${content}</h2>`;
-        case 'heading3':
-          return `<h3>${content}</h3>`;
-        case 'bulletList':
-          return `<ul><li>${content}</li></ul>`;
-        case 'numberedList':
-          return `<ol><li>${content}</li></ol>`;
-        case 'quote':
-          return `<blockquote>${content}</blockquote>`;
-        case 'code':
-          return `<pre><code>${content}</code></pre>`;
-        case 'divider':
-          return '<hr/>';
-        case 'todo':
-          return `<div><input type="checkbox" ${block.properties?.checked ? 'checked' : ''}/> ${content}</div>`;
-        case 'callout':
-        case 'info':
-        case 'warning':
-        case 'success':
-        case 'tip':
-          return `<div class="callout ${block.type}">${content}</div>`;
-        default:
-          return `<p>${content}</p>`;
+        case 'heading1': return `<h1>${content}</h1>`;
+        case 'heading2': return `<h2>${content}</h2>`;
+        case 'heading3': return `<h3>${content}</h3>`;
+        case 'bulletList': return `<ul><li>${content}</li></ul>`;
+        case 'numberedList': return `<ol><li>${content}</li></ol>`;
+        case 'quote': return `<blockquote>${content}</blockquote>`;
+        case 'code': return `<pre><code>${content}</code></pre>`;
+        case 'divider': return '<hr/>';
+        default: return `<p>${content}</p>`;
       }
     }).join('\n');
   };
 
   const getFilteredNotes = () => {
     let filtered = showTrash ? trashedNotes : notes;
-    
     filtered = filtered.filter(note =>
       note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       note.content.toLowerCase().includes(searchTerm.toLowerCase())
     );
-
-    if (showFavorites) {
-      filtered = filtered.filter(n => n.is_favorite);
-    }
-
+    if (showFavorites) filtered = filtered.filter(n => n.is_favorite);
     if (selectedFolder && !showTrash && !showFavorites) {
       filtered = filtered.filter(n => n.folder_id === selectedFolder);
     }
-
     return filtered;
   };
 
@@ -393,9 +330,8 @@ const MyNotes = () => {
     const diffMs = now - date;
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
-
     if (diffHours < 1) return 'just now';
-    if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays === 1) return '1 day ago';
     if (diffDays < 7) return `${diffDays} days ago`;
     return date.toLocaleDateString();
@@ -403,213 +339,231 @@ const MyNotes = () => {
 
   const extractPreview = (content) => {
     const text = content.replace(/<[^>]+>/g, '').trim();
-    return text.substring(0, 120) + (text.length > 120 ? '...' : '');
+    return text.substring(0, 100) + (text.length > 100 ? '...' : '');
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    navigate('/');
   };
 
   const filteredNotes = getFilteredNotes();
+  const currentTitle = showTrash ? 'Trash' : showFavorites ? 'Favorites' : 
+    selectedFolder ? folders.find(f => f.id === selectedFolder)?.name : 'All Notes';
 
   return (
     <div className="my-notes-page-full">
-      {/* Sidebar */}
-      <div className="notes-sidebar">
-        <div className="sidebar-header">
-          <h2>My Notes</h2>
-          <span className="notes-count">{notes.length}</span>
-        </div>
-
-        <div className="sidebar-actions">
-          <button onClick={createNewNote} className="btn-new-note">
-            <Plus size={18} /> New Note
-          </button>
-          <button onClick={() => setShowTemplates(true)} className="btn-from-chat">
-            <Layout size={16} /> Templates
-          </button>
-          <button onClick={() => setShowChatImport(true)} className="btn-from-chat">
-            <Upload size={16} /> From Chat
-          </button>
-          <button onClick={() => setShowSmartFolders(true)} className="btn-from-chat">
-            <Sparkles size={16} /> Smart Folders
-          </button>
-        </div>
-
-        <div className="search-container">
-          <Search size={18} />
-          <input
-            type="text"
-            placeholder="Search notes..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        <div className="sidebar-filters">
-          <button
-            className={`filter-btn ${!showFavorites && !showTrash && !selectedFolder ? 'active' : ''}`}
-            onClick={() => {
-              setShowFavorites(false);
-              setShowTrash(false);
-              setSelectedFolder(null);
-            }}
-          >
-            <Folder size={16} /> All Notes
-          </button>
-          <button
-            className={`filter-btn ${showFavorites ? 'active' : ''}`}
-            onClick={() => {
-              setShowFavorites(true);
-              setShowTrash(false);
-              setSelectedFolder(null);
-            }}
-          >
-            <Star size={16} /> Favorites
-          </button>
-          <button
-            className={`filter-btn ${showTrash ? 'active' : ''}`}
-            onClick={() => {
-              setShowTrash(true);
-              setShowFavorites(false);
-              setSelectedFolder(null);
-              loadTrash();
-            }}
-          >
-            <Trash2 size={16} /> Trash
-          </button>
-        </div>
-
-        <div className="folders-section">
-          <div className="folders-header">
-            <h3>folders</h3>
-            <button onClick={() => setShowFolderModal(true)} className="btn-add-folder">
-              <FolderPlus size={16} />
+      <div className="nt-layout">
+        {/* Sidebar */}
+        <aside className={`nt-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+          <div className="nt-sidebar-header">
+            <div className="nt-logo" onClick={() => navigate('/dashboard')}>
+              <div className="nt-logo-icon">{Icons.notes}</div>
+              <span className="nt-logo-text">My Notes</span>
+            </div>
+            <button 
+              className="nt-collapse-btn"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            >
+              {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
             </button>
           </div>
-          {folders.length > 0 ? (
-            <div className="folders-list">
+
+          <button className="nt-new-note-btn" onClick={createNewNote}>
+            <Plus size={18} />
+            <span>New Note</span>
+          </button>
+
+          <nav className="nt-sidebar-nav">
+            {/* Quick Actions */}
+            <div className="nt-nav-section">
+              <div className="nt-nav-section-title">Quick Actions</div>
+              <button className="nt-nav-item" onClick={() => setShowTemplates(true)}>
+                <span className="nt-nav-icon"><Layout size={18} /></span>
+                <span className="nt-nav-text">Templates</span>
+              </button>
+              <button className="nt-nav-item" onClick={() => setShowChatImport(true)}>
+                <span className="nt-nav-icon"><Upload size={18} /></span>
+                <span className="nt-nav-text">From Chat</span>
+              </button>
+              <button className="nt-nav-item" onClick={() => setShowSmartFolders(true)}>
+                <span className="nt-nav-icon"><Sparkles size={18} /></span>
+                <span className="nt-nav-text">Smart Folders</span>
+              </button>
+              <button className="nt-nav-item" onClick={() => navigate('/media-notes')}>
+                <span className="nt-nav-icon"><FileText size={18} /></span>
+                <span className="nt-nav-text">Media Notes</span>
+              </button>
+            </div>
+
+            {/* Filters */}
+            <div className="nt-nav-section">
+              <div className="nt-nav-section-title">Library</div>
+              <button 
+                className={`nt-nav-item ${!showFavorites && !showTrash && !selectedFolder ? 'active' : ''}`}
+                onClick={() => { setShowFavorites(false); setShowTrash(false); setSelectedFolder(null); }}
+              >
+                <span className="nt-nav-icon"><Folder size={18} /></span>
+                <span className="nt-nav-text">All Notes</span>
+                <span className="nt-nav-count">{notes.length}</span>
+              </button>
+              <button 
+                className={`nt-nav-item ${showFavorites ? 'active' : ''}`}
+                onClick={() => { setShowFavorites(true); setShowTrash(false); setSelectedFolder(null); }}
+              >
+                <span className="nt-nav-icon"><Star size={18} /></span>
+                <span className="nt-nav-text">Favorites</span>
+                <span className="nt-nav-count">{notes.filter(n => n.is_favorite).length}</span>
+              </button>
+              <button 
+                className={`nt-nav-item ${showTrash ? 'active' : ''}`}
+                onClick={() => { setShowTrash(true); setShowFavorites(false); setSelectedFolder(null); loadTrash(); }}
+              >
+                <span className="nt-nav-icon"><Trash2 size={18} /></span>
+                <span className="nt-nav-text">Trash</span>
+              </button>
+            </div>
+
+            {/* Folders */}
+            <div className="nt-nav-section">
+              <div className="nt-nav-section-title">
+                Folders
+                <button className="nt-add-folder-btn" onClick={() => setShowFolderModal(true)}>
+                  <FolderPlus size={14} />
+                </button>
+              </div>
               {folders.map(folder => (
                 <button
                   key={folder.id}
-                  className={`folder-item ${selectedFolder === folder.id ? 'active' : ''}`}
-                  onClick={() => {
-                    setSelectedFolder(folder.id);
-                    setShowFavorites(false);
-                    setShowTrash(false);
-                  }}
+                  className={`nt-nav-item ${selectedFolder === folder.id ? 'active' : ''}`}
+                  onClick={() => { setSelectedFolder(folder.id); setShowFavorites(false); setShowTrash(false); }}
                 >
-                  <Folder size={14} />
-                  <span>{folder.name}</span>
-                  <span className="folder-count">
-                    {notes.filter(n => n.folder_id === folder.id).length}
-                  </span>
+                  <span className="nt-nav-icon"><Folder size={18} /></span>
+                  <span className="nt-nav-text">{folder.name}</span>
+                  <span className="nt-nav-count">{notes.filter(n => n.folder_id === folder.id).length}</span>
                 </button>
               ))}
             </div>
-          ) : (
-            <div className="no-folders">
-              <p>No folders yet</p>
-              <button onClick={() => setShowFolderModal(true)} className="create-folder-hint">
-                <FolderPlus size={14} /> create your first folder
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+          </nav>
 
-      {/* Main Content */}
-      <div className="notes-main-content">
-        <div className="content-header">
-          <div className="header-left">
-            <h1>
-              {showTrash ? 'Trash' : showFavorites ? 'Favorites' : selectedFolder ? folders.find(f => f.id === selectedFolder)?.name : 'All Notes'}
-            </h1>
-            <p>{filteredNotes.length} notes</p>
-          </div>
-          <div className="header-right">
-            <div className="view-controls">
-              <button
-                className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                onClick={() => setViewMode('grid')}
-              >
-                <Grid size={16} />
-              </button>
-              <button
-                className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-                onClick={() => setViewMode('list')}
-              >
-                <ListIcon size={16} />
-              </button>
-            </div>
-            <button onClick={() => navigate('/notes')} className="back-btn">
-              Back to Notes
+          <div className="nt-sidebar-footer">
+            <button className="nt-nav-item" onClick={() => navigate('/dashboard')}>
+              <span className="nt-nav-icon">{Icons.home}</span>
+              <span className="nt-nav-text">Dashboard</span>
+            </button>
+            <button className="nt-nav-item" onClick={handleLogout}>
+              <span className="nt-nav-icon">{Icons.logout}</span>
+              <span className="nt-nav-text">Logout</span>
             </button>
           </div>
-        </div>
+        </aside>
 
-        {loading ? (
-          <div className="loading-state">
-            <div className="spinner"></div>
-            <p>Loading notes...</p>
-          </div>
-        ) : filteredNotes.length === 0 ? (
-          <div className="empty-state">
-            <Folder size={64} />
-            <h2>No notes here</h2>
-            <p>Create your first note to get started</p>
-            <button onClick={createNewNote} className="create-first-btn">
-              <Plus size={18} /> Create Note
-            </button>
-          </div>
-        ) : (
-          <div className={`notes-${viewMode}`}>
-            {filteredNotes.map(note => (
-              <div key={note.id} className="note-card">
-                {note.is_favorite && (
-                  <div className="favorite-badge">
-                    <Star size={14} fill="currentColor" />
-                  </div>
-                )}
-                <div className="note-card-actions">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setNoteToMove(note);
-                      setShowMoveModal(true);
-                    }}
-                    className="note-action-btn"
-                    title="Move to folder"
-                  >
-                    <Folder size={14} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteNote(note.id);
-                    }}
-                    className="note-action-btn delete"
-                    title="Delete"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-                <div onClick={() => navigate(`/notes/editor/${note.id}`)}>
-                  <h3 className="note-title">{note.title || 'Untitled'}</h3>
-                  <div className="note-preview">{extractPreview(note.content)}</div>
-                  <div className="note-footer">
-                    <span className="note-date">
-                      <Clock size={12} />
-                      {formatDate(note.updated_at)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+        {/* Show Sidebar Button - appears when sidebar is collapsed */}
+        {sidebarCollapsed && (
+          <button 
+            className="nt-show-sidebar-btn" 
+            onClick={() => setSidebarCollapsed(false)}
+            title="Show Sidebar"
+          >
+            <Menu size={20} />
+          </button>
         )}
+
+        {/* Main Content */}
+        <main className="nt-main">
+          <header className="nt-header">
+            <div className="nt-header-left">
+              <h1 className="nt-header-title">{currentTitle}</h1>
+              <p className="nt-header-subtitle">{filteredNotes.length} notes</p>
+            </div>
+            <div className="nt-header-actions">
+              <div className="nt-search">
+                <Search size={16} />
+                <input
+                  type="text"
+                  placeholder="Search notes..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="nt-view-controls">
+                <button
+                  className={`nt-view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                  onClick={() => setViewMode('grid')}
+                >
+                  <Grid size={16} />
+                </button>
+                <button
+                  className={`nt-view-btn ${viewMode === 'list' ? 'active' : ''}`}
+                  onClick={() => setViewMode('list')}
+                >
+                  <ListIcon size={16} />
+                </button>
+              </div>
+            </div>
+          </header>
+
+          <div className="nt-content">
+            {loading ? (
+              <div className="nt-loading">
+                <div className="nt-spinner"></div>
+                <p>Loading notes...</p>
+              </div>
+            ) : filteredNotes.length === 0 ? (
+              <div className="nt-empty-state">
+                <div className="nt-empty-icon"><Folder size={40} /></div>
+                <h2>No notes here</h2>
+                <p>Create your first note to get started</p>
+                <button className="nt-btn nt-btn-primary" onClick={createNewNote}>
+                  <Plus size={16} /> Create Note
+                </button>
+              </div>
+            ) : (
+              <div className={viewMode === 'grid' ? 'nt-notes-grid' : 'nt-notes-list'}>
+                {filteredNotes.map(note => (
+                  <div key={note.id} className="nt-note-card" onClick={() => navigate(`/notes/editor/${note.id}`)}>
+                    {note.is_favorite && (
+                      <div className="nt-favorite-badge"><Star size={14} /></div>
+                    )}
+                    <div className="nt-note-card-header">
+                      <h3 className="nt-note-title">{note.title || 'Untitled'}</h3>
+                      <div className="nt-note-actions">
+                        <button
+                          className="nt-note-action-btn"
+                          onClick={(e) => { e.stopPropagation(); setNoteToMove(note); setShowMoveModal(true); }}
+                          title="Move to folder"
+                        >
+                          <Folder size={14} />
+                        </button>
+                        <button
+                          className="nt-note-action-btn delete"
+                          onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }}
+                          title="Delete"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="nt-note-preview">{extractPreview(note.content)}</div>
+                    <div className="nt-note-footer">
+                      <span className="nt-note-date">
+                        <Clock size={12} />
+                        {formatDate(note.updated_at)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </main>
       </div>
 
-      {/* Folder Modal */}
+      {/* Create Folder Modal */}
       {showFolderModal && (
-        <div className="modal-overlay" onClick={() => setShowFolderModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="nt-modal-overlay" onClick={() => setShowFolderModal(false)}>
+          <div className="nt-modal" onClick={(e) => e.stopPropagation()}>
             <h3>Create New Folder</h3>
             <input
               type="text"
@@ -619,28 +573,28 @@ const MyNotes = () => {
               onKeyPress={(e) => e.key === 'Enter' && createFolder()}
               autoFocus
             />
-            <div className="modal-actions">
-              <button onClick={() => setShowFolderModal(false)} className="cancel-btn">Cancel</button>
-              <button onClick={createFolder} className="create-btn">Create</button>
+            <div className="nt-modal-actions">
+              <button className="nt-modal-btn cancel" onClick={() => setShowFolderModal(false)}>Cancel</button>
+              <button className="nt-modal-btn primary" onClick={createFolder}>Create</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Chat Import Modal */}
+      {/* Import from Chat Modal */}
       {showChatImport && (
-        <div className="modal-overlay" onClick={() => setShowChatImport(false)}>
-          <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
-            <h3>import from ai chat</h3>
-            <p className="modal-subtitle">Select chat sessions to convert into notes</p>
-            <div className="chat-sessions-list">
+        <div className="nt-modal-overlay" onClick={() => setShowChatImport(false)}>
+          <div className="nt-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Import from AI Chat</h3>
+            <p className="nt-modal-subtitle">Select chat sessions to convert into notes</p>
+            <div className="nt-chat-list">
               {chatSessions.length === 0 ? (
-                <div className="empty-chat-list">
-                  <p>No chat sessions found</p>
+                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--nt-text-muted)' }}>
+                  No chat sessions found
                 </div>
               ) : (
                 chatSessions.map(session => (
-                  <label key={session.id} className="chat-session-item">
+                  <label key={session.id} className="nt-chat-item">
                     <input
                       type="checkbox"
                       checked={selectedSessions.includes(session.id)}
@@ -652,18 +606,22 @@ const MyNotes = () => {
                         }
                       }}
                     />
-                    <div className="chat-session-info">
-                      <span className="chat-title">{session.title || 'Untitled Chat'}</span>
-                      <span className="chat-date">{formatDate(session.created_at)}</span>
+                    <div className="nt-chat-info">
+                      <span className="nt-chat-title">{session.title || 'Untitled Chat'}</span>
+                      <span className="nt-chat-date">{formatDate(session.created_at)}</span>
                     </div>
                   </label>
                 ))
               )}
             </div>
-            <div className="modal-actions">
-              <button onClick={() => setShowChatImport(false)} className="cancel-btn">cancel</button>
-              <button onClick={importFromChat} disabled={importing || selectedSessions.length === 0} className="create-btn">
-                {importing ? 'importing...' : `import ${selectedSessions.length > 0 ? `(${selectedSessions.length})` : ''}`}
+            <div className="nt-modal-actions">
+              <button className="nt-modal-btn cancel" onClick={() => setShowChatImport(false)}>Cancel</button>
+              <button 
+                className="nt-modal-btn primary" 
+                onClick={importFromChat} 
+                disabled={importing || selectedSessions.length === 0}
+              >
+                {importing ? 'Importing...' : `Import (${selectedSessions.length})`}
               </button>
             </div>
           </div>
@@ -672,31 +630,28 @@ const MyNotes = () => {
 
       {/* Move to Folder Modal */}
       {showMoveModal && noteToMove && (
-        <div className="modal-overlay" onClick={() => setShowMoveModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3>move to folder</h3>
-            <p className="modal-subtitle">Select a folder for "{noteToMove.title || 'Untitled'}"</p>
-            <div className="folder-select-list">
-              <button
-                onClick={() => moveNoteToFolder(null)}
-                className="folder-select-item"
-              >
+        <div className="nt-modal-overlay" onClick={() => setShowMoveModal(false)}>
+          <div className="nt-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Move to Folder</h3>
+            <p className="nt-modal-subtitle">Select a folder for "{noteToMove.title || 'Untitled'}"</p>
+            <div className="nt-folder-select-list">
+              <button className="nt-folder-select-item" onClick={() => moveNoteToFolder(null)}>
                 <Folder size={16} />
                 <span>No Folder</span>
               </button>
               {folders.map(folder => (
                 <button
                   key={folder.id}
+                  className="nt-folder-select-item"
                   onClick={() => moveNoteToFolder(folder.id)}
-                  className="folder-select-item"
                 >
                   <Folder size={16} />
                   <span>{folder.name}</span>
                 </button>
               ))}
             </div>
-            <div className="modal-actions">
-              <button onClick={() => setShowMoveModal(false)} className="cancel-btn">cancel</button>
+            <div className="nt-modal-actions">
+              <button className="nt-modal-btn cancel" onClick={() => setShowMoveModal(false)}>Cancel</button>
             </div>
           </div>
         </div>
@@ -705,7 +660,7 @@ const MyNotes = () => {
       {/* Templates Modal */}
       {showTemplates && (
         <>
-          <div className="modal-overlay" onClick={() => setShowTemplates(false)} />
+          <div className="nt-modal-overlay" onClick={() => setShowTemplates(false)} />
           <Templates
             onSelectTemplate={handleTemplateSelect}
             onClose={() => setShowTemplates(false)}
@@ -717,7 +672,7 @@ const MyNotes = () => {
       {/* Smart Folders Modal */}
       {showSmartFolders && (
         <>
-          <div className="modal-overlay" style={{ zIndex: 10000 }} onClick={() => setShowSmartFolders(false)} />
+          <div className="nt-modal-overlay" style={{ zIndex: 10000 }} onClick={() => setShowSmartFolders(false)} />
           <SmartFolders
             notes={notes}
             onFolderSelect={(filteredNotes, folderName) => {

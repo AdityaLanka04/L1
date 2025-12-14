@@ -1,3 +1,10 @@
+/* ==================== FORCE BOXY DESIGN ==================== */
+.backlinks-panel *,
+.backlinks-panel *::before,
+.backlinks-panel *::after {
+  border-radius: 0 !important;
+}
+
 .backlinks-panel {
   margin-top: 24px;
   padding: 16px;

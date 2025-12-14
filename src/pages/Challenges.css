@@ -549,3 +549,11 @@
     white-space: nowrap;
   }
 }
+
+
+/* ==================== FORCE BOXY DESIGN ==================== */
+.challenges-page *,
+.challenges-page *::before,
+.challenges-page *::after {
+  border-radius: 0 !important;
+}

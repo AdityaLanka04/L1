@@ -2364,21 +2364,13 @@ const NotesRedesign = ({ sharedMode = false }) => {
       <div className="editor-area-new" style={{ width: '100%' }}>
         <div className={`top-nav-new ${titleSectionCollapsed ? 'hidden' : ''}`}>
           <div className="nav-left">
-            {isSharedContent ? (
+            {isSharedContent && (
               <button
                 onClick={() => navigate('/social')}
                 className="toggle-sidebar"
                 title="Back to Social"
               >
                 <ArrowLeft size={18} />
-              </button>
-            ) : (
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="toggle-sidebar"
-                title="Toggle tools panel"
-              >
-                {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
               </button>
             )}
             <div 
@@ -2453,6 +2445,17 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
         {selectedNote ? (
           <div className="editor-with-sidepanel">
+            {/* Floating Menu Button - shows when sidebar is closed */}
+            {!sidebarOpen && !isSharedContent && (
+              <button 
+                className="nr-show-sidebar-btn" 
+                onClick={() => setSidebarOpen(true)}
+                title="Show Tools Panel"
+              >
+                <Menu size={20} />
+              </button>
+            )}
+
             {/* LEFT SIDE TOOLS PANEL */}
             <div className={`tools-sidepanel ${sidebarOpen && !isSharedContent ? "open" : "closed"}`}>
               <div className="tools-panel-header">
@@ -2644,7 +2647,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
               </div>
             </div>
 
-            <div className={`editor-content ${editorDarkMode ? 'dark-mode' : ''} ${titleSectionCollapsed ? 'toolbar-hidden' : ''}`}>
+            <div className={`editor-content ${editorDarkMode ? 'dark-mode' : ''} ${titleSectionCollapsed ? 'toolbar-hidden' : ''} ${!sidebarOpen ? 'sidebar-closed' : ''}`}>
               {isSharedContent && !canEdit && (
                 <div className="view-only-banner">
                   <Eye size={16} />

@@ -1,3 +1,10 @@
+/* ==================== FORCE BOXY DESIGN ==================== */
+.quick-switcher-overlay *,
+.quick-switcher-overlay *::before,
+.quick-switcher-overlay *::after {
+  border-radius: 0 !important;
+}
+
 .quick-switcher-overlay {
   position: fixed;
   top: 0;

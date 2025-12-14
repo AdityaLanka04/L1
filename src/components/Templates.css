@@ -1,3 +1,10 @@
+/* ==================== FORCE BOXY DESIGN ==================== */
+.templates-modal *,
+.templates-modal *::before,
+.templates-modal *::after {
+  border-radius: 0 !important;
+}
+
 .templates-modal {
   position: fixed;
   top: 50%;

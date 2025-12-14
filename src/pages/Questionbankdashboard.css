@@ -1,142 +1,142 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-:root {
-  --bg-top: #0b0b0c;
-  --bg-bottom: #0f1012;
-  --panel: #16181d;
-  --border: #2a2f37;
-  --text-primary: #EAECEF;
-  --text-secondary: #B8C0CC;
-  --accent: #D7B38C;
-  --accent-2: #B88F63;
-  --success: #10B981;
-  --warning: #F59E0B;
-  --danger: #EF4444;
-  --glow: rgba(215, 179, 140, 0.35);
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px var(--glow);
+/* ==================== FORCE BOXY DESIGN ==================== */
+.qbd-container *,
+.qbd-container *::before,
+.qbd-container *::after {
+  border-radius: 0 !important;
 }
 
-* {
+/* CSS Variables - Matching Flashcards */
+.qbd-container {
+  --qbd-bg-primary: var(--bg);
+  --qbd-bg-secondary: var(--panel);
+  --qbd-bg-tertiary: var(--hover-bg);
+  --qbd-border-subtle: var(--border);
+  --qbd-text-primary: var(--text-primary);
+  --qbd-text-secondary: var(--text-secondary);
+  --qbd-accent: var(--accent);
+  --qbd-accent-glow: color-mix(in srgb, var(--accent) 15%, transparent);
+  --qbd-sidebar-width: 260px;
+  --qbd-header-height: 70px;
+}
+
+.qbd-container * {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
 }
 
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: var(--bg-bottom);
-  color: var(--text-primary);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
+/* ==================== PAGE CONTAINER - Flashcards Style ==================== */
 .qbd-container {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: var(--qbd-bg-primary) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--qbd-text-primary);
+  overflow: hidden !important;
+  z-index: 9999 !important;
   display: flex;
-  min-height: 100vh;
-  background: var(--bg-bottom);
-  position: relative;
 }
 
 .qbd-container::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: 
-    radial-gradient(ellipse at top left, var(--glow) 0%, transparent 60%),
-    radial-gradient(ellipse at bottom right, color-mix(in srgb, var(--accent) 8%, transparent) 0%, transparent 50%);
-  pointer-events: none;
-  z-index: 0;
+  display: none;
 }
 
+/* ==================== SIDEBAR - Flashcards Style ==================== */
 .qbd-sidebar {
-  width: 280px;
-  background: var(--panel);
-  border-right: 2px solid var(--border);
+  width: var(--qbd-sidebar-width);
+  height: 100%;
+  background: var(--qbd-bg-secondary);
+  border-right: 1px solid var(--qbd-border-subtle);
   display: flex;
   flex-direction: column;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  z-index: 10;
+  flex-shrink: 0;
 }
 
 .qbd-sidebar-header {
-  padding: 32px 24px;
-  border-bottom: 2px solid var(--border);
+  padding: 20px;
+  border-bottom: 1px solid var(--qbd-border-subtle);
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
 .qbd-sidebar-logo-icon {
-  color: var(--accent);
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--qbd-accent), color-mix(in srgb, var(--qbd-accent) 85%, black));
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--qbd-bg-primary);
 }
 
 .qbd-sidebar-title {
   font-size: 20px;
-  font-weight: 800;
-  color: var(--text-primary);
-  letter-spacing: -0.5px;
+  font-weight: 700;
+  color: var(--qbd-text-primary);
+  letter-spacing: 0;
 }
 
 .qbd-sidebar-nav {
   flex: 1;
-  padding: 24px 16px;
+  padding: 16px 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .qbd-sidebar-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 12px 16px;
   background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
+  border: none;
+  border-radius: 8px;
+  color: var(--qbd-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: 'Inter', sans-serif;
+  transition: all 0.2s;
+  width: 100%;
+  text-align: left;
 }
 
 .qbd-sidebar-item:hover {
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-  border-color: var(--accent);
-  color: var(--accent);
-  transform: translateX(4px);
+  background: var(--qbd-bg-tertiary);
+  color: var(--qbd-text-primary);
+  transform: none;
 }
 
 .qbd-sidebar-item.active {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 8%, transparent));
-  border-color: var(--accent);
-  color: var(--accent);
-  box-shadow: 0 0 20px color-mix(in srgb, var(--glow) 50%, transparent);
+  background: var(--qbd-accent-glow);
+  color: var(--qbd-accent);
+  box-shadow: none;
 }
 
 .qbd-sidebar-back {
-  margin: 16px;
+  margin: 16px 12px;
   padding: 12px 16px;
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
+  background: var(--qbd-bg-tertiary);
+  border: 1px solid var(--qbd-border-subtle);
+  border-radius: 8px;
+  color: var(--qbd-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: 'Inter', sans-serif;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -144,9 +144,7 @@ body {
 }
 
 .qbd-sidebar-back:hover {
-  border-color: var(--danger);
-  color: var(--danger);
-  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  background: var(--qbd-bg-secondary);
 }
 
 .qbd-main {

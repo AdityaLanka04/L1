@@ -1,3 +1,10 @@
+/* ==================== FORCE BOXY DESIGN ==================== */
+.help-tour-overlay *,
+.help-tour-overlay *::before,
+.help-tour-overlay *::after {
+  border-radius: 0 !important;
+}
+
 /* Help Tour Overlay */
 .help-tour-overlay {
   position: fixed;

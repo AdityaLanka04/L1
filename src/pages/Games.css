@@ -520,3 +520,11 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+
+/* ==================== FORCE BOXY DESIGN ==================== */
+.games-page *,
+.games-page *::before,
+.games-page *::after {
+  border-radius: 0 !important;
+}

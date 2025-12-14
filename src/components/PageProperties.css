@@ -1,3 +1,10 @@
+/* ==================== FORCE BOXY DESIGN ==================== */
+.page-properties *,
+.page-properties *::before,
+.page-properties *::after {
+  border-radius: 0 !important;
+}
+
 /* Page Properties Styles */
 .page-properties {
   background: var(--panel);

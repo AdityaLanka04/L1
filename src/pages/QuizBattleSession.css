@@ -1,5 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
+/* ==================== FORCE BOXY DESIGN ==================== */
+.battle-session-page *,
+.battle-session-page *::before,
+.battle-session-page *::after,
+.battle-session-loading *,
+.battle-session-loading *::before,
+.battle-session-loading *::after {
+  border-radius: 0 !important;
+}
+
 :root {
   --bg-top: #0b0b0c;
   --bg-bottom: #0f1012;
