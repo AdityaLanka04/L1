@@ -34,8 +34,9 @@
 }
 
 .se-logo {
-  font-size: 32px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 800;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--accent);
   text-transform: lowercase;
   letter-spacing: -0.5px;
