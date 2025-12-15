@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Map, HelpCircle, BookOpen, TrendingUp } from 'lucide-react';
 import './LearningReviewHub.css';
 import { API_URL } from '../config';
+
 const LearningReviewHub = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
@@ -58,46 +59,46 @@ const LearningReviewHub = () => {
   ];
 
   return (
-    <div className="hub-page">
-      <header className="hub-header">
-        <div className="hub-header-left">
-          <h1 className="hub-logo">cerbyl</h1>
-          <span className="hub-subtitle">LEARNING REVIEW HUB</span>
+    <div className="learning-review-hub-container">
+      <header className="learning-review-hub-header">
+        <div className="learning-review-hub-header-left">
+          <h1 className="learning-review-hub-logo">cerbyl</h1>
+          <span className="learning-review-hub-subtitle">LEARNING REVIEW HUB</span>
         </div>
-        <div className="hub-header-right">
-          <button className="hub-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
-          <button className="hub-nav-btn logout" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>Logout</button>
+        <div className="learning-review-hub-header-right">
+          <button className="learning-review-hub-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
+          <button className="learning-review-hub-nav-btn logout" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>Logout</button>
         </div>
       </header>
 
-      <div className="hub-main-content">
-        <div className="hub-welcome">
-          <h2 className="hub-welcome-title">Welcome back, {userName}</h2>
-          <p className="hub-welcome-subtitle">Choose a learning tool to get started</p>
+      <div className="learning-review-hub-main">
+        <div className="learning-review-hub-welcome">
+          <h2 className="learning-review-hub-welcome-title">Welcome back, {userName}</h2>
+          <p className="learning-review-hub-welcome-subtitle">Choose a learning tool to get started</p>
         </div>
 
-        <div className="hub-grid">
+        <div className="learning-review-hub-grid">
           {tools.map(tool => {
             const IconComponent = tool.icon;
             return (
               <div 
                 key={tool.id}
-                className="hub-card"
+                className="learning-review-hub-card"
                 onClick={() => navigate(tool.path)}
               >
-                <div className="hub-card-header">
-                  <div className="hub-card-icon">
-                    <IconComponent size={48} strokeWidth={1.5} />
+                <div className="learning-review-hub-card-header">
+                  <div className="learning-review-hub-card-icon">
+                    <IconComponent size={40} strokeWidth={1.5} />
                   </div>
                 </div>
 
-                <div className="hub-card-content">
-                  <h3 className="hub-card-title">{tool.title}</h3>
-                  <p className="hub-card-description">{tool.description}</p>
+                <div className="learning-review-hub-card-content">
+                  <h3 className="learning-review-hub-card-title">{tool.title}</h3>
+                  <p className="learning-review-hub-card-description">{tool.description}</p>
                 </div>
 
-                <div className="hub-card-footer">
-                  <button className="hub-card-action">EXPLORE NOW</button>
+                <div className="learning-review-hub-card-footer">
+                  <button className="learning-review-hub-card-action">EXPLORE NOW</button>
                 </div>
               </div>
             );

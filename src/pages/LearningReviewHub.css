@@ -1,355 +1,327 @@
-/* LearningReviewHub - Flashcards Style Layout */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ==================== FORCE BOXY DESIGN ==================== */
-.hub-page *,
-.hub-page *::before,
-.hub-page *::after {
-  border-radius: 0 !important;
-}
-
-/* CSS Variables - Matching Flashcards */
-.hub-page {
-  --hub-bg-primary: var(--bg);
-  --hub-bg-secondary: var(--panel);
-  --hub-bg-tertiary: var(--hover-bg);
-  --hub-bg-card: var(--panel);
-  --hub-border-subtle: var(--border);
-  --hub-text-primary: var(--text-primary);
-  --hub-text-secondary: var(--text-secondary);
-  --hub-accent: var(--accent);
-  --hub-accent-glow: color-mix(in srgb, var(--accent) 15%, transparent);
-  --hub-header-height: 70px;
-}
-
-.hub-page * {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-/* ==================== PAGE CONTAINER - Flashcards Style ==================== */
-.hub-page {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  background: var(--hub-bg-primary) !important;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  color: var(--hub-text-primary);
-  overflow: hidden !important;
-  z-index: 9999 !important;
+.learning-review-hub-container {
+  min-height: 100vh;
+  max-height: 100vh;
   display: flex;
   flex-direction: column;
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+  background: linear-gradient(135deg, #ffffff 0%, var(--accent) 100%);
 }
 
-.hub-page::before {
-  display: none;
+.learning-review-hub-container * {
+  font-family: 'Inter', sans-serif;
 }
 
-/* ==================== HEADER - Flashcards Style ==================== */
-.hub-header {
-  height: var(--hub-header-height);
-  min-height: var(--hub-header-height);
-  padding: 0 32px;
-  background: var(--hub-bg-primary);
-  border-bottom: 1px solid var(--hub-border-subtle);
+.learning-review-hub-header {
+  background: #ffffff;
+  padding: 16px 32px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
   flex-shrink: 0;
+  border-bottom: 2px solid var(--accent);
 }
 
-.hub-header-left {
+.learning-review-hub-header-left {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 16px;
 }
 
-.hub-logo {
-  font-size: 22px;
+.learning-review-hub-logo {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--accent);
+  text-transform: lowercase;
+  letter-spacing: -0.5px;
+}
+
+.learning-review-hub-subtitle {
+  font-size: 9px;
+  color: var(--accent);
   font-weight: 700;
-  color: var(--hub-text-primary);
+  letter-spacing: 2px;
+  text-transform: uppercase;
 }
 
-[data-theme-mode="dark"] .hub-logo {
-  color: var(--hub-accent) !important;
-}
-
-.hub-subtitle {
-  font-size: 13px;
-  color: var(--hub-text-secondary);
-  font-weight: 500;
-}
-
-.hub-header-right {
+.learning-review-hub-header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-.hub-nav-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: var(--hub-bg-tertiary);
-  border: 1px solid var(--hub-border-subtle);
-  border-radius: 8px;
-  color: var(--hub-text-primary);
-  font-size: 13px;
-  font-weight: 500;
+.learning-review-hub-nav-btn {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 7px 16px;
+  font-size: 9px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'Inter', sans-serif;
 }
 
-.hub-nav-btn:hover {
-  background: var(--hub-bg-secondary);
+.learning-review-hub-nav-btn:hover {
+  background: var(--accent);
+  color: #ffffff;
 }
 
-.hub-nav-btn.logout {
-  background: linear-gradient(135deg, var(--hub-accent), color-mix(in srgb, var(--hub-accent) 85%, black));
-  border: none;
-  color: var(--hub-bg-primary);
+.learning-review-hub-nav-btn.logout:hover {
+  background: #c41e3a;
+  border-color: #c41e3a;
+  color: white;
 }
 
-.hub-nav-btn.logout:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--hub-accent) 30%, transparent);
-}
-
-/* ==================== MAIN CONTENT ==================== */
-.hub-main-content {
+.learning-review-hub-main {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-height: 0;
 }
 
-/* ==================== WELCOME SECTION ==================== */
-.hub-welcome {
-  padding: 32px;
-  background: var(--hub-bg-primary);
-  border-bottom: 1px solid var(--hub-border-subtle);
-  flex-shrink: 0;
+.learning-review-hub-welcome {
+  padding: 32px 32px 28px;
+  background: transparent;
   text-align: center;
+  flex-shrink: 0;
 }
 
-.hub-welcome-title {
+.learning-review-hub-welcome-title {
   font-size: 28px;
   font-weight: 700;
-  color: var(--hub-text-primary);
+  color: var(--accent);
   margin-bottom: 8px;
+  letter-spacing: -0.5px;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
 }
 
-[data-theme-mode="dark"] .hub-welcome-title {
-  color: var(--hub-accent) !important;
+.learning-review-hub-welcome-subtitle {
+  font-size: 12px;
+  color: color-mix(in srgb, var(--accent) 90%, #000000);
+  font-weight: 500;
 }
 
-.hub-welcome-subtitle {
-  font-size: 14px;
-  color: var(--hub-text-secondary);
-  font-weight: 400;
-}
-
-/* ==================== GRID LAYOUT ==================== */
-.hub-grid {
+.learning-review-hub-grid {
   flex: 1;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(2, 1fr);
-  gap: 0;
+  gap: 12px;
+  padding: 0 12px 12px 12px;
   overflow: hidden;
-  min-height: 0;
 }
 
-/* ==================== CARD - Bento Style ==================== */
-.hub-card {
-  background: var(--hub-bg-card);
-  border: 1px solid var(--hub-border-subtle);
-  padding: 40px;
+.learning-review-hub-card {
+  padding: 32px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 24px;
+  justify-content: space-between;
   position: relative;
   overflow: hidden;
+  background: #ffffff;
+  border: 2px solid var(--accent);
 }
 
-.hub-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, var(--hub-accent-glow), transparent);
-  transition: left 0.6s ease;
-  pointer-events: none;
+.learning-review-hub-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
-.hub-card:hover::before {
-  left: 100%;
+.learning-review-hub-card-header {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 20px;
 }
 
-.hub-card:hover {
-  background: color-mix(in srgb, var(--hub-bg-card) 90%, var(--hub-accent));
-  border-color: var(--hub-accent);
-}
-
-.hub-card-header {
+.learning-review-hub-card-icon {
+  width: 56px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
 }
 
-.hub-card-icon {
-  width: 100px;
-  height: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--hub-accent-glow);
-  border: 2px solid var(--hub-accent);
-  color: var(--hub-accent);
-  transition: all 0.3s ease;
-}
-
-.hub-card:hover .hub-card-icon {
-  background: var(--hub-accent);
-  color: #000;
-}
-
-.hub-card-icon svg {
-  width: 56px !important;
-  height: 56px !important;
-}
-
-.hub-card-content {
+.learning-review-hub-card-content {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 12px;
+  flex: 1;
 }
 
-.hub-card-title {
-  font-size: 24px;
+.learning-review-hub-card-title {
+  font-size: 18px;
   font-weight: 700;
-  color: var(--hub-text-primary);
-  letter-spacing: -0.5px;
+  letter-spacing: -0.3px;
+  color: var(--accent);
 }
 
-.hub-card-description {
-  font-size: 14px;
-  color: var(--hub-text-secondary);
+.learning-review-hub-card-description {
+  font-size: 12px;
   line-height: 1.6;
-  max-width: 320px;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--accent) 80%, transparent);
 }
 
-.hub-card-footer {
-  margin-top: auto;
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  padding-top: 16px;
+.learning-review-hub-card-footer {
+  margin-top: 16px;
 }
 
-.hub-card-action {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 10px !important;
-  padding: 18px 48px !important;
-  background: var(--hub-accent) !important;
-  border: none !important;
-  color: #000 !important;
-  font-size: 13px !important;
-  font-weight: 700 !important;
-  letter-spacing: 1.5px !important;
-  cursor: pointer !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  text-transform: uppercase !important;
-  min-width: 220px !important;
-  min-height: 52px !important;
-  position: relative !important;
-  overflow: hidden !important;
+.learning-review-hub-card-action {
+  border: none;
+  padding: 10px 24px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+  background: var(--accent);
+  color: #ffffff;
 }
 
-.hub-card-action::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  transition: left 0.5s ease;
+.learning-review-hub-card-action:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
 }
 
-.hub-card-action:hover::before {
-  left: 100%;
+[data-theme-mode="dark"] .learning-review-hub-container {
+  background: linear-gradient(135deg, #1a1a1a 20%, #D7B38C 100%) !important;
 }
 
-.hub-card-action:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px color-mix(in srgb, var(--hub-accent) 50%, transparent);
+[data-theme-mode="dark"] .learning-review-hub-header {
+  background: #1a1a1a !important;
+  border-bottom: 2px solid #D7B38C !important;
 }
 
-/* ==================== RESPONSIVE ==================== */
+[data-theme-mode="dark"] .learning-review-hub-logo {
+  color: #D7B38C !important;
+  font-weight: 800;
+}
+
+[data-theme-mode="dark"] .learning-review-hub-subtitle {
+  color: #D7B38C !important;
+  font-weight: 700;
+}
+
+[data-theme-mode="dark"] .learning-review-hub-nav-btn {
+  border-color: #D7B38C !important;
+  color: #D7B38C !important;
+  font-weight: 700;
+}
+
+[data-theme-mode="dark"] .learning-review-hub-nav-btn:hover {
+  background: #D7B38C !important;
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="dark"] .learning-review-hub-welcome-title {
+  color: #D7B38C !important;
+  font-weight: 700;
+  text-shadow: none;
+}
+
+[data-theme-mode="dark"] .learning-review-hub-welcome-subtitle {
+  color: rgba(215, 179, 140, 0.85) !important;
+  font-weight: 500;
+}
+
+[data-theme-mode="dark"] .learning-review-hub-card {
+  background: #1a1a1a !important;
+  border: 2px solid #D7B38C !important;
+}
+
+[data-theme-mode="dark"] .learning-review-hub-card:hover {
+  box-shadow: 0 8px 24px rgba(215, 179, 140, 0.3) !important;
+}
+
+[data-theme-mode="dark"] .learning-review-hub-card-icon {
+  background: rgba(215, 179, 140, 0.15) !important;
+  color: #D7B38C !important;
+}
+
+[data-theme-mode="dark"] .learning-review-hub-card-title {
+  color: #D7B38C !important;
+  font-weight: 700;
+}
+
+[data-theme-mode="dark"] .learning-review-hub-card-description {
+  color: rgba(215, 179, 140, 0.8) !important;
+  font-weight: 500;
+}
+
+[data-theme-mode="dark"] .learning-review-hub-card-action {
+  background: #D7B38C !important;
+  color: #1a1a1a !important;
+  font-weight: 700;
+}
+
 @media (max-width: 1024px) {
-  .hub-grid {
+  .learning-review-hub-grid {
     grid-template-columns: 1fr;
     grid-template-rows: auto;
+    gap: 12px;
     overflow-y: auto;
   }
-  
-  .hub-card {
-    min-height: 300px;
+
+  .learning-review-hub-card {
+    padding: 24px;
   }
 }
 
 @media (max-width: 768px) {
-  .hub-header {
-    padding: 0 16px;
+  .learning-review-hub-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
   }
-  
-  .hub-welcome {
-    padding: 24px 16px;
+
+  .learning-review-hub-header-left,
+  .learning-review-hub-header-right {
+    width: 100%;
+    justify-content: center;
   }
-  
-  .hub-welcome-title {
+
+  .learning-review-hub-welcome {
+    padding: 24px 16px 20px;
+  }
+
+  .learning-review-hub-welcome-title {
     font-size: 22px;
   }
-  
-  .hub-card {
-    padding: 24px;
+
+  .learning-review-hub-card {
+    padding: 20px;
   }
-  
-  .hub-card-icon {
-    width: 80px;
-    height: 80px;
+
+  .learning-review-hub-card-icon {
+    width: 48px;
+    height: 48px;
   }
-  
-  .hub-card-icon svg {
-    width: 40px !important;
-    height: 40px !important;
+
+  .learning-review-hub-card-title {
+    font-size: 16px;
   }
-  
-  .hub-card-title {
-    font-size: 20px;
+
+  .learning-review-hub-card-description {
+    font-size: 11px;
   }
-  
-  .hub-card-action {
-    padding: 14px 40px;
-    min-width: 200px;
-    font-size: 12px;
+
+  .learning-review-hub-card-action {
+    width: 100%;
+    text-align: center;
   }
 }
