@@ -6,6 +6,8 @@ import {
   Home, LogOut, FileText, Menu
 } from 'lucide-react';
 import './MyNotes.css';
+import './MyNotesSmartFolders.css';
+import './MyNotesChatImport.css';
 import { API_URL } from '../config';
 import Templates from '../components/Templates';
 import SmartFolders from '../components/SmartFolders';
@@ -391,7 +393,7 @@ const MyNotes = () => {
                 <span className="nt-nav-icon"><Sparkles size={18} /></span>
                 <span className="nt-nav-text">Smart Folders</span>
               </button>
-              <button className="nt-nav-item" onClick={() => navigate('/media-notes')}>
+              <button className="nt-nav-item" onClick={() => navigate('/notes/ai-media')}>
                 <span className="nt-nav-icon"><FileText size={18} /></span>
                 <span className="nt-nav-text">Media Notes</span>
               </button>

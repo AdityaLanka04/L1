@@ -39,6 +39,29 @@
   color: var(--accent);
   text-transform: lowercase;
   letter-spacing: -0.5px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.learning-review-hub-logo::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--accent);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.learning-review-hub-logo:hover {
+  color: color-mix(in srgb, var(--accent) 80%, white);
+  transform: translateY(-1px);
+}
+
+.learning-review-hub-logo:hover::after {
+  width: 100%;
 }
 
 .learning-review-hub-subtitle {

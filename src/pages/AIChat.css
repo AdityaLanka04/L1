@@ -140,6 +140,27 @@
   font-size: 20px;
   font-weight: 700;
   color: var(--ac-text-primary);
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ac-logo-text::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--ac-accent);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ac-logo:hover .ac-logo-text {
+  color: color-mix(in srgb, var(--ac-accent) 80%, white);
+}
+
+.ac-logo:hover .ac-logo-text::after {
+  width: 100%;
 }
 
 .ac-sidebar.collapsed .ac-logo-text {

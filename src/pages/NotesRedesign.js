@@ -3,6 +3,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import ReactQuill, { Quill } from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import "./NotesRedesign.css";
+import "./NotesRedesignConvert.css";
+import "./NotesRedesignSmartFolders.css";
+import "./NotesRedesignChatImport.css";
 import CustomPopup from "./CustomPopup";
 import { useTheme } from '../contexts/ThemeContext';
 import { 
@@ -2556,7 +2559,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                       <span>From Chat</span>
                     </button>
                     <button
-                      className="tool-panel-btn"
+                      className="tool-panel-btn convert-btn"
                       onClick={() => setShowImportExport(true)}
                       title="Convert Notes"
                     >

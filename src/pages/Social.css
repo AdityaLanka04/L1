@@ -65,6 +65,29 @@
   font-size: 22px;
   font-weight: 700;
   color: var(--sh-text-primary);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.hub-logo::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--sh-accent);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hub-logo:hover {
+  color: color-mix(in srgb, var(--sh-accent) 80%, white);
+  transform: translateY(-1px);
+}
+
+.hub-logo:hover::after {
+  width: 100%;
 }
 
 [data-theme-mode="dark"] .hub-logo {

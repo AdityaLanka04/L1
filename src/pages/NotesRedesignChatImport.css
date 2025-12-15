@@ -1,0 +1,340 @@
+/* NotesRedesign Chat Import Modal Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* Force all elements to be boxy */
+.notes-redesign .chat-import-overlay,
+.notes-redesign .chat-import-modal-new,
+.notes-redesign .chat-import-modal-new *,
+.notes-redesign .chat-import-modal-new *::before,
+.notes-redesign .chat-import-modal-new *::after {
+  border-radius: 0 !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Overlay */
+.notes-redesign .chat-import-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(8px) !important;
+  z-index: 9998 !important;
+}
+
+/* Modal */
+.notes-redesign .chat-import-modal-new {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  background: #16181d !important;
+  border: 2px solid #2a2f37 !important;
+  width: 90% !important;
+  max-width: 600px !important;
+  max-height: 85vh !important;
+  overflow: hidden !important;
+  z-index: 9999 !important;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6) !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Modal Header */
+.notes-redesign .chat-import-modal-new .modal-header-new {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 20px 24px !important;
+  border-bottom: 2px solid #2a2f37 !important;
+  background: #0f1012 !important;
+}
+
+.notes-redesign .chat-import-modal-new .modal-header-new h2 {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #D7B38C !important;
+  margin: 0 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+}
+
+.notes-redesign .chat-import-modal-new .modal-close-btn {
+  width: 36px !important;
+  height: 36px !important;
+  background: #0f1012 !important;
+  border: 2px solid #2a2f37 !important;
+  color: #D7B38C !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s !important;
+}
+
+.notes-redesign .chat-import-modal-new .modal-close-btn:hover {
+  background: #D7B38C !important;
+  border-color: #D7B38C !important;
+  color: #0f1012 !important;
+}
+
+/* Modal Content */
+.notes-redesign .chat-import-modal-new .modal-content-new {
+  padding: 24px !important;
+  overflow-y: auto !important;
+  flex: 1 !important;
+  background: #16181d !important;
+}
+
+/* Import Mode Section */
+.notes-redesign .chat-import-modal-new .import-mode-section-new {
+  margin-bottom: 28px !important;
+}
+
+.notes-redesign .chat-import-modal-new .import-mode-section-new h3 {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #B8C0CC !important;
+  margin-bottom: 14px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.notes-redesign .chat-import-modal-new .import-mode-options-new {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+}
+
+.notes-redesign .chat-import-modal-new .mode-option-new {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 14px !important;
+  padding: 16px 18px !important;
+  background: #0f1012 !important;
+  border: 2px solid #2a2f37 !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+}
+
+.notes-redesign .chat-import-modal-new .mode-option-new:hover {
+  background: rgba(215, 179, 140, 0.05) !important;
+  border-color: rgba(215, 179, 140, 0.3) !important;
+}
+
+.notes-redesign .chat-import-modal-new .mode-option-new.selected {
+  background: rgba(215, 179, 140, 0.1) !important;
+  border-color: #D7B38C !important;
+}
+
+.notes-redesign .chat-import-modal-new .mode-option-new input[type="radio"] {
+  margin-top: 3px !important;
+  accent-color: #D7B38C !important;
+  width: 18px !important;
+  height: 18px !important;
+}
+
+.notes-redesign .chat-import-modal-new .mode-content-new {
+  flex: 1 !important;
+}
+
+.notes-redesign .chat-import-modal-new .mode-content-new strong {
+  display: block !important;
+  font-size: 14px !important;
+  color: #EAECEF !important;
+  margin-bottom: 4px !important;
+  font-weight: 600 !important;
+}
+
+.notes-redesign .chat-import-modal-new .mode-content-new p {
+  font-size: 12px !important;
+  color: #B8C0CC !important;
+  margin: 0 !important;
+  line-height: 1.4 !important;
+}
+
+/* Sessions Section */
+.notes-redesign .chat-import-modal-new .sessions-section-new {
+  margin-bottom: 20px !important;
+}
+
+.notes-redesign .chat-import-modal-new .sessions-header-new {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 14px !important;
+}
+
+.notes-redesign .chat-import-modal-new .sessions-header-new h3 {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #B8C0CC !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.notes-redesign .chat-import-modal-new .selection-actions-new {
+  display: flex !important;
+  gap: 10px !important;
+}
+
+.notes-redesign .chat-import-modal-new .select-all-btn-new,
+.notes-redesign .chat-import-modal-new .clear-all-btn-new {
+  padding: 8px 14px !important;
+  background: #0f1012 !important;
+  border: 2px solid #2a2f37 !important;
+  color: #B8C0CC !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  text-transform: uppercase !important;
+}
+
+.notes-redesign .chat-import-modal-new .select-all-btn-new:hover,
+.notes-redesign .chat-import-modal-new .clear-all-btn-new:hover {
+  background: rgba(215, 179, 140, 0.1) !important;
+  border-color: #D7B38C !important;
+  color: #EAECEF !important;
+}
+
+/* Sessions List */
+.notes-redesign .chat-import-modal-new .sessions-list-new {
+  max-height: 280px !important;
+  overflow-y: auto !important;
+  border: 2px solid #2a2f37 !important;
+  background: #0f1012 !important;
+}
+
+.notes-redesign .chat-import-modal-new .sessions-list-new::-webkit-scrollbar {
+  width: 8px !important;
+}
+
+.notes-redesign .chat-import-modal-new .sessions-list-new::-webkit-scrollbar-track {
+  background: #0f1012 !important;
+}
+
+.notes-redesign .chat-import-modal-new .sessions-list-new::-webkit-scrollbar-thumb {
+  background: #D7B38C !important;
+}
+
+.notes-redesign .chat-import-modal-new .session-item-new {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 14px 18px !important;
+  border-bottom: 1px solid #2a2f37 !important;
+  cursor: pointer !important;
+  transition: background 0.2s !important;
+}
+
+.notes-redesign .chat-import-modal-new .session-item-new:last-child {
+  border-bottom: none !important;
+}
+
+.notes-redesign .chat-import-modal-new .session-item-new:hover {
+  background: rgba(215, 179, 140, 0.05) !important;
+}
+
+.notes-redesign .chat-import-modal-new .session-item-new.selected {
+  background: rgba(215, 179, 140, 0.1) !important;
+}
+
+.notes-redesign .chat-import-modal-new .session-item-new input[type="checkbox"] {
+  width: 20px !important;
+  height: 20px !important;
+  accent-color: #D7B38C !important;
+}
+
+.notes-redesign .chat-import-modal-new .session-info-new {
+  flex: 1 !important;
+}
+
+.notes-redesign .chat-import-modal-new .session-title-new {
+  font-size: 14px !important;
+  color: #EAECEF !important;
+  margin-bottom: 4px !important;
+  font-weight: 600 !important;
+}
+
+.notes-redesign .chat-import-modal-new .session-date-new {
+  font-size: 12px !important;
+  color: #B8C0CC !important;
+}
+
+.notes-redesign .chat-import-modal-new .no-sessions-new {
+  padding: 50px 20px !important;
+  text-align: center !important;
+  color: #B8C0CC !important;
+}
+
+.notes-redesign .chat-import-modal-new .no-sessions-new p {
+  margin: 0 !important;
+  font-size: 14px !important;
+}
+
+/* Modal Footer */
+.notes-redesign .chat-import-modal-new .modal-footer-new {
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  padding: 20px 24px !important;
+  border-top: 2px solid #2a2f37 !important;
+  background: #0f1012 !important;
+}
+
+.notes-redesign .chat-import-modal-new .cancel-btn-new {
+  padding: 12px 24px !important;
+  background: #0f1012 !important;
+  border: 2px solid #2a2f37 !important;
+  color: #EAECEF !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+}
+
+.notes-redesign .chat-import-modal-new .cancel-btn-new:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: #D7B38C !important;
+}
+
+.notes-redesign .chat-import-modal-new .import-btn-new {
+  padding: 12px 24px !important;
+  background: #D7B38C !important;
+  border: 2px solid #D7B38C !important;
+  color: #0f1012 !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.notes-redesign .chat-import-modal-new .import-btn-new:hover:not(:disabled) {
+  background: #c9a67a !important;
+  transform: translateY(-1px) !important;
+}
+
+.notes-redesign .chat-import-modal-new .import-btn-new:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+/* Spinner */
+.notes-redesign .chat-import-modal-new .spinner {
+  width: 16px !important;
+  height: 16px !important;
+  border: 2px solid transparent !important;
+  border-top-color: currentColor !important;
+  border-radius: 50% !important;
+  animation: nr-chat-spin 0.8s linear infinite !important;
+}
+
+@keyframes nr-chat-spin {
+  to { transform: rotate(360deg); }
+}

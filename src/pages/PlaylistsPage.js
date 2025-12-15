@@ -5,6 +5,7 @@ import {
   Globe, Lock, Home, Heart, Library, MoreHorizontal, Filter, X, Zap
 } from 'lucide-react';
 import './PlaylistsPage.css';
+import './PlaylistsConvert.css';
 import { API_URL } from '../config';
 import ImportExportModal from '../components/ImportExportModal';
 
@@ -232,7 +233,7 @@ const PlaylistsPage = () => {
               </p>
             </div>
             <button 
-              className="convert-btn-playlist"
+              className="convert-btn"
               onClick={() => setShowImportExport(true)}
               title="Convert playlists"
             >

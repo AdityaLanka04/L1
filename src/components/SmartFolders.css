@@ -1,3 +1,22 @@
+/* Base CSS Variables - Fallbacks for when not in a themed context */
+:root {
+  --bg-top: #0b0b0c;
+  --bg-bottom: #0f1012;
+  --bg: #0f1012;
+  --panel: #16181d;
+  --border: #2a2f37;
+  --text-primary: #EAECEF;
+  --text-secondary: #B8C0CC;
+  --accent: #D7B38C;
+  --hover-bg: rgba(255, 255, 255, 0.05);
+  --danger: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
 /* ==================== FORCE BOXY DESIGN ==================== */
 .smart-folders-panel *,
 .smart-folders-panel *::before,
@@ -453,4 +472,28 @@
 .cancel-btn:hover {
   background: var(--hover-bg);
   border-color: var(--accent);
+}
+
+/* Modal footer create button */
+.modal-footer .create-btn {
+  padding: 8px 16px;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  color: var(--bg-top);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.modal-footer .create-btn:hover {
+  background: color-mix(in srgb, var(--accent) 85%, white);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }

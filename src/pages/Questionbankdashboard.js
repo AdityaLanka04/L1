@@ -6,6 +6,7 @@ import {
   CheckCircle, XCircle, Loader, Clock, FileUp, BookOpen, PieChart
 } from 'lucide-react';
 import './Questionbankdashboard.css';
+import './QuestionbankConvert.css';
 import { API_URL } from '../config';
 import ImportExportModal from '../components/ImportExportModal';
 const QuestionBankDashboard = () => {
@@ -484,7 +485,7 @@ const QuestionBankDashboard = () => {
         </button>
         
         <button 
-          className="qbd-sidebar-item"
+          className="qbd-sidebar-item qbd-convert-btn"
           onClick={() => setShowImportExport(true)}
         >
           <Zap size={20} />

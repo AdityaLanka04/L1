@@ -519,25 +519,32 @@ const BlockEditor = ({ blocks, onChange, readOnly = false }) => {
             </button>
             
             {showBlockMenu === block.id && (
-              <div className="block-menu-dropdown">
-                <button onClick={() => { deleteBlock(block.id); setShowBlockMenu(null); }}>
+              <div className="block-menu-dropdown" style={{
+                background: '#ffffff',
+                backgroundColor: '#ffffff',
+                backdropFilter: 'none',
+                WebkitBackdropFilter: 'none',
+                opacity: 1
+              }}>
+                <button onClick={() => { deleteBlock(block.id); setShowBlockMenu(null); }} style={{ background: '#ffffff', backgroundColor: '#ffffff' }}>
                   <Trash2 size={14} /> Delete
                 </button>
-                <button onClick={() => { duplicateBlock(block.id); setShowBlockMenu(null); }}>
+                <button onClick={() => { duplicateBlock(block.id); setShowBlockMenu(null); }} style={{ background: '#ffffff', backgroundColor: '#ffffff' }}>
                   <Copy size={14} /> Duplicate
                 </button>
-                <button onClick={() => { moveBlockUp(block.id); setShowBlockMenu(null); }} disabled={index === 0}>
+                <button onClick={() => { moveBlockUp(block.id); setShowBlockMenu(null); }} disabled={index === 0} style={{ background: '#ffffff', backgroundColor: '#ffffff' }}>
                   <ArrowUp size={14} /> Move up
                 </button>
-                <button onClick={() => { moveBlockDown(block.id); setShowBlockMenu(null); }} disabled={index === blocks.length - 1}>
+                <button onClick={() => { moveBlockDown(block.id); setShowBlockMenu(null); }} disabled={index === blocks.length - 1} style={{ background: '#ffffff', backgroundColor: '#ffffff' }}>
                   <ArrowDown size={14} /> Move down
                 </button>
-                <div className="menu-divider"></div>
-                <div className="menu-label">Turn into</div>
+                <div className="menu-divider" style={{ background: '#e0e0e0', backgroundColor: '#e0e0e0' }}></div>
+                <div className="menu-label" style={{ background: '#ffffff', backgroundColor: '#ffffff', color: '#666666' }}>Turn into</div>
                 {BLOCK_TYPES.slice(0, 6).map(bt => (
                   <button 
                     key={bt.type}
                     onClick={() => { changeBlockType(block.id, bt.type); setShowBlockMenu(null); }}
+                    style={{ background: '#ffffff', backgroundColor: '#ffffff' }}
                   >
                     <bt.icon size={14} /> {bt.label}
                   </button>

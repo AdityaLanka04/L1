@@ -145,6 +145,27 @@
   font-size: 20px;
   font-weight: 700;
   color: var(--fc-text-primary);
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fc-logo-text::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--fc-accent);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fc-logo:hover .fc-logo-text {
+  color: color-mix(in srgb, var(--fc-accent) 80%, white);
+}
+
+.fc-logo:hover .fc-logo-text::after {
+  width: 100%;
 }
 
 .fc-sidebar.collapsed .fc-logo-text {
@@ -202,6 +223,21 @@
 .fc-nav-item.active {
   background: var(--fc-accent-glow);
   color: var(--fc-accent);
+}
+
+/* Convert button in sidebar */
+.fc-nav-item.fc-convert-btn {
+  background: var(--fc-accent);
+  color: var(--fc-bg-primary);
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.fc-nav-item.fc-convert-btn:hover {
+  background: color-mix(in srgb, var(--fc-accent) 85%, white);
+  color: var(--fc-bg-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--fc-accent) 40%, transparent);
 }
 
 .fc-nav-icon {

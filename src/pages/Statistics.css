@@ -102,6 +102,29 @@
   font-size: 22px;
   font-weight: 700;
   color: var(--st-text-primary);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.st-logo::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--st-accent);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.st-logo:hover {
+  color: color-mix(in srgb, var(--st-accent) 80%, white);
+  transform: translateY(-1px);
+}
+
+.st-logo:hover::after {
+  width: 100%;
 }
 
 [data-theme-mode="dark"] .st-logo {

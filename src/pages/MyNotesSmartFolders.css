@@ -1,0 +1,490 @@
+/* MyNotes Smart Folders Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* Force all elements to be boxy */
+.my-notes-page-full .smart-folders-panel,
+.my-notes-page-full .smart-folders-panel *,
+.my-notes-page-full .smart-folders-panel *::before,
+.my-notes-page-full .smart-folders-panel *::after,
+.my-notes-page-full .smart-folder-modal,
+.my-notes-page-full .smart-folder-modal *,
+.my-notes-page-full .smart-folder-modal *::before,
+.my-notes-page-full .smart-folder-modal *::after {
+  border-radius: 0 !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Main Panel */
+.my-notes-page-full .smart-folders-panel {
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  width: 400px !important;
+  height: 100vh !important;
+  background: #16181d !important;
+  border-left: 2px solid #2a2f37 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  z-index: 10001 !important;
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Header */
+.my-notes-page-full .smart-folders-panel .smart-folders-header {
+  padding: 20px !important;
+  border-bottom: 2px solid #2a2f37 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  background: #0f1012 !important;
+}
+
+.my-notes-page-full .smart-folders-panel .header-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  color: #D7B38C !important;
+}
+
+.my-notes-page-full .smart-folders-panel .header-title h3 {
+  margin: 0 !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  color: #D7B38C !important;
+}
+
+.my-notes-page-full .smart-folders-panel .header-title svg {
+  color: #D7B38C !important;
+}
+
+.my-notes-page-full .smart-folders-panel .close-btn {
+  background: #0f1012 !important;
+  border: 2px solid #2a2f37 !important;
+  width: 36px !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  color: #D7B38C !important;
+  transition: all 0.2s ease !important;
+}
+
+.my-notes-page-full .smart-folders-panel .close-btn:hover {
+  background: #D7B38C !important;
+  border-color: #D7B38C !important;
+  color: #0f1012 !important;
+}
+
+/* Content */
+.my-notes-page-full .smart-folders-panel .smart-folders-content {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  padding: 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 28px !important;
+  background: #16181d !important;
+}
+
+/* Scrollbar */
+.my-notes-page-full .smart-folders-panel .smart-folders-content::-webkit-scrollbar {
+  width: 8px !important;
+}
+
+.my-notes-page-full .smart-folders-panel .smart-folders-content::-webkit-scrollbar-track {
+  background: #0f1012 !important;
+}
+
+.my-notes-page-full .smart-folders-panel .smart-folders-content::-webkit-scrollbar-thumb {
+  background: #D7B38C !important;
+}
+
+/* Sections */
+.my-notes-page-full .smart-folders-panel .templates-section,
+.my-notes-page-full .smart-folders-panel .folders-section {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+}
+
+.my-notes-page-full .smart-folders-panel .templates-section h4,
+.my-notes-page-full .smart-folders-panel .section-header h4 {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #B8C0CC !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+  margin: 0 !important;
+}
+
+/* Templates Grid */
+.my-notes-page-full .smart-folders-panel .templates-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 10px !important;
+}
+
+.my-notes-page-full .smart-folders-panel .template-card {
+  padding: 14px 18px !important;
+  background: #0f1012 !important;
+  border: 2px solid #2a2f37 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.my-notes-page-full .smart-folders-panel .template-card:hover {
+  background: rgba(215, 179, 140, 0.1) !important;
+  border-color: #D7B38C !important;
+  transform: translateY(-2px) !important;
+}
+
+.my-notes-page-full .smart-folders-panel .template-name {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #EAECEF !important;
+}
+
+/* Section Header */
+.my-notes-page-full .smart-folders-panel .section-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+/* Create Button */
+.my-notes-page-full .smart-folders-panel .create-btn {
+  padding: 8px 16px !important;
+  background: #D7B38C !important;
+  border: 2px solid #D7B38C !important;
+  color: #0f1012 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.my-notes-page-full .smart-folders-panel .create-btn:hover {
+  background: #c9a67a !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Folders List */
+.my-notes-page-full .smart-folders-panel .folders-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+/* Empty State */
+.my-notes-page-full .smart-folders-panel .empty-state {
+  text-align: center !important;
+  padding: 40px 20px !important;
+  color: #B8C0CC !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.my-notes-page-full .smart-folders-panel .empty-state svg {
+  color: #2a2f37 !important;
+  margin-bottom: 16px !important;
+}
+
+.my-notes-page-full .smart-folders-panel .empty-state p {
+  margin: 0 0 8px 0 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #EAECEF !important;
+}
+
+.my-notes-page-full .smart-folders-panel .empty-state .hint {
+  font-size: 12px !important;
+  opacity: 0.7 !important;
+  font-weight: 400 !important;
+  color: #B8C0CC !important;
+}
+
+/* Smart Folder Item */
+.my-notes-page-full .smart-folders-panel .smart-folder-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: #0f1012 !important;
+  border: 2px solid #2a2f37 !important;
+  padding: 6px !important;
+  transition: all 0.2s ease !important;
+}
+
+.my-notes-page-full .smart-folders-panel .smart-folder-item:hover {
+  border-color: #D7B38C !important;
+}
+
+.my-notes-page-full .smart-folders-panel .folder-button {
+  flex: 1 !important;
+  padding: 12px 14px !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  color: #EAECEF !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  text-align: left !important;
+  transition: all 0.2s ease !important;
+}
+
+.my-notes-page-full .smart-folders-panel .folder-button:hover {
+  color: #D7B38C !important;
+}
+
+.my-notes-page-full .smart-folders-panel .folder-name {
+  flex: 1 !important;
+}
+
+.my-notes-page-full .smart-folders-panel .folder-count {
+  padding: 4px 10px !important;
+  background: #D7B38C !important;
+  color: #0f1012 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+}
+
+.my-notes-page-full .smart-folders-panel .delete-btn {
+  padding: 10px !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  color: #ef4444 !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.my-notes-page-full .smart-folders-panel .delete-btn:hover {
+  background: rgba(239, 68, 68, 0.15) !important;
+}
+
+/* ==================== SMART FOLDER MODAL ==================== */
+.my-notes-page-full .smart-folder-modal {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 10002 !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.my-notes-page-full .smart-folder-modal .modal-content {
+  width: 90% !important;
+  max-width: 520px !important;
+  background: #16181d !important;
+  border: 2px solid #2a2f37 !important;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 80vh !important;
+}
+
+.my-notes-page-full .smart-folder-modal .modal-header {
+  padding: 20px !important;
+  border-bottom: 2px solid #2a2f37 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  background: #0f1012 !important;
+}
+
+.my-notes-page-full .smart-folder-modal .modal-header h3 {
+  margin: 0 !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: #D7B38C !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+}
+
+.my-notes-page-full .smart-folder-modal .modal-header button {
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  color: #D7B38C !important;
+  padding: 6px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+}
+
+.my-notes-page-full .smart-folder-modal .modal-header button:hover {
+  color: #ef4444 !important;
+}
+
+.my-notes-page-full .smart-folder-modal .modal-body {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  padding: 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 20px !important;
+  background: #16181d !important;
+}
+
+.my-notes-page-full .smart-folder-modal .form-group {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+}
+
+.my-notes-page-full .smart-folder-modal .form-group label {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: #B8C0CC !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.my-notes-page-full .smart-folder-modal .form-group input,
+.my-notes-page-full .smart-folder-modal .form-group select {
+  padding: 12px 14px !important;
+  background: #0f1012 !important;
+  border: 2px solid #2a2f37 !important;
+  color: #EAECEF !important;
+  font-size: 13px !important;
+  font-family: 'Inter', sans-serif !important;
+  transition: all 0.2s ease !important;
+}
+
+.my-notes-page-full .smart-folder-modal .form-group input:focus,
+.my-notes-page-full .smart-folder-modal .form-group select:focus {
+  outline: none !important;
+  border-color: #D7B38C !important;
+}
+
+.my-notes-page-full .smart-folder-modal .form-group input::placeholder {
+  color: #B8C0CC !important;
+  opacity: 0.6 !important;
+}
+
+.my-notes-page-full .smart-folder-modal .rule-row {
+  display: flex !important;
+  gap: 10px !important;
+  align-items: center !important;
+  padding: 12px !important;
+  background: #0f1012 !important;
+  border: 2px solid #2a2f37 !important;
+}
+
+.my-notes-page-full .smart-folder-modal .rule-row select,
+.my-notes-page-full .smart-folder-modal .rule-row input {
+  flex: 1 !important;
+  min-width: 0 !important;
+  padding: 10px 12px !important;
+}
+
+.my-notes-page-full .smart-folder-modal .remove-rule-btn {
+  padding: 8px !important;
+  background: transparent !important;
+  border: 2px solid #2a2f37 !important;
+  cursor: pointer !important;
+  color: #ef4444 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+}
+
+.my-notes-page-full .smart-folder-modal .remove-rule-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.15) !important;
+  border-color: #ef4444 !important;
+}
+
+.my-notes-page-full .smart-folder-modal .remove-rule-btn:disabled {
+  opacity: 0.3 !important;
+  cursor: not-allowed !important;
+}
+
+.my-notes-page-full .smart-folder-modal .add-rule-btn {
+  padding: 10px 14px !important;
+  background: #0f1012 !important;
+  border: 2px solid #2a2f37 !important;
+  color: #D7B38C !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  text-align: center !important;
+}
+
+.my-notes-page-full .smart-folder-modal .add-rule-btn:hover {
+  background: rgba(215, 179, 140, 0.1) !important;
+  border-color: #D7B38C !important;
+}
+
+.my-notes-page-full .smart-folder-modal .modal-footer {
+  padding: 20px !important;
+  border-top: 2px solid #2a2f37 !important;
+  display: flex !important;
+  gap: 12px !important;
+  justify-content: flex-end !important;
+  background: #0f1012 !important;
+}
+
+.my-notes-page-full .smart-folder-modal .cancel-btn {
+  padding: 10px 20px !important;
+  background: #0f1012 !important;
+  border: 2px solid #2a2f37 !important;
+  color: #EAECEF !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.my-notes-page-full .smart-folder-modal .cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: #D7B38C !important;
+}
+
+.my-notes-page-full .smart-folder-modal .modal-footer .create-btn {
+  padding: 10px 20px !important;
+  background: #D7B38C !important;
+  border: 2px solid #D7B38C !important;
+  color: #0f1012 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.my-notes-page-full .smart-folder-modal .modal-footer .create-btn:hover {
+  background: #c9a67a !important;
+  transform: translateY(-1px) !important;
+}

@@ -308,15 +308,19 @@
   color: rgba(255, 255, 255, 0.4);
 }
 
-.block-menu-dropdown {
+.block-menu-dropdown,
+.block-editor .block-menu-dropdown,
+.block-editor:not(.dark-mode) .block-menu-dropdown,
+div.block-menu-dropdown {
   position: absolute !important;
   top: 100% !important;
   left: 0 !important;
   margin-top: 4px !important;
   background: #ffffff !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-  border-radius: 8px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+  background-color: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
   padding: 6px !important;
   min-width: 200px !important;
   max-width: 280px !important;
@@ -327,6 +331,26 @@
   display: block !important;
   opacity: 1 !important;
   visibility: visible !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Light mode scrollbar - black */
+.block-menu-dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+
+.block-menu-dropdown::-webkit-scrollbar-track {
+  background: #f0f0f0;
+}
+
+.block-menu-dropdown::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 0;
+}
+
+.block-menu-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #000000;
 }
 
 @keyframes slideIn {
@@ -340,57 +364,68 @@
   }
 }
 
-.block-menu-dropdown button {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  color: #333333;
-  text-align: left;
-  transition: all 0.15s ease;
+.block-menu-dropdown button,
+.block-editor .block-menu-dropdown button,
+div.block-menu-dropdown button {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 10px 12px !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border: none !important;
+  border-radius: 0 !important;
+  cursor: pointer !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #333333 !important;
+  text-align: left !important;
+  transition: all 0.15s ease !important;
 }
 
-.block-menu-dropdown button:hover:not(:disabled) {
-  background: rgba(0, 0, 0, 0.05);
-  color: #000000;
+.block-menu-dropdown button:hover:not(:disabled),
+.block-editor .block-menu-dropdown button:hover:not(:disabled) {
+  background: #f0f0f0 !important;
+  background-color: #f0f0f0 !important;
+  color: #000000 !important;
 }
 
 .block-menu-dropdown button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
 }
 
 .block-menu-dropdown button.active {
-  background: rgba(0, 0, 0, 0.08);
-  color: #000000;
-  font-weight: 600;
+  background: #e8e8e8 !important;
+  background-color: #e8e8e8 !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
 }
 
 .block-menu-dropdown button svg {
-  color: inherit;
-  flex-shrink: 0;
+  color: inherit !important;
+  flex-shrink: 0 !important;
 }
 
+.block-menu-dropdown .menu-divider,
 .menu-divider {
-  height: 1px;
-  background: var(--border);
-  margin: 4px 0;
+  height: 1px !important;
+  background: #e0e0e0 !important;
+  background-color: #e0e0e0 !important;
+  margin: 4px 0 !important;
 }
 
+.block-menu-dropdown .menu-label,
 .menu-label {
-  padding: 6px 10px 4px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  padding: 6px 10px 4px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #666666 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
 }
 
 .block-content.block-heading1 {
@@ -1508,11 +1543,29 @@
 
 .block-editor:not(.dark-mode) .block-menu-dropdown {
   background: #ffffff !important;
-  border-color: rgba(0, 0, 0, 0.1) !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
 }
 
 .block-editor:not(.dark-mode) .block-menu-dropdown button {
   color: #333333 !important;
+}
+
+/* Light mode scrollbar - black */
+.block-editor:not(.dark-mode) .block-menu-dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+
+.block-editor:not(.dark-mode) .block-menu-dropdown::-webkit-scrollbar-track {
+  background: #f0f0f0;
+}
+
+.block-editor:not(.dark-mode) .block-menu-dropdown::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 0;
+}
+
+.block-editor:not(.dark-mode) .block-menu-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #000000;
 }
 
 .block-editor:not(.dark-mode) .slash-menu {
@@ -1589,17 +1642,53 @@
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-.block-editor.dark-mode .block-menu-dropdown {
-  background: #2a2a2a !important;
-  border-color: #444 !important;
+.block-editor.dark-mode .block-menu-dropdown,
+.block-editor.dark-mode div.block-menu-dropdown {
+  background: #1a1a1a !important;
+  background-color: #1a1a1a !important;
+  border-color: #444444 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 .block-editor.dark-mode .block-menu-dropdown button {
   color: #ffffff !important;
+  background: #1a1a1a !important;
+  background-color: #1a1a1a !important;
 }
 
 .block-editor.dark-mode .block-menu-dropdown button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: #333333 !important;
+  background-color: #333333 !important;
+}
+
+.block-editor.dark-mode .block-menu-dropdown .menu-divider {
+  background: #444444 !important;
+  background-color: #444444 !important;
+}
+
+.block-editor.dark-mode .block-menu-dropdown .menu-label {
+  color: #999999 !important;
+  background: #1a1a1a !important;
+  background-color: #1a1a1a !important;
+}
+
+/* Dark mode scrollbar - white */
+.block-editor.dark-mode .block-menu-dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+
+.block-editor.dark-mode .block-menu-dropdown::-webkit-scrollbar-track {
+  background: #2a2a2a;
+}
+
+.block-editor.dark-mode .block-menu-dropdown::-webkit-scrollbar-thumb {
+  background: #cccccc;
+  border-radius: 0;
+}
+
+.block-editor.dark-mode .block-menu-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #ffffff;
 }
 
 .block-editor.dark-mode .slash-menu {

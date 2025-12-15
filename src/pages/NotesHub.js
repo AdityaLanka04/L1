@@ -4,6 +4,7 @@ import {
   Upload, Youtube, FileText, Mic, Video, BookOpen, Edit3, User, Zap, ChevronLeft
 } from 'lucide-react';
 import './NotesHub.css';
+import './NotesHubConvert.css';
 import { API_URL } from '../config';
 import ImportExportModal from '../components/ImportExportModal';
 

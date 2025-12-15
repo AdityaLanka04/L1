@@ -8,6 +8,25 @@
   border-radius: 0 !important;
 }
 
+/* Base CSS Variables - Required for theme support */
+:root {
+  --bg-top: #0b0b0c;
+  --bg-bottom: #0f1012;
+  --bg: #0f1012;
+  --panel: #16181d;
+  --border: #2a2f37;
+  --text-primary: #EAECEF;
+  --text-secondary: #B8C0CC;
+  --accent: #D7B38C;
+  --hover-bg: rgba(255, 255, 255, 0.05);
+  --danger: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
 /* CSS Variables - Matching Flashcards */
 .notes-redesign {
   --nr-bg-primary: var(--bg);
@@ -29,6 +48,9 @@
   --nr-sidebar-width: 260px;
   --nr-sidebar-collapsed: 70px;
   --nr-header-height: 70px;
+  --nr-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --nr-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --nr-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
   --editor-bg: #ffffff;
   --editor-text: #000000;
   --editor-placeholder: #666666;
@@ -228,6 +250,21 @@
 .tools-sidepanel.closed .tool-panel-btn {
   justify-content: center;
   padding: 12px;
+}
+
+/* Convert button style */
+.notes-redesign .tool-panel-btn.convert-btn {
+  background: var(--nr-accent);
+  color: var(--nr-bg-primary);
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.notes-redesign .tool-panel-btn.convert-btn:hover {
+  background: color-mix(in srgb, var(--nr-accent) 85%, white);
+  color: var(--nr-bg-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--nr-accent) 40%, transparent);
 }
 
 /* Note Stats in Sidebar */
@@ -2642,4 +2679,576 @@
     border: none !important;
     box-shadow: none !important;
   }
+}
+
+/* ==================== SMART FOLDERS - SCOPED STYLES ==================== */
+.notes-redesign .smart-folders-panel *,
+.notes-redesign .smart-folders-panel *::before,
+.notes-redesign .smart-folders-panel *::after {
+  border-radius: 0 !important;
+}
+
+.notes-redesign .smart-folders-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 400px;
+  height: 100vh;
+  background: var(--nr-bg-secondary);
+  border-left: 2px solid var(--nr-border-subtle);
+  display: flex;
+  flex-direction: column;
+  z-index: 10001;
+  box-shadow: var(--nr-shadow-lg);
+  backdrop-filter: blur(20px);
+}
+
+.notes-redesign .smart-folders-header {
+  padding: 16px;
+  border-bottom: 2px solid var(--nr-border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--nr-bg-primary);
+}
+
+.notes-redesign .smart-folders-header .header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--nr-accent);
+}
+
+.notes-redesign .smart-folders-header .header-title h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.notes-redesign .smart-folders-header .close-btn {
+  background: var(--nr-bg-primary);
+  border: 1px solid var(--nr-border-subtle);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--nr-accent);
+  transition: all 0.3s ease;
+}
+
+.notes-redesign .smart-folders-header .close-btn:hover {
+  background: var(--nr-bg-elevated);
+  border-color: var(--nr-accent);
+  transform: scale(1.05);
+}
+
+.notes-redesign .smart-folders-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.notes-redesign .smart-folders-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notes-redesign .smart-folders-content::-webkit-scrollbar-track {
+  background: var(--nr-bg-primary);
+}
+
+.notes-redesign .smart-folders-content::-webkit-scrollbar-thumb {
+  background: var(--nr-accent);
+  border: 2px solid var(--nr-bg-primary);
+}
+
+.notes-redesign .smart-folders-content::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--nr-accent) 80%, white);
+}
+
+.notes-redesign .templates-section,
+.notes-redesign .folders-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.notes-redesign .templates-section h4,
+.notes-redesign .section-header h4 {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--nr-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.notes-redesign .templates-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.notes-redesign .template-card {
+  padding: 12px 16px;
+  background: var(--nr-bg-primary);
+  border: 1px solid var(--nr-border-subtle);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.notes-redesign .template-card:hover {
+  background: var(--nr-bg-elevated);
+  border-color: var(--nr-accent);
+  transform: translateY(-2px);
+  box-shadow: var(--nr-shadow-md);
+}
+
+.notes-redesign .template-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--nr-text-primary);
+}
+
+.notes-redesign .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notes-redesign .create-btn {
+  padding: 6px 12px;
+  background: var(--nr-accent);
+  border: 1px solid var(--nr-accent);
+  color: var(--nr-bg-primary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.notes-redesign .create-btn:hover {
+  background: color-mix(in srgb, var(--nr-accent) 85%, white);
+  transform: translateY(-1px);
+  box-shadow: var(--nr-shadow-md);
+}
+
+.notes-redesign .folders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.notes-redesign .empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--nr-text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.notes-redesign .empty-state p {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.notes-redesign .empty-state .hint {
+  font-size: 11px;
+  opacity: 0.7;
+  font-weight: 400;
+}
+
+.notes-redesign .smart-folder-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--nr-bg-primary);
+  border: 1px solid var(--nr-border-subtle);
+  padding: 4px;
+  transition: all 0.3s ease;
+}
+
+.notes-redesign .smart-folder-item:hover {
+  border-color: var(--nr-accent);
+  box-shadow: var(--nr-shadow-sm);
+}
+
+.notes-redesign .folder-button {
+  flex: 1;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--nr-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  transition: all 0.3s ease;
+}
+
+.notes-redesign .folder-button:hover {
+  color: var(--nr-accent);
+}
+
+.notes-redesign .folder-name {
+  flex: 1;
+}
+
+.notes-redesign .folder-count {
+  padding: 2px 8px;
+  background: var(--nr-accent);
+  color: var(--nr-bg-primary);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.notes-redesign .delete-btn {
+  padding: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--nr-danger);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notes-redesign .delete-btn:hover {
+  background: color-mix(in srgb, var(--nr-danger) 15%, transparent);
+  transform: scale(1.1);
+}
+
+/* Smart Folder Modal */
+.notes-redesign .smart-folder-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10002;
+  backdrop-filter: blur(5px);
+}
+
+.notes-redesign .smart-folder-modal .modal-content {
+  width: 90%;
+  max-width: 500px;
+  background: var(--nr-bg-secondary);
+  border: 2px solid var(--nr-border-subtle);
+  box-shadow: var(--nr-shadow-lg);
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+}
+
+.notes-redesign .smart-folder-modal .modal-header {
+  padding: 16px;
+  border-bottom: 2px solid var(--nr-border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--nr-bg-primary);
+}
+
+.notes-redesign .smart-folder-modal .modal-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--nr-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.notes-redesign .smart-folder-modal .modal-header button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--nr-accent);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.notes-redesign .smart-folder-modal .modal-header button:hover {
+  transform: scale(1.1);
+}
+
+.notes-redesign .smart-folder-modal .modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.notes-redesign .smart-folder-modal .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notes-redesign .smart-folder-modal .form-group label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--nr-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.notes-redesign .smart-folder-modal .form-group input,
+.notes-redesign .smart-folder-modal .form-group select {
+  padding: 10px 12px;
+  background: var(--nr-bg-primary);
+  border: 1px solid var(--nr-border-subtle);
+  color: var(--nr-text-primary);
+  font-size: 12px;
+  font-family: inherit;
+  transition: all 0.3s ease;
+}
+
+.notes-redesign .smart-folder-modal .form-group input:focus,
+.notes-redesign .smart-folder-modal .form-group select:focus {
+  outline: none;
+  border-color: var(--nr-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--nr-accent) 20%, transparent);
+}
+
+.notes-redesign .smart-folder-modal .rule-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  background: var(--nr-bg-primary);
+  border: 1px solid var(--nr-border-subtle);
+}
+
+.notes-redesign .smart-folder-modal .rule-row select,
+.notes-redesign .smart-folder-modal .rule-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.notes-redesign .smart-folder-modal .remove-rule-btn {
+  padding: 6px;
+  background: transparent;
+  border: 1px solid var(--nr-border-subtle);
+  cursor: pointer;
+  color: var(--nr-danger);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.notes-redesign .smart-folder-modal .remove-rule-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--nr-danger) 15%, transparent);
+  border-color: var(--nr-danger);
+}
+
+.notes-redesign .smart-folder-modal .remove-rule-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.notes-redesign .smart-folder-modal .add-rule-btn {
+  padding: 8px 12px;
+  background: var(--nr-bg-primary);
+  border: 1px solid var(--nr-border-subtle);
+  color: var(--nr-accent);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.notes-redesign .smart-folder-modal .add-rule-btn:hover {
+  background: var(--nr-bg-elevated);
+  border-color: var(--nr-accent);
+}
+
+.notes-redesign .smart-folder-modal .modal-footer {
+  padding: 16px;
+  border-top: 2px solid var(--nr-border-subtle);
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  background: var(--nr-bg-primary);
+}
+
+.notes-redesign .smart-folder-modal .cancel-btn {
+  padding: 8px 16px;
+  background: var(--nr-bg-primary);
+  border: 1px solid var(--nr-border-subtle);
+  color: var(--nr-text-primary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.notes-redesign .smart-folder-modal .cancel-btn:hover {
+  background: var(--nr-bg-elevated);
+  border-color: var(--nr-accent);
+}
+
+.notes-redesign .smart-folder-modal .modal-footer .create-btn {
+  padding: 8px 16px;
+  background: var(--nr-accent);
+  border: 1px solid var(--nr-accent);
+  color: var(--nr-bg-primary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.notes-redesign .smart-folder-modal .modal-footer .create-btn:hover {
+  background: color-mix(in srgb, var(--nr-accent) 85%, white);
+  transform: translateY(-1px);
+  box-shadow: var(--nr-shadow-md);
+}
+
+/* ==================== SBE DROPDOWN MENU - SOLID OPAQUE ==================== */
+.sbe-dropdown-menu {
+  position: fixed !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  z-index: 999999 !important;
+  border: 1px solid #ddd !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2) !important;
+  padding: 6px !important;
+  min-width: 200px !important;
+  max-width: 280px !important;
+  max-height: 400px !important;
+  overflow-y: auto !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-radius: 0 !important;
+}
+
+/* Light mode dropdown */
+.block-editor-container:not(.dark-mode) .sbe-dropdown-menu,
+.block-editor:not(.dark-mode) .sbe-dropdown-menu,
+.notes-redesign .sbe-dropdown-menu {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #333333 !important;
+  border-color: #ddd !important;
+}
+
+/* Dark mode dropdown */
+.block-editor-container.dark-mode .sbe-dropdown-menu,
+.block-editor.dark-mode .sbe-dropdown-menu {
+  background: #1a1a1a !important;
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border-color: #444 !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.7) !important;
+}
+
+/* Dropdown buttons - light mode */
+.sbe-dropdown-menu button {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #333333 !important;
+  border: none !important;
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 8px 10px !important;
+  cursor: pointer !important;
+  font-size: 13px !important;
+}
+
+.sbe-dropdown-menu button:hover {
+  background: #f0f0f0 !important;
+  background-color: #f0f0f0 !important;
+}
+
+/* Dropdown buttons - dark mode */
+.block-editor-container.dark-mode .sbe-dropdown-menu button,
+.block-editor.dark-mode .sbe-dropdown-menu button {
+  background: #1a1a1a !important;
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+}
+
+.block-editor-container.dark-mode .sbe-dropdown-menu button:hover,
+.block-editor.dark-mode .sbe-dropdown-menu button:hover {
+  background: #333333 !important;
+  background-color: #333333 !important;
+}
+
+/* Scrollbar - light mode (black) */
+.sbe-dropdown-menu::-webkit-scrollbar {
+  width: 8px !important;
+}
+
+.sbe-dropdown-menu::-webkit-scrollbar-track {
+  background: #f0f0f0 !important;
+}
+
+.sbe-dropdown-menu::-webkit-scrollbar-thumb {
+  background: #333333 !important;
+  border-radius: 0 !important;
+}
+
+.sbe-dropdown-menu::-webkit-scrollbar-thumb:hover {
+  background: #000000 !important;
+}
+
+/* Scrollbar - dark mode (white) */
+.block-editor-container.dark-mode .sbe-dropdown-menu::-webkit-scrollbar-track,
+.block-editor.dark-mode .sbe-dropdown-menu::-webkit-scrollbar-track {
+  background: #2a2a2a !important;
+}
+
+.block-editor-container.dark-mode .sbe-dropdown-menu::-webkit-scrollbar-thumb,
+.block-editor.dark-mode .sbe-dropdown-menu::-webkit-scrollbar-thumb {
+  background: #cccccc !important;
+}
+
+.block-editor-container.dark-mode .sbe-dropdown-menu::-webkit-scrollbar-thumb:hover,
+.block-editor.dark-mode .sbe-dropdown-menu::-webkit-scrollbar-thumb:hover {
+  background: #ffffff !important;
 }

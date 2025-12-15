@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CustomPopup from './CustomPopup';
 import './Flashcards.css';
+import './FlashcardsConvert.css';
 import { API_URL } from '../config';
 import gamificationService from '../services/gamificationService';
 import ImportExportModal from '../components/ImportExportModal';
@@ -823,7 +824,7 @@ const Flashcards = () => {
               <span className="fc-nav-icon">{Icons.chart}</span>
               <span className="fc-nav-text">Statistics</span>
             </button>
-            <button className="fc-nav-item" onClick={() => setShowImportExport(true)}>
+            <button className="fc-nav-item fc-convert-btn" onClick={() => setShowImportExport(true)}>
               <span className="fc-nav-icon">{Icons.bolt}</span>
               <span className="fc-nav-text">Convert</span>
             </button>

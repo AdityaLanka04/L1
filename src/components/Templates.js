@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, FileText, Calendar, Briefcase, BookOpen, CheckSquare, Users, Trash2, Edit } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, FileText, Calendar, Briefcase, BookOpen, CheckSquare, Users, Trash2 } from 'lucide-react';
 import './Templates.css';
 
 const BUILT_IN_TEMPLATES = [
@@ -412,57 +412,56 @@ const Templates = ({ onSelectTemplate, onClose, userName }) => {
     : BUILT_IN_TEMPLATES.filter(t => t.category === activeTab);
 
   return (
-    <div className="templates-modal">
-        <div className="templates-header">
+    <div className="tpl-modal">
+        <div className="tpl-header">
           <h2>Note Templates</h2>
-          <button className="modal-close-btn" onClick={onClose}>
+          <button className="tpl-close-btn" onClick={onClose}>
             <X size={20} />
           </button>
         </div>
 
-        <div className="templates-tabs">
+        <div className="tpl-tabs">
           <button
-            className={`template-tab ${activeTab === 'built-in' ? 'active' : ''}`}
+            className={`tpl-tab ${activeTab === 'built-in' ? 'active' : ''}`}
             onClick={() => setActiveTab('built-in')}
           >
             All Templates
           </button>
           <button
-            className={`template-tab ${activeTab === 'work' ? 'active' : ''}`}
+            className={`tpl-tab ${activeTab === 'work' ? 'active' : ''}`}
             onClick={() => setActiveTab('work')}
           >
             Work
           </button>
           <button
-            className={`template-tab ${activeTab === 'personal' ? 'active' : ''}`}
+            className={`tpl-tab ${activeTab === 'personal' ? 'active' : ''}`}
             onClick={() => setActiveTab('personal')}
           >
             Personal
           </button>
           <button
-            className={`template-tab ${activeTab === 'education' ? 'active' : ''}`}
+            className={`tpl-tab ${activeTab === 'education' ? 'active' : ''}`}
             onClick={() => setActiveTab('education')}
           >
             Education
           </button>
           <button
-            className={`template-tab ${activeTab === 'custom' ? 'active' : ''}`}
+            className={`tpl-tab ${activeTab === 'custom' ? 'active' : ''}`}
             onClick={() => setActiveTab('custom')}
           >
             Custom ({customTemplates.length})
           </button>
         </div>
 
-        <div className="templates-content">
+        <div className="tpl-content">
           {activeTab === 'custom' ? (
             <>
               {!showCreateForm && (
                 <button
-                  className="template-card"
-                  style={{ borderStyle: 'dashed' }}
+                  className="tpl-card tpl-card-dashed"
                   onClick={() => setShowCreateForm(true)}
                 >
-                  <div className="template-icon">
+                  <div className="tpl-card-icon">
                     <FileText size={24} />
                   </div>
                   <h3>Create Custom Template</h3>
@@ -471,37 +470,37 @@ const Templates = ({ onSelectTemplate, onClose, userName }) => {
               )}
 
               {showCreateForm && (
-                <div className="custom-template-form">
+                <div className="tpl-form">
                   <h3>Create New Template</h3>
-                  <div className="form-group">
+                  <div className="tpl-form-group">
                     <label>Template Name</label>
                     <input
                       type="text"
-                      className="form-input"
+                      className="tpl-input"
                       placeholder="e.g., Bug Report, Recipe, etc."
                       value={newTemplate.name}
                       onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value })}
                     />
                   </div>
-                  <div className="form-group">
+                  <div className="tpl-form-group">
                     <label>Description</label>
                     <input
                       type="text"
-                      className="form-input"
+                      className="tpl-input"
                       placeholder="Brief description of this template"
                       value={newTemplate.description}
                       onChange={(e) => setNewTemplate({ ...newTemplate, description: e.target.value })}
                     />
                   </div>
-                  <div className="form-group">
+                  <div className="tpl-form-group">
                     <label>Template Content</label>
                     <textarea
-                      className="form-textarea"
+                      className="tpl-textarea"
                       placeholder="Enter your template content here..."
                       value={newTemplate.content}
                       onChange={(e) => setNewTemplate({ ...newTemplate, content: e.target.value })}
                     />
-                    <div className="template-variables-hint">
+                    <div className="tpl-hint">
                       <strong>Available Variables:</strong>
                       <div>
                         <code>{'{{date}}'}</code> - Current date
@@ -514,9 +513,9 @@ const Templates = ({ onSelectTemplate, onClose, userName }) => {
                       </div>
                     </div>
                   </div>
-                  <div className="form-actions">
+                  <div className="tpl-form-actions">
                     <button
-                      className="form-btn form-btn-cancel"
+                      className="tpl-btn tpl-btn-secondary"
                       onClick={() => {
                         setShowCreateForm(false);
                         setNewTemplate({ name: '', description: '', content: '' });
@@ -525,7 +524,7 @@ const Templates = ({ onSelectTemplate, onClose, userName }) => {
                       Cancel
                     </button>
                     <button
-                      className="form-btn form-btn-save"
+                      className="tpl-btn tpl-btn-primary"
                       onClick={saveCustomTemplate}
                     >
                       Save Template
@@ -535,25 +534,25 @@ const Templates = ({ onSelectTemplate, onClose, userName }) => {
               )}
 
               {customTemplates.length > 0 && (
-                <div className="saved-templates-list" style={{ marginTop: '20px' }}>
+                <div className="tpl-saved-list">
                   {customTemplates.map(template => (
-                    <div key={template.id} className="saved-template-item">
+                    <div key={template.id} className="tpl-saved-item">
                       <div
-                        className="saved-template-info"
+                        className="tpl-saved-info"
                         onClick={() => applyTemplate(template)}
                       >
                         <h4>{template.name}</h4>
                         <p>{template.description || 'No description'}</p>
                       </div>
-                      <div className="saved-template-actions">
+                      <div className="tpl-saved-actions">
                         <button
-                          className="template-action-btn"
+                          className="tpl-action-btn"
                           onClick={() => applyTemplate(template)}
                         >
                           Use
                         </button>
                         <button
-                          className="template-action-btn delete"
+                          className="tpl-action-btn delete"
                           onClick={() => deleteCustomTemplate(template.id)}
                         >
                           <Trash2 size={14} />
@@ -565,16 +564,16 @@ const Templates = ({ onSelectTemplate, onClose, userName }) => {
               )}
             </>
           ) : (
-            <div className="templates-grid">
+            <div className="tpl-grid">
               {filteredBuiltIn.map(template => {
                 const Icon = template.icon;
                 return (
                   <div
                     key={template.id}
-                    className="template-card"
+                    className="tpl-card"
                     onClick={() => applyTemplate(template)}
                   >
-                    <div className="template-icon">
+                    <div className="tpl-card-icon">
                       <Icon size={24} />
                     </div>
                     <h3>{template.name}</h3>

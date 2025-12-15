@@ -94,54 +94,30 @@
   margin-left: auto !important;
 }
 
-.convert-btn {
-  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, white) 100%);
+/* Convert button styles */
+.notes-hub-page .convert-btn,
+.notes-hub-split .convert-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--accent);
   border: none;
   color: var(--bg-dark);
-  padding: 10px 20px;
-  border-radius: 10px;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.25), 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.25);
 }
 
-.convert-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, 
-    color-mix(in srgb, var(--accent) 90%, white) 0%, 
-    var(--accent) 50%,
-    color-mix(in srgb, var(--accent) 80%, black) 100%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.convert-btn:hover::before {
-  opacity: 1;
-}
-
-.convert-btn:hover {
+.notes-hub-page .convert-btn:hover,
+.notes-hub-split .convert-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(215, 179, 140, 0.4), 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.convert-btn span,
-.convert-btn svg {
-  position: relative;
-  z-index: 1;
+  box-shadow: 0 8px 24px rgba(215, 179, 140, 0.4);
+  background: color-mix(in srgb, var(--accent) 90%, white);
 }
 
 .notes-hub-page .page-title,

@@ -9,8 +9,8 @@ import './ImportExportModal.css';
 const ImportExportModal = ({ 
   isOpen, 
   onClose, 
-  mode = 'import', // 'import' or 'export'
-  sourceType, // 'notes', 'flashcards', 'questions', etc.
+  mode = 'import',
+  sourceType,
   onSuccess 
 }) => {
   const [step, setStep] = useState(1);
@@ -30,7 +30,6 @@ const ImportExportModal = ({
   const userName = localStorage.getItem('username');
   const token = localStorage.getItem('token');
 
-  // Define conversion options based on source type
   const conversionOptions = {
     notes: [
       { value: 'flashcards', label: 'Flashcards', icon: <HelpCircle size={24} />, description: 'Convert to study flashcards' },
@@ -93,7 +92,6 @@ const ImportExportModal = ({
       if (response.ok) {
         const data = await response.json();
         
-        // Format data based on source type
         let items = [];
         if (sourceType === 'notes') {
           items = data.filter(n => !n.is_deleted);
@@ -114,7 +112,6 @@ const ImportExportModal = ({
     }
     setLoading(false);
   };
-
 
   const handleItemToggle = (itemId) => {
     setSelectedItems(prev => 
@@ -140,7 +137,6 @@ const ImportExportModal = ({
       let endpoint = '';
       let payload = {};
 
-      // Determine endpoint and payload based on conversion
       if (sourceType === 'notes' && destinationType === 'flashcards') {
         endpoint = `${API_URL}/import_export/notes_to_flashcards`;
         payload = {
@@ -206,7 +202,6 @@ const ImportExportModal = ({
         const data = await response.json();
         
         if (data.success) {
-          // Handle file downloads for exports
           if (destinationType === 'csv' || destinationType === 'pdf') {
             downloadFile(data.content, data.filename);
             setResult({
@@ -291,51 +286,50 @@ const ImportExportModal = ({
   };
 
   return (
-    <div className="import-export-overlay" onClick={handleClose}>
-      <div className="import-export-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <div className="header-content">
-            <Zap size={24} className="header-icon" />
+    <div className="iem-overlay" onClick={handleClose}>
+      <div className="iem-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="iem-header">
+          <div className="iem-header-content">
+            <Zap size={24} className="iem-header-icon" />
             <div>
               <h2>
                 {mode === 'import' ? 'Convert' : 'Export'} {sourceType}
               </h2>
-              <p className="header-subtitle">
+              <p className="iem-header-subtitle">
                 Step {step} of 3
               </p>
             </div>
           </div>
-          <button className="close-btn" onClick={handleClose}>
+          <button className="iem-close-btn" onClick={handleClose}>
             <X size={20} />
           </button>
         </div>
 
-        <div className="modal-body">
-          {/* Step 1: Select Items */}
+        <div className="iem-body">
           {step === 1 && (
-            <div className="step-content">
+            <div className="iem-step-content">
               <h3>Select {sourceType} to convert</h3>
               
-              <div className="select-all-bar">
+              <div className="iem-select-bar">
                 <button 
-                  className="select-all-btn"
+                  className="iem-select-all-btn"
                   onClick={handleSelectAll}
                 >
                   {selectedItems.length === availableItems.length ? 'Deselect All' : 'Select All'}
                 </button>
-                <span className="selection-count">
+                <span className="iem-selection-count">
                   {selectedItems.length} of {availableItems.length} selected
                 </span>
               </div>
 
-              <div className="items-list">
+              <div className="iem-items-list">
                 {loading ? (
-                  <div className="loading-state">
-                    <Loader className="spinner" size={32} />
+                  <div className="iem-loading">
+                    <Loader className="iem-spinner" size={32} />
                     <p>Loading {sourceType}...</p>
                   </div>
                 ) : availableItems.length === 0 ? (
-                  <div className="empty-state">
+                  <div className="iem-empty">
                     <FileText size={48} />
                     <p>No {sourceType} found</p>
                   </div>
@@ -343,27 +337,27 @@ const ImportExportModal = ({
                   availableItems.map(item => (
                     <div 
                       key={item.id}
-                      className={`item-card ${selectedItems.includes(item.id) ? 'selected' : ''}`}
+                      className={`iem-item-card ${selectedItems.includes(item.id) ? 'selected' : ''}`}
                       onClick={() => handleItemToggle(item.id)}
                     >
-                      <div className="item-checkbox">
+                      <div className="iem-item-checkbox">
                         {selectedItems.includes(item.id) && <CheckCircle size={20} />}
                       </div>
-                      <div className="item-info">
+                      <div className="iem-item-info">
                         <h4>{getItemTitle(item)}</h4>
-                        <p className="item-meta">{getItemCount(item)}</p>
+                        <p className="iem-item-meta">{getItemCount(item)}</p>
                       </div>
                     </div>
                   ))
                 )}
               </div>
 
-              <div className="modal-actions">
-                <button className="btn-secondary" onClick={handleClose}>
+              <div className="iem-actions">
+                <button className="iem-btn iem-btn-secondary" onClick={handleClose}>
                   Cancel
                 </button>
                 <button 
-                  className="btn-primary"
+                  className="iem-btn iem-btn-primary"
                   onClick={() => setStep(2)}
                   disabled={selectedItems.length === 0}
                 >
@@ -373,38 +367,37 @@ const ImportExportModal = ({
             </div>
           )}
 
-          {/* Step 2: Choose Destination & Options */}
           {step === 2 && (
-            <div className="step-content">
+            <div className="iem-step-content">
               <h3>Convert to...</h3>
               
-              <div className="conversion-options">
+              <div className="iem-conversion-grid">
                 {conversionOptions[sourceType]?.map(option => (
                   <div
                     key={option.value}
-                    className={`conversion-card ${destinationType === option.value ? 'selected' : ''}`}
+                    className={`iem-conversion-card ${destinationType === option.value ? 'selected' : ''}`}
                     onClick={() => setDestinationType(option.value)}
                   >
-                    <div className="conversion-icon-svg">{option.icon}</div>
+                    <div className="iem-conversion-icon">{option.icon}</div>
                     <h4>{option.label}</h4>
                     <p>{option.description}</p>
                   </div>
                 ))}
               </div>
 
-              {/* Options based on destination */}
               {destinationType && (
-                <div className="conversion-settings">
+                <div className="iem-settings">
                   <h4>Settings</h4>
                   
                   {(destinationType === 'flashcards' || destinationType === 'questions') && (
                     <>
-                      <div className="setting-group">
+                      <div className="iem-setting-group">
                         <label>
                           {destinationType === 'flashcards' ? 'Number of Cards' : 'Number of Questions'}
                         </label>
                         <input
                           type="number"
+                          className="iem-input"
                           min="5"
                           max="50"
                           value={destinationType === 'flashcards' ? options.cardCount : options.questionCount}
@@ -415,9 +408,10 @@ const ImportExportModal = ({
                         />
                       </div>
                       
-                      <div className="setting-group">
+                      <div className="iem-setting-group">
                         <label>Difficulty</label>
                         <select
+                          className="iem-select"
                           value={options.difficulty}
                           onChange={(e) => setOptions(prev => ({ ...prev, difficulty: e.target.value }))}
                         >
@@ -430,9 +424,10 @@ const ImportExportModal = ({
                   )}
 
                   {destinationType === 'notes' && sourceType === 'flashcards' && (
-                    <div className="setting-group">
+                    <div className="iem-setting-group">
                       <label>Format Style</label>
                       <select
+                        className="iem-select"
                         value={options.formatStyle}
                         onChange={(e) => setOptions(prev => ({ ...prev, formatStyle: e.target.value }))}
                       >
@@ -445,18 +440,18 @@ const ImportExportModal = ({
                 </div>
               )}
 
-              <div className="modal-actions">
-                <button className="btn-secondary" onClick={() => setStep(1)}>
+              <div className="iem-actions">
+                <button className="iem-btn iem-btn-secondary" onClick={() => setStep(1)}>
                   Back
                 </button>
                 <button 
-                  className="btn-primary"
+                  className="iem-btn iem-btn-primary"
                   onClick={handleConvert}
                   disabled={!destinationType || processing}
                 >
                   {processing ? (
                     <>
-                      <Loader className="spinner" size={16} />
+                      <Loader className="iem-spinner" size={16} />
                       Converting...
                     </>
                   ) : (
@@ -469,17 +464,16 @@ const ImportExportModal = ({
             </div>
           )}
 
-          {/* Step 3: Result */}
           {step === 3 && result && (
-            <div className="step-content result-step">
-              <div className={`result-icon ${result.success ? 'success' : 'error'}`}>
+            <div className="iem-step-content iem-result">
+              <div className={`iem-result-icon ${result.success ? 'success' : 'error'}`}>
                 {result.success ? <CheckCircle size={64} /> : <X size={64} />}
               </div>
               
               <h3>{result.message}</h3>
               
               {result.success && result.details && (
-                <div className="result-details">
+                <div className="iem-result-details">
                   {result.details.set_title && (
                     <p><strong>Created:</strong> {result.details.set_title}</p>
                   )}
@@ -495,12 +489,12 @@ const ImportExportModal = ({
                 </div>
               )}
 
-              <div className="modal-actions">
-                <button className="btn-secondary" onClick={handleClose}>
+              <div className="iem-actions">
+                <button className="iem-btn iem-btn-secondary" onClick={handleClose}>
                   Close
                 </button>
                 {result.success && result.type === 'import' && (
-                  <button className="btn-primary" onClick={resetModal}>
+                  <button className="iem-btn iem-btn-primary" onClick={resetModal}>
                     Convert More
                   </button>
                 )}

@@ -71,6 +71,27 @@
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.quiz-hub-logo::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--accent);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.quiz-hub-logo:hover {
+  color: color-mix(in srgb, var(--accent) 80%, white);
+}
+
+.quiz-hub-logo:hover::after {
+  width: 100%;
 }
 
 .quiz-hub-container {

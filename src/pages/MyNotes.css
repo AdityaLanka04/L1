@@ -8,6 +8,25 @@
   border-radius: 0 !important;
 }
 
+/* Base CSS Variables - Required for theme support */
+:root {
+  --bg-top: #0b0b0c;
+  --bg-bottom: #0f1012;
+  --bg: #0f1012;
+  --panel: #16181d;
+  --border: #2a2f37;
+  --text-primary: #EAECEF;
+  --text-secondary: #B8C0CC;
+  --accent: #D7B38C;
+  --hover-bg: rgba(255, 255, 255, 0.05);
+  --danger: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
 /* CSS Variables */
 .my-notes-page-full {
   --nt-bg-primary: var(--bg);
@@ -140,6 +159,27 @@
   font-size: 20px;
   font-weight: 700;
   color: var(--nt-text-primary);
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nt-logo-text::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--nt-accent);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nt-logo:hover .nt-logo-text {
+  color: color-mix(in srgb, var(--nt-accent) 80%, white);
+}
+
+.nt-logo:hover .nt-logo-text::after {
+  width: 100%;
 }
 
 .nt-sidebar.collapsed .nt-logo-text {

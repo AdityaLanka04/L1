@@ -124,6 +124,29 @@
   box-shadow: none;
 }
 
+/* Convert button in sidebar - special styling */
+.qbd-sidebar-item.qbd-convert-btn {
+  background: linear-gradient(135deg, var(--qbd-accent) 0%, color-mix(in srgb, var(--qbd-accent) 85%, white) 100%);
+  color: var(--qbd-bg-primary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 13px;
+  margin-top: 8px;
+  border: none;
+  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.25);
+}
+
+.qbd-sidebar-item.qbd-convert-btn:hover {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--qbd-accent) 90%, white) 0%, 
+    var(--qbd-accent) 50%,
+    color-mix(in srgb, var(--qbd-accent) 80%, black) 100%);
+  color: var(--qbd-bg-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(215, 179, 140, 0.4);
+}
+
 .qbd-sidebar-back {
   margin: 16px 12px;
   padding: 12px 16px;

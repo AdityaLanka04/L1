@@ -1103,7 +1103,7 @@ const ActivityTimeline = () => {
       <div className="timeline-header">
         <div className="timeline-header-content">
           <div className="timeline-header-left">
-            <h1>cerbyl</h1>
+            <h1 onClick={() => navigate('/dashboard')}>cerbyl</h1>
             <span className="timeline-subtitle">activity timeline</span>
           </div>
           <button className="timeline-back-btn" onClick={() => navigate('/dashboard')} title="Back to Dashboard">

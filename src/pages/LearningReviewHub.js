@@ -62,7 +62,7 @@ const LearningReviewHub = () => {
     <div className="learning-review-hub-container">
       <header className="learning-review-hub-header">
         <div className="learning-review-hub-header-left">
-          <h1 className="learning-review-hub-logo">cerbyl</h1>
+          <h1 className="learning-review-hub-logo" onClick={() => navigate('/dashboard')}>cerbyl</h1>
           <span className="learning-review-hub-subtitle">LEARNING REVIEW HUB</span>
         </div>
         <div className="learning-review-hub-header-right">

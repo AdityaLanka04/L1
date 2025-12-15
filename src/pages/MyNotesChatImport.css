@@ -1,0 +1,215 @@
+/* MyNotes Chat Import Modal Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* Force all elements to be boxy */
+.my-notes-page-full .nt-modal-overlay,
+.my-notes-page-full .nt-modal,
+.my-notes-page-full .nt-modal *,
+.my-notes-page-full .nt-modal *::before,
+.my-notes-page-full .nt-modal *::after {
+  border-radius: 0 !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Overlay */
+.my-notes-page-full .nt-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(8px) !important;
+  z-index: 9998 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Modal */
+.my-notes-page-full .nt-modal {
+  background: #16181d !important;
+  border: 2px solid #2a2f37 !important;
+  width: 90% !important;
+  max-width: 550px !important;
+  max-height: 85vh !important;
+  overflow: hidden !important;
+  z-index: 9999 !important;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 0 !important;
+}
+
+/* Modal Header */
+.my-notes-page-full .nt-modal h3 {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #D7B38C !important;
+  margin: 0 !important;
+  padding: 20px 24px !important;
+  border-bottom: 2px solid #2a2f37 !important;
+  background: #0f1012 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+}
+
+.my-notes-page-full .nt-modal-subtitle {
+  font-size: 13px !important;
+  color: #B8C0CC !important;
+  margin: 0 !important;
+  padding: 16px 24px !important;
+  background: #16181d !important;
+  border-bottom: 1px solid #2a2f37 !important;
+}
+
+/* Chat List */
+.my-notes-page-full .nt-chat-list {
+  max-height: 350px !important;
+  overflow-y: auto !important;
+  background: #0f1012 !important;
+  margin: 0 !important;
+  border: none !important;
+}
+
+.my-notes-page-full .nt-chat-list::-webkit-scrollbar {
+  width: 8px !important;
+}
+
+.my-notes-page-full .nt-chat-list::-webkit-scrollbar-track {
+  background: #0f1012 !important;
+}
+
+.my-notes-page-full .nt-chat-list::-webkit-scrollbar-thumb {
+  background: #D7B38C !important;
+}
+
+/* Chat Item */
+.my-notes-page-full .nt-chat-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 16px 24px !important;
+  border-bottom: 1px solid #2a2f37 !important;
+  cursor: pointer !important;
+  transition: background 0.2s !important;
+  background: transparent !important;
+}
+
+.my-notes-page-full .nt-chat-item:last-child {
+  border-bottom: none !important;
+}
+
+.my-notes-page-full .nt-chat-item:hover {
+  background: rgba(215, 179, 140, 0.05) !important;
+}
+
+.my-notes-page-full .nt-chat-item input[type="checkbox"] {
+  width: 20px !important;
+  height: 20px !important;
+  accent-color: #D7B38C !important;
+  cursor: pointer !important;
+}
+
+.my-notes-page-full .nt-chat-info {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+.my-notes-page-full .nt-chat-title {
+  font-size: 14px !important;
+  color: #EAECEF !important;
+  font-weight: 600 !important;
+}
+
+.my-notes-page-full .nt-chat-date {
+  font-size: 12px !important;
+  color: #B8C0CC !important;
+}
+
+/* Modal Actions */
+.my-notes-page-full .nt-modal-actions {
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  padding: 20px 24px !important;
+  border-top: 2px solid #2a2f37 !important;
+  background: #0f1012 !important;
+}
+
+.my-notes-page-full .nt-modal-btn {
+  padding: 12px 24px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+}
+
+.my-notes-page-full .nt-modal-btn.cancel {
+  background: #0f1012 !important;
+  border: 2px solid #2a2f37 !important;
+  color: #EAECEF !important;
+}
+
+.my-notes-page-full .nt-modal-btn.cancel:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: #D7B38C !important;
+}
+
+.my-notes-page-full .nt-modal-btn.primary {
+  background: #D7B38C !important;
+  border: 2px solid #D7B38C !important;
+  color: #0f1012 !important;
+  font-weight: 700 !important;
+}
+
+.my-notes-page-full .nt-modal-btn.primary:hover:not(:disabled) {
+  background: #c9a67a !important;
+  transform: translateY(-1px) !important;
+}
+
+.my-notes-page-full .nt-modal-btn.primary:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}
+
+/* Folder Select List (for Move to Folder modal) */
+.my-notes-page-full .nt-folder-select-list {
+  max-height: 300px !important;
+  overflow-y: auto !important;
+  background: #0f1012 !important;
+  margin: 16px 0 !important;
+}
+
+.my-notes-page-full .nt-folder-select-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 14px 20px !important;
+  border: none !important;
+  border-bottom: 1px solid #2a2f37 !important;
+  background: transparent !important;
+  color: #EAECEF !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  width: 100% !important;
+  text-align: left !important;
+}
+
+.my-notes-page-full .nt-folder-select-item:last-child {
+  border-bottom: none !important;
+}
+
+.my-notes-page-full .nt-folder-select-item:hover {
+  background: rgba(215, 179, 140, 0.1) !important;
+  color: #D7B38C !important;
+}
+
+.my-notes-page-full .nt-folder-select-item svg {
+  color: #D7B38C !important;
+}

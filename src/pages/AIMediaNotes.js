@@ -6,6 +6,7 @@ import {
   BookOpen, CheckCircle, AlertCircle, Play, Trash2, Home, LogOut
 } from 'lucide-react';
 import './AIMediaNotes.css';
+import './AIMediaNotesConvert.css';
 import { API_URL } from '../config';
 import ImportExportModal from '../components/ImportExportModal';
 
@@ -690,9 +691,9 @@ const AIMediaNotes = () => {
                           <Save size={16} />
                           Save to Notes
                         </button>
-                        <button onClick={() => setShowImportExport(true)} className="mn-btn mn-btn-secondary">
+                        <button onClick={() => setShowImportExport(true)} className="convert-btn">
                           <Zap size={16} />
-                          Convert
+                          <span>Convert</span>
                         </button>
                       </div>
                       <div className="mn-notes-panel">

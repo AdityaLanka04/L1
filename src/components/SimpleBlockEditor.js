@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Type, Heading1, Heading2, Heading3, List, ListOrdered,
   CheckSquare, Code, Quote, AlertCircle, ChevronRight,
@@ -161,6 +162,7 @@ const MermaidBlock = ({ block, updateBlock, readOnly }) => {
 const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = false }) => {
   const [hoveredBlockId, setHoveredBlockId] = useState(null);
   const [showBlockMenu, setShowBlockMenu] = useState(null);
+  const [blockMenuPosition, setBlockMenuPosition] = useState({ top: 0, left: 0 });
   const [draggedBlockId, setDraggedBlockId] = useState(null);
   const [dropIndicator, setDropIndicator] = useState(null); // { blockId, position: 'above' | 'below' }
   const [showSlashMenu, setShowSlashMenu] = useState(false);
@@ -182,7 +184,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (showBlockMenu && !e.target.closest('.block-menu-dropdown') && !e.target.closest('.block-control-btn')) {
+      if (showBlockMenu && !e.target.closest('.sbe-dropdown-menu') && !e.target.closest('.block-menu-dropdown') && !e.target.closest('.block-control-btn')) {
         setShowBlockMenu(null);
       }
     };
@@ -701,7 +703,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
   // Close block menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (showBlockMenu && !e.target.closest('.block-menu-dropdown') && !e.target.closest('.block-control-btn')) {
+      if (showBlockMenu && !e.target.closest('.sbe-dropdown-menu') && !e.target.closest('.block-menu-dropdown') && !e.target.closest('.block-control-btn')) {
         setShowBlockMenu(null);
       }
     };
@@ -1490,27 +1492,45 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                           </button>
                           <button
                             className="block-control-btn"
-                            onClick={() => setShowBlockMenu(showBlockMenu === childBlock.id ? null : childBlock.id)}
+                            onClick={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setBlockMenuPosition({ top: rect.bottom + 4, left: rect.left });
+                              setShowBlockMenu(showBlockMenu === childBlock.id ? null : childBlock.id);
+                            }}
                             title="More"
                           >
                             <MoreVertical size={16} />
                           </button>
 
-                          {showBlockMenu === childBlock.id && (
+                          {showBlockMenu === childBlock.id && createPortal(
                             <div 
-                              className="block-menu-dropdown"
+                              className="sbe-dropdown-menu"
                               style={{ 
-                                display: 'block !important',
-                                opacity: '1 !important',
-                                pointerEvents: 'auto !important',
-                                visibility: 'visible !important'
+                                position: 'fixed',
+                                top: blockMenuPosition.top,
+                                left: blockMenuPosition.left,
+                                display: 'block',
+                                opacity: 1,
+                                pointerEvents: 'auto',
+                                visibility: 'visible',
+                                background: darkMode ? '#1a1a1a' : '#ffffff',
+                                backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+                                boxShadow: darkMode ? '0 8px 32px rgba(0,0,0,0.7)' : '0 8px 32px rgba(0,0,0,0.2)',
+                                border: darkMode ? '1px solid #444' : '1px solid #ddd',
+                                borderRadius: '0px',
+                                zIndex: 999999,
+                                padding: '6px',
+                                minWidth: '200px',
+                                maxWidth: '280px',
+                                maxHeight: '400px',
+                                overflowY: 'auto'
                               }}
                               onMouseEnter={() => {
                                 clearTimeout(menuCloseTimeoutRef.current);
                                 setHoveredBlockId(childBlock.id);
                               }}
                             >
-                              <div className="menu-label">Turn into</div>
+                              <div style={{ padding: '6px 10px 4px', fontSize: '11px', fontWeight: 600, color: darkMode ? '#888' : '#666', textTransform: 'uppercase', background: darkMode ? '#1a1a1a' : '#ffffff' }}>Turn into</div>
                               {BLOCK_TYPES.slice(0, 10).map(blockType => (
                                 <button
                                   key={blockType.type}
@@ -1518,20 +1538,46 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                                     updateBlock(childBlock.id, { type: blockType.type });
                                     setShowBlockMenu(null);
                                   }}
-                                  className={childBlock.type === blockType.type ? 'active' : ''}
+                                  style={{
+                                    width: '100%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    padding: '8px 10px',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    background: childBlock.type === blockType.type ? (darkMode ? '#333' : '#e8e8e8') : (darkMode ? '#1a1a1a' : '#ffffff'),
+                                    backgroundColor: childBlock.type === blockType.type ? (darkMode ? '#333' : '#e8e8e8') : (darkMode ? '#1a1a1a' : '#ffffff'),
+                                    color: darkMode ? '#fff' : '#333'
+                                  }}
+                                  onMouseEnter={(e) => { e.target.style.background = darkMode ? '#333' : '#f0f0f0'; }}
+                                  onMouseLeave={(e) => { e.target.style.background = childBlock.type === blockType.type ? (darkMode ? '#333' : '#e8e8e8') : (darkMode ? '#1a1a1a' : '#ffffff'); }}
                                 >
                                   <blockType.icon size={14} /> {blockType.label}
                                 </button>
                               ))}
-                              <div className="menu-divider" />
-                              <div className="menu-label">Actions</div>
-                              <button onClick={() => { duplicateBlock(childBlock.id); setShowBlockMenu(null); }}>
+                              <div style={{ height: '1px', background: darkMode ? '#444' : '#e0e0e0', margin: '6px 0' }} />
+                              <div style={{ padding: '6px 10px 4px', fontSize: '11px', fontWeight: 600, color: darkMode ? '#888' : '#666', textTransform: 'uppercase', background: darkMode ? '#1a1a1a' : '#ffffff' }}>Actions</div>
+                              <button 
+                                onClick={() => { duplicateBlock(childBlock.id); setShowBlockMenu(null); }}
+                                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', background: darkMode ? '#1a1a1a' : '#ffffff', color: darkMode ? '#fff' : '#333' }}
+                                onMouseEnter={(e) => { e.target.style.background = darkMode ? '#333' : '#f0f0f0'; }}
+                                onMouseLeave={(e) => { e.target.style.background = darkMode ? '#1a1a1a' : '#ffffff'; }}
+                              >
                                 <Copy size={14} /> Duplicate
                               </button>
-                              <button onClick={() => { deleteBlock(childBlock.id); setShowBlockMenu(null); }}>
+                              <button 
+                                onClick={() => { deleteBlock(childBlock.id); setShowBlockMenu(null); }}
+                                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', background: darkMode ? '#1a1a1a' : '#ffffff', color: darkMode ? '#fff' : '#333' }}
+                                onMouseEnter={(e) => { e.target.style.background = darkMode ? '#333' : '#f0f0f0'; }}
+                                onMouseLeave={(e) => { e.target.style.background = darkMode ? '#1a1a1a' : '#ffffff'; }}
+                              >
                                 <Trash2 size={14} /> Delete
                               </button>
-                            </div>
+                            </div>,
+                            document.body
                           )}
                         </div>
                       )}
@@ -1670,75 +1716,137 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
               </button>
               <button
                 className="block-control-btn"
-                onClick={() => setShowBlockMenu(showBlockMenu === block.id ? null : block.id)}
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setBlockMenuPosition({ top: rect.bottom + 4, left: rect.left });
+                  setShowBlockMenu(showBlockMenu === block.id ? null : block.id);
+                }}
                 title="More"
               >
                 <MoreVertical size={16} />
               </button>
 
-              {showBlockMenu === block.id && (
+              {showBlockMenu === block.id && createPortal(
                 <div 
-                  className="block-menu-dropdown"
+                  className="sbe-dropdown-menu"
                   style={{ 
-                    display: 'block !important',
-                    opacity: '1 !important',
-                    pointerEvents: 'auto !important',
-                    visibility: 'visible !important'
+                    position: 'fixed',
+                    top: blockMenuPosition.top,
+                    left: blockMenuPosition.left,
+                    display: 'block',
+                    opacity: 1,
+                    pointerEvents: 'auto',
+                    visibility: 'visible',
+                    background: darkMode ? '#1a1a1a' : '#ffffff',
+                    backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+                    boxShadow: darkMode ? '0 8px 32px rgba(0,0,0,0.7)' : '0 8px 32px rgba(0,0,0,0.2)',
+                    border: darkMode ? '1px solid #444' : '1px solid #ddd',
+                    borderRadius: '0px',
+                    zIndex: 999999,
+                    padding: '6px',
+                    minWidth: '200px',
+                    maxWidth: '280px',
+                    maxHeight: '400px',
+                    overflowY: 'auto'
                   }}
                   onMouseEnter={() => {
                     clearTimeout(menuCloseTimeoutRef.current);
                     setHoveredBlockId(block.id);
                   }}
                 >
-                  <div className="menu-label">Actions</div>
-                  <button onClick={() => { duplicateBlock(block.id); setShowBlockMenu(null); }}>
+                  <div style={{ padding: '6px 10px 4px', fontSize: '11px', fontWeight: 600, color: darkMode ? '#888' : '#666', textTransform: 'uppercase', background: darkMode ? '#1a1a1a' : '#ffffff' }}>Actions</div>
+                  <button 
+                    onClick={() => { duplicateBlock(block.id); setShowBlockMenu(null); }}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', background: darkMode ? '#1a1a1a' : '#ffffff', color: darkMode ? '#fff' : '#333' }}
+                    onMouseEnter={(e) => { e.target.style.background = darkMode ? '#333' : '#f0f0f0'; }}
+                    onMouseLeave={(e) => { e.target.style.background = darkMode ? '#1a1a1a' : '#ffffff'; }}
+                  >
                     <Copy size={14} /> Duplicate
                   </button>
-                  <button onClick={() => { 
-                    const content = block.content;
-                    navigator.clipboard.writeText(content);
-                    setShowBlockMenu(null);
-                  }}>
+                  <button 
+                    onClick={() => { 
+                      const content = block.content;
+                      navigator.clipboard.writeText(content);
+                      setShowBlockMenu(null);
+                    }}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', background: darkMode ? '#1a1a1a' : '#ffffff', color: darkMode ? '#fff' : '#333' }}
+                    onMouseEnter={(e) => { e.target.style.background = darkMode ? '#333' : '#f0f0f0'; }}
+                    onMouseLeave={(e) => { e.target.style.background = darkMode ? '#1a1a1a' : '#ffffff'; }}
+                  >
                     <Copy size={14} /> Copy text
                   </button>
-                  <button onClick={() => { deleteBlock(block.id); setShowBlockMenu(null); }}>
+                  <button 
+                    onClick={() => { deleteBlock(block.id); setShowBlockMenu(null); }}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', background: darkMode ? '#1a1a1a' : '#ffffff', color: darkMode ? '#fff' : '#333' }}
+                    onMouseEnter={(e) => { e.target.style.background = darkMode ? '#333' : '#f0f0f0'; }}
+                    onMouseLeave={(e) => { e.target.style.background = darkMode ? '#1a1a1a' : '#ffffff'; }}
+                  >
                     <Trash2 size={14} /> Delete
                   </button>
                   
-                  <div className="menu-divider"></div>
-                  <div className="menu-label">Style</div>
-                  <button onClick={() => { 
-                    const wrapper = blockWrapperRefs.current[block.id];
-                    if (wrapper) {
-                      const rect = wrapper.getBoundingClientRect();
-                      setStyleMenuPosition({ top: rect.bottom + 5, left: rect.left });
-                      setShowStyleMenu(block.id);
-                      setShowBlockMenu(null);
-                    }
-                  }}>
+                  <div style={{ height: '1px', background: darkMode ? '#444' : '#e0e0e0', margin: '6px 0' }}></div>
+                  <div style={{ padding: '6px 10px 4px', fontSize: '11px', fontWeight: 600, color: darkMode ? '#888' : '#666', textTransform: 'uppercase', background: darkMode ? '#1a1a1a' : '#ffffff' }}>Style</div>
+                  <button 
+                    onClick={() => { 
+                      const wrapper = blockWrapperRefs.current[block.id];
+                      if (wrapper) {
+                        const rect = wrapper.getBoundingClientRect();
+                        setStyleMenuPosition({ top: rect.bottom + 5, left: rect.left });
+                        setShowStyleMenu(block.id);
+                        setShowBlockMenu(null);
+                      }
+                    }}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', background: darkMode ? '#1a1a1a' : '#ffffff', color: darkMode ? '#fff' : '#333' }}
+                    onMouseEnter={(e) => { e.target.style.background = darkMode ? '#333' : '#f0f0f0'; }}
+                    onMouseLeave={(e) => { e.target.style.background = darkMode ? '#1a1a1a' : '#ffffff'; }}
+                  >
                     <Palette size={14} /> Colors & Style
                   </button>
                   
-                  <div className="menu-divider"></div>
-                  <div className="menu-label">Indent</div>
-                  <button onClick={() => { indentBlock(block.id); setShowBlockMenu(null); }} disabled={index === 0}>
+                  <div style={{ height: '1px', background: darkMode ? '#444' : '#e0e0e0', margin: '6px 0' }}></div>
+                  <div style={{ padding: '6px 10px 4px', fontSize: '11px', fontWeight: 600, color: darkMode ? '#888' : '#666', textTransform: 'uppercase', background: darkMode ? '#1a1a1a' : '#ffffff' }}>Indent</div>
+                  <button 
+                    onClick={() => { indentBlock(block.id); setShowBlockMenu(null); }} 
+                    disabled={index === 0}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', border: 'none', borderRadius: '4px', cursor: index === 0 ? 'not-allowed' : 'pointer', fontSize: '13px', background: darkMode ? '#1a1a1a' : '#ffffff', color: darkMode ? '#fff' : '#333', opacity: index === 0 ? 0.5 : 1 }}
+                    onMouseEnter={(e) => { if (index !== 0) e.target.style.background = darkMode ? '#333' : '#f0f0f0'; }}
+                    onMouseLeave={(e) => { e.target.style.background = darkMode ? '#1a1a1a' : '#ffffff'; }}
+                  >
                     <Indent size={14} /> Indent
                   </button>
-                  <button onClick={() => { outdentBlock(block.id); setShowBlockMenu(null); }} disabled={!block.parent_block_id}>
+                  <button 
+                    onClick={() => { outdentBlock(block.id); setShowBlockMenu(null); }} 
+                    disabled={!block.parent_block_id}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', border: 'none', borderRadius: '4px', cursor: !block.parent_block_id ? 'not-allowed' : 'pointer', fontSize: '13px', background: darkMode ? '#1a1a1a' : '#ffffff', color: darkMode ? '#fff' : '#333', opacity: !block.parent_block_id ? 0.5 : 1 }}
+                    onMouseEnter={(e) => { if (block.parent_block_id) e.target.style.background = darkMode ? '#333' : '#f0f0f0'; }}
+                    onMouseLeave={(e) => { e.target.style.background = darkMode ? '#1a1a1a' : '#ffffff'; }}
+                  >
                     <Outdent size={14} /> Outdent
                   </button>
                   
-                  <div className="menu-divider"></div>
-                  <div className="menu-label">Move</div>
-                  <button onClick={() => { moveBlock(block.id, 'up'); setShowBlockMenu(null); }} disabled={index === 0}>
+                  <div style={{ height: '1px', background: darkMode ? '#444' : '#e0e0e0', margin: '6px 0' }}></div>
+                  <div style={{ padding: '6px 10px 4px', fontSize: '11px', fontWeight: 600, color: darkMode ? '#888' : '#666', textTransform: 'uppercase', background: darkMode ? '#1a1a1a' : '#ffffff' }}>Move</div>
+                  <button 
+                    onClick={() => { moveBlock(block.id, 'up'); setShowBlockMenu(null); }} 
+                    disabled={index === 0}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', border: 'none', borderRadius: '4px', cursor: index === 0 ? 'not-allowed' : 'pointer', fontSize: '13px', background: darkMode ? '#1a1a1a' : '#ffffff', color: darkMode ? '#fff' : '#333', opacity: index === 0 ? 0.5 : 1 }}
+                    onMouseEnter={(e) => { if (index !== 0) e.target.style.background = darkMode ? '#333' : '#f0f0f0'; }}
+                    onMouseLeave={(e) => { e.target.style.background = darkMode ? '#1a1a1a' : '#ffffff'; }}
+                  >
                     <ArrowUp size={14} /> Move up
                   </button>
-                  <button onClick={() => { moveBlock(block.id, 'down'); setShowBlockMenu(null); }} disabled={index === blocks.length - 1}>
+                  <button 
+                    onClick={() => { moveBlock(block.id, 'down'); setShowBlockMenu(null); }} 
+                    disabled={index === blocks.length - 1}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', border: 'none', borderRadius: '4px', cursor: index === blocks.length - 1 ? 'not-allowed' : 'pointer', fontSize: '13px', background: darkMode ? '#1a1a1a' : '#ffffff', color: darkMode ? '#fff' : '#333', opacity: index === blocks.length - 1 ? 0.5 : 1 }}
+                    onMouseEnter={(e) => { if (index !== blocks.length - 1) e.target.style.background = darkMode ? '#333' : '#f0f0f0'; }}
+                    onMouseLeave={(e) => { e.target.style.background = darkMode ? '#1a1a1a' : '#ffffff'; }}
+                  >
                     <ArrowDown size={14} /> Move down
                   </button>
                   
-                  <div className="menu-divider"></div>
-                  <div className="menu-label">Turn into</div>
+                  <div style={{ height: '1px', background: darkMode ? '#444' : '#e0e0e0', margin: '6px 0' }}></div>
+                  <div style={{ padding: '6px 10px 4px', fontSize: '11px', fontWeight: 600, color: darkMode ? '#888' : '#666', textTransform: 'uppercase', background: darkMode ? '#1a1a1a' : '#ffffff' }}>Turn into</div>
                   {BLOCK_TYPES.map(bt => (
                     <button
                       key={bt.type}
@@ -1746,12 +1854,28 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                         updateBlock(block.id, { type: bt.type });
                         setShowBlockMenu(null);
                       }}
-                      className={block.type === bt.type ? 'active' : ''}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '8px 10px',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        background: block.type === bt.type ? (darkMode ? '#333' : '#e8e8e8') : (darkMode ? '#1a1a1a' : '#ffffff'),
+                        backgroundColor: block.type === bt.type ? (darkMode ? '#333' : '#e8e8e8') : (darkMode ? '#1a1a1a' : '#ffffff'),
+                        color: darkMode ? '#fff' : '#333'
+                      }}
+                      onMouseEnter={(e) => { e.target.style.background = darkMode ? '#333' : '#f0f0f0'; }}
+                      onMouseLeave={(e) => { e.target.style.background = block.type === bt.type ? (darkMode ? '#333' : '#e8e8e8') : (darkMode ? '#1a1a1a' : '#ffffff'); }}
                     >
                       <bt.icon size={14} /> {bt.label}
                     </button>
                   ))}
-                </div>
+                </div>,
+                document.body
               )}
             </div>
             )}

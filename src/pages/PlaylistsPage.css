@@ -349,6 +349,30 @@
   font-weight: 500;
 }
 
+/* Convert button */
+.playlists-container .convert-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--accent);
+  border: none;
+  color: #000;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.25);
+}
+
+.playlists-container .convert-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(215, 179, 140, 0.4);
+  background: color-mix(in srgb, var(--accent) 90%, white);
+}
+
 .content-body {
   flex: 1;
   padding: 32px 40px;
@@ -921,30 +945,6 @@
     grid-template-columns: 1fr;
   }
 }
-
-/* Convert Button */
-.convert-btn-playlist {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: transparent;
-  border: 1px solid var(--accent, #D7B38C);
-  color: var(--accent, #D7B38C);
-  border-radius: 0;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.convert-btn-playlist:hover {
-  background: var(--accent, #D7B38C);
-  color: var(--background, #0a0a0a);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.3);
-}
-
 
 /* ==================== FORCE BOXY DESIGN ==================== */
 .playlists-container *,
