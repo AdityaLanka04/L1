@@ -57,6 +57,10 @@ const Flashcards = () => {
   const [editingTitle, setEditingTitle] = useState('');
   const [showImportExport, setShowImportExport] = useState(false);
   
+  // Needs Review state
+  const [reviewCards, setReviewCards] = useState({ total_cards: 0, sets: [] });
+  const [loadingReviewCards, setLoadingReviewCards] = useState(false);
+  
   const [popup, setPopup] = useState({ isOpen: false, message: '', title: '' });
 
   const showPopup = (title, message) => setPopup({ isOpen: true, title, message });
@@ -141,6 +145,49 @@ const Flashcards = () => {
     }
   }, [userName]);
 
+  const loadReviewCards = useCallback(async () => {
+    if (!userName) return;
+    setLoadingReviewCards(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/get_flashcards_for_review?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setReviewCards(data);
+      }
+    } catch (error) {
+      console.error('Error loading review cards:', error);
+    }
+    setLoadingReviewCards(false);
+  }, [userName]);
+
+  const markCardForReview = async (flashcardId, marked = true) => {
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('flashcard_id', flashcardId);
+      formData.append('marked', marked.toString());
+      
+      const response = await fetch(`${API_URL}/mark_flashcard_for_review`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      
+      if (response.ok) {
+        // Refresh review cards list
+        loadReviewCards();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error marking card for review:', error);
+      return false;
+    }
+  };
+
   // Effects
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -166,8 +213,9 @@ const Flashcards = () => {
       loadChatSessions();
       loadFlashcardHistory();
       loadFlashcardStats();
+      loadReviewCards();
     }
-  }, [userName, loadChatSessions, loadFlashcardHistory, loadFlashcardStats]);
+  }, [userName, loadChatSessions, loadFlashcardHistory, loadFlashcardStats, loadReviewCards]);
 
   useEffect(() => {
     const savedStreak = localStorage.getItem('flashcardStreak');
@@ -640,8 +688,13 @@ const Flashcards = () => {
             <div className="fc-knowledge-btns">
               <button 
                 className="fc-knowledge-btn fc-dont-know"
-                onClick={() => {
+                onClick={async () => {
                   handleStudyResponse('incorrect');
+                  // Mark card for review if it has an ID (saved card)
+                  const card = previewCards[currentCard];
+                  if (card?.id) {
+                    await markCardForReview(card.id, true);
+                  }
                   if (currentCard < previewCards.length - 1) {
                     setCurrentCard(currentCard + 1);
                     setIsFlipped(false);
@@ -653,8 +706,13 @@ const Flashcards = () => {
               </button>
               <button 
                 className="fc-knowledge-btn fc-know"
-                onClick={() => {
+                onClick={async () => {
                   handleStudyResponse('correct');
+                  // Unmark card from review if it was previously marked
+                  const card = previewCards[currentCard];
+                  if (card?.id && card?.marked_for_review) {
+                    await markCardForReview(card.id, false);
+                  }
                   if (currentCard < previewCards.length - 1) {
                     setCurrentCard(currentCard + 1);
                     setIsFlipped(false);
@@ -815,6 +873,13 @@ const Flashcards = () => {
             <button className={`fc-nav-item ${activePanel === 'cards' ? 'active' : ''}`} onClick={() => setActivePanel('cards')}>
               <span className="fc-nav-icon">{Icons.cards}</span>
               <span className="fc-nav-text">My Flashcards</span>
+            </button>
+            <button className={`fc-nav-item ${activePanel === 'review' ? 'active' : ''}`} onClick={() => setActivePanel('review')}>
+              <span className="fc-nav-icon">{Icons.refresh}</span>
+              <span className="fc-nav-text">Needs Review</span>
+              {reviewCards.total_cards > 0 && (
+                <span className="fc-nav-badge">{reviewCards.total_cards}</span>
+              )}
             </button>
             <button className={`fc-nav-item ${activePanel === 'generator' ? 'active' : ''}`} onClick={() => setActivePanel('generator')}>
               <span className="fc-nav-icon">{Icons.sparkle}</span>
@@ -1163,6 +1228,103 @@ const Flashcards = () => {
                     {generating ? 'Generating...' : <>{Icons.sparkle} Generate {cardCount} Flashcards</>}
                   </button>
                 </div>
+              </div>
+            </>
+          )}
+
+          {/* Needs Review Panel */}
+          {activePanel === 'review' && (
+            <>
+              <header className="fc-header">
+                <div className="fc-header-left">
+                  <h1 className="fc-header-title">Needs Review</h1>
+                  <p className="fc-header-subtitle">Cards you marked as "I don't know this"</p>
+                </div>
+                <div className="fc-header-actions">
+                  <button className="fc-btn fc-btn-secondary" onClick={loadReviewCards}>
+                    {Icons.refresh}
+                  </button>
+                </div>
+              </header>
+
+              <div className="fc-content">
+                {loadingReviewCards ? (
+                  <div className="fc-loading">
+                    <div className="fc-spinner"></div>
+                    <p>Loading cards for review...</p>
+                  </div>
+                ) : reviewCards.total_cards === 0 ? (
+                  <div className="fc-empty">
+                    <div className="fc-empty-icon">{Icons.check}</div>
+                    <h3>No Cards Need Review</h3>
+                    <p>Great job! You haven't marked any cards as "I don't know this" yet.</p>
+                    <button className="fc-btn fc-btn-primary" onClick={() => setActivePanel('cards')}>
+                      Study Flashcards
+                    </button>
+                  </div>
+                ) : (
+                  <div className="fc-review-section">
+                    <div className="fc-review-summary">
+                      <span className="fc-review-count">{reviewCards.total_cards} cards</span> need your attention
+                    </div>
+                    
+                    {reviewCards.sets.map((setData) => (
+                      <div key={setData.set_id} className="fc-review-set">
+                        <div className="fc-review-set-header">
+                          <h3>{setData.set_title}</h3>
+                          <span className="fc-review-set-count">{setData.cards.length} cards</span>
+                        </div>
+                        <div className="fc-review-cards-list">
+                          {setData.cards.map((card) => (
+                            <div key={card.id} className="fc-review-card-item">
+                              <div className="fc-review-card-content">
+                                <div className="fc-review-card-question">
+                                  <span className="fc-review-label">Q:</span>
+                                  {card.question}
+                                </div>
+                                <div className="fc-review-card-answer">
+                                  <span className="fc-review-label">A:</span>
+                                  {card.answer}
+                                </div>
+                              </div>
+                              <div className="fc-review-card-actions">
+                                <button 
+                                  className="fc-btn fc-btn-small fc-btn-success"
+                                  onClick={async () => {
+                                    await markCardForReview(card.id, false);
+                                  }}
+                                  title="I know this now"
+                                >
+                                  {Icons.check}
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <button 
+                          className="fc-btn fc-btn-primary fc-review-study-btn"
+                          onClick={() => {
+                            // Load just the review cards from this set for study
+                            const reviewCardsForSet = setData.cards;
+                            setFlashcards(reviewCardsForSet);
+                            setShuffledCards(reviewCardsForSet);
+                            setCurrentCard(0);
+                            setIsFlipped(false);
+                            setCurrentSetInfo({
+                              saved: true,
+                              setId: setData.set_id,
+                              setTitle: `Review: ${setData.set_title}`,
+                              cardCount: reviewCardsForSet.length
+                            });
+                            setPreviewMode(true);
+                          }}
+                        >
+                          {Icons.play} Study These Cards
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </>
           )}

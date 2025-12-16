@@ -406,6 +406,14 @@ class FlashcardAPI:
         @self.app.post("/api/record_flashcard_study_session")
         def record_study_session(session_data: FlashcardStudySession, db: Session = Depends(get_db)):
             return self._record_study_session(session_data, db)
+        
+        @self.app.post("/api/mark_flashcard_for_review")
+        def mark_flashcard_for_review(flashcard_id: int = Form(...), marked: bool = Form(True), db: Session = Depends(get_db)):
+            return self._mark_flashcard_for_review(flashcard_id, marked, db)
+        
+        @self.app.get("/api/get_flashcards_for_review")
+        def get_flashcards_for_review(user_id: str = Query(...), db: Session = Depends(get_db)):
+            return self._get_flashcards_for_review(user_id, db)
     
     # ========================================================================
     # HELPER METHODS
@@ -562,7 +570,8 @@ class FlashcardAPI:
                     "category": card.category,
                     "times_reviewed": card.times_reviewed,
                     "last_reviewed": card.last_reviewed.isoformat() if card.last_reviewed else None,
-                    "created_at": card.created_at.isoformat()
+                    "created_at": card.created_at.isoformat(),
+                    "marked_for_review": getattr(card, 'marked_for_review', False)
                 }
                 for card in flashcards
             ]
@@ -970,6 +979,64 @@ class FlashcardAPI:
         db.commit()
         
         return {"status": "success", "message": "Flashcard deleted"}
+    
+    def _mark_flashcard_for_review(self, flashcard_id: int, marked: bool, db: Session):
+        """Mark or unmark a flashcard for review (I don't know this)"""
+        flashcard = db.query(models.Flashcard).filter(
+            models.Flashcard.id == flashcard_id
+        ).first()
+        
+        if not flashcard:
+            raise HTTPException(status_code=404, detail="Flashcard not found")
+        
+        flashcard.marked_for_review = marked
+        db.commit()
+        
+        return {
+            "status": "success",
+            "flashcard_id": flashcard_id,
+            "marked_for_review": marked
+        }
+    
+    def _get_flashcards_for_review(self, user_id: str, db: Session):
+        """Get all flashcards marked for review across all sets for a user"""
+        user = self._get_user_by_username(db, user_id) or self._get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get all flashcards marked for review from user's sets
+        review_cards = db.query(models.Flashcard).join(models.FlashcardSet).filter(
+            models.FlashcardSet.user_id == user.id,
+            models.Flashcard.marked_for_review == True
+        ).all()
+        
+        # Group by set for better organization
+        cards_by_set = {}
+        for card in review_cards:
+            set_id = card.set_id
+            if set_id not in cards_by_set:
+                flashcard_set = db.query(models.FlashcardSet).filter(
+                    models.FlashcardSet.id == set_id
+                ).first()
+                cards_by_set[set_id] = {
+                    "set_id": set_id,
+                    "set_title": flashcard_set.title if flashcard_set else "Unknown Set",
+                    "cards": []
+                }
+            cards_by_set[set_id]["cards"].append({
+                "id": card.id,
+                "question": card.question,
+                "answer": card.answer,
+                "difficulty": card.difficulty,
+                "category": card.category,
+                "times_reviewed": card.times_reviewed,
+                "last_reviewed": card.last_reviewed.isoformat() if card.last_reviewed else None
+            })
+        
+        return {
+            "total_cards": len(review_cards),
+            "sets": list(cards_by_set.values())
+        }
     
     def _record_study_session(self, session_data: FlashcardStudySession, db: Session):
         """Record a flashcard study session with gamification"""

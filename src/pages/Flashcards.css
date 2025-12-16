@@ -2750,3 +2750,159 @@
 .fc-mcq-option.incorrect {
   animation: mcq-select 0.3s ease-out;
 }
+
+/* ==================== NEEDS REVIEW SECTION ==================== */
+
+/* Badge for nav item */
+.fc-nav-badge {
+  background: var(--fc-danger);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  margin-left: auto;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* Review section container */
+.fc-review-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.fc-review-summary {
+  font-size: 16px;
+  color: var(--fc-text-secondary);
+  padding: 16px;
+  background: var(--fc-bg-elevated);
+  border: 1px solid var(--fc-border-subtle);
+}
+
+.fc-review-count {
+  font-weight: 600;
+  color: var(--fc-danger);
+}
+
+/* Review set card */
+.fc-review-set {
+  background: var(--fc-bg-card);
+  border: 1px solid var(--fc-border-subtle);
+  padding: 20px;
+}
+
+.fc-review-set-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--fc-border-subtle);
+}
+
+.fc-review-set-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--fc-text-primary);
+}
+
+.fc-review-set-count {
+  font-size: 13px;
+  color: var(--fc-text-muted);
+  background: var(--fc-bg-elevated);
+  padding: 4px 10px;
+}
+
+/* Review cards list */
+.fc-review-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.fc-review-card-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px;
+  background: var(--fc-bg-elevated);
+  border: 1px solid var(--fc-border-subtle);
+  transition: all 0.2s ease;
+}
+
+.fc-review-card-item:hover {
+  border-color: var(--fc-accent);
+}
+
+.fc-review-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fc-review-card-question,
+.fc-review-card-answer {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.fc-review-card-question {
+  color: var(--fc-text-primary);
+  font-weight: 500;
+}
+
+.fc-review-card-answer {
+  color: var(--fc-text-secondary);
+}
+
+.fc-review-label {
+  font-weight: 600;
+  color: var(--fc-accent);
+  margin-right: 8px;
+}
+
+.fc-review-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Small button variant */
+.fc-btn-small {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.fc-btn-small svg {
+  width: 16px;
+  height: 16px;
+}
+
+.fc-btn-success {
+  background: var(--fc-success);
+  color: white;
+  border: none;
+}
+
+.fc-btn-success:hover {
+  background: color-mix(in srgb, var(--fc-success) 85%, black);
+}
+
+/* Study button for review set */
+.fc-review-study-btn {
+  width: 100%;
+  justify-content: center;
+  gap: 8px;
+}
+
+.fc-review-study-btn svg {
+  width: 18px;
+  height: 18px;
+}
