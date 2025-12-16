@@ -28,6 +28,17 @@ const Social = () => {
   const [showMyContentModal, setShowMyContentModal] = useState(false);
   const [myContentFilter, setMyContentFilter] = useState('all');
 
+  // Disable scrolling on this page
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, []);
+
   useEffect(() => {
     fetchUserProfile();
     fetchFriendRequests();

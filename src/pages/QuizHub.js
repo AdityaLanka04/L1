@@ -1,19 +1,35 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Users, BookOpen, Swords, ArrowLeft } from 'lucide-react';
+import { User, Users, BookOpen, Swords, ChevronLeft } from 'lucide-react';
 import './QuizHub.css';
 
 const QuizHub = () => {
   const navigate = useNavigate();
 
+  // Disable scrolling on this page
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, []);
+
   return (
     <div className="quiz-hub-page">
       <header className="quiz-hub-header">
-        <button className="back-btn" onClick={() => navigate('/social')}>
-          <ArrowLeft size={20} />
-          <span>Back to Social</span>
-        </button>
-        <h1 className="quiz-hub-logo">cerbyl QUIZ</h1>
+        <div className="header-left">
+          <h1 className="page-title">cerbyl</h1>
+          <span className="page-subtitle">quiz hub</span>
+        </div>
+        <div className="header-actions">
+          <button onClick={() => navigate('/dashboard')} className="back-to-dashboard">
+            <ChevronLeft size={18} />
+            <span>back to dashboard</span>
+          </button>
+        </div>
       </header>
 
       <div className="quiz-hub-container">

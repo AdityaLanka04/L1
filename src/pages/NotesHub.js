@@ -12,7 +12,16 @@ const NotesHub = () => {
   const navigate = useNavigate();
   const [showImportExport, setShowImportExport] = useState(false);
 
-
+  // Disable scrolling on this page
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, []);
 
   return (
     <div className="notes-hub-page notes-hub-split">

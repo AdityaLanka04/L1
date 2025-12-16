@@ -2333,18 +2333,7 @@
   padding-left: 24px;
 }
 
-.timeline-item::before {
-  content: '';
-  position: absolute;
-  left: -20px;
-  top: 20px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--accent);
-  border: 3px solid var(--bg-bottom);
-  box-shadow: 0 0 10px var(--accent);
-}
+/* Removed gold accent dot - using only the colored timeline-dot */
 
 .timeline-time {
   font-size: 11px;

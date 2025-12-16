@@ -354,6 +354,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [showAIFloatingButton, setShowAIFloatingButton] = useState(false);
   const [aiFloatingPosition, setAiFloatingPosition] = useState({ top: 0, left: 0 });
   const [selectedTextContent, setSelectedTextContent] = useState('');
+  const [selectedBlockId, setSelectedBlockId] = useState(null);
   
   // New features state
   const [recentlyViewed, setRecentlyViewed] = useState([]);
@@ -1560,15 +1561,31 @@ const NotesRedesign = ({ sharedMode = false }) => {
         const range = selection.getRangeAt(0);
         const rect = range.getBoundingClientRect();
 
+        // Find the block that contains the selection
+        let blockId = null;
+        let node = range.startContainer;
+        while (node && node !== document.body) {
+          if (node.nodeType === 1) { // Element node
+            const blockWrapper = node.closest('[data-block-id]');
+            if (blockWrapper) {
+              blockId = blockWrapper.getAttribute('data-block-id');
+              break;
+            }
+          }
+          node = node.parentNode;
+        }
+
         setAiFloatingPosition({
           top: rect.bottom + window.scrollY + 8,
           left: rect.left + rect.width / 2 + window.scrollX
         });
         setSelectedTextContent(selectedText);
+        setSelectedBlockId(blockId);
         setShowAIFloatingButton(true);
       } else {
         setShowAIFloatingButton(false);
         setSelectedTextContent('');
+        setSelectedBlockId(null);
       }
     };
 
@@ -1924,46 +1941,78 @@ const NotesRedesign = ({ sharedMode = false }) => {
       if (!res.ok) throw new Error("AI assist failed");
 
       const data = await res.json();
-      console.log('🔥 FULL AI Response:', JSON.stringify(data, null, 2));
-
       const resultText = data.result;
-      console.log('🔥 Result text:', resultText);
-      console.log('🔥 Result length:', resultText?.length);
       
       if (!resultText || resultText.trim() === '') {
-        console.error('❌ AI returned empty response');
         showPopup("Error", "AI returned empty response");
         setGeneratingAI(false);
         return;
       }
       
-      // Create a single block with all the content
-      const newBlock = {
-        id: Date.now() + Math.random(),
-        type: 'paragraph',
-        content: resultText.trim(),
-        properties: {}
-      };
+      let updatedBlocks;
       
-      console.log('🔥 New block created:', newBlock);
-      console.log('🔥 Current blocks before:', noteBlocks.length);
+      // Find the selected block
+      const blockIndex = noteBlocks.findIndex(b => String(b.id) === String(selectedBlockId));
       
-      // Add the new block at the end
-      const updatedBlocks = [...noteBlocks, newBlock];
-      console.log('🔥 Updated blocks after:', updatedBlocks.length);
+      if (blockIndex !== -1 && selectedBlockId) {
+        // We have a selected block - modify it based on action
+        const selectedBlock = noteBlocks[blockIndex];
+        
+        if (aiAssistAction === 'continue') {
+          // Continue: append the result to the existing content
+          updatedBlocks = noteBlocks.map((block, idx) => {
+            if (idx === blockIndex) {
+              return {
+                ...block,
+                content: block.content + ' ' + resultText.trim()
+              };
+            }
+            return block;
+          });
+        } else if (aiAssistAction === 'generate') {
+          // Generate: add new block at the end
+          const newBlock = {
+            id: Date.now() + Math.random(),
+            type: 'paragraph',
+            content: resultText.trim(),
+            properties: {}
+          };
+          updatedBlocks = [...noteBlocks, newBlock];
+        } else {
+          // Improve, simplify, expand, summarize, fix_grammar, translate: replace the block content
+          updatedBlocks = noteBlocks.map((block, idx) => {
+            if (idx === blockIndex) {
+              return {
+                ...block,
+                content: resultText.trim()
+              };
+            }
+            return block;
+          });
+        }
+      } else {
+        // No selected block - add new block at the end
+        const newBlock = {
+          id: Date.now() + Math.random(),
+          type: 'paragraph',
+          content: resultText.trim(),
+          properties: {}
+        };
+        updatedBlocks = [...noteBlocks, newBlock];
+      }
       
-      // Directly update state
+      // Update state
       setNoteBlocks(updatedBlocks);
       
-      // Also update via handleBlocksChange to trigger save
+      // Trigger save
       setTimeout(() => {
         handleBlocksChange(updatedBlocks);
-        console.log('🔥 handleBlocksChange called');
       }, 100);
       
       setShowAIAssistant(false);
       setSelectedText("");
-      showPopup("Success", `AI ${aiAssistAction} completed - ${resultText.length} characters generated`);
+      setSelectedBlockId(null);
+      showPopup("Success", `AI ${aiAssistAction} completed`);
     } catch (error) {
       console.error("AI assistant error:", error);
       showPopup("Error", "Failed to process text");
@@ -2695,18 +2744,17 @@ const NotesRedesign = ({ sharedMode = false }) => {
               </div>
             </div>
 
-            {/* Floating expand button when collapsed */}
-            {titleSectionCollapsed && (
-              <button
-                className="floating-expand-btn"
-                onClick={() => setTitleSectionCollapsed(false)}
-                title="Show navigation"
-              >
-                <ChevronDown size={20} />
-              </button>
-            )}
-
-            <div className="block-editor-wrapper">
+            <div className="block-editor-wrapper" style={{ position: 'relative' }}>
+              {/* Floating expand button when collapsed - inside block editor */}
+              {titleSectionCollapsed && (
+                <button
+                  className={`floating-expand-btn ${editorDarkMode ? 'dark' : 'light'}`}
+                  onClick={() => setTitleSectionCollapsed(false)}
+                  title="Show navigation"
+                >
+                  <ChevronDown size={20} />
+                </button>
+              )}
               {viewMode === "edit" && (!isSharedContent || canEdit) && (
                 <div className="formatting-toolbar-wrapper">
                   <div className="formatting-toolbar">
@@ -2977,7 +3025,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                       setShowAIAssistant(true);
                       setShowAIFloatingButton(false);
                     }}
-                    className="ai-assist-btn"
+                    className={`ai-assist-btn ${editorDarkMode ? 'dark' : 'light'}`}
                   >
                     <Sparkles size={16} />
                     AI Assist

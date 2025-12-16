@@ -352,12 +352,38 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-title::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--nr-accent);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-title:hover::after {
+  width: 100%;
+}
+
+.nav-title:hover {
+  transform: translateY(-1px);
+}
+
+.nav-title:hover span:first-child {
+  color: color-mix(in srgb, var(--nr-accent) 80%, white);
 }
 
 .nav-title span:first-child {
   font-size: 20px;
   font-weight: 700;
-  color: var(--nr-text-primary);
+  color: var(--nr-accent);
+  transition: color 0.2s ease;
 }
 
 [data-theme-mode="dark"] .nav-title span:first-child {
@@ -567,28 +593,46 @@
 
 /* Floating Expand Button */
 .floating-expand-btn {
-  position: fixed;
-  top: 20px;
+  position: absolute;
+  top: 10px;
   left: 50%;
   transform: translateX(-50%);
-  background: linear-gradient(135deg, var(--nr-accent), var(--nr-accent-dark));
   border: none;
-  border-radius: 50%;
+  border-radius: 0;
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--nr-bg-primary);
   transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.3);
   z-index: 1000;
 }
 
-.floating-expand-btn:hover {
-  transform: translateX(-50%) scale(1.1);
-  box-shadow: 0 6px 16px rgba(215, 179, 140, 0.4);
+/* Light mode - dark button */
+.floating-expand-btn.light {
+  background: #000000;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.floating-expand-btn.light:hover {
+  background: #222222;
+  transform: translateX(-50%) scale(1.05);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+/* Dark mode - white button */
+.floating-expand-btn.dark {
+  background: #ffffff;
+  color: #000000;
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+}
+
+.floating-expand-btn.dark:hover {
+  background: #f0f0f0;
+  transform: translateX(-50%) scale(1.05);
+  box-shadow: 0 6px 16px rgba(255, 255, 255, 0.3);
 }
 
 /* ==================== FORMATTING TOOLBAR ==================== */
@@ -834,22 +878,40 @@
 .ai-assist-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: linear-gradient(135deg, var(--nr-accent), var(--nr-accent-dark));
-  color: var(--nr-bg-primary);
+  gap: 8px;
+  padding: 10px 18px;
   border: none;
-  border-radius: 8px;
+  border-radius: 0;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.3);
+  transition: all 0.2s ease;
 }
 
-.ai-assist-btn:hover {
+/* Light mode - black background, white text */
+.ai-assist-btn.light {
+  background: #000000;
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.ai-assist-btn.light:hover {
+  background: #222222;
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(215, 179, 140, 0.4);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* Dark mode - white background, black text */
+.ai-assist-btn.dark {
+  background: #ffffff;
+  color: #000000;
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2);
+}
+
+.ai-assist-btn.dark:hover {
+  background: #f0f0f0;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
 }
 
 /* ==================== QUILL EDITOR ==================== */
@@ -2144,14 +2206,30 @@
 }
 
 /* ==================== SELECTION STYLING ==================== */
+/* Light mode selection - dark highlight */
 .quill-editor-enhanced .ql-editor ::selection,
-.block-editor-container ::selection {
-  background: var(--selection-bg);
+.block-editor-container ::selection,
+.block-editor-container:not(.dark-mode) ::selection {
+  background: rgba(0, 0, 0, 0.2);
+  color: inherit;
 }
 
 .quill-editor-enhanced .ql-editor ::-moz-selection,
-.block-editor-container ::-moz-selection {
-  background: var(--selection-bg);
+.block-editor-container ::-moz-selection,
+.block-editor-container:not(.dark-mode) ::-moz-selection {
+  background: rgba(0, 0, 0, 0.2);
+  color: inherit;
+}
+
+/* Dark mode selection - light highlight */
+.block-editor-container.dark-mode ::selection {
+  background: rgba(255, 255, 255, 0.3);
+  color: inherit;
+}
+
+.block-editor-container.dark-mode ::-moz-selection {
+  background: rgba(255, 255, 255, 0.3);
+  color: inherit;
 }
 
 /* ==================== AI BUTTON FLOATING ==================== */
@@ -3251,4 +3329,51 @@
 .block-editor-container.dark-mode .sbe-dropdown-menu::-webkit-scrollbar-thumb:hover,
 .block-editor.dark-mode .sbe-dropdown-menu::-webkit-scrollbar-thumb:hover {
   background: #ffffff !important;
+}
+
+/* ==================== SBE SLASH MENU - SOLID OPAQUE ==================== */
+.sbe-slash-menu {
+  position: fixed !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  z-index: 999999 !important;
+  border: 1px solid #ddd !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2) !important;
+  padding: 8px !important;
+  min-width: 320px !important;
+  max-height: 400px !important;
+  overflow-y: auto !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-radius: 0 !important;
+}
+
+/* Dark mode slash menu */
+.sbe-slash-menu[style*="background: rgb(26, 26, 26)"],
+.sbe-slash-menu[style*="background:#1a1a1a"] {
+  background: #1a1a1a !important;
+  background-color: #1a1a1a !important;
+  border-color: #444 !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.7) !important;
+}
+
+/* Slash menu scrollbar - light mode (black) */
+.sbe-slash-menu::-webkit-scrollbar {
+  width: 8px !important;
+}
+
+.sbe-slash-menu::-webkit-scrollbar-track {
+  background: #f0f0f0 !important;
+}
+
+.sbe-slash-menu::-webkit-scrollbar-thumb {
+  background: #333333 !important;
+  border-radius: 0 !important;
+}
+
+.sbe-slash-menu::-webkit-scrollbar-thumb:hover {
+  background: #000000 !important;
 }

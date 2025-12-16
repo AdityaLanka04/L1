@@ -291,9 +291,19 @@
   caret-color: #ffffff !important;
 }
 
+/* Light mode selection - dark highlight */
 .block-content::selection,
 .block-content *::selection {
-  background: rgba(0, 0, 0, 0.15) !important;
+  background: rgba(0, 0, 0, 0.2) !important;
+  color: inherit !important;
+}
+
+/* Dark mode selection - light highlight */
+.block-editor.dark-mode .block-content::selection,
+.block-editor.dark-mode .block-content *::selection,
+.block-wrapper.dark-mode .block-content::selection,
+.block-wrapper.dark-mode .block-content *::selection {
+  background: rgba(255, 255, 255, 0.35) !important;
   color: inherit !important;
 }
 

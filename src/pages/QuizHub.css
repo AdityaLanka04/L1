@@ -25,73 +25,132 @@
 
 .quiz-hub-page {
   min-height: 100vh;
+  max-height: 100vh;
+  height: 100vh;
   background: linear-gradient(135deg, var(--bg-bottom) 0%, var(--bg-top) 100%);
   font-family: 'Inter', sans-serif;
   color: var(--text-primary);
-  overflow: hidden;
+  overflow: hidden !important;
+}
+
+/* Hide scrollbar for QuizHub */
+.quiz-hub-page::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.quiz-hub-page {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }
 
 .quiz-hub-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 40px;
-  border-bottom: 1px solid var(--border);
-  background: var(--panel);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  padding: 20px 40px !important;
+  border-bottom: 1px solid var(--border) !important;
+  background: var(--panel) !important;
+  width: 100% !important;
 }
 
-.back-btn {
+.quiz-hub-header .header-left {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 16px !important;
+  flex: 0 0 auto !important;
+  flex-wrap: nowrap !important;
+  margin-right: auto !important;
+}
+
+.quiz-hub-header .header-actions {
+  display: flex !important;
+  gap: 12px !important;
+  align-items: center !important;
+  margin-left: auto !important;
+}
+
+.quiz-hub-header .page-title {
+  font-size: 32px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.5px !important;
+  color: var(--accent) !important;
+  text-transform: lowercase !important;
+  font-family: 'Inter', sans-serif !important;
+  margin: 0 !important;
+  text-align: left !important;
+  line-height: 1 !important;
+  position: relative !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.quiz-hub-header .page-subtitle {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: var(--text-secondary) !important;
+  text-transform: lowercase !important;
+  letter-spacing: 0.3px !important;
+  white-space: nowrap !important;
+}
+
+.quiz-hub-header .page-title::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: -4px !important;
+  left: 0 !important;
+  width: 0 !important;
+  height: 2px !important;
+  background: var(--accent) !important;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.quiz-hub-header .page-title:hover {
+  color: color-mix(in srgb, var(--accent) 80%, white) !important;
+  transform: translateY(-1px) !important;
+}
+
+.quiz-hub-header .page-title:hover::after {
+  width: 100% !important;
+}
+
+.quiz-hub-header .page-subtitle {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: var(--text-secondary) !important;
+  text-transform: lowercase !important;
+  letter-spacing: 0.3px !important;
+}
+
+.quiz-hub-header .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.quiz-hub-header .back-to-dashboard {
+  background: linear-gradient(135deg, var(--panel) 0%, color-mix(in srgb, var(--panel) 90%, var(--accent)) 100%);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: lowercase;
+  letter-spacing: 0.5px;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 20px;
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s;
-  border-radius: 6px;
-  font-family: 'Inter', sans-serif;
 }
 
-.back-btn:hover {
+.quiz-hub-header .back-to-dashboard:hover {
   border-color: var(--accent);
   color: var(--accent);
-}
-
-.quiz-hub-logo {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--accent);
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.quiz-hub-logo::after {
-  content: '';
-  position: absolute;
-  bottom: -4px;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background: var(--accent);
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.quiz-hub-logo:hover {
-  color: color-mix(in srgb, var(--accent) 80%, white);
-}
-
-.quiz-hub-logo:hover::after {
-  width: 100%;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.2);
 }
 
 .quiz-hub-container {

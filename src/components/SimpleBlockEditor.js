@@ -473,6 +473,12 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     const beforeLastChar = content[content.length - 2];
     
     if (lastChar === '/' && (!beforeLastChar || beforeLastChar === ' ' || content.length === 1)) {
+      // Get position for slash menu
+      const el = blockRefs.current[blockId];
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        setSlashMenuPosition({ top: rect.bottom + 4, left: rect.left });
+      }
       setShowSlashMenu(true);
       setActiveBlockId(blockId);
       setSelectedMenuIndex(0);
@@ -692,7 +698,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
   // Close slash menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (slashMenuRef.current && !slashMenuRef.current.contains(e.target)) {
+      if (slashMenuRef.current && !slashMenuRef.current.contains(e.target) && !e.target.closest('.sbe-slash-menu')) {
         setShowSlashMenu(false);
       }
     };
@@ -1889,17 +1895,25 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
               <div className="drop-indicator drop-indicator-below" />
             )}
             
-            {/* Slash Menu - render inside the active block */}
-            {showSlashMenu && activeBlockId === block.id && (
+            {/* Slash Menu - render as portal */}
+            {showSlashMenu && activeBlockId === block.id && createPortal(
               <div
                 ref={slashMenuRef}
-                className="slash-menu"
+                className="sbe-slash-menu"
                 style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: '0',
-                  marginTop: '4px',
-                  zIndex: 1000
+                  position: 'fixed',
+                  top: slashMenuPosition.top,
+                  left: slashMenuPosition.left,
+                  background: darkMode ? '#1a1a1a' : '#ffffff',
+                  backgroundColor: darkMode ? '#1a1a1a' : '#ffffff',
+                  border: darkMode ? '1px solid #444' : '1px solid #ddd',
+                  boxShadow: darkMode ? '0 8px 32px rgba(0,0,0,0.7)' : '0 8px 32px rgba(0,0,0,0.2)',
+                  borderRadius: '0px',
+                  padding: '8px',
+                  minWidth: '320px',
+                  maxHeight: '400px',
+                  overflowY: 'auto',
+                  zIndex: 999999
                 }}
               >
           {BLOCK_TYPES.map((blockType, index) => {
@@ -1907,7 +1921,15 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
             return (
               <div
                 key={blockType.type}
-                className={`slash-menu-item ${index === selectedMenuIndex ? 'selected' : ''}`}
+                style={{
+                  display: 'flex',
+                  gap: '12px',
+                  padding: '10px 12px',
+                  cursor: 'pointer',
+                  alignItems: 'flex-start',
+                  background: index === selectedMenuIndex ? (darkMode ? '#333' : '#f0f0f0') : (darkMode ? '#1a1a1a' : '#ffffff'),
+                  color: darkMode ? '#fff' : '#333'
+                }}
                 onClick={() => {
                   const el = blockRefs.current[activeBlockId];
                   if (el) {
@@ -1940,15 +1962,16 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                 }}
                 onMouseEnter={() => setSelectedMenuIndex(index)}
               >
-                <Icon size={18} />
-                <div className="slash-menu-item-content">
-                  <div className="slash-menu-item-label">{blockType.label}</div>
-                  <div className="slash-menu-item-description">{blockType.description}</div>
+                <Icon size={18} style={{ color: darkMode ? '#888' : '#666', flexShrink: 0, marginTop: '2px' }} />
+                <div>
+                  <div style={{ fontWeight: 500, fontSize: '14px', color: darkMode ? '#fff' : '#333' }}>{blockType.label}</div>
+                  <div style={{ fontSize: '12px', color: darkMode ? '#888' : '#666', marginTop: '2px' }}>{blockType.description}</div>
                 </div>
               </div>
             );
           })}
-              </div>
+              </div>,
+              document.body
             )}
           </div>
         );
