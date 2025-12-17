@@ -203,7 +203,7 @@
 }
 
 .ac-logo:hover .ac-logo-text {
-  color: color-mix(in srgb, var(--ac-accent) 80%, white);
+  /* Keep original color, only show underline on hover */
 }
 
 .ac-logo:hover .ac-logo-text::after {
@@ -1902,7 +1902,7 @@ sub {
 }
 
 .ac-logo:hover::before {
-  opacity: 0.1;
+  opacity: 0;
 }
 
 .ac-logo-text {

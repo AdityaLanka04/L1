@@ -584,13 +584,18 @@
 
 /* ==================== DETAIL PANEL ==================== */
 .cw-detail-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
   width: 360px;
+  height: 100vh;
   background: var(--cw-bg-secondary);
   border-left: 1px solid var(--cw-border-subtle);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   overflow: hidden;
+  z-index: 1000;
 }
 
 .cw-detail-panel.collapsed {
@@ -641,7 +646,9 @@
 .cw-detail-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 20px;
+  max-height: calc(100vh - 80px);
 }
 
 .cw-detail-section {
@@ -673,6 +680,11 @@
   background: var(--cw-bg-tertiary);
   padding: 16px;
   text-align: center;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .cw-detail-stat-value {
@@ -680,12 +692,14 @@
   font-weight: 700;
   color: var(--cw-accent);
   margin-bottom: 4px;
+  display: block;
 }
 
 .cw-detail-stat-label {
   font-size: 11px;
   color: var(--cw-text-muted);
   text-transform: uppercase;
+  display: block;
 }
 
 .cw-detail-actions {
@@ -802,6 +816,10 @@
   align-items: center;
   justify-content: center;
   height: 100%;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
   gap: 16px;
 }
 

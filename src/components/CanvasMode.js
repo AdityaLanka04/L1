@@ -1024,7 +1024,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
       {/* Toolbar */}
       <div className="canvas-toolbar">
         <div className="toolbar-section">
-          <button onClick={onClose} className="tool-btn back-btn" title="Back to Notes">
+          <button onClick={onClose} className="tool-btn back-btn">
             <ArrowLeft size={20} />
             <span>Back</span>
           </button>
@@ -1034,21 +1034,18 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           <button 
             onClick={() => setTool('select')} 
             className={`tool-btn ${tool === 'select' ? 'active' : ''}`}
-            title="Select (V)"
           >
             <MousePointer size={20} />
           </button>
           <button 
             onClick={() => setTool('draw')} 
             className={`tool-btn ${tool === 'draw' ? 'active' : ''}`}
-            title="Draw (D)"
           >
             <Pen size={20} />
           </button>
           <button 
             onClick={() => setTool('eraser')} 
             className={`tool-btn ${tool === 'eraser' ? 'active' : ''}`}
-            title="Eraser (E)"
           >
             <Eraser size={20} />
           </button>
@@ -1058,49 +1055,42 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           <button 
             onClick={() => setTool('rectangle')} 
             className={`tool-btn ${tool === 'rectangle' ? 'active' : ''}`}
-            title="Rectangle (R)"
           >
             <Square size={20} />
           </button>
           <button 
             onClick={() => setTool('circle')} 
             className={`tool-btn ${tool === 'circle' ? 'active' : ''}`}
-            title="Circle (C)"
           >
             <Circle size={20} />
           </button>
           <button 
             onClick={() => setTool('line')} 
             className={`tool-btn ${tool === 'line' ? 'active' : ''}`}
-            title="Line (L)"
           >
             <Minus size={20} />
           </button>
           <button 
             onClick={() => setTool('text')} 
             className={`tool-btn ${tool === 'text' ? 'active' : ''}`}
-            title="Text (T)"
           >
             <Type size={20} />
           </button>
           <button 
             onClick={() => setTool('sticky')} 
             className={`tool-btn ${tool === 'sticky' ? 'active' : ''}`}
-            title="Sticky Note (S)"
           >
             <StickyNote size={20} />
           </button>
           <button 
             onClick={() => setTool('arrow')} 
             className={`tool-btn ${tool === 'arrow' ? 'active' : ''}`}
-            title="Arrow/Connector (A)"
           >
             <ArrowRight size={20} />
           </button>
           <button 
             onClick={() => setShowTableCreator(true)} 
             className="tool-btn"
-            title="Insert Table"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -1113,7 +1103,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           <button 
             onClick={() => fileInputRef.current?.click()} 
             className="tool-btn"
-            title="Upload Image (I)"
           >
             <ImageIcon size={20} />
           </button>
@@ -1148,44 +1137,44 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         </div>
 
         <div className="toolbar-section">
-          <button onClick={undo} disabled={historyIndex === 0} className="tool-btn" title="Undo (Ctrl+Z)">
+          <button onClick={undo} disabled={historyIndex === 0} className="tool-btn">
             <Undo size={20} />
           </button>
-          <button onClick={redo} disabled={historyIndex === history.length - 1} className="tool-btn" title="Redo (Ctrl+Y)">
+          <button onClick={redo} disabled={historyIndex === history.length - 1} className="tool-btn">
             <Redo size={20} />
           </button>
-          <button onClick={deleteSelected} disabled={!selectedElement} className="tool-btn" title="Delete (Del)">
+          <button onClick={deleteSelected} disabled={!selectedElement} className="tool-btn">
             <Trash2 size={20} />
           </button>
-          <button onClick={clearCanvas} className="tool-btn" title="Clear All">
+          <button onClick={clearCanvas} className="tool-btn">
             <X size={20} />
           </button>
         </div>
 
         <div className="toolbar-section">
-          <button onClick={() => setZoom(Math.min(zoom + 0.1, 10))} className="tool-btn" title="Zoom In (+)">
+          <button onClick={() => setZoom(Math.min(zoom + 0.1, 10))} className="tool-btn">
             <ZoomIn size={20} />
           </button>
           <span className="zoom-level">{Math.round(zoom * 100)}%</span>
-          <button onClick={() => setZoom(Math.max(zoom - 0.1, 0.1))} className="tool-btn" title="Zoom Out (-)">
+          <button onClick={() => setZoom(Math.max(zoom - 0.1, 0.1))} className="tool-btn">
             <ZoomOut size={20} />
           </button>
         </div>
 
         <div className="toolbar-section">
-          <button onClick={copySelected} className="tool-btn" title="Copy (Ctrl+C)" disabled={!selectedElement && selectedElements.length === 0}>
+          <button onClick={copySelected} className="tool-btn" disabled={!selectedElement && selectedElements.length === 0}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
             </svg>
           </button>
-          <button onClick={pasteElements} className="tool-btn" title="Paste (Ctrl+V)" disabled={copiedElements.length === 0}>
+          <button onClick={pasteElements} className="tool-btn" disabled={copiedElements.length === 0}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
               <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
             </svg>
           </button>
-          <button onClick={duplicateSelected} className="tool-btn" title="Duplicate (Ctrl+D)" disabled={!selectedElement && selectedElements.length === 0}>
+          <button onClick={duplicateSelected} className="tool-btn" disabled={!selectedElement && selectedElements.length === 0}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -1195,13 +1184,13 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         </div>
 
         <div className="toolbar-section">
-          <button onClick={() => setShowMinimap(!showMinimap)} className={`tool-btn ${showMinimap ? 'active' : ''}`} title="Toggle Minimap (M)">
+          <button onClick={() => setShowMinimap(!showMinimap)} className={`tool-btn ${showMinimap ? 'active' : ''}`}>
             <Map size={20} />
           </button>
-          <button onClick={() => setShowGrid(!showGrid)} className={`tool-btn ${showGrid ? 'active' : ''}`} title="Toggle Grid (G)">
+          <button onClick={() => setShowGrid(!showGrid)} className={`tool-btn ${showGrid ? 'active' : ''}`}>
             <Grid size={20} />
           </button>
-          <button onClick={() => setShowRuler(!showRuler)} className={`tool-btn ${showRuler ? 'active' : ''}`} title="Toggle Measurement Rulers">
+          <button onClick={() => setShowRuler(!showRuler)} className={`tool-btn ${showRuler ? 'active' : ''}`}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="2" y="6" width="20" height="12" rx="2"/>
               <line x1="6" y1="6" x2="6" y2="10"/>
@@ -1215,7 +1204,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
             onChange={(e) => setBackgroundPattern(e.target.value)}
             className="tool-btn"
             style={{ width: 'auto', padding: '8px' }}
-            title="Background Pattern"
           >
             <option value="none">No Pattern</option>
             <option value="dots">Dots</option>
@@ -1231,15 +1219,13 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                 setRulerTool({ x: 200, y: 200, angle: 0, length: 400 });
               }
             }} 
-            className={`tool-btn ${rulerTool ? 'active' : ''}`} 
-            title="Draggable Ruler Tool"
+            className={`tool-btn ${rulerTool ? 'active' : ''}`}
           >
             <Ruler size={20} />
           </button>
           <button 
             onClick={() => setSnapToGrid(!snapToGrid)} 
-            className={`tool-btn ${snapToGrid ? 'active' : ''}`} 
-            title="Snap to Grid"
+            className={`tool-btn ${snapToGrid ? 'active' : ''}`}
             disabled={!showGrid}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1261,11 +1247,11 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
               <span>Saved</span>
             </span>
           ) : null}
-          <button onClick={() => handleSave(true)} className="tool-btn save-btn" title="Save and Close">
+          <button onClick={() => handleSave(true)} className="tool-btn save-btn">
             <Save size={20} />
             <span>Save</span>
           </button>
-          <button onClick={exportAsImage} className="tool-btn" title="Export as Image">
+          <button onClick={exportAsImage} className="tool-btn">
             <Download size={20} />
           </button>
         </div>
@@ -1286,7 +1272,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                   boxShadow: tool === 'sticky' ? '0 2px 4px rgba(0,0,0,0.2)' : 'none'
                 }}
                 onClick={() => setColor(c)}
-                title={c}
               />
             ))}
           </div>
@@ -1299,7 +1284,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                 key={w}
                 className={`stroke-btn ${strokeWidth === w ? 'active' : ''}`}
                 onClick={() => setStrokeWidth(w)}
-                title={`${w}px`}
               >
                 <div style={{ width: '100%', height: `${w}px`, background: 'var(--accent)' }} />
               </button>
@@ -1318,7 +1302,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                   position: 'relative'
                 }}
                 onClick={() => setFillColor('transparent')}
-                title="No Fill"
               >
                 <div style={{
                   position: 'absolute',
@@ -1339,7 +1322,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                     border: c === '#FFFFFF' ? '2px solid #666' : 'none'
                   }}
                   onClick={() => setFillColor(c)}
-                  title={c}
                 />
               ))}
             </div>
@@ -1377,7 +1359,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
             value={opacity}
             onChange={(e) => setOpacity(parseFloat(e.target.value))}
             style={{ width: '100px' }}
-            title={`${Math.round(opacity * 100)}%`}
           />
           <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: '700', minWidth: '40px' }}>
             {Math.round(opacity * 100)}%
@@ -2203,7 +2184,6 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
       <button 
         className="floating-help-btn" 
         onClick={() => setShowShortcuts(true)}
-        title="Keyboard Shortcuts (?)"
       >
         <Command size={20} />
       </button>

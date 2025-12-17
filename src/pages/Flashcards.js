@@ -1014,7 +1014,6 @@ const Flashcards = () => {
                             <button 
                               className="fc-delete-btn-thumb" 
                               onClick={() => deleteFlashcardSet(set.id)} 
-                              title="Delete"
                               style={{ 
                                 background: 'rgba(0, 0, 0, 0.3)',
                                 borderColor: 'rgba(0, 0, 0, 0.5)',

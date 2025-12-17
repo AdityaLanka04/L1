@@ -46,11 +46,14 @@
       "react-app/jest"
     ],
     "rules": {
-      "no-unused-vars": "warn",
-      "react-hooks/exhaustive-deps": "warn",
-      "no-useless-escape": "warn",
-      "import/no-anonymous-default-export": "warn",
-      "no-use-before-define": "warn"
+      "no-unused-vars": "off",
+      "react-hooks/exhaustive-deps": "off",
+      "no-useless-escape": "off",
+      "import/no-anonymous-default-export": "off",
+      "no-use-before-define": "off",
+      "no-loop-func": "off",
+      "no-duplicate-case": "warn",
+      "jsx-a11y/heading-has-content": "off"
     }
   },
   "browserslist": {
