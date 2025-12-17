@@ -109,6 +109,7 @@ const AIChat = ({ sharedMode = false }) => {
   const [copiedCode, setCopiedCode] = useState(null);
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const greetings = [
     "Welcome back! How can I help you today?",
@@ -1387,8 +1388,7 @@ const AIChat = ({ sharedMode = false }) => {
         <aside className={`ac-sidebar ${!sidebarOpen ? 'collapsed' : ''}`}>
           <div className="ac-sidebar-header">
             <div className="ac-logo" onClick={handleLogoClick}>
-              <div className="ac-logo-icon">{Icons.chat}</div>
-              <span className="ac-logo-text">Cerbyl</span>
+              <span className="ac-logo-text">cerbyl</span>
             </div>
             <button 
               className="ac-collapse-btn"
@@ -1407,6 +1407,23 @@ const AIChat = ({ sharedMode = false }) => {
             {Icons.plus}
             <span>New Chat</span>
           </button>
+
+          {/* Search Input */}
+          <div className="ac-search-container">
+            <div className="ac-search-wrapper">
+              <svg className="ac-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+              </svg>
+              <input 
+                type="text" 
+                className="ac-search-input" 
+                placeholder="Search chats..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
 
           <nav className="ac-sidebar-nav">
             {/* Folders Section */}
@@ -1490,6 +1507,10 @@ const AIChat = ({ sharedMode = false }) => {
                 ) : (
                   chatSessions
                     .filter(session => selectedFolder ? session.folder_id === selectedFolder : true)
+                    .filter(session => 
+                      searchQuery.trim() === '' || 
+                      session.title.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
                     .map(session => (
                       <div
                         key={session.id}
@@ -1533,40 +1554,35 @@ const AIChat = ({ sharedMode = false }) => {
           </nav>
 
           <div className="ac-sidebar-footer">
-            <button className="ac-nav-item" onClick={goToDashboard}>
+            <button className="ac-nav-item ac-nav-item-accent" onClick={goToDashboard}>
               <span className="ac-nav-icon">{Icons.home}</span>
               <span className="ac-nav-text">Dashboard</span>
             </button>
-            <button className="ac-nav-item" onClick={handleLogout}>
+            <button className="ac-nav-item ac-nav-item-accent" onClick={handleLogout}>
               <span className="ac-nav-icon">{Icons.logout}</span>
               <span className="ac-nav-text">Logout</span>
             </button>
           </div>
         </aside>
 
-        {/* Show Sidebar Button - appears when sidebar is collapsed */}
-        {!sidebarOpen && (
-          <button 
-            className="ac-show-sidebar-btn" 
-            onClick={() => setSidebarOpen(true)}
-            title="Show Sidebar"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-              <line x1="3" y1="12" x2="21" y2="12"/>
-              <line x1="3" y1="6" x2="21" y2="6"/>
-              <line x1="3" y1="18" x2="21" y2="18"/>
-            </svg>
-          </button>
-        )}
-
         {/* Main Content */}
         <main className="ac-main">
           {/* Header */}
           <header className="ac-header">
-            <div className="ac-header-left">
-              <h1 className="ac-header-title">AI Chat</h1>
-              <p className="ac-header-subtitle">Your personal AI tutor</p>
-            </div>
+            {/* Show Sidebar Button - appears when sidebar is collapsed */}
+            {!sidebarOpen && (
+              <button 
+                className="ac-show-sidebar-btn" 
+                onClick={() => setSidebarOpen(true)}
+                title="Show Sidebar"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                  <line x1="3" y1="12" x2="21" y2="12"/>
+                  <line x1="3" y1="6" x2="21" y2="6"/>
+                  <line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+              </button>
+            )}
             <div className="ac-header-actions">
               {userProfile?.profilePicture && (
                 <img 
@@ -1586,7 +1602,6 @@ const AIChat = ({ sharedMode = false }) => {
           >
             {messages.length === 0 ? (
               <div className="ac-welcome">
-                <div className="ac-welcome-icon">{Icons.chat}</div>
                 <h2>{greeting}</h2>
                 <p>I'm your personal AI tutor. Ask me anything about any subject, and I'll help you learn with detailed explanations and examples.</p>
               </div>

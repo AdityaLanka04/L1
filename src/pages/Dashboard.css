@@ -1611,23 +1611,73 @@ body {
   color: var(--text-secondary);
 }
 .dashboard-page .analytics-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  background: var(--accent);
-  color: var(--bg-bottom);
-  border: none;
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  background: var(--accent) !important;
+  color: var(--bg-bottom) !important;
+  border: none !important;
+  border-bottom: none !important;
+  padding: 6px 14px !important;
+  border-radius: 0 !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  text-decoration: none !important;
+  text-decoration-line: none !important;
+  text-underline-offset: 0 !important;
+  box-shadow: none !important;
 }
+
+.dashboard-page .analytics-btn span {
+  text-decoration: none !important;
+  border-bottom: none !important;
+}
+
 .dashboard-page .analytics-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.3);
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.3) !important;
+  text-decoration: none !important;
+  border-bottom: none !important;
+}
+
+.dashboard-page .analytics-btn:focus,
+.dashboard-page .analytics-btn:active,
+.dashboard-page .analytics-btn:visited {
+  text-decoration: none !important;
+  border-bottom: none !important;
+}
+
+/* Light mode - white text on accent background */
+[data-theme-mode="light"] .dashboard-page .analytics-btn {
+  color: #ffffff !important;
+  background: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .dashboard-page .analytics-btn span {
+  color: #ffffff !important;
+}
+
+[data-theme-mode="light"] .dashboard-page .analytics-btn svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+/* Dark mode - charcoal text on gold accent background */
+[data-theme-mode="dark"] .dashboard-page .analytics-btn {
+  color: #1a1a1a !important;
+  background: var(--accent) !important;
+}
+
+[data-theme-mode="dark"] .dashboard-page .analytics-btn span {
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="dark"] .dashboard-page .analytics-btn svg {
+  color: #1a1a1a !important;
+  stroke: #1a1a1a !important;
 }
 .dashboard-page .widget-footer {
   margin-top: auto;
