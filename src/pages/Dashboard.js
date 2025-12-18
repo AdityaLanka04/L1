@@ -979,20 +979,21 @@ const Dashboard = () => {
   const loadUserStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/get_enhanced_user_stats?user_id=${userName}`, {
+      // Use the same endpoint as Games page for consistency
+      const response = await fetch(`${API_URL}/get_gamification_stats?user_id=${userName}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
-        const enhancedStats = await response.json();
+        const gamificationStats = await response.json();
         setStats({
-          streak: enhancedStats.streak || 0,
-          totalQuestions: enhancedStats.totalQuestions || 0,
-          minutes: Math.round((enhancedStats.hours || 0) * 60) || 0,
-          totalFlashcards: enhancedStats.totalFlashcards || 0,
-          totalNotes: enhancedStats.totalNotes || 0,
-          totalChatSessions: enhancedStats.totalChatSessions || 0
+          streak: gamificationStats.current_streak || 0,
+          totalQuestions: gamificationStats.total_questions_answered || 0,
+          minutes: gamificationStats.total_study_minutes || 0,
+          totalFlashcards: gamificationStats.total_flashcards_created || 0,
+          totalNotes: gamificationStats.total_notes_created || 0,
+          totalChatSessions: gamificationStats.total_ai_chats || 0
         });
-        setTotalTimeToday(enhancedStats.total_time_today || 0);
+        setTotalTimeToday(0); // This endpoint doesn't provide today's time
       } else {
         setStats({ streak: 0, totalQuestions: 0, minutes: 0, totalFlashcards: 0, totalNotes: 0, totalChatSessions: 0 });
       }

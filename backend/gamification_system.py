@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 import models
+from models import PointTransaction
 
 # ==================== POINT VALUES ====================
 POINT_VALUES = {
@@ -187,6 +188,24 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
     # Get or create stats
     stats = get_or_create_stats(db, user_id)
     check_and_reset_weekly_stats(stats)
+    
+    # Prevent duplicate tracking within 2 seconds
+    from datetime import datetime, timedelta, timezone
+    recent_transaction = db.query(PointTransaction).filter(
+        PointTransaction.user_id == user_id,
+        PointTransaction.activity_type == activity_type,
+        PointTransaction.created_at >= datetime.now(timezone.utc) - timedelta(seconds=2)
+    ).first()
+    
+    if recent_transaction:
+        print(f"⚠️  Duplicate {activity_type} detected within 2 seconds - skipping")
+        return {
+            "points_earned": 0,
+            "total_points": stats.total_points,
+            "level": stats.level,
+            "experience": stats.experience,
+            "description": f"Duplicate {activity_type} (skipped)"
+        }
     
     # Calculate points
     points_earned = 0

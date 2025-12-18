@@ -357,15 +357,16 @@ const AIChat = ({ sharedMode = false }) => {
       if (response.ok) {
         const newChat = await response.json();
         const sessionData = {
-          id: newChat.session_id,
+          id: newChat.session_id || newChat.id,
           title: newChat.title,
           created_at: newChat.created_at,
-          updated_at: newChat.created_at
+          updated_at: newChat.updated_at || newChat.created_at
         };
         
         setChatSessions(prev => [sessionData, ...prev]);
         return sessionData.id;
       } else {
+        console.error('Failed to create chat session:', await response.text());
         return null;
       }
     } catch (error) {
@@ -375,35 +376,44 @@ const AIChat = ({ sharedMode = false }) => {
   };
 
   const cleanupEmptyNewChats = async () => {
+    // Only cleanup chats that are truly empty (no messages)
+    // Don't cleanup the active chat or any chat the user might be working on
     try {
       const token = localStorage.getItem('token');
-      const emptyNewChats = chatSessions.filter(
-        chat => chat.title === 'New Chat' && (!messages.length || chat.id !== activeChatId)
+      if (!token) return;
+      
+      // Only look at chats with title "New Chat" that are NOT the active chat
+      const potentialEmptyChats = chatSessions.filter(
+        chat => chat.title === 'New Chat' && chat.id !== activeChatId
       );
 
-      for (const chat of emptyNewChats) {
-        if (chat.id === activeChatId) {
-          continue;
-        }
-        
-        const chatMessages = await fetch(`${API_URL}/get_chat_messages?chat_id=${chat.id}`, {
-          method: 'GET',
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
+      for (const chat of potentialEmptyChats) {
+        try {
+          const response = await fetch(`${API_URL}/get_chat_messages?chat_id=${chat.id}`, {
+            method: 'GET',
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
 
-        if (chatMessages.ok) {
-          const msgs = await chatMessages.json();
-          if (!msgs || msgs.length === 0) {
-            await fetch(`${API_URL}/delete_chat_session/${chat.id}`, {
-              method: 'DELETE',
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            
-            setChatSessions(prev => prev.filter(c => c.id !== chat.id));
+          if (response.ok) {
+            const msgs = await response.json();
+            // Only delete if truly empty (no messages at all)
+            if (!msgs || msgs.length === 0) {
+              const deleteResponse = await fetch(`${API_URL}/delete_chat_session/${chat.id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              
+              if (deleteResponse.ok) {
+                setChatSessions(prev => prev.filter(c => c.id !== chat.id));
+              }
+            }
           }
+        } catch (innerError) {
+          // Don't let one failed cleanup stop the others
+          console.error(`Error checking chat ${chat.id}:`, innerError);
         }
       }
     } catch (error) {
@@ -421,7 +431,7 @@ const AIChat = ({ sharedMode = false }) => {
   };
 
   const selectChat = (chatSessionId) => {
-    cleanupEmptyNewChats();
+    // Don't cleanup when selecting a chat - only cleanup on explicit actions
     isLoadingRef.current = false;
     navigate(`/ai-chat/${chatSessionId}`);
   };
@@ -512,14 +522,25 @@ const AIChat = ({ sharedMode = false }) => {
       setMessages(prev => [...prev, aiMessage]);
       clearAllFiles();
       
+      // Check if the backend used a different chat_id (in case of validation issues)
+      const actualChatId = data.chat_id;
+      if (actualChatId && actualChatId !== currentChatId) {
+        console.log(`Chat ID changed from ${currentChatId} to ${actualChatId}`);
+        setActiveChatId(actualChatId);
+        navigate(`/ai-chat/${actualChatId}`, { replace: true });
+        currentChatId = actualChatId;
+      }
+      
       // Auto-rename chat if it's the first message (title is still "New Chat")
       const currentChat = chatSessions.find(chat => chat.id === currentChatId);
       if (currentChat && currentChat.title === 'New Chat' && messageText.trim()) {
-        autoRenameChat(currentChatId, messageText);
+        await autoRenameChat(currentChatId, messageText);
       }
       
-      // Track gamification activity
-      gamificationService.trackAIChat(userName);
+      // Reload chat sessions to ensure the list is up to date
+      loadChatSessions();
+      
+      // Points are now awarded by backend when saving message
 
     } catch (error) {
       console.error('Error in sendMessage:', error);

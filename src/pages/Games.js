@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Games.css';
 import { API_URL } from '../config';
@@ -31,6 +31,9 @@ const Games = () => {
   
   const [recentActivities, setRecentActivities] = useState([]);
   const [pointsToNextLevel, setPointsToNextLevel] = useState(100);
+  const [dailyChallenge, setDailyChallenge] = useState(null);
+  const [dailyChallengeProgress, setDailyChallengeProgress] = useState(0);
+  const [showDailyChallengeModal, setShowDailyChallengeModal] = useState(false);
 
   const bingoTasks = [
     { id: 1, title: 'Chat 50 Times', stat: 'ai_chats', target: 50, points: 50 },
@@ -73,7 +76,8 @@ const Games = () => {
         loadGamificationStats(username),
         loadBingoStats(username),
         loadWeeklyProgress(username),
-        loadRecentActivities(username)
+        loadRecentActivities(username),
+        loadDailyChallenge(username)
       ]);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -168,6 +172,45 @@ const Games = () => {
     }
   };
 
+  const loadDailyChallenge = async (username) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/get_daily_challenge?user_id=${username}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setDailyChallenge(data.challenge);
+        setDailyChallengeProgress(data.progress || 0);
+      }
+    } catch (error) {
+      console.error('Error loading daily challenge:', error);
+      // Generate a fallback challenge if backend doesn't support it yet
+      generateFallbackChallenge();
+    }
+  };
+
+  const generateFallbackChallenge = () => {
+    const challenges = [
+      { id: 1, title: 'Knowledge Sprint', description: 'Answer 15 questions correctly', target: 15, type: 'questions_answered', reward: 100, icon: 'target' },
+      { id: 2, title: 'Chat Master', description: 'Have 25 AI conversations', target: 25, type: 'ai_chats', reward: 75, icon: 'chat' },
+      { id: 3, title: 'Note Taker', description: 'Create 5 new notes', target: 5, type: 'notes_created', reward: 150, icon: 'note' },
+      { id: 4, title: 'Study Marathon', description: 'Study for 2 hours', target: 120, type: 'study_minutes', reward: 200, icon: 'clock' },
+      { id: 5, title: 'Quiz Champion', description: 'Complete 3 quizzes with 80%+', target: 3, type: 'quizzes_completed', reward: 175, icon: 'trophy' },
+      { id: 6, title: 'Flashcard Creator', description: 'Create 20 flashcards', target: 20, type: 'flashcards_created', reward: 125, icon: 'cards' },
+      { id: 7, title: 'Perfect Score', description: 'Get 100% on any quiz', target: 1, type: 'perfect_quizzes', reward: 250, icon: 'star' }
+    ];
+    
+    const today = new Date().getDate();
+    const challengeIndex = today % challenges.length;
+    const selectedChallenge = challenges[challengeIndex];
+    
+    setDailyChallenge(selectedChallenge);
+    const currentProgress = weeklyProgress[selectedChallenge.type] || 0;
+    setDailyChallengeProgress(currentProgress);
+  };
+
   const calculateExpForLevel = (level) => {
     // New level thresholds: 0, 100, 282, 500, 800, 1200, 1700, 2300, 3000...
     const thresholds = [0, 100, 282, 500, 800, 1200, 1700, 2300, 3000];
@@ -198,6 +241,70 @@ const Games = () => {
 
   const studyHoursCompleted = Math.floor(weeklyProgress.study_minutes / 60);
 
+  const getChallengeIcon = (iconType) => {
+    const icons = {
+      target: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10"/>
+          <circle cx="12" cy="12" r="6"/>
+          <circle cx="12" cy="12" r="2"/>
+        </svg>
+      ),
+      chat: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      ),
+      note: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+      ),
+      clock: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+      ),
+      trophy: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+          <path d="M4 22h16"/>
+          <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+          <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+          <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+        </svg>
+      ),
+      cards: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="2" y="6" width="20" height="12"/>
+          <path d="M12 6V2"/>
+          <path d="M12 18v4"/>
+        </svg>
+      ),
+      star: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+      )
+    };
+    return icons[iconType] || icons.target;
+  };
+
+  const getDailyChallengeProgress = () => {
+    if (!dailyChallenge) return 0;
+    const current = weeklyProgress[dailyChallenge.type] || 0;
+    return Math.min((current / dailyChallenge.target) * 100, 100);
+  };
+
+  const isDailyChallengeComplete = () => {
+    if (!dailyChallenge) return false;
+    const current = weeklyProgress[dailyChallenge.type] || 0;
+    return current >= dailyChallenge.target;
+  };
+
   if (loading) {
     return (
       <div className="games-page">
@@ -212,20 +319,21 @@ const Games = () => {
   return (
     <div className="games-page">
       <div className="games-header">
-        <div className="header-content">
-          <div className="header-left">
-            <h1>games & challenges</h1>
-            <p>track your learning progress</p>
-          </div>
-          <button className="back-btn" onClick={() => navigate('/dashboard')}>
-            dashboard
-          </button>
+        <button className="back-btn-corner" onClick={() => navigate('/social')}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+          </svg>
+        </button>
+        <div className="header-content-center">
+          <h1>games & challenges</h1>
+          <p>track your learning progress</p>
         </div>
       </div>
 
       <div className="games-container">
         <div className="stats-cards">
-          <div className="stat-card-main">
+          <div className="stat-card-main level-card">
+            <div className="stat-card-gradient"></div>
             <span className="stat-label">level</span>
             <span className="stat-value">{gamificationStats.level}</span>
             <div className="level-bar">
@@ -237,61 +345,55 @@ const Games = () => {
             <span className="stat-hint">{pointsToNextLevel} xp to next level</span>
           </div>
           
-          <div className="stat-card-main">
+          <div className="stat-card-main points-card">
+            <div className="stat-card-gradient"></div>
             <span className="stat-label">total points</span>
             <span className="stat-value">{gamificationStats.total_points.toLocaleString()}</span>
             <span className="stat-hint">all time</span>
           </div>
           
-          <div className="stat-card-main">
+          <div className="stat-card-main weekly-card">
+            <div className="stat-card-gradient"></div>
             <span className="stat-label">this week</span>
             <span className="stat-value">{gamificationStats.weekly_points}</span>
             <span className="stat-hint">weekly points</span>
           </div>
         </div>
 
-        <div className="section-card activity-overview">
-          <div className="section-header">
-            <h2>this week's activity</h2>
-          </div>
-          <div className="activity-stats-grid">
-            <div className="activity-stat-box">
-              <span className="activity-stat-label">ai chats</span>
-              <span className="activity-stat-value">{weeklyProgress.ai_chats}</span>
-              <span className="activity-stat-points">+{weeklyProgress.ai_chats * 1} pts</span>
-            </div>
-            <div className="activity-stat-box">
-              <span className="activity-stat-label">notes created</span>
-              <span className="activity-stat-value">{weeklyProgress.notes_created}</span>
-              <span className="activity-stat-points">+{weeklyProgress.notes_created * 20} pts</span>
-            </div>
-            <div className="activity-stat-box">
-              <span className="activity-stat-label">questions answered</span>
-              <span className="activity-stat-value">{weeklyProgress.questions_answered}</span>
-              <span className="activity-stat-points">+{weeklyProgress.questions_answered * 2} pts</span>
-            </div>
-            <div className="activity-stat-box">
-              <span className="activity-stat-label">quizzes completed</span>
-              <span className="activity-stat-value">{weeklyProgress.quizzes_completed}</span>
-              <span className="activity-stat-points">+{weeklyProgress.quizzes_completed * 15} pts</span>
-            </div>
-            <div className="activity-stat-box highlight-box">
-              <span className="activity-stat-label">solo quizzes</span>
-              <span className="activity-stat-value">{weeklyProgress.solo_quizzes || 0}</span>
-              <span className="activity-stat-points">up to +40 pts each</span>
-            </div>
-            <div className="activity-stat-box">
-              <span className="activity-stat-label">flashcard sets</span>
-              <span className="activity-stat-value">{weeklyProgress.flashcards_created}</span>
-              <span className="activity-stat-points">+{weeklyProgress.flashcards_created * 10} pts</span>
-            </div>
-            <div className="activity-stat-box">
-              <span className="activity-stat-label">study time</span>
-              <span className="activity-stat-value">{studyHoursCompleted}h {weeklyProgress.study_minutes % 60}m</span>
-              <span className="activity-stat-points">+{studyHoursCompleted * 50} pts</span>
+        {dailyChallenge && (
+          <div className="daily-challenge-banner" onClick={() => setShowDailyChallengeModal(true)}>
+            <div className="daily-challenge-gradient"></div>
+            <div className="daily-challenge-content">
+              <div className="daily-challenge-icon">
+                {getChallengeIcon(dailyChallenge.icon)}
+              </div>
+              <div className="daily-challenge-info">
+                <div className="daily-challenge-header">
+                  <span className="daily-challenge-badge">daily challenge</span>
+                  {isDailyChallengeComplete() && <span className="challenge-complete-badge">completed</span>}
+                </div>
+                <h3 className="daily-challenge-title">{dailyChallenge.title}</h3>
+                <p className="daily-challenge-description">{dailyChallenge.description}</p>
+                <div className="daily-challenge-progress-container">
+                  <div className="daily-challenge-progress-bar">
+                    <div 
+                      className="daily-challenge-progress-fill" 
+                      style={{ width: `${getDailyChallengeProgress()}%` }}
+                    />
+                  </div>
+                  <span className="daily-challenge-progress-text">
+                    {weeklyProgress[dailyChallenge.type] || 0} / {dailyChallenge.target}
+                  </span>
+                </div>
+              </div>
+              <div className="daily-challenge-reward">
+                <span className="reward-label">reward</span>
+                <span className="reward-value">+{dailyChallenge.reward}</span>
+                <span className="reward-unit">pts</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="content-grid">
 
@@ -419,6 +521,78 @@ const Games = () => {
           </div>
         </div>
       </div>
+
+      {showDailyChallengeModal && dailyChallenge && (
+        <div className="modal-overlay" onClick={() => setShowDailyChallengeModal(false)}>
+          <div className="daily-challenge-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-gradient"></div>
+            <button className="modal-close" onClick={() => setShowDailyChallengeModal(false)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+            
+            <div className="modal-icon-large">
+              {getChallengeIcon(dailyChallenge.icon)}
+            </div>
+            
+            <h2 className="modal-title">{dailyChallenge.title}</h2>
+            <p className="modal-description">{dailyChallenge.description}</p>
+            
+            <div className="modal-progress-section">
+              <div className="modal-progress-stats">
+                <div className="modal-stat">
+                  <span className="modal-stat-label">current</span>
+                  <span className="modal-stat-value">{weeklyProgress[dailyChallenge.type] || 0}</span>
+                </div>
+                <div className="modal-stat">
+                  <span className="modal-stat-label">target</span>
+                  <span className="modal-stat-value">{dailyChallenge.target}</span>
+                </div>
+                <div className="modal-stat">
+                  <span className="modal-stat-label">remaining</span>
+                  <span className="modal-stat-value">
+                    {Math.max(0, dailyChallenge.target - (weeklyProgress[dailyChallenge.type] || 0))}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="modal-progress-bar-container">
+                <div className="modal-progress-bar">
+                  <div 
+                    className="modal-progress-fill" 
+                    style={{ width: `${getDailyChallengeProgress()}%` }}
+                  />
+                </div>
+                <span className="modal-progress-percentage">{Math.round(getDailyChallengeProgress())}%</span>
+              </div>
+            </div>
+            
+            <div className="modal-reward-section">
+              <span className="modal-reward-label">challenge reward</span>
+              <div className="modal-reward-value">
+                <span className="reward-points">+{dailyChallenge.reward}</span>
+                <span className="reward-points-label">points</span>
+              </div>
+            </div>
+            
+            {isDailyChallengeComplete() ? (
+              <div className="modal-complete-message">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <span>challenge completed</span>
+              </div>
+            ) : (
+              <button className="modal-action-btn" onClick={() => setShowDailyChallengeModal(false)}>
+                start challenge
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

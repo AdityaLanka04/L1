@@ -1259,80 +1259,10 @@ async def ask_ai_enhanced(
             logger.info(f"🔧 Correcting known mistake")
             response = known_mistake
         
-        if chat_id_int:
-            chat_message = models.ChatMessage(
-                chat_session_id=chat_id_int,
-                user_id=user.id,
-                user_message=question,
-                ai_response=response,
-                is_user=True
-            )
-            db.add(chat_message)
-            
-            chat_session = db.query(models.ChatSession).filter(
-                models.ChatSession.id == chat_id_int
-            ).first()
-            chat_session.updated_at = datetime.now(timezone.utc)
-            
-            message_count = db.query(models.ChatMessage).filter(
-                models.ChatMessage.chat_session_id == chat_id_int
-            ).count()
-            
-            if chat_session.title == "New Chat" and message_count == 0:
-                title_words = question.strip().split()[:4]
-                new_title = " ".join(title_words)
-                chat_session.title = new_title[:50] if new_title else "New Chat"
+        # All tracking (messages, activities, metrics, points) is handled by save_chat_message endpoint
+        # This endpoint ONLY generates the AI response
         
         topic = advanced_prompting.get_topic_from_question(question)
-        
-        activity = models.Activity(
-            user_id=user.id,
-            question=question,
-            answer=response,
-            topic=topic,
-            question_type="conversational",
-            difficulty_level=user_profile.get('difficulty_level', 'medium'),
-            timestamp=datetime.now(timezone.utc)
-        )
-        db.add(activity)
-        
-        today = datetime.now(timezone.utc).date()
-        daily_metric = db.query(models.DailyLearningMetrics).filter(
-            and_(
-                models.DailyLearningMetrics.user_id == user.id,
-                models.DailyLearningMetrics.date == today
-            )
-        ).first()
-        
-        if not daily_metric:
-            daily_metric = models.DailyLearningMetrics(
-                user_id=user.id,
-                date=today,
-                sessions_completed=1,
-                time_spent_minutes=0,
-                questions_answered=1,
-                correct_answers=1,
-                topics_studied=json.dumps([topic])
-            )
-            db.add(daily_metric)
-        else:
-            daily_metric.questions_answered += 1
-            daily_metric.correct_answers += 1
-            
-            try:
-                topics = json.loads(daily_metric.topics_studied or "[]")
-                if topic and topic not in topics:
-                    topics.append(topic)
-                    daily_metric.topics_studied = json.dumps(topics[-10:])
-            except:
-                daily_metric.topics_studied = json.dumps([topic])
-        
-        # Award points for AI chat message
-        try:
-            from gamification_system import award_points
-            award_points(db, user.id, "ai_chat")
-        except Exception as gam_error:
-            logger.warning(f"Failed to award AI chat points: {gam_error}")
         
         db.commit()
         
@@ -1497,24 +1427,59 @@ Current Question: {question}"""
         response = call_ai(prompt, max_tokens=2000, temperature=0.7)
         print(f"🔥 AI response received: {len(response)} chars")
         
-        # Save to database if chat_id provided
+        # Save message to database and award points
         if chat_id_int:
-            chat_message = models.ChatMessage(
-                chat_session_id=chat_id_int,
-                user_id=user.id,
-                user_message=question,
-                ai_response=response,
-                is_user=True
-            )
-            db.add(chat_message)
-            db.commit()
-            print(f"🔥 Message saved to database")
-            
             try:
-                from gamification_system import award_points
-                award_points(db, user.id, "ai_chat")
-            except Exception as gam_error:
-                logger.warning(f"Failed to award AI chat points: {gam_error}")
+                print(f"💾 Attempting to save message for chat_id: {chat_id_int}, user_id: {user.id}")
+                
+                # Check if this exact message already exists (prevent double-saving)
+                existing_message = db.query(models.ChatMessage).filter(
+                    models.ChatMessage.chat_session_id == chat_id_int,
+                    models.ChatMessage.user_message == question,
+                    models.ChatMessage.ai_response == response
+                ).first()
+                
+                if not existing_message:
+                    # Save the message
+                    chat_message = models.ChatMessage(
+                        chat_session_id=chat_id_int,
+                        user_id=user.id,
+                        user_message=question,
+                        ai_response=response,
+                        is_user=True
+                    )
+                    db.add(chat_message)
+                    print(f"✅ Message object created and added to session")
+                    
+                    # Update chat session timestamp
+                    chat_session = db.query(models.ChatSession).filter(
+                        models.ChatSession.id == chat_id_int
+                    ).first()
+                    if chat_session:
+                        chat_session.updated_at = datetime.now(timezone.utc)
+                        print(f"✅ Chat session timestamp updated")
+                    
+                    # Award points for AI chat (only once per message)
+                    try:
+                        from gamification_system import award_points
+                        result = award_points(db, user.id, "ai_chat")
+                        print(f"✅ Points awarded: {result}")
+                    except Exception as gam_error:
+                        print(f"⚠️ Failed to award AI chat points: {gam_error}")
+                        import traceback
+                        traceback.print_exc()
+                    
+                    db.commit()
+                    print(f"✅ Database committed - message saved!")
+                else:
+                    print(f"⚠️ Message already exists, skipping save and point award")
+            except Exception as save_error:
+                print(f"❌ Error saving message: {str(save_error)}")
+                import traceback
+                traceback.print_exc()
+                db.rollback()
+        else:
+            print(f"⚠️ No chat_id_int, cannot save message")
         
         return {
             "answer": response,
@@ -1524,7 +1489,8 @@ Current Question: {question}"""
             "topics_discussed": ["general"],
             "query_type": "simple",
             "model_used": "groq",
-            "ai_provider": "Groq"
+            "ai_provider": "Groq",
+            "chat_id": chat_id_int  # Return the actual chat_id used (in case it was created/changed)
         }
         
     except HTTPException:
@@ -1726,24 +1692,59 @@ Current Question: {question}"""
         response = call_ai(prompt, max_tokens=2000, temperature=0.7)
         print(f"🔥 AI response received: {len(response)} chars")
         
-        # Save to database if chat_id provided
+        # Save message to database and award points
         if chat_id_int:
-            chat_message = models.ChatMessage(
-                chat_session_id=chat_id_int,
-                user_id=user.id,
-                user_message=question,
-                ai_response=response,
-                is_user=True
-            )
-            db.add(chat_message)
-            db.commit()
-            print(f"🔥 Message saved to database")
-            
             try:
-                from gamification_system import award_points
-                award_points(db, user.id, "ai_chat")
-            except Exception as gam_error:
-                logger.warning(f"Failed to award AI chat points: {gam_error}")
+                print(f"💾 Attempting to save message for chat_id: {chat_id_int}, user_id: {user.id}")
+                
+                # Check if this exact message already exists (prevent double-saving)
+                existing_message = db.query(models.ChatMessage).filter(
+                    models.ChatMessage.chat_session_id == chat_id_int,
+                    models.ChatMessage.user_message == question,
+                    models.ChatMessage.ai_response == response
+                ).first()
+                
+                if not existing_message:
+                    # Save the message
+                    chat_message = models.ChatMessage(
+                        chat_session_id=chat_id_int,
+                        user_id=user.id,
+                        user_message=question,
+                        ai_response=response,
+                        is_user=True
+                    )
+                    db.add(chat_message)
+                    print(f"✅ Message object created and added to session")
+                    
+                    # Update chat session timestamp
+                    chat_session = db.query(models.ChatSession).filter(
+                        models.ChatSession.id == chat_id_int
+                    ).first()
+                    if chat_session:
+                        chat_session.updated_at = datetime.now(timezone.utc)
+                        print(f"✅ Chat session timestamp updated")
+                    
+                    # Award points for AI chat (only once per message)
+                    try:
+                        from gamification_system import award_points
+                        result = award_points(db, user.id, "ai_chat")
+                        print(f"✅ Points awarded: {result}")
+                    except Exception as gam_error:
+                        print(f"⚠️ Failed to award AI chat points: {gam_error}")
+                        import traceback
+                        traceback.print_exc()
+                    
+                    db.commit()
+                    print(f"✅ Database committed - message saved!")
+                else:
+                    print(f"⚠️ Message already exists, skipping save and point award")
+            except Exception as save_error:
+                print(f"❌ Error saving message: {str(save_error)}")
+                import traceback
+                traceback.print_exc()
+                db.rollback()
+        else:
+            print(f"⚠️ No chat_id_int, cannot save message")
         
         return {
             "answer": response,
@@ -1756,7 +1757,8 @@ Current Question: {question}"""
             "ai_provider": "Groq",
             "files_processed": len(file_summaries),
             "file_summaries": file_summaries,
-            "has_file_context": len(file_summaries) > 0
+            "has_file_context": len(file_summaries) > 0,
+            "chat_id": chat_id_int  # Return the actual chat_id used
         }
         
     except HTTPException:
@@ -2112,10 +2114,22 @@ def save_chat_message(message_data: ChatMessageSave, db: Session = Depends(get_d
     if not chat_session:
         raise HTTPException(status_code=404, detail="Chat session not found")
     
+    # Check if this exact message already exists (to prevent double-saving and double-counting)
+    existing_message = db.query(models.ChatMessage).filter(
+        models.ChatMessage.chat_session_id == message_data.chat_id,
+        models.ChatMessage.user_message == message_data.user_message,
+        models.ChatMessage.ai_response == message_data.ai_response
+    ).first()
+    
+    if existing_message:
+        # Message already saved, don't award points again
+        return {"status": "success", "message": "Message already exists"}
+    
     chat_message = models.ChatMessage(
         chat_session_id=message_data.chat_id,
         user_message=message_data.user_message,
-        ai_response=message_data.ai_response
+        ai_response=message_data.ai_response,
+        is_user=True  # This represents a user message
     )
     db.add(chat_message)
     
@@ -2130,6 +2144,9 @@ def save_chat_message(message_data: ChatMessageSave, db: Session = Depends(get_d
         new_title = " ".join(words[:4]) + ("..." if len(words) > 4 else "")
         chat_session.title = new_title[:50] if new_title else "New Chat"
     
+    # Only award points for USER messages, not AI responses
+    # This endpoint is called once per user message (which includes the AI response)
+    # So we award points once per call
     try:
         from gamification_system import award_points
         award_points(db, chat_session.user_id, "ai_chat")
@@ -10899,6 +10916,7 @@ async def track_gamification_activity(
     """Track user activity and award points - Uses centralized gamification system"""
     try:
         from gamification_system import award_points
+        import traceback
         
         current_user = get_user_by_username(db, username) or get_user_by_email(db, username)
         if not current_user:
@@ -10907,9 +10925,25 @@ async def track_gamification_activity(
         activity_type = payload.get("activity_type")
         metadata = payload.get("metadata", {})
         
+        # COMPREHENSIVE LOGGING
+        print(f"\n{'='*80}")
+        print(f"🎯 TRACK_GAMIFICATION_ACTIVITY CALLED")
+        print(f"{'='*80}")
+        print(f"User: {current_user.email} (ID: {current_user.id})")
+        print(f"Activity Type: {activity_type}")
+        print(f"Metadata: {metadata}")
+        print(f"Timestamp: {datetime.now(timezone.utc)}")
+        print(f"Call Stack:")
+        for line in traceback.format_stack()[:-1]:
+            print(line.strip())
+        print(f"{'='*80}\n")
+        
         # Use centralized gamification system
         result = award_points(db, current_user.id, activity_type, metadata)
         db.commit()
+        
+        print(f"✅ Points awarded: {result.get('points_earned', 0)}")
+        print(f"   Total points now: {result.get('total_points', 0)}\n")
         
         return {
             "status": "success",
@@ -11069,6 +11103,64 @@ async def get_recent_point_activities(
     
     except Exception as e:
         logger.error(f"Error getting recent activities: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/get_daily_challenge")
+async def get_daily_challenge(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Get user's daily challenge"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get user stats for progress tracking
+        stats = db.query(models.UserGamificationStats).filter(
+            models.UserGamificationStats.user_id == user.id
+        ).first()
+        
+        # Define daily challenges (rotates based on day of year)
+        challenges = [
+            {"id": 1, "title": "Knowledge Sprint", "description": "Answer 15 questions correctly", "target": 15, "type": "questions_answered", "reward": 100, "icon": "target"},
+            {"id": 2, "title": "Chat Master", "description": "Have 25 AI conversations", "target": 25, "type": "ai_chats", "reward": 75, "icon": "chat"},
+            {"id": 3, "title": "Note Taker", "description": "Create 5 new notes", "target": 5, "type": "notes_created", "reward": 150, "icon": "note"},
+            {"id": 4, "title": "Study Marathon", "description": "Study for 2 hours", "target": 120, "type": "study_minutes", "reward": 200, "icon": "clock"},
+            {"id": 5, "title": "Quiz Champion", "description": "Complete 3 quizzes with 80%+", "target": 3, "type": "quizzes_completed", "reward": 175, "icon": "trophy"},
+            {"id": 6, "title": "Flashcard Creator", "description": "Create 20 flashcards", "target": 20, "type": "flashcards_created", "reward": 125, "icon": "cards"},
+            {"id": 7, "title": "Perfect Score", "description": "Get 100% on any quiz", "target": 1, "type": "perfect_quizzes", "reward": 250, "icon": "star"}
+        ]
+        
+        # Select challenge based on day of year
+        from datetime import datetime
+        day_of_year = datetime.now().timetuple().tm_yday
+        challenge_index = day_of_year % len(challenges)
+        daily_challenge = challenges[challenge_index]
+        
+        # Get current progress
+        progress = 0
+        if stats:
+            if daily_challenge["type"] == "questions_answered":
+                progress = stats.weekly_questions_answered
+            elif daily_challenge["type"] == "ai_chats":
+                progress = stats.weekly_ai_chats
+            elif daily_challenge["type"] == "notes_created":
+                progress = stats.weekly_notes_created
+            elif daily_challenge["type"] == "study_minutes":
+                progress = stats.weekly_study_minutes
+            elif daily_challenge["type"] == "quizzes_completed":
+                progress = stats.weekly_quizzes_completed
+            elif daily_challenge["type"] == "flashcards_created":
+                progress = stats.weekly_flashcards_created
+        
+        return {
+            "challenge": daily_challenge,
+            "progress": progress
+        }
+    
+    except Exception as e:
+        logger.error(f"Error getting daily challenge: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/get_leaderboard")
