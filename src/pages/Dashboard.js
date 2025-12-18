@@ -70,16 +70,16 @@ const Dashboard = () => {
   // Widget customization states
   const [isCustomizing, setIsCustomizing] = useState(false);
   const [widgets, setWidgets] = useState([
-    { id: 'stats', type: 'stats', title: 'Learning Stats', enabled: true, size: 'medium' },
-    { id: 'ai-assistant', type: 'ai-assistant', title: 'AI Learning Assistant', enabled: true, size: 'large' },
-    { id: 'notifications', type: 'notifications', title: 'AI Notifications', enabled: true, size: 'medium' },
-    { id: 'learning-review', type: 'learning-review', title: 'Learning Reviews', enabled: true, size: 'medium' },
-    { id: 'quick-actions', type: 'quick-actions', title: 'Quick Actions', enabled: true, size: 'medium' },
-    { id: 'social', type: 'social', title: 'Social Hub', enabled: true, size: 'medium' },
-    { id: 'activity-timeline', type: 'activity-timeline', title: 'Activity Timeline', enabled: true, size: 'medium' },
-    { id: 'recent-activity', type: 'recent-activity', title: 'Recent Activity', enabled: false, size: 'medium' },
+    { id: 'stats', type: 'stats', title: 'Weekly Activity', enabled: true, size: 'small' },
+    { id: 'quick-actions', type: 'quick-actions', title: 'Quick Actions', enabled: true, size: 'small' },
+    { id: 'ai-assistant', type: 'ai-assistant', title: 'AI Chat', enabled: true, size: 'large' },
+    { id: 'learning-review', type: 'learning-review', title: 'Learning Reviews', enabled: true, size: 'small' },
+    { id: 'social', type: 'social', title: 'Social', enabled: true, size: 'small' },
+    { id: 'activity-timeline', type: 'activity-timeline', title: 'Activity Timeline', enabled: true, size: 'small' },
     { id: 'heatmap', type: 'heatmap', title: 'Activity Heatmap', enabled: true, size: 'full' },
-    { id: 'progress-chart', type: 'progress-chart', title: 'Weekly Progress', enabled: false, size: 'medium' },
+    { id: 'notifications', type: 'notifications', title: 'AI Notifications', enabled: false, size: 'small' },
+    { id: 'recent-activity', type: 'recent-activity', title: 'Recent Activity', enabled: false, size: 'small' },
+    { id: 'progress-chart', type: 'progress-chart', title: 'Weekly Progress', enabled: false, size: 'small' },
     { id: 'motivational-quote', type: 'motivational-quote', title: 'Daily Quote', enabled: false, size: 'small' }
   ]);
 
@@ -759,16 +759,16 @@ const Dashboard = () => {
 
   const resetWidgets = () => {
     const defaultWidgets = [
-      { id: 'stats', type: 'stats', title: 'Learning Stats', enabled: true, size: 'medium' },
-      { id: 'ai-assistant', type: 'ai-assistant', title: 'AI Learning Assistant', enabled: true, size: 'large' },
-      { id: 'notifications', type: 'notifications', title: 'AI Notifications', enabled: true, size: 'medium' },
-      { id: 'learning-review', type: 'learning-review', title: 'Learning Reviews', enabled: true, size: 'medium' },
-      { id: 'quick-actions', type: 'quick-actions', title: 'Quick Actions', enabled: true, size: 'medium' },
-      { id: 'social', type: 'social', title: 'Social Hub', enabled: true, size: 'medium' },
-      { id: 'activity-timeline', type: 'activity-timeline', title: 'Activity Timeline', enabled: true, size: 'medium' },
-      { id: 'recent-activity', type: 'recent-activity', title: 'Recent Activity', enabled: false, size: 'medium' },
+      { id: 'stats', type: 'stats', title: 'Weekly Activity', enabled: true, size: 'small' },
+      { id: 'quick-actions', type: 'quick-actions', title: 'Quick Actions', enabled: true, size: 'small' },
+      { id: 'ai-assistant', type: 'ai-assistant', title: 'AI Chat', enabled: true, size: 'large' },
+      { id: 'learning-review', type: 'learning-review', title: 'Learning Reviews', enabled: true, size: 'small' },
+      { id: 'social', type: 'social', title: 'Social', enabled: true, size: 'small' },
+      { id: 'activity-timeline', type: 'activity-timeline', title: 'Activity Timeline', enabled: true, size: 'small' },
       { id: 'heatmap', type: 'heatmap', title: 'Activity Heatmap', enabled: true, size: 'full' },
-      { id: 'progress-chart', type: 'progress-chart', title: 'Weekly Progress', enabled: false, size: 'medium' },
+      { id: 'notifications', type: 'notifications', title: 'AI Notifications', enabled: false, size: 'small' },
+      { id: 'recent-activity', type: 'recent-activity', title: 'Recent Activity', enabled: false, size: 'small' },
+      { id: 'progress-chart', type: 'progress-chart', title: 'Weekly Progress', enabled: false, size: 'small' },
       { id: 'motivational-quote', type: 'motivational-quote', title: 'Daily Quote', enabled: false, size: 'small' }
     ];
     setWidgets(defaultWidgets);
@@ -1978,41 +1978,15 @@ const Dashboard = () => {
             strategy={rectSortingStrategy}
           >
             <div className="dashboard-layout-modern">
-              <div className="dashboard-hero-grid">
-                <div className="greeting-card-modern">
-                  <h2 className="modern-greeting">
-                    {getGreeting()},<br />{displayName}
-                  </h2>
-                  <p className="modern-subtitle">
-                    {getMotivationalMessage()}
-                  </p>
-                  {currentSessionTime > 0 && (
-                    <div className="session-info-modern">
-                      <span className="session-time-modern">
-                        Current session: {currentSessionTime} minutes
-                      </span>
-                      {totalTimeToday > 0 && (
-                        <span className="total-time-modern">
-                          • Total today: {Math.round(totalTimeToday)} minutes
-                        </span>
-                      )}
-                    </div>
-                  )}
+              <div className="dashboard-widgets-unified">
+                <div className="greeting-card-compact">
+                  <h2 className="greeting-text">{getGreeting()}, {displayName}</h2>
+                  <p className="greeting-subtitle">{getMotivationalMessage()}</p>
                 </div>
                 
-                <SortableWidget key="stats" widget={widgets.find(w => w.id === 'stats')} />
-                
-                <SortableWidget key="quick-actions" widget={widgets.find(w => w.id === 'quick-actions')} />
-                
-                <SortableWidget key="ai-assistant" widget={widgets.find(w => w.id === 'ai-assistant')} />
-              </div>
-              
-              <div className="dashboard-secondary-section">
-                {enabledWidgets
-                  .filter(w => !['stats', 'quick-actions', 'ai-assistant'].includes(w.id))
-                  .map((widget) => (
-                    <SortableWidget key={widget.id} widget={widget} />
-                  ))}
+                {enabledWidgets.map((widget) => (
+                  <SortableWidget key={widget.id} widget={widget} />
+                ))}
               </div>
             </div>
           </SortableContext>

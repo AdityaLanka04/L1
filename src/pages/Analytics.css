@@ -1640,47 +1640,14 @@
   }
 }
 
-/* Apply animations to elements */
-.summary-card {
-  animation: fadeInUp 0.6s ease-out backwards;
-}
-
-.summary-card:nth-child(1) { animation-delay: 0.1s; }
-.summary-card:nth-child(2) { animation-delay: 0.2s; }
-.summary-card:nth-child(3) { animation-delay: 0.3s; }
-.summary-card:nth-child(4) { animation-delay: 0.4s; }
-
-.stat-card {
-  animation: fadeInUp 0.6s ease-out backwards;
-}
-
-.stat-card:nth-child(1) { animation-delay: 0.15s; }
-.stat-card:nth-child(2) { animation-delay: 0.2s; }
-.stat-card:nth-child(3) { animation-delay: 0.25s; }
-.stat-card:nth-child(4) { animation-delay: 0.3s; }
-.stat-card:nth-child(5) { animation-delay: 0.35s; }
-.stat-card:nth-child(6) { animation-delay: 0.4s; }
-.stat-card:nth-child(7) { animation-delay: 0.45s; }
-.stat-card:nth-child(8) { animation-delay: 0.5s; }
-
-.main-chart-section {
-  animation: fadeInScale 0.7s ease-out backwards;
-  animation-delay: 0.3s;
-}
-
-.filters-section {
-  animation: fadeInUp 0.5s ease-out backwards;
-  animation-delay: 0.2s;
-}
-
-.metrics-toggles {
-  animation: fadeInUp 0.5s ease-out backwards;
-  animation-delay: 0.25s;
-}
-
+/* Entry animations disabled for smooth page load */
+.summary-card,
+.stat-card,
+.main-chart-section,
+.filters-section,
+.metrics-toggles,
 .points-reference {
-  animation: fadeInUp 0.6s ease-out backwards;
-  animation-delay: 0.5s;
+  animation: none;
 }
 
 /* Hover glow effect for accent elements */
@@ -1688,29 +1655,10 @@
   animation: glow 2s ease-in-out infinite;
 }
 
-/* Bar animation on load */
+/* Bar animation disabled for smooth page load */
 .bar {
-  animation: barGrow 0.8s ease-out backwards;
+  animation: none;
 }
-
-@keyframes barGrow {
-  from {
-    transform: scaleY(0);
-    transform-origin: bottom;
-  }
-  to {
-    transform: scaleY(1);
-    transform-origin: bottom;
-  }
-}
-
-.bar-group:nth-child(1) .bar { animation-delay: 0.1s; }
-.bar-group:nth-child(2) .bar { animation-delay: 0.15s; }
-.bar-group:nth-child(3) .bar { animation-delay: 0.2s; }
-.bar-group:nth-child(4) .bar { animation-delay: 0.25s; }
-.bar-group:nth-child(5) .bar { animation-delay: 0.3s; }
-.bar-group:nth-child(6) .bar { animation-delay: 0.35s; }
-.bar-group:nth-child(7) .bar { animation-delay: 0.4s; }
 
 /* ============================================
    SPECIAL EFFECTS & ENHANCEMENTS
