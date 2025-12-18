@@ -19,7 +19,7 @@
   --sh-accent-glow-strong: color-mix(in srgb, var(--accent) 40%, transparent);
   --sh-header-height: 72px;
   --sh-success: #22c55e;
-  --sh-warning: #f59e0b;
+  --sh-warning: var(--accent, #D7B38C);
   --sh-danger: #ef4444;
   --sh-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --sh-transition-bounce: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -1054,10 +1054,10 @@
 }
 
 .pending-badge {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent) 0%, color-mix(in srgb, var(--accent) 5%, transparent) 100%);
   color: var(--sh-warning);
   border: 1px solid var(--sh-warning);
-  box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+  box-shadow: 0 0 15px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 /* ==================== SHARED CONTENT SECTION ==================== */
@@ -1229,7 +1229,7 @@
 }
 
 .permission-badge[data-permission="edit"] {
-  background: rgba(245, 158, 11, 0.15);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
   color: var(--sh-warning);
   border: 1px solid var(--sh-warning);
 }
@@ -2417,23 +2417,23 @@
 }
 
 .friends-card {
-  --card-glow-color: #3b82f6;
+  --card-glow-color: var(--accent);
 }
 
 .activity-card {
-  --card-glow-color: #10b981;
+  --card-glow-color: var(--accent);
 }
 
 .playlists-card {
-  --card-glow-color: #f59e0b;
+  --card-glow-color: var(--accent);
 }
 
 .quiz-card {
-  --card-glow-color: #8b5cf6;
+  --card-glow-color: var(--accent);
 }
 
 .shared-card {
-  --card-glow-color: #ec4899;
+  --card-glow-color: var(--accent);
 }
 
 /* Card-specific hover glows */
