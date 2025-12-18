@@ -49,6 +49,23 @@
   padding: 0 !important;
 }
 
+/* Light mode - white background */
+[data-theme-mode="light"] .flashcards-page {
+  background: #ffffff !important;
+}
+
+[data-theme-mode="light"] .fc-main {
+  background: #ffffff !important;
+}
+
+[data-theme-mode="light"] .fc-header {
+  background: #ffffff !important;
+}
+
+[data-theme-mode="light"] .fc-content {
+  background: #ffffff !important;
+}
+
 .flashcards-page * {
   box-sizing: border-box;
   margin: 0;
@@ -67,11 +84,46 @@
   width: var(--fc-sidebar-width);
   height: 100%;
   background: var(--fc-bg-secondary);
-  border-right: 1px solid var(--fc-border-subtle);
+  border-right: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   transition: width 0.3s ease;
+}
+
+/* Sidebar Enhanced Styling with Accent Color Gradients */
+[data-theme-mode="dark"] .fc-sidebar {
+  background: linear-gradient(180deg, 
+    color-mix(in srgb, var(--accent) 15%, #000000) 0%, 
+    color-mix(in srgb, var(--accent) 8%, #000000) 100%) !important;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme-mode="light"] .fc-sidebar {
+  background: linear-gradient(180deg, 
+    color-mix(in srgb, var(--accent) 15%, #ffffff) 0%, 
+    color-mix(in srgb, var(--accent) 25%, #ffffff) 50%, 
+    color-mix(in srgb, var(--accent) 18%, #ffffff) 100%) !important;
+  box-shadow: 4px 0 20px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* Sidebar Text Colors */
+[data-theme-mode="dark"] .fc-sidebar {
+  color: color-mix(in srgb, var(--accent) 60%, #ffffff) !important;
+}
+
+[data-theme-mode="dark"] .fc-nav-text,
+[data-theme-mode="dark"] .fc-logo-text {
+  color: color-mix(in srgb, var(--accent) 60%, #ffffff) !important;
+}
+
+[data-theme-mode="light"] .fc-sidebar {
+  color: color-mix(in srgb, var(--accent) 80%, #000000) !important;
+}
+
+[data-theme-mode="light"] .fc-nav-text,
+[data-theme-mode="light"] .fc-logo-text {
+  color: color-mix(in srgb, var(--accent) 80%, #000000) !important;
 }
 
 .fc-sidebar.collapsed {
@@ -82,40 +134,38 @@
   border-right: none !important;
 }
 
-/* Floating button to show sidebar when collapsed */
+/* Show sidebar button in header - positioned absolutely */
 .fc-show-sidebar-btn {
-  position: fixed !important;
-  top: 80px !important;
-  left: 16px !important;
-  width: 44px !important;
-  height: 44px !important;
-  background: var(--fc-bg-secondary) !important;
-  border: 1px solid var(--fc-border-subtle) !important;
-  color: var(--fc-accent) !important;
-  cursor: pointer !important;
-  display: none !important;
-  align-items: center !important;
-  justify-content: center !important;
-  z-index: 100 !important;
-  transition: all 0.2s !important;
+  position: absolute;
+  left: 20px;
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--fc-accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .fc-show-sidebar-btn:hover {
-  background: var(--fc-accent) !important;
-  color: var(--fc-bg-primary) !important;
-}
-
-.fc-sidebar.collapsed + .fc-main .fc-show-sidebar-btn,
-.fc-layout:has(.fc-sidebar.collapsed) .fc-show-sidebar-btn {
-  display: flex !important;
+  background: var(--fc-bg-tertiary);
+  color: var(--fc-accent);
+  border-color: var(--fc-accent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .fc-sidebar-header {
-  padding: 20px;
+  height: var(--fc-header-height);
+  min-height: var(--fc-header-height);
+  padding: 0 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--fc-border-subtle);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 .fc-logo {
@@ -142,11 +192,13 @@
 }
 
 .fc-logo-text {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 800;
   color: var(--fc-text-primary);
   position: relative;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', sans-serif;
+  letter-spacing: -0.5px;
 }
 
 .fc-logo-text::after {
@@ -220,24 +272,80 @@
   color: var(--fc-text-primary);
 }
 
+.fc-nav-item.fc-convert-btn:hover {
+  color: inherit !important;
+}
+
 .fc-nav-item.active {
   background: var(--fc-accent-glow);
   color: var(--fc-accent);
 }
 
-/* Convert button in sidebar */
+/* Convert button - styled like a panel widget */
 .fc-nav-item.fc-convert-btn {
-  background: var(--fc-accent);
-  color: var(--fc-bg-primary);
+  background: linear-gradient(135deg, var(--fc-accent), var(--fc-accent-dark));
   font-weight: 600;
   margin-top: 8px;
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.fc-nav-item.fc-convert-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.fc-nav-item.fc-convert-btn:hover::before {
+  left: 100%;
 }
 
 .fc-nav-item.fc-convert-btn:hover {
-  background: color-mix(in srgb, var(--fc-accent) 85%, white);
-  color: var(--fc-bg-primary);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px color-mix(in srgb, var(--fc-accent) 40%, transparent);
+  background: linear-gradient(135deg, var(--fc-accent), var(--fc-accent-dark)) !important;
+}
+
+[data-theme-mode="light"] .fc-nav-item.fc-convert-btn {
+  color: #ffffff !important;
+}
+
+[data-theme-mode="light"] .fc-nav-item.fc-convert-btn .fc-nav-text,
+[data-theme-mode="light"] .fc-nav-item.fc-convert-btn .fc-nav-icon {
+  color: #ffffff !important;
+}
+
+[data-theme-mode="light"] .fc-nav-item.fc-convert-btn:hover {
+  color: #ffffff !important;
+}
+
+[data-theme-mode="light"] .fc-nav-item.fc-convert-btn:hover .fc-nav-text,
+[data-theme-mode="light"] .fc-nav-item.fc-convert-btn:hover .fc-nav-icon {
+  color: #ffffff !important;
+}
+
+[data-theme-mode="dark"] .fc-nav-item.fc-convert-btn {
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="dark"] .fc-nav-item.fc-convert-btn .fc-nav-text,
+[data-theme-mode="dark"] .fc-nav-item.fc-convert-btn .fc-nav-icon {
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="dark"] .fc-nav-item.fc-convert-btn:hover {
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="dark"] .fc-nav-item.fc-convert-btn:hover .fc-nav-text,
+[data-theme-mode="dark"] .fc-nav-item.fc-convert-btn:hover .fc-nav-icon {
+  color: #1a1a1a !important;
 }
 
 .fc-nav-icon {
@@ -270,10 +378,14 @@
 
 .fc-sidebar-footer {
   padding: 16px 12px;
-  border-top: 1px solid var(--fc-border-subtle);
+  border-top: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.fc-sidebar-footer .fc-nav-item {
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 /* Main Content Area */
@@ -284,6 +396,22 @@
   height: 100%;
   overflow: hidden;
   background: var(--fc-bg-primary);
+  position: relative;
+}
+
+/* Grid Pattern Background - Only on My Flashcards panel */
+[data-theme-mode="dark"] .fc-content.fc-cards-panel {
+  background-image: 
+    linear-gradient(color-mix(in srgb, var(--accent) 15%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 15%, transparent) 1px, transparent 1px) !important;
+  background-size: 20px 20px !important;
+}
+
+[data-theme-mode="light"] .fc-content.fc-cards-panel {
+  background-image: 
+    linear-gradient(color-mix(in srgb, var(--accent) 12%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 12%, transparent) 1px, transparent 1px) !important;
+  background-size: 20px 20px !important;
 }
 
 /* Fixed Header */
@@ -292,7 +420,7 @@
   min-height: var(--fc-header-height);
   padding: 0 32px;
   background: var(--fc-bg-primary);
-  border-bottom: 1px solid var(--fc-border-subtle);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -301,14 +429,18 @@
 
 .fc-header-left {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
+  justify-content: flex-start;
 }
 
 .fc-header-title {
   font-size: 22px;
   font-weight: 700;
   color: var(--fc-text-primary);
+  letter-spacing: -0.3px;
+  line-height: 1.2;
 }
 
 [data-theme-mode="dark"] .fc-header-title {
@@ -318,6 +450,11 @@
 .fc-header-subtitle {
   font-size: 13px;
   color: var(--fc-text-muted);
+  margin-top: 0;
+  font-weight: 400;
+  letter-spacing: 0.1px;
+  opacity: 0.75;
+  white-space: nowrap;
 }
 
 /* Stats Bar */
@@ -633,6 +770,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  min-height: calc(100vh - var(--fc-header-height) - 100px);
   padding: 60px 20px;
   text-align: center;
 }
@@ -673,21 +811,43 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
+  min-height: 400px;
 }
 
 .fc-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--fc-border-subtle);
-  border-top-color: var(--fc-accent);
-  border-radius: 50%;
-  animation: fc-spin 1s linear infinite;
+  display: flex;
+  gap: 8px;
   margin-bottom: 16px;
 }
 
-@keyframes fc-spin {
-  to { transform: rotate(360deg); }
+.fc-spinner span {
+  width: 12px;
+  height: 12px;
+  background: var(--fc-accent);
+  animation: fc-pulse 1.4s ease-in-out infinite;
+}
+
+.fc-spinner span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.fc-spinner span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.fc-spinner span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes fc-pulse {
+  0%, 60%, 100% {
+    transform: scale(0.6);
+    opacity: 0.5;
+  }
+  30% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .fc-loading p {
@@ -2905,4 +3065,910 @@
 .fc-review-study-btn svg {
   width: 18px;
   height: 18px;
+}
+
+
+/* ==================== ENHANCED VISUAL EFFECTS ==================== */
+
+/* Large Subtle Background Gradients */
+[data-theme-mode="dark"] .fc-main {
+  background: radial-gradient(ellipse 120% 100% at 50% 0%, 
+    color-mix(in srgb, var(--accent) 8%, var(--bg)) 0%, 
+    var(--bg) 60%
+  ) !important;
+}
+
+[data-theme-mode="light"] .fc-main {
+  background: radial-gradient(ellipse 120% 100% at 50% 0%, 
+    color-mix(in srgb, var(--accent) 12%, #ffffff) 0%, 
+    #ffffff 60%
+  ) !important;
+}
+
+/* Enhanced Card Hover Effects */
+.fc-set-card {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fc-set-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 5%, transparent), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.fc-set-card:hover::before {
+  opacity: 1;
+}
+
+.fc-set-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* Glow Effects for Interactive Elements */
+[data-theme-mode="dark"] .fc-btn-primary {
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+[data-theme-mode="light"] .fc-btn-primary {
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.fc-btn-primary:hover {
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--accent) 40%, transparent) !important;
+}
+
+/* Enhanced Input Focus States */
+.fc-input:focus,
+.fc-search:focus-within {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+/* Subtle Shimmer Effect on Cards */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.fc-set-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--accent) 8%, transparent),
+    transparent
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 3s infinite;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.fc-set-card:hover::after {
+  opacity: 1;
+}
+
+/* Enhanced Button Ripple Effect */
+.fc-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.fc-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.fc-btn:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Gradient Borders for Cards */
+.fc-set-card {
+  background: var(--fc-bg-card);
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  position: relative;
+}
+
+.fc-set-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 30%, transparent),
+    color-mix(in srgb, var(--accent) 10%, transparent),
+    transparent
+  );
+  border-radius: inherit;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.fc-set-card:hover::before {
+  opacity: 1;
+}
+
+/* Enhanced Progress Bar */
+.fc-set-progress-fill {
+  background: linear-gradient(90deg, 
+    var(--fc-accent),
+    color-mix(in srgb, var(--accent) 70%, white)
+  );
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* Floating Animation for Empty States */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.fc-empty-icon {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Enhanced Nav Item Hover */
+.fc-nav-item {
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fc-nav-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 0;
+  background: var(--fc-accent);
+  transition: height 0.2s;
+}
+
+.fc-nav-item:hover::before,
+.fc-nav-item.active::before {
+  height: 60%;
+}
+
+/* Gradient Text for Headers */
+[data-theme-mode="dark"] .fc-header-title {
+  background: linear-gradient(135deg, 
+    var(--fc-accent),
+    color-mix(in srgb, var(--accent) 70%, white)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[data-theme-mode="light"] .fc-header-title {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
+  background-clip: unset !important;
+  color: var(--fc-accent) !important;
+}
+
+/* Enhanced Search Box */
+.fc-search {
+  position: relative;
+  transition: all 0.3s;
+}
+
+.fc-search::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--fc-accent);
+  transition: width 0.3s;
+}
+
+.fc-search:focus-within::after {
+  width: 100%;
+}
+
+/* Subtle Pulse for Active Elements */
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 0%, transparent);
+  }
+}
+
+.fc-nav-item.active {
+  animation: pulse 2s infinite;
+}
+
+/* Enhanced Stat Cards */
+.fc-stat-card {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.fc-stat-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 10%, transparent) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.fc-stat-card:hover::before {
+  opacity: 1;
+}
+
+.fc-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+/* Gradient Overlay for Sidebar */
+[data-theme-mode="dark"] .fc-sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: linear-gradient(180deg, 
+    color-mix(in srgb, var(--accent) 8%, transparent) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-theme-mode="light"] .fc-sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: linear-gradient(180deg, 
+    color-mix(in srgb, var(--accent) 12%, transparent) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.fc-sidebar > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Enhanced Select Dropdown */
+.fc-select {
+  position: relative;
+  transition: all 0.3s;
+}
+
+.fc-select:hover {
+  border-color: var(--fc-accent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.fc-select:focus {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+/* Glowing Accent for Convert Button */
+.fc-nav-item.fc-convert-btn {
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.fc-nav-item.fc-convert-btn:hover {
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+/* Enhanced Loading Spinner */
+.fc-spinner span {
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+/* Subtle Background Pattern for Content */
+[data-theme-mode="dark"] .fc-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(circle at 20% 50%, color-mix(in srgb, var(--accent) 2%, transparent) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--accent) 2%, transparent) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-theme-mode="light"] .fc-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(circle at 20% 50%, color-mix(in srgb, var(--accent) 3%, transparent) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--accent) 3%, transparent) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.fc-content > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Enhanced Study Button */
+.fc-set-btn.study {
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.fc-set-btn.study:hover {
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* Gradient Border Animation */
+@keyframes borderGlow {
+  0%, 100% {
+    border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  50% {
+    border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  }
+}
+
+.fc-input:focus,
+.fc-textarea:focus {
+  animation: borderGlow 2s infinite;
+}
+
+/* Enhanced Empty State */
+.fc-empty {
+  position: relative;
+}
+
+.fc-empty::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 5%, transparent) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Smooth Transitions for All Interactive Elements */
+.fc-nav-item,
+.fc-btn,
+.fc-set-card,
+.fc-stat-card,
+.fc-input,
+.fc-select,
+.fc-search {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced Header Gradient */
+[data-theme-mode="dark"] .fc-header {
+  background: linear-gradient(180deg, 
+    color-mix(in srgb, var(--accent) 5%, var(--bg)) 0%,
+    var(--bg) 100%
+  ) !important;
+}
+
+[data-theme-mode="light"] .fc-header {
+  background: linear-gradient(180deg, 
+    color-mix(in srgb, var(--accent) 8%, #ffffff) 0%,
+    #ffffff 100%
+  ) !important;
+}
+
+/* Subtle Glow for Active Nav Items */
+[data-theme-mode="dark"] .fc-nav-item.active {
+  box-shadow: inset 0 0 20px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+[data-theme-mode="light"] .fc-nav-item.active {
+  box-shadow: inset 0 0 20px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* Enhanced Scrollbar */
+.fc-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--fc-accent), color-mix(in srgb, var(--accent) 60%, transparent));
+  box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* Gradient Accent for Stats Bar */
+[data-theme-mode="dark"] .fc-stats-bar {
+  background: linear-gradient(90deg, 
+    transparent 0%,
+    color-mix(in srgb, var(--accent) 3%, transparent) 50%,
+    transparent 100%
+  );
+}
+
+[data-theme-mode="light"] .fc-stats-bar {
+  background: linear-gradient(90deg, 
+    transparent 0%,
+    color-mix(in srgb, var(--accent) 5%, transparent) 50%,
+    transparent 100%
+  );
+}
+
+/* Enhanced Icon Glow */
+.fc-nav-icon,
+.fc-stat-icon {
+  transition: all 0.3s;
+}
+
+.fc-nav-item:hover .fc-nav-icon,
+.fc-stat-card:hover .fc-stat-icon {
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 60%, transparent));
+}
+
+/* Subtle Depth for Cards */
+[data-theme-mode="dark"] .fc-set-card {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4),
+              inset 0 1px 0 color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+[data-theme-mode="light"] .fc-set-card {
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 8%, transparent),
+              inset 0 1px 0 color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+/* Enhanced Focus Rings */
+.fc-btn:focus-visible,
+.fc-nav-item:focus-visible {
+  outline: 2px solid var(--fc-accent);
+  outline-offset: 2px;
+}
+
+/* Gradient Overlay for Footer */
+.fc-sidebar-footer {
+  position: relative;
+}
+
+.fc-sidebar-footer::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(0deg, 
+    color-mix(in srgb, var(--accent) 5%, transparent) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.fc-sidebar-footer > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Enhanced Mastery Badge Colors */
+.fc-set-mastery {
+  text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* Subtle Animation for Page Load */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fc-set-card,
+.fc-stat-card,
+.fc-nav-item {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.fc-set-card:nth-child(1) { animation-delay: 0.05s; }
+.fc-set-card:nth-child(2) { animation-delay: 0.1s; }
+.fc-set-card:nth-child(3) { animation-delay: 0.15s; }
+.fc-set-card:nth-child(4) { animation-delay: 0.2s; }
+.fc-set-card:nth-child(5) { animation-delay: 0.25s; }
+.fc-set-card:nth-child(6) { animation-delay: 0.3s; }
+
+/* Enhanced Button States */
+.fc-btn:active {
+  transform: scale(0.98);
+}
+
+.fc-btn-primary:active {
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent) !important;
+}
+
+/* Gradient Text for Stats */
+[data-theme-mode="dark"] .fc-stat-value {
+  background: linear-gradient(135deg, 
+    var(--fc-accent),
+    color-mix(in srgb, var(--accent) 60%, white)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[data-theme-mode="light"] .fc-stat-value {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: unset !important;
+  background-clip: unset !important;
+  color: var(--fc-accent) !important;
+}
+
+/* Enhanced Logo Hover */
+.fc-logo {
+  transition: all 0.3s;
+}
+
+.fc-logo:hover {
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent) 40%, transparent));
+}
+
+/* Subtle Glow for Collapse Button */
+.fc-collapse-btn:hover {
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+/* Enhanced Grid Hover */
+.fc-grid {
+  gap: 24px;
+}
+
+/* Smooth Color Transitions */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 0.2s;
+  transition-timing-function: ease-in-out;
+}
+
+/* Override for animations */
+*[class*="animation"],
+*[class*="animate"] {
+  transition: none;
+}
+
+
+/* ==================== COMPREHENSIVE PANEL STYLING ==================== */
+
+/* Large Gradient Overlays for Each Panel */
+[data-theme-mode="dark"] .fc-content::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(ellipse 80% 50% at 20% 20%, color-mix(in srgb, var(--accent) 4%, transparent) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 50% at 80% 80%, color-mix(in srgb, var(--accent) 3%, transparent) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-theme-mode="light"] .fc-content::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(ellipse 80% 50% at 20% 20%, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 50% at 80% 80%, color-mix(in srgb, var(--accent) 5%, transparent) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Enhanced Title and Subtitle Spacing */
+.fc-header-left {
+  padding: 8px 0;
+}
+
+.fc-header-title {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.fc-header-subtitle {
+  margin-top: 0;
+  line-height: 1.4;
+  position: relative;
+  padding-left: 16px;
+}
+
+.fc-header-subtitle::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--fc-accent);
+  opacity: 0.5;
+}
+
+/* Stat Card Enhanced Backgrounds */
+[data-theme-mode="dark"] .fc-stat-card {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 5%, var(--panel)) 0%,
+    var(--panel) 100%
+  );
+}
+
+[data-theme-mode="light"] .fc-stat-card {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 8%, var(--panel)) 0%,
+    var(--panel) 100%
+  );
+}
+
+/* Enhanced Set Card Backgrounds */
+[data-theme-mode="dark"] .fc-set-card {
+  background: linear-gradient(145deg, 
+    color-mix(in srgb, var(--accent) 4%, var(--panel)) 0%,
+    var(--panel) 100%
+  ) !important;
+}
+
+[data-theme-mode="light"] .fc-set-card {
+  background: linear-gradient(145deg, 
+    color-mix(in srgb, var(--accent) 6%, var(--panel)) 0%,
+    var(--panel) 100%
+  ) !important;
+}
+
+/* Generator Panel Special Gradient */
+[data-theme-mode="dark"] .fc-generator {
+  background: radial-gradient(ellipse 100% 80% at 50% 20%, 
+    color-mix(in srgb, var(--accent) 6%, transparent) 0%,
+    transparent 60%
+  );
+  padding: 40px;
+  border-radius: 16px;
+}
+
+[data-theme-mode="light"] .fc-generator {
+  background: radial-gradient(ellipse 100% 80% at 50% 20%, 
+    color-mix(in srgb, var(--accent) 10%, transparent) 0%,
+    transparent 60%
+  );
+  padding: 40px;
+  border-radius: 16px;
+}
+
+/* Mode Selector Enhanced */
+.fc-mode-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.fc-mode-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 8%, transparent),
+    transparent
+  );
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.fc-mode-btn:hover::before,
+.fc-mode-btn.active::before {
+  opacity: 1;
+}
+
+/* Enhanced Empty State Gradient */
+[data-theme-mode="dark"] .fc-empty {
+  background: radial-gradient(ellipse 60% 50% at 50% 50%, 
+    color-mix(in srgb, var(--accent) 5%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+[data-theme-mode="light"] .fc-empty {
+  background: radial-gradient(ellipse 60% 50% at 50% 50%, 
+    color-mix(in srgb, var(--accent) 8%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+/* Stats Bar Enhanced */
+[data-theme-mode="dark"] .fc-stats-bar {
+  background: linear-gradient(90deg, 
+    transparent 0%,
+    color-mix(in srgb, var(--accent) 5%, var(--bg)) 50%,
+    transparent 100%
+  ) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+[data-theme-mode="light"] .fc-stats-bar {
+  background: linear-gradient(90deg, 
+    transparent 0%,
+    color-mix(in srgb, var(--accent) 8%, #ffffff) 50%,
+    transparent 100%
+  ) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* Review Panel Special Styling */
+[data-theme-mode="dark"] .fc-content:has(.fc-review-card) {
+  background: radial-gradient(ellipse 100% 80% at 50% 30%, 
+    color-mix(in srgb, var(--accent) 5%, var(--bg)) 0%,
+    var(--bg) 70%
+  );
+}
+
+[data-theme-mode="light"] .fc-content:has(.fc-review-card) {
+  background: radial-gradient(ellipse 100% 80% at 50% 30%, 
+    color-mix(in srgb, var(--accent) 8%, var(--bg)) 0%,
+    var(--bg) 70%
+  );
+}
+
+/* Enhanced Input Fields */
+[data-theme-mode="dark"] .fc-input,
+[data-theme-mode="dark"] .fc-textarea {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 3%, var(--hover-bg)) 0%,
+    var(--hover-bg) 100%
+  );
+}
+
+[data-theme-mode="light"] .fc-input,
+[data-theme-mode="light"] .fc-textarea {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 5%, var(--hover-bg)) 0%,
+    var(--hover-bg) 100%
+  );
+}
+
+/* Enhanced Search Box */
+[data-theme-mode="dark"] .fc-search {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 4%, var(--hover-bg)) 0%,
+    var(--hover-bg) 100%
+  ) !important;
+}
+
+[data-theme-mode="light"] .fc-search {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 6%, var(--hover-bg)) 0%,
+    var(--hover-bg) 100%
+  ) !important;
+}
+
+/* Enhanced Select Dropdown */
+[data-theme-mode="dark"] .fc-select {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 4%, var(--hover-bg)) 0%,
+    var(--hover-bg) 100%
+  ) !important;
+}
+
+[data-theme-mode="light"] .fc-select {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 6%, var(--hover-bg)) 0%,
+    var(--hover-bg) 100%
+  ) !important;
+}
+
+
+
+/* Enhanced Progress Bars */
+.fc-set-progress {
+  background: linear-gradient(90deg, 
+    color-mix(in srgb, var(--accent) 10%, var(--hover-bg)),
+    var(--hover-bg)
+  );
+}
+
+/* Study Button Enhanced Gradient */
+.fc-set-btn.study {
+  background: linear-gradient(135deg, 
+    var(--fc-accent) 0%,
+    color-mix(in srgb, var(--accent) 85%, #000000) 100%
+  ) !important;
+}
+
+/* Preview Button Enhanced */
+[data-theme-mode="dark"] .fc-set-btn.preview {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 8%, var(--hover-bg)) 0%,
+    var(--hover-bg) 100%
+  ) !important;
+}
+
+[data-theme-mode="light"] .fc-set-btn.preview {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 12%, var(--hover-bg)) 0%,
+    var(--hover-bg) 100%
+  ) !important;
+}
+
+/* Enhanced Logo Area */
+.fc-logo-text {
+  text-shadow: 0 0 20px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+/* Sidebar Nav Enhanced Hover States */
+[data-theme-mode="dark"] .fc-nav-item:hover:not(.fc-convert-btn) {
+  background: linear-gradient(90deg, 
+    color-mix(in srgb, var(--accent) 12%, var(--hover-bg)) 0%,
+    var(--hover-bg) 100%
+  ) !important;
+}
+
+[data-theme-mode="light"] .fc-nav-item:hover:not(.fc-convert-btn) {
+  background: linear-gradient(90deg, 
+    color-mix(in srgb, var(--accent) 15%, var(--hover-bg)) 0%,
+    var(--hover-bg) 100%
+  ) !important;
+}
+
+/* Active Nav Item Enhanced */
+[data-theme-mode="dark"] .fc-nav-item.active {
+  background: linear-gradient(90deg, 
+    color-mix(in srgb, var(--accent) 15%, var(--hover-bg)) 0%,
+    color-mix(in srgb, var(--accent) 8%, var(--hover-bg)) 100%
+  ) !important;
+}
+
+[data-theme-mode="light"] .fc-nav-item.active {
+  background: linear-gradient(90deg, 
+    color-mix(in srgb, var(--accent) 20%, var(--hover-bg)) 0%,
+    color-mix(in srgb, var(--accent) 12%, var(--hover-bg)) 100%
+  ) !important;
 }

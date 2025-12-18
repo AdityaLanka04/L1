@@ -855,13 +855,6 @@ const Flashcards = () => {
         <aside className={`fc-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
           <div className="fc-sidebar-header">
             <div className="fc-logo" onClick={() => navigate('/dashboard')}>
-              <div className="fc-logo-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2L2 7L12 12L22 7L12 2Z"/>
-                  <path d="M2 17L12 22L22 17"/>
-                  <path d="M2 12L12 17L22 12"/>
-                </svg>
-              </div>
               <span className="fc-logo-text">cerbyl</span>
             </div>
             <button className="fc-collapse-btn" onClick={() => setSidebarCollapsed(!sidebarCollapsed)}>
@@ -911,29 +904,27 @@ const Flashcards = () => {
           </div>
         </aside>
 
-        {/* Show Sidebar Button - appears when sidebar is collapsed */}
-        {sidebarCollapsed && (
-          <button 
-            className="fc-show-sidebar-btn" 
-            onClick={() => setSidebarCollapsed(false)}
-            title="Show Sidebar"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-              <line x1="3" y1="12" x2="21" y2="12"/>
-              <line x1="3" y1="6" x2="21" y2="6"/>
-              <line x1="3" y1="18" x2="21" y2="18"/>
-            </svg>
-          </button>
-        )}
-
         {/* Main Content */}
         <main className="fc-main">
           {/* My Flashcards Panel */}
           {activePanel === 'cards' && (
             <>
               <header className="fc-header">
+                {sidebarCollapsed && (
+                  <button 
+                    className="fc-show-sidebar-btn" 
+                    onClick={() => setSidebarCollapsed(false)}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                      <line x1="3" y1="12" x2="21" y2="12"/>
+                      <line x1="3" y1="6" x2="21" y2="6"/>
+                      <line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                  </button>
+                )}
                 <div className="fc-header-left">
                   <h1 className="fc-header-title">My Flashcards</h1>
+                  <p className="fc-header-subtitle">View and manage your flashcard sets</p>
                 </div>
                 <div className="fc-header-actions">
                   <div className="fc-search">
@@ -966,10 +957,14 @@ const Flashcards = () => {
                 </p>
               </div>
 
-              <div className="fc-content">
+              <div className="fc-content fc-cards-panel">
                 {loadingHistory ? (
                   <div className="fc-loading">
-                    <div className="fc-spinner"></div>
+                    <div className="fc-spinner">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
                     <p>Loading your flashcards...</p>
                   </div>
                 ) : flashcardHistory.length === 0 ? (
@@ -1079,10 +1074,10 @@ const Flashcards = () => {
           {/* Generator Panel */}
           {activePanel === 'generator' && (
             <>
-              <header className="fc-header fc-header-centered">
-                <div className="fc-header-title-group">
+              <header className="fc-header">
+                <div className="fc-header-left">
                   <h1 className="fc-header-title">Generate Flashcards</h1>
-                  <p className="fc-header-subtitle-inline">Create AI-powered flashcards from topics or chat history</p>
+                  <p className="fc-header-subtitle">Create AI-powered flashcards from topics or chat history</p>
                 </div>
               </header>
 
@@ -1249,7 +1244,11 @@ const Flashcards = () => {
               <div className="fc-content">
                 {loadingReviewCards ? (
                   <div className="fc-loading">
-                    <div className="fc-spinner"></div>
+                    <div className="fc-spinner">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
                     <p>Loading cards for review...</p>
                   </div>
                 ) : reviewCards.total_cards === 0 ? (

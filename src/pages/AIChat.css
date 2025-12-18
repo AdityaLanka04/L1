@@ -202,9 +202,6 @@
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.ac-logo:hover .ac-logo-text {
-  /* Keep original color, only show underline on hover */
-}
 
 .ac-logo:hover .ac-logo-text::after {
   width: 100%;
@@ -284,7 +281,7 @@
 
 .ac-nav-item-accent {
   color: var(--ac-accent) !important;
-  border: 1px solid var(--ac-accent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent) !important;
 }
 
 .ac-nav-item-accent .ac-nav-icon {
@@ -338,10 +335,14 @@
 
 .ac-sidebar-footer {
   padding: 16px 12px;
-  border-top: 1px solid var(--ac-border-subtle);
+  border-top: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.ac-sidebar-footer .ac-nav-item {
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 /* New Chat Button */
@@ -493,7 +494,10 @@
   height: 100%;
   overflow: hidden;
   background: var(--ac-bg-primary);
+  position: relative;
 }
+
+
 
 /* Fixed Header */
 .ac-header {

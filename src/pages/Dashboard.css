@@ -753,7 +753,7 @@ body {
   width: calc(100% - 40px);
   max-width: 400px;
   background: var(--accent);
-  border: 1px solid color-mix(in srgb, var(--accent) 60%, white);
+  border: 2px solid color-mix(in srgb, var(--accent) 60%, white);
   color: #000;
   padding: 16px 24px;
   font-size: 12px;
@@ -773,9 +773,15 @@ body {
 
 .dashboard-page .start-session-btn:hover:not(:disabled) {
   background: color-mix(in srgb, var(--accent) 90%, white);
-  border-color: color-mix(in srgb, var(--accent) 80%, white);
+  border: 2px solid #1a1a1a !important;
+  color: #1a1a1a !important;
   transform: translateY(-2px);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), 0 0 30px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+[data-theme-mode="light"] .dashboard-page .start-session-btn:hover:not(:disabled) {
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
 }
 
 .dashboard-page .start-session-btn:disabled {
