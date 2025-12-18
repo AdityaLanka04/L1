@@ -403,6 +403,11 @@ def get_user_stats(db: Session, user_id: int):
     ).all()
     rank = next((i + 1 for i, s in enumerate(all_stats) if s.user_id == user_id), None)
     
+    # Get actual chat session count (not message count)
+    total_chat_sessions = db.query(func.count(models.ChatSession.id)).filter(
+        models.ChatSession.user_id == user_id
+    ).scalar() or 0
+    
     return {
         "total_points": stats.total_points,
         "weekly_points": stats.weekly_points,
@@ -426,7 +431,8 @@ def get_user_stats(db: Session, user_id: int):
         "weekly_flashcards_reviewed": getattr(stats, 'weekly_flashcards_reviewed', 0),
         "weekly_flashcards_mastered": getattr(stats, 'weekly_flashcards_mastered', 0),
         # Total stats
-        "total_ai_chats": stats.total_ai_chats,
+        "total_ai_chats": stats.total_ai_chats,  # Message count (for points)
+        "total_chat_sessions": total_chat_sessions,  # Actual session count
         "total_notes_created": stats.total_notes_created,
         "total_questions_answered": stats.total_questions_answered,
         "total_quizzes_completed": stats.total_quizzes_completed,

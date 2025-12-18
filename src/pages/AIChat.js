@@ -440,14 +440,19 @@ const AIChat = ({ sharedMode = false }) => {
     if ((!inputMessage.trim() && selectedFiles.length === 0) || loading || !userName) return;
 
     let currentChatId = activeChatId;
+    let isNewChat = false;
+    
     if (!currentChatId) {
       currentChatId = await createNewChat();
       if (!currentChatId) {
         alert('Error: Failed to create new chat. Please try again.');
         return;
       }
-      isLoadingRef.current = false;
-      navigate(`/ai-chat/${currentChatId}`);
+      isNewChat = true;
+      // Set activeChatId immediately to prevent useEffect from clearing messages
+      setActiveChatId(currentChatId);
+      // Navigate with replace to update URL without triggering full reload
+      navigate(`/ai-chat/${currentChatId}`, { replace: true });
     }
 
     const userMessage = {
@@ -531,14 +536,16 @@ const AIChat = ({ sharedMode = false }) => {
         currentChatId = actualChatId;
       }
       
-      // Auto-rename chat if it's the first message (title is still "New Chat")
-      const currentChat = chatSessions.find(chat => chat.id === currentChatId);
-      if (currentChat && currentChat.title === 'New Chat' && messageText.trim()) {
-        await autoRenameChat(currentChatId, messageText);
+      // Auto-rename chat if it's the first message or title is still "New Chat"
+      if (isNewChat || messageText.trim()) {
+        const currentChat = chatSessions.find(chat => chat.id === currentChatId);
+        if (!currentChat || currentChat.title === 'New Chat') {
+          await autoRenameChat(currentChatId, messageText);
+        }
       }
       
       // Reload chat sessions to ensure the list is up to date
-      loadChatSessions();
+      await loadChatSessions();
       
       // Points are now awarded by backend when saving message
 
@@ -1341,21 +1348,27 @@ const AIChat = ({ sharedMode = false }) => {
     const numericChatId = chatId ? parseInt(chatId) : null;
     
     if (numericChatId && !isNaN(numericChatId)) {
+      // Only load messages if this is a different chat than what we have active
+      // This prevents clearing messages when we just created a new chat
       if (activeChatId !== numericChatId) {
         setActiveChatId(numericChatId);
-        setMessages([]);
-        
+        // Only clear and reload if we're switching to a different existing chat
+        // Don't clear if messages are already being added (new chat scenario)
         if (!isLoadingRef.current) {
           isLoadingRef.current = true;
+          setMessages([]);
           loadChatMessages(numericChatId);
         }
       }
-    } else {
-      setActiveChatId(null);
-      setMessages([]);
+    } else if (chatId === undefined || chatId === null) {
+      // Only reset if we're at /ai-chat with no ID (fresh start)
+      if (activeChatId !== null) {
+        setActiveChatId(null);
+        setMessages([]);
+      }
       isLoadingRef.current = false;
     }
-  }, [chatId]);
+  }, [chatId, activeChatId]);
 
   useEffect(() => {
     scrollToBottom();

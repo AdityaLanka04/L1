@@ -1,20 +1,28 @@
 """
-Reset all gamification stats for a clean slate
-Run this once to reset all user stats
+Reset all gamification stats and chat sessions for a clean slate
+Run this once to reset everything
 """
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from database import SessionLocal
-from models import UserGamificationStats, PointTransaction, DailyLearningMetrics
+from models import UserGamificationStats, PointTransaction, DailyLearningMetrics, ChatMessage, ChatSession
 from datetime import datetime, timezone
 
 def reset_all_stats():
     db = SessionLocal()
     
     try:
-        print("🔄 Resetting all gamification stats...")
+        print("🔄 Resetting all data...")
+        
+        # Delete all chat messages first (foreign key constraint)
+        deleted_messages = db.query(ChatMessage).delete()
+        print(f"✅ Deleted {deleted_messages} chat messages")
+        
+        # Delete all chat sessions
+        deleted_sessions = db.query(ChatSession).delete()
+        print(f"✅ Deleted {deleted_sessions} chat sessions")
         
         # Reset all UserGamificationStats
         stats = db.query(UserGamificationStats).all()
@@ -51,12 +59,14 @@ def reset_all_stats():
         print(f"✅ Deleted {deleted_metrics} daily metrics")
         
         db.commit()
-        print("\n✅ All stats reset successfully!")
+        print("\n✅ All data reset successfully!")
         print("Users can now start fresh with proper point tracking.")
         
     except Exception as e:
         db.rollback()
         print(f"❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
     finally:
         db.close()
 

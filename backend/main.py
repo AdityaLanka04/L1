@@ -1363,32 +1363,12 @@ async def ask_simple(
                 ).first()
                 if not chat_session:
                     print(f"⚠️ Chat session {chat_id_int} not found or doesn't belong to user {user.id}")
-                    # Create a new chat session instead of failing
-                    print(f"📝 Creating new chat session for user {user.id}")
-                    new_chat = models.ChatSession(
-                        user_id=user.id,
-                        title="New Chat"
-                    )
-                    db.add(new_chat)
-                    db.commit()
-                    db.refresh(new_chat)
-                    chat_id_int = new_chat.id
-                    print(f"✅ Created new chat session: {chat_id_int}")
-            except Exception as e:
-                print(f"⚠️ Error validating chat_id: {str(e)}")
-                # Create new chat on error too
-                try:
-                    new_chat = models.ChatSession(
-                        user_id=user.id,
-                        title="New Chat"
-                    )
-                    db.add(new_chat)
-                    db.commit()
-                    db.refresh(new_chat)
-                    chat_id_int = new_chat.id
-                    print(f"✅ Created new chat session after error: {chat_id_int}")
-                except:
-                    chat_id_int = None
+                    # Don't create a new session - the frontend should have created it
+                    # Just use the provided chat_id and let the message save handle it
+                    print(f"📝 Will use provided chat_id: {chat_id_int}")
+            except ValueError as e:
+                print(f"⚠️ Invalid chat_id format: {str(e)}")
+                chat_id_int = None
         
         # Load chat history for context
         chat_history = ""
@@ -4836,11 +4816,15 @@ def get_enhanced_user_stats(user_id: str = Query(...), db: Session = Depends(get
         gamification_stats = get_gamification_stats(db, user.id)
         
         total_questions = gamification_stats.get("total_questions_answered", 0)
-        total_ai_chats = gamification_stats.get("total_ai_chats", 0)
         total_notes = gamification_stats.get("total_notes_created", 0)
         total_flashcards = gamification_stats.get("total_flashcards_created", 0)
         total_quizzes = gamification_stats.get("total_quizzes_completed", 0)
         total_study_minutes = gamification_stats.get("total_study_minutes", 0)
+        
+        # Count actual chat sessions from database (not messages)
+        total_chat_sessions = db.query(func.count(models.ChatSession.id)).filter(
+            models.ChatSession.user_id == user.id
+        ).scalar() or 0
         
         streak = gamification_stats.get("current_streak", 0)
         
@@ -4862,7 +4846,7 @@ def get_enhanced_user_stats(user_id: str = Query(...), db: Session = Depends(get
             "totalQuestions": total_questions,
             "totalFlashcards": total_flashcards,
             "totalNotes": total_notes,
-            "totalChatSessions": total_ai_chats,
+            "totalChatSessions": total_chat_sessions,
             "total_time_today": 0
         }
         

@@ -991,7 +991,7 @@ const Dashboard = () => {
           minutes: gamificationStats.total_study_minutes || 0,
           totalFlashcards: gamificationStats.total_flashcards_created || 0,
           totalNotes: gamificationStats.total_notes_created || 0,
-          totalChatSessions: gamificationStats.total_ai_chats || 0
+          totalChatSessions: gamificationStats.total_chat_sessions || 0
         });
         setTotalTimeToday(0); // This endpoint doesn't provide today's time
       } else {

@@ -41,11 +41,7 @@
 ============================================ */
 .analytics-page {
   min-height: 100vh;
-  background: 
-    linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 100%),
-    radial-gradient(ellipse at 20% 0%, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 100%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
-    radial-gradient(ellipse at top, var(--bg-top), var(--bg-bottom));
+  background: var(--background);
   padding: 0;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--text-primary);
@@ -56,12 +52,10 @@
    HEADER - FLOATING GLASS DESIGN
 ============================================ */
 .analytics-header {
-  background: linear-gradient(135deg, 
-    rgba(var(--accent-rgb, 215, 179, 140), 0.08) 0%,
-    rgba(0, 0, 0, 0.4) 100%);
+  background: var(--card-bg, var(--surface));
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border);
   padding: 24px 0;
   position: sticky;
   top: 0;
@@ -234,10 +228,8 @@
 }
 
 .summary-card {
-  background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0.02) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--card-bg, var(--surface));
+  border: 1px solid var(--border);
   border-radius: var(--card-radius);
   padding: 32px;
   display: flex;
@@ -388,10 +380,8 @@
   gap: 32px;
   margin-bottom: calc(var(--bento-gap) * 1.5);
   padding: 28px 36px;
-  background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.06) 0%,
-    rgba(255, 255, 255, 0.02) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--card-bg, var(--surface));
+  border: 1px solid var(--border);
   border-radius: var(--card-radius);
   backdrop-filter: blur(10px);
   align-items: center;
@@ -416,10 +406,10 @@
 .filter-buttons {
   display: flex;
   gap: 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--surface);
   border-radius: 14px;
   padding: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
 }
 
 .filter-btn {
@@ -484,10 +474,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.06) 0%,
-    rgba(255, 255, 255, 0.02) 100%);
-  border: 2px solid rgba(255, 255, 255, 0.08);
+  background: var(--card-bg, var(--surface));
+  border: 2px solid var(--border);
   color: var(--text-secondary);
   padding: 12px 20px;
   border-radius: 50px;
@@ -544,10 +532,8 @@
    MAIN CHART SECTION - BENTO HERO
 ============================================ */
 .main-chart-section {
-  background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(255, 255, 255, 0.02) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--card-bg, var(--surface));
+  border: 1px solid var(--border);
   border-radius: var(--card-radius);
   padding: 40px;
   margin-bottom: calc(var(--bento-gap) * 1.5);
@@ -879,10 +865,8 @@
 }
 
 .stat-card {
-  background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.07) 0%,
-    rgba(255, 255, 255, 0.02) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--card-bg, #fff);
+  border: 1px solid var(--border);
   border-radius: 18px;
   padding: 20px;
   transition: var(--transition-smooth);
@@ -908,24 +892,12 @@
 }
 
 .stat-card::after {
-  content: '';
-  position: absolute;
-  top: -30%;
-  right: -30%;
-  width: 60%;
-  height: 60%;
-  background: radial-gradient(circle, var(--stat-color) 0%, transparent 70%);
-  opacity: 0.04;
-  pointer-events: none;
-  transition: var(--transition-smooth);
+  display: none;
 }
 
 .stat-card:hover {
   transform: translateY(-8px) scale(1.02);
-  border-color: rgba(255, 255, 255, 0.12);
-  box-shadow: 
-    0 20px 40px rgba(0, 0, 0, 0.25),
-    0 0 40px rgba(var(--stat-color-rgb), 0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
 }
 
 .stat-card:hover::before {
@@ -963,7 +935,7 @@
   gap: 10px;
   margin-bottom: 14px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border);
   position: relative;
 }
 
@@ -982,13 +954,13 @@
   flex-shrink: 0;
   width: 18px;
   height: 18px;
-  filter: drop-shadow(0 0 6px currentColor);
+  color: var(--accent);
 }
 
 .stat-header span {
   font-size: 11px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--accent);
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -1019,7 +991,7 @@
 .stat-row .value {
   font-size: 20px;
   font-weight: 800;
-  color: var(--text-primary);
+  color: var(--accent);
   letter-spacing: -0.5px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -1027,11 +999,9 @@
 }
 
 .stat-row .value.highlight {
-  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 70%, white) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--accent);
   font-size: 24px;
+  font-weight: 900;
 }
 
 /* Stat Card Color Variants */
@@ -1048,10 +1018,8 @@
    POINTS REFERENCE - GRADIENT PANEL
 ============================================ */
 .points-reference {
-  background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.07) 0%,
-    rgba(255, 255, 255, 0.02) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--card-bg, var(--surface));
+  border: 1px solid var(--border);
   border-radius: var(--card-radius);
   padding: 40px;
   position: relative;
@@ -1113,10 +1081,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 18px 24px;
-  background: linear-gradient(145deg, 
-    rgba(255, 255, 255, 0.05) 0%,
-    rgba(255, 255, 255, 0.02) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 16px;
   font-size: 12px;
   transition: var(--transition-smooth);
@@ -2538,4 +2504,128 @@
 .stat-card:focus-within {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(var(--accent-rgb, 215, 179, 140), 0.2);
+}
+
+/* ============================================
+   LIGHT MODE STYLES
+============================================ */
+[data-theme-mode="light"] .analytics-page {
+  background: var(--background, var(--bg-bottom));
+}
+
+[data-theme-mode="light"] .analytics-header {
+  background: var(--panel, #ffffff);
+  border-bottom-color: var(--border);
+}
+
+[data-theme-mode="light"] .summary-card,
+[data-theme-mode="light"] .stat-card,
+[data-theme-mode="light"] .main-chart-section,
+[data-theme-mode="light"] .filters-section,
+[data-theme-mode="light"] .points-reference {
+  background: var(--panel, #ffffff);
+  border-color: var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme-mode="light"] .summary-card:hover,
+[data-theme-mode="light"] .stat-card:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent);
+  background-image: none;
+}
+
+[data-theme-mode="light"] .stat-header svg,
+[data-theme-mode="light"] .stat-header span {
+  color: var(--accent);
+}
+
+[data-theme-mode="light"] .stat-row .value,
+[data-theme-mode="light"] .stat-row .value.highlight {
+  color: var(--accent);
+}
+
+[data-theme-mode="light"] .card-value {
+  color: var(--text-primary);
+}
+
+[data-theme-mode="light"] .card-label {
+  color: var(--text-secondary);
+}
+
+[data-theme-mode="light"] .filter-btn {
+  background: var(--panel, #ffffff);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+
+[data-theme-mode="light"] .filter-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-bottom);
+}
+
+[data-theme-mode="light"] .filter-btn.active {
+  background: var(--accent);
+  color: var(--primary-contrast, #ffffff);
+}
+
+[data-theme-mode="light"] .metric-chip {
+  background: var(--panel, #ffffff);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+
+[data-theme-mode="light"] .metric-chip:hover {
+  border-color: var(--chip-color);
+  color: var(--chip-color);
+}
+
+[data-theme-mode="light"] .metric-chip.active {
+  background: var(--chip-color);
+  color: var(--primary-contrast, #ffffff);
+}
+
+[data-theme-mode="light"] .point-item {
+  background: var(--bg-bottom);
+  border-color: var(--border);
+}
+
+[data-theme-mode="light"] .point-item:hover {
+  background: var(--panel, #ffffff);
+  border-color: var(--accent);
+}
+
+[data-theme-mode="light"] .chart-header h2,
+[data-theme-mode="light"] .points-reference h3,
+[data-theme-mode="light"] .header-title h1 {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2, var(--accent)) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[data-theme-mode="light"] .legend-item {
+  background: var(--bg-bottom);
+  color: var(--text-primary);
+}
+
+[data-theme-mode="light"] .legend-item:hover {
+  background: var(--panel, #ffffff);
+  border-color: var(--border);
+}
+
+[data-theme-mode="light"] .bar-group .x-label,
+[data-theme-mode="light"] .y-label,
+[data-theme-mode="light"] .line-x-labels span {
+  color: var(--text-secondary);
+}
+
+[data-theme-mode="light"] .bars-container {
+  border-left-color: var(--border);
+  border-bottom-color: var(--border);
+}
+
+[data-theme-mode="light"] .summary-card::after,
+[data-theme-mode="light"] .stat-card::after {
+  display: none;
 }
