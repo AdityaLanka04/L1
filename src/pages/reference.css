@@ -67,12 +67,11 @@ body {
   background: color-mix(in srgb, var(--bg-top) 80%, transparent);
   backdrop-filter: blur(20px);
   border-bottom: none;
-  padding: 12px 0;
+  padding: 16px 0;
   position: sticky;
   top: 0;
   z-index: 100;
   box-shadow: var(--shadow-sm);
-  flex-shrink: 0;
 }
 
 .dashboard-page .dashboard-header::after {
@@ -293,9 +292,8 @@ body {
 ---------------------------------------------------- */
 .dashboard-page .dashboard-main {
   max-width: 1800px;
-  margin: 0 !important;
-  margin-left: 20px !important;
-  padding: 20px 40px 20px 20px !important;
+  margin: 0 auto;
+  padding: 40px;
 }
 
 .dashboard-page .welcome-section {
@@ -670,7 +668,7 @@ body {
   font-size: 32px; font-weight: 800; letter-spacing: 2px; color: #000; cursor: pointer;
   position: relative; transition: all .4s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
-  background: linear-gradient(135deg, var(--accent) 0%, #ffffff 100%);
+  background: var(--accent);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   border: 1px solid color-mix(in srgb, var(--accent) 60%, white);
 }
@@ -778,32 +776,31 @@ body {
 .dashboard-page .start-session-btn {
   width: calc(100% - 40px);
   max-width: 400px;
-  background: linear-gradient(135deg, var(--accent) 0%, #ffffff 100%);
-  border: 2px solid color-mix(in srgb, var(--accent) 70%, white);
+  background: var(--accent);
+  border: 2px solid color-mix(in srgb, var(--accent) 60%, white);
   color: #000;
   padding: 16px 24px;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 1px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
   margin: 10px 20px 0 20px;
   position: relative;
   overflow: hidden;
   border-radius: 0;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.35), 0 0 20px color-mix(in srgb, var(--accent) 25%, transparent);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   flex-shrink: 0;
 }
 
 .dashboard-page .start-session-btn:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent) 95%, var(--bg-top));
-  border: 2px solid var(--accent) !important;
-  color: #000000 !important;
-  transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45), 0 0 40px color-mix(in srgb, var(--accent) 50%, transparent);
-  filter: brightness(1.1);
+  background: color-mix(in srgb, var(--accent) 90%, white);
+  border: 2px solid #1a1a1a !important;
+  color: #1a1a1a !important;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), 0 0 30px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 [data-theme-mode="light"] .dashboard-page .start-session-btn:hover:not(:disabled) {
@@ -4201,86 +4198,50 @@ body {
 
 .dashboard-layout-modern {
   width: 100%;
-  max-width: 1800px;
+  max-width: 1600px;
   margin: 0 auto;
-  padding: 0 20px 0 0 !important;
-  margin-left: 0 !important;
 }
 
 /* Unified Widgets Grid - All widgets use same system */
-/* Header ~60px, padding 40px total, gap 20px = 160px reserved */
 .dashboard-widgets-unified {
   display: grid !important;
   grid-template-columns: repeat(12, 1fr) !important;
-  /* 2 rows that fit in viewport */
-  grid-auto-rows: calc((100vh - 160px) / 2 - 15px) !important;
+  grid-auto-rows: minmax(280px, auto) !important;
   gap: 20px !important;
   width: 100% !important;
-  padding: 20px 0 !important;
+  padding: 20px !important;
 }
-
-/* Bento Grid Layout:
-   Row 1: Greeting (4) | Weekly Activity (4) | Quick Actions (4, spans 2 rows)
-   Row 2: AI Chat (8)                        | Quick Actions continues
-*/
 
 /* Widget sizes in unified grid */
 .dashboard-widgets-unified .widget-small {
   grid-column: span 4 !important;
-  height: calc((100vh - 160px) / 2 - 15px) !important;
-  max-height: calc((100vh - 160px) / 2 - 15px) !important;
 }
 .dashboard-widgets-unified .widget-medium {
-  grid-column: span 4 !important;
-  height: calc((100vh - 160px) / 2 - 15px) !important;
-  max-height: calc((100vh - 160px) / 2 - 15px) !important;
+  grid-column: span 6 !important;
 }
 .dashboard-widgets-unified .widget-large {
   grid-column: span 8 !important;
-  height: calc((100vh - 160px) / 2 - 15px) !important;
-  max-height: calc((100vh - 160px) / 2 - 15px) !important;
 }
 .dashboard-widgets-unified .widget-full {
   grid-column: span 12 !important;
 }
 
-/* Stats widget (Weekly Activity) - 4 columns */
-.dashboard-widgets-unified .widget-stats {
-  grid-column: span 4 !important;
-  height: calc((100vh - 160px) / 2 - 15px) !important;
-  max-height: calc((100vh - 160px) / 2 - 15px) !important;
-}
-
-/* Quick actions - spans 2 rows, 4 columns */
+/* Quick actions spans 2 rows */
 .dashboard-widgets-unified .widget-quick-actions {
-  grid-column: span 4 !important;
   grid-row: span 2 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  height: calc(100vh - 160px - 10px) !important;
-  max-height: calc(100vh - 160px - 10px) !important;
 }
 
-/* AI Assistant widget - 8 columns (same width as Greeting + Weekly Activity) */
-.dashboard-widgets-unified .widget-ai-assistant {
-  grid-column: span 8 !important;
-  height: calc((100vh - 160px) / 2 - 15px) !important;
-  max-height: calc((100vh - 160px) / 2 - 15px) !important;
-}
-
-/* Compact greeting card - top left - 4 columns */
+/* Compact greeting card - top left, wider */
 .greeting-card-compact {
   background: var(--accent) !important;
-  padding: 30px !important;
+  padding: 24px !important;
   border-radius: 0 !important;
   border: none !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: center !important;
   grid-column: span 4 !important;
-  /* Match row height */
-  height: calc((100vh - 160px) / 2 - 15px) !important;
-  max-height: calc((100vh - 160px) / 2 - 15px) !important;
+  min-height: 100px !important;
 }
 
 .greeting-card-compact .greeting-text {
@@ -4289,15 +4250,6 @@ body {
   color: var(--bg-top) !important;
   margin: 0 0 8px 0 !important;
   line-height: 1.2 !important;
-}
-
-.greeting-card-compact .greeting-quote {
-  font-size: 12px !important;
-  color: var(--bg-top) !important;
-  margin: 0 !important;
-  opacity: 0.7 !important;
-  font-style: italic !important;
-  line-height: 1.4 !important;
 }
 
 .greeting-card-compact .greeting-subtitle {
@@ -4310,8 +4262,7 @@ body {
 /* Responsive for unified grid */
 @media (max-width: 1400px) {
   .dashboard-widgets-unified {
-    grid-template-columns: repeat(12, 1fr) !important;
-    grid-auto-rows: calc((100vh - 160px) / 2 - 15px) !important;
+    grid-template-columns: repeat(8, 1fr) !important;
   }
   .dashboard-widgets-unified .widget-small {
     grid-column: span 4 !important;
@@ -4319,15 +4270,8 @@ body {
   .dashboard-widgets-unified .widget-medium {
     grid-column: span 4 !important;
   }
-  .dashboard-widgets-unified .widget-large,
-  .dashboard-widgets-unified .widget-ai-assistant {
+  .dashboard-widgets-unified .widget-large {
     grid-column: span 8 !important;
-  }
-  .dashboard-widgets-unified .widget-stats {
-    grid-column: span 4 !important;
-  }
-  .dashboard-widgets-unified .widget-quick-actions {
-    grid-column: span 4 !important;
   }
   .greeting-card-compact {
     grid-column: span 4 !important;
@@ -4337,18 +4281,13 @@ body {
 @media (max-width: 768px) {
   .dashboard-widgets-unified {
     grid-template-columns: 1fr !important;
-    grid-auto-rows: minmax(200px, auto) !important;
   }
   .dashboard-widgets-unified .widget-small,
   .dashboard-widgets-unified .widget-medium,
   .dashboard-widgets-unified .widget-large,
   .dashboard-widgets-unified .widget-full,
-  .dashboard-widgets-unified .widget-stats,
-  .dashboard-widgets-unified .widget-quick-actions,
-  .dashboard-widgets-unified .widget-ai-assistant,
   .greeting-card-compact {
     grid-column: span 1 !important;
-    min-height: 200px !important;
   }
   .dashboard-widgets-unified .widget-quick-actions {
     grid-row: span 1 !important;
@@ -4381,8 +4320,8 @@ body {
 }
 
 .dashboard-page .dashboard-hero-grid .widget.widget-stats {
-  background: linear-gradient(135deg, var(--accent) 0%, #ffffff 100%) !important;
-  border: none !important;
+  background: #ffffff !important;
+  border: 3px solid var(--accent) !important;
   border-radius: 0 !important;
   padding: 0 !important;
   display: flex !important;
@@ -4408,10 +4347,9 @@ body {
   flex: 1;
   display: flex;
   flex-direction: row;
-  padding: 8px 12px;
-  gap: 16px;
+  padding: 10px 15px;
+  gap: 20px;
   overflow: hidden;
-  min-height: 0;
 }
 
 .dashboard-page .stats-graph-section {
@@ -4419,34 +4357,34 @@ body {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: 0;
 }
 
 .dashboard-page .line-chart-wrapper {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 0;
+  min-height: 100px;
 }
 
 .dashboard-page .stats-line-chart {
   width: 100%;
-  height: 100%;
-  min-height: 80px;
-  max-height: 140px;
-  flex: 1;
+  height: auto;
+  min-height: 100px;
+  max-height: 120px;
+  flex-shrink: 0;
 }
 
-/* SVG text labels for chart - styled via CSS */
-.dashboard-page .stats-line-chart text {
-  font-family: 'Inter', sans-serif;
+.dashboard-page .line-chart-labels {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 30px 0 30px;
+}
+
+.dashboard-page .line-chart-labels .day-label {
+  font-size: 10px;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-}
-
-/* Legacy label div - hidden since labels are now in SVG */
-.dashboard-page .line-chart-labels {
-  display: none !important;
 }
 
 .dashboard-page .stats-numbers-section {
@@ -5047,8 +4985,8 @@ body {
 }
 
 .dashboard-hero-grid .widget.widget-stats {
-  background: linear-gradient(135deg, var(--accent) 0%, #ffffff 100%) !important;
-  border: none !important;
+  background: #ffffff !important;
+  border: 3px solid var(--accent) !important;
 }
 
 .dashboard-hero-grid .widget * {
@@ -5078,27 +5016,31 @@ body {
   max-width: none !important;
   width: 100% !important;
   margin: 0 !important;
-  padding: 20px 40px !important;
+  padding: 0 !important;
   overflow-y: auto !important;
+}
+
+.dashboard-layout-modern {
+  width: 100% !important;
+  max-width: none !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .dashboard-hero-grid {
   display: grid !important;
-  grid-template-columns: repeat(3, 1fr) !important;
-  grid-template-rows: repeat(2, calc((100vh - 120px) / 2)) !important;
-  gap: 15px !important;
+  grid-template-columns: 1fr 1fr 1fr !important;
+  grid-template-rows: 350px 350px !important;
+  gap: 20px !important;
   margin-bottom: 20px !important;
   width: 100% !important;
-  padding: 15px !important;
+  padding: 20px !important;
   flex-shrink: 0 !important;
-  height: calc(100vh - 90px) !important;
 }
 
 .greeting-card-modern {
-  grid-column: span 1 !important;
-  grid-row: span 2 !important;
-  min-height: 100% !important;
-  height: 100% !important;
+  grid-column: span 4 !important;
 }
 
 .dashboard-hero-grid .dashboard-widget.widget-stats {
@@ -5106,7 +5048,13 @@ body {
   border: 3px solid var(--accent) !important;
 }
 
-/* Size controlled by widget-small/medium/large classes */
+.dashboard-hero-grid .dashboard-widget.widget-quick-actions {
+  /* Size controlled by widget-small/medium/large classes */
+}
+
+.dashboard-hero-grid .dashboard-widget.widget-ai-assistant {
+  /* Size controlled by widget-small/medium/large classes */
+}
 
 .dashboard-secondary-section {
   display: grid !important;
@@ -6674,7 +6622,22 @@ html[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled svg * {
   }
 }
 
-/* Animations removed */
+/* Apply animations to elements */
+.dashboard-page .dashboard-header {
+  /* animation removed */
+}
+
+.dashboard-page .welcome-section {
+  /* animation removed */
+}
+
+.dashboard-page .dashboard-hero-grid {
+  /* animation removed */
+}
+
+.dashboard-page .dashboard-widget {
+  /* animation removed */
+}
 
 .dashboard-page .dashboard-widget:nth-child(1) { animation-delay: 0.1s; }
 .dashboard-page .dashboard-widget:nth-child(2) { animation-delay: 0.15s; }
@@ -6683,7 +6646,9 @@ html[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled svg * {
 .dashboard-page .dashboard-widget:nth-child(5) { animation-delay: 0.3s; }
 .dashboard-page .dashboard-widget:nth-child(6) { animation-delay: 0.35s; }
 
-/* Quick action animations removed */
+.dashboard-page .quick-action-item {
+  /* animation removed */
+}
 
 .dashboard-page .quick-action-item:nth-child(1) { animation-delay: 0.2s; }
 .dashboard-page .quick-action-item:nth-child(2) { animation-delay: 0.25s; }
@@ -6691,14 +6656,18 @@ html[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled svg * {
 .dashboard-page .quick-action-item:nth-child(4) { animation-delay: 0.35s; }
 .dashboard-page .quick-action-item:nth-child(5) { animation-delay: 0.4s; }
 
-/* Stat animations removed */
+.dashboard-page .stat-item {
+  /* animation removed */
+}
 
 .dashboard-page .stat-item:nth-child(1) { animation-delay: 0.15s; }
 .dashboard-page .stat-item:nth-child(2) { animation-delay: 0.2s; }
 .dashboard-page .stat-item:nth-child(3) { animation-delay: 0.25s; }
 .dashboard-page .stat-item:nth-child(4) { animation-delay: 0.3s; }
 
-/* Review animations removed */
+.dashboard-page .review-item {
+  /* animation removed */
+}
 
 .dashboard-page .review-item:nth-child(1) { animation-delay: 0.2s; }
 .dashboard-page .review-item:nth-child(2) { animation-delay: 0.25s; }
@@ -7121,7 +7090,10 @@ html[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled svg * {
   }
 }
 
-/* ==================== WIDGET ENTRANCE ANIMATIONS (removed) ==================== */
+/* ==================== WIDGET ENTRANCE ANIMATIONS ==================== */
+.dashboard-page .dashboard-widget {
+  /* animation removed */
+}
 
 .dashboard-page .dashboard-widget:nth-child(1) { animation-delay: 0.1s; }
 .dashboard-page .dashboard-widget:nth-child(2) { animation-delay: 0.15s; }
@@ -7140,6 +7112,7 @@ html[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled svg * {
   box-shadow: 
     0 2px 8px rgba(0, 0, 0, 0.3),
     var(--db-glow-accent);
+  /* animation removed */
 }
 
 @keyframes badgePulse {
@@ -8636,7 +8609,15 @@ html[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled svg * {
    UTILITY CLASSES
 ============================================ */
 
-/* Animations removed */
+.dashboard-page .animate-pulse {
+  /* animation removed */
+}
+
+/* Float animation removed */
+
+.dashboard-page .animate-shimmer {
+  /* animation removed */
+}
 
 .dashboard-page .glow-accent {
   box-shadow: var(--db-glow-accent);
@@ -8774,731 +8755,15 @@ html[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled svg * {
     inset 0 0 60px color-mix(in srgb, var(--bg-top) 10%, transparent) !important;
 }
 
-/* Light mode adjustments - AI Chat widget text white */
-[data-theme-mode="light"] .dashboard-page .widget-ai-assistant,
-[data-theme-mode="light"] .dashboard-page .widget-ai-assistant * {
-  color: #ffffff !important;
-}
-
+/* Light mode adjustments */
 [data-theme-mode="light"] .dashboard-page .ai-icon-display {
-  color: #ffffff !important;
-  background: transparent !important;
-  border: 3px solid #ffffff !important;
-}
-
-[data-theme-mode="light"] .dashboard-page .ai-stat-value {
-  color: #ffffff !important;
-}
-
-[data-theme-mode="light"] .dashboard-page .ai-stat-label {
-  color: rgba(255, 255, 255, 0.8) !important;
+  color: #000000 !important;
 }
 
 [data-theme-mode="light"] .dashboard-page .start-session-btn {
-  color: #ffffff !important;
-  background: transparent !important;
-  border: 2px solid #ffffff !important;
-}
-
-[data-theme-mode="light"] .dashboard-page .start-session-btn:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
+  color: #000000 !important;
 }
 
 [data-theme-mode="light"] .dashboard-page .ai-chat-btn {
-  color: #ffffff !important;
-}
-
-/* Light mode - Quick Actions underlines white */
-[data-theme-mode="light"] .dashboard-page .widget-quick-actions .quick-action-item {
-  border-color: rgba(255, 255, 255, 0.3) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.3) !important;
-}
-
-[data-theme-mode="light"] .dashboard-page .widget-quick-actions .widget-header {
-  border-bottom-color: rgba(255, 255, 255, 0.3) !important;
-}
-
-/* Gold Monochrome theme - black underlines and borders */
-[data-theme-id="gold-monochrome"] .dashboard-page .widget-quick-actions .quick-action-item {
-  border-color: rgba(0, 0, 0, 0.3) !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.3) !important;
-}
-
-[data-theme-id="gold-monochrome"] .dashboard-page .widget-quick-actions .widget-header {
-  border-bottom-color: rgba(0, 0, 0, 0.3) !important;
-}
-
-[data-theme-id="gold-monochrome"] .dashboard-page .ai-icon-display {
-  border: 3px solid #000000 !important;
-}
-
-[data-theme-id="gold-monochrome"] .dashboard-page .start-session-btn {
-  border: 3px solid #000000 !important;
-}
-
-
-/* ============================================
-   WELCOME WIDGET PREMIUM STYLING
-   Enhanced visual appeal for greeting section
-============================================ */
-
-/* Welcome widget container */
-.dashboard-page .dashboard-widget:has(.welcome-text),
-.dashboard-page .widget-welcome,
-.dashboard-page .greeting-card-modern {
-  background: linear-gradient(145deg, 
-    var(--panel) 0%, 
-    color-mix(in srgb, var(--accent) 8%, var(--panel)) 40%,
-    color-mix(in srgb, var(--accent) 15%, var(--panel)) 100%) !important;
-  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent) !important;
-  position: relative !important;
-  overflow: hidden !important;
-}
-
-/* Decorative corner accent */
-.dashboard-page .dashboard-widget:has(.welcome-text)::before,
-.dashboard-page .widget-welcome::before,
-.dashboard-page .greeting-card-modern::before {
-  content: '' !important;
-  position: absolute !important;
-  top: 0 !important;
-  right: 0 !important;
-  width: 200px !important;
-  height: 200px !important;
-  background: radial-gradient(circle at top right, 
-    color-mix(in srgb, var(--accent) 15%, transparent) 0%, 
-    transparent 70%) !important;
-  pointer-events: none !important;
-}
-
-/* Bottom left decorative element */
-.dashboard-page .dashboard-widget:has(.welcome-text)::after,
-.dashboard-page .widget-welcome::after,
-.dashboard-page .greeting-card-modern::after {
-  content: '' !important;
-  position: absolute !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  width: 150px !important;
-  height: 150px !important;
-  background: radial-gradient(circle at bottom left, 
-    color-mix(in srgb, var(--accent) 10%, transparent) 0%, 
-    transparent 70%) !important;
-  pointer-events: none !important;
-}
-
-/* Welcome text styling */
-.dashboard-page .welcome-text {
-  font-size: 32px !important;
-  font-weight: 800 !important;
-  letter-spacing: -1px !important;
-  background: linear-gradient(135deg, 
-    var(--accent) 0%, 
-    color-mix(in srgb, var(--accent) 80%, white) 50%,
-    var(--accent) 100%) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
-  position: relative !important;
-  z-index: 1 !important;
-  text-shadow: none !important;
-  line-height: 1.2 !important;
-  margin-bottom: 12px !important;
-}
-
-/* Subtitle styling */
-.dashboard-page .welcome-subtitle {
-  font-size: 15px !important;
-  font-weight: 500 !important;
-  color: var(--text-secondary) !important;
-  letter-spacing: 0.3px !important;
-  position: relative !important;
-  z-index: 1 !important;
-  opacity: 0.9 !important;
-}
-
-/* Accent line under welcome text */
-.dashboard-page .welcome-text::after {
-  content: '' !important;
-  display: block !important;
-  width: 60px !important;
-  height: 3px !important;
-  background: linear-gradient(90deg, var(--accent), transparent) !important;
-  margin-top: 16px !important;
-}
-
-/* Light mode welcome widget */
-[data-theme-mode="light"] .dashboard-page .dashboard-widget:has(.welcome-text),
-[data-theme-mode="light"] .dashboard-page .widget-welcome,
-[data-theme-mode="light"] .dashboard-page .greeting-card-modern {
-  background: linear-gradient(145deg, 
-    #ffffff 0%, 
-    color-mix(in srgb, var(--accent) 6%, #ffffff) 40%,
-    color-mix(in srgb, var(--accent) 12%, #ffffff) 100%) !important;
-  border: 1px solid color-mix(in srgb, var(--accent) 20%, #e2e8f0) !important;
-}
-
-[data-theme-mode="light"] .dashboard-page .welcome-text {
-  background: linear-gradient(135deg, 
-    var(--accent) 0%, 
-    color-mix(in srgb, var(--accent) 70%, #000) 100%) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
-}
-
-[data-theme-mode="light"] .dashboard-page .welcome-subtitle {
-  color: var(--text-secondary) !important;
-}
-
-
-/* ============================================
-   WELCOME WIDGET - COMPREHENSIVE PREMIUM REDESIGN
-   200+ lines of visual excellence
-============================================ */
-
-/* Main welcome widget container - dramatic styling */
-.dashboard-page .dashboard-widget:has(.welcome-text),
-.dashboard-page .widget-welcome,
-.dashboard-page .greeting-card-modern {
-  background: 
-    linear-gradient(135deg, 
-      color-mix(in srgb, var(--accent) 25%, var(--panel)) 0%,
-      color-mix(in srgb, var(--accent) 15%, var(--panel)) 30%,
-      var(--panel) 60%,
-      color-mix(in srgb, var(--accent) 20%, var(--panel)) 100%) !important;
-  border: 2px solid color-mix(in srgb, var(--accent) 40%, transparent) !important;
-  box-shadow: 
-    0 20px 60px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 color-mix(in srgb, var(--accent) 30%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, var(--accent) 10%, transparent),
-    0 0 80px color-mix(in srgb, var(--accent) 15%, transparent) !important;
-  position: relative !important;
-  overflow: hidden !important;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-/* Hover effect for welcome widget */
-.dashboard-page .dashboard-widget:has(.welcome-text):hover,
-.dashboard-page .widget-welcome:hover,
-.dashboard-page .greeting-card-modern:hover {
-  transform: translateY(-4px) !important;
-  border-color: color-mix(in srgb, var(--accent) 60%, transparent) !important;
-  box-shadow: 
-    0 30px 80px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 color-mix(in srgb, var(--accent) 40%, transparent),
-    inset 0 -1px 0 color-mix(in srgb, var(--accent) 15%, transparent),
-    0 0 120px color-mix(in srgb, var(--accent) 25%, transparent) !important;
-}
-
-/* Animated background pattern */
-.dashboard-page .dashboard-widget:has(.welcome-text)::before,
-.dashboard-page .widget-welcome::before,
-.dashboard-page .greeting-card-modern::before {
-  content: '' !important;
-  position: absolute !important;
-  top: -50% !important;
-  right: -50% !important;
-  width: 200% !important;
-  height: 200% !important;
-  background: 
-    radial-gradient(circle at 30% 30%, 
-      color-mix(in srgb, var(--accent) 20%, transparent) 0%, 
-      transparent 40%),
-    radial-gradient(circle at 70% 70%, 
-      color-mix(in srgb, var(--accent) 15%, transparent) 0%, 
-      transparent 40%),
-    radial-gradient(circle at 50% 50%, 
-      color-mix(in srgb, var(--accent) 10%, transparent) 0%, 
-      transparent 50%) !important;
-  pointer-events: none !important;
-  z-index: 0 !important;
-}
-
-/* Decorative corner accent - top right */
-.dashboard-page .dashboard-widget:has(.welcome-text)::after,
-.dashboard-page .widget-welcome::after,
-.dashboard-page .greeting-card-modern::after {
-  content: '' !important;
-  position: absolute !important;
-  top: 0 !important;
-  right: 0 !important;
-  width: 0 !important;
-  height: 0 !important;
-  border-style: solid !important;
-  border-width: 0 80px 80px 0 !important;
-  border-color: transparent color-mix(in srgb, var(--accent) 25%, transparent) transparent transparent !important;
-  pointer-events: none !important;
-  z-index: 1 !important;
-}
-
-/* Welcome section container */
-.dashboard-page .welcome-section {
-  position: relative !important;
-  z-index: 2 !important;
-  padding: 32px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 12px !important;
-}
-
-/* Welcome text - dramatic gradient effect */
-.dashboard-page .welcome-text {
-  font-size: 36px !important;
-  font-weight: 900 !important;
-  letter-spacing: -1.5px !important;
-  line-height: 1.1 !important;
-  background: linear-gradient(135deg, 
-    var(--accent) 0%,
-    color-mix(in srgb, var(--accent) 90%, white) 25%,
-    color-mix(in srgb, var(--accent) 70%, white) 50%,
-    color-mix(in srgb, var(--accent) 90%, white) 75%,
-    var(--accent) 100%) !important;
-  background-size: 200% 200% !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
-  position: relative !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  text-shadow: none !important;
-  filter: drop-shadow(0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent)) !important;
-}
-
-/* Animated underline for welcome text */
-.dashboard-page .welcome-text::after {
-  content: '' !important;
-  display: block !important;
-  width: 80px !important;
-  height: 4px !important;
-  background: linear-gradient(90deg, 
-    var(--accent) 0%, 
-    color-mix(in srgb, var(--accent) 60%, transparent) 100%) !important;
-  margin-top: 16px !important;
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 40%, transparent) !important;
-  transition: width 0.3s ease !important;
-}
-
-.dashboard-page .dashboard-widget:has(.welcome-text):hover .welcome-text::after,
-.dashboard-page .widget-welcome:hover .welcome-text::after {
-  width: 120px !important;
-}
-
-/* Subtitle with enhanced styling */
-.dashboard-page .welcome-subtitle {
-  font-size: 16px !important;
-  font-weight: 500 !important;
-  color: color-mix(in srgb, var(--accent) 80%, var(--text-secondary)) !important;
-  letter-spacing: 0.5px !important;
-  line-height: 1.6 !important;
-  position: relative !important;
-  margin: 0 !important;
-  padding-left: 16px !important;
-  border-left: 3px solid color-mix(in srgb, var(--accent) 40%, transparent) !important;
-  opacity: 0.95 !important;
-  transition: all 0.3s ease !important;
-}
-
-.dashboard-page .dashboard-widget:has(.welcome-text):hover .welcome-subtitle,
-.dashboard-page .widget-welcome:hover .welcome-subtitle {
-  border-left-color: var(--accent) !important;
-  padding-left: 20px !important;
-  opacity: 1 !important;
-}
-
-/* Decorative dots pattern */
-.dashboard-page .welcome-section::before {
-  content: '' !important;
-  position: absolute !important;
-  bottom: 20px !important;
-  right: 20px !important;
-  width: 60px !important;
-  height: 60px !important;
-  background-image: 
-    radial-gradient(circle, color-mix(in srgb, var(--accent) 30%, transparent) 2px, transparent 2px) !important;
-  background-size: 12px 12px !important;
-  opacity: 0.5 !important;
-  pointer-events: none !important;
-}
-
-/* Decorative line pattern */
-.dashboard-page .welcome-section::after {
-  content: '' !important;
-  position: absolute !important;
-  top: 20px !important;
-  left: 0 !important;
-  width: 4px !important;
-  height: 60px !important;
-  background: linear-gradient(180deg, 
-    var(--accent) 0%, 
-    color-mix(in srgb, var(--accent) 50%, transparent) 50%,
-    transparent 100%) !important;
-  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 50%, transparent) !important;
-}
-
-/* Light mode comprehensive styling */
-[data-theme-mode="light"] .dashboard-page .dashboard-widget:has(.welcome-text),
-[data-theme-mode="light"] .dashboard-page .widget-welcome,
-[data-theme-mode="light"] .dashboard-page .greeting-card-modern {
-  background: 
-    linear-gradient(135deg, 
-      color-mix(in srgb, var(--accent) 15%, #ffffff) 0%,
-      color-mix(in srgb, var(--accent) 8%, #ffffff) 30%,
-      #ffffff 60%,
-      color-mix(in srgb, var(--accent) 12%, #ffffff) 100%) !important;
-  border: 2px solid color-mix(in srgb, var(--accent) 30%, #e2e8f0) !important;
-  box-shadow: 
-    0 20px 60px rgba(0, 0, 0, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    inset 0 -1px 0 color-mix(in srgb, var(--accent) 10%, transparent),
-    0 0 80px color-mix(in srgb, var(--accent) 10%, transparent) !important;
-}
-
-[data-theme-mode="light"] .dashboard-page .dashboard-widget:has(.welcome-text):hover,
-[data-theme-mode="light"] .dashboard-page .widget-welcome:hover,
-[data-theme-mode="light"] .dashboard-page .greeting-card-modern:hover {
-  border-color: color-mix(in srgb, var(--accent) 50%, transparent) !important;
-  box-shadow: 
-    0 30px 80px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 1),
-    inset 0 -1px 0 color-mix(in srgb, var(--accent) 15%, transparent),
-    0 0 120px color-mix(in srgb, var(--accent) 15%, transparent) !important;
-}
-
-[data-theme-mode="light"] .dashboard-page .welcome-text {
-  background: linear-gradient(135deg, 
-    var(--accent) 0%,
-    color-mix(in srgb, var(--accent) 80%, #000) 25%,
-    color-mix(in srgb, var(--accent) 60%, #000) 50%,
-    color-mix(in srgb, var(--accent) 80%, #000) 75%,
-    var(--accent) 100%) !important;
-  background-size: 200% 200% !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
-  filter: drop-shadow(0 2px 8px color-mix(in srgb, var(--accent) 20%, transparent)) !important;
-}
-
-[data-theme-mode="light"] .dashboard-page .welcome-subtitle {
-  color: color-mix(in srgb, var(--accent) 70%, var(--text-secondary)) !important;
-  border-left-color: color-mix(in srgb, var(--accent) 30%, transparent) !important;
-}
-
-[data-theme-mode="light"] .dashboard-page .dashboard-widget:has(.welcome-text)::after,
-[data-theme-mode="light"] .dashboard-page .widget-welcome::after {
-  border-color: transparent color-mix(in srgb, var(--accent) 20%, transparent) transparent transparent !important;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .dashboard-page .welcome-text {
-    font-size: 28px !important;
-  }
-  
-  .dashboard-page .welcome-subtitle {
-    font-size: 14px !important;
-  }
-  
-  .dashboard-page .welcome-section {
-    padding: 24px !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .dashboard-page .welcome-text {
-    font-size: 24px !important;
-  }
-  
-  .dashboard-page .welcome-subtitle {
-    font-size: 13px !important;
-  }
-  
-  .dashboard-page .welcome-section {
-    padding: 20px !important;
-  }
-}
-
-
-/* ============================================
-   GREETING CARD COMPACT - COMPREHENSIVE PREMIUM REDESIGN
-   "Good Evening, Anirudh Jackson" Box
-   200+ lines of dramatic visual improvements
-============================================ */
-
-/* Main greeting card container - premium styling */
-.greeting-card-compact {
-  background: 
-    linear-gradient(145deg, 
-      color-mix(in srgb, var(--accent) 100%, transparent) 0%,
-      color-mix(in srgb, var(--accent) 85%, #000) 50%,
-      color-mix(in srgb, var(--accent) 95%, transparent) 100%) !important;
-  border: 3px solid color-mix(in srgb, var(--accent) 60%, white) !important;
-  box-shadow: 
-    0 25px 70px rgba(0, 0, 0, 0.5),
-    inset 0 2px 0 rgba(255, 255, 255, 0.2),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.3),
-    0 0 100px color-mix(in srgb, var(--accent) 30%, transparent),
-    inset 0 0 60px color-mix(in srgb, var(--accent) 10%, transparent) !important;
-  padding: 77px 32px 32px 32px !important;
-  position: relative !important;
-  overflow: hidden !important;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
-  align-items: flex-start !important;
-}
-
-/* Hover effect */
-.greeting-card-compact:hover {
-  transform: translateY(-6px) scale(1.01) !important;
-  border-color: color-mix(in srgb, var(--accent) 80%, white) !important;
-  box-shadow: 
-    0 35px 90px rgba(0, 0, 0, 0.6),
-    inset 0 2px 0 rgba(255, 255, 255, 0.3),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.4),
-    0 0 140px color-mix(in srgb, var(--accent) 40%, transparent),
-    inset 0 0 80px color-mix(in srgb, var(--accent) 15%, transparent) !important;
-}
-
-/* Animated radial gradient background */
-.greeting-card-compact::before {
-  content: '' !important;
-  position: absolute !important;
-  top: -100% !important;
-  left: -100% !important;
-  width: 300% !important;
-  height: 300% !important;
-  background: 
-    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.15) 0%, transparent 30%),
-    radial-gradient(circle at 80% 80%, rgba(0, 0, 0, 0.2) 0%, transparent 30%),
-    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.08) 0%, transparent 40%) !important;
-  pointer-events: none !important;
-  z-index: 0 !important;
-}
-
-/* Decorative corner elements */
-.greeting-card-compact::after {
-  content: '' !important;
-  position: absolute !important;
-  top: 0 !important;
-  right: 0 !important;
-  width: 0 !important;
-  height: 0 !important;
-  border-style: solid !important;
-  border-width: 0 100px 100px 0 !important;
-  border-color: transparent rgba(255, 255, 255, 0.15) transparent transparent !important;
-  pointer-events: none !important;
-  z-index: 1 !important;
-  transition: border-width 0.3s ease !important;
-}
-
-.greeting-card-compact:hover::after {
-  border-width: 0 120px 120px 0 !important;
-}
-
-/* Greeting text - clean styling */
-.greeting-card-compact .greeting-text {
-  font-size: 28px !important;
-  font-weight: 900 !important;
-  letter-spacing: -1px !important;
-  line-height: 1.3 !important;
   color: #000000 !important;
-  text-shadow: none !important;
-  position: relative !important;
-  z-index: 2 !important;
-  margin: 0 0 16px 0 !important;
-  padding: 0 !important;
-  transition: all 0.3s ease !important;
-}
-
-.greeting-card-compact:hover .greeting-text {
-  transform: translateX(4px) !important;
-}
-
-/* Greeting subtitle - hidden */
-.greeting-card-compact .greeting-subtitle {
-  display: none !important;
-}
-
-/* Decorative dot pattern - bottom right (moved up 40%, left 10%) */
-.greeting-card-compact .greeting-text::before {
-  content: '' !important;
-  position: absolute !important;
-  bottom: -8px !important;
-  right: -22px !important;
-  width: 80px !important;
-  height: 80px !important;
-  background-image: 
-    radial-gradient(circle, rgba(0, 0, 0, 0.15) 2px, transparent 2px) !important;
-  background-size: 14px 14px !important;
-  opacity: 0.6 !important;
-  pointer-events: none !important;
-  z-index: 0 !important;
-}
-
-/* Light mode comprehensive styling */
-[data-theme-mode="light"] .greeting-card-compact {
-  background: 
-    linear-gradient(145deg, 
-      color-mix(in srgb, var(--accent) 100%, transparent) 0%,
-      color-mix(in srgb, var(--accent) 90%, white) 50%,
-      color-mix(in srgb, var(--accent) 95%, transparent) 100%) !important;
-  border: 3px solid color-mix(in srgb, var(--accent) 70%, white) !important;
-  box-shadow: 
-    0 25px 70px rgba(0, 0, 0, 0.15),
-    inset 0 2px 0 rgba(255, 255, 255, 0.8),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.1),
-    0 0 100px color-mix(in srgb, var(--accent) 20%, transparent),
-    inset 0 0 60px color-mix(in srgb, var(--accent) 8%, transparent) !important;
-}
-
-[data-theme-mode="light"] .greeting-card-compact:hover {
-  border-color: color-mix(in srgb, var(--accent) 90%, white) !important;
-  box-shadow: 
-    0 35px 90px rgba(0, 0, 0, 0.2),
-    inset 0 2px 0 rgba(255, 255, 255, 1),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.15),
-    0 0 140px color-mix(in srgb, var(--accent) 30%, transparent),
-    inset 0 0 80px color-mix(in srgb, var(--accent) 12%, transparent) !important;
-}
-
-[data-theme-mode="light"] .greeting-card-compact .greeting-text {
-  color: #ffffff !important;
-  text-shadow: none !important;
-}
-
-[data-theme-mode="light"] .greeting-card-compact .greeting-subtitle {
-  color: rgba(255, 255, 255, 0.85) !important;
-  text-shadow: none !important;
-}
-
-[data-theme-mode="light"] .greeting-card-compact:hover .greeting-subtitle {
-  color: rgba(255, 255, 255, 0.95) !important;
-}
-
-/* Responsive adjustments */
-@media (max-width: 1200px) {
-  .greeting-card-compact .greeting-text {
-    font-size: 24px !important;
-  }
-  
-  .greeting-card-compact .greeting-subtitle {
-    font-size: 14px !important;
-  }
-}
-
-@media (max-width: 768px) {
-  .greeting-card-compact {
-    padding: 24px !important;
-  }
-  
-  .greeting-card-compact .greeting-text {
-    font-size: 22px !important;
-  }
-  
-  .greeting-card-compact .greeting-subtitle {
-    font-size: 13px !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .greeting-card-compact {
-    padding: 20px !important;
-  }
-  
-  .greeting-card-compact .greeting-text {
-    font-size: 20px !important;
-  }
-  
-  .greeting-card-compact .greeting-subtitle {
-    font-size: 12px !important;
-  }
-}
-
-
-/* Inspirational quote styling */
-.greeting-card-compact .greeting-quote {
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  font-style: italic !important;
-  letter-spacing: 0.2px !important;
-  line-height: 1.6 !important;
-  color: rgba(0, 0, 0, 0.6) !important;
-  text-shadow: none !important;
-  position: relative !important;
-  z-index: 2 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  opacity: 0.9 !important;
-}
-
-[data-theme-mode="light"] .greeting-card-compact .greeting-quote {
-  color: rgba(255, 255, 255, 0.75) !important;
-}
-
-
-/* Light mode - Quick Actions ALL text white */
-[data-theme-mode="light"] .dashboard-page .dashboard-hero-grid .widget-quick-actions .widget-title,
-[data-theme-mode="light"] .dashboard-page .dashboard-hero-grid .widget-quick-actions .quick-action-item,
-[data-theme-mode="light"] .dashboard-page .dashboard-hero-grid .widget-quick-actions .quick-action-item *,
-[data-theme-mode="light"] .dashboard-page .dashboard-hero-grid .quick-action-item,
-[data-theme-mode="light"] .dashboard-page .dashboard-hero-grid .quick-action-item *,
-[data-theme-mode="light"] .dashboard-page .widget-quick-actions .action-label,
-[data-theme-mode="light"] .dashboard-page .widget-quick-actions .action-description,
-[data-theme-mode="light"] .dashboard-page .widget-quick-actions .action-title,
-[data-theme-mode="light"] .dashboard-page .widget-quick-actions h3,
-[data-theme-mode="light"] .dashboard-page .widget-quick-actions h4,
-[data-theme-mode="light"] .dashboard-page .widget-quick-actions p,
-[data-theme-mode="light"] .dashboard-page .widget-quick-actions span,
-[data-theme-mode="light"] .dashboard-page .quick-actions .action-label,
-[data-theme-mode="light"] .dashboard-page .quick-actions .action-description,
-[data-theme-mode="light"] .dashboard-page .quick-actions h3,
-[data-theme-mode="light"] .dashboard-page .quick-actions h4,
-[data-theme-mode="light"] .dashboard-page .quick-actions p,
-[data-theme-mode="light"] .dashboard-page .quick-actions span {
-  color: #ffffff !important;
-}
-
-/* Light mode - Quick Actions borders white */
-[data-theme-mode="light"] .dashboard-page .dashboard-hero-grid .widget-quick-actions .widget-header,
-[data-theme-mode="light"] .dashboard-page .dashboard-hero-grid .quick-action-item {
-  border-color: rgba(255, 255, 255, 0.4) !important;
-}
-
-
-/* ==================== FORCE HIDE BOTTOM WIDGETS - CRITICAL OVERRIDE ==================== */
-.dashboard-page .dashboard-secondary-section,
-.dashboard-secondary-section,
-.dashboard-page > .dashboard-secondary-section {
-  display: none !important;
-  visibility: hidden !important;
-  height: 0 !important;
-  overflow: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-
-/* REMOVED - CONFLICTING RULE */
-
-/* ==================== FORCE WIDGET HEIGHTS ==================== */
-.dashboard-page .dashboard-hero-grid .dashboard-widget,
-.dashboard-hero-grid .dashboard-widget,
-.dashboard-page .dashboard-hero-grid .widget,
-.dashboard-hero-grid .widget {
-  min-height: 100% !important;
-  height: 100% !important;
-}
-
-/* REMOVED - Allow scrolling to bottom widgets */
-
-/* Allow normal scrolling */
-
-/* ==================== MAKE HERO GRID FILL FIRST VIEWPORT ==================== */
-.dashboard-page .dashboard-hero-grid,
-.dashboard-hero-grid {
-  height: calc(100vh - 90px) !important;
-  grid-template-rows: repeat(2, calc((100vh - 120px) / 2)) !important;
-  overflow: visible !important;
-  margin-bottom: 20px !important;
 }

@@ -180,15 +180,15 @@ export const THEME_PROFILES = [
       '--primary': '#ffffff',
       '--primary-contrast': '#134E4A',
       '--hero-bg': '#ffffff',
-      '--hero-text': '#0D9488',
+      '--hero-text': '#3B82F6',
       '--text-primary': '#134E4A',
       '--text-secondary': '#0F766E',
-      '--accent': '#0D9488',
-      '--accent-2': '#EA580C',
+      '--accent': '#3B82F6',
+      '--accent-2': '#1D4ED8',
       '--success': '#059669',
       '--warning': '#D97706',
       '--danger': '#DC2626',
-      '--glow': 'rgba(13,148,136,0.2)'
+      '--glow': 'rgba(59,130,246,0.2)'
     }
   },
   {
@@ -252,15 +252,15 @@ export const THEME_PROFILES = [
       '--primary': '#ffffff',
       '--primary-contrast': '#9A3412',
       '--hero-bg': '#ffffff',
-      '--hero-text': '#EA580C',
+      '--hero-text': '#3B82F6',
       '--text-primary': '#9A3412',
       '--text-secondary': '#C2410C',
-      '--accent': '#EA580C',
-      '--accent-2': '#DC2626',
+      '--accent': '#3B82F6',
+      '--accent-2': '#1D4ED8',
       '--success': '#059669',
       '--warning': '#D97706',
       '--danger': '#DC2626',
-      '--glow': 'rgba(234,88,12,0.15)'
+      '--glow': 'rgba(59,130,246,0.15)'
     }
   },
   {
@@ -324,15 +324,15 @@ export const THEME_PROFILES = [
       '--primary': '#ffffff',
       '--primary-contrast': '#881337',
       '--hero-bg': '#ffffff',
-      '--hero-text': '#FB7185',
+      '--hero-text': '#3B82F6',
       '--text-primary': '#881337',
       '--text-secondary': '#BE123C',
-      '--accent': '#FB7185',
-      '--accent-2': '#F97316',
+      '--accent': '#3B82F6',
+      '--accent-2': '#1D4ED8',
       '--success': '#10B981',
       '--warning': '#F59E0B',
       '--danger': '#EF4444',
-      '--glow': 'rgba(251,113,133,0.15)'
+      '--glow': 'rgba(59,130,246,0.15)'
     }
   },
   {
@@ -372,15 +372,15 @@ export const THEME_PROFILES = [
       '--primary': '#ffffff',
       '--primary-contrast': '#7F1D1D',
       '--hero-bg': '#ffffff',
-      '--hero-text': '#F87171',
+      '--hero-text': '#3B82F6',
       '--text-primary': '#7F1D1D',
       '--text-secondary': '#B91C1C',
-      '--accent': '#F87171',
-      '--accent-2': '#FB923C',
+      '--accent': '#3B82F6',
+      '--accent-2': '#1D4ED8',
       '--success': '#10B981',
       '--warning': '#F59E0B',
       '--danger': '#EF4444',
-      '--glow': 'rgba(248,113,113,0.15)'
+      '--glow': 'rgba(59,130,246,0.15)'
     }
   },
   {
@@ -396,15 +396,15 @@ export const THEME_PROFILES = [
       '--primary': '#ffffff',
       '--primary-contrast': '#134E4A',
       '--hero-bg': '#ffffff',
-      '--hero-text': '#14B8A6',
+      '--hero-text': '#3B82F6',
       '--text-primary': '#134E4A',
       '--text-secondary': '#0F766E',
-      '--accent': '#14B8A6',
-      '--accent-2': '#EF4444',
+      '--accent': '#3B82F6',
+      '--accent-2': '#1D4ED8',
       '--success': '#10B981',
       '--warning': '#F59E0B',
       '--danger': '#DC2626',
-      '--glow': 'rgba(20,184,166,0.12)'
+      '--glow': 'rgba(59,130,246,0.12)'
     }
   },
   {

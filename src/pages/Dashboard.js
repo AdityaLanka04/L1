@@ -89,6 +89,7 @@ const Dashboard = () => {
   const [dailyBreakdown, setDailyBreakdown] = useState([]);
   const [weeklyStats, setWeeklyStats] = useState({});
   const [motivationalQuote, setMotivationalQuote] = useState('');
+  const [randomQuote, setRandomQuote] = useState('');
   const [achievements, setAchievements] = useState([]);
   const [learningAnalytics, setLearningAnalytics] = useState(null);
   const [conversationStarters, setConversationStarters] = useState([]);
@@ -1021,6 +1022,33 @@ const Dashboard = () => {
     return 'Good Evening';
   };
 
+  // Initialize random quote once on mount
+  useEffect(() => {
+    const quotes = [
+      "The only way to do great work is to love what you do.",
+      "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+      "Believe you can and you're halfway there.",
+      "The future belongs to those who believe in the beauty of their dreams.",
+      "It does not matter how slowly you go as long as you do not stop.",
+      "Everything you've ever wanted is on the other side of fear.",
+      "Success is not how high you have climbed, but how you make a positive difference to the world.",
+      "Don't watch the clock; do what it does. Keep going.",
+      "The only impossible journey is the one you never begin.",
+      "In the middle of difficulty lies opportunity.",
+      "What you get by achieving your goals is not as important as what you become by achieving your goals.",
+      "The best time to plant a tree was 20 years ago. The second best time is now.",
+      "Your limitation—it's only your imagination.",
+      "Great things never come from comfort zones.",
+      "Dream it. Wish it. Do it.",
+      "Success doesn't just find you. You have to go out and get it.",
+      "The harder you work for something, the greater you'll feel when you achieve it.",
+      "Dream bigger. Do bigger.",
+      "Don't stop when you're tired. Stop when you're done.",
+      "Wake up with determination. Go to bed with satisfaction."
+    ];
+    setRandomQuote(quotes[Math.floor(Math.random() * quotes.length)]);
+  }, []);
+
   const displayName = userProfile?.firstName
     ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim()
     : userName;
@@ -1133,6 +1161,13 @@ const Dashboard = () => {
           // Calculate totals for display
           const totalActivities = stats.totalQuestions + stats.totalFlashcards + stats.totalNotes + stats.totalChatSessions;
           
+          // Chart dimensions - use percentage-based positioning for proper alignment
+          const chartWidth = 280;
+          const chartHeight = 100;
+          const chartPadding = 20;
+          const chartInnerWidth = chartWidth - (chartPadding * 2);
+          const pointSpacing = chartInnerWidth / 6; // 6 gaps for 7 points
+          
           return (
             <div className="stats-overview-widget">
               <div className="widget-header">
@@ -1147,27 +1182,27 @@ const Dashboard = () => {
               <div className="stats-line-container">
                 <div className="stats-graph-section">
                   <div className="line-chart-wrapper">
-                    <svg viewBox="0 0 280 120" className="stats-line-chart" preserveAspectRatio="xMidYMid meet">
+                    <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="stats-line-chart" preserveAspectRatio="xMidYMid meet">
                       {/* Grid lines */}
-                      <line x1="30" y1="100" x2="270" y2="100" stroke={textSecondary} strokeOpacity="0.2" />
-                      <line x1="30" y1="70" x2="270" y2="70" stroke={textSecondary} strokeOpacity="0.1" strokeDasharray="4" />
-                      <line x1="30" y1="40" x2="270" y2="40" stroke={textSecondary} strokeOpacity="0.1" strokeDasharray="4" />
+                      <line x1={chartPadding} y1="85" x2={chartWidth - chartPadding} y2="85" stroke={textSecondary} strokeOpacity="0.2" />
+                      <line x1={chartPadding} y1="55" x2={chartWidth - chartPadding} y2="55" stroke={textSecondary} strokeOpacity="0.1" strokeDasharray="4" />
+                      <line x1={chartPadding} y1="25" x2={chartWidth - chartPadding} y2="25" stroke={textSecondary} strokeOpacity="0.1" strokeDasharray="4" />
                       
                       {/* Area fill */}
                       <path
-                        d={`M 30 100 ${weeklyProgress.map((val, i) => {
-                          const x = 30 + (i * 40);
-                          const y = 100 - (val / maxWeeklyValue) * 70;
+                        d={`M ${chartPadding} 85 ${weeklyProgress.map((val, i) => {
+                          const x = chartPadding + (i * pointSpacing);
+                          const y = 85 - (val / maxWeeklyValue) * 60;
                           return `L ${x} ${y}`;
-                        }).join(' ')} L ${30 + 6 * 40} 100 Z`}
+                        }).join(' ')} L ${chartPadding + 6 * pointSpacing} 85 Z`}
                         fill={`url(#areaGradient-${widget.id})`}
                       />
                       
                       {/* Line */}
                       <path
                         d={`M ${weeklyProgress.map((val, i) => {
-                          const x = 30 + (i * 40);
-                          const y = 100 - (val / maxWeeklyValue) * 70;
+                          const x = chartPadding + (i * pointSpacing);
+                          const y = 85 - (val / maxWeeklyValue) * 60;
                           return `${i === 0 ? '' : 'L '}${x} ${y}`;
                         }).join(' ')}`}
                         fill="none"
@@ -1177,10 +1212,20 @@ const Dashboard = () => {
                       
                       {/* Data points */}
                       {weeklyProgress.map((val, i) => {
-                        const x = 30 + (i * 40);
-                        const y = 100 - (val / maxWeeklyValue) * 70;
+                        const x = chartPadding + (i * pointSpacing);
+                        const y = 85 - (val / maxWeeklyValue) * 60;
                         return (
                           <circle key={i} cx={x} cy={y} r="4" fill={accent} stroke={bgTop} strokeWidth="2" />
+                        );
+                      })}
+                      
+                      {/* Day labels directly in SVG for perfect alignment */}
+                      {dayLabels.map((day, i) => {
+                        const x = chartPadding + (i * pointSpacing);
+                        return (
+                          <text key={i} x={x} y="98" textAnchor="middle" fill={textSecondary} fontSize="9" fontWeight="600" style={{ textTransform: 'uppercase' }}>
+                            {day}
+                          </text>
                         );
                       })}
                       
@@ -1192,11 +1237,6 @@ const Dashboard = () => {
                         </linearGradient>
                       </defs>
                     </svg>
-                    <div className="line-chart-labels">
-                      {dayLabels.map((day, i) => (
-                        <span key={i} className="day-label">{day}</span>
-                      ))}
-                    </div>
                   </div>
                 </div>
                 <div className="stats-numbers-section">
@@ -1803,14 +1843,15 @@ const Dashboard = () => {
     };
 
     const isHeroWidget = ['stats', 'quick-actions', 'ai-assistant'].includes(widget.type);
-    const needsBorderedStyle = widget.type === 'stats' || widget.type === 'heatmap' || widget.type === 'social';
+    const needsBorderedStyle = widget.type === 'heatmap' || widget.type === 'social';
+    const isGradientWidget = widget.type === 'ai-assistant' || widget.type === 'stats' || widget.type === 'quick-actions';
     
     return (
       <div
         ref={setNodeRef}
         style={{
           ...style,
-          background: needsBorderedStyle ? 'var(--panel)' : (isHeroWidget ? accent : accent),
+          background: needsBorderedStyle ? 'var(--panel)' : (isGradientWidget ? undefined : (isHeroWidget ? accent : accent)),
           border: needsBorderedStyle ? `3px solid ${accent}` : (isHeroWidget ? 'none' : 'none'),
           borderRadius: 0,
         }}
@@ -1981,7 +2022,7 @@ const Dashboard = () => {
               <div className="dashboard-widgets-unified">
                 <div className="greeting-card-compact">
                   <h2 className="greeting-text">{getGreeting()}, {displayName}</h2>
-                  <p className="greeting-subtitle">{getMotivationalMessage()}</p>
+                  <p className="greeting-quote">"{randomQuote}"</p>
                 </div>
                 
                 {enabledWidgets.map((widget) => (
