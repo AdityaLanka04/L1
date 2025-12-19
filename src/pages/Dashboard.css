@@ -3396,9 +3396,10 @@ body {
 
 .dashboard-page .notif-header-row {
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
+  width: 100%;
 }
 
 .dashboard-page .notif-from {
@@ -3416,6 +3417,7 @@ body {
   opacity: 0.5;
   padding: 0 4px;
   line-height: 1;
+  margin-left: auto;
 }
 
 .dashboard-page .notif-delete:hover {

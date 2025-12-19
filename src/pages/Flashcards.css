@@ -399,19 +399,13 @@
   position: relative;
 }
 
-/* Grid Pattern Background - Only on My Flashcards panel */
+/* Grid Pattern Background removed */
 [data-theme-mode="dark"] .fc-content.fc-cards-panel {
-  background-image: 
-    linear-gradient(color-mix(in srgb, var(--accent) 15%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--accent) 15%, transparent) 1px, transparent 1px) !important;
-  background-size: 20px 20px !important;
+  background-image: none !important;
 }
 
 [data-theme-mode="light"] .fc-content.fc-cards-panel {
-  background-image: 
-    linear-gradient(color-mix(in srgb, var(--accent) 12%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, var(--accent) 12%, transparent) 1px, transparent 1px) !important;
-  background-size: 20px 20px !important;
+  background-image: none !important;
 }
 
 /* Fixed Header */

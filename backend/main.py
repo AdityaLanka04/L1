@@ -8860,7 +8860,7 @@ async def create_quiz_battle(
         # Create persistent notification for opponent
         battle_notification = models.Notification(
             user_id=opponent_id,
-            title="Quiz Battle Challenge! ⚔️",
+            title="Quiz Battle Challenge",
             message=f"{current_user.username} has challenged you to a quiz battle on {subject}!",
             notification_type="battle_challenge",
             is_read=False
@@ -9043,7 +9043,7 @@ async def complete_quiz_battle(
             # Winner notification
             winner_notification = models.Notification(
                 user_id=winner_id,
-                title="Battle Victory! 🏆",
+                title="Battle Victory",
                 message=f"You won the quiz battle against {loser.username}! Score: {winner_score}/{total_questions} ({winner_percentage}%)",
                 notification_type="battle_won"
             )
@@ -9739,7 +9739,7 @@ async def update_challenge_progress(
             # Create notification for challenge completion
             notification = models.Notification(
                 user_id=current_user.id,
-                title="Challenge Completed! 🏆",
+                title="Challenge Completed",
                 message=f"Congratulations! You've completed the challenge '{challenge.title}' with {progress:.0f}% progress!",
                 notification_type="challenge_completed",
                 is_read=False
@@ -9845,7 +9845,7 @@ async def share_content(
                 content_title = content.title if hasattr(content, 'title') else share_data.content_type
                 share_notification = models.Notification(
                     user_id=friend_id,
-                    title="New Shared Content 📤",
+                    title="New Shared Content",
                     message=f"{current_user.username} shared a {share_data.content_type} with you: {content_title}",
                     notification_type="content_shared",
                     is_read=False
