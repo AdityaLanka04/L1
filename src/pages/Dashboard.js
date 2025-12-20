@@ -1,23 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatToLocalTime, getRelativeTime } from '../utils/dateUtils';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
 import { HelpTour, HelpButton } from './HelpTour';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  rectSortingStrategy,
-} from '@dnd-kit/sortable';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import {
   CheckCircle, XCircle, Clock, Plus, Users, Bell, Calendar as CalendarIcon, BookOpen, Zap,
   MessageSquare, HelpCircle, FileText, Network, ChevronRight
@@ -30,6 +14,23 @@ import SlideNotification from '../components/SlideNotification';
 import ImportExportModal from '../components/ImportExportModal';
 import './Dashboard.css';
 import { API_URL } from '../config';
+
+// Customization constants
+const MANDATORY_WIDGETS = ['greeting', 'stats', 'quick-actions', 'ai-assistant', 'learning-review', 'social', 'activity-timeline', 'heatmap'];
+
+const WIDGET_DEFINITIONS = {
+  'greeting': { title: 'Greeting Card', mandatory: true, defaultSize: 'small' },
+  'stats': { title: 'Weekly Activity', mandatory: true, defaultSize: 'small' },
+  'quick-actions': { title: 'Quick Actions', mandatory: true, defaultSize: 'small' },
+  'ai-assistant': { title: 'AI Chat', mandatory: true, defaultSize: 'medium' },
+  'learning-review': { title: 'Learning Reviews', mandatory: true, defaultSize: 'small' },
+  'social': { title: 'Social Hub', mandatory: true, defaultSize: 'small' },
+  'activity-timeline': { title: 'Activity Timeline', mandatory: true, defaultSize: 'small' },
+  'heatmap': { title: 'Activity Heatmap', mandatory: true, defaultSize: 'full' },
+  'notifications': { title: 'AI Notifications', mandatory: false, defaultSize: 'small' },
+  'recent-activity': { title: 'Recent Activity', mandatory: false, defaultSize: 'small' },
+  'daily-goal': { title: 'Daily Goal', mandatory: false, defaultSize: 'small' }
+};
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -55,35 +56,39 @@ const Dashboard = () => {
   const [totalTimeToday, setTotalTimeToday] = useState(0);
   const [currentSessionTime, setCurrentSessionTime] = useState(0);
 
-  // Help tour states
   const [showTour, setShowTour] = useState(false);
   const [hasSeenTour, setHasSeenTour] = useState(false);
 
-  // Learning Review states
   const [learningReviews, setLearningReviews] = useState([]);
   const [activeLearningReview, setActiveLearningReview] = useState(null);
   
-  // Import/Export state
   const [showImportExport, setShowImportExport] = useState(false);
   const [importExportSource, setImportExportSource] = useState('notes');
 
-  // Widget customization states
   const [isCustomizing, setIsCustomizing] = useState(false);
-  const [widgets, setWidgets] = useState([
-    { id: 'stats', type: 'stats', title: 'Weekly Activity', enabled: true, size: 'small' },
-    { id: 'quick-actions', type: 'quick-actions', title: 'Quick Actions', enabled: true, size: 'small' },
-    { id: 'ai-assistant', type: 'ai-assistant', title: 'AI Chat', enabled: true, size: 'large' },
-    { id: 'learning-review', type: 'learning-review', title: 'Learning Reviews', enabled: true, size: 'small' },
-    { id: 'social', type: 'social', title: 'Social', enabled: true, size: 'small' },
-    { id: 'activity-timeline', type: 'activity-timeline', title: 'Activity Timeline', enabled: true, size: 'small' },
-    { id: 'heatmap', type: 'heatmap', title: 'Activity Heatmap', enabled: true, size: 'full' },
-    { id: 'notifications', type: 'notifications', title: 'AI Notifications', enabled: false, size: 'small' },
-    { id: 'recent-activity', type: 'recent-activity', title: 'Recent Activity', enabled: false, size: 'small' },
-    { id: 'progress-chart', type: 'progress-chart', title: 'Weekly Progress', enabled: false, size: 'small' },
-    { id: 'motivational-quote', type: 'motivational-quote', title: 'Daily Quote', enabled: false, size: 'small' }
+  const [customizeError, setCustomizeError] = useState('');
+  const [draggedWidget, setDraggedWidget] = useState(null);
+  const [editingWidgets, setEditingWidgets] = useState([]);
+  const [editingAvailable, setEditingAvailable] = useState([]);
+  
+  const defaultLayout = [
+    { id: 'greeting', type: 'greeting', size: 'small', order: 1 },
+    { id: 'stats', type: 'stats', size: 'small', order: 2 },
+    { id: 'quick-actions', type: 'quick-actions', size: 'small', order: 3 },
+    { id: 'ai-assistant', type: 'ai-assistant', size: 'medium', order: 4 },
+    { id: 'learning-review', type: 'learning-review', size: 'small', order: 5 },
+    { id: 'social', type: 'social', size: 'small', order: 6 },
+    { id: 'activity-timeline', type: 'activity-timeline', size: 'small', order: 7 },
+    { id: 'heatmap', type: 'heatmap', size: 'full', order: 8 }
+  ];
+
+  const [placedWidgets, setPlacedWidgets] = useState(defaultLayout);
+  const [availableWidgets, setAvailableWidgets] = useState([
+    { id: 'notifications', type: 'notifications', title: 'AI Notifications', defaultSize: 'small' },
+    { id: 'recent-activity', type: 'recent-activity', title: 'Recent Activity', defaultSize: 'small' },
+    { id: 'daily-goal', type: 'daily-goal', title: 'Daily Goal', defaultSize: 'small' }
   ]);
 
-  // Backend data states
   const [recentActivities, setRecentActivities] = useState([]);
   const [weeklyProgress, setWeeklyProgress] = useState([]);
   const [dailyBreakdown, setDailyBreakdown] = useState([]);
@@ -94,18 +99,15 @@ const Dashboard = () => {
   const [learningAnalytics, setLearningAnalytics] = useState(null);
   const [conversationStarters, setConversationStarters] = useState([]);
   
-  // Notification states
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   
-  // Slide-in notification queue for all notification types
   const [slideNotifQueue, setSlideNotifQueue] = useState([]);
   const [lastNotificationIds, setLastNotificationIds] = useState(new Set());
   const notificationPollRef = useRef(null);
   const lastNotificationCheckRef = useRef(0);
 
-  // Inactivity engagement states
   const [showInactivitySuggestion, setShowInactivitySuggestion] = useState(false);
   const [engagementSuggestions, setEngagementSuggestions] = useState([
     { id: 1, title: 'Start an AI Chat', description: 'Ask your AI tutor any question about your studies', icon: 'chat', action: 'ai' },
@@ -121,13 +123,11 @@ const Dashboard = () => {
   const lastActivityRef = useRef(Date.now());
   const inactivityTimerRef = useRef(null);
 
-
-
   useEffect(() => {
     const token = localStorage.getItem('token');
     const username = localStorage.getItem('username');
     const profile = localStorage.getItem('userProfile');
-    const savedWidgets = localStorage.getItem('dashboardWidgets');
+    const savedLayout = localStorage.getItem('dashboardLayout');
 
     if (!token) {
       window.location.href = '/login';
@@ -144,34 +144,13 @@ const Dashboard = () => {
       }
     }
 
-    if (savedWidgets) {
+    if (savedLayout) {
       try {
-        let parsedWidgets = JSON.parse(savedWidgets);
-        
-        // Migration: Replace daily-goal with social widget
-        parsedWidgets = parsedWidgets.map(widget => {
-          if (widget.id === 'daily-goal' || widget.type === 'daily-goal') {
-            return { id: 'social', type: 'social', title: 'Social Hub', enabled: widget.enabled, size: widget.size };
-          }
-          return widget;
-        });
-        
-        // Migration: Add new widgets if they don't exist
-        const existingIds = parsedWidgets.map(w => w.id);
-        
-        if (!existingIds.includes('social')) {
-          parsedWidgets.push({ id: 'social', type: 'social', title: 'Social Hub', enabled: true, size: 'medium' });
-        }
-        
-        if (!existingIds.includes('activity-timeline')) {
-          parsedWidgets.push({ id: 'activity-timeline', type: 'activity-timeline', title: 'Activity Timeline', enabled: true, size: 'medium' });
-        }
-        
-        setWidgets(parsedWidgets);
-        // Save the migrated widgets back to localStorage
-        localStorage.setItem('dashboardWidgets', JSON.stringify(parsedWidgets));
+        const parsed = JSON.parse(savedLayout);
+        setPlacedWidgets(parsed.placed || defaultLayout);
+        setAvailableWidgets(parsed.available || []);
       } catch (error) {
-        console.error('Error parsing saved widgets:', error);
+        console.error('Error parsing saved layout:', error);
       }
     }
   }, []);
@@ -192,511 +171,316 @@ const Dashboard = () => {
     loadHeatmapData();
     loadDashboardData();
     startDashboardSession();
-    // Check if this is a fresh login (not a refresh)
     const justLoggedIn = sessionStorage.getItem('justLoggedIn');
     const notificationAlreadyShown = sessionStorage.getItem('notificationShown');
     
-    console.log('🔔 Dashboard mounted, justLoggedIn:', justLoggedIn, 'alreadyShown:', notificationAlreadyShown);
-    
-    if (justLoggedIn === 'true') {
-      console.log('🔔 Fresh login detected');
-      sessionStorage.removeItem('justLoggedIn');
-      sessionStorage.setItem('notificationShown', 'true');
+    if (justLoggedIn && !notificationAlreadyShown) {
+      const welcomeNotif = {
+        id: `welcome-${Date.now()}`,
+        title: 'Welcome Back!',
+        message: `Ready to continue learning, ${userName}?`,
+        type: 'welcome',
+        created_at: new Date().toISOString()
+      };
       
-      // Trigger AI work notification on fresh login
       setTimeout(() => {
-        checkProactiveAIMessage(true); // true = is_login
-      }, 3000); // Wait 3 seconds after login
+        setSlideNotifQueue(prev => {
+          if (!prev.some(n => n.type === 'welcome')) {
+            return [...prev, welcomeNotif];
+          }
+          return prev;
+        });
+        sessionStorage.setItem('notificationShown', 'true');
+      }, 1500);
+      
+      sessionStorage.removeItem('justLoggedIn');
     }
     
-    // Poll for daily goal updates every 10 seconds
-    const goalPollInterval = setInterval(() => {
-      loadDashboardData();
-    }, 10000);
-    
-    // Poll for new notifications every 15 seconds to show slide-in notifications
-    // This catches calendar reminders, achievements, level ups, etc.
-    // Poll every 5 seconds for fast notification delivery
-    notificationPollRef.current = setInterval(() => {
-      // First check for any upcoming calendar reminders
-      checkReminderNotifications();
-      // Then load all notifications (with slide-in for new ones)
-      loadNotifications(true);
-    }, 5000);
-    
-    // Initial load of notifications - mark all existing as "known" to avoid showing them as slide-ins
-    const initializeNotifications = async () => {
+    startNotificationPolling();
+    checkForMissedAchievements();
+  }
+
+  return () => {
+    endDashboardSession();
+    if (notificationPollRef.current) {
+      clearInterval(notificationPollRef.current);
+    }
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+  };
+}, [userName]);
+
+  const loadDashboardData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const params = new URLSearchParams({ user_id: userName });
+      
+      const response = await fetch(`${API_URL}/get_dashboard_data?${params}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        setRecentActivities(data.recent_activities || []);
+        setWeeklyProgress(data.weekly_progress || [0, 0, 0, 0, 0, 0, 0]);
+        setDailyBreakdown(data.daily_breakdown || []);
+        setWeeklyStats(data.weekly_stats || {});
+        setMotivationalQuote(data.motivational_quote || 'Keep learning every day!');
+        setRandomQuote(data.random_quote || 'Every expert was once a beginner.');
+        setAchievements(data.achievements || []);
+        setLearningAnalytics(data.learning_analytics || null);
+        setConversationStarters(data.conversation_starters || []);
+        setLearningReviews(data.learning_reviews || []);
+      }
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    }
+  };
+
+  const checkForMissedAchievements = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/check_missed_achievements?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.missed_achievements && data.missed_achievements.length > 0) {
+          data.missed_achievements.forEach((achievement, index) => {
+            setTimeout(() => {
+              const achievementNotif = {
+                id: `achievement-${achievement.id || Date.now()}-${index}`,
+                title: '🏆 Achievement Unlocked!',
+                message: achievement.name || achievement.description,
+                type: 'achievement',
+                created_at: new Date().toISOString()
+              };
+              setSlideNotifQueue(prev => [...prev, achievementNotif]);
+            }, index * 2000);
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error checking missed achievements:', error);
+    }
+  };
+
+  const startNotificationPolling = () => {
+    if (notificationPollRef.current) {
+      clearInterval(notificationPollRef.current);
+    }
+
+    const pollNotifications = async () => {
       try {
         const token = localStorage.getItem('token');
+        const now = Date.now();
+        
+        if (now - lastNotificationCheckRef.current < 10000) {
+          return;
+        }
+        lastNotificationCheckRef.current = now;
+
         const response = await fetch(`${API_URL}/get_notifications?user_id=${userName}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
+
         if (response.ok) {
           const data = await response.json();
-          const existingNotifs = data.notifications || [];
-          // Mark all existing notification IDs as known
-          setLastNotificationIds(new Set(existingNotifs.map(n => n.id)));
-          setNotifications(existingNotifs);
-          setUnreadCount(existingNotifs.filter(n => !n.is_read).length);
-          console.log('📬 Initialized with', existingNotifs.length, 'existing notifications');
-        }
-      } catch (error) {
-        console.error('📬 Error initializing notifications:', error);
-      }
-    };
-    initializeNotifications();
-    
-    // Check for reminder notifications after a delay
-    setTimeout(() => {
-      checkReminderNotifications();
-    }, 5000);
-    
-    // Request browser notification permission
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-    
-    return () => {
-      if (sessionStartTime && sessionId && userName) {
-        endDashboardSession();
-      }
-      if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
-      if (sessionUpdateRef.current) clearInterval(sessionUpdateRef.current);
-      if (notificationPollRef.current) clearInterval(notificationPollRef.current);
-      clearInterval(goalPollInterval);
-    };
-  }
-}, [userName]);
-
-  // ML-based idle detection for slide notifications
-  useEffect(() => {
-    if (!userName) return;
-
-    // Track user activity
-    const trackActivity = () => {
-      lastActivityRef.current = Date.now();
-    };
-
-    // Listen for user interactions
-    window.addEventListener('click', trackActivity);
-    window.addEventListener('keypress', trackActivity);
-    window.addEventListener('scroll', trackActivity);
-
-    // Check for idle every 5 seconds - show full screen inactivity modal
-    const idleCheckInterval = setInterval(() => {
-      const idleTime = Date.now() - lastActivityRef.current;
-      const IDLE_THRESHOLD = 10 * 1000; // 10 seconds
-
-      if (idleTime > IDLE_THRESHOLD && !showInactivitySuggestion) {
-        console.log('🔔 User is idle for 10 seconds, showing inactivity modal');
-        setShowInactivitySuggestion(true);
-      }
-    }, 5 * 1000); // Check every 5 seconds
-
-    return () => {
-      window.removeEventListener('click', trackActivity);
-      window.removeEventListener('keypress', trackActivity);
-      window.removeEventListener('scroll', trackActivity);
-      clearInterval(idleCheckInterval);
-    };
-  }, [userName]);
-
-
-
-  const handleEngagementSuggestion = async (action) => {
-    setShowInactivitySuggestion(false);
-    lastActivityRef.current = Date.now();
-    
-    await endDashboardSession();
-    
-    switch(action) {
-      case 'ai':
-        window.location.href = '/ai-chat';
-        break;
-      case 'flashcards':
-        window.location.href = '/flashcards';
-        break;
-      case 'quiz':
-        window.location.href = '/question-bank';
-        break;
-      case 'notes':
-        window.location.href = '/notes-dashboard';
-        break;
-      case 'concepts':
-        window.location.href = '/concept-web';
-        break;
-      case 'social':
-        window.location.href = '/social';
-        break;
-      default:
-        break;
-    }
-  };
-
-  const loadLearningReviews = async () => {
-    if (!userName) return;
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/get_learning_reviews?user_id=${userName}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setLearningReviews(data.reviews || []);
-      }
-    } catch (error) {
-      console.error('Error loading learning reviews:', error);
-    }
-  };
-
-  const clearAllNotifications = async () => {
-    if (!userName) return;
-    try {
-      const token = localStorage.getItem('token');
-      await fetch(`${API_URL}/clear_all_notifications?user_id=${userName}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      setNotifications([]);
-      setUnreadCount(0);
-      console.log('📬 All notifications cleared');
-    } catch (error) {
-      console.error('Error clearing notifications:', error);
-    }
-  };
-
-  const loadNotifications = async (showSlideNotifs = false) => {
-    if (!userName) return;
-    
-    // Debounce: Don't check too frequently (minimum 2 seconds between checks)
-    const now = Date.now();
-    if (showSlideNotifs && (now - lastNotificationCheckRef.current) < 2000) {
-      console.log('📬 Skipping notification check - too soon since last check');
-      return;
-    }
-    
-    try {
-      const token = localStorage.getItem('token');
-      const url = `${API_URL}/get_notifications?user_id=${userName}`;
-      console.log('📬 Loading notifications from:', url);
-      
-      const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        const newNotifications = data.notifications || [];
-        console.log('📬 Loaded notifications:', newNotifications.length, newNotifications);
-        
-        // Check for new unread notifications to show as slide-in
-        if (showSlideNotifs) {
-          lastNotificationCheckRef.current = now;
+          const notifs = data.notifications || [];
           
-          const unreadNotifs = newNotifications.filter(n => !n.is_read);
-          const newUnreadNotifs = unreadNotifs.filter(n => !lastNotificationIds.has(n.id));
-          
-          if (newUnreadNotifs.length > 0) {
-            console.log('📬 New notifications to show as slide-in:', newUnreadNotifs.length);
-            // Add new notifications to the slide queue (max 3 at a time)
-            const notifsToShow = newUnreadNotifs.slice(0, 3);
+          setNotifications(notifs);
+          setUnreadCount(notifs.filter(n => !n.is_read).length);
+
+          const newNotifs = notifs.filter(notif => 
+            !lastNotificationIds.has(notif.id) && !notif.is_read
+          );
+
+          if (newNotifs.length > 0) {
+            const newSlideNotifs = newNotifs.map(notif => ({
+              id: notif.id,
+              title: notif.title,
+              message: notif.message,
+              type: notif.notification_type || 'general',
+              created_at: notif.created_at
+            }));
             
-            // Only add notifications that aren't already in the queue
-            setSlideNotifQueue(prev => {
-              const existingIds = new Set(prev.map(n => n.id));
-              const uniqueNotifs = notifsToShow.filter(n => !existingIds.has(n.id));
-              if (uniqueNotifs.length > 0) {
-                console.log('📬 Adding unique notifications to queue:', uniqueNotifs.length);
-                // Play notification sound only for truly new notifications
-                playNotificationSound();
-                // Show browser notification for the first one
-                showBrowserNotification(uniqueNotifs[0]);
-              }
-              return [...prev, ...uniqueNotifs];
+            setSlideNotifQueue(prev => [...prev, ...newSlideNotifs]);
+            setLastNotificationIds(prev => {
+              const updated = new Set(prev);
+              newNotifs.forEach(n => updated.add(n.id));
+              return updated;
             });
           }
-          
-          // Update the set of known notification IDs
-          setLastNotificationIds(new Set(newNotifications.map(n => n.id)));
         }
-        
-        setNotifications(newNotifications);
-        setUnreadCount(newNotifications.filter(n => !n.is_read).length);
-        console.log('📬 Notifications state updated:', newNotifications.length);
-      } else {
-        console.error('📬 Failed to load notifications:', response.status);
+      } catch (error) {
+        console.error('Error polling notifications:', error);
       }
-    } catch (error) {
-      console.error('📬 Error loading notifications:', error);
-      // If endpoint doesn't exist, set empty array
-      setNotifications([]);
-      setUnreadCount(0);
-    }
+    };
+
+    pollNotifications();
+    notificationPollRef.current = setInterval(pollNotifications, 30000);
   };
-  
-  // Play notification sound
-  const playNotificationSound = () => {
-    try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.value = 800;
-      oscillator.type = 'sine';
-      gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.3);
-    } catch (e) {
-      console.log('Could not play notification sound:', e);
-    }
-  };
-  
-  // Show browser notification
-  const showBrowserNotification = async (notification) => {
-    if ('Notification' in window) {
-      if (Notification.permission === 'default') {
-        await Notification.requestPermission();
-      }
-      
-      if (Notification.permission === 'granted') {
-        new Notification(notification.title, {
-          body: notification.message,
-          icon: '/favicon.ico',
-          tag: `notif-${notification.id}`,
-          requireInteraction: false
-        });
-      }
-    }
-  };
-  
-  // Remove a slide notification from queue
+
   const removeSlideNotification = (notifId) => {
     setSlideNotifQueue(prev => prev.filter(n => n.id !== notifId));
   };
-  
-  // Check for upcoming calendar reminders and create notifications
-  const checkReminderNotifications = async () => {
-    if (!userName) return;
-    try {
-      const token = localStorage.getItem('token');
-      // Send current local time so backend can compare properly
-      // Format: "2025-12-11T17:45:30" (no timezone suffix)
-      const now = new Date();
-      const currentTime = now.getFullYear() + '-' + 
-        String(now.getMonth() + 1).padStart(2, '0') + '-' + 
-        String(now.getDate()).padStart(2, '0') + 'T' + 
-        String(now.getHours()).padStart(2, '0') + ':' + 
-        String(now.getMinutes()).padStart(2, '0') + ':' + 
-        String(now.getSeconds()).padStart(2, '0');
-      
-      const response = await fetch(`${API_URL}/check_reminder_notifications?user_id=${userName}&current_time=${encodeURIComponent(currentTime)}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('📅 Reminder check result:', data);
-        if (data.notifications_created > 0) {
-          console.log('📅 Created reminder notifications:', data.notifications_created, data.details);
-          // Don't reload here - the polling interval will pick it up
-          // This prevents duplicate notifications
-        }
-      }
-    } catch (error) {
-      console.error('Error checking reminder notifications:', error);
-    }
-  };
 
-  // Check for proactive AI messages (work notifications on login)
-  const checkProactiveAIMessage = async (isLogin = false) => {
-    if (!userName) return;
+  const markNotificationAsRead = async (notifId) => {
     try {
       const token = localStorage.getItem('token');
-      
-      console.log('🤖 Checking for proactive AI message, isLogin:', isLogin);
-      
-      const response = await fetch(`${API_URL}/check_proactive_message?user_id=${userName}&is_login=${isLogin}&is_idle=false`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const response = await fetch(`${API_URL}/mark_notification_read`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          notification_id: notifId
+        })
       });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('🤖 Proactive AI result:', data);
-        
-        if (data.should_notify && data.message) {
-          console.log('🤖 AI work notification created:', data.message);
-          // Reload notifications to show the new AI notification
-          setTimeout(() => {
-            loadNotifications(true);
-          }, 1000);
-        }
-      }
-    } catch (error) {
-      console.error('Error checking proactive AI message:', error);
-    }
-  };
 
-  const markNotificationAsRead = async (notificationId) => {
-    try {
-      const token = localStorage.getItem('token');
-      await fetch(`${API_URL}/mark_notification_read/${notificationId}`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      loadNotifications();
+      if (response.ok) {
+        setNotifications(prev => prev.map(n => 
+          n.id === notifId ? { ...n, is_read: true } : n
+        ));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
   };
 
-  const markAllNotificationsAsRead = async () => {
+  const deleteNotification = async (notifId) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`${API_URL}/mark_all_notifications_read?user_id=${userName}`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
+      const response = await fetch(`${API_URL}/delete_notification`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          notification_id: notifId
+        })
       });
-      loadNotifications();
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-    }
-  };
 
-  const deleteNotification = async (notificationId) => {
-    try {
-      const token = localStorage.getItem('token');
-      await fetch(`${API_URL}/delete_notification/${notificationId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      loadNotifications();
+      if (response.ok) {
+        const wasUnread = notifications.find(n => n.id === notifId)?.is_read === false;
+        setNotifications(prev => prev.filter(n => n.id !== notifId));
+        if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
+      }
     } catch (error) {
       console.error('Error deleting notification:', error);
     }
   };
 
-  const createLearningReview = async () => {
-  if (!userName) return;
-  
-  try {
-    const token = localStorage.getItem('token');
-    const sessionsResponse = await fetch(`${API_URL}/get_chat_sessions?user_id=${userName}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    
-    if (sessionsResponse.ok) {
-      const sessionsData = await sessionsResponse.json();
-      const recentSessions = sessionsData.sessions?.slice(0, 3) || [];
-      
-      // If no sessions, just navigate to the learning review page
-      if (recentSessions.length === 0) {
-        await endDashboardSession();
-        window.location.href = '/learning-review';
-        return;
-      }
-      
-      // If sessions exist, create review automatically
-      const response = await fetch(`${API_URL}/create_learning_review`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          user_id: userName,
-          chat_session_ids: recentSessions.map(s => s.id),
-          review_title: `Learning Review - ${new Date().toLocaleDateString()}`,
-          review_type: 'comprehensive'
-        })
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setActiveLearningReview(data);
-        loadLearningReviews();
-        await endDashboardSession();
-        window.location.href = '/learning-review';
-      } else {
-        const errorData = await response.json();
-        alert('Error creating review: ' + (errorData.detail || 'Unknown error'));
-      }
+  const handleEngagementSuggestion = (action) => {
+    setShowInactivitySuggestion(false);
+    switch(action) {
+      case 'ai': navigate('/ai'); break;
+      case 'flashcards': navigate('/flashcards'); break;
+      case 'quiz': navigate('/quiz'); break;
+      case 'notes': navigate('/notes'); break;
+      case 'concepts': navigate('/concepts'); break;
+      case 'social': navigate('/social'); break;
+      default: break;
     }
-  } catch (error) {
-    console.error('Error creating learning review:', error);
-    // On error, still navigate to the page
-    await endDashboardSession();
-    window.location.href = '/learning-review';
-  }
-};
-
-  const getScoreColor = (score) => {
-    if (score >= 90) return 'score-excellent';
-    if (score >= 70) return 'score-good';
-    if (score >= 50) return 'score-fair';
-    return 'score-poor';
   };
 
-  const loadDashboardData = async () => {
-  if (!userName) return;
-  const token = localStorage.getItem('token');
-  const headers = { 'Authorization': `Bearer ${token}` };
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
 
-  try {
-    // Weekly Progress with full breakdown
-    const weeklyResponse = await fetch(`${API_URL}/get_weekly_progress?user_id=${userName}`, { headers });
-    if (weeklyResponse.ok) {
-      const weeklyData = await weeklyResponse.json();
-      setWeeklyProgress(weeklyData.weekly_data || []);
-      setDailyBreakdown(weeklyData.daily_breakdown || []);
-      setWeeklyStats(weeklyData.weekly_stats || {});
+  const displayName = userProfile?.name || userName;
+
+  const navigateToAI = () => navigate('/ai');
+  const navigateToFlashcards = () => navigate('/flashcards');
+  const navigateToQuiz = () => navigate('/quiz');
+  const navigateToNotes = () => navigate('/notes');
+  const navigateToGames = () => navigate('/games');
+  const navigateToSocial = () => navigate('/social');
+  const navigateToConcepts = () => navigate('/concepts');
+  const openProfile = () => navigate('/profile');
+
+  const handleLogout = async () => {
+    await endDashboardSession();
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = '/login';
+  };
+
+  const handleLearningReviewAction = async (reviewId, action) => {
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('user_id', userName);
+      formData.append('review_id', reviewId);
+      formData.append('action', action);
+
+      const response = await fetch(`${API_URL}/update_learning_review`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+
+      if (response.ok) {
+        loadDashboardData();
+      }
+    } catch (error) {
+      console.error('Error updating learning review:', error);
     }
+  };
 
-    // Achievements
-    const achievementsResponse = await fetch(`${API_URL}/get_user_achievements?user_id=${userName}`, { headers });
-    if (achievementsResponse.ok) {
-      const achievementsData = await achievementsResponse.json();
-      setAchievements(achievementsData.achievements || []);
+  const startLearningReview = (review) => {
+    setActiveLearningReview(review);
+    if (review.content_type === 'flashcard_deck') {
+      navigate(`/flashcards?deck_id=${review.content_id}`);
+    } else if (review.content_type === 'topic') {
+      navigate(`/ai?topic=${encodeURIComponent(review.topic)}`);
     }
+  };
 
-    // Learning Analytics
-    const analyticsResponse = await fetch(`${API_URL}/get_learning_analytics?user_id=${userName}&period=week`, { headers });
-    if (analyticsResponse.ok) {
-      const analyticsData = await analyticsResponse.json();
-      console.log('📊 Analytics received:', analyticsData);
-      setLearningAnalytics(analyticsData);
-    } else {
-      console.error('❌ Analytics failed');
-      setLearningAnalytics({ total_sessions: 0, total_time_minutes: 0 });
+  const deleteLearningReview = async (reviewId, reviewTitle) => {
+    const isConfirmed = window.confirm(
+      `Are you sure you want to delete "${reviewTitle}"?\n\nThis action cannot be undone.`
+    );
+    if (!isConfirmed) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/delete_learning_review/${reviewId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (response.ok) {
+        setLearningReviews(prev => prev.filter(review => review.id !== reviewId));
+        alert('Learning review deleted successfully');
+      } else {
+        const errorData = await response.json();
+        alert('Error deleting review: ' + (errorData.detail || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error deleting learning review:', error);
+      alert('Error deleting learning review');
     }
+  };
 
-    // Conversation Starters
-    const startersResponse = await fetch(`${API_URL}/conversation_starters?user_id=${userName}`, { headers });
-    if (startersResponse.ok) {
-      const startersData = await startersResponse.json();
-      setConversationStarters(startersData.suggestions || []);
-    }
+  const openNotes = () => navigate('/notes');
+  const generateFlashcards = () => {
+    setShowImportExport(true);
+    setImportExportSource('notes');
+  };
 
-    loadMotivationalQuote();
-    loadLearningReviews();
-    loadNotifications();
-    
-  } catch (error) {
-    console.error('Error loading dashboard data:', error);
-  }
-};
-
-  async function responseToJsonSafely(resp) {
-    try { return await resp.json(); } catch { return {}; }
-  }
-   
-
-  
   const loadMotivationalQuote = () => {
     const quotes = [
       "The expert in anything was once a beginner.",
@@ -727,55 +511,116 @@ const Dashboard = () => {
     return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
   };
 
-  const saveWidgetConfiguration = () => {
-    localStorage.setItem('dashboardWidgets', JSON.stringify(widgets));
+  const saveLayoutConfiguration = () => {
+    const missingWidgets = MANDATORY_WIDGETS.filter(
+      type => !editingWidgets.some(w => w.type === type)
+    );
+    
+    if (missingWidgets.length > 0) {
+      const names = missingWidgets.map(t => WIDGET_DEFINITIONS[t]?.title || t).join(', ');
+      setCustomizeError(`Please place all required widgets: ${names}`);
+      return false;
+    }
+    
+    setCustomizeError('');
+    // Apply editing state to actual state
+    setPlacedWidgets(editingWidgets);
+    setAvailableWidgets(editingAvailable.filter(w => !WIDGET_DEFINITIONS[w.type]?.mandatory));
+    localStorage.setItem('dashboardLayout', JSON.stringify({
+      placed: editingWidgets,
+      available: editingAvailable.filter(w => !WIDGET_DEFINITIONS[w.type]?.mandatory)
+    }));
+    return true;
   };
 
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
-    if (active.id !== over?.id) {
-      setWidgets((widgets) => {
-        const oldIndex = widgets.findIndex((widget) => widget.id === active.id);
-        const newIndex = widgets.findIndex((widget) => widget.id === over.id);
-        return arrayMove(widgets, oldIndex, newIndex);
-      });
+  const handleWidgetDragStart = (e, widget) => {
+    setDraggedWidget(widget);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleGridDrop = (e, cellIndex) => {
+    e.preventDefault();
+    if (!draggedWidget) return;
+
+    const isFromAvailable = editingAvailable.some(w => w.id === draggedWidget.id);
+    
+    if (isFromAvailable) {
+      const size = draggedWidget.defaultSize || 'small';
+      const newWidget = {
+        id: draggedWidget.id,
+        type: draggedWidget.type,
+        size: size,
+        order: editingWidgets.length + 1
+      };
+
+      setEditingWidgets(prev => [...prev, newWidget]);
+      setEditingAvailable(prev => prev.filter(w => w.id !== draggedWidget.id));
+    }
+
+    setDraggedWidget(null);
+  };
+
+  const handleRemoveWidget = (widgetId) => {
+    const widget = editingWidgets.find(w => w.id === widgetId);
+    if (!widget) return;
+    
+    const def = WIDGET_DEFINITIONS[widget.type];
+    
+    setEditingWidgets(prev => prev.filter(w => w.id !== widgetId));
+    setEditingAvailable(prev => [...prev, {
+      id: widget.id,
+      type: widget.type,
+      title: def?.title || widget.type,
+      defaultSize: widget.size,
+      mandatory: def?.mandatory || false
+    }]);
+    setCustomizeError('');
+  };
+
+  const handleWidgetResize = (widgetId, newSize) => {
+    setEditingWidgets(prev => prev.map(w => {
+      if (w.id === widgetId) {
+        return { ...w, size: newSize };
+      }
+      return w;
+    }));
+  };
+
+  const resetLayout = () => {
+    if (isCustomizing) {
+      // In customize mode, reset editing state to default layout
+      setEditingWidgets(defaultLayout);
+      setEditingAvailable([
+        { id: 'notifications', type: 'notifications', title: 'AI Notifications', defaultSize: 'small', mandatory: false },
+        { id: 'recent-activity', type: 'recent-activity', title: 'Recent Activity', defaultSize: 'small', mandatory: false },
+        { id: 'daily-goal', type: 'daily-goal', title: 'Daily Goal', defaultSize: 'small', mandatory: false }
+      ]);
+    } else {
+      setPlacedWidgets(defaultLayout);
+      setAvailableWidgets([
+        { id: 'notifications', type: 'notifications', title: 'AI Notifications', defaultSize: 'small' },
+        { id: 'recent-activity', type: 'recent-activity', title: 'Recent Activity', defaultSize: 'small' },
+        { id: 'daily-goal', type: 'daily-goal', title: 'Daily Goal', defaultSize: 'small' }
+      ]);
     }
   };
 
-  const toggleWidget = (widgetId) => {
-    setWidgets(widgets.map(widget =>
-      widget.id === widgetId
-        ? { ...widget, enabled: !widget.enabled }
-        : widget
-    ));
+  const getWidgetDefinition = (type) => {
+    const defs = {
+      'greeting': { title: 'Greeting' },
+      'stats': { title: 'Weekly Activity' },
+      'quick-actions': { title: 'Quick Actions' },
+      'ai-assistant': { title: 'AI Chat' },
+      'learning-review': { title: 'Learning Reviews' },
+      'social': { title: 'Social' },
+      'activity-timeline': { title: 'Activity Timeline' },
+      'heatmap': { title: 'Activity Heatmap' },
+      'notifications': { title: 'AI Notifications' },
+      'recent-activity': { title: 'Recent Activity' },
+      'daily-goal': { title: 'Daily Goal' }
+    };
+    return defs[type] || { title: type };
   };
-
-  const changeWidgetSize = (widgetId, newSize) => {
-    setWidgets(widgets.map(widget =>
-      widget.id === widgetId
-        ? { ...widget, size: newSize }
-        : widget
-    ));
-  };
-
-  const resetWidgets = () => {
-    const defaultWidgets = [
-      { id: 'stats', type: 'stats', title: 'Weekly Activity', enabled: true, size: 'small' },
-      { id: 'quick-actions', type: 'quick-actions', title: 'Quick Actions', enabled: true, size: 'small' },
-      { id: 'ai-assistant', type: 'ai-assistant', title: 'AI Chat', enabled: true, size: 'large' },
-      { id: 'learning-review', type: 'learning-review', title: 'Learning Reviews', enabled: true, size: 'small' },
-      { id: 'social', type: 'social', title: 'Social', enabled: true, size: 'small' },
-      { id: 'activity-timeline', type: 'activity-timeline', title: 'Activity Timeline', enabled: true, size: 'small' },
-      { id: 'heatmap', type: 'heatmap', title: 'Activity Heatmap', enabled: true, size: 'full' },
-      { id: 'notifications', type: 'notifications', title: 'AI Notifications', enabled: false, size: 'small' },
-      { id: 'recent-activity', type: 'recent-activity', title: 'Recent Activity', enabled: false, size: 'small' },
-      { id: 'progress-chart', type: 'progress-chart', title: 'Weekly Progress', enabled: false, size: 'small' },
-      { id: 'motivational-quote', type: 'motivational-quote', title: 'Daily Quote', enabled: false, size: 'small' }
-    ];
-    setWidgets(defaultWidgets);
-  };
-
-  const enabledWidgets = widgets.filter(widget => widget.enabled);
 
   const loadHeatmapData = async () => {
     if (!userName) return;
@@ -797,17 +642,17 @@ const Dashboard = () => {
   };
 
   const getActivityColor = (level) => {
-  const accent = selectedTheme.tokens['--accent'];
-  switch (level) {
-    case 0: return rgbaFromHex(accent, 0.08);
-    case 1: return rgbaFromHex(accent, 0.25);
-    case 2: return rgbaFromHex(accent, 0.45);
-    case 3: return rgbaFromHex(accent, 0.65);
-    case 4: return rgbaFromHex(accent, 0.85);
-    case 5: return accent;
-    default: return rgbaFromHex(accent, 0.08);
-  }
-};
+    const accent = selectedTheme?.tokens?.['--accent'] || '#D7B38C';
+    switch (level) {
+      case 0: return rgbaFromHex(accent, 0.08);
+      case 1: return rgbaFromHex(accent, 0.25);
+      case 2: return rgbaFromHex(accent, 0.45);
+      case 3: return rgbaFromHex(accent, 0.65);
+      case 4: return rgbaFromHex(accent, 0.85);
+      case 5: return accent;
+      default: return rgbaFromHex(accent, 0.08);
+    }
+  };
 
   const getTooltipText = (count, date) => {
     const dateObj = new Date(date);
@@ -980,7 +825,6 @@ const Dashboard = () => {
   const loadUserStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      // Use the same endpoint as Games page for consistency
       const response = await fetch(`${API_URL}/get_gamification_stats?user_id=${userName}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -994,901 +838,490 @@ const Dashboard = () => {
           totalNotes: gamificationStats.total_notes_created || 0,
           totalChatSessions: gamificationStats.total_chat_sessions || 0
         });
-        setTotalTimeToday(0); // This endpoint doesn't provide today's time
+        setTotalTimeToday(0);
       } else {
-        setStats({ streak: 0, totalQuestions: 0, minutes: 0, totalFlashcards: 0, totalNotes: 0, totalChatSessions: 0 });
-      }
-    } catch (error) {
-      console.error('Error loading stats:', error);
-      setStats({ streak: 0, totalQuestions: 0, minutes: 0, totalFlashcards: 0, totalNotes: 0, totalChatSessions: 0 });
-    }
-  };
-
-  const handleLogout = async () => {
-    if (sessionStartTime && sessionId && userName) await endDashboardSession();
-    if (userProfile?.googleUser && window.google) window.google.accounts.id.disableAutoSelect();
-    localStorage.removeItem('token');
-    localStorage.removeItem('username');
-    localStorage.removeItem('userProfile');
-    localStorage.removeItem('dashboardWidgets');
-    sessionStorage.removeItem('notificationShown'); // Clear notification flag
-    window.location.href = '/';
-  };
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 18) return 'Good Afternoon';
-    return 'Good Evening';
-  };
-
-  // Initialize random quote once on mount
-  useEffect(() => {
-    const quotes = [
-      "The only way to do great work is to love what you do.",
-      "Success is not final, failure is not fatal: it is the courage to continue that counts.",
-      "Believe you can and you're halfway there.",
-      "The future belongs to those who believe in the beauty of their dreams.",
-      "It does not matter how slowly you go as long as you do not stop.",
-      "Everything you've ever wanted is on the other side of fear.",
-      "Success is not how high you have climbed, but how you make a positive difference to the world.",
-      "Don't watch the clock; do what it does. Keep going.",
-      "The only impossible journey is the one you never begin.",
-      "In the middle of difficulty lies opportunity.",
-      "What you get by achieving your goals is not as important as what you become by achieving your goals.",
-      "The best time to plant a tree was 20 years ago. The second best time is now.",
-      "Your limitation—it's only your imagination.",
-      "Great things never come from comfort zones.",
-      "Dream it. Wish it. Do it.",
-      "Success doesn't just find you. You have to go out and get it.",
-      "The harder you work for something, the greater you'll feel when you achieve it.",
-      "Dream bigger. Do bigger.",
-      "Don't stop when you're tired. Stop when you're done.",
-      "Wake up with determination. Go to bed with satisfaction."
-    ];
-    setRandomQuote(quotes[Math.floor(Math.random() * quotes.length)]);
-  }, []);
-
-  const displayName = userProfile?.firstName
-    ? `${userProfile.firstName} ${userProfile.lastName || ''}`.trim()
-    : userName;
-
-  const navigateToAI = async () => {
-    await endDashboardSession();
-    window.location.href = '/ai-chat';
-  };
-  const generateFlashcards = async () => {
-    await endDashboardSession();
-    window.location.href = '/flashcards';
-  };
-  const openNotes = async () => {
-    await endDashboardSession();
-    window.location.href = '/notes';
-  };
-  const openProfile = async () => {
-    await endDashboardSession();
-    window.location.href = '/profile';
-  };
-
-  const getMotivationalMessage = () => {
-    if (stats.totalQuestions === 0) return "Start your learning journey today";
-    if (stats.streak === 0) return "Build your learning streak";
-    if (stats.streak < 7) return `${7 - stats.streak} days to weekly streak`;
-    return `${stats.streak} day learning streak`;
-  };
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
-
-  const deleteLearningReview = async (reviewId, reviewTitle) => {
-    const isConfirmed = window.confirm(
-      `Are you sure you want to delete "${reviewTitle}"?\n\nThis action cannot be undone.`
-    );
-    if (!isConfirmed) return;
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/delete_learning_review/${reviewId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+        const fallbackResponse = await fetch(`${API_URL}/get_user_stats?user_id=${userName}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (fallbackResponse.ok) {
+          const data = await fallbackResponse.json();
+          setStats({
+            streak: data.streak || 0,
+            totalQuestions: data.total_questions || 0,
+            minutes: data.minutes || 0,
+            totalFlashcards: data.total_flashcards || 0,
+            totalNotes: data.total_notes || 0,
+            totalChatSessions: data.total_chat_sessions || 0
+          });
+          setTotalTimeToday(data.total_time_today || 0);
         }
-      });
-      if (response.ok) {
-        setLearningReviews(prev => prev.filter(review => review.id !== reviewId));
-        alert('Learning review deleted successfully');
-      } else {
-        const errorData = await response.json();
-        alert('Error deleting review: ' + (errorData.detail || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Error deleting learning review:', error);
-      alert('Error deleting learning review');
+      console.error('Error loading user stats:', error);
     }
   };
 
-  // Debug CSS variables
-  useEffect(() => {
-    console.log('Dashboard - Selected theme:', selectedTheme);
-    console.log('Dashboard - Theme tokens:', selectedTheme.tokens);
-    console.log('Dashboard - CSS --accent:', getComputedStyle(document.documentElement).getPropertyValue('--accent'));
-    console.log('Dashboard - CSS --text-primary:', getComputedStyle(document.documentElement).getPropertyValue('--text-primary'));
-  }, [selectedTheme]);
+  const renderWidget = (widget) => {
+    const tokens = selectedTheme?.tokens || {};
+    const accent = tokens['--accent'] || '#D7B38C';
+    const accent2 = tokens['--accent-2'] || '#B88F63';
+    const textPrimary = tokens['--text-primary'] || '#EAECEF';
+    const textSecondary = tokens['--text-secondary'] || '#B8C0CC';
+    const bgTop = tokens['--bg-top'] || '#0a0a0b';
+    const widgetContrastColor = selectedTheme?.mode === 'light' ? '#000000' : '#ffffff';
 
-  const SortableWidget = ({ widget }) => {
-    const {
-      attributes,
-      listeners,
-      setNodeRef,
-      transform,
-      transition,
-      isDragging,
-    } = useSortable({ id: widget.id, disabled: !isCustomizing });
+    switch (widget.type) {
+      case 'greeting':
+        return (
+          <div className="greeting-card-compact">
+            <h2 className="greeting-text">{getGreeting()}, {displayName}</h2>
+            <p className="greeting-quote">"{randomQuote}"</p>
+          </div>
+        );
 
-    const style = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-      zIndex: isDragging ? 1000 : 'auto',
-    };
+      case 'stats':
+        const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const maxWeeklyValue = Math.max(...weeklyProgress, 1);
+        const totalActivities = stats.totalQuestions + stats.totalFlashcards + stats.totalNotes + stats.totalChatSessions;
+        const chartWidth = 280;
+        const chartHeight = 100;
+        const chartPadding = 20;
+        const chartInnerWidth = chartWidth - (chartPadding * 2);
+        const pointSpacing = chartInnerWidth / 6;
 
-    const handleButtonClick = (e, action) => {
-      e.stopPropagation();
-      e.preventDefault();
-      action();
-    };
-
-    const accent = selectedTheme.tokens['--accent'];
-    const accent2 = selectedTheme.tokens['--accent-2'];
-    const textPrimary = selectedTheme.tokens['--text-primary'];
-    const textSecondary = selectedTheme.tokens['--text-secondary'];
-    const bgTop = selectedTheme.tokens['--bg-top'];
-    const primaryContrast = selectedTheme.tokens['--primary-contrast'];
-    // For colored widgets text/icons: black for light themes, white for dark themes
-    const widgetContrastColor = selectedTheme.mode === 'light' ? '#000000' : '#ffffff';
-    // For colored widgets buttons: WHITE bg for light themes, BLACK bg for dark themes - both with accent text
-    const widgetButtonBg = selectedTheme.mode === 'light' ? '#ffffff' : '#000000';
-    const widgetButtonText = accent;
-
-    const widgetContent = () => {
-      switch (widget.type) {
-        case 'stats':
-          // Weekly line graph data
-          const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-          const maxWeeklyValue = Math.max(...weeklyProgress, 1);
-          
-          // Calculate totals for display
-          const totalActivities = stats.totalQuestions + stats.totalFlashcards + stats.totalNotes + stats.totalChatSessions;
-          
-          // Chart dimensions - use percentage-based positioning for proper alignment
-          const chartWidth = 280;
-          const chartHeight = 100;
-          const chartPadding = 20;
-          const chartInnerWidth = chartWidth - (chartPadding * 2);
-          const pointSpacing = chartInnerWidth / 6; // 6 gaps for 7 points
-          
-          return (
-            <div className="stats-overview-widget">
-              <div className="widget-header">
-                <h3 className="widget-title">Weekly Activity</h3>
-                <div className="widget-header-right">
-                  <button className="analytics-btn" onClick={() => navigate('/analytics')}>
-                    <span>Analytics</span>
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
+        return (
+          <div className="stats-overview-widget">
+            <div className="widget-header">
+              <h3 className="widget-title">Weekly Activity</h3>
+              <div className="widget-header-right">
+                <button className="analytics-btn" onClick={() => navigate('/analytics')}>
+                  <span>Analytics</span>
+                  <ChevronRight size={16} />
+                </button>
               </div>
-              <div className="stats-line-container">
-                <div className="stats-graph-section">
-                  <div className="line-chart-wrapper">
-                    <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="stats-line-chart" preserveAspectRatio="xMidYMid meet">
-                      {/* Grid lines */}
-                      <line x1={chartPadding} y1="85" x2={chartWidth - chartPadding} y2="85" stroke={textSecondary} strokeOpacity="0.2" />
-                      <line x1={chartPadding} y1="55" x2={chartWidth - chartPadding} y2="55" stroke={textSecondary} strokeOpacity="0.1" strokeDasharray="4" />
-                      <line x1={chartPadding} y1="25" x2={chartWidth - chartPadding} y2="25" stroke={textSecondary} strokeOpacity="0.1" strokeDasharray="4" />
-                      
-                      {/* Area fill */}
-                      <path
-                        d={`M ${chartPadding} 85 ${weeklyProgress.map((val, i) => {
-                          const x = chartPadding + (i * pointSpacing);
-                          const y = 85 - (val / maxWeeklyValue) * 60;
-                          return `L ${x} ${y}`;
-                        }).join(' ')} L ${chartPadding + 6 * pointSpacing} 85 Z`}
-                        fill={`url(#areaGradient-${widget.id})`}
-                      />
-                      
-                      {/* Line */}
-                      <path
-                        d={`M ${weeklyProgress.map((val, i) => {
-                          const x = chartPadding + (i * pointSpacing);
-                          const y = 85 - (val / maxWeeklyValue) * 60;
-                          return `${i === 0 ? '' : 'L '}${x} ${y}`;
-                        }).join(' ')}`}
-                        fill="none"
-                        stroke={accent}
-                        strokeWidth="2"
-                      />
-                      
-                      {/* Data points */}
-                      {weeklyProgress.map((val, i) => {
+            </div>
+            <div className="stats-line-container">
+              <div className="stats-graph-section">
+                <div className="line-chart-wrapper">
+                  <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="stats-line-chart" preserveAspectRatio="xMidYMid meet">
+                    <line x1={chartPadding} y1="85" x2={chartWidth - chartPadding} y2="85" stroke={textSecondary} strokeOpacity="0.2" />
+                    <line x1={chartPadding} y1="55" x2={chartWidth - chartPadding} y2="55" stroke={textSecondary} strokeOpacity="0.1" strokeDasharray="4" />
+                    <line x1={chartPadding} y1="25" x2={chartWidth - chartPadding} y2="25" stroke={textSecondary} strokeOpacity="0.1" strokeDasharray="4" />
+                    
+                    <path
+                      d={`M ${chartPadding} 85 ${weeklyProgress.map((val, i) => {
                         const x = chartPadding + (i * pointSpacing);
                         const y = 85 - (val / maxWeeklyValue) * 60;
-                        return (
-                          <circle key={i} cx={x} cy={y} r="4" fill={accent} stroke={bgTop} strokeWidth="2" />
-                        );
-                      })}
-                      
-                      {/* Day labels directly in SVG for perfect alignment */}
-                      {dayLabels.map((day, i) => {
+                        return `L ${x} ${y}`;
+                      }).join(' ')} L ${chartPadding + 6 * pointSpacing} 85 Z`}
+                      fill={`url(#areaGradient-${widget.id})`}
+                    />
+                    
+                    <path
+                      d={`M ${weeklyProgress.map((val, i) => {
                         const x = chartPadding + (i * pointSpacing);
-                        return (
-                          <text key={i} x={x} y="98" textAnchor="middle" fill={textSecondary} fontSize="9" fontWeight="600" style={{ textTransform: 'uppercase' }}>
-                            {day}
-                          </text>
-                        );
-                      })}
-                      
-                      {/* Gradient definition */}
-                      <defs>
-                        <linearGradient id={`areaGradient-${widget.id}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={accent} stopOpacity="0.3" />
-                          <stop offset="100%" stopColor={accent} stopOpacity="0.05" />
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                  </div>
+                        const y = 85 - (val / maxWeeklyValue) * 60;
+                        return `${i === 0 ? '' : 'L '}${x} ${y}`;
+                      }).join(' ')}`}
+                      fill="none"
+                      stroke={accent}
+                      strokeWidth="2"
+                    />
+                    
+                    {weeklyProgress.map((val, i) => {
+                      const x = chartPadding + (i * pointSpacing);
+                      const y = 85 - (val / maxWeeklyValue) * 60;
+                      return (
+                        <circle key={i} cx={x} cy={y} r="4" fill={accent} stroke={bgTop} strokeWidth="2" />
+                      );
+                    })}
+                    
+                    {dayLabels.map((day, i) => {
+                      const x = chartPadding + (i * pointSpacing);
+                      return (
+                        <text key={i} x={x} y="98" textAnchor="middle" fill={textSecondary} fontSize="9" fontWeight="600" style={{ textTransform: 'uppercase' }}>
+                          {day}
+                        </text>
+                      );
+                    })}
+                    
+                    <defs>
+                      <linearGradient id={`areaGradient-${widget.id}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={accent} stopOpacity="0.3" />
+                        <stop offset="100%" stopColor={accent} stopOpacity="0.05" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
                 </div>
-                <div className="stats-numbers-section">
-                  <div className="stat-item">
-                    <span className="stat-value">{totalQuestions}</span>
-                    <span className="stat-label">Questions</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-value">{stats.totalFlashcards}</span>
-                    <span className="stat-label">Flashcards</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-value">{stats.totalNotes}</span>
-                    <span className="stat-label">Notes</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-value">{stats.totalChatSessions}</span>
-                    <span className="stat-label">AI Sessions</span>
-                  </div>
+              </div>
+              <div className="stats-numbers-section">
+                <div className="stat-item">
+                  <span className="stat-value">{stats.totalQuestions}</span>
+                  <span className="stat-label">Questions</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-value">{stats.totalFlashcards}</span>
+                  <span className="stat-label">Flashcards</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-value">{stats.totalNotes}</span>
+                  <span className="stat-label">Notes</span>
                 </div>
               </div>
             </div>
-          );
+          </div>
+        );
 
-        case 'ai-assistant':
-          return (
-            <div className="ai-assistant-card">
-              <div className="ai-visual-section">
-                <div
-                  className="ai-icon-display"
-                  onClick={!isCustomizing ? navigateToAI : undefined}
-                  style={{ cursor: isCustomizing ? 'default' : 'pointer' }}
-                >
-                  AI
-                </div>
-              </div>
-              
-              <div className="ai-stats-row">
-                <div className="ai-stat">
-                  <span className="ai-stat-value">{totalQuestions}</span>
-                  <span className="ai-stat-label">Questions</span>
-                </div>
-                <div className="ai-stat">
-                  <span className="ai-stat-value">{stats.totalChatSessions}</span>
-                  <span className="ai-stat-label">Sessions</span>
-                </div>
-              </div>
-              
-              <button
-                onClick={navigateToAI}
-                disabled={isCustomizing}
-                className="start-session-btn"
+      case 'quick-actions':
+        const isQASmall = widget.size === 'small';
+        const isQALarge = widget.size === 'large';
+        
+        return (
+          <div className="quick-actions-modern">
+            <div className="widget-header">
+              <h3 className="widget-title">Quick Actions</h3>
+            </div>
+            <div className={`quick-actions-list ${isQASmall ? 'qa-small-mode' : ''} ${isQALarge ? 'qa-large-mode' : ''}`}>
+              <div 
+                className="quick-action-item" 
+                onClick={!isCustomizing ? generateFlashcards : undefined}
               >
-                Start AI Session
+                <span className="action-label-modern">flashcards</span>
+                {!isQASmall && <span className="action-description">Create study cards instantly</span>}
+              </div>
+              <div 
+                className="quick-action-item" 
+                onClick={!isCustomizing ? openNotes : undefined}
+              >
+                <span className="action-label-modern">study notes</span>
+                {!isQASmall && <span className="action-description">Write and organize notes</span>}
+              </div>
+              <div 
+                className="quick-action-item" 
+                onClick={!isCustomizing ? (() => navigate('/concept-web')) : undefined}
+              >
+                <span className="action-label-modern">concept web</span>
+                {!isQASmall && <span className="action-description">Visualize connections</span>}
+              </div>
+              <div 
+                className="quick-action-item" 
+                onClick={!isCustomizing ? openProfile : undefined}
+              >
+                <span className="action-label-modern">profile</span>
+                {!isQASmall && <span className="action-description">View your progress</span>}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'ai-assistant':
+        return (
+          <div className="brainwave-container">
+            <div className="brainwave-content">
+              <div className="brainwave-header">
+                <div className="brainwave-logo-box">
+                  <span className="brainwave-logo-text">AI</span>
+                </div>
+                <div className="brainwave-stats">
+                  <div className="stat-block">
+                    <span className="stat-number">{stats.totalQuestions}</span>
+                    <span className="stat-label-brainwave">QUESTIONS</span>
+                  </div>
+                  <div className="stat-block">
+                    <span className="stat-number">{stats.totalChatSessions}</span>
+                    <span className="stat-label-brainwave">SESSIONS</span>
+                  </div>
+                </div>
+              </div>
+              <button 
+                className="brainwave-cta" 
+                onClick={!isCustomizing ? navigateToAI : undefined}
+                style={{ color: widgetContrastColor }}
+              >
+                START AI SESSION
               </button>
             </div>
-          );
+          </div>
+        );
 
-        case 'notifications':
-          return (
-            <div className="social-widget widget-notifications-styled">
-              <div className="widget-header">
-                <h3 className="widget-title">ai notifications</h3>
-              </div>
-              <div className="social-content">
-                <div>
-                  <div className="social-icon-container">
-                    <Bell size={64} strokeWidth={1.5} />
+      case 'learning-review':
+        return (
+          <div className="learning-review-widget">
+            <div className="widget-header">
+              <h3 className="widget-title">Learning Reviews</h3>
+            </div>
+            <div className="review-list">
+              {learningReviews.length > 0 ? (
+                learningReviews.slice(0, widget.size === 'small' ? 2 : 3).map((review, idx) => (
+                  <div key={idx} className="review-item">
+                    <div className="review-content">
+                      <div className="review-icon">
+                        <BookOpen size={20} />
+                      </div>
+                      <div className="review-details">
+                        <div className="review-topic">{review.topic}</div>
+                        <div className="review-meta">
+                          {review.content_type === 'flashcard_deck' && `${review.deck_size || 0} cards`}
+                          {review.content_type === 'topic' && 'AI session'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="review-actions">
+                      <button className="review-start-btn" onClick={() => !isCustomizing && startLearningReview(review)}>
+                        Start
+                      </button>
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div className="no-reviews">
+                  <p style={{ color: widgetContrastColor }}>Analyze slides, generate practice questions and view topic roadmaps</p>
+                  <button 
+                    onClick={!isCustomizing ? (() => navigate('/learning-hub')) : undefined} 
+                    className="start-learning-btn"
+                    style={{ color: widgetContrastColor }}
+                  >
+                    GO TO LEARNING HUB
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case 'social':
+        return (
+          <div className="social-widget">
+            <div className="widget-header">
+              <h3 className="widget-title">Social Hub</h3>
+            </div>
+            <div className="social-content">
+              <div className="social-icon-container">
+                <Users size={64} strokeWidth={1.5} style={{ color: accent }} />
+              </div>
+              <p style={{ color: accent }}>
+                Connect with fellow learners, join study groups, and collaborate.
+              </p>
+              <button 
+                className="social-cta-btn" 
+                onClick={!isCustomizing ? navigateToSocial : undefined}
+                style={{ background: accent, color: widgetContrastColor }}
+              >
+                GO TO SOCIAL
+              </button>
+            </div>
+          </div>
+        );
+
+      case 'activity-timeline':
+        const recentItems = recentActivities.slice(0, widget.size === 'small' ? 3 : 5);
+        return (
+          <div className="activity-timeline-widget">
+            <div className="widget-header">
+              <h3 className="widget-title">Recent Activity</h3>
+            </div>
+            <div className="timeline-list">
+              {recentItems.length > 0 ? (
+                recentItems.map((activity, idx) => (
+                  <div key={idx} className="timeline-item">
+                    <div className="timeline-icon">
+                      <Clock size={16} style={{ color: accent }} />
+                    </div>
+                    <div className="timeline-content">
+                      <div className="timeline-subject" style={{ color: widgetContrastColor }}>{activity.subject || 'Activity'}</div>
+                      <div className="timeline-time" style={{ color: widgetContrastColor, opacity: 0.6 }}>{activity.time || 'Recently'}</div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="no-activity">
+                  <p style={{ color: widgetContrastColor }}>Track your learning activities in one unified timeline.</p>
+                  <button 
+                    className="timeline-cta-btn" 
+                    onClick={!isCustomizing ? (() => navigate('/analytics')) : undefined}
+                    style={{ color: widgetContrastColor }}
+                  >
+                    VIEW TIMELINE
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case 'heatmap':
+        const weeks = organizeDataByWeeks();
+        const monthLabels = getMonthLabels();
+        return (
+          <div className="activity-heatmap">
+            <div className="heatmap-header">
+              <h3 className="heatmap-title">last 12 months</h3>
+              <div className="heatmap-stats">
+                <span className="total-questions">{totalQuestions} questions</span>
+              </div>
+            </div>
+
+            {heatmapLoading ? (
+              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                Loading activity data...
+              </div>
+            ) : (
+              <>
+                <div className="heatmap-container">
+                  <div className="heatmap-days">
+                    <div className="day-label">sun</div>
+                    <div className="day-label">mon</div>
+                    <div className="day-label">tue</div>
+                    <div className="day-label">wed</div>
+                    <div className="day-label">thu</div>
+                    <div className="day-label">fri</div>
+                    <div className="day-label">sat</div>
+                  </div>
+
+                  <div className="heatmap-content">
+                    <div className="month-labels">
+                      {monthLabels.map((label, index) => (
+                        <div
+                          key={index}
+                          className="month-label"
+                          style={{ left: `${label.position}px` }}
+                        >
+                          {label.month}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="heatmap-grid">
+                      {weeks.map((week, weekIndex) => (
+                        <div key={weekIndex} className="heatmap-week">
+                          {week.map((day, dayIndex) => (
+                            <div
+                              key={dayIndex}
+                              className="heatmap-day"
+                              style={{
+                                backgroundColor: day ? getActivityColor(day.level) : 'transparent',
+                                opacity: day === null ? 0 : 1
+                              }}
+                              title={day ? getTooltipText(day.count, day.date) : ''}
+                            />
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="heatmap-legend">
+                  <span className="legend-label">Less</span>
+                  <div className="legend-scale">
+                    {[0, 1, 2, 3, 4].map(level => (
+                      <div
+                        key={level}
+                        className="legend-box"
+                        style={{ backgroundColor: getActivityColor(level) }}
+                      />
+                    ))}
+                  </div>
+                  <span className="legend-label">More</span>
+                </div>
+              </>
+            )}
+          </div>
+        );
+
+      case 'notifications':
+        return (
+          <div className="notifications-widget">
+            <div className="widget-header">
+              <h3 className="widget-title">Notifications</h3>
+            </div>
+            <div className="notifications-list">
+              {notifications.slice(0, widget.size === 'small' ? 3 : 5).length > 0 ? (
+                notifications.slice(0, widget.size === 'small' ? 3 : 5).map(notif => (
+                  <div key={notif.id} className={`notif-item-mini ${!notif.is_read ? 'unread' : ''}`}>
+                    <div className="notif-dot" style={{ background: !notif.is_read ? accent : textSecondary }}></div>
+                    <div className="notif-text-mini">{notif.title}</div>
+                  </div>
+                ))
+              ) : (
+                <div className="no-notifications">
                   <p>No notifications</p>
                 </div>
-                <button
-                  className="social-explore-btn"
-                  onClick={async () => {
-                    await endDashboardSession();
-                    navigate('/ai-chat');
-                  }}
-                  disabled={isCustomizing}
-                >
-                  Open AI Chat
-                </button>
-              </div>
-            </div>
-          );
-
-        case 'learning-review':
-          return (
-            <div className="social-widget widget-learning-styled">
-              <div className="widget-header">
-                <h3 className="widget-title">learning reviews</h3>
-              </div>
-              <div className="social-content">
-                <div>
-                  <div className="social-icon-container">
-                    <BookOpen size={64} strokeWidth={1.5} />
-                  </div>
-                  <p>Analyze slides, generate practice questions and view topic roadmaps</p>
-                </div>
-                <button
-                  className="social-explore-btn"
-                  onClick={async () => {
-                    await endDashboardSession();
-                    navigate('/learning-review');
-                  }}
-                  disabled={isCustomizing}
-                >
-                  Go to Learning Hub
-                </button>
-              </div>
-            </div>
-          );
-
-        case 'learning-review-old':
-          return (
-            <div className="learning-review-widget-old">
-              <div className="widget-header">
-                <h3 className="widget-title">Learning Reviews</h3>
-              </div>
-
-              <div className="review-content">
-                <div className="review-center-content">
-                  <div className="social-icon-container">
-                    <BookOpen size={64} strokeWidth={1.5} style={{ color: primaryContrast }} />
-                  </div>
-                  <p className="review-description">Analyze slides, generate practice questions and view topic roadmaps</p>
-                  <button
-                    className="hub-link-btn-large"
-                    onClick={() => navigate('/learning-review')}
-                    disabled={isCustomizing}
-                  >
-                    Go to your learning Hub
-                  </button>
-                </div>
-                
-                {learningReviews.length > 0 && (
-                  <>
-                    <div className="review-list">
-                      {learningReviews.slice(0, 3).map((review) => (
-                        <div key={review.id} className="review-item">
-                          <div className="review-header">
-                            <div className="review-title">{review.title}</div>
-                            <div className={`review-status ${review.status}`}>
-                              {review.status === 'completed'
-                                ? <CheckCircle className="w-3 h-3" />
-                                : <Clock className="w-3 h-3" />}
-                            </div>
-                          </div>
-
-                          <div className="review-stats">
-                            <div className="review-stat">
-                              <span className="stat-label">Score</span>
-                              <span className={`stat-value ${getScoreColor(review.best_score)}`}>
-                                {review.best_score}%
-                              </span>
-                            </div>
-                            <div className="review-stat">
-                              <span className="stat-label">Attempts</span>
-                              <span className="stat-value">{review.attempt_count}</span>
-                            </div>
-                          </div>
-
-                          <div className="review-actions">
-                            {review.can_continue && (
-                              <button
-                                className="continue-btn"
-                                onClick={async () => {
-                                  await endDashboardSession();
-                                  window.location.href = `/learning-review?id=${review.id}`;
-                                }}
-                                disabled={isCustomizing}
-                                style={{
-                                  background: accent,
-                                  color: bgTop
-                                }}
-                              >
-                                Continue
-                              </button>
-                            )}
-                            <button
-                              className="view-btn"
-                              onClick={async () => {
-                                await endDashboardSession();
-                                window.location.href = `/learning-review?id=${review.id}`;
-                              }}
-                              disabled={isCustomizing}
-                            >
-                              View
-                            </button>
-                            <button
-                              className="delete-review-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteLearningReview(review.id, review.title);
-                              }}
-                              disabled={isCustomizing}
-                              title="Delete review"
-                            >
-                              <XCircle className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {learningReviews.length > 3 && (
-                      <div className="view-all">
-                        <button
-                          className="view-all-btn"
-                          onClick={async () => {
-                            await endDashboardSession();
-                            window.location.href = '/learning-review';
-                          }}
-                          disabled={isCustomizing}
-                          style={{
-                            borderColor: accent,
-                            color: textPrimary
-                          }}
-                        >
-                          View All ({learningReviews.length})
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          );
-
-        case 'social':
-          return (
-            <div className="social-widget">
-              <div className="widget-header">
-                <h3 className="widget-title">Social</h3>
-              </div>
-              <div className="social-content">
-                <div>
-                  <div className="social-icon-container">
-                    <Users size={64} strokeWidth={1.5} style={{ color: accent }} />
-                  </div>
-                  <p>
-                    Connect with fellow learners, join study groups, and collaborate.
-                  </p>
-                </div>
-                <button
-                  className="social-explore-btn"
-                  onClick={async () => {
-                    await endDashboardSession();
-                    navigate('/social');
-                  }}
-                  disabled={isCustomizing}
-                  style={{
-                    background: accent,
-                    color: bgTop
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isCustomizing) {
-                      e.target.style.background = `color-mix(in srgb, ${accent} 85%, white)`;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isCustomizing) {
-                      e.target.style.background = accent;
-                    }
-                  }}
-                >
-                  Go to Social
-                </button>
-              </div>
-            </div>
-          );
-
-        case 'recent-activity':
-          return (
-            <div className="recent-activity-widget">
-              <div className="widget-header">
-                <h3 className="widget-title">Recent Activity</h3>
-              </div>
-              <div className="activity-list">
-                {recentActivities.length > 0 ? (
-                  recentActivities.map((activity, idx) => (
-                    <div key={idx} className="activity-item">
-                      <div className="activity-icon">{activity.type.toUpperCase()}</div>
-                      <div className="activity-details">
-                        <div className="activity-subject">{activity.subject}</div>
-                        <div className="activity-meta">
-                          {activity.score && `Score: ${activity.score}% `}
-                          {activity.question && `${activity.question.substring(0, 30)}...`}
-                        </div>
-                      </div>
-                      <div className="activity-time">{activity.time}</div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="no-activity">
-                    <p>No recent activity found.</p>
-                    <button onClick={navigateToAI} className="start-learning-btn" style={{ borderColor: accent, color: textPrimary }}>
-                      Start Learning
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-
-        case 'motivational-quote':
-          return (
-            <div className="motivational-quote-widget">
-              <div className="widget-header">
-                <h3 className="widget-title">Daily Quote</h3>
-              </div>
-              <div className="quote-content">
-                <div className="quote-mark" style={{ color: accent2 }}>"</div>
-                <div className="quote-text">{motivationalQuote}</div>
-              </div>
-              {achievements.length > 0 && (
-                <div className="recent-achievement">
-                  <div className="achievement-badge" style={{ borderColor: accent2 }}>
-                    <span className="achievement-text">
-                      Latest: {achievements[0]?.name}
-                    </span>
-                  </div>
-                </div>
               )}
             </div>
-          );
-
-        case 'progress-chart':
-          const totalWeeklyPoints = weeklyProgress.reduce((a, b) => a + b, 0);
-          return (
-            <div className="progress-chart-widget">
-              <div className="widget-header">
-                <h3 className="widget-title">Weekly Points</h3>
-                <button className="analytics-btn" onClick={() => navigate('/analytics')}>
-                  View Analytics →
-                </button>
-              </div>
-              <div className="chart-container">
-                <div className="chart-bars">
-                  {weeklyProgress.length > 0 ? (
-                    weeklyProgress.map((value, idx) => {
-                      const maxValue = Math.max(...weeklyProgress, 1);
-                      const height = (value / maxValue) * 100;
-                      return (
-                        <div key={idx} className="chart-bar">
-                          <div
-                            className="bar-fill"
-                            style={{
-                              height: `${Math.max(height, 5)}%`,
-                              background: `linear-gradient(180deg, ${accent} 0%, ${rgbaFromHex(accent, 0.35)} 100%)`
-                            }}
-                          />
-                          <div className="bar-label">
-                            {dailyBreakdown[idx]?.day || ['M', 'T', 'W', 'T', 'F', 'S', 'S'][idx]}
-                          </div>
-                          <div className="bar-value">{value}</div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="no-data">
-                      <p>No weekly data available</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="widget-footer">
-                <span className="widget-total">{totalWeeklyPoints} pts this week</span>
-              </div>
-            </div>
-          );
-
-        case 'heatmap':
-          const weeks = organizeDataByWeeks();
-          const monthLabels = getMonthLabels();
-          return (
-            <div className="activity-heatmap">
-              <div className="heatmap-header">
-                <h3 className="heatmap-title">last 12 months</h3>
-                <div className="heatmap-stats">
-                  <span className="total-questions">{totalQuestions} questions</span>
-                </div>
-              </div>
-
-              {heatmapLoading ? (
-                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                  Loading activity data...
-                </div>
-              ) : (
-                <>
-                  <div className="heatmap-container">
-                    <div className="heatmap-days">
-                      <div className="day-label">sun</div>
-                      <div className="day-label">mon</div>
-                      <div className="day-label">tue</div>
-                      <div className="day-label">wed</div>
-                      <div className="day-label">thu</div>
-                      <div className="day-label">fri</div>
-                      <div className="day-label">sat</div>
-                    </div>
-
-                    <div className="heatmap-content">
-                      <div className="month-labels">
-                        {monthLabels.map((label, index) => (
-                          <div
-                            key={index}
-                            className="month-label"
-                            style={{ left: `${label.position}px` }}
-                          >
-                            {label.month}
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="heatmap-grid">
-                        {weeks.map((week, weekIndex) => (
-                          <div key={weekIndex} className="heatmap-week">
-                            {week.map((day, dayIndex) => (
-                              <div
-                                key={`${weekIndex}-${dayIndex}`}
-                                className="heatmap-day"
-                                style={{
-                                  backgroundColor: day ? getActivityColor(day.level) : 'transparent'
-                                }}
-                                title={day ? getTooltipText(day.count, day.date) : ''}
-                              />
-                            ))}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="heatmap-legend">
-                    <span className="legend-text">less</span>
-                    <div className="legend-colors">
-                      {[0, 1, 2, 3, 4, 5].map(level => (
-                        <div
-                          key={level}
-                          className="legend-color"
-                          style={{ backgroundColor: getActivityColor(level) }}
-                        />
-                      ))}
-                    </div>
-                    <span className="legend-text">more</span>
-                  </div>
-                </>
-              )}
-            </div>
-          );
-
-        case 'quick-actions':
-  return (
-    <div className="quick-actions-modern">
-      <div className="widget-header">
-        <h3 className="widget-title">Quick Actions</h3>
-      </div>
-      <div className="quick-actions-list">
-        <div 
-          className="quick-action-item" 
-          onClick={!isCustomizing ? generateFlashcards : undefined}
-        >
-          <span className="action-label-modern">flashcards</span>
-          <span className="action-description">Create study cards instantly</span>
-        </div>
-        <div 
-          className="quick-action-item" 
-          onClick={!isCustomizing ? openNotes : undefined}
-        >
-          <span className="action-label-modern">study notes</span>
-          <span className="action-description">Write and organize notes</span>
-        </div>
-        <div 
-          className="quick-action-item" 
-          onClick={!isCustomizing ? (() => navigate('/concept-web')) : undefined}
-        >
-          <span className="action-label-modern">concept web</span>
-          <span className="action-description">Visualize connections</span>
-        </div>
-        <div 
-          className="quick-action-item" 
-          onClick={!isCustomizing ? openProfile : undefined}
-        >
-          <span className="action-label-modern">profile</span>
-          <span className="action-description">View your progress</span>
-        </div>
-
-      </div>
-    </div>
-  );
-
-        case 'social':
-          return (
-            <div className="social-widget">
-              <div className="widget-header">
-                <h3 className="widget-title">Social Hub</h3>
-              </div>
-              <div className="social-content">
-                <div className="social-icon-container">
-                  <Users size={64} strokeWidth={1.5} style={{ color: accent }} />
-                </div>
-                <p>
-                  Connect with fellow learners, join study groups, and collaborate.
-                </p>
-                <button
-                  className="social-explore-btn"
-                  onClick={async () => {
-                    await endDashboardSession();
-                    navigate('/social');
-                  }}
-                  disabled={isCustomizing}
-                  style={{
-                    background: accent,
-                    color: bgTop
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isCustomizing) {
-                      e.target.style.background = `color-mix(in srgb, ${accent} 85%, white)`;
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isCustomizing) {
-                      e.target.style.background = accent;
-                    }
-                  }}
-                >
-                  Explore Social
-                </button>
-              </div>
-            </div>
-          );
-
-        case 'activity-timeline':
-          return (
-            <div className="social-widget widget-timeline-styled">
-              <div className="widget-header">
-                <h3 className="widget-title">activity timeline</h3>
-              </div>
-              <div className="social-content">
-                <div>
-                  <div className="social-icon-container">
-                    <Clock size={64} strokeWidth={1.5} />
-                  </div>
-                  <p>Track your learning activities in one unified timeline.</p>
-                </div>
-                <button
-                  className="social-explore-btn"
-                  onClick={async () => {
-                    await endDashboardSession();
-                    navigate('/activity-timeline');
-                  }}
-                  disabled={isCustomizing}
-                >
-                  View Timeline
-                </button>
-              </div>
-            </div>
-          );
-
-        default:
-          // Handle legacy daily-goal widget by redirecting to social
-          if (widget.type === 'daily-goal') {
-            return (
-              <div className="social-widget">
-                <div className="widget-header">
-                  <h3 className="widget-title">Social</h3>
-                </div>
-                <div className="social-content">
-                  <div className="social-icon-container">
-                    <Users size={64} strokeWidth={1.5} style={{ color: accent }} />
-                  </div>
-                  <p>
-                    Connect with fellow learners, join study groups, and collaborate.
-                  </p>
-                  <button
-                    className="social-explore-btn"
-                    onClick={async () => {
-                      await endDashboardSession();
-                      navigate('/social');
-                    }}
-                    disabled={isCustomizing}
-                    style={{
-                      background: accent,
-                      color: bgTop
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isCustomizing) {
-                        e.target.style.background = `color-mix(in srgb, ${accent} 85%, white)`;
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isCustomizing) {
-                        e.target.style.background = accent;
-                      }
-                    }}
-                  >
-                    Go to Social
-                  </button>
-                </div>
-              </div>
-            );
-          }
-          return <div>Unknown widget type: {widget.type}</div>;
-      }
-    };
-
-    const isHeroWidget = ['stats', 'quick-actions', 'ai-assistant'].includes(widget.type);
-    const needsBorderedStyle = widget.type === 'heatmap' || widget.type === 'social';
-    const isGradientWidget = widget.type === 'ai-assistant' || widget.type === 'stats' || widget.type === 'quick-actions';
-    
-    return (
-      <div
-        ref={setNodeRef}
-        style={{
-          ...style,
-          background: needsBorderedStyle ? 'var(--panel)' : (isGradientWidget ? undefined : (isHeroWidget ? accent : accent)),
-          border: needsBorderedStyle ? `3px solid ${accent}` : (isHeroWidget ? 'none' : 'none'),
-          borderRadius: 0,
-        }}
-        {...attributes}
-        className={`dashboard-widget widget-${widget.size} widget-${widget.type} ${isCustomizing ? 'customizing' : ''} ${isDragging ? 'dragging' : ''}`}
-      >
-        {isCustomizing && (
-          <div className="widget-controls" onClick={(e) => e.stopPropagation()}>
-            <div className="drag-handle" {...listeners}>⋮⋮</div>
-            <div className="size-controls">
-              <button
-                className={`size-btn ${widget.size === 'small' ? 'active' : ''}`}
-                onClick={(e) => handleButtonClick(e, () => changeWidgetSize(widget.id, 'small'))}
-              >S</button>
-              <button
-                className={`size-btn ${widget.size === 'medium' ? 'active' : ''}`}
-                onClick={(e) => handleButtonClick(e, () => changeWidgetSize(widget.id, 'medium'))}
-              >M</button>
-              <button
-                className={`size-btn ${widget.size === 'large' ? 'active' : ''}`}
-                onClick={(e) => handleButtonClick(e, () => changeWidgetSize(widget.id, 'large'))}
-              >L</button>
-              {widget.type === 'heatmap' && (
-                <button
-                  className={`size-btn ${widget.size === 'full' ? 'active' : ''}`}
-                  onClick={(e) => handleButtonClick(e, () => changeWidgetSize(widget.id, 'full'))}
-                >F</button>
-              )}
-            </div>
-            <button className="remove-btn" onClick={(e) => handleButtonClick(e, () => toggleWidget(widget.id))}>×</button>
           </div>
-        )}
-        <div className={`widget-content ${isCustomizing ? 'customize-mode' : ''}`}>
-          {widgetContent()}
-        </div>
-      </div>
-    );
+        );
+
+      case 'recent-activity':
+        return (
+          <div className="recent-activity-widget">
+            <div className="widget-header">
+              <h3 className="widget-title">Recent Activity</h3>
+            </div>
+            <div className="activity-list">
+              {recentActivities.length > 0 ? (
+                recentActivities.map((activity, idx) => (
+                  <div key={idx} className="activity-item">
+                    <div className="activity-icon">{activity.type.toUpperCase()}</div>
+                    <div className="activity-details">
+                      <div className="activity-subject">{activity.subject}</div>
+                      <div className="activity-meta">
+                        {activity.score && `Score: ${activity.score}% `}
+                        {activity.question && `${activity.question.substring(0, 30)}...`}
+                      </div>
+                    </div>
+                    <div className="activity-time">{activity.time}</div>
+                  </div>
+                ))
+              ) : (
+                <div className="no-activity">
+                  <p>No recent activity found.</p>
+                  <button onClick={!isCustomizing ? navigateToAI : undefined} className="start-learning-btn" style={{ borderColor: accent, color: textPrimary }}>
+                    Start Learning
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case 'daily-goal':
+        const goalProgress = Math.min((stats.totalQuestions / 10) * 100, 100);
+        return (
+          <div className="daily-goal-widget">
+            <div className="widget-header">
+              <h3 className="widget-title">Daily Goal</h3>
+            </div>
+            <div className="goal-content">
+              <div className="goal-progress-circle">
+                <svg viewBox="0 0 100 100" className="progress-ring">
+                  <circle cx="50" cy="50" r="45" fill="none" stroke={rgbaFromHex(accent, 0.2)} strokeWidth="10" />
+                  <circle 
+                    cx="50" 
+                    cy="50" 
+                    r="45" 
+                    fill="none" 
+                    stroke={accent} 
+                    strokeWidth="10"
+                    strokeDasharray={`${(goalProgress / 100) * 283} 283`}
+                    strokeLinecap="round"
+                    transform="rotate(-90 50 50)"
+                  />
+                </svg>
+                <div className="goal-percentage">{Math.round(goalProgress)}%</div>
+              </div>
+              <div className="goal-details">
+                <p className="goal-text">{stats.totalQuestions} / 10 questions today</p>
+                <button className="goal-btn" onClick={!isCustomizing ? navigateToQuiz : undefined} style={{ borderColor: accent, color: textPrimary }}>
+                  Continue
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+
+      default:
+        return <div>Unknown widget type: {widget.type}</div>;
+    }
   };
 
   return (
@@ -1896,35 +1329,23 @@ const Dashboard = () => {
       <header className="dashboard-header">
         <div className="header-content">
           <div className="header-left">
-            {/* Notification Bell */}
-            <div className="notification-container">
-              <button 
-                className="notification-bell"
-                onClick={() => setShowNotifications(!showNotifications)}
-                title="Notifications"
-              >
+            <div className="notifications-wrapper">
+              <button className="notif-bell-btn" onClick={() => setShowNotifications(!showNotifications)}>
                 <Bell size={20} />
-                {unreadCount > 0 && (
-                  <span className="notification-badge">{unreadCount}</span>
-                )}
+                {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
               </button>
               
               {showNotifications && (
-                <div className="notification-dropdown">
-                  <div className="notif-header">
-                    <span className="notif-title">Notifications</span>
-                    {unreadCount > 0 && (
-                      <button className="notif-clear-btn" onClick={markAllNotificationsAsRead}>
-                        Mark all read
-                      </button>
-                    )}
+                <div className="notif-panel">
+                  <div className="notif-panel-header">
+                    <h3>Notifications</h3>
+                    <button className="notif-close-btn" onClick={() => setShowNotifications(false)}>×</button>
                   </div>
-                  
-                  <div className="notif-list">
+                  <div className="notif-panel-content">
                     {notifications.length === 0 ? (
-                      <div className="notif-empty">
-                        <Bell size={32} />
-                        <p>No notifications</p>
+                      <div className="no-notifications-placeholder">
+                        <Bell size={32} opacity={0.3} />
+                        <p>No notifications yet</p>
                       </div>
                     ) : (
                       notifications.map(notification => (
@@ -1967,8 +1388,29 @@ const Dashboard = () => {
             <button
               className={`customize-btn ${isCustomizing ? 'active' : ''}`}
               onClick={() => {
-                if (isCustomizing) saveWidgetConfiguration();
-                setIsCustomizing(!isCustomizing);
+                if (isCustomizing) {
+                  const success = saveLayoutConfiguration();
+                  if (success) {
+                    setIsCustomizing(false);
+                  }
+                } else {
+                  // Enter customize mode - blank slate
+                  setCustomizeError('');
+                  // Move ALL widgets to available list
+                  const allWidgets = [
+                    ...placedWidgets.map(w => ({
+                      id: w.id,
+                      type: w.type,
+                      title: WIDGET_DEFINITIONS[w.type]?.title || w.type,
+                      defaultSize: w.size,
+                      mandatory: WIDGET_DEFINITIONS[w.type]?.mandatory || false
+                    })),
+                    ...availableWidgets
+                  ];
+                  setEditingWidgets([]);
+                  setEditingAvailable(allWidgets);
+                  setIsCustomizing(true);
+                }
               }}
             >
               {isCustomizing ? 'DONE' : 'CUSTOMIZE'}
@@ -1983,55 +1425,110 @@ const Dashboard = () => {
         {isCustomizing && (
           <div className="customization-panel">
             <div className="panel-header">
-              <h3>Customize Your Dashboard</h3>
-              <button className="reset-btn" onClick={resetWidgets}>
+              <div className="customization-help">
+                <p>Drag widgets onto the grid • Use S/M/L buttons to resize • Click × to remove</p>
+              </div>
+              <button className="reset-btn" onClick={resetLayout}>
                 Reset to Default
               </button>
             </div>
-            <div className="available-widgets">
-              <h4>Available Widgets</h4>
-              <div className="widget-toggles">
-                {widgets.map(widget => (
-                  <label key={widget.id} className="widget-toggle">
-                    <input
-                      type="checkbox"
-                      checked={widget.enabled}
-                      onChange={() => toggleWidget(widget.id)}
-                    />
-                    <span className="toggle-text">{widget.title}</span>
-                  </label>
-                ))}
+            {customizeError && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid #ef4444',
+                color: '#ef4444',
+                padding: '12px 16px',
+                marginBottom: '16px',
+                fontSize: '13px',
+                fontWeight: '500'
+              }}>
+                {customizeError}
               </div>
-            </div>
-            <div className="customization-help">
-              <p>Use drag handle (⋮⋮) to reorder • Use S/M/L/F buttons to resize • Toggle widgets on/off</p>
+            )}
+            <div className="available-widgets-section">
+              <h4>Available Widgets {editingAvailable.filter(w => w.mandatory).length > 0 && <span style={{color: 'var(--danger)', fontSize: '11px', marginLeft: '8px'}}>({editingAvailable.filter(w => w.mandatory).length} required)</span>}</h4>
+              <div className="available-widgets-list">
+                {editingAvailable.map(widget => (
+                  <div 
+                    key={widget.id} 
+                    className={`draggable-widget-item ${widget.mandatory ? 'mandatory' : ''}`}
+                    draggable
+                    onDragStart={(e) => handleWidgetDragStart(e, widget)}
+                  >
+                    {widget.title}
+                    {widget.mandatory && <span className="mandatory-badge">*</span>}
+                  </div>
+                ))}
+                {editingAvailable.length === 0 && (
+                  <p style={{color: 'var(--text-secondary)', fontSize: '13px'}}>All widgets placed on grid</p>
+                )}
+              </div>
             </div>
           </div>
         )}
 
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={enabledWidgets.map(widget => widget.id)}
-            strategy={rectSortingStrategy}
-          >
-            <div className="dashboard-layout-modern">
-              <div className="dashboard-widgets-unified">
-                <div className="greeting-card-compact">
-                  <h2 className="greeting-text">{getGreeting()}, {displayName}</h2>
-                  <p className="greeting-quote">"{randomQuote}"</p>
+        <div className="dashboard-layout-modern">
+          {isCustomizing ? (
+            <div 
+              className="dashboard-grid-customize"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => handleGridDrop(e, 0)}
+            >
+              {editingWidgets.length === 0 && (
+                <div className="grid-empty-state" style={{
+                  gridColumn: 'span 3',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: '400px',
+                  border: '2px dashed var(--border)',
+                  color: 'var(--text-secondary)',
+                  fontSize: '14px'
+                }}>
+                  Drag widgets here from the list above
                 </div>
-                
-                {enabledWidgets.map((widget) => (
-                  <SortableWidget key={widget.id} widget={widget} />
-                ))}
-              </div>
+              )}
+              {editingWidgets.map(widget => (
+                <div
+                  key={widget.id}
+                  className={`dashboard-widget widget-${widget.size} widget-${widget.type} customizing`}
+                >
+                  <div className="widget-controls">
+                    {widget.type !== 'heatmap' && (
+                      <>
+                        <div className="size-controls">
+                          <button className={`size-btn ${widget.size === 'small' ? 'active' : ''}`} onClick={() => handleWidgetResize(widget.id, 'small')}>S</button>
+                          <button className={`size-btn ${widget.size === 'medium' ? 'active' : ''}`} onClick={() => handleWidgetResize(widget.id, 'medium')}>M</button>
+                          <button className={`size-btn ${widget.size === 'full' ? 'active' : ''}`} onClick={() => handleWidgetResize(widget.id, 'full')}>F</button>
+                        </div>
+                        <button className="remove-btn" onClick={() => handleRemoveWidget(widget.id)}>×</button>
+                      </>
+                    )}
+                    {widget.type === 'heatmap' && (
+                      <div className="size-controls">
+                        <button className="size-btn active">FULL</button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="widget-content">
+                    {renderWidget(widget)}
+                  </div>
+                </div>
+              ))}
             </div>
-          </SortableContext>
-        </DndContext>
+          ) : (
+            <div className="dashboard-widgets-grid">
+              {placedWidgets.map(widget => (
+                <div
+                  key={widget.id}
+                  className={`dashboard-widget widget-${widget.size} widget-${widget.type}`}
+                >
+                  {renderWidget(widget)}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {heatmapLoading && <LoadingSpinner />}
       </main>
@@ -2043,7 +1540,6 @@ const Dashboard = () => {
       />
       <HelpButton onStartTour={startTour} />
       
-      {/* Inactivity Engagement Suggestions */}
       {showInactivitySuggestion && (
         <div className="inactivity-suggestion-overlay">
           <div className="inactivity-suggestion-modal">
@@ -2100,7 +1596,6 @@ const Dashboard = () => {
         </div>
       )}
       
-      {/* Slide-in Notifications for all notification types */}
       {slideNotifQueue
         .filter(notif => notif && notif.id && (notif.title || notif.message))
         .slice(0, 3)
@@ -2114,7 +1609,6 @@ const Dashboard = () => {
         />
       ))}
       
-      {/* Import/Export Modal */}
       <ImportExportModal
         isOpen={showImportExport}
         onClose={() => setShowImportExport(false)}
