@@ -139,66 +139,7 @@ def sync_sequences():
 
 sync_sequences()
 
-# ==================== ONE-TIME RESET (REMOVE AFTER DEPLOY) ====================
-def run_one_time_reset():
-    """Run once to reset all stats, then remove this code"""
-    from models import UserGamificationStats, PointTransaction, DailyLearningMetrics, ChatMessage, ChatSession
-    db = SessionLocal()
-    try:
-        print("🔄 ONE-TIME RESET: Resetting all data...")
-        
-        # Delete all chat messages first (foreign key constraint)
-        deleted_messages = db.query(ChatMessage).delete()
-        print(f"✅ Deleted {deleted_messages} chat messages")
-        
-        # Delete all chat sessions
-        deleted_sessions = db.query(ChatSession).delete()
-        print(f"✅ Deleted {deleted_sessions} chat sessions")
-        
-        # Reset all UserGamificationStats
-        stats = db.query(UserGamificationStats).all()
-        for stat in stats:
-            stat.total_points = 0
-            stat.weekly_points = 0
-            stat.level = 1
-            stat.experience = 0
-            stat.total_ai_chats = 0
-            stat.weekly_ai_chats = 0
-            stat.total_notes_created = 0
-            stat.weekly_notes_created = 0
-            stat.total_questions_answered = 0
-            stat.weekly_questions_answered = 0
-            stat.total_quizzes_completed = 0
-            stat.weekly_quizzes_completed = 0
-            stat.total_flashcards_created = 0
-            stat.weekly_flashcards_created = 0
-            stat.total_study_minutes = 0
-            stat.weekly_study_minutes = 0
-            stat.total_battles_won = 0
-            stat.weekly_battles_won = 0
-            stat.current_streak = 0
-            stat.updated_at = datetime.now(timezone.utc)
-        print(f"✅ Reset {len(stats)} user stats")
-        
-        # Delete all point transactions
-        deleted_transactions = db.query(PointTransaction).delete()
-        print(f"✅ Deleted {deleted_transactions} point transactions")
-        
-        # Reset daily metrics
-        deleted_metrics = db.query(DailyLearningMetrics).delete()
-        print(f"✅ Deleted {deleted_metrics} daily metrics")
-        
-        db.commit()
-        print("✅ ONE-TIME RESET COMPLETE!")
-    except Exception as e:
-        db.rollback()
-        print(f"❌ Reset Error: {e}")
-    finally:
-        db.close()
 
-# RUN THE RESET - REMOVE THIS ENTIRE BLOCK AFTER DEPLOY
-run_one_time_reset()
-# ==================== END ONE-TIME RESET ====================
 
 
 

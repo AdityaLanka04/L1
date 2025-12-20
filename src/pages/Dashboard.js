@@ -399,7 +399,22 @@ const Dashboard = () => {
     return 'Good evening';
   };
 
-  const displayName = userProfile?.name || userName;
+  // Extract first name from userProfile or userName
+  const getDisplayName = () => {
+    if (userProfile?.firstName) return userProfile.firstName;
+    if (userProfile?.first_name) return userProfile.first_name;
+    if (userProfile?.name) {
+      const nameParts = userProfile.name.split(' ');
+      return nameParts[0];
+    }
+    // If userName is email, extract name before @
+    if (userName && userName.includes('@')) {
+      return userName.split('@')[0];
+    }
+    return userName || 'Student';
+  };
+  
+  const displayName = getDisplayName();
 
   const navigateToAI = () => navigate('/ai');
   const navigateToFlashcards = () => navigate('/flashcards');
@@ -476,10 +491,7 @@ const Dashboard = () => {
   };
 
   const openNotes = () => navigate('/notes');
-  const generateFlashcards = () => {
-    setShowImportExport(true);
-    setImportExportSource('notes');
-  };
+  const generateFlashcards = () => navigate('/flashcards');
 
   const loadMotivationalQuote = () => {
     const quotes = [
@@ -880,92 +892,34 @@ const Dashboard = () => {
         );
 
       case 'stats':
-        const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        const maxWeeklyValue = Math.max(...weeklyProgress, 1);
-        const totalActivities = stats.totalQuestions + stats.totalFlashcards + stats.totalNotes + stats.totalChatSessions;
-        const chartWidth = 280;
-        const chartHeight = 100;
-        const chartPadding = 20;
-        const chartInnerWidth = chartWidth - (chartPadding * 2);
-        const pointSpacing = chartInnerWidth / 6;
-
         return (
           <div className="stats-overview-widget">
             <div className="widget-header">
-              <h3 className="widget-title">Weekly Activity</h3>
-              <div className="widget-header-right">
-                <button className="analytics-btn" onClick={() => navigate('/analytics')}>
-                  <span>Analytics</span>
-                  <ChevronRight size={16} />
-                </button>
-              </div>
+              <h3 className="widget-title">weekly activity</h3>
             </div>
-            <div className="stats-line-container">
-              <div className="stats-graph-section">
-                <div className="line-chart-wrapper">
-                  <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="stats-line-chart" preserveAspectRatio="xMidYMid meet">
-                    <line x1={chartPadding} y1="85" x2={chartWidth - chartPadding} y2="85" stroke={textSecondary} strokeOpacity="0.2" />
-                    <line x1={chartPadding} y1="55" x2={chartWidth - chartPadding} y2="55" stroke={textSecondary} strokeOpacity="0.1" strokeDasharray="4" />
-                    <line x1={chartPadding} y1="25" x2={chartWidth - chartPadding} y2="25" stroke={textSecondary} strokeOpacity="0.1" strokeDasharray="4" />
-                    
-                    <path
-                      d={`M ${chartPadding} 85 ${weeklyProgress.map((val, i) => {
-                        const x = chartPadding + (i * pointSpacing);
-                        const y = 85 - (val / maxWeeklyValue) * 60;
-                        return `L ${x} ${y}`;
-                      }).join(' ')} L ${chartPadding + 6 * pointSpacing} 85 Z`}
-                      fill={`url(#areaGradient-${widget.id})`}
-                    />
-                    
-                    <path
-                      d={`M ${weeklyProgress.map((val, i) => {
-                        const x = chartPadding + (i * pointSpacing);
-                        const y = 85 - (val / maxWeeklyValue) * 60;
-                        return `${i === 0 ? '' : 'L '}${x} ${y}`;
-                      }).join(' ')}`}
-                      fill="none"
-                      stroke={accent}
-                      strokeWidth="2"
-                    />
-                    
-                    {weeklyProgress.map((val, i) => {
-                      const x = chartPadding + (i * pointSpacing);
-                      const y = 85 - (val / maxWeeklyValue) * 60;
-                      return (
-                        <circle key={i} cx={x} cy={y} r="4" fill={accent} stroke={bgTop} strokeWidth="2" />
-                      );
-                    })}
-                    
-                    {dayLabels.map((day, i) => {
-                      const x = chartPadding + (i * pointSpacing);
-                      return (
-                        <text key={i} x={x} y="98" textAnchor="middle" fill={textSecondary} fontSize="9" fontWeight="600" style={{ textTransform: 'uppercase' }}>
-                          {day}
-                        </text>
-                      );
-                    })}
-                    
-                    <defs>
-                      <linearGradient id={`areaGradient-${widget.id}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={accent} stopOpacity="0.3" />
-                        <stop offset="100%" stopColor={accent} stopOpacity="0.05" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
+            <div className="stat-grid-widget">
+              <div className="stat-card-widget">
+                <div className="stat-content">
+                  <div className="stat-number">{stats.totalQuestions}</div>
+                  <div className="stat-label">questions</div>
                 </div>
               </div>
-              <div className="stats-numbers-section">
-                <div className="stat-item">
-                  <span className="stat-value">{stats.totalQuestions}</span>
-                  <span className="stat-label">Questions</span>
+              <div className="stat-card-widget">
+                <div className="stat-content">
+                  <div className="stat-number">{stats.totalFlashcards}</div>
+                  <div className="stat-label">flashcards</div>
                 </div>
-                <div className="stat-item">
-                  <span className="stat-value">{stats.totalFlashcards}</span>
-                  <span className="stat-label">Flashcards</span>
+              </div>
+              <div className="stat-card-widget">
+                <div className="stat-content">
+                  <div className="stat-number">{stats.totalChatSessions}</div>
+                  <div className="stat-label">sessions</div>
                 </div>
-                <div className="stat-item">
-                  <span className="stat-value">{stats.totalNotes}</span>
-                  <span className="stat-label">Notes</span>
+              </div>
+              <div className="stat-card-widget">
+                <div className="stat-content">
+                  <div className="stat-number">{stats.totalNotes}</div>
+                  <div className="stat-label">notes</div>
                 </div>
               </div>
             </div>
@@ -973,74 +927,72 @@ const Dashboard = () => {
         );
 
       case 'quick-actions':
-        const isQASmall = widget.size === 'small';
-        const isQALarge = widget.size === 'large';
-        
         return (
-          <div className="quick-actions-modern">
-            <div className="widget-header">
-              <h3 className="widget-title">Quick Actions</h3>
-            </div>
-            <div className={`quick-actions-list ${isQASmall ? 'qa-small-mode' : ''} ${isQALarge ? 'qa-large-mode' : ''}`}>
-              <div 
-                className="quick-action-item" 
+          <div className="quick-actions">
+            <h3 className="section-title">quick actions</h3>
+            <div className="action-grid">
+              <button 
+                className="action-btn" 
                 onClick={!isCustomizing ? generateFlashcards : undefined}
               >
-                <span className="action-label-modern">flashcards</span>
-                {!isQASmall && <span className="action-description">Create study cards instantly</span>}
-              </div>
-              <div 
-                className="quick-action-item" 
+                <span className="action-icon">DECK</span>
+                <span className="action-label">flashcards</span>
+              </button>
+              <button 
+                className="action-btn" 
                 onClick={!isCustomizing ? openNotes : undefined}
               >
-                <span className="action-label-modern">study notes</span>
-                {!isQASmall && <span className="action-description">Write and organize notes</span>}
-              </div>
-              <div 
-                className="quick-action-item" 
+                <span className="action-icon">NOTE</span>
+                <span className="action-label">study notes</span>
+              </button>
+              <button 
+                className="action-btn" 
                 onClick={!isCustomizing ? (() => navigate('/concept-web')) : undefined}
               >
-                <span className="action-label-modern">concept web</span>
-                {!isQASmall && <span className="action-description">Visualize connections</span>}
-              </div>
-              <div 
-                className="quick-action-item" 
+                <span className="action-icon">WEB</span>
+                <span className="action-label">concept web</span>
+              </button>
+              <button 
+                className="action-btn" 
                 onClick={!isCustomizing ? openProfile : undefined}
               >
-                <span className="action-label-modern">profile</span>
-                {!isQASmall && <span className="action-description">View your progress</span>}
-              </div>
+                <span className="action-icon">USER</span>
+                <span className="action-label">profile</span>
+              </button>
             </div>
           </div>
         );
 
       case 'ai-assistant':
         return (
-          <div className="brainwave-container">
-            <div className="brainwave-content">
-              <div className="brainwave-header">
-                <div className="brainwave-logo-box">
-                  <span className="brainwave-logo-text">AI</span>
-                </div>
-                <div className="brainwave-stats">
-                  <div className="stat-block">
-                    <span className="stat-number">{stats.totalQuestions}</span>
-                    <span className="stat-label-brainwave">QUESTIONS</span>
-                  </div>
-                  <div className="stat-block">
-                    <span className="stat-number">{stats.totalChatSessions}</span>
-                    <span className="stat-label-brainwave">SESSIONS</span>
-                  </div>
-                </div>
-              </div>
-              <button 
-                className="brainwave-cta" 
+          <div className="ai-assistant-card">
+            <div className="ai-visual-section">
+              <div 
+                className="ai-icon-display" 
                 onClick={!isCustomizing ? navigateToAI : undefined}
-                style={{ color: widgetContrastColor }}
               >
-                START AI SESSION
-              </button>
+                AI
+              </div>
             </div>
+            <div className="ai-stats-row">
+              <div className="ai-stat">
+                <span className="ai-stat-value">{stats.totalQuestions}</span>
+                <span className="ai-stat-label">questions</span>
+              </div>
+              <div className="ai-stat">
+                <span className="ai-stat-value">{stats.totalChatSessions}</span>
+                <span className="ai-stat-label">sessions</span>
+              </div>
+            </div>
+            <button 
+              className="ai-chat-btn" 
+              onClick={!isCustomizing ? navigateToAI : undefined}
+            >
+              START AI SESSION
+            </button>
+            <p className="ai-description">
+              Get instant help with any topic, generate practice questions, and receive personalized learning guidance.
+            </p>
           </div>
         );
 
@@ -1048,41 +1000,42 @@ const Dashboard = () => {
         return (
           <div className="learning-review-widget">
             <div className="widget-header">
-              <h3 className="widget-title">Learning Reviews</h3>
+              <h3 className="widget-title">learning reviews</h3>
+              <button className="create-review-btn" onClick={() => !isCustomizing && navigate('/learning-hub')} disabled={isCustomizing}>
+                +
+              </button>
             </div>
-            <div className="review-list">
+            <div className="review-content">
               {learningReviews.length > 0 ? (
-                learningReviews.slice(0, widget.size === 'small' ? 2 : 3).map((review, idx) => (
-                  <div key={idx} className="review-item">
-                    <div className="review-content">
-                      <div className="review-icon">
-                        <BookOpen size={20} />
-                      </div>
-                      <div className="review-details">
-                        <div className="review-topic">{review.topic}</div>
-                        <div className="review-meta">
-                          {review.content_type === 'flashcard_deck' && `${review.deck_size || 0} cards`}
-                          {review.content_type === 'topic' && 'AI session'}
+                <div className="review-list">
+                  {learningReviews.slice(0, widget.size === 'small' ? 2 : 3).map((review, idx) => (
+                    <div key={idx} className="review-item" onClick={() => !isCustomizing && startLearningReview(review)}>
+                      <div className="review-header">
+                        <div className="review-title">{review.topic}</div>
+                        <div className="review-status completed">
+                          {review.content_type === 'flashcard_deck' ? 'DECK' : 'TOPIC'}
                         </div>
                       </div>
+                      <div className="review-stats">
+                        <div className="review-stat">
+                          <span className="stat-label">cards</span>
+                          <span className="stat-value">{review.deck_size || 0}</span>
+                        </div>
+                      </div>
+                      <div className="review-actions">
+                        <button className="continue-btn" onClick={(e) => { e.stopPropagation(); !isCustomizing && startLearningReview(review); }}>
+                          START
+                        </button>
+                        <button className="view-btn" onClick={(e) => { e.stopPropagation(); !isCustomizing && navigate('/learning-hub'); }}>
+                          VIEW
+                        </button>
+                      </div>
                     </div>
-                    <div className="review-actions">
-                      <button className="review-start-btn" onClick={() => !isCustomizing && startLearningReview(review)}>
-                        Start
-                      </button>
-                    </div>
-                  </div>
-                ))
+                  ))}
+                </div>
               ) : (
                 <div className="no-reviews">
-                  <p style={{ color: widgetContrastColor }}>Analyze slides, generate practice questions and view topic roadmaps</p>
-                  <button 
-                    onClick={!isCustomizing ? (() => navigate('/learning-hub')) : undefined} 
-                    className="start-learning-btn"
-                    style={{ color: widgetContrastColor }}
-                  >
-                    GO TO LEARNING HUB
-                  </button>
+                  <p className="no-reviews-text">Create your first learning review to track progress</p>
                 </div>
               )}
             </div>
@@ -1093,21 +1046,21 @@ const Dashboard = () => {
         return (
           <div className="social-widget">
             <div className="widget-header">
-              <h3 className="widget-title">Social Hub</h3>
+              <h3 className="widget-title">social hub</h3>
             </div>
             <div className="social-content">
               <div className="social-icon-container">
-                <Users size={64} strokeWidth={1.5} style={{ color: accent }} />
+                <Users size={64} strokeWidth={1.5} />
               </div>
-              <p style={{ color: accent }}>
+              <p>
                 Connect with fellow learners, join study groups, and collaborate.
               </p>
               <button 
-                className="social-cta-btn" 
+                className="social-explore-btn" 
                 onClick={!isCustomizing ? navigateToSocial : undefined}
-                style={{ background: accent, color: widgetContrastColor }}
+                disabled={isCustomizing}
               >
-                GO TO SOCIAL
+                EXPLORE SOCIAL
               </button>
             </div>
           </div>
@@ -1116,33 +1069,24 @@ const Dashboard = () => {
       case 'activity-timeline':
         const recentItems = recentActivities.slice(0, widget.size === 'small' ? 3 : 5);
         return (
-          <div className="activity-timeline-widget">
+          <div className="recent-activity-widget">
             <div className="widget-header">
-              <h3 className="widget-title">Recent Activity</h3>
+              <h3 className="widget-title">recent activity</h3>
             </div>
-            <div className="timeline-list">
+            <div className="activity-list">
               {recentItems.length > 0 ? (
                 recentItems.map((activity, idx) => (
-                  <div key={idx} className="timeline-item">
-                    <div className="timeline-icon">
-                      <Clock size={16} style={{ color: accent }} />
-                    </div>
-                    <div className="timeline-content">
-                      <div className="timeline-subject" style={{ color: widgetContrastColor }}>{activity.subject || 'Activity'}</div>
-                      <div className="timeline-time" style={{ color: widgetContrastColor, opacity: 0.6 }}>{activity.time || 'Recently'}</div>
+                  <div key={idx} className="activity-item">
+                    <span className="activity-icon">{activity.type || 'ACT'}</span>
+                    <div className="activity-details">
+                      <div className="activity-subject">{activity.subject || 'Activity'}</div>
+                      <div className="activity-time">{activity.time || 'Recently'}</div>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="no-activity">
-                  <p style={{ color: widgetContrastColor }}>Track your learning activities in one unified timeline.</p>
-                  <button 
-                    className="timeline-cta-btn" 
-                    onClick={!isCustomizing ? (() => navigate('/analytics')) : undefined}
-                    style={{ color: widgetContrastColor }}
-                  >
-                    VIEW TIMELINE
-                  </button>
+                <div className="no-data">
+                  No recent activity
                 </div>
               )}
             </div>
@@ -1329,34 +1273,34 @@ const Dashboard = () => {
       <header className="dashboard-header">
         <div className="header-content">
           <div className="header-left">
-            <div className="notifications-wrapper">
-              <button className="notif-bell-btn" onClick={() => setShowNotifications(!showNotifications)}>
+            <div className="dashboard-notifications-wrapper">
+              <button className="dashboard-notif-bell-btn" onClick={() => setShowNotifications(!showNotifications)}>
                 <Bell size={20} />
-                {unreadCount > 0 && <span className="notif-badge">{unreadCount}</span>}
+                {unreadCount > 0 && <span className="dashboard-notif-badge">{unreadCount}</span>}
               </button>
               
               {showNotifications && (
-                <div className="notif-panel">
-                  <div className="notif-panel-header">
+                <div className="dashboard-notif-panel">
+                  <div className="dashboard-notif-panel-header">
                     <h3>Notifications</h3>
-                    <button className="notif-close-btn" onClick={() => setShowNotifications(false)}>×</button>
+                    <button className="dashboard-notif-close-btn" onClick={() => setShowNotifications(false)}>×</button>
                   </div>
-                  <div className="notif-panel-content">
+                  <div className="dashboard-notif-panel-content">
                     {notifications.length === 0 ? (
-                      <div className="no-notifications-placeholder">
+                      <div className="dashboard-no-notifications-placeholder">
                         <Bell size={32} opacity={0.3} />
                         <p>No notifications yet</p>
                       </div>
                     ) : (
                       notifications.map(notification => (
-                        <div key={notification.id} className={`notif-item ${!notification.is_read ? 'notif-unread' : ''}`}>
-                          <div className="notif-body">
-                            <div className="notif-header-row">
-                              <span className="notif-from">{notification.title}</span>
-                              <button className="notif-delete" onClick={() => deleteNotification(notification.id)}>×</button>
+                        <div key={notification.id} className={`dashboard-notif-item ${!notification.is_read ? 'dashboard-notif-unread' : ''}`}>
+                          <div className="dashboard-notif-body">
+                            <div className="dashboard-notif-header-row">
+                              <span className="dashboard-notif-from">{notification.title}</span>
+                              <button className="dashboard-notif-delete" onClick={() => deleteNotification(notification.id)}>×</button>
                             </div>
-                            <p className="notif-text">{notification.message}</p>
-                            <span className="notif-time">{getRelativeTime(notification.created_at)}</span>
+                            <p className="dashboard-notif-text">{notification.message}</p>
+                            <span className="dashboard-notif-time">{getRelativeTime(notification.created_at)}</span>
                           </div>
                         </div>
                       ))
@@ -1366,17 +1310,17 @@ const Dashboard = () => {
               )}
             </div>
             
-            <div className="user-info">
+            <div className="dashboard-user-info">
               {userProfile?.picture && (
   <img
     src={userProfile.picture}
     alt="Profile"
-    className="profile-picture"
+    className="dashboard-profile-picture"
     referrerPolicy="no-referrer"
     crossOrigin="anonymous"
   />
 )}
-              <span className="user-name">{displayName}</span>
+              <span className="dashboard-user-name">{displayName}</span>
             </div>
             
             <ThemeSwitcher />
@@ -1386,7 +1330,7 @@ const Dashboard = () => {
           
           <div className="header-right">
             <button
-              className={`customize-btn ${isCustomizing ? 'active' : ''}`}
+              className={`dashboard-customize-btn ${isCustomizing ? 'active' : ''}`}
               onClick={() => {
                 if (isCustomizing) {
                   const success = saveLayoutConfiguration();
@@ -1415,8 +1359,8 @@ const Dashboard = () => {
             >
               {isCustomizing ? 'DONE' : 'CUSTOMIZE'}
             </button>
-            <button className="profile-btn" onClick={openProfile}>PROFILE</button>
-            <button className="logout-btn" onClick={handleLogout}>LOGOUT</button>
+            <button className="dashboard-profile-btn" onClick={openProfile}>PROFILE</button>
+            <button className="dashboard-logout-btn" onClick={handleLogout}>LOGOUT</button>
           </div>
         </div>
       </header>
@@ -1491,7 +1435,8 @@ const Dashboard = () => {
               {editingWidgets.map(widget => (
                 <div
                   key={widget.id}
-                  className={`dashboard-widget widget-${widget.size} widget-${widget.type} customizing`}
+                  className={`dashboard-widget widget-${widget.size} customizing`}
+                  data-type={widget.type}
                 >
                   <div className="widget-controls">
                     {widget.type !== 'heatmap' && (
@@ -1521,7 +1466,8 @@ const Dashboard = () => {
               {placedWidgets.map(widget => (
                 <div
                   key={widget.id}
-                  className={`dashboard-widget widget-${widget.size} widget-${widget.type}`}
+                  className={`dashboard-widget widget-${widget.size}`}
+                  data-type={widget.type}
                 >
                   {renderWidget(widget)}
                 </div>

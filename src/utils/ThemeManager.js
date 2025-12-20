@@ -3,8 +3,8 @@ export const THEMES = {
     id: 'gold-dark',
     name: 'Gold Monochrome',
     mode: 'dark',
-    accent: '#D4AF37',
-    accentHover: '#E5C158'
+    accent: '#D7B38C',
+    accentHover: '#E5C9A8'
   },
   'blue-dark': {
     id: 'blue-dark',

@@ -3662,15 +3662,15 @@
 }
 
 /* Smooth Color Transitions */
-* {
+.flashcards-page * {
   transition-property: background-color, border-color, color, fill, stroke;
   transition-duration: 0.2s;
   transition-timing-function: ease-in-out;
 }
 
 /* Override for animations */
-*[class*="animation"],
-*[class*="animate"] {
+.flashcards-page *[class*="animation"],
+.flashcards-page *[class*="animate"] {
   transition: none;
 }
 
