@@ -332,6 +332,7 @@ class FlashcardSet(Base):
     description = Column(Text, default="")
     source_type = Column(String(50), default="manual")
     source_id = Column(Integer, nullable=True)
+    is_public = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

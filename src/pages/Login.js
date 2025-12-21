@@ -55,11 +55,11 @@ function Login() {
       console.log('Quiz check response:', response.data);
 
       if (response.data.completed) {
-        console.log('Quiz completed - going to dashboard');
+        console.log('Quiz completed - going to search hub');
         console.log('🔔 Setting justLoggedIn flag in sessionStorage');
         sessionStorage.setItem('justLoggedIn', 'true'); // Set flag for notification
         console.log('🔔 Flag set, value:', sessionStorage.getItem('justLoggedIn'));
-        navigate('/dashboard');
+        navigate('/search-hub');
       } else {
         console.log('Quiz not completed - going to profile-quiz');
         navigate('/profile-quiz');

@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
 
 /* ==================== FORCE BOXY DESIGN ==================== */
@@ -57,12 +58,13 @@
 
 .safety-title {
   font-size: 64px;
-  font-weight: 300;
+  font-weight: 800;
   letter-spacing: -2px;
   line-height: 1;
   margin-bottom: 12px;
   color: #D7B38C;
   text-transform: lowercase;
+  font-family: 'Inter', sans-serif;
 }
 
 .safety-subtitle {

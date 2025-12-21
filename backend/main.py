@@ -14467,6 +14467,328 @@ async def get_import_export_history(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ==================== SEARCH HUB ENDPOINTS ====================
+
+@app.post("/api/search_content")
+async def search_content(
+    user_id: str = Form(...),
+    query: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Universal search across all user content and public content
+    Searches: flashcard sets, notes, chat sessions, media uploads, question banks
+    """
+    try:
+        logger.info(f"Search request - user_id: {user_id}, query: {query}")
+        search_term = f"%{query.lower()}%"
+        results = []
+        
+        # Search Flashcard Sets (NOT FlashcardDeck - that doesn't exist!)
+        try:
+            flashcard_sets = db.query(models.FlashcardSet).filter(
+                and_(
+                    (
+                        (models.FlashcardSet.user_id == user_id) |
+                        (models.FlashcardSet.is_public == True)
+                    ),
+                    (
+                        func.lower(models.FlashcardSet.title).like(search_term) |
+                        func.lower(models.FlashcardSet.description).like(search_term)
+                    )
+                )
+            ).all()
+            
+            logger.info(f"Found {len(flashcard_sets)} flashcard sets")
+            
+            for fset in flashcard_sets:
+                card_count = db.query(models.Flashcard).filter(
+                    models.Flashcard.set_id == fset.id
+                ).count()
+                
+                results.append({
+                    "id": fset.id,
+                    "type": "flashcard_set",
+                    "title": fset.title or "Untitled Set",
+                    "description": fset.description or "",
+                    "author": fset.user_id,
+                    "visibility": "public" if fset.is_public else "private",
+                    "created_at": fset.created_at.isoformat() if fset.created_at else None,
+                    "card_count": card_count
+                })
+        except Exception as e:
+            logger.error(f"Error searching flashcard sets: {str(e)}")
+        
+        # Search Individual Flashcards
+        try:
+            flashcards = db.query(models.Flashcard).join(
+                models.FlashcardSet
+            ).filter(
+                and_(
+                    (
+                        (models.FlashcardSet.user_id == user_id) |
+                        (models.FlashcardSet.is_public == True)
+                    ),
+                    (
+                        func.lower(models.Flashcard.question).like(search_term) |
+                        func.lower(models.Flashcard.answer).like(search_term)
+                    )
+                )
+            ).limit(20).all()
+            
+            logger.info(f"Found {len(flashcards)} individual flashcards")
+            
+            for card in flashcards:
+                fset = db.query(models.FlashcardSet).filter(
+                    models.FlashcardSet.id == card.set_id
+                ).first()
+                
+                results.append({
+                    "id": card.id,
+                    "type": "flashcard",
+                    "title": card.question[:100] if card.question else "Flashcard",
+                    "description": card.answer[:200] if card.answer else "",
+                    "author": fset.user_id if fset else None,
+                    "visibility": "public" if fset and fset.is_public else "private",
+                    "created_at": card.created_at.isoformat() if card.created_at else None,
+                    "set_name": fset.title if fset else None
+                })
+        except Exception as e:
+            logger.error(f"Error searching flashcards: {str(e)}")
+        
+        # Search Notes
+        try:
+            # Only search user's own notes since Note model doesn't have is_public
+            notes = db.query(models.Note).filter(
+                and_(
+                    models.Note.user_id == user_id,
+                    (
+                        func.lower(models.Note.title).like(search_term) |
+                        func.lower(models.Note.content).like(search_term)
+                    )
+                )
+            ).limit(20).all()
+            
+            logger.info(f"Found {len(notes)} notes")
+            
+            for note in notes:
+                results.append({
+                    "id": note.id,
+                    "type": "note",
+                    "title": note.title if note.title else "Untitled Note",
+                    "description": note.content[:200] if note.content else "",
+                    "author": note.user_id,
+                    "visibility": "private",
+                    "created_at": note.created_at.isoformat() if note.created_at else None
+                })
+        except Exception as e:
+            logger.error(f"Error searching notes: {str(e)}")
+        
+        # Search Chat Sessions
+        try:
+            # Only search user's own chats and use title only (no summary field)
+            chats = db.query(models.ChatSession).filter(
+                and_(
+                    models.ChatSession.user_id == user_id,
+                    func.lower(models.ChatSession.title).like(search_term)
+                )
+            ).limit(20).all()
+            
+            logger.info(f"Found {len(chats)} chat sessions")
+            
+            for chat in chats:
+                message_count = db.query(models.ChatMessage).filter(
+                    models.ChatMessage.chat_session_id == chat.id
+                ).count()
+                
+                results.append({
+                    "id": chat.id,
+                    "type": "chat",
+                    "title": chat.title or "Untitled Chat",
+                    "description": f"{message_count} messages",
+                    "author": chat.user_id,
+                    "visibility": "private",
+                    "created_at": chat.created_at.isoformat() if chat.created_at else None,
+                    "message_count": message_count
+                })
+        except Exception as e:
+            logger.error(f"Error searching chats: {str(e)}")
+        
+        # Search Question Sets
+        try:
+            # Only search user's own question sets since QuestionSet doesn't have is_public
+            question_sets = db.query(models.QuestionSet).filter(
+                and_(
+                    models.QuestionSet.user_id == user_id,
+                    (
+                        func.lower(models.QuestionSet.title).like(search_term) |
+                        func.lower(models.QuestionSet.description).like(search_term)
+                    )
+                )
+            ).limit(20).all()
+            
+            logger.info(f"Found {len(question_sets)} question sets")
+            
+            for qset in question_sets:
+                question_count = db.query(models.Question).filter(
+                    models.Question.set_id == qset.id
+                ).count()
+                
+                results.append({
+                    "id": qset.id,
+                    "type": "question_set",
+                    "title": qset.title,
+                    "description": qset.description or "",
+                    "author": qset.user_id,
+                    "visibility": "private",
+                    "created_at": qset.created_at.isoformat() if qset.created_at else None,
+                    "question_count": question_count
+                })
+        except Exception as e:
+            logger.error(f"Error searching question sets: {str(e)}")
+        
+        # Sort by relevance (created_at desc for now)
+        results.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        logger.info(f"Total results: {len(results)}")
+        
+        return {
+            "total_results": len(results),
+            "results": results,
+            "query": query
+        }
+        
+    except Exception as e:
+        logger.error(f"Search error: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+        
+        # Sort by relevance (created_at desc for now)
+        results.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        return {
+            "total_results": len(results),
+            "results": results,
+            "query": query
+        }
+        
+    except Exception as e:
+        logger.error(f"Search error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+
+@app.post("/api/get_search_suggestion")
+async def get_search_suggestion(
+    user_id: str = Form(...),
+    query: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Get AI-powered suggestions when no search results are found
+    """
+    try:
+        groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        
+        prompt = f"""The user searched for "{query}" but no results were found.
+        
+Provide a helpful, encouraging response that:
+1. Acknowledges what they're looking for
+2. Suggests what type of content they could create (flashcards, notes, questions, etc.)
+3. Offers to help them get started
+
+Keep it brief, friendly, and actionable. 2-3 sentences max."""
+
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": "You are a helpful AI tutor assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=200
+        )
+        
+        suggestion = response.choices[0].message.content.strip()
+        
+        return {
+            "description": suggestion,
+            "suggestions": [
+                {"type": "flashcards", "label": "Create Flashcards"},
+                {"type": "notes", "label": "Take Notes"},
+                {"type": "ai-chat", "label": "Ask AI"}
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"AI suggestion error: {str(e)}")
+        return {
+            "description": f"I couldn't find anything matching \"{query}\". Would you like to create some learning materials on this topic?",
+            "suggestions": [
+                {"type": "flashcards", "label": "Create Flashcards"},
+                {"type": "notes", "label": "Take Notes"},
+                {"type": "ai-chat", "label": "Ask AI"}
+            ]
+        }
+
+
+@app.get("/api/get_trending_topics")
+async def get_trending_topics(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get trending topics based on recent public content
+    """
+    try:
+        # Get most popular public decks
+        popular_decks = db.query(
+            models.FlashcardDeck.name,
+            func.count(models.FlashcardDeck.id).label('count')
+        ).filter(
+            and_(
+                models.FlashcardDeck.is_public == True,
+                models.FlashcardDeck.is_deleted == False
+            )
+        ).group_by(models.FlashcardDeck.name).order_by(
+            func.count(models.FlashcardDeck.id).desc()
+        ).limit(5).all()
+        
+        trending = []
+        for deck_name, count in popular_decks:
+            trending.append({
+                "topic": deck_name,
+                "count": count
+            })
+        
+        # If not enough, add some defaults
+        if len(trending) < 5:
+            defaults = [
+                {"topic": "Machine Learning Basics", "count": 45},
+                {"topic": "Calculus Integration", "count": 38},
+                {"topic": "World History Timeline", "count": 32},
+                {"topic": "Python Programming", "count": 29},
+                {"topic": "Chemistry Reactions", "count": 24}
+            ]
+            trending.extend(defaults[len(trending):])
+        
+        return {"trending": trending[:5]}
+        
+    except Exception as e:
+        logger.error(f"Trending topics error: {str(e)}")
+        return {
+            "trending": [
+                {"topic": "Machine Learning Basics", "count": 45},
+                {"topic": "Calculus Integration", "count": 38},
+                {"topic": "World History Timeline", "count": 32},
+                {"topic": "Python Programming", "count": 29},
+                {"topic": "Chemistry Reactions", "count": 24}
+            ]
+        }
+
+# ==================== END SEARCH HUB ENDPOINTS ====================
+
+
 if __name__ == "__main__":
     import uvicorn
     

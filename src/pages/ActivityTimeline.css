@@ -41,7 +41,7 @@
 .timeline-header-left h1 {
   margin: 0;
   font-size: 32px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.5px;
   color: var(--accent);
   text-transform: lowercase;
@@ -49,6 +49,7 @@
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  font-family: 'Inter', sans-serif;
 }
 
 .timeline-header-left h1::after {

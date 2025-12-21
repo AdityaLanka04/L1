@@ -34,6 +34,7 @@ class FlashcardSetCreate(BaseModel):
     description: str = ""
     source_type: str = "manual"
     source_id: Optional[int] = None
+    is_public: bool = False
 
 class FlashcardCreate(BaseModel):
     set_id: int
@@ -46,6 +47,7 @@ class FlashcardSetUpdate(BaseModel):
     set_id: int
     title: str
     description: str
+    is_public: Optional[bool] = None
 
 class FlashcardUpdate(BaseModel):
     flashcard_id: int
@@ -377,14 +379,16 @@ class FlashcardAPI:
             save_to_set: str = Form("false"),  # Accept as string, convert below
             set_title: str = Form(None),
             focus_areas: str = Form(None),
+            is_public: str = Form("false"),  # Accept as string, convert below
             db: Session = Depends(get_db)
         ):
             # Convert string to boolean explicitly
             save_to_set_bool = save_to_set.lower() in ('true', '1', 'yes', 'on')
+            is_public_bool = is_public.lower() in ('true', '1', 'yes', 'on')
             return await self._generate_flashcards(
                 user_id, topic, generation_type, chat_data, card_count,
                 difficulty_level, depth_level, save_to_set_bool, set_title,
-                focus_areas, db
+                focus_areas, is_public_bool, db
             )
         
         @self.app.post("/api/update_flashcard_set")
@@ -472,7 +476,8 @@ class FlashcardAPI:
             title=set_data.title,
             description=set_data.description,
             source_type=set_data.source_type,
-            source_id=set_data.source_id
+            source_id=set_data.source_id,
+            is_public=set_data.is_public
         )
         db.add(flashcard_set)
         db.commit()
@@ -483,6 +488,7 @@ class FlashcardAPI:
             "title": flashcard_set.title,
             "description": flashcard_set.description,
             "source_type": flashcard_set.source_type,
+            "is_public": flashcard_set.is_public,
             "created_at": flashcard_set.created_at.isoformat(),
             "card_count": 0,
             "status": "success"
@@ -688,6 +694,7 @@ class FlashcardAPI:
         save_to_set: bool,
         set_title: Optional[str],
         focus_areas: Optional[str],
+        is_public: bool,
         db: Session
     ):
         """Generate flashcards using advanced AI with guardrails"""
@@ -776,7 +783,8 @@ class FlashcardAPI:
                                 user_id=user.id,
                                 title=set_title,
                                 description=f"Generated flashcards - {difficulty_level} difficulty, {depth_level} depth",
-                                source_type=generation_type
+                                source_type=generation_type,
+                                is_public=is_public
                             )
                             db.add(flashcard_set)
                             db.commit()
@@ -796,45 +804,43 @@ class FlashcardAPI:
                             
                             db.commit()
                             
-                            # Check for flashcard set milestones and create notifications
+                            # Check for flashcard set milestones and create notifications (only once)
                             total_sets = db.query(models.FlashcardSet).filter(
                                 models.FlashcardSet.user_id == user.id
                             ).count()
                             
                             notification_data = None
+                            milestone_title = None
+                            milestone_message = None
+                            
                             if total_sets == 1:
-                                notification = models.Notification(
-                                    user_id=user.id,
-                                    title="First Flashcard Set! 🎉",
-                                    message="Great start! You've created your first flashcard set. Keep learning!",
-                                    notification_type="milestone",
-                                    is_read=False
-                                )
-                                db.add(notification)
-                                db.commit()
-                                notification_data = {"title": notification.title, "message": notification.message}
+                                milestone_title = "First Flashcard Set! 🎉"
+                                milestone_message = "Great start! You've created your first flashcard set. Keep learning!"
                             elif total_sets == 10:
-                                notification = models.Notification(
-                                    user_id=user.id,
-                                    title="10 Flashcard Sets! 📚",
-                                    message="Amazing! You've created 10 flashcard sets. Your knowledge base is growing!",
-                                    notification_type="milestone",
-                                    is_read=False
-                                )
-                                db.add(notification)
-                                db.commit()
-                                notification_data = {"title": notification.title, "message": notification.message}
+                                milestone_title = "10 Flashcard Sets! 📚"
+                                milestone_message = "Amazing! You've created 10 flashcard sets. Your knowledge base is growing!"
                             elif total_sets == 25:
-                                notification = models.Notification(
-                                    user_id=user.id,
-                                    title="25 Flashcard Sets! 🏆",
-                                    message="Incredible! You've created 25 flashcard sets. You're a dedicated learner!",
-                                    notification_type="milestone",
-                                    is_read=False
-                                )
-                                db.add(notification)
-                                db.commit()
-                                notification_data = {"title": notification.title, "message": notification.message}
+                                milestone_title = "25 Flashcard Sets! 🏆"
+                                milestone_message = "Incredible! You've created 25 flashcard sets. You're a dedicated learner!"
+                            
+                            # Only create notification if milestone reached and doesn't already exist
+                            if milestone_title:
+                                existing_notif = db.query(models.Notification).filter(
+                                    models.Notification.user_id == user.id,
+                                    models.Notification.title == milestone_title
+                                ).first()
+                                
+                                if not existing_notif:
+                                    notification = models.Notification(
+                                        user_id=user.id,
+                                        title=milestone_title,
+                                        message=milestone_message,
+                                        notification_type="milestone",
+                                        is_read=False
+                                    )
+                                    db.add(notification)
+                                    db.commit()
+                                    notification_data = {"title": notification.title, "message": notification.message}
                             
                             result = {
                                 "flashcards": valid_flashcards,
@@ -902,6 +908,8 @@ class FlashcardAPI:
         
         flashcard_set.title = update_data.title
         flashcard_set.description = update_data.description
+        if update_data.is_public is not None:
+            flashcard_set.is_public = update_data.is_public
         flashcard_set.updated_at = datetime.now(timezone.utc)
         
         db.commit()
@@ -911,6 +919,7 @@ class FlashcardAPI:
             "id": flashcard_set.id,
             "title": flashcard_set.title,
             "description": flashcard_set.description,
+            "is_public": flashcard_set.is_public,
             "updated_at": flashcard_set.updated_at.isoformat(),
             "status": "success"
         }

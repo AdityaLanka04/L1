@@ -150,6 +150,7 @@ const HelpTour = ({ isOpen, onClose, onComplete }) => {
 
   const skipTour = () => {
     setIsVisible(false);
+    onComplete?.(); // Mark tour as completed even when skipped
     onClose?.();
   };
 

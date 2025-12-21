@@ -49,21 +49,25 @@
   padding: 0 !important;
 }
 
-/* Light mode - white background */
+/* Light mode - use theme background */
 [data-theme-mode="light"] .flashcards-page {
-  background: #ffffff !important;
+  background: var(--bg-primary) !important;
 }
 
 [data-theme-mode="light"] .fc-main {
-  background: #ffffff !important;
+  background: var(--bg-primary) !important;
 }
 
 [data-theme-mode="light"] .fc-header {
-  background: #ffffff !important;
+  background: var(--bg-secondary) !important;
 }
 
 [data-theme-mode="light"] .fc-content {
-  background: #ffffff !important;
+  background: var(--bg-primary) !important;
+}
+
+[data-theme-mode="light"] .fc-study-mode {
+  background: var(--bg-primary) !important;
 }
 
 .flashcards-page * {
@@ -94,8 +98,8 @@
 /* Sidebar Enhanced Styling with Accent Color Gradients */
 [data-theme-mode="dark"] .fc-sidebar {
   background: linear-gradient(180deg, 
-    color-mix(in srgb, var(--accent) 15%, #000000) 0%, 
-    color-mix(in srgb, var(--accent) 8%, #000000) 100%) !important;
+    color-mix(in srgb, var(--accent) 15%, var(--bg-secondary)) 0%, 
+    color-mix(in srgb, var(--accent) 8%, var(--bg-secondary)) 100%) !important;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
 }
 
@@ -118,12 +122,12 @@
 }
 
 [data-theme-mode="light"] .fc-sidebar {
-  color: color-mix(in srgb, var(--accent) 80%, #000000) !important;
+  color: color-mix(in srgb, var(--accent) 80%, var(--text-primary)) !important;
 }
 
 [data-theme-mode="light"] .fc-nav-text,
 [data-theme-mode="light"] .fc-logo-text {
-  color: color-mix(in srgb, var(--accent) 80%, #000000) !important;
+  color: color-mix(in srgb, var(--accent) 80%, var(--text-primary)) !important;
 }
 
 .fc-sidebar.collapsed {
@@ -331,21 +335,21 @@
 }
 
 [data-theme-mode="dark"] .fc-nav-item.fc-convert-btn {
-  color: #1a1a1a !important;
+  color: var(--bg-primary) !important;
 }
 
 [data-theme-mode="dark"] .fc-nav-item.fc-convert-btn .fc-nav-text,
 [data-theme-mode="dark"] .fc-nav-item.fc-convert-btn .fc-nav-icon {
-  color: #1a1a1a !important;
+  color: var(--bg-primary) !important;
 }
 
 [data-theme-mode="dark"] .fc-nav-item.fc-convert-btn:hover {
-  color: #1a1a1a !important;
+  color: var(--bg-primary) !important;
 }
 
 [data-theme-mode="dark"] .fc-nav-item.fc-convert-btn:hover .fc-nav-text,
 [data-theme-mode="dark"] .fc-nav-item.fc-convert-btn:hover .fc-nav-icon {
-  color: #1a1a1a !important;
+  color: var(--bg-primary) !important;
 }
 
 .fc-nav-icon {
@@ -1382,7 +1386,7 @@
 .fc-study-nav {
   width: 50px;
   height: 50px;
-  background: #1a1a1a;
+  background: var(--bg-secondary);
   border: 2px solid var(--fc-accent);
   border-radius: 50%;
   color: var(--fc-accent);
@@ -1396,7 +1400,7 @@
 
 .fc-study-nav:hover:not(:disabled) {
   background: var(--fc-accent);
-  color: #1a1a1a;
+  color: var(--bg-primary);
   transform: scale(1.1);
 }
 
@@ -1426,14 +1430,14 @@
 
 /* Dark mode navigation */
 [data-theme-mode="dark"] .fc-study-nav {
-  background: #1a1a1a !important;
+  background: var(--bg-secondary) !important;
   border-color: var(--fc-accent) !important;
   color: var(--fc-accent) !important;
 }
 
 [data-theme-mode="dark"] .fc-study-nav:hover:not(:disabled) {
   background: var(--fc-accent) !important;
-  color: #1a1a1a !important;
+  color: var(--bg-primary) !important;
 }
 
 .fc-study-card {
@@ -1449,7 +1453,7 @@
 
 /* Gold card in dark mode for better contrast */
 [data-theme-mode="dark"] .fc-study-card {
-  background: linear-gradient(145deg, #2a2416, #1a1a1a) !important;
+  background: linear-gradient(145deg, var(--bg-secondary), var(--bg-primary)) !important;
   border: 2px solid var(--fc-accent) !important;
   box-shadow: 0 8px 24px rgba(215, 179, 140, 0.3) !important;
 }
@@ -1608,7 +1612,7 @@
   justify-content: center;
   gap: 10px;
   padding: 16px 32px;
-  background: #1a1a1a;
+  background: var(--bg-secondary);
   border: 2px solid var(--fc-accent);
   border-radius: 12px;
   color: var(--fc-accent);
@@ -1621,7 +1625,7 @@
 
 .fc-knowledge-btn:hover {
   background: var(--fc-accent);
-  color: #1a1a1a;
+  color: var(--bg-primary);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(215, 179, 140, 0.4);
 }
@@ -1648,14 +1652,14 @@
 
 /* Dark mode styling */
 [data-theme-mode="dark"] .fc-knowledge-btn {
-  background: #1a1a1a !important;
+  background: var(--bg-secondary) !important;
   border-color: var(--fc-accent) !important;
   color: var(--fc-accent) !important;
 }
 
 [data-theme-mode="dark"] .fc-knowledge-btn:hover {
   background: var(--fc-accent) !important;
-  color: #1a1a1a !important;
+  color: var(--bg-primary) !important;
 }
 
 /* Study Results */
@@ -1983,7 +1987,7 @@
 }
 
 [data-theme-mode="dark"] .fc-card-label-badge {
-  color: #1a1a1a !important;
+  color: var(--bg-primary) !important;
 }
 
 .fc-card-number {
@@ -1998,7 +2002,7 @@
 }
 
 [data-theme-mode="dark"] .fc-card-number {
-  color: #1a1a1a !important;
+  color: var(--bg-primary) !important;
 }
 
 /* Content Below - Scrollable */
@@ -2084,7 +2088,7 @@
 }
 
 [data-theme-mode="dark"] .fc-btn-primary-large {
-  color: #1a1a1a !important;
+  color: var(--bg-primary) !important;
 }
 
 .fc-btn-primary-large:hover {
@@ -2167,7 +2171,6 @@
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   word-break: break-word;
 }
@@ -2179,7 +2182,7 @@
   background: rgba(255, 255, 255, 0.95);
   border: 2px solid white;
   border-radius: 8px;
-  color: #1a1a1a;
+  color: var(--bg-primary);
   font-size: 14px;
   font-weight: 700;
   text-align: center;
@@ -2345,11 +2348,11 @@
 }
 
 [data-theme-mode="dark"] .fc-action-study {
-  color: #1a1a1a !important;
+  color: var(--bg-primary) !important;
 }
 
 [data-theme-mode="dark"] .fc-action-study svg {
-  color: #1a1a1a !important;
+  color: var(--bg-primary) !important;
 }
 
 .fc-action-study:hover {
@@ -2484,7 +2487,7 @@
 }
 
 [data-theme-mode="dark"] .fc-card-label-badge {
-  color: #1a1a1a !important;
+  color: var(--bg-primary) !important;
 }
 
 .fc-card-number {
@@ -2499,7 +2502,7 @@
 }
 
 [data-theme-mode="dark"] .fc-card-number {
-  color: #1a1a1a !important;
+  color: var(--bg-primary) !important;
 }
 
 /* Content Below - Scrollable */
@@ -2639,7 +2642,7 @@
 
 /* Gold flashcard styling in dark mode for study question */
 [data-theme-mode="dark"] .fc-study-question-card {
-  background: linear-gradient(145deg, #2a2416, #1a1a1a) !important;
+  background: linear-gradient(145deg, var(--bg-secondary), var(--bg-primary)) !important;
   border: 2px solid var(--fc-accent) !important;
   box-shadow: 0 8px 32px rgba(215, 179, 140, 0.3) !important;
 }
@@ -3913,7 +3916,7 @@
 .fc-set-btn.study {
   background: linear-gradient(135deg, 
     var(--fc-accent) 0%,
-    color-mix(in srgb, var(--accent) 85%, #000000) 100%
+    var(--accent-hover) 100%
   ) !important;
 }
 
@@ -3965,4 +3968,52 @@
     color-mix(in srgb, var(--accent) 20%, var(--hover-bg)) 0%,
     color-mix(in srgb, var(--accent) 12%, var(--hover-bg)) 100%
   ) !important;
+}
+
+/* Visibility Toggle */
+.fc-visibility-toggle {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.fc-visibility-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 2px solid var(--border);
+  border-radius: 0;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fc-visibility-btn:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.fc-visibility-btn.active {
+  background: var(--accent);
+  color: var(--bg-primary);
+  border-color: var(--accent);
+}
+
+.fc-visibility-btn svg {
+  flex-shrink: 0;
+}
+
+.fc-visibility-hint {
+  margin: 8px 0 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-style: italic;
 }

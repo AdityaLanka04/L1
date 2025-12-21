@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import CustomPopup from './CustomPopup';
 import './Flashcards.css';
 import './FlashcardsConvert.css';
@@ -9,6 +9,7 @@ import ImportExportModal from '../components/ImportExportModal';
 
 const Flashcards = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [userName, setUserName] = useState('');
   const [userProfile, setUserProfile] = useState(null);
   const [activePanel, setActivePanel] = useState('cards');
@@ -36,6 +37,7 @@ const Flashcards = () => {
   const [difficultyLevel, setDifficultyLevel] = useState('medium');
   const [depthLevel, setDepthLevel] = useState('standard');
   const [autoSave, setAutoSave] = useState(true);
+  const [isPublic, setIsPublic] = useState(false);
   
   // Chat sessions
   const [chatSessions, setChatSessions] = useState([]);
@@ -214,8 +216,17 @@ const Flashcards = () => {
       loadFlashcardHistory();
       loadFlashcardStats();
       loadReviewCards();
+      
+      // Check for URL parameters to load a specific set
+      const params = new URLSearchParams(location.search);
+      const setId = params.get('set_id');
+      if (setId) {
+        console.log('Loading flashcard set from URL:', setId);
+        loadFlashcardSet(parseInt(setId), 'preview');
+        setActivePanel('cards');
+      }
     }
-  }, [userName, loadChatSessions, loadFlashcardHistory, loadFlashcardStats, loadReviewCards]);
+  }, [userName, location.search, loadChatSessions, loadFlashcardHistory, loadFlashcardStats, loadReviewCards]);
 
   useEffect(() => {
     const savedStreak = localStorage.getItem('flashcardStreak');
@@ -356,6 +367,7 @@ const Flashcards = () => {
       formData.append('difficulty_level', difficultyLevel);
       formData.append('depth_level', depthLevel);
       formData.append('save_to_set', autoSave.toString());
+      formData.append('is_public', isPublic.toString());
 
       if (generationMode === 'topic') {
         formData.append('topic', topic);
@@ -1141,6 +1153,36 @@ const Flashcards = () => {
                             <option value="deep">Deep</option>
                           </select>
                         </div>
+                      </div>
+
+                      <div className="fc-form-group">
+                        <label className="fc-label">Visibility</label>
+                        <div className="fc-visibility-toggle">
+                          <button 
+                            className={`fc-visibility-btn ${!isPublic ? 'active' : ''}`}
+                            onClick={() => setIsPublic(false)}
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            Private
+                          </button>
+                          <button 
+                            className={`fc-visibility-btn ${isPublic ? 'active' : ''}`}
+                            onClick={() => setIsPublic(true)}
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                              <circle cx="12" cy="12" r="10"/>
+                              <path d="M2 12h20"/>
+                              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                            </svg>
+                            Public
+                          </button>
+                        </div>
+                        <p className="fc-visibility-hint">
+                          {isPublic ? 'Anyone can find and copy this set' : 'Only you can see this set'}
+                        </p>
                       </div>
                     </>
                   ) : (

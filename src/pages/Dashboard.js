@@ -4,7 +4,7 @@ import { formatToLocalTime, getRelativeTime } from '../utils/dateUtils';
 import { HelpTour, HelpButton } from './HelpTour';
 import {
   CheckCircle, XCircle, Clock, Plus, Users, Bell, Calendar as CalendarIcon, BookOpen, Zap,
-  MessageSquare, HelpCircle, FileText, Network, ChevronRight
+  MessageSquare, HelpCircle, FileText, Network, ChevronRight, Search
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { rgbaFromHex } from '../utils/ThemeManager';
@@ -70,16 +70,17 @@ const Dashboard = () => {
   const [draggedWidget, setDraggedWidget] = useState(null);
   const [editingWidgets, setEditingWidgets] = useState([]);
   const [editingAvailable, setEditingAvailable] = useState([]);
+  const [originalLayout, setOriginalLayout] = useState({ placed: [], available: [] });
   
   const defaultLayout = [
-    { id: 'greeting', type: 'greeting', size: 'small', order: 1 },
-    { id: 'stats', type: 'stats', size: 'small', order: 2 },
-    { id: 'quick-actions', type: 'quick-actions', size: 'small', order: 3 },
-    { id: 'ai-assistant', type: 'ai-assistant', size: 'medium', order: 4 },
-    { id: 'learning-review', type: 'learning-review', size: 'small', order: 5 },
-    { id: 'social', type: 'social', size: 'small', order: 6 },
-    { id: 'activity-timeline', type: 'activity-timeline', size: 'small', order: 7 },
-    { id: 'heatmap', type: 'heatmap', size: 'full', order: 8 }
+    { id: 'greeting', type: 'greeting', size: 'small', gridColumn: 1, gridRow: 1 },
+    { id: 'stats', type: 'stats', size: 'small', gridColumn: 2, gridRow: 1 },
+    { id: 'quick-actions', type: 'quick-actions', size: 'medium', gridColumn: 3, gridRow: 1 },
+    { id: 'ai-assistant', type: 'ai-assistant', size: 'medium', gridColumn: 1, gridRow: 2 },
+    { id: 'learning-review', type: 'learning-review', size: 'small', gridColumn: 3, gridRow: 3 },
+    { id: 'social', type: 'social', size: 'small', gridColumn: 1, gridRow: 3 },
+    { id: 'activity-timeline', type: 'activity-timeline', size: 'small', gridColumn: 2, gridRow: 3 },
+    { id: 'heatmap', type: 'heatmap', size: 'full', gridColumn: 1, gridRow: 4 }
   ];
 
   const [placedWidgets, setPlacedWidgets] = useState(defaultLayout);
@@ -156,12 +157,15 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    const completedTour = localStorage.getItem('hasCompletedTour');
-    setHasSeenTour(!!completedTour);
+    if (userName) {
+      const tourKey = `hasCompletedTour_${userName}`;
+      const completedTour = localStorage.getItem(tourKey);
+      setHasSeenTour(!!completedTour);
 
-    if (!completedTour && userName) {
-      const timer = setTimeout(() => setShowTour(true), 2000);
-      return () => clearTimeout(timer);
+      if (!completedTour) {
+        const timer = setTimeout(() => setShowTour(true), 2000);
+        return () => clearTimeout(timer);
+      }
     }
   }, [userName]);
 
@@ -171,14 +175,19 @@ const Dashboard = () => {
     loadHeatmapData();
     loadDashboardData();
     startDashboardSession();
-    const justLoggedIn = sessionStorage.getItem('justLoggedIn');
-    const notificationAlreadyShown = sessionStorage.getItem('notificationShown');
     
-    if (justLoggedIn && !notificationAlreadyShown) {
+    const justLoggedIn = sessionStorage.getItem('justLoggedIn');
+    const notificationKey = `welcomeNotificationShown_${userName}`;
+    const hasShownBefore = localStorage.getItem(notificationKey);
+    
+    if (justLoggedIn && !hasShownBefore) {
+      // Get user's first name from profile, fallback to username
+      const displayName = userProfile?.firstName || userName.split('@')[0];
+      
       const welcomeNotif = {
         id: `welcome-${Date.now()}`,
         title: 'Welcome Back!',
-        message: `Ready to continue learning, ${userName}?`,
+        message: `Ready to continue learning, ${displayName}?`,
         type: 'welcome',
         created_at: new Date().toISOString()
       };
@@ -190,7 +199,8 @@ const Dashboard = () => {
           }
           return prev;
         });
-        sessionStorage.setItem('notificationShown', 'true');
+        // Store in localStorage so it persists and is user-specific
+        localStorage.setItem(notificationKey, 'true');
       }, 1500);
       
       sessionStorage.removeItem('justLoggedIn');
@@ -321,26 +331,23 @@ const Dashboard = () => {
     };
 
     pollNotifications();
-    notificationPollRef.current = setInterval(pollNotifications, 30000);
+    notificationPollRef.current = setInterval(pollNotifications, 120000); // Poll every 2 minutes instead of 30 seconds
   };
 
   const removeSlideNotification = (notifId) => {
     setSlideNotifQueue(prev => prev.filter(n => n.id !== notifId));
+    // Mark as read when dismissed so it doesn't show again
+    markNotificationAsRead(notifId);
   };
 
   const markNotificationAsRead = async (notifId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/mark_notification_read`, {
-        method: 'POST',
+      const response = await fetch(`${API_URL}/mark_notification_read/${notifId}`, {
+        method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          user_id: userName,
-          notification_id: notifId
-        })
+          'Authorization': `Bearer ${token}`
+        }
       });
 
       if (response.ok) {
@@ -357,21 +364,21 @@ const Dashboard = () => {
   const deleteNotification = async (notifId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/delete_notification`, {
-        method: 'POST',
+      const response = await fetch(`${API_URL}/delete_notification/${notifId}`, {
+        method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          user_id: userName,
-          notification_id: notifId
-        })
+          'Authorization': `Bearer ${token}`
+        }
       });
 
       if (response.ok) {
         const wasUnread = notifications.find(n => n.id === notifId)?.is_read === false;
         setNotifications(prev => prev.filter(n => n.id !== notifId));
+        setLastNotificationIds(prev => {
+          const updated = new Set(prev);
+          updated.add(notifId);
+          return updated;
+        });
         if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
       }
     } catch (error) {
@@ -416,7 +423,7 @@ const Dashboard = () => {
   
   const displayName = getDisplayName();
 
-  const navigateToAI = () => navigate('/ai');
+  const navigateToAI = () => navigate('/ai-chat');
   const navigateToFlashcards = () => navigate('/flashcards');
   const navigateToQuiz = () => navigate('/quiz');
   const navigateToNotes = () => navigate('/notes');
@@ -545,30 +552,78 @@ const Dashboard = () => {
     return true;
   };
 
-  const handleWidgetDragStart = (e, widget) => {
-    setDraggedWidget(widget);
+  const handleWidgetDragStart = (e, widget, isFromGrid = false) => {
+    setDraggedWidget({ ...widget, isFromGrid });
     e.dataTransfer.effectAllowed = 'move';
+    
+    // Enable auto-scroll when dragging near edges
+    const handleDragOver = (e) => {
+      const scrollThreshold = 100;
+      const scrollSpeed = 10;
+      
+      if (e.clientY < scrollThreshold) {
+        window.scrollBy(0, -scrollSpeed);
+      } else if (e.clientY > window.innerHeight - scrollThreshold) {
+        window.scrollBy(0, scrollSpeed);
+      }
+    };
+    
+    document.addEventListener('dragover', handleDragOver);
+    e.dataTransfer.setData('cleanup', 'true');
+    
+    // Cleanup on drag end
+    const cleanup = () => {
+      document.removeEventListener('dragover', handleDragOver);
+      document.removeEventListener('dragend', cleanup);
+    };
+    document.addEventListener('dragend', cleanup);
   };
 
-  const handleGridDrop = (e, cellIndex) => {
+  const handleGridCellDragOver = (e) => {
     e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleGridCellDrop = (e, targetCol, targetRow) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (!draggedWidget) return;
 
     const isFromAvailable = editingAvailable.some(w => w.id === draggedWidget.id);
+    const isFromGrid = draggedWidget.isFromGrid;
     
     if (isFromAvailable) {
-      const size = draggedWidget.defaultSize || 'small';
+      // Adding from available widgets
+      let size = draggedWidget.defaultSize || 'small';
+      if (draggedWidget.type === 'quick-actions') {
+        size = 'medium';
+      }
+      
       const newWidget = {
         id: draggedWidget.id,
         type: draggedWidget.type,
         size: size,
-        order: editingWidgets.length + 1
+        gridColumn: targetCol,
+        gridRow: targetRow
       };
 
       setEditingWidgets(prev => [...prev, newWidget]);
       setEditingAvailable(prev => prev.filter(w => w.id !== draggedWidget.id));
+    } else if (isFromGrid) {
+      // Moving existing widget to new position
+      setEditingWidgets(prev => prev.map(w => 
+        w.id === draggedWidget.id 
+          ? { ...w, gridColumn: targetCol, gridRow: targetRow }
+          : w
+      ));
     }
 
+    setDraggedWidget(null);
+  };
+
+  const handleGridDrop = (e) => {
+    e.preventDefault();
     setDraggedWidget(null);
   };
 
@@ -831,7 +886,10 @@ const Dashboard = () => {
   const completeTour = () => {
     setShowTour(false);
     setHasSeenTour(true);
-    localStorage.setItem('hasCompletedTour', '1');
+    if (userName) {
+      const tourKey = `hasCompletedTour_${userName}`;
+      localStorage.setItem(tourKey, '1');
+    }
   };
 
   const loadUserStats = async () => {
@@ -884,42 +942,101 @@ const Dashboard = () => {
 
     switch (widget.type) {
       case 'greeting':
+        const quoteToShow = randomQuote || motivationalQuote || 'Keep learning every day!';
         return (
           <div className="greeting-card-compact">
             <h2 className="greeting-text">{getGreeting()}, {displayName}</h2>
-            <p className="greeting-quote">"{randomQuote}"</p>
+            <p className="greeting-quote">"{quoteToShow}"</p>
           </div>
         );
 
       case 'stats':
+        // Weekly line graph data
+        const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const maxWeeklyValue = Math.max(...weeklyProgress, 1);
+        
         return (
           <div className="stats-overview-widget">
             <div className="widget-header">
               <h3 className="widget-title">weekly activity</h3>
+              <div className="widget-header-right">
+                <button className="analytics-btn" onClick={() => !isCustomizing && navigate('/analytics')} disabled={isCustomizing}>
+                  <span>Analytics</span>
+                  <ChevronRight size={16} />
+                </button>
+              </div>
             </div>
-            <div className="stat-grid-widget">
-              <div className="stat-card-widget">
-                <div className="stat-content">
-                  <div className="stat-number">{stats.totalQuestions}</div>
-                  <div className="stat-label">questions</div>
+            <div className="stats-line-container">
+              <div className="stats-graph-section">
+                <div className="line-chart-wrapper">
+                  <svg viewBox="0 0 280 120" className="stats-line-chart" preserveAspectRatio="xMidYMid meet">
+                    {/* Grid lines */}
+                    <line x1="30" y1="100" x2="270" y2="100" stroke={textSecondary} strokeOpacity="0.2" />
+                    <line x1="30" y1="70" x2="270" y2="70" stroke={textSecondary} strokeOpacity="0.1" strokeDasharray="4" />
+                    <line x1="30" y1="40" x2="270" y2="40" stroke={textSecondary} strokeOpacity="0.1" strokeDasharray="4" />
+                    
+                    {/* Area fill */}
+                    <path
+                      d={`M 30 100 ${weeklyProgress.map((val, i) => {
+                        const x = 30 + (i * 40);
+                        const y = 100 - (val / maxWeeklyValue) * 70;
+                        return `L ${x} ${y}`;
+                      }).join(' ')} L ${30 + 6 * 40} 100 Z`}
+                      fill={`url(#areaGradient-${widget.id})`}
+                    />
+                    
+                    {/* Line */}
+                    <path
+                      d={`M ${weeklyProgress.map((val, i) => {
+                        const x = 30 + (i * 40);
+                        const y = 100 - (val / maxWeeklyValue) * 70;
+                        return `${i === 0 ? '' : 'L '}${x} ${y}`;
+                      }).join(' ')}`}
+                      fill="none"
+                      stroke={accent}
+                      strokeWidth="2"
+                    />
+                    
+                    {/* Data points */}
+                    {weeklyProgress.map((val, i) => {
+                      const x = 30 + (i * 40);
+                      const y = 100 - (val / maxWeeklyValue) * 70;
+                      return (
+                        <circle key={i} cx={x} cy={y} r="4" fill={accent} stroke={bgTop} strokeWidth="2" />
+                      );
+                    })}
+                    
+                    {/* Gradient definition */}
+                    <defs>
+                      <linearGradient id={`areaGradient-${widget.id}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={accent} stopOpacity="0.3" />
+                        <stop offset="100%" stopColor={accent} stopOpacity="0.05" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div className="line-chart-labels">
+                    {dayLabels.map((day, i) => (
+                      <span key={i} className="day-label">{day}</span>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div className="stat-card-widget">
-                <div className="stat-content">
-                  <div className="stat-number">{stats.totalFlashcards}</div>
-                  <div className="stat-label">flashcards</div>
+              <div className="stats-numbers-section">
+                <div className="stat-row">
+                  <span className="stat-value">{totalQuestions}</span>
+                  <span className="stat-label">questions</span>
                 </div>
-              </div>
-              <div className="stat-card-widget">
-                <div className="stat-content">
-                  <div className="stat-number">{stats.totalChatSessions}</div>
-                  <div className="stat-label">sessions</div>
+                <div className="stat-row">
+                  <span className="stat-value">{stats.totalFlashcards}</span>
+                  <span className="stat-label">flashcards</span>
                 </div>
-              </div>
-              <div className="stat-card-widget">
-                <div className="stat-content">
-                  <div className="stat-number">{stats.totalNotes}</div>
-                  <div className="stat-label">notes</div>
+                <div className="stat-row">
+                  <span className="stat-value">{stats.totalChatSessions}</span>
+                  <span className="stat-label">sessions</span>
+                </div>
+                <div className="stat-row">
+                  <span className="stat-value">{stats.totalNotes}</span>
+                  <span className="stat-label">notes</span>
                 </div>
               </div>
             </div>
@@ -935,29 +1052,29 @@ const Dashboard = () => {
                 className="action-btn" 
                 onClick={!isCustomizing ? generateFlashcards : undefined}
               >
-                <span className="action-icon">DECK</span>
                 <span className="action-label">flashcards</span>
+                <span className="action-description">Create and review study cards</span>
               </button>
               <button 
                 className="action-btn" 
                 onClick={!isCustomizing ? openNotes : undefined}
               >
-                <span className="action-icon">NOTE</span>
                 <span className="action-label">study notes</span>
+                <span className="action-description">Take and organize your notes</span>
               </button>
               <button 
                 className="action-btn" 
                 onClick={!isCustomizing ? (() => navigate('/concept-web')) : undefined}
               >
-                <span className="action-icon">WEB</span>
                 <span className="action-label">concept web</span>
+                <span className="action-description">Visualize topic connections</span>
               </button>
               <button 
                 className="action-btn" 
                 onClick={!isCustomizing ? openProfile : undefined}
               >
-                <span className="action-icon">USER</span>
                 <span className="action-label">profile</span>
+                <span className="action-description">View your learning profile</span>
               </button>
             </div>
           </div>
@@ -976,7 +1093,7 @@ const Dashboard = () => {
             </div>
             <div className="ai-stats-row">
               <div className="ai-stat">
-                <span className="ai-stat-value">{stats.totalQuestions}</span>
+                <span className="ai-stat-value">{totalQuestions}</span>
                 <span className="ai-stat-label">questions</span>
               </div>
               <div className="ai-stat">
@@ -1001,43 +1118,21 @@ const Dashboard = () => {
           <div className="learning-review-widget">
             <div className="widget-header">
               <h3 className="widget-title">learning reviews</h3>
-              <button className="create-review-btn" onClick={() => !isCustomizing && navigate('/learning-hub')} disabled={isCustomizing}>
-                +
-              </button>
             </div>
-            <div className="review-content">
-              {learningReviews.length > 0 ? (
-                <div className="review-list">
-                  {learningReviews.slice(0, widget.size === 'small' ? 2 : 3).map((review, idx) => (
-                    <div key={idx} className="review-item" onClick={() => !isCustomizing && startLearningReview(review)}>
-                      <div className="review-header">
-                        <div className="review-title">{review.topic}</div>
-                        <div className="review-status completed">
-                          {review.content_type === 'flashcard_deck' ? 'DECK' : 'TOPIC'}
-                        </div>
-                      </div>
-                      <div className="review-stats">
-                        <div className="review-stat">
-                          <span className="stat-label">cards</span>
-                          <span className="stat-value">{review.deck_size || 0}</span>
-                        </div>
-                      </div>
-                      <div className="review-actions">
-                        <button className="continue-btn" onClick={(e) => { e.stopPropagation(); !isCustomizing && startLearningReview(review); }}>
-                          START
-                        </button>
-                        <button className="view-btn" onClick={(e) => { e.stopPropagation(); !isCustomizing && navigate('/learning-hub'); }}>
-                          VIEW
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="no-reviews">
-                  <p className="no-reviews-text">Create your first learning review to track progress</p>
-                </div>
-              )}
+            <div className="review-content-accent">
+              <div className="review-icon-container">
+                <BookOpen size={64} strokeWidth={1.5} />
+              </div>
+              <p className="review-description">
+                Create and track your learning reviews to monitor progress.
+              </p>
+              <button 
+                className="review-explore-btn" 
+                onClick={!isCustomizing ? (() => navigate('/learning-hub')) : undefined}
+                disabled={isCustomizing}
+              >
+                VIEW REVIEWS
+              </button>
             </div>
           </div>
         );
@@ -1067,28 +1162,25 @@ const Dashboard = () => {
         );
 
       case 'activity-timeline':
-        const recentItems = recentActivities.slice(0, widget.size === 'small' ? 3 : 5);
         return (
           <div className="recent-activity-widget">
             <div className="widget-header">
               <h3 className="widget-title">recent activity</h3>
             </div>
-            <div className="activity-list">
-              {recentItems.length > 0 ? (
-                recentItems.map((activity, idx) => (
-                  <div key={idx} className="activity-item">
-                    <span className="activity-icon">{activity.type || 'ACT'}</span>
-                    <div className="activity-details">
-                      <div className="activity-subject">{activity.subject || 'Activity'}</div>
-                      <div className="activity-time">{activity.time || 'Recently'}</div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="no-data">
-                  No recent activity
-                </div>
-              )}
+            <div className="activity-content-accent">
+              <div className="activity-icon-container">
+                <Clock size={64} strokeWidth={1.5} />
+              </div>
+              <p className="activity-description">
+                Track your learning activities in one unified timeline.
+              </p>
+              <button 
+                className="activity-explore-btn" 
+                onClick={!isCustomizing ? (() => navigate('/activity-timeline')) : undefined}
+                disabled={isCustomizing}
+              >
+                VIEW TIMELINE
+              </button>
             </div>
           </div>
         );
@@ -1330,6 +1422,28 @@ const Dashboard = () => {
           
           <div className="header-right">
             <button
+              className="dashboard-search-hub-btn"
+              onClick={() => navigate('/search-hub')}
+              title="Go to Search Hub"
+            >
+              <Search size={18} />
+              <span>Search Hub</span>
+            </button>
+            {isCustomizing && (
+              <button
+                className="dashboard-cancel-btn"
+                onClick={() => {
+                  // Revert to original layout
+                  setEditingWidgets(originalLayout.placed);
+                  setEditingAvailable(originalLayout.available);
+                  setCustomizeError('');
+                  setIsCustomizing(false);
+                }}
+              >
+                CANCEL
+              </button>
+            )}
+            <button
               className={`dashboard-customize-btn ${isCustomizing ? 'active' : ''}`}
               onClick={() => {
                 if (isCustomizing) {
@@ -1338,8 +1452,13 @@ const Dashboard = () => {
                     setIsCustomizing(false);
                   }
                 } else {
-                  // Enter customize mode - blank slate
+                  // Enter customize mode - store original state
                   setCustomizeError('');
+                  // Store current state before entering customize mode
+                  setOriginalLayout({
+                    placed: [...placedWidgets],
+                    available: [...availableWidgets]
+                  });
                   // Move ALL widgets to available list
                   const allWidgets = [
                     ...placedWidgets.map(w => ({
@@ -1413,52 +1532,114 @@ const Dashboard = () => {
 
         <div className="dashboard-layout-modern">
           {isCustomizing ? (
-            <div 
-              className="dashboard-grid-customize"
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => handleGridDrop(e, 0)}
-            >
-              {editingWidgets.length === 0 && (
-                <div className="grid-empty-state" style={{
-                  gridColumn: 'span 3',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  minHeight: '400px',
-                  border: '2px dashed var(--border)',
-                  color: 'var(--text-secondary)',
-                  fontSize: '14px'
-                }}>
-                  Drag widgets here from the list above
-                </div>
-              )}
-              {editingWidgets.map(widget => (
-                <div
-                  key={widget.id}
-                  className={`dashboard-widget widget-${widget.size} customizing`}
-                  data-type={widget.type}
-                >
-                  <div className="widget-controls">
-                    {widget.type !== 'heatmap' && (
-                      <>
-                        <div className="size-controls">
-                          <button className={`size-btn ${widget.size === 'small' ? 'active' : ''}`} onClick={() => handleWidgetResize(widget.id, 'small')}>S</button>
-                          <button className={`size-btn ${widget.size === 'medium' ? 'active' : ''}`} onClick={() => handleWidgetResize(widget.id, 'medium')}>M</button>
-                          <button className={`size-btn ${widget.size === 'full' ? 'active' : ''}`} onClick={() => handleWidgetResize(widget.id, 'full')}>F</button>
+            <div className="dashboard-grid-customize">
+              {/* Render grid cells for 3 columns x 10 rows */}
+              {Array.from({ length: 10 }).map((_, rowIndex) => (
+                Array.from({ length: 3 }).map((_, colIndex) => {
+                  const col = colIndex + 1;
+                  const row = rowIndex + 1;
+                  
+                  // Check if this cell is occupied by a widget
+                  const widgetInCell = editingWidgets.find(w => {
+                    const widgetCol = w.gridColumn;
+                    const widgetRow = w.gridRow;
+                    
+                    // Check if widget occupies this cell based on size
+                    if (w.size === 'small') {
+                      return widgetCol === col && widgetRow === row;
+                    } else if (w.size === 'medium') {
+                      // Quick actions is vertical (1 col x 2 rows), others are horizontal (2 cols x 1 row)
+                      if (w.type === 'quick-actions') {
+                        return widgetCol === col && (widgetRow === row || widgetRow === row - 1);
+                      } else {
+                        return widgetRow === row && (widgetCol === col || widgetCol === col - 1);
+                      }
+                    } else if (w.size === 'full') {
+                      // Full spans 3 columns, 1 row
+                      return widgetRow === row && (widgetCol === col || widgetCol === col - 1 || widgetCol === col - 2);
+                    }
+                    return false;
+                  });
+                  
+                  // Only render widget at its starting position
+                  const isWidgetStart = widgetInCell && widgetInCell.gridColumn === col && widgetInCell.gridRow === row;
+                  
+                  // Check if cell is part of a widget but not the start
+                  const isOccupied = widgetInCell && !isWidgetStart;
+                  
+                  if (isOccupied) {
+                    return null; // Skip rendering, this cell is part of another widget
+                  }
+                  
+                  if (isWidgetStart) {
+                    const getGridSpan = () => {
+                      if (widgetInCell.size === 'full') {
+                        return { gridColumn: 'span 3', gridRow: 'span 1' };
+                      } else if (widgetInCell.size === 'medium') {
+                        // Quick actions is vertical, others are horizontal
+                        if (widgetInCell.type === 'quick-actions') {
+                          return { gridColumn: 'span 1', gridRow: 'span 2' };
+                        } else {
+                          return { gridColumn: 'span 2', gridRow: 'span 1' };
+                        }
+                      } else {
+                        return { gridColumn: 'span 1', gridRow: 'span 1' };
+                      }
+                    };
+                    
+                    const spanStyle = getGridSpan();
+                    
+                    return (
+                      <div
+                        key={`${col}-${row}`}
+                        className={`dashboard-widget widget-${widgetInCell.size} customizing ${draggedWidget?.id === widgetInCell.id ? 'dragging' : ''}`}
+                        data-type={widgetInCell.type}
+                        style={spanStyle}
+                        draggable
+                        onDragStart={(e) => handleWidgetDragStart(e, widgetInCell, true)}
+                        onDragOver={(e) => handleGridCellDragOver(e)}
+                        onDrop={(e) => handleGridCellDrop(e, col, row)}
+                      >
+                        <div className="widget-controls">
+                          <div className="drag-handle">⋮⋮</div>
+                          {widgetInCell.type !== 'heatmap' && (
+                            <>
+                              <div className="size-controls">
+                                <button className={`size-btn ${widgetInCell.size === 'small' ? 'active' : ''}`} onClick={() => handleWidgetResize(widgetInCell.id, 'small')}>S</button>
+                                <button className={`size-btn ${widgetInCell.size === 'medium' ? 'active' : ''}`} onClick={() => handleWidgetResize(widgetInCell.id, 'medium')}>M</button>
+                                <button className={`size-btn ${widgetInCell.size === 'full' ? 'active' : ''}`} onClick={() => handleWidgetResize(widgetInCell.id, 'full')}>F</button>
+                              </div>
+                              <button className="remove-btn" onClick={() => handleRemoveWidget(widgetInCell.id)}>×</button>
+                            </>
+                          )}
+                          {widgetInCell.type === 'heatmap' && (
+                            <>
+                              <div className="size-controls">
+                                <button className="size-btn active">FULL</button>
+                              </div>
+                              <button className="remove-btn" onClick={() => handleRemoveWidget(widgetInCell.id)}>×</button>
+                            </>
+                          )}
                         </div>
-                        <button className="remove-btn" onClick={() => handleRemoveWidget(widget.id)}>×</button>
-                      </>
-                    )}
-                    {widget.type === 'heatmap' && (
-                      <div className="size-controls">
-                        <button className="size-btn active">FULL</button>
+                        <div className="widget-content customize-mode">
+                          {renderWidget(widgetInCell)}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                  <div className="widget-content">
-                    {renderWidget(widget)}
-                  </div>
-                </div>
+                    );
+                  }
+                  
+                  // Empty cell - drop zone
+                  return (
+                    <div
+                      key={`${col}-${row}`}
+                      className="grid-cell-empty"
+                      onDragOver={(e) => handleGridCellDragOver(e)}
+                      onDrop={(e) => handleGridCellDrop(e, col, row)}
+                    >
+                      <div className="cell-placeholder">{col},{row}</div>
+                    </div>
+                  );
+                })
               ))}
             </div>
           ) : (
