@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { API_URL } from '../config';
 import gamificationService from '../services/gamificationService';
@@ -8,6 +8,7 @@ import './AIChat.css';
 const AIChat = ({ sharedMode = false }) => {
   const { chatId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { selectedTheme } = useTheme();
   const [sharedChatData, setSharedChatData] = useState(null);
   const [isSharedContent, setIsSharedContent] = useState(sharedMode);
@@ -1343,6 +1344,83 @@ const AIChat = ({ sharedMode = false }) => {
       loadChatSessions();
     }
   }, [userName]);
+
+  // Handle initialMessage from SearchHub or other sources
+  useEffect(() => {
+    const initialMsg = location.state?.initialMessage;
+    
+    if (initialMsg && userName) {
+      console.log('🚀 Auto-sending initial message:', initialMsg);
+      
+      // Set the input message immediately
+      setInputMessage(initialMsg);
+      
+      // Wait for component to be ready, then send
+      const timer = setTimeout(() => {
+        // Create a new chat and send the message
+        const messageToSend = initialMsg;
+        
+        // Clear input and send
+        setInputMessage('');
+        setLoading(true);
+        
+        // Call the send logic directly
+        (async () => {
+          try {
+            const token = localStorage.getItem('token');
+            const formData = new FormData();
+            formData.append('user_id', userName);
+            formData.append('question', messageToSend);
+            formData.append('chat_id', '');  // Empty for new chat
+            
+            const response = await fetch(`${API_URL}/ask/`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}` },
+              body: formData
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              
+              // Add user message
+              const userMsg = {
+                id: `user_${Date.now()}`,
+                role: 'user',
+                content: messageToSend,
+                timestamp: new Date().toISOString()
+              };
+              
+              // Add AI response
+              const aiMsg = {
+                id: `ai_${Date.now()}`,
+                role: 'assistant',
+                content: data.answer,
+                timestamp: new Date().toISOString()
+              };
+              
+              setMessages([userMsg, aiMsg]);
+              
+              // Set the chat ID if returned
+              if (data.chat_id) {
+                setActiveChatId(data.chat_id);
+                navigate(`/ai-chat/${data.chat_id}`, { replace: true });
+                loadChatSessions();
+              }
+            }
+          } catch (error) {
+            console.error('Error sending initial message:', error);
+          } finally {
+            setLoading(false);
+          }
+        })();
+        
+        // Clear the location state
+        window.history.replaceState({}, document.title);
+      }, 800);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [location.state?.initialMessage, userName]);
 
   useEffect(() => {
     const numericChatId = chatId ? parseInt(chatId) : null;

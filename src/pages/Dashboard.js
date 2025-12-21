@@ -134,6 +134,13 @@ const Dashboard = () => {
       window.location.href = '/login';
       return;
     }
+    
+    // Ensure safety flag is set if user has valid token
+    // This handles page refreshes where sessionStorage might be cleared
+    if (token && username) {
+      sessionStorage.setItem('safetyAccepted', 'true');
+      console.log('Dashboard: Safety flag set for authenticated user');
+    }
 
     if (username) setUserName(username);
 
@@ -1427,7 +1434,7 @@ const Dashboard = () => {
               title="Go to Search Hub"
             >
               <Search size={18} />
-              <span>Search Hub</span>
+              <span>SEARCH HUB</span>
             </button>
             {isCustomizing && (
               <button

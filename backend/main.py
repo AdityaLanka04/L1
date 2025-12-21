@@ -84,6 +84,7 @@ import advanced_prompting
 from flashcard_api import register_flashcard_api 
 from question_bank_enhanced import register_question_bank_api
 from proactive_ai_system import get_proactive_ai_engine
+from adaptive_learning_api import register_adaptive_learning_api
 
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -237,6 +238,9 @@ logger.info("✅ Flashcard API integrated successfully")
 
 register_question_bank_api(app, unified_ai, get_db)
 logger.info("Enhanced Question Bank API with sophisticated AI agents registered successfully")
+
+register_adaptive_learning_api(app, unified_ai)
+logger.info("✅ Adaptive Learning & Personalization API registered successfully")
 
 class Token(BaseModel):
     access_token: str
@@ -1155,6 +1159,31 @@ async def ask_ai_enhanced(
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get or create daily metric
+        from datetime import datetime, timezone
+        today = datetime.now(timezone.utc).date()
+        daily_metric = db.query(models.DailyLearningMetrics).filter(
+            and_(
+                models.DailyLearningMetrics.user_id == user.id,
+                models.DailyLearningMetrics.date == today
+            )
+        ).first()
+        
+        if not daily_metric:
+            daily_metric = models.DailyLearningMetrics(
+                user_id=user.id,
+                date=today,
+                questions_answered=0,
+                correct_answers=0,
+                sessions_completed=0,
+                time_spent_minutes=0.0,
+                accuracy_rate=0.0,
+                engagement_score=0.0
+            )
+            db.add(daily_metric)
+            db.commit()
+            db.refresh(daily_metric)
         
         if chat_id_int:
             chat_session = db.query(models.ChatSession).filter(
@@ -8730,9 +8759,9 @@ async def create_activity(
 
 @app.get("/api/leaderboard")
 async def get_leaderboard(
-    category: str = Query("global", regex="^(global|friends|subject|archetype)$"),
-    metric: str = Query("total_hours", regex="^(total_hours|accuracy|streak|lessons)$"),
-    period: str = Query("all_time", regex="^(weekly|monthly|all_time)$"),
+    category: str = Query("global", pattern="^(global|friends|subject|archetype)$"),
+    metric: str = Query("total_hours", pattern="^(total_hours|accuracy|streak|lessons)$"),
+    period: str = Query("all_time", pattern="^(weekly|monthly|all_time)$"),
     subject: Optional[str] = Query(None),
     limit: int = Query(50, le=100),
     username: str = Depends(verify_token),
@@ -8915,7 +8944,7 @@ async def create_quiz_battle(
 async def get_quiz_battles(
     username: str = Depends(verify_token),
     db: Session = Depends(get_db),
-    status: str = Query("active", regex="^(pending|active|completed|all)$")
+    status: str = Query("active", pattern="^(pending|active|completed|all)$")
 ):
     """Get user's quiz battles"""
     try:
@@ -9135,7 +9164,7 @@ async def create_challenge(
 async def get_challenges(
     username: str = Depends(verify_token),
     db: Session = Depends(get_db),
-    filter_type: str = Query("active", regex="^(active|completed|my_challenges|all)$")
+    filter_type: str = Query("active", pattern="^(active|completed|my_challenges|all)$")
 ):
     """Get available challenges"""
     try:
@@ -10961,6 +10990,94 @@ async def get_gamification_stats(
     except Exception as e:
         logger.error(f"Error getting gamification stats: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/get_dashboard_data")
+async def get_dashboard_data(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Get comprehensive dashboard data for user"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get gamification stats
+        from gamification_system import get_user_stats
+        gamification_stats = get_user_stats(db, user.id)
+        
+        # Get daily metrics
+        today = datetime.now(timezone.utc).date()
+        daily_metrics = db.query(models.DailyLearningMetrics).filter(
+            models.DailyLearningMetrics.user_id == user.id,
+            models.DailyLearningMetrics.date == today
+        ).first()
+        
+        # Get streak
+        streak = calculate_day_streak(db, user.id)
+        
+        return {
+            "status": "success",
+            "gamification": gamification_stats,
+            "daily_metrics": {
+                "questions_answered": daily_metrics.questions_answered if daily_metrics else 0,
+                "time_spent_minutes": daily_metrics.time_spent_minutes if daily_metrics else 0,
+                "accuracy_rate": daily_metrics.accuracy_rate if daily_metrics else 0
+            },
+            "streak": streak
+        }
+    
+    except Exception as e:
+        logger.error(f"Error getting dashboard data: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/check_missed_achievements")
+async def check_missed_achievements(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Check for any achievements user may have missed"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get user's current achievements
+        user_achievements = db.query(models.UserAchievement).filter(
+            models.UserAchievement.user_id == user.id
+        ).all()
+        
+        earned_achievement_ids = {ua.achievement_id for ua in user_achievements}
+        
+        # Get all available achievements
+        all_achievements = db.query(models.Achievement).all()
+        
+        # Check which achievements user qualifies for but hasn't earned
+        missed_achievements = []
+        
+        for achievement in all_achievements:
+            if achievement.id not in earned_achievement_ids:
+                # Check if user qualifies (simplified check)
+                # In a real implementation, you'd check the criteria
+                missed_achievements.append({
+                    "id": achievement.id,
+                    "name": achievement.name,
+                    "description": achievement.description,
+                    "icon": achievement.icon,
+                    "points": achievement.points
+                })
+        
+        return {
+            "status": "success",
+            "missed_achievements": missed_achievements[:5]  # Return top 5
+        }
+    
+    except Exception as e:
+        logger.error(f"Error checking missed achievements: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/api/get_weekly_bingo_stats")
 async def get_weekly_bingo_stats(
@@ -14473,189 +14590,279 @@ async def get_import_export_history(
 async def search_content(
     user_id: str = Form(...),
     query: str = Form(...),
+    content_types: str = Form("all"),  # "all" or comma-separated: "flashcard_set,flashcard,note,chat,question_set"
+    sort_by: str = Form("relevance"),  # "relevance", "date_desc", "date_asc", "title_asc", "title_desc"
+    date_from: Optional[str] = Form(None),  # ISO date string
+    date_to: Optional[str] = Form(None),  # ISO date string
     db: Session = Depends(get_db)
 ):
     """
-    Universal search across all user content and public content
-    Searches: flashcard sets, notes, chat sessions, media uploads, question banks
+    Universal search across user's own content with advanced filters
+    
+    Filters:
+    - content_types: "all" or comma-separated list (flashcard_set,flashcard,note,chat,question_set)
+    - sort_by: "relevance", "date_desc", "date_asc", "title_asc", "title_desc"
+    - date_from: Filter results created after this date (ISO format)
+    - date_to: Filter results created before this date (ISO format)
     """
     try:
-        logger.info(f"Search request - user_id: {user_id}, query: {query}")
+        logger.info(f"Search request - user_id: {user_id}, query: {query}, filters: types={content_types}, sort={sort_by}")
+        
+        # Get actual user ID from email/username
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            return {"results": [], "total": 0, "message": "User not found"}
+        
+        actual_user_id = user.id
         search_term = f"%{query.lower()}%"
         results = []
         
-        # Search Flashcard Sets (NOT FlashcardDeck - that doesn't exist!)
-        try:
-            flashcard_sets = db.query(models.FlashcardSet).filter(
-                and_(
-                    (
-                        (models.FlashcardSet.user_id == user_id) |
-                        (models.FlashcardSet.is_public == True)
-                    ),
-                    (
-                        func.lower(models.FlashcardSet.title).like(search_term) |
-                        func.lower(models.FlashcardSet.description).like(search_term)
+        # Parse content types filter
+        if content_types == "all":
+            enabled_types = ["flashcard_set", "flashcard", "note", "chat", "question_set"]
+        else:
+            enabled_types = [t.strip() for t in content_types.split(",")]
+        
+        # Parse date filters
+        date_from_obj = None
+        date_to_obj = None
+        if date_from:
+            try:
+                date_from_obj = datetime.fromisoformat(date_from.replace('Z', '+00:00'))
+            except:
+                pass
+        if date_to:
+            try:
+                date_to_obj = datetime.fromisoformat(date_to.replace('Z', '+00:00'))
+            except:
+                pass
+        
+        # Search Flashcard Sets (only user's own)
+        if "flashcard_set" in enabled_types:
+            try:
+                query_builder = db.query(models.FlashcardSet).filter(
+                    and_(
+                        models.FlashcardSet.user_id == actual_user_id,
+                        (
+                            func.lower(models.FlashcardSet.title).like(search_term) |
+                            func.lower(models.FlashcardSet.description).like(search_term)
+                        )
                     )
                 )
-            ).all()
-            
-            logger.info(f"Found {len(flashcard_sets)} flashcard sets")
-            
-            for fset in flashcard_sets:
-                card_count = db.query(models.Flashcard).filter(
-                    models.Flashcard.set_id == fset.id
-                ).count()
                 
-                results.append({
-                    "id": fset.id,
-                    "type": "flashcard_set",
-                    "title": fset.title or "Untitled Set",
-                    "description": fset.description or "",
-                    "author": fset.user_id,
-                    "visibility": "public" if fset.is_public else "private",
-                    "created_at": fset.created_at.isoformat() if fset.created_at else None,
-                    "card_count": card_count
-                })
-        except Exception as e:
-            logger.error(f"Error searching flashcard sets: {str(e)}")
+                # Apply date filters
+                if date_from_obj:
+                    query_builder = query_builder.filter(models.FlashcardSet.created_at >= date_from_obj)
+                if date_to_obj:
+                    query_builder = query_builder.filter(models.FlashcardSet.created_at <= date_to_obj)
+                
+                flashcard_sets = query_builder.all()
+                logger.info(f"Found {len(flashcard_sets)} flashcard sets")
+                
+                for fset in flashcard_sets:
+                    card_count = db.query(models.Flashcard).filter(
+                        models.Flashcard.set_id == fset.id
+                    ).count()
+                    
+                    results.append({
+                        "id": fset.id,
+                        "type": "flashcard_set",
+                        "title": fset.title or "Untitled Set",
+                        "description": fset.description or "",
+                        "created_at": fset.created_at.isoformat() if fset.created_at else None,
+                        "card_count": card_count,
+                        "source_type": fset.source_type
+                    })
+            except Exception as e:
+                logger.error(f"Error searching flashcard sets: {str(e)}")
         
-        # Search Individual Flashcards
-        try:
-            flashcards = db.query(models.Flashcard).join(
-                models.FlashcardSet
-            ).filter(
-                and_(
-                    (
-                        (models.FlashcardSet.user_id == user_id) |
-                        (models.FlashcardSet.is_public == True)
-                    ),
-                    (
-                        func.lower(models.Flashcard.question).like(search_term) |
-                        func.lower(models.Flashcard.answer).like(search_term)
+        # Search Individual Flashcards (only user's own)
+        if "flashcard" in enabled_types:
+            try:
+                query_builder = db.query(models.Flashcard).join(
+                    models.FlashcardSet
+                ).filter(
+                    and_(
+                        models.FlashcardSet.user_id == actual_user_id,
+                        (
+                            func.lower(models.Flashcard.question).like(search_term) |
+                            func.lower(models.Flashcard.answer).like(search_term)
+                        )
                     )
                 )
-            ).limit(20).all()
-            
-            logger.info(f"Found {len(flashcards)} individual flashcards")
-            
-            for card in flashcards:
-                fset = db.query(models.FlashcardSet).filter(
-                    models.FlashcardSet.id == card.set_id
-                ).first()
                 
-                results.append({
-                    "id": card.id,
-                    "type": "flashcard",
-                    "title": card.question[:100] if card.question else "Flashcard",
-                    "description": card.answer[:200] if card.answer else "",
-                    "author": fset.user_id if fset else None,
-                    "visibility": "public" if fset and fset.is_public else "private",
-                    "created_at": card.created_at.isoformat() if card.created_at else None,
-                    "set_name": fset.title if fset else None
-                })
-        except Exception as e:
-            logger.error(f"Error searching flashcards: {str(e)}")
+                # Apply date filters
+                if date_from_obj:
+                    query_builder = query_builder.filter(models.Flashcard.created_at >= date_from_obj)
+                if date_to_obj:
+                    query_builder = query_builder.filter(models.Flashcard.created_at <= date_to_obj)
+                
+                flashcards = query_builder.limit(50).all()
+                logger.info(f"Found {len(flashcards)} individual flashcards")
+                
+                for card in flashcards:
+                    fset = db.query(models.FlashcardSet).filter(
+                        models.FlashcardSet.id == card.set_id
+                    ).first()
+                    
+                    results.append({
+                        "id": card.id,
+                        "type": "flashcard",
+                        "title": card.question[:100] if card.question else "Flashcard",
+                        "description": card.answer[:200] if card.answer else "",
+                        "created_at": card.created_at.isoformat() if card.created_at else None,
+                        "set_name": fset.title if fset else None,
+                        "set_id": card.set_id,
+                        "difficulty": card.difficulty
+                    })
+            except Exception as e:
+                logger.error(f"Error searching flashcards: {str(e)}")
         
-        # Search Notes
-        try:
-            # Only search user's own notes since Note model doesn't have is_public
-            notes = db.query(models.Note).filter(
-                and_(
-                    models.Note.user_id == user_id,
-                    (
-                        func.lower(models.Note.title).like(search_term) |
-                        func.lower(models.Note.content).like(search_term)
+        # Search Notes (only user's own)
+        if "note" in enabled_types:
+            try:
+                query_builder = db.query(models.Note).filter(
+                    and_(
+                        models.Note.user_id == actual_user_id,
+                        models.Note.is_deleted == False,
+                        (
+                            func.lower(models.Note.title).like(search_term) |
+                            func.lower(models.Note.content).like(search_term)
+                        )
                     )
                 )
-            ).limit(20).all()
-            
-            logger.info(f"Found {len(notes)} notes")
-            
-            for note in notes:
-                results.append({
-                    "id": note.id,
-                    "type": "note",
-                    "title": note.title if note.title else "Untitled Note",
-                    "description": note.content[:200] if note.content else "",
-                    "author": note.user_id,
-                    "visibility": "private",
-                    "created_at": note.created_at.isoformat() if note.created_at else None
-                })
-        except Exception as e:
-            logger.error(f"Error searching notes: {str(e)}")
-        
-        # Search Chat Sessions
-        try:
-            # Only search user's own chats and use title only (no summary field)
-            chats = db.query(models.ChatSession).filter(
-                and_(
-                    models.ChatSession.user_id == user_id,
-                    func.lower(models.ChatSession.title).like(search_term)
-                )
-            ).limit(20).all()
-            
-            logger.info(f"Found {len(chats)} chat sessions")
-            
-            for chat in chats:
-                message_count = db.query(models.ChatMessage).filter(
-                    models.ChatMessage.chat_session_id == chat.id
-                ).count()
                 
-                results.append({
-                    "id": chat.id,
-                    "type": "chat",
-                    "title": chat.title or "Untitled Chat",
-                    "description": f"{message_count} messages",
-                    "author": chat.user_id,
-                    "visibility": "private",
-                    "created_at": chat.created_at.isoformat() if chat.created_at else None,
-                    "message_count": message_count
-                })
-        except Exception as e:
-            logger.error(f"Error searching chats: {str(e)}")
+                # Apply date filters
+                if date_from_obj:
+                    query_builder = query_builder.filter(models.Note.created_at >= date_from_obj)
+                if date_to_obj:
+                    query_builder = query_builder.filter(models.Note.created_at <= date_to_obj)
+                
+                notes = query_builder.limit(50).all()
+                logger.info(f"Found {len(notes)} notes")
+                
+                for note in notes:
+                    results.append({
+                        "id": note.id,
+                        "type": "note",
+                        "title": note.title if note.title else "Untitled Note",
+                        "description": note.content[:200] if note.content else "",
+                        "created_at": note.created_at.isoformat() if note.created_at else None,
+                        "is_favorite": note.is_favorite,
+                        "folder_id": note.folder_id
+                    })
+            except Exception as e:
+                logger.error(f"Error searching notes: {str(e)}")
         
-        # Search Question Sets
-        try:
-            # Only search user's own question sets since QuestionSet doesn't have is_public
-            question_sets = db.query(models.QuestionSet).filter(
-                and_(
-                    models.QuestionSet.user_id == user_id,
-                    (
-                        func.lower(models.QuestionSet.title).like(search_term) |
-                        func.lower(models.QuestionSet.description).like(search_term)
+        # Search Chat Sessions (only user's own)
+        if "chat" in enabled_types:
+            try:
+                query_builder = db.query(models.ChatSession).filter(
+                    and_(
+                        models.ChatSession.user_id == actual_user_id,
+                        func.lower(models.ChatSession.title).like(search_term)
                     )
                 )
-            ).limit(20).all()
-            
-            logger.info(f"Found {len(question_sets)} question sets")
-            
-            for qset in question_sets:
-                question_count = db.query(models.Question).filter(
-                    models.Question.set_id == qset.id
-                ).count()
                 
-                results.append({
-                    "id": qset.id,
-                    "type": "question_set",
-                    "title": qset.title,
-                    "description": qset.description or "",
-                    "author": qset.user_id,
-                    "visibility": "private",
-                    "created_at": qset.created_at.isoformat() if qset.created_at else None,
-                    "question_count": question_count
-                })
-        except Exception as e:
-            logger.error(f"Error searching question sets: {str(e)}")
+                # Apply date filters
+                if date_from_obj:
+                    query_builder = query_builder.filter(models.ChatSession.created_at >= date_from_obj)
+                if date_to_obj:
+                    query_builder = query_builder.filter(models.ChatSession.created_at <= date_to_obj)
+                
+                chats = query_builder.limit(50).all()
+                logger.info(f"Found {len(chats)} chat sessions")
+                
+                for chat in chats:
+                    message_count = db.query(models.ChatMessage).filter(
+                        models.ChatMessage.chat_session_id == chat.id
+                    ).count()
+                    
+                    results.append({
+                        "id": chat.id,
+                        "type": "chat",
+                        "title": chat.title or "Untitled Chat",
+                        "description": f"{message_count} messages",
+                        "created_at": chat.created_at.isoformat() if chat.created_at else None,
+                        "updated_at": chat.updated_at.isoformat() if chat.updated_at else None,
+                        "message_count": message_count,
+                        "folder_id": chat.folder_id
+                    })
+            except Exception as e:
+                logger.error(f"Error searching chats: {str(e)}")
         
-        # Sort by relevance (created_at desc for now)
-        results.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        # Search Question Sets (only user's own)
+        if "question_set" in enabled_types:
+            try:
+                query_builder = db.query(models.QuestionSet).filter(
+                    and_(
+                        models.QuestionSet.user_id == actual_user_id,
+                        (
+                            func.lower(models.QuestionSet.title).like(search_term) |
+                            func.lower(models.QuestionSet.description).like(search_term)
+                        )
+                    )
+                )
+                
+                # Apply date filters
+                if date_from_obj:
+                    query_builder = query_builder.filter(models.QuestionSet.created_at >= date_from_obj)
+                if date_to_obj:
+                    query_builder = query_builder.filter(models.QuestionSet.created_at <= date_to_obj)
+                
+                question_sets = query_builder.limit(50).all()
+                logger.info(f"Found {len(question_sets)} question sets")
+                
+                for qset in question_sets:
+                    question_count = db.query(models.Question).filter(
+                        models.Question.set_id == qset.id
+                    ).count()
+                    
+                    results.append({
+                        "id": qset.id,
+                        "type": "question_set",
+                        "title": qset.title,
+                        "description": qset.description or "",
+                        "created_at": qset.created_at.isoformat() if qset.created_at else None,
+                        "question_count": question_count,
+                        "difficulty": qset.difficulty_level,
+                        "subject": qset.subject
+                    })
+            except Exception as e:
+                logger.error(f"Error searching question sets: {str(e)}")
+        
+        # Apply sorting
+        if sort_by == "date_desc":
+            results.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        elif sort_by == "date_asc":
+            results.sort(key=lambda x: x.get('created_at', ''))
+        elif sort_by == "title_asc":
+            results.sort(key=lambda x: x.get('title', '').lower())
+        elif sort_by == "title_desc":
+            results.sort(key=lambda x: x.get('title', '').lower(), reverse=True)
+        else:  # relevance (default)
+            # Sort by created_at desc as a simple relevance metric
+            results.sort(key=lambda x: x.get('created_at', ''), reverse=True)
         
         logger.info(f"Total results: {len(results)}")
+        
+        # Get filter statistics
+        type_counts = {}
+        for result in results:
+            result_type = result['type']
+            type_counts[result_type] = type_counts.get(result_type, 0) + 1
         
         return {
             "total_results": len(results),
             "results": results,
-            "query": query
+            "query": query,
+            "filters_applied": {
+                "content_types": content_types,
+                "sort_by": sort_by,
+                "date_from": date_from,
+                "date_to": date_to
+            },
+            "type_counts": type_counts
         }
         
     except Exception as e:
@@ -14676,6 +14883,884 @@ async def search_content(
     except Exception as e:
         logger.error(f"Search error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+
+
+
+@app.post("/api/detect_search_intent")
+async def detect_search_intent(
+    user_id: str = Form(...),
+    query: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """
+    AI-powered intent detection - parses natural language and returns structured action
+    """
+    try:
+        # Define all available actions with their required parameters AND API endpoints
+        available_actions = {
+            "create_note": {
+                "description": "Create a new note",
+                "parameters": {"title": "string (optional)", "content": "string (optional)"},
+                "endpoint": None,  # Handled by frontend navigation
+                "method": None
+            },
+            "create_flashcards": {
+                "description": "Generate flashcards on a topic",
+                "parameters": {"topic": "string (required)", "count": "integer (optional, default 10)"},
+                "endpoint": None,  # Handled by frontend navigation
+                "method": None
+            },
+            "create_quiz": {
+                "description": "Create a quiz or test",
+                "parameters": {"topics": "array of strings", "difficulty": "string (easy/medium/hard)", "count": "integer"},
+                "endpoint": None,  # Handled by frontend navigation
+                "method": None
+            },
+            "review_flashcards": {
+                "description": "Review existing flashcards",
+                "parameters": {"filter": "string (needs_review/marked_for_review/all)"},
+                "endpoint": "/api/get_flashcards_for_review",
+                "method": "POST"
+            },
+            "show_weak_areas": {
+                "description": "Show topics user is struggling with",
+                "parameters": {},
+                "endpoint": "/api/get_weak_areas",
+                "method": "POST"
+            },
+            "show_progress": {
+                "description": "Show learning progress and statistics",
+                "parameters": {},
+                "endpoint": None,  # Navigate to dashboard
+                "method": None
+            },
+            "show_achievements": {
+                "description": "Show earned achievements and badges",
+                "parameters": {},
+                "endpoint": None,  # Navigate to dashboard
+                "method": None
+            },
+            "start_chat": {
+                "description": "Start AI chat conversation",
+                "parameters": {"message": "string (the question or topic)", "topic": "string (optional)"},
+                "endpoint": None,  # Navigate to AI chat
+                "method": None
+            },
+            "adapt_difficulty": {
+                "description": "Adapt content difficulty to user's level",
+                "parameters": {"topic": "string (optional)"},
+                "endpoint": "/api/adaptive/difficulty",
+                "method": "GET"
+            },
+            "show_learning_style": {
+                "description": "Detect and show user's learning style",
+                "parameters": {},
+                "endpoint": "/api/adaptive/learning-style",
+                "method": "GET"
+            },
+            "show_knowledge_gaps": {
+                "description": "Find knowledge blind spots and gaps",
+                "parameters": {},
+                "endpoint": "/api/adaptive/knowledge-gaps",
+                "method": "GET"
+            },
+            "create_curriculum": {
+                "description": "Create personalized learning curriculum",
+                "parameters": {"topic": "string (required)"},
+                "endpoint": "/api/adaptive/curriculum",
+                "method": "GET"
+            },
+            "optimize_retention": {
+                "description": "Get spaced repetition schedule",
+                "parameters": {},
+                "endpoint": "/api/adaptive/retention",
+                "method": "GET"
+            },
+            "predict_forgetting": {
+                "description": "Predict what user will forget next",
+                "parameters": {},
+                "endpoint": "/api/adaptive/predict-forgetting",
+                "method": "GET"
+            },
+            "detect_burnout": {
+                "description": "Detect burnout risk",
+                "parameters": {},
+                "endpoint": "/api/adaptive/burnout-risk",
+                "method": "GET"
+            },
+            "suggest_breaks": {
+                "description": "Suggest optimal break schedule",
+                "parameters": {},
+                "endpoint": "/api/adaptive/break-schedule",
+                "method": "GET"
+            },
+            "predict_focus": {
+                "description": "Predict focus level at current time",
+                "parameters": {},
+                "endpoint": "/api/adaptive/focus-prediction",
+                "method": "GET"
+            },
+            "find_study_twin": {
+                "description": "Find study partner with similar learning patterns",
+                "parameters": {},
+                "endpoint": "/api/adaptive/study-twin",
+                "method": "GET"
+            },
+            "find_complementary": {
+                "description": "Find learners with complementary strengths",
+                "parameters": {},
+                "endpoint": "/api/adaptive/complementary-learners",
+                "method": "GET"
+            },
+            "tutor_step_by_step": {
+                "description": "Explain topic step-by-step",
+                "parameters": {"topic": "string (required)"},
+                "endpoint": None,  # Navigate to AI chat with mode
+                "method": None
+            },
+            "create_analogies": {
+                "description": "Create analogies to explain concept",
+                "parameters": {"topic": "string (required)"},
+                "endpoint": None,  # Navigate to AI chat with mode
+                "method": None
+            },
+            "simplify_content": {
+                "description": "Simplify content for beginners",
+                "parameters": {"topic": "string (required)"},
+                "endpoint": None,  # Navigate to AI chat with mode
+                "method": None
+            },
+            "suggest_study_next": {
+                "description": "Suggest what to study next",
+                "parameters": {},
+                "endpoint": "/api/suggest_study_next",
+                "method": "POST"
+            },
+            "summarize_notes": {
+                "description": "Summarize user's notes",
+                "parameters": {"topic": "string (optional)"},
+                "endpoint": "/api/summarize_notes",
+                "method": "POST"
+            },
+            "create_study_plan": {
+                "description": "Create a study plan",
+                "parameters": {"topic": "string (required)", "duration": "integer (days)"},
+                "endpoint": "/api/create_study_plan",
+                "method": "POST"
+            },
+            "search_recent": {
+                "description": "Search recent content",
+                "parameters": {"timeframe": "string (yesterday/last_week/last_month/recent)"},
+                "endpoint": "/api/search_recent_content",
+                "method": "POST"
+            },
+            "find_study_buddies": {
+                "description": "Find study buddies",
+                "parameters": {},
+                "endpoint": None,  # Navigate to social
+                "method": None
+            },
+            "challenge_friend": {
+                "description": "Challenge friend to quiz battle",
+                "parameters": {"friend_name": "string (optional)"},
+                "endpoint": None,  # Navigate to quiz battles
+                "method": None
+            },
+            "show_popular_content": {
+                "description": "Show trending/popular content",
+                "parameters": {"topic": "string (optional)"},
+                "endpoint": "/api/get_popular_content",
+                "method": "POST"
+            },
+            "search": {
+                "description": "Regular search for content",
+                "parameters": {},
+                "endpoint": "/api/search_content",
+                "method": "POST"
+            }
+        }
+        
+        # Create AI prompt with strict JSON format requirement
+        ai_prompt = f"""You are an intent detection system. Analyze the user's query and determine their intent.
+
+USER QUERY: "{query}"
+
+AVAILABLE ACTIONS:
+{json.dumps(available_actions, indent=2)}
+
+INSTRUCTIONS:
+1. Identify the user's primary intent from the available actions
+2. Extract any parameters mentioned in the query
+3. Return ONLY valid JSON in this EXACT format (no markdown, no explanation):
+
+{{
+  "intent": "action" or "search",
+  "action": "action_name" or null,
+  "parameters": {{}},
+  "confidence": 0.0 to 1.0
+}}
+
+RULES:
+- If the query matches an action, set intent="action" and specify the action name
+- If it's a general search query, set intent="search" and action=null
+- Extract parameters EXACTLY as specified in the action definition
+- For topics/titles, extract the actual subject matter from the query
+- confidence should be 0.8+ for clear matches, 0.5-0.8 for uncertain, <0.5 for unclear
+- Return ONLY the JSON object, nothing else
+
+EXAMPLES:
+Query: "create flashcards on machine learning"
+{{"intent": "action", "action": "create_flashcards", "parameters": {{"topic": "machine learning", "count": 10}}, "confidence": 0.95}}
+
+Query: "what is my learning style"
+{{"intent": "action", "action": "show_learning_style", "parameters": {{}}, "confidence": 0.98}}
+
+Query: "adapt difficulty to my level"
+{{"intent": "action", "action": "adapt_difficulty", "parameters": {{}}, "confidence": 0.95}}
+
+Query: "explain neural networks step by step"
+{{"intent": "action", "action": "tutor_step_by_step", "parameters": {{"topic": "neural networks"}}, "confidence": 0.92}}
+
+Query: "python programming"
+{{"intent": "search", "action": null, "parameters": {{}}, "confidence": 0.85}}
+
+NOW ANALYZE THIS QUERY AND RETURN ONLY THE JSON:
+"{query}"
+"""
+        
+        # Call AI to parse intent
+        logger.info(f"🤖 Calling AI for intent detection: '{query}'")
+        ai_response = call_ai(ai_prompt, max_tokens=500, temperature=0.1)
+        
+        logger.info(f"📥 AI response: {ai_response[:200]}...")
+        
+        # Parse JSON response (handle markdown code blocks if present)
+        ai_response_clean = ai_response.strip()
+        
+        # Remove markdown code blocks if present
+        if ai_response_clean.startswith('```'):
+            # Extract JSON from code block
+            lines = ai_response_clean.split('\n')
+            json_lines = []
+            in_code_block = False
+            for line in lines:
+                if line.strip().startswith('```'):
+                    in_code_block = not in_code_block
+                    continue
+                if in_code_block or (not line.strip().startswith('```')):
+                    json_lines.append(line)
+            ai_response_clean = '\n'.join(json_lines).strip()
+        
+        # Parse JSON
+        try:
+            result = json.loads(ai_response_clean)
+            
+            # Validate result structure
+            if not isinstance(result, dict):
+                raise ValueError("Response is not a JSON object")
+            
+            if "intent" not in result:
+                raise ValueError("Missing 'intent' field")
+            
+            # Ensure all required fields exist
+            result.setdefault("action", None)
+            result.setdefault("parameters", {})
+            result.setdefault("confidence", 0.5)
+            
+            # Log successful detection
+            logger.info(f"✅ Intent detected - Intent: {result['intent']}, Action: {result['action']}, Confidence: {result['confidence']}")
+            
+            # Add original query
+            result["original_query"] = query
+            
+            return result
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ Failed to parse AI response as JSON: {e}")
+            logger.error(f"Raw response: {ai_response_clean}")
+            
+            # Fallback: try to extract action from response text
+            action_match = None
+            for action_name in available_actions.keys():
+                if action_name in ai_response_clean.lower():
+                    action_match = action_name
+                    break
+            
+            if action_match:
+                logger.info(f"⚠️ Fallback: Extracted action '{action_match}' from text")
+                return {
+                    "intent": "action",
+                    "action": action_match,
+                    "parameters": {},
+                    "confidence": 0.6,
+                    "original_query": query
+                }
+            else:
+                # Default to search
+                logger.info(f"⚠️ Fallback: Defaulting to search")
+                return {
+                    "intent": "search",
+                    "action": None,
+                    "parameters": {},
+                    "confidence": 0.5,
+                    "original_query": query
+                }
+        
+    except Exception as e:
+        logger.error(f"❌ Intent detection error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        # Fallback to search on error
+        return {
+            "intent": "search",
+            "action": None,
+            "parameters": {},
+            "confidence": 0.3,
+            "original_query": query,
+            "error": str(e)
+        }
+
+
+@app.post("/api/get_personalized_prompts")
+async def get_personalized_prompts(
+    user_id: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Get personalized prompt suggestions based on user's profile, activity, and weak areas.
+    Returns varied suggestions that change based on user activity.
+    """
+    try:
+        # Get user
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        prompts = []
+        
+        # Get comprehensive profile
+        profile = db.query(models.ComprehensiveUserProfile).filter(
+            models.ComprehensiveUserProfile.user_id == user.id
+        ).first()
+        
+        # 1. Check for weak areas (HIGH PRIORITY)
+        weak_topics = []
+        if profile and profile.weak_areas:
+            try:
+                weak_topics = json.loads(profile.weak_areas) if isinstance(profile.weak_areas, str) else profile.weak_areas
+            except:
+                pass
+        
+        if weak_topics:
+            # Rotate through weak topics
+            import random
+            selected_weak = random.choice(weak_topics)
+            prompts.append({
+                "text": f"create flashcards on {selected_weak}",
+                "reason": "Focus on your weak areas",
+                "priority": "high"
+            })
+        
+        # 2. Check flashcard performance (HIGH PRIORITY)
+        weak_flashcard_sets = db.query(models.FlashcardSet).join(
+            models.Flashcard
+        ).filter(
+            models.FlashcardSet.user_id == user.id,
+            models.Flashcard.marked_for_review == True
+        ).distinct().limit(5).all()
+        
+        if weak_flashcard_sets:
+            prompts.append({
+                "text": "review weak flashcards",
+                "reason": f"{len(weak_flashcard_sets)} sets need attention",
+                "priority": "high"
+            })
+        
+        # 3. Get recent flashcard sets for variety (MEDIUM PRIORITY)
+        recent_sets = db.query(models.FlashcardSet).filter(
+            models.FlashcardSet.user_id == user.id
+        ).order_by(models.FlashcardSet.created_at.desc()).limit(5).all()
+        
+        if recent_sets:
+            # Suggest creating related content
+            import random
+            selected_set = random.choice(recent_sets)
+            prompts.append({
+                "text": f"create a quiz on {selected_set.title}",
+                "reason": "Test your knowledge",
+                "priority": "medium"
+            })
+        
+        # 4. Get recent notes for suggestions (MEDIUM PRIORITY)
+        recent_notes = db.query(models.Note).filter(
+            models.Note.user_id == user.id
+        ).order_by(models.Note.updated_at.desc()).limit(5).all()
+        
+        if recent_notes:
+            import random
+            selected_note = random.choice(recent_notes)
+            prompts.append({
+                "text": f"create flashcards on {selected_note.title}",
+                "reason": "Turn notes into active learning",
+                "priority": "medium"
+            })
+        
+        # 5. Check last review date (MEDIUM PRIORITY)
+        last_flashcard_review = db.query(models.FlashcardSet).filter(
+            models.FlashcardSet.user_id == user.id
+        ).order_by(models.FlashcardSet.updated_at.desc()).first()
+        
+        if last_flashcard_review:
+            from datetime import datetime, timedelta, timezone
+            
+            # Ensure both datetimes are timezone-aware
+            now = datetime.now(timezone.utc)
+            updated_at = last_flashcard_review.updated_at
+            
+            # If updated_at is naive, make it aware (assume UTC)
+            if updated_at.tzinfo is None:
+                updated_at = updated_at.replace(tzinfo=timezone.utc)
+            
+            days_since_review = (now - updated_at).days
+            if days_since_review >= 2:
+                prompts.append({
+                    "text": "review flashcards",
+                    "reason": f"Last reviewed {days_since_review} days ago",
+                    "priority": "medium"
+                })
+        
+        # 6. Field of study suggestions (LOW PRIORITY)
+        field_of_study = user.field_of_study if user.field_of_study else None
+        if not field_of_study and profile:
+            # Try to get from profile if it has the attribute
+            field_of_study = getattr(profile, 'field_of_study', None)
+        
+        if field_of_study and field_of_study.lower() not in ['general studies', 'general', 'none', '']:
+            import random
+            topics = [
+                f"advanced concepts in {field_of_study}",
+                f"fundamentals of {field_of_study}",
+                f"practice problems for {field_of_study}",
+                f"key theories in {field_of_study}"
+            ]
+            selected_topic = random.choice(topics)
+            prompts.append({
+                "text": f"create flashcards on {selected_topic}",
+                "reason": "Expand your knowledge",
+                "priority": "low"
+            })
+        
+        # 7. Add utility prompts (LOW PRIORITY)
+        utility_prompts = [
+            {
+                "text": "what am I weak in",
+                "reason": "Analyze your performance",
+                "priority": "low"
+            },
+            {
+                "text": "show my progress",
+                "reason": "Track your learning",
+                "priority": "low"
+            },
+            {
+                "text": "explain a concept",
+                "reason": "Get AI help",
+                "priority": "low"
+            }
+        ]
+        
+        # Add 1-2 random utility prompts
+        import random
+        prompts.extend(random.sample(utility_prompts, min(2, len(utility_prompts))))
+        
+        # Sort by priority and add some randomness within same priority
+        priority_order = {"high": 0, "medium": 1, "low": 2}
+        prompts.sort(key=lambda x: (priority_order.get(x["priority"], 3), random.random()))
+        
+        logger.info(f"Generated {len(prompts)} personalized prompts for user {user_id}")
+        
+        return {
+            "prompts": prompts[:6],  # Return top 6
+            "user_id": user_id
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting personalized prompts: {str(e)}")
+        # Return varied default prompts
+        import random
+        default_prompts = [
+            {"text": "create flashcards on machine learning", "reason": "Popular topic", "priority": "low"},
+            {"text": "create a note on data structures", "reason": "Build your knowledge", "priority": "low"},
+            {"text": "review flashcards", "reason": "Stay consistent", "priority": "low"},
+            {"text": "what am I weak in", "reason": "Check progress", "priority": "low"},
+            {"text": "explain neural networks", "reason": "Learn something new", "priority": "low"},
+            {"text": "create a quiz on algorithms", "reason": "Test yourself", "priority": "low"}
+        ]
+        random.shuffle(default_prompts)
+        return {
+            "prompts": default_prompts[:6]
+        }
+
+
+@app.post("/api/get_flashcards_for_review")
+async def get_flashcards_for_review(
+    user_id: str = Form(...),
+    filter: str = Form("needs_review"),  # "needs_review", "marked_for_review", "all"
+    db: Session = Depends(get_db)
+):
+    """
+    Get flashcards that need review based on user's performance
+    """
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            return {"flashcards": [], "set_id": None}
+        
+        # Get flashcards based on filter
+        query_builder = db.query(models.Flashcard).join(
+            models.FlashcardSet
+        ).filter(
+            models.FlashcardSet.user_id == user.id
+        )
+        
+        if filter == "marked_for_review":
+            query_builder = query_builder.filter(models.Flashcard.marked_for_review == True)
+        elif filter == "needs_review":
+            # Get cards with low accuracy or not reviewed recently
+            query_builder = query_builder.filter(
+                or_(
+                    models.Flashcard.times_reviewed == 0,
+                    and_(
+                        models.Flashcard.times_reviewed > 0,
+                        (models.Flashcard.correct_count * 100.0 / models.Flashcard.times_reviewed) < 70
+                    )
+                )
+            )
+        
+        flashcards = query_builder.limit(50).all()
+        
+        if flashcards:
+            # Group by set and return the set with most cards needing review
+            set_counts = {}
+            for card in flashcards:
+                set_counts[card.set_id] = set_counts.get(card.set_id, 0) + 1
+            
+            best_set_id = max(set_counts, key=set_counts.get)
+            
+            return {
+                "set_id": best_set_id,
+                "flashcards": [
+                    {
+                        "id": card.id,
+                        "question": card.question,
+                        "answer": card.answer,
+                        "difficulty": card.difficulty,
+                        "times_reviewed": card.times_reviewed,
+                        "correct_count": card.correct_count
+                    }
+                    for card in flashcards if card.set_id == best_set_id
+                ],
+                "total_cards_needing_review": len(flashcards)
+            }
+        
+        return {"flashcards": [], "set_id": None, "total_cards_needing_review": 0}
+        
+    except Exception as e:
+        logger.error(f"Error getting flashcards for review: {str(e)}")
+        return {"flashcards": [], "set_id": None, "error": str(e)}
+
+
+@app.post("/api/get_weak_areas")
+async def get_weak_areas(
+    user_id: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Get user's weak areas based on performance data.
+    ALWAYS returns topics - never empty!
+    """
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            return {"weak_areas": []}
+        
+        # Get comprehensive profile
+        comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
+            models.ComprehensiveUserProfile.user_id == user.id
+        ).first()
+        
+        weak_areas = []
+        
+        # 1. Check profile weak areas
+        if comprehensive_profile and comprehensive_profile.weak_areas:
+            try:
+                weak_areas_list = json.loads(comprehensive_profile.weak_areas)
+                for area in weak_areas_list:
+                    weak_areas.append({
+                        "id": len(weak_areas) + 1,
+                        "type": "weak_area",
+                        "title": area,
+                        "description": f"You've been struggling with {area}",
+                        "created_at": datetime.now(timezone.utc).isoformat()
+                    })
+            except:
+                pass
+        
+        # 2. Check flashcard performance
+        flashcard_sets = db.query(models.FlashcardSet).filter(
+            models.FlashcardSet.user_id == user.id
+        ).all()
+        
+        for fset in flashcard_sets:
+            # Calculate set accuracy
+            cards = db.query(models.Flashcard).filter(
+                models.Flashcard.set_id == fset.id,
+                models.Flashcard.times_reviewed > 0
+            ).all()
+            
+            if cards:
+                total_reviews = sum(c.times_reviewed for c in cards)
+                total_correct = sum(c.correct_count for c in cards)
+                
+                if total_reviews > 0:
+                    accuracy = (total_correct / total_reviews) * 100
+                    
+                    if accuracy < 60:  # Less than 60% accuracy
+                        weak_areas.append({
+                            "id": len(weak_areas) + 1,
+                            "type": "flashcard_set",
+                            "title": fset.title,
+                            "description": f"Accuracy: {accuracy:.1f}% - Needs more practice",
+                            "created_at": fset.created_at.isoformat() if fset.created_at else None,
+                            "set_id": fset.id
+                        })
+        
+        # 3. If still no weak areas, suggest topics based on user activity
+        if len(weak_areas) == 0:
+            # Get topics from flashcard sets
+            recent_sets = db.query(models.FlashcardSet).filter(
+                models.FlashcardSet.user_id == user.id
+            ).order_by(models.FlashcardSet.created_at.desc()).limit(5).all()
+            
+            for fset in recent_sets:
+                weak_areas.append({
+                    "id": len(weak_areas) + 1,
+                    "type": "suggestion",
+                    "title": f"Review {fset.title}",
+                    "description": "Keep your knowledge fresh with regular review",
+                    "created_at": fset.created_at.isoformat() if fset.created_at else None,
+                    "set_id": fset.id
+                })
+            
+            # Get topics from notes
+            recent_notes = db.query(models.Note).filter(
+                models.Note.user_id == user.id
+            ).order_by(models.Note.updated_at.desc()).limit(3).all()
+            
+            for note in recent_notes:
+                weak_areas.append({
+                    "id": len(weak_areas) + 1,
+                    "type": "suggestion",
+                    "title": f"Create flashcards on {note.title}",
+                    "description": "Turn your notes into active learning",
+                    "created_at": note.updated_at.isoformat() if note.updated_at else None
+                })
+        
+        # 4. If STILL no weak areas, suggest based on field of study
+        if len(weak_areas) == 0:
+            field_of_study = comprehensive_profile.field_of_study if comprehensive_profile else user.field_of_study
+            
+            # Default suggestions based on common learning topics
+            default_topics = [
+                "Create your first flashcard set",
+                "Take notes on a new topic",
+                "Start a study session",
+                "Explore AI chat for learning",
+                "Set up your study goals"
+            ]
+            
+            if field_of_study and field_of_study.lower() not in ['general studies', 'general', 'none', '']:
+                default_topics = [
+                    f"Core concepts in {field_of_study}",
+                    f"Advanced topics in {field_of_study}",
+                    f"Practice problems for {field_of_study}",
+                    f"Review fundamentals of {field_of_study}",
+                    f"Explore new areas in {field_of_study}"
+                ]
+            
+            for i, topic in enumerate(default_topics[:5]):
+                weak_areas.append({
+                    "id": i + 1,
+                    "type": "suggestion",
+                    "title": topic,
+                    "description": "Start building your knowledge base",
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                })
+        
+        logger.info(f"Returning {len(weak_areas)} weak areas/suggestions for user {user_id}")
+        return {"weak_areas": weak_areas[:10]}  # Return top 10
+        
+    except Exception as e:
+        logger.error(f"Error getting weak areas: {str(e)}")
+        # Even on error, return some default suggestions
+        return {
+            "weak_areas": [
+                {
+                    "id": 1,
+                    "type": "suggestion",
+                    "title": "Create your first flashcard set",
+                    "description": "Start your learning journey",
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                },
+                {
+                    "id": 2,
+                    "type": "suggestion",
+                    "title": "Take notes on a topic you're learning",
+                    "description": "Document your knowledge",
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                },
+                {
+                    "id": 3,
+                    "type": "suggestion",
+                    "title": "Ask AI to explain a concept",
+                    "description": "Get personalized help",
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+            ]
+        }
+
+
+# ==================== NEW SMART SEARCH HUB FEATURES ====================
+
+@app.post("/api/suggest_study_next")
+async def suggest_study_next(
+    user_id: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """AI suggests what the user should study next"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            return {"suggestions": []}
+        
+        suggestions = []
+        profile = db.query(models.ComprehensiveUserProfile).filter(
+            models.ComprehensiveUserProfile.user_id == user.id
+        ).first()
+        
+        if profile and profile.weak_areas:
+            try:
+                weak_topics = json.loads(profile.weak_areas) if isinstance(profile.weak_areas, str) else profile.weak_areas
+                for topic in weak_topics[:3]:
+                    suggestions.append({
+                        "topic": topic,
+                        "reason": "You've been struggling with this",
+                        "priority": "high"
+                    })
+            except:
+                pass
+        
+        return {"suggestions": suggestions[:5]}
+    except Exception as e:
+        logger.error(f"Error suggesting study next: {str(e)}")
+        return {"suggestions": []}
+
+
+@app.post("/api/summarize_notes")
+async def summarize_notes(
+    user_id: str = Form(...),
+    topic: str = Form(None),
+    db: Session = Depends(get_db)
+):
+    """AI summarizes user's notes on a topic"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            return {"summary": "User not found"}
+        
+        notes_query = db.query(models.Note).filter(models.Note.user_id == user.id)
+        if topic:
+            notes_query = notes_query.filter(
+                or_(models.Note.title.ilike(f"%{topic}%"), models.Note.content.ilike(f"%{topic}%"))
+            )
+        
+        notes = notes_query.order_by(models.Note.updated_at.desc()).limit(10).all()
+        if not notes:
+            return {"summary": f"No notes found on {topic}" if topic else "No notes found"}
+        
+        combined_content = "\n\n".join([f"# {note.title}\n{note.content}" for note in notes])
+        groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": "You are a helpful study assistant."},
+                {"role": "user", "content": f"Summarize these notes:\n\n{combined_content[:4000]}"}
+            ],
+            temperature=0.7,
+            max_tokens=1000
+        )
+        
+        return {"summary": response.choices[0].message.content.strip(), "notes_count": len(notes)}
+    except Exception as e:
+        logger.error(f"Error summarizing notes: {str(e)}")
+        return {"summary": f"Error: {str(e)}"}
+
+
+@app.post("/api/create_study_plan")
+async def create_study_plan(
+    user_id: str = Form(...),
+    topic: str = Form(...),
+    duration: int = Form(30),
+    db: Session = Depends(get_db)
+):
+    """AI creates a study plan"""
+    try:
+        groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": "You are an expert learning coach."},
+                {"role": "user", "content": f"Create a {duration} day study plan for {topic}"}
+            ],
+            temperature=0.7,
+            max_tokens=2000
+        )
+        return {"plan": response.choices[0].message.content.strip()}
+    except Exception as e:
+        return {"plan": f"Error: {str(e)}"}
+
+
+@app.post("/api/search_recent_content")
+async def search_recent_content(
+    user_id: str = Form(...),
+    timeframe: str = Form("recent"),
+    db: Session = Depends(get_db)
+):
+    """Search content by timeframe"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            return {"results": []}
+        
+        from datetime import timedelta
+        now = datetime.now(timezone.utc)
+        start_date = now - timedelta(days={"yesterday": 1, "last_week": 7, "last_month": 30}.get(timeframe, 3))
+        
+        results = []
+        sets = db.query(models.FlashcardSet).filter(
+            models.FlashcardSet.user_id == user.id,
+            models.FlashcardSet.created_at >= start_date
+        ).all()
+        
+        for fset in sets:
+            results.append({"id": fset.id, "type": "flashcard_set", "title": fset.title})
+        
+        return {"results": results}
+    except Exception as e:
+        return {"results": []}
 
 
 @app.post("/api/get_search_suggestion")
@@ -14714,9 +15799,9 @@ Keep it brief, friendly, and actionable. 2-3 sentences max."""
         return {
             "description": suggestion,
             "suggestions": [
-                {"type": "flashcards", "label": "Create Flashcards"},
-                {"type": "notes", "label": "Take Notes"},
-                {"type": "ai-chat", "label": "Ask AI"}
+                "Create Flashcards",
+                "Take Notes",
+                "Ask AI"
             ]
         }
         
@@ -14725,9 +15810,9 @@ Keep it brief, friendly, and actionable. 2-3 sentences max."""
         return {
             "description": f"I couldn't find anything matching \"{query}\". Would you like to create some learning materials on this topic?",
             "suggestions": [
-                {"type": "flashcards", "label": "Create Flashcards"},
-                {"type": "notes", "label": "Take Notes"},
-                {"type": "ai-chat", "label": "Ask AI"}
+                "Create Flashcards",
+                "Take Notes",
+                "Ask AI"
             ]
         }
 

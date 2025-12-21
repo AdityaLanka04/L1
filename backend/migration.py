@@ -6,7 +6,7 @@ import sqlite3
 import os
 from sqlalchemy import inspect
 from models import engine, Base, User, ChatSession, ChatMessage, \
-    Flashcard, Note, LearningReview, UserStats, \
+    Flashcard, FlashcardSet, Note, LearningReview, UserStats, \
     ComprehensiveUserProfile, Friendship, FriendRequest, \
     Notification, Achievement, UserAchievement, Leaderboard, Challenge, \
     ChallengeParticipation, ConceptNode, ConceptConnection, KnowledgeRoadmap, \
@@ -113,7 +113,7 @@ def run_migration():
     # List of all models to check
     models = [
         User, ChatSession, ChatMessage,
-        Flashcard, Note, LearningReview, UserStats,
+        Flashcard, FlashcardSet, Note, LearningReview, UserStats,
         ComprehensiveUserProfile, Friendship, FriendRequest,
         Notification, Achievement, UserAchievement,
         Leaderboard, Challenge, ChallengeParticipation, ConceptNode,

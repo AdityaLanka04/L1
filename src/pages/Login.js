@@ -13,8 +13,19 @@ function Login() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Check if safety page was completed and clear any old tokens
+  // Check if user is already logged in
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    const username = localStorage.getItem('username');
+    
+    // If user is already logged in, redirect to search hub
+    if (token && username) {
+      console.log('User already logged in, redirecting to search-hub');
+      navigate('/search-hub', { replace: true });
+      return;
+    }
+    
+    // Check if safety page was completed
     const safetyAccepted = sessionStorage.getItem('safetyAccepted');
     console.log('Login page - Safety check:', safetyAccepted);
     
@@ -23,26 +34,6 @@ function Login() {
       navigate('/', { replace: true });
       return;
     }
-
-    // Clear any existing tokens when on login page (user hasn't logged in yet)
-    console.log('Clearing any old tokens...');
-    localStorage.removeItem('token');
-    localStorage.removeItem('username');
-    localStorage.removeItem('userProfile');
-    
-    // Prevent navigation away from login page until user logs in
-    const handleBeforeUnload = () => {
-      // Clear tokens if user tries to navigate away
-      localStorage.removeItem('token');
-      localStorage.removeItem('username');
-      localStorage.removeItem('userProfile');
-    };
-    
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
   }, [navigate]);
 
   const checkAndRedirect = async (username) => {
@@ -99,7 +90,10 @@ function Login() {
         picture: userData.picture_url,
         googleUser: true
       }));
-      console.log('Tokens set:', { token: access_token, username: userData.email });
+      
+      // Ensure safety flag is set after successful login
+      sessionStorage.setItem('safetyAccepted', 'true');
+      console.log('Tokens and safety flag set:', { token: access_token, username: userData.email });
 
       // Trigger notification check after login
       sessionStorage.setItem('justLoggedIn', 'true');
@@ -146,7 +140,10 @@ function Login() {
       console.log('Normal login successful, setting tokens...');
       localStorage.setItem('token', token);
       localStorage.setItem('username', username);
-      console.log('Tokens set:', { token, username });
+      
+      // Ensure safety flag is set after successful login
+      sessionStorage.setItem('safetyAccepted', 'true');
+      console.log('Tokens and safety flag set:', { token, username });
       
       // Trigger notification check after login
       sessionStorage.setItem('justLoggedIn', 'true');

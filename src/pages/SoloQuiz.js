@@ -1,17 +1,67 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Target, BookOpen, Zap, TrendingUp, Play } from 'lucide-react';
 import './SoloQuiz.css';
 import { API_URL } from '../config';
 
 const SoloQuiz = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const token = localStorage.getItem('token');
   
   const [subject, setSubject] = useState('');
   const [difficulty, setDifficulty] = useState('intermediate');
   const [questionCount, setQuestionCount] = useState(10);
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Handle autoStart from SearchHub
+  useEffect(() => {
+    const autoStartData = location.state;
+    
+    if (autoStartData?.autoStart && autoStartData.topics?.length > 0) {
+      console.log('🚀 Auto-starting quiz with:', autoStartData);
+      
+      // Set the form values
+      const topic = autoStartData.topics[0];
+      setSubject(topic);
+      setDifficulty(autoStartData.difficulty || 'medium');
+      setQuestionCount(autoStartData.questionCount || 10);
+      
+      // Auto-create the quiz
+      setTimeout(async () => {
+        try {
+          const response = await fetch(`${API_URL}/create_solo_quiz`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              subject: topic,
+              difficulty: autoStartData.difficulty || 'medium',
+              question_count: autoStartData.questionCount || 10
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            navigate(`/solo-quiz/${data.quiz_id}`, { replace: true });
+          } else {
+            console.error('Failed to create quiz');
+            // Show the modal so user can try manually
+            setShowCreateModal(true);
+          }
+        } catch (error) {
+          console.error('Error creating solo quiz:', error);
+          // Show the modal so user can try manually
+          setShowCreateModal(true);
+        }
+        
+        // Clear location state
+        window.history.replaceState({}, document.title);
+      }, 500);
+    }
+  }, [location.state]);
 
   const handleStartQuiz = async (e) => {
     e.preventDefault();
