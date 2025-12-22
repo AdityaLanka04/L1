@@ -49,7 +49,6 @@ Pillow>=10.0.0
 # Media Processing
 youtube-transcript-api>=0.6.0
 pytube>=15.0.0
-audioop-lts>=0.2.1  # Python 3.13+ compatibility for pydub
 pydub>=0.25.1
 moviepy>=1.0.3
 assemblyai>=0.17.0

@@ -1,0 +1,43 @@
+# Dependencies
+node_modules
+backend/.venv
+backend/__pycache__
+
+# Build outputs
+build
+dist
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Environment files (use docker-compose env instead)
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+coverage
+*.test.js
+*.spec.js
+
+# Documentation
+*.md
+!README.md
+
+# Database files (will be created fresh)
+backend/*.db
+backend/chroma_db

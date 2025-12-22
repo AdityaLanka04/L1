@@ -1,0 +1,33 @@
+# Virtual environment
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+
+# Database files
+*.db
+chroma_db
+
+# IDE
+.idea
+.vscode
+
+# OS files
+.DS_Store
+
+# Logs
+*.log
+
+# Test files
+tests
+*_test.py
+test_*.py
+
+# Uploads (will use volumes)
+uploads/*
+exports/*
+attachments/*
+!uploads/.gitkeep
+!exports/.gitkeep
+!attachments/.gitkeep

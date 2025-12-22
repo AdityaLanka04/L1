@@ -151,7 +151,15 @@ def get_or_create_stats(db: Session, user_id: int):
 def check_and_reset_weekly_stats(stats):
     """Check if weekly stats need to be reset"""
     week_start = get_week_start()
-    if stats.week_start_date is None or stats.week_start_date.date() < week_start:
+    # Handle both datetime and date objects
+    if stats.week_start_date is None:
+        needs_reset = True
+    elif hasattr(stats.week_start_date, 'date'):
+        needs_reset = stats.week_start_date.date() < week_start
+    else:
+        needs_reset = stats.week_start_date < week_start
+    
+    if needs_reset:
         stats.weekly_points = 0
         stats.weekly_ai_chats = 0
         stats.weekly_notes_created = 0
@@ -332,7 +340,11 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
     old_streak = stats.current_streak
     
     if stats.last_activity_date:
-        last_date = stats.last_activity_date.date()
+        # Handle both datetime and date objects
+        if hasattr(stats.last_activity_date, 'date'):
+            last_date = stats.last_activity_date.date()
+        else:
+            last_date = stats.last_activity_date
         if last_date == today:
             pass  # Same day
         elif last_date == today - timedelta(days=1):
