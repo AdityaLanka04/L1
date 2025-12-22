@@ -18,3 +18,5 @@ venv/
 # Misc
 .DS_Store
 start.log
+.env.aws
+.env
