@@ -37,6 +37,17 @@ export const apiRequest = async (endpoint, options = {}) => {
       },
     });
 
+    // Handle expired token - auto logout
+    if (response.status === 401) {
+      console.warn('🔒 Token expired or invalid, logging out...');
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      localStorage.removeItem('userProfile');
+      sessionStorage.removeItem('safetyAccepted');
+      window.location.href = '/login';
+      throw new Error('Session expired. Please login again.');
+    }
+
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       throw new Error(error.detail || `HTTP error! status: ${response.status}`);

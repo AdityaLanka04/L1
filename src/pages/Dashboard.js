@@ -1149,7 +1149,7 @@ const Dashboard = () => {
               </p>
               <button 
                 className="review-explore-btn" 
-                onClick={!isCustomizing ? (() => navigate('/learning-hub')) : undefined}
+                onClick={!isCustomizing ? (() => navigate('/learning-review')) : undefined}
                 disabled={isCustomizing}
               >
                 VIEW REVIEWS
