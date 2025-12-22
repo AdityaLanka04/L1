@@ -68,6 +68,12 @@ const SearchHub = () => {
   };
 
   const loadPersonalizedPrompts = async (username) => {
+    // Temporarily disabled - endpoint not available
+    // Will use default prompts instead
+    setPersonalizedPrompts([]);
+    return;
+    
+    /* COMMENTED OUT UNTIL BACKEND IS RESTARTED
     try {
       const token = localStorage.getItem('token');
       const formData = new FormData();
@@ -81,11 +87,22 @@ const SearchHub = () => {
       
       if (response.ok) {
         const data = await response.json();
-        setPersonalizedPrompts(data.prompts || []);
+        // Ensure prompts have string values, not objects
+        const sanitizedPrompts = (data.prompts || []).map(prompt => ({
+          ...prompt,
+          text: typeof prompt.text === 'string' ? prompt.text : (prompt.text?.label || 'Unknown'),
+          reason: typeof prompt.reason === 'string' ? prompt.reason : (prompt.reason?.label || null)
+        }));
+        setPersonalizedPrompts(sanitizedPrompts);
+      } else {
+        console.log('Personalized prompts endpoint not available, using defaults');
+        setPersonalizedPrompts([]);
       }
     } catch (error) {
       console.error('Error loading personalized prompts:', error);
+      setPersonalizedPrompts([]);
     }
+    */
   };
 
   const saveRecentSearch = (query) => {
@@ -1167,7 +1184,7 @@ const SearchHub = () => {
           
           try {
             const token = localStorage.getItem('token');
-            const res = await fetch(`${API_URL}/api/adaptive/complementary-learners?user_id=${userName}`, {
+            const res = await fetch(`${API_URL}/adaptive/complementary-learners?user_id=${userName}`, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
             
@@ -1467,8 +1484,8 @@ const SearchHub = () => {
 
               {/* Search Box */}
               <div className="search-box-container">
-                <div className="search-box">
-                  <Search className="search-icon" size={24} />
+                <div className="search-box-wrapper">
+                  <Search className="search-icon" size={20} />
                   <input
                     ref={searchInputRef}
                     type="text"
@@ -1477,40 +1494,8 @@ const SearchHub = () => {
                     value={searchQuery}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
-                    onFocus={() => searchQuery.length >= 2 && setShowSuggestions(true)}
-                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                    autoComplete="new-password"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                    name="search-query-input"
-                    data-form-type="other"
-                    data-lpignore="true"
-                    data-1p-ignore="true"
                   />
-                  {searchQuery && (
-                    <button className="clear-btn" onClick={clearSearch}>
-                      <X size={20} />
-                    </button>
-                  )}
                 </div>
-                
-                {/* Autocomplete Suggestions */}
-                {showSuggestions && suggestions.length > 0 && (
-                  <div className="search-suggestions">
-                    {suggestions.map((suggestion, index) => (
-                      <div
-                        key={index}
-                        className={`suggestion-item ${index === selectedSuggestionIndex ? 'selected' : ''} ${suggestion.isRecent ? 'recent' : ''}`}
-                        onClick={() => handleSuggestionClick(suggestion)}
-                        onMouseEnter={() => setSelectedSuggestionIndex(index)}
-                      >
-                        <span className="suggestion-text">{suggestion.text}</span>
-                        {suggestion.isRecent && <span className="suggestion-label">Recent</span>}
-                      </div>
-                    ))}
-                  </div>
-                )}
                 
                 <div className="search-actions">
                   <button className="search-btn" onClick={() => handleSearch()} disabled={!searchQuery.trim()}>
@@ -1537,21 +1522,27 @@ const SearchHub = () => {
                     { text: 'suggest break times', reason: 'Optimal rest periods', priority: 'low' },
                     { text: 'create flashcards on machine learning', reason: null, priority: 'low' },
                     { text: 'explain neural networks step-by-step', reason: 'Structured learning', priority: 'low' },
-                  ]).map((prompt, index) => (
-                    <button
-                      key={index}
-                      className={`prompt-card ${prompt.priority || ''}`}
-                      onClick={() => {
-                        setSearchQuery(prompt.text);
-                        handleSearch(prompt.text);
-                      }}
-                      title={prompt.reason || ''}
-                    >
-                      {prompt.priority === 'high' && <Sparkles size={16} />}
-                      <span>{prompt.text}</span>
-                      {prompt.reason && <span className="prompt-reason">{prompt.reason}</span>}
-                    </button>
-                  ))}
+                  ]).map((prompt, index) => {
+                    // Ensure text and reason are strings, not objects
+                    const promptText = typeof prompt.text === 'string' ? prompt.text : (prompt.text?.label || 'Unknown');
+                    const promptReason = typeof prompt.reason === 'string' ? prompt.reason : (prompt.reason?.label || null);
+                    
+                    return (
+                      <button
+                        key={index}
+                        className={`prompt-card ${prompt.priority || ''}`}
+                        onClick={() => {
+                          setSearchQuery(promptText);
+                          handleSearch(promptText);
+                        }}
+                        title={promptReason || ''}
+                      >
+                        {prompt.priority === 'high' && <Sparkles size={16} />}
+                        <span>{promptText}</span>
+                        {promptReason && <span className="prompt-reason">{promptReason}</span>}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -1565,30 +1556,6 @@ const SearchHub = () => {
                 <button className="back-btn-compact" onClick={clearSearch}>
                   Back
                 </button>
-                <div className="search-box-compact">
-                  <Search className="search-icon" size={20} />
-                  <input
-                    type="text"
-                    className="results-search-input"
-                    placeholder="Search..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    autoComplete="new-password"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                    name="results-search-query"
-                    data-form-type="other"
-                    data-lpignore="true"
-                    data-1p-ignore="true"
-                  />
-                  {searchQuery && (
-                    <button className="clear-btn" onClick={clearSearch}>
-                      <X size={18} />
-                    </button>
-                  )}
-                </div>
                 <button 
                   className={`filter-btn ${getActiveFilterCount() > 0 ? 'active' : ''}`}
                   onClick={() => setShowFilters(!showFilters)}
@@ -1706,7 +1673,6 @@ const SearchHub = () => {
                         <div className="result-content">
                           <div className="result-header">
                             <h3>{result.title}</h3>
-                            <span className="result-type">{result.type}</span>
                           </div>
                           {result.description && (
                             <p className="result-description">{result.description}</p>
@@ -1730,6 +1696,7 @@ const SearchHub = () => {
                               </span>
                             )}
                           </div>
+                          <span className="result-type">{result.type}</span>
                         </div>
                         <ChevronRight size={20} className="result-arrow" />
                       </div>
@@ -1826,4 +1793,3 @@ const SearchHub = () => {
 };
 
 export default SearchHub;
-

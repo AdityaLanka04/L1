@@ -167,12 +167,18 @@ const Dashboard = () => {
     if (userName) {
       const tourKey = `hasCompletedTour_${userName}`;
       const completedTour = localStorage.getItem(tourKey);
+      
+      console.log('🎯 Tour Check:', {
+        userName,
+        tourKey,
+        completedTour
+      });
+      
       setHasSeenTour(!!completedTour);
 
-      if (!completedTour) {
-        const timer = setTimeout(() => setShowTour(true), 2000);
-        return () => clearTimeout(timer);
-      }
+      // DISABLED: Tour will only show when user clicks the help button
+      // Never auto-show the tour
+      console.log('🚫 Auto-tour disabled, will only show via help button');
     }
   }, [userName]);
 
@@ -889,7 +895,15 @@ const Dashboard = () => {
   };
 
   const startTour = () => setShowTour(true);
-  const closeTour = () => setShowTour(false);
+  const closeTour = () => {
+    setShowTour(false);
+    // Save that user has seen the tour even if they closed it
+    setHasSeenTour(true);
+    if (userName) {
+      const tourKey = `hasCompletedTour_${userName}`;
+      localStorage.setItem(tourKey, '1');
+    }
+  };
   const completeTour = () => {
     setShowTour(false);
     setHasSeenTour(true);
