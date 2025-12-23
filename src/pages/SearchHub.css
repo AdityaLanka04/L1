@@ -396,6 +396,123 @@
   opacity: 0.6;
 }
 
+/* ==================== AUTOCOMPLETE DROPDOWN ==================== */
+.search-hub-page .autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-secondary);
+  border: 2px solid var(--accent);
+  border-top: none;
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.search-hub-page .autocomplete-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.search-hub-page .autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.search-hub-page .autocomplete-item:hover,
+.search-hub-page .autocomplete-item.selected {
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-secondary));
+}
+
+.search-hub-page .autocomplete-item.selected {
+  border-left: 3px solid var(--accent);
+}
+
+.search-hub-page .autocomplete-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-primary));
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.search-hub-page .autocomplete-item.command .autocomplete-icon {
+  background: color-mix(in srgb, var(--accent) 25%, var(--bg-primary));
+  color: var(--accent);
+}
+
+.search-hub-page .autocomplete-item.content .autocomplete-icon {
+  background: color-mix(in srgb, #10b981 20%, var(--bg-primary));
+  color: #10b981;
+}
+
+.search-hub-page .autocomplete-item.recent .autocomplete-icon {
+  background: color-mix(in srgb, #6366f1 20%, var(--bg-primary));
+  color: #6366f1;
+}
+
+.search-hub-page .autocomplete-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.search-hub-page .autocomplete-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-hub-page .autocomplete-subtext {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-hub-page .autocomplete-badge {
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--accent);
+  color: var(--bg-primary);
+  flex-shrink: 0;
+}
+
+.search-hub-page .autocomplete-badge.content {
+  background: #10b981;
+}
+
+/* Scrollbar for autocomplete */
+.search-hub-page .autocomplete-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.search-hub-page .autocomplete-dropdown::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+.search-hub-page .autocomplete-dropdown::-webkit-scrollbar-thumb {
+  background: var(--accent);
+}
+
 .search-hub-page .search-box {
   width: 100%;
   display: flex;
@@ -1876,6 +1993,129 @@ input[type="text"]:-webkit-autofill-and-obscured {
   background: var(--bg-primary);
   border-color: var(--accent);
   box-shadow: 0 0 8px var(--accent);
+}
+
+/* ==================== AI ENHANCEMENT STYLES ==================== */
+
+/* Smart Actions on Result Cards */
+.search-hub-page .smart-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.search-hub-page .smart-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-secondary));
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.search-hub-page .smart-action-btn:hover {
+  background: var(--accent);
+  color: var(--bg-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.search-hub-page .smart-action-btn svg {
+  flex-shrink: 0;
+}
+
+/* Did You Mean Suggestion */
+.search-hub-page .did-you-mean {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0;
+  font-size: 16px;
+  color: var(--text-secondary);
+}
+
+.search-hub-page .did-you-mean-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.search-hub-page .did-you-mean-btn:hover {
+  color: var(--accent-hover);
+  text-decoration: none;
+}
+
+/* Related Searches */
+.search-hub-page .related-searches {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+.search-hub-page .related-searches h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+
+.search-hub-page .related-searches-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.search-hub-page .related-search-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.search-hub-page .related-search-btn:hover {
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-secondary));
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.search-hub-page .related-search-btn svg {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.search-hub-page .related-search-btn:hover svg {
+  color: var(--accent);
+}
+
+/* Filter Description */
+.search-hub-page .filter-description {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-secondary));
+  border-left: 3px solid var(--accent);
 }
 
 @media (max-width: 1024px) {

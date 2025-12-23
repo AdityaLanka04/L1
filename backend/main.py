@@ -11951,7 +11951,7 @@ async def generate_concept_web(
         db.commit()
         
         # Gather ACTUAL content titles/subjects
-        concepts_to_create = {}  # Use dict to track source
+        raw_concepts = []  # List of (title, source_type, category)
         
         # From Notes - use actual note titles
         notes = db.query(models.Note).filter(
@@ -11961,9 +11961,7 @@ async def generate_concept_web(
         logger.info(f"Found {len(notes)} notes")
         for note in notes:
             if note.title and len(note.title.strip()) > 2:
-                title = note.title.strip()
-                if title not in concepts_to_create:
-                    concepts_to_create[title] = ("Note", "Academic")
+                raw_concepts.append((note.title.strip(), "Note", "Academic"))
         
         # From Quizzes - use actual quiz subjects
         quizzes = db.query(models.SoloQuiz).filter(
@@ -11972,9 +11970,7 @@ async def generate_concept_web(
         logger.info(f"Found {len(quizzes)} quizzes")
         for quiz in quizzes:
             if quiz.subject and len(quiz.subject.strip()) > 2:
-                subject = quiz.subject.strip()
-                if subject not in concepts_to_create:
-                    concepts_to_create[subject] = ("Quiz", "Academic")
+                raw_concepts.append((quiz.subject.strip(), "Quiz", "Academic"))
         
         # From Flashcard Sets - use actual set titles
         flashcard_sets = db.query(models.FlashcardSet).filter(
@@ -11983,9 +11979,7 @@ async def generate_concept_web(
         logger.info(f"Found {len(flashcard_sets)} flashcard sets")
         for fs in flashcard_sets:
             if fs.title and len(fs.title.strip()) > 2:
-                title = fs.title.strip()
-                if title not in concepts_to_create:
-                    concepts_to_create[title] = ("Flashcards", "Academic")
+                raw_concepts.append((fs.title.strip(), "Flashcards", "Academic"))
         
         # From AI Chat Sessions - use chat titles
         chat_sessions = db.query(models.ChatSession).filter(
@@ -11994,13 +11988,80 @@ async def generate_concept_web(
         logger.info(f"Found {len(chat_sessions)} chat sessions")
         for session in chat_sessions:
             if session.title and session.title != "New Chat" and len(session.title.strip()) > 2:
-                title = session.title.strip()
-                if title not in concepts_to_create:
-                    concepts_to_create[title] = ("AI Chat", "Discussion")
+                raw_concepts.append((session.title.strip(), "AI Chat", "Discussion"))
         
-        if not concepts_to_create:
+        if not raw_concepts:
             logger.info("No content found")
             return {"status": "no_content", "message": "No learning content found"}
+        
+        # DEDUPLICATE: Normalize and merge similar topics
+        def normalize_topic(title):
+            """Normalize topic name for comparison"""
+            import re
+            # Convert to lowercase
+            normalized = title.lower().strip()
+            # Remove common prefixes/suffixes
+            prefixes_to_remove = ['introduction to ', 'intro to ', 'basics of ', 'advanced ', 'fundamentals of ', 'learning ', 'study ', 'notes on ', 'flashcards on ', 'quiz on ']
+            for prefix in prefixes_to_remove:
+                if normalized.startswith(prefix):
+                    normalized = normalized[len(prefix):]
+            # Remove special characters except spaces
+            normalized = re.sub(r'[^\w\s]', '', normalized)
+            # Remove extra whitespace
+            normalized = ' '.join(normalized.split())
+            return normalized
+        
+        def topics_are_similar(topic1, topic2):
+            """Check if two topics are semantically similar"""
+            norm1 = normalize_topic(topic1)
+            norm2 = normalize_topic(topic2)
+            
+            # Exact match after normalization
+            if norm1 == norm2:
+                return True
+            
+            # One contains the other
+            if norm1 in norm2 or norm2 in norm1:
+                return True
+            
+            # Check word overlap (Jaccard similarity)
+            words1 = set(norm1.split())
+            words2 = set(norm2.split())
+            if not words1 or not words2:
+                return False
+            
+            intersection = words1 & words2
+            union = words1 | words2
+            similarity = len(intersection) / len(union)
+            
+            # If more than 60% word overlap, consider similar
+            return similarity > 0.6
+        
+        # Group similar topics together
+        concepts_to_create = {}  # normalized_key -> (display_title, source_types, category)
+        
+        for title, source_type, category in raw_concepts:
+            normalized = normalize_topic(title)
+            
+            # Check if this topic is similar to any existing one
+            found_match = False
+            for existing_key in list(concepts_to_create.keys()):
+                existing_title = concepts_to_create[existing_key][0]
+                if topics_are_similar(title, existing_title):
+                    # Merge: keep the shorter/cleaner title, combine source types
+                    existing_sources = concepts_to_create[existing_key][1]
+                    if source_type not in existing_sources:
+                        existing_sources.append(source_type)
+                    # Keep the shorter title as display name (usually cleaner)
+                    if len(title) < len(existing_title):
+                        concepts_to_create[existing_key] = (title, existing_sources, category)
+                    found_match = True
+                    break
+            
+            if not found_match:
+                concepts_to_create[normalized] = (title, [source_type], category)
+        
+        logger.info(f"Deduplicated {len(raw_concepts)} raw concepts to {len(concepts_to_create)} unique concepts")
         
         logger.info(f"Creating {len(concepts_to_create)} concepts with AI classification")
         
@@ -12009,7 +12070,8 @@ async def generate_concept_web(
         agent = get_concept_agent(groq_client, GROQ_MODEL, gemini_client, GEMINI_MODEL, GEMINI_API_KEY)
         
         # BATCH CLASSIFY ALL CONCEPTS IN ONE REQUEST (avoids rate limits!)
-        concept_names = list(concepts_to_create.keys())
+        concept_data = list(concepts_to_create.values())  # [(display_title, source_types, category), ...]
+        concept_names = [data[0] for data in concept_data]
         logger.info(f"Batch classifying {len(concept_names)} concepts in ONE AI request...")
         
         try:
@@ -12018,48 +12080,45 @@ async def generate_concept_web(
             logger.error(f"Batch classification failed: {e}, falling back to basic classification")
             classifications = [
                 {
-                    "category": concepts_to_create[name][1],
+                    "category": data[2],
                     "subcategory": "",
-                    "advanced_topic": name,
+                    "advanced_topic": data[0],
                     "related_concepts": [],
                     "prerequisites": []
                 }
-                for name in concept_names
+                for data in concept_data
             ]
         
         # Create concept nodes with AI-powered classification
         concept_map = {}
         connections_to_create = []
         
-        for i, concept_name in enumerate(concept_names):
-            source_type, category = concepts_to_create[concept_name]
-            
+        for i, (display_title, source_types, category) in enumerate(concept_data):
             # Get classification for this concept
             classification = classifications[i] if i < len(classifications) else {}
             
             # Use AI classification - prefer the MOST SPECIFIC category
             ai_category_raw = classification.get("category", category)
             subcategory = classification.get("subcategory", "")
-            advanced_topic = classification.get("advanced_topic", concept_name)
+            advanced_topic = classification.get("advanced_topic", display_title)
             
             # Smart category selection: use the most specific one
-            # Priority: category > subcategory > base category
-            # e.g., "Sorting Algorithms" > "Data Structures & Algorithms" > "Computer Science"
             if ai_category_raw and ai_category_raw not in ["General", "Academic", "Discussion"]:
                 ai_category = ai_category_raw
-                logger.info(f"✓ '{concept_name}' → '{ai_category}' (from AI category)")
+                logger.info(f"✓ '{display_title}' → '{ai_category}' (from AI category)")
             elif subcategory and subcategory not in ["General", "Academic", "Discussion"]:
                 ai_category = subcategory
-                logger.info(f"✓ '{concept_name}' → '{subcategory}' (from AI subcategory)")
+                logger.info(f"✓ '{display_title}' → '{subcategory}' (from AI subcategory)")
             else:
                 ai_category = category
-                logger.info(f"✓ '{concept_name}' → '{category}' (fallback)")
+                logger.info(f"✓ '{display_title}' → '{category}' (fallback)")
             
-            # Enhanced description
+            # Enhanced description showing all source types
+            source_str = ", ".join(source_types)
             description = f"{advanced_topic}"
             if subcategory and subcategory != advanced_topic and subcategory != ai_category:
                 description = f"{subcategory}: {advanced_topic}"
-            description += f" (from {source_type})"
+            description += f" (from {source_str})"
             
             # Store related concepts and prerequisites for connection creation
             related = classification.get("related_concepts", [])
@@ -12068,16 +12127,16 @@ async def generate_concept_web(
             # Create the node
             node = models.ConceptNode(
                 user_id=user.id,
-                concept_name=concept_name,
+                concept_name=display_title,
                 description=description,
                 category=ai_category,
                 importance_score=0.7
             )
             db.add(node)
             db.flush()
-            concept_map[concept_name] = node.id
+            concept_map[display_title] = node.id
             
-            connections_to_create.append((node.id, concept_name, related, prereqs))
+            connections_to_create.append((node.id, display_title, related, prereqs))
         
         # Create connections between related concepts
         connections_created = 0
@@ -14805,6 +14864,168 @@ Return ONLY the JSON array:"""
     fallback_terms = [query] + [w.strip() for w in query.split() if len(w.strip()) > 2]
     return list(set(fallback_terms))
 
+
+async def get_spelling_suggestion(query: str, db, user_id: int) -> Optional[str]:
+    """
+    Generate "Did you mean..." spelling suggestions for queries with no results.
+    Checks against user's actual content titles.
+    """
+    try:
+        # Get all user's content titles for comparison
+        all_titles = []
+        
+        # Flashcard set titles
+        flashcard_sets = db.query(models.FlashcardSet.title).filter(
+            models.FlashcardSet.user_id == user_id
+        ).all()
+        all_titles.extend([fs.title for fs in flashcard_sets if fs.title])
+        
+        # Note titles
+        notes = db.query(models.Note.title).filter(
+            models.Note.user_id == user_id,
+            models.Note.is_deleted == False
+        ).all()
+        all_titles.extend([n.title for n in notes if n.title])
+        
+        # Chat session titles
+        chats = db.query(models.ChatSession.title).filter(
+            models.ChatSession.user_id == user_id
+        ).all()
+        all_titles.extend([c.title for c in chats if c.title and c.title != "New Chat"])
+        
+        if not all_titles:
+            return None
+        
+        # Use AI to find the closest match
+        ai_prompt = f"""The user searched for "{query}" but found no results.
+Here are the titles of content they have:
+{json.dumps(all_titles[:50])}
+
+If the search query appears to be a typo or misspelling of one of these titles, suggest the correct title.
+If no close match exists, return null.
+
+Return ONLY a JSON object in this format (no markdown):
+{{"suggestion": "correct title" or null, "confidence": 0.0 to 1.0}}
+
+Examples:
+Query: "quantm computing", Titles: ["Quantum Computing", "Machine Learning"]
+{{"suggestion": "Quantum Computing", "confidence": 0.95}}
+
+Query: "xyz123", Titles: ["Math", "Science"]
+{{"suggestion": null, "confidence": 0.0}}
+"""
+        
+        ai_response = call_ai(ai_prompt, max_tokens=100, temperature=0.1)
+        ai_response_clean = ai_response.strip()
+        
+        # Remove markdown if present
+        if ai_response_clean.startswith('```'):
+            lines = ai_response_clean.split('\n')
+            json_lines = [l for l in lines if not l.strip().startswith('```')]
+            ai_response_clean = '\n'.join(json_lines).strip()
+        
+        result = json.loads(ai_response_clean)
+        
+        if result.get("suggestion") and result.get("confidence", 0) > 0.6:
+            return result["suggestion"]
+        
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error getting spelling suggestion: {str(e)}")
+        return None
+
+
+async def get_related_searches(query: str, results: list) -> list:
+    """
+    Generate related search suggestions based on the query and results.
+    """
+    try:
+        # Extract topics from results for context
+        result_topics = [r.get("title", "") for r in results[:10]]
+        
+        ai_prompt = f"""Based on the search query "{query}" and these related results: {result_topics[:5]},
+suggest 4-6 related searches the user might be interested in.
+
+RULES:
+1. Suggestions should be related but different from the original query
+2. Include both broader and narrower topics
+3. Include related concepts or prerequisites
+4. Keep suggestions concise (2-5 words each)
+5. Return ONLY a JSON array of strings
+
+Examples:
+Query: "machine learning"
+["deep learning basics", "neural networks", "python for ML", "supervised vs unsupervised", "ML algorithms"]
+
+Query: "Irish history"
+["Easter Rising 1916", "Irish independence", "British rule in Ireland", "Irish famine", "Celtic history"]
+
+NOW GENERATE RELATED SEARCHES FOR: "{query}"
+Return ONLY the JSON array:"""
+
+        ai_response = call_ai(ai_prompt, max_tokens=150, temperature=0.5)
+        ai_response_clean = ai_response.strip()
+        
+        # Remove markdown if present
+        if ai_response_clean.startswith('```'):
+            lines = ai_response_clean.split('\n')
+            json_lines = [l for l in lines if not l.strip().startswith('```')]
+            ai_response_clean = '\n'.join(json_lines).strip()
+        
+        related = json.loads(ai_response_clean)
+        
+        if isinstance(related, list):
+            # Filter out the original query
+            related = [r for r in related if r.lower() != query.lower()]
+            return related[:6]
+        
+        return []
+        
+    except Exception as e:
+        logger.error(f"Error getting related searches: {str(e)}")
+        return []
+
+
+def get_smart_actions(result: dict) -> list:
+    """
+    Generate smart action buttons for each search result based on its type.
+    """
+    actions = []
+    result_type = result.get("type", "")
+    title = result.get("title", "")
+    
+    if result_type == "flashcard_set":
+        actions = [
+            {"action": "study", "label": "Study", "icon": "play"},
+            {"action": "quiz", "label": "Start Quiz", "icon": "help-circle"},
+            {"action": "review", "label": "Review", "icon": "refresh-cw"}
+        ]
+    elif result_type == "flashcard":
+        actions = [
+            {"action": "view_set", "label": "View Set", "icon": "layers"},
+            {"action": "quiz", "label": "Quiz This", "icon": "help-circle"}
+        ]
+    elif result_type == "note":
+        actions = [
+            {"action": "edit", "label": "Edit", "icon": "edit"},
+            {"action": "create_flashcards", "label": "Make Flashcards", "icon": "layers"},
+            {"action": "summarize", "label": "Summarize", "icon": "file-text"}
+        ]
+    elif result_type == "chat":
+        actions = [
+            {"action": "continue", "label": "Continue Chat", "icon": "message-circle"},
+            {"action": "create_flashcards", "label": "Make Flashcards", "icon": "layers"}
+        ]
+    elif result_type == "question_set":
+        actions = [
+            {"action": "start_quiz", "label": "Start Quiz", "icon": "play"},
+            {"action": "practice", "label": "Practice", "icon": "target"}
+        ]
+    
+    return actions
+
+
 @app.post("/api/search_content")
 async def search_content(
     user_id: str = Form(...),
@@ -15085,6 +15306,20 @@ async def search_content(
             result_type = result['type']
             type_counts[result_type] = type_counts.get(result_type, 0) + 1
         
+        # AI ENHANCEMENTS
+        
+        # 1. "Did you mean..." - Suggest corrections for unclear queries
+        did_you_mean = None
+        if len(results) == 0:
+            did_you_mean = await get_spelling_suggestion(query, db, actual_user_id)
+        
+        # 2. Related searches - Generate related search suggestions
+        related_searches = await get_related_searches(query, results)
+        
+        # 3. Add smart actions to results
+        for result in results:
+            result["smart_actions"] = get_smart_actions(result)
+        
         return {
             "total_results": len(results),
             "results": results,
@@ -15095,7 +15330,10 @@ async def search_content(
                 "date_from": date_from,
                 "date_to": date_to
             },
-            "type_counts": type_counts
+            "type_counts": type_counts,
+            "did_you_mean": did_you_mean,
+            "related_searches": related_searches,
+            "expanded_terms": expanded_terms[:5] if expanded_terms else []
         }
         
     except Exception as e:
@@ -15103,21 +15341,576 @@ async def search_content(
         import traceback
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+
+@app.post("/api/autocomplete")
+async def autocomplete(
+    user_id: str = Form(...),
+    query: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Google-style autocomplete suggestions as user types.
+    Returns commands, recent searches, matching content, and smart suggestions.
+    """
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            return {"suggestions": []}
         
-        # Sort by relevance (created_at desc for now)
-        results.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        suggestions = []
+        query_lower = query.lower().strip()
+        
+        # 1. Command suggestions - COMPREHENSIVE LIST
+        commands = [
+            # Creation commands
+            {"text": "create flashcards on", "subtext": "Generate flashcards on a topic", "type": "command", "category": "create"},
+            {"text": "create a quiz on", "subtext": "Test your knowledge", "type": "command", "category": "create"},
+            {"text": "create a note on", "subtext": "Start taking notes", "type": "command", "category": "create"},
+            {"text": "create study plan for", "subtext": "Plan your learning", "type": "command", "category": "create"},
+            {"text": "create mind map for", "subtext": "Visual organization", "type": "command", "category": "create"},
+            {"text": "generate practice problems on", "subtext": "Practice exercises", "type": "command", "category": "create"},
+            
+            # Learning & Explanation
+            {"text": "explain", "subtext": "Get AI explanation", "type": "command", "category": "learn"},
+            {"text": "explain like I'm 5", "subtext": "Simple explanation", "type": "command", "category": "learn"},
+            {"text": "explain step by step", "subtext": "Detailed walkthrough", "type": "command", "category": "learn"},
+            {"text": "teach me about", "subtext": "Learn a new topic", "type": "command", "category": "learn"},
+            {"text": "what is", "subtext": "Get definition", "type": "command", "category": "learn"},
+            {"text": "define", "subtext": "Get definition", "type": "command", "category": "learn"},
+            {"text": "how does", "subtext": "Understand mechanism", "type": "command", "category": "learn"},
+            {"text": "why does", "subtext": "Understand reasoning", "type": "command", "category": "learn"},
+            {"text": "when did", "subtext": "Historical context", "type": "command", "category": "learn"},
+            {"text": "who invented", "subtext": "Historical context", "type": "command", "category": "learn"},
+            {"text": "give examples of", "subtext": "See examples", "type": "command", "category": "learn"},
+            {"text": "show examples of", "subtext": "See examples", "type": "command", "category": "learn"},
+            
+            # Testing & Practice
+            {"text": "test me on", "subtext": "Quick quiz", "type": "command", "category": "test"},
+            {"text": "quiz me on", "subtext": "Quick quiz", "type": "command", "category": "test"},
+            {"text": "practice", "subtext": "Practice exercises", "type": "command", "category": "test"},
+            {"text": "challenge me on", "subtext": "Harder questions", "type": "command", "category": "test"},
+            {"text": "random flashcard", "subtext": "Surprise me", "type": "command", "category": "test"},
+            {"text": "daily review", "subtext": "Start daily practice", "type": "command", "category": "test"},
+            {"text": "start study session", "subtext": "Begin studying", "type": "command", "category": "test"},
+            
+            # Analysis & Comparison
+            {"text": "compare", "subtext": "Compare topics", "type": "command", "category": "analyze"},
+            {"text": "difference between", "subtext": "Compare two things", "type": "command", "category": "analyze"},
+            {"text": "pros and cons of", "subtext": "Analyze benefits/drawbacks", "type": "command", "category": "analyze"},
+            {"text": "advantages of", "subtext": "List benefits", "type": "command", "category": "analyze"},
+            {"text": "disadvantages of", "subtext": "List drawbacks", "type": "command", "category": "analyze"},
+            {"text": "summarize", "subtext": "Get summary", "type": "command", "category": "analyze"},
+            {"text": "tldr", "subtext": "Quick summary", "type": "command", "category": "analyze"},
+            {"text": "key points of", "subtext": "Main takeaways", "type": "command", "category": "analyze"},
+            
+            # Progress & Analytics
+            {"text": "what is my learning style", "subtext": "AI analysis", "type": "command", "category": "progress"},
+            {"text": "show my weak areas", "subtext": "Find knowledge gaps", "type": "command", "category": "progress"},
+            {"text": "what am I weak at", "subtext": "Find knowledge gaps", "type": "command", "category": "progress"},
+            {"text": "show my progress", "subtext": "View statistics", "type": "command", "category": "progress"},
+            {"text": "how am I doing", "subtext": "Performance overview", "type": "command", "category": "progress"},
+            {"text": "my statistics", "subtext": "View analytics", "type": "command", "category": "progress"},
+            {"text": "my achievements", "subtext": "View badges", "type": "command", "category": "progress"},
+            {"text": "show knowledge gaps", "subtext": "Find blind spots", "type": "command", "category": "progress"},
+            
+            # Scheduling & Planning
+            {"text": "what's due today", "subtext": "Review schedule", "type": "command", "category": "schedule"},
+            {"text": "what should I study", "subtext": "Get recommendations", "type": "command", "category": "schedule"},
+            {"text": "what to review", "subtext": "Spaced repetition", "type": "command", "category": "schedule"},
+            {"text": "optimize my retention", "subtext": "Spaced repetition", "type": "command", "category": "schedule"},
+            {"text": "predict what I'll forget", "subtext": "Forgetting curve", "type": "command", "category": "schedule"},
+            {"text": "suggest break times", "subtext": "Rest schedule", "type": "command", "category": "schedule"},
+            {"text": "am I burning out", "subtext": "Burnout detection", "type": "command", "category": "schedule"},
+            {"text": "when should I study", "subtext": "Optimal times", "type": "command", "category": "schedule"},
+            
+            # Search & Find
+            {"text": "find my flashcards on", "subtext": "Search flashcards", "type": "command", "category": "search"},
+            {"text": "find my notes on", "subtext": "Search notes", "type": "command", "category": "search"},
+            {"text": "search for", "subtext": "Search content", "type": "command", "category": "search"},
+            {"text": "show me my", "subtext": "View content", "type": "command", "category": "search"},
+            {"text": "get my", "subtext": "Retrieve content", "type": "command", "category": "search"},
+            
+            # How-to & Instructions
+            {"text": "how to", "subtext": "Step-by-step guide", "type": "command", "category": "howto"},
+            {"text": "steps to", "subtext": "Instructions", "type": "command", "category": "howto"},
+            {"text": "guide for", "subtext": "Tutorial", "type": "command", "category": "howto"},
+            {"text": "tutorial on", "subtext": "Learn how", "type": "command", "category": "howto"},
+            
+            # History & Timeline
+            {"text": "timeline of", "subtext": "Historical events", "type": "command", "category": "history"},
+            {"text": "history of", "subtext": "Background info", "type": "command", "category": "history"},
+            {"text": "evolution of", "subtext": "How it developed", "type": "command", "category": "history"},
+            
+            # Prerequisites & Resources
+            {"text": "prerequisites for", "subtext": "What to learn first", "type": "command", "category": "resources"},
+            {"text": "what do I need to know before", "subtext": "Prerequisites", "type": "command", "category": "resources"},
+            {"text": "resources for", "subtext": "Learning materials", "type": "command", "category": "resources"},
+            {"text": "books about", "subtext": "Reading recommendations", "type": "command", "category": "resources"},
+            {"text": "videos about", "subtext": "Video recommendations", "type": "command", "category": "resources"},
+            
+            # Social & Collaboration
+            {"text": "find study buddy", "subtext": "Find partners", "type": "command", "category": "social"},
+            {"text": "challenge a friend", "subtext": "Quiz battle", "type": "command", "category": "social"},
+            {"text": "find my study twin", "subtext": "Similar learners", "type": "command", "category": "social"},
+            
+            # Difficulty & Adaptation
+            {"text": "adapt difficulty", "subtext": "Adjust to my level", "type": "command", "category": "adapt"},
+            {"text": "make it easier", "subtext": "Simplify content", "type": "command", "category": "adapt"},
+            {"text": "make it harder", "subtext": "More challenge", "type": "command", "category": "adapt"},
+            {"text": "simplify", "subtext": "Easier explanation", "type": "command", "category": "adapt"},
+            
+            # Quick Actions
+            {"text": "review flashcards", "subtext": "Start review", "type": "command", "category": "quick"},
+            {"text": "continue studying", "subtext": "Resume session", "type": "command", "category": "quick"},
+            {"text": "take a break", "subtext": "Rest reminder", "type": "command", "category": "quick"},
+            {"text": "export my", "subtext": "Download content", "type": "command", "category": "quick"},
+            {"text": "remind me to study", "subtext": "Set reminder", "type": "command", "category": "quick"},
+        ]
+        
+        # Get user's topics for personalized suggestions
+        user_topics = []
+        
+        # Get topics from flashcard sets (most recent)
+        flashcard_topics = db.query(models.FlashcardSet.title).filter(
+            models.FlashcardSet.user_id == user.id
+        ).order_by(models.FlashcardSet.updated_at.desc()).limit(10).all()
+        user_topics.extend([t[0] for t in flashcard_topics if t[0]])
+        
+        # Get topics from notes
+        note_topics = db.query(models.Note.title).filter(
+            models.Note.user_id == user.id,
+            models.Note.is_deleted == False
+        ).order_by(models.Note.updated_at.desc()).limit(5).all()
+        user_topics.extend([t[0] for t in note_topics if t[0]])
+        
+        # Get topics from chat sessions
+        chat_topics = db.query(models.ChatSession.title).filter(
+            models.ChatSession.user_id == user.id,
+            models.ChatSession.title != "New Chat",
+            models.ChatSession.title != None
+        ).order_by(models.ChatSession.updated_at.desc()).limit(5).all()
+        user_topics.extend([t[0] for t in chat_topics if t[0]])
+        
+        # Deduplicate and clean topics
+        seen_topics = set()
+        unique_topics = []
+        for topic in user_topics:
+            topic_lower = topic.lower().strip()
+            if topic_lower not in seen_topics and len(topic) > 2:
+                seen_topics.add(topic_lower)
+                unique_topics.append(topic)
+        user_topics = unique_topics[:8]  # Keep top 8 unique topics
+        
+        # Commands that need topic suggestions (end with prepositions)
+        topic_commands = [
+            "create flashcards on", "create a quiz on", "create a note on", 
+            "create study plan for", "create mind map for", "generate practice problems on",
+            "explain", "teach me about", "what is", "define", "how does", "why does",
+            "give examples of", "show examples of", "test me on", "quiz me on",
+            "challenge me on", "compare", "difference between", "pros and cons of",
+            "summarize", "key points of", "find my flashcards on", "find my notes on",
+            "search for", "how to", "steps to", "guide for", "tutorial on",
+            "timeline of", "history of", "evolution of", "prerequisites for",
+            "resources for", "books about", "videos about", "simplify", "mind map for"
+        ]
+        
+        # Match commands - prioritize exact prefix matches
+        matched_commands = []
+        for cmd in commands:
+            cmd_lower = cmd["text"].lower()
+            # Exact prefix match (highest priority)
+            if cmd_lower.startswith(query_lower):
+                cmd["priority"] = 1
+                matched_commands.append(cmd)
+            # Contains match
+            elif query_lower in cmd_lower:
+                cmd["priority"] = 2
+                matched_commands.append(cmd)
+            # First word match
+            elif query_lower.split()[0] in cmd_lower.split()[0] if query_lower else False:
+                cmd["priority"] = 3
+                matched_commands.append(cmd)
+        
+        # Sort by priority and take top matches
+        matched_commands.sort(key=lambda x: x.get("priority", 99))
+        
+        for cmd in matched_commands[:4]:  # Limit to 4 command suggestions
+            cmd_text = cmd["text"]
+            
+            # If query has more words after the command prefix, append topic
+            if " " in query:
+                words = query.split()
+                cmd_words = cmd_text.split()
+                if len(words) > len(cmd_words):
+                    topic = " ".join(words[len(cmd_words):])
+                    if topic.strip():
+                        suggestions.append({
+                            "text": f"{cmd_text} {topic}",
+                            "subtext": cmd["subtext"],
+                            "type": "command",
+                            "category": cmd.get("category", "")
+                        })
+                        continue
+            
+            # Check if this command should have topic suggestions
+            is_topic_command = any(cmd_text.lower().startswith(tc.lower()) for tc in topic_commands)
+            
+            if is_topic_command and user_topics:
+                # Add command with first matching/relevant topic
+                for topic in user_topics[:2]:  # Add up to 2 topic variations
+                    suggestions.append({
+                        "text": f"{cmd_text} {topic}",
+                        "subtext": f"{cmd['subtext']} • Based on your content",
+                        "type": "command",
+                        "category": cmd.get("category", "")
+                    })
+            else:
+                # Add command without topic
+                suggestions.append({
+                    "text": cmd_text,
+                    "subtext": cmd["subtext"],
+                    "type": "command",
+                    "category": cmd.get("category", "")
+                })
+        
+        # 2. Matching content titles
+        search_term = f"%{query_lower}%"
+        
+        # Flashcard sets
+        flashcard_sets = db.query(models.FlashcardSet).filter(
+            models.FlashcardSet.user_id == user.id,
+            func.lower(models.FlashcardSet.title).like(search_term)
+        ).order_by(models.FlashcardSet.updated_at.desc()).limit(3).all()
+        
+        for fset in flashcard_sets:
+            card_count = db.query(models.Flashcard).filter(models.Flashcard.set_id == fset.id).count()
+            suggestions.append({
+                "text": fset.title,
+                "subtext": f"Flashcard Set • {card_count} cards",
+                "type": "content",
+                "contentType": "flashcard_set",
+                "id": fset.id
+            })
+        
+        # Notes
+        notes = db.query(models.Note).filter(
+            models.Note.user_id == user.id,
+            models.Note.is_deleted == False,
+            func.lower(models.Note.title).like(search_term)
+        ).order_by(models.Note.updated_at.desc()).limit(3).all()
+        
+        for note in notes:
+            suggestions.append({
+                "text": note.title,
+                "subtext": "Note",
+                "type": "content",
+                "contentType": "note",
+                "id": note.id
+            })
+        
+        # Chat sessions
+        chats = db.query(models.ChatSession).filter(
+            models.ChatSession.user_id == user.id,
+            func.lower(models.ChatSession.title).like(search_term)
+        ).order_by(models.ChatSession.updated_at.desc()).limit(2).all()
+        
+        for chat in chats:
+            if chat.title and chat.title != "New Chat":
+                suggestions.append({
+                    "text": chat.title,
+                    "subtext": "Chat Session",
+                    "type": "content",
+                    "contentType": "chat",
+                    "id": chat.id
+                })
+        
+        # 4. AI-powered suggestions for partial queries
+        if len(suggestions) < 5 and len(query) >= 3:
+            # Add search suggestion
+            suggestions.append({
+                "text": query,
+                "subtext": f"Search for '{query}'",
+                "type": "suggestion"
+            })
+        
+        # Deduplicate and limit
+        seen = set()
+        unique_suggestions = []
+        for s in suggestions:
+            key = s["text"].lower()
+            if key not in seen:
+                seen.add(key)
+                unique_suggestions.append(s)
+        
+        return {"suggestions": unique_suggestions[:12]}
+        
+    except Exception as e:
+        logger.error(f"Autocomplete error: {str(e)}")
+        return {"suggestions": []}
+
+
+@app.post("/api/natural_language_search")
+async def natural_language_search(
+    user_id: str = Form(...),
+    query: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Handle natural language search queries with filters.
+    Examples: "show me hard flashcards I haven't reviewed", "notes from last week", "easy flashcards on math"
+    """
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            return {"results": [], "total_results": 0, "parsed_filters": {}}
+        
+        # Use AI to parse the natural language query into structured filters
+        ai_prompt = f"""Parse this natural language search query into structured filters.
+
+QUERY: "{query}"
+
+Extract these filters if mentioned:
+- content_type: "flashcard", "flashcard_set", "note", "chat", "question_set", or "all"
+- difficulty: "easy", "medium", "hard", or null
+- reviewed: true (reviewed), false (not reviewed), or null
+- topic: the subject/topic being searched for, or null
+- time_filter: "today", "yesterday", "last_week", "last_month", or null
+- marked_for_review: true or false
+- sort_by: "newest", "oldest", "difficulty", or null
+
+Return ONLY a JSON object (no markdown):
+{{
+  "content_type": "string or null",
+  "difficulty": "string or null",
+  "reviewed": "boolean or null",
+  "topic": "string or null",
+  "time_filter": "string or null",
+  "marked_for_review": "boolean or null",
+  "sort_by": "string or null"
+}}
+
+Examples:
+Query: "show me hard flashcards I haven't reviewed"
+{{"content_type": "flashcard", "difficulty": "hard", "reviewed": false, "topic": null, "time_filter": null, "marked_for_review": null, "sort_by": null}}
+
+Query: "notes from last week about physics"
+{{"content_type": "note", "difficulty": null, "reviewed": null, "topic": "physics", "time_filter": "last_week", "marked_for_review": null, "sort_by": null}}
+
+Query: "easy flashcards on math that need review"
+{{"content_type": "flashcard", "difficulty": "easy", "reviewed": null, "topic": "math", "time_filter": null, "marked_for_review": true, "sort_by": null}}
+
+NOW PARSE: "{query}"
+"""
+        
+        ai_response = call_ai(ai_prompt, max_tokens=200, temperature=0.1)
+        ai_response_clean = ai_response.strip()
+        
+        # Remove markdown if present
+        if ai_response_clean.startswith('```'):
+            lines = ai_response_clean.split('\n')
+            json_lines = [l for l in lines if not l.strip().startswith('```')]
+            ai_response_clean = '\n'.join(json_lines).strip()
+        
+        filters = json.loads(ai_response_clean)
+        logger.info(f"Parsed natural language filters: {filters}")
+        
+        results = []
+        
+        # Build query based on parsed filters
+        content_type = filters.get("content_type", "all")
+        difficulty = filters.get("difficulty")
+        reviewed = filters.get("reviewed")
+        topic = filters.get("topic")
+        time_filter = filters.get("time_filter")
+        marked_for_review = filters.get("marked_for_review")
+        
+        # Calculate date filter
+        date_from = None
+        if time_filter:
+            now = datetime.now(timezone.utc)
+            if time_filter == "today":
+                date_from = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            elif time_filter == "yesterday":
+                date_from = (now - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+            elif time_filter == "last_week":
+                date_from = now - timedelta(days=7)
+            elif time_filter == "last_month":
+                date_from = now - timedelta(days=30)
+        
+        # Search flashcards
+        if content_type in ["flashcard", "all"]:
+            query_builder = db.query(models.Flashcard).join(models.FlashcardSet).filter(
+                models.FlashcardSet.user_id == user.id
+            )
+            
+            if difficulty:
+                query_builder = query_builder.filter(models.Flashcard.difficulty == difficulty)
+            
+            if reviewed is not None:
+                if reviewed:
+                    query_builder = query_builder.filter(models.Flashcard.times_reviewed > 0)
+                else:
+                    query_builder = query_builder.filter(models.Flashcard.times_reviewed == 0)
+            
+            if marked_for_review:
+                query_builder = query_builder.filter(models.Flashcard.marked_for_review == True)
+            
+            if topic:
+                topic_term = f"%{topic.lower()}%"
+                query_builder = query_builder.filter(
+                    or_(
+                        func.lower(models.Flashcard.question).like(topic_term),
+                        func.lower(models.Flashcard.answer).like(topic_term),
+                        func.lower(models.FlashcardSet.title).like(topic_term)
+                    )
+                )
+            
+            if date_from:
+                query_builder = query_builder.filter(models.Flashcard.created_at >= date_from)
+            
+            flashcards = query_builder.limit(50).all()
+            
+            for card in flashcards:
+                fset = db.query(models.FlashcardSet).filter(models.FlashcardSet.id == card.set_id).first()
+                results.append({
+                    "id": card.id,
+                    "type": "flashcard",
+                    "title": card.question[:100] if card.question else "Flashcard",
+                    "description": card.answer[:200] if card.answer else "",
+                    "created_at": card.created_at.isoformat() if card.created_at else None,
+                    "set_name": fset.title if fset else None,
+                    "set_id": card.set_id,
+                    "difficulty": card.difficulty,
+                    "times_reviewed": card.times_reviewed,
+                    "marked_for_review": card.marked_for_review,
+                    "smart_actions": get_smart_actions({"type": "flashcard"})
+                })
+        
+        # Search flashcard sets
+        if content_type in ["flashcard_set", "all"]:
+            query_builder = db.query(models.FlashcardSet).filter(
+                models.FlashcardSet.user_id == user.id
+            )
+            
+            if topic:
+                topic_term = f"%{topic.lower()}%"
+                query_builder = query_builder.filter(
+                    or_(
+                        func.lower(models.FlashcardSet.title).like(topic_term),
+                        func.lower(models.FlashcardSet.description).like(topic_term)
+                    )
+                )
+            
+            if date_from:
+                query_builder = query_builder.filter(models.FlashcardSet.created_at >= date_from)
+            
+            flashcard_sets = query_builder.limit(50).all()
+            
+            for fset in flashcard_sets:
+                card_count = db.query(models.Flashcard).filter(models.Flashcard.set_id == fset.id).count()
+                results.append({
+                    "id": fset.id,
+                    "type": "flashcard_set",
+                    "title": fset.title or "Untitled Set",
+                    "description": fset.description or "",
+                    "created_at": fset.created_at.isoformat() if fset.created_at else None,
+                    "card_count": card_count,
+                    "smart_actions": get_smart_actions({"type": "flashcard_set"})
+                })
+        
+        # Search notes
+        if content_type in ["note", "all"]:
+            query_builder = db.query(models.Note).filter(
+                models.Note.user_id == user.id,
+                models.Note.is_deleted == False
+            )
+            
+            if topic:
+                topic_term = f"%{topic.lower()}%"
+                query_builder = query_builder.filter(
+                    or_(
+                        func.lower(models.Note.title).like(topic_term),
+                        func.lower(models.Note.content).like(topic_term)
+                    )
+                )
+            
+            if date_from:
+                query_builder = query_builder.filter(models.Note.created_at >= date_from)
+            
+            notes = query_builder.limit(50).all()
+            
+            for note in notes:
+                results.append({
+                    "id": note.id,
+                    "type": "note",
+                    "title": note.title or "Untitled Note",
+                    "description": note.content[:200] if note.content else "",
+                    "created_at": note.created_at.isoformat() if note.created_at else None,
+                    "smart_actions": get_smart_actions({"type": "note"})
+                })
+        
+        # Sort results
+        sort_by = filters.get("sort_by")
+        if sort_by == "newest":
+            results.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        elif sort_by == "oldest":
+            results.sort(key=lambda x: x.get('created_at', ''))
+        elif sort_by == "difficulty":
+            difficulty_order = {"easy": 0, "medium": 1, "hard": 2}
+            results.sort(key=lambda x: difficulty_order.get(x.get('difficulty', 'medium'), 1))
+        else:
+            results.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        # Generate filter description
+        filter_desc = generate_filter_description(filters)
         
         return {
             "total_results": len(results),
             "results": results,
-            "query": query
+            "query": query,
+            "parsed_filters": filters,
+            "filter_description": filter_desc
         }
         
     except Exception as e:
-        logger.error(f"Search error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+        logger.error(f"Natural language search error: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return {"results": [], "total_results": 0, "error": str(e)}
 
 
+def generate_filter_description(filters: dict) -> str:
+    """Generate a human-readable description of the applied filters."""
+    parts = []
+    
+    if filters.get("content_type") and filters["content_type"] != "all":
+        parts.append(f"{filters['content_type']}s")
+    
+    if filters.get("difficulty"):
+        parts.append(f"{filters['difficulty']} difficulty")
+    
+    if filters.get("reviewed") is not None:
+        parts.append("reviewed" if filters["reviewed"] else "not reviewed")
+    
+    if filters.get("marked_for_review"):
+        parts.append("marked for review")
+    
+    if filters.get("topic"):
+        parts.append(f"about '{filters['topic']}'")
+    
+    if filters.get("time_filter"):
+        time_map = {
+            "today": "from today",
+            "yesterday": "from yesterday",
+            "last_week": "from last week",
+            "last_month": "from last month"
+        }
+        parts.append(time_map.get(filters["time_filter"], ""))
+    
+    if parts:
+        return "Showing " + ", ".join(parts)
+    return "Showing all results"
 
 
 @app.post("/api/detect_search_intent")
@@ -15311,6 +16104,133 @@ async def detect_search_intent(
                 "parameters": {},
                 "endpoint": "/api/search_content",
                 "method": "POST"
+            },
+            # NEW NLP ACTIONS
+            "compare_topics": {
+                "description": "Compare two or more topics",
+                "parameters": {"topics": "array of strings (2+ topics to compare)"},
+                "endpoint": None,  # Navigate to AI chat
+                "method": None
+            },
+            "explain_like_im_five": {
+                "description": "Explain a concept in very simple terms",
+                "parameters": {"topic": "string (required)"},
+                "endpoint": None,  # Navigate to AI chat
+                "method": None
+            },
+            "give_examples": {
+                "description": "Provide examples of a concept",
+                "parameters": {"topic": "string (required)", "count": "integer (optional)"},
+                "endpoint": None,  # Navigate to AI chat
+                "method": None
+            },
+            "test_me": {
+                "description": "Quick test/quiz on a topic",
+                "parameters": {"topic": "string (required)", "difficulty": "string (optional)"},
+                "endpoint": None,  # Navigate to solo quiz
+                "method": None
+            },
+            "define": {
+                "description": "Get definition of a term",
+                "parameters": {"term": "string (required)"},
+                "endpoint": None,  # Navigate to AI chat
+                "method": None
+            },
+            "list_prerequisites": {
+                "description": "List prerequisites for learning a topic",
+                "parameters": {"topic": "string (required)"},
+                "endpoint": None,  # Navigate to AI chat
+                "method": None
+            },
+            "suggest_resources": {
+                "description": "Suggest learning resources for a topic",
+                "parameters": {"topic": "string (required)"},
+                "endpoint": None,  # Navigate to AI chat
+                "method": None
+            },
+            "practice_problems": {
+                "description": "Generate practice problems",
+                "parameters": {"topic": "string (required)", "difficulty": "string (optional)", "count": "integer (optional)"},
+                "endpoint": None,  # Navigate to AI chat
+                "method": None
+            },
+            "summarize_topic": {
+                "description": "Get a summary of a topic",
+                "parameters": {"topic": "string (required)", "length": "string (short/medium/long)"},
+                "endpoint": None,  # Navigate to AI chat
+                "method": None
+            },
+            "show_statistics": {
+                "description": "Show learning statistics and analytics",
+                "parameters": {"timeframe": "string (optional: today/week/month/all)"},
+                "endpoint": None,  # Navigate to dashboard
+                "method": None
+            },
+            "set_goal": {
+                "description": "Set a learning goal",
+                "parameters": {"goal": "string (required)", "deadline": "string (optional)"},
+                "endpoint": None,  # Navigate to dashboard
+                "method": None
+            },
+            "remind_me": {
+                "description": "Set a study reminder",
+                "parameters": {"topic": "string (required)", "time": "string (optional)"},
+                "endpoint": None,  # Create reminder
+                "method": None
+            },
+            "export_content": {
+                "description": "Export flashcards or notes",
+                "parameters": {"content_type": "string (flashcards/notes)", "topic": "string (optional)"},
+                "endpoint": None,  # Navigate to export
+                "method": None
+            },
+            "how_to": {
+                "description": "Get step-by-step instructions",
+                "parameters": {"task": "string (required)"},
+                "endpoint": None,  # Navigate to AI chat
+                "method": None
+            },
+            "pros_and_cons": {
+                "description": "List pros and cons of something",
+                "parameters": {"topic": "string (required)"},
+                "endpoint": None,  # Navigate to AI chat
+                "method": None
+            },
+            "timeline": {
+                "description": "Get a timeline of events or history",
+                "parameters": {"topic": "string (required)"},
+                "endpoint": None,  # Navigate to AI chat
+                "method": None
+            },
+            "mind_map": {
+                "description": "Create a mind map of a topic",
+                "parameters": {"topic": "string (required)"},
+                "endpoint": None,  # Navigate to AI chat
+                "method": None
+            },
+            "flashcard_from_text": {
+                "description": "Generate flashcards from pasted text",
+                "parameters": {"text": "string (required)", "count": "integer (optional)"},
+                "endpoint": None,  # Navigate to flashcard creator
+                "method": None
+            },
+            "daily_review": {
+                "description": "Start daily review session",
+                "parameters": {},
+                "endpoint": None,  # Navigate to review
+                "method": None
+            },
+            "whats_due": {
+                "description": "Show what's due for review today",
+                "parameters": {},
+                "endpoint": "/api/adaptive/retention",
+                "method": "GET"
+            },
+            "random_flashcard": {
+                "description": "Show a random flashcard",
+                "parameters": {"topic": "string (optional)"},
+                "endpoint": None,  # Navigate to flashcards
+                "method": None
             }
         }
         
@@ -15390,6 +16310,59 @@ Query: "show me my content on math"
 
 Query: "do I have any notes on physics"
 {{"intent": "search", "action": null, "parameters": {{}}, "confidence": 0.90}}
+
+ADDITIONAL NLP EXAMPLES:
+
+Query: "compare python and javascript"
+{{"intent": "action", "action": "compare_topics", "parameters": {{"topics": ["python", "javascript"]}}, "confidence": 0.95}}
+
+Query: "explain quantum physics like I'm 5"
+{{"intent": "action", "action": "explain_like_im_five", "parameters": {{"topic": "quantum physics"}}, "confidence": 0.98}}
+
+Query: "give me 5 examples of recursion"
+{{"intent": "action", "action": "give_examples", "parameters": {{"topic": "recursion", "count": 5}}, "confidence": 0.95}}
+
+Query: "test me on calculus"
+{{"intent": "action", "action": "test_me", "parameters": {{"topic": "calculus"}}, "confidence": 0.95}}
+
+Query: "what is photosynthesis"
+{{"intent": "action", "action": "define", "parameters": {{"term": "photosynthesis"}}, "confidence": 0.90}}
+
+Query: "what do I need to know before learning machine learning"
+{{"intent": "action", "action": "list_prerequisites", "parameters": {{"topic": "machine learning"}}, "confidence": 0.92}}
+
+Query: "give me practice problems on algebra"
+{{"intent": "action", "action": "practice_problems", "parameters": {{"topic": "algebra"}}, "confidence": 0.95}}
+
+Query: "summarize world war 2 in short"
+{{"intent": "action", "action": "summarize_topic", "parameters": {{"topic": "world war 2", "length": "short"}}, "confidence": 0.93}}
+
+Query: "how am I doing this week"
+{{"intent": "action", "action": "show_statistics", "parameters": {{"timeframe": "week"}}, "confidence": 0.88}}
+
+Query: "remind me to study biology tomorrow"
+{{"intent": "action", "action": "remind_me", "parameters": {{"topic": "biology", "time": "tomorrow"}}, "confidence": 0.90}}
+
+Query: "how to solve quadratic equations"
+{{"intent": "action", "action": "how_to", "parameters": {{"task": "solve quadratic equations"}}, "confidence": 0.92}}
+
+Query: "pros and cons of renewable energy"
+{{"intent": "action", "action": "pros_and_cons", "parameters": {{"topic": "renewable energy"}}, "confidence": 0.95}}
+
+Query: "timeline of the french revolution"
+{{"intent": "action", "action": "timeline", "parameters": {{"topic": "french revolution"}}, "confidence": 0.95}}
+
+Query: "what's due today"
+{{"intent": "action", "action": "whats_due", "parameters": {{}}, "confidence": 0.95}}
+
+Query: "start my daily review"
+{{"intent": "action", "action": "daily_review", "parameters": {{}}, "confidence": 0.95}}
+
+Query: "show me a random flashcard"
+{{"intent": "action", "action": "random_flashcard", "parameters": {{}}, "confidence": 0.92}}
+
+Query: "quiz me on hard chemistry questions"
+{{"intent": "action", "action": "test_me", "parameters": {{"topic": "chemistry", "difficulty": "hard"}}, "confidence": 0.95}}
 
 NOW ANALYZE THIS QUERY AND RETURN ONLY THE JSON:
 "{query}"
@@ -15722,7 +16695,39 @@ async def get_weak_areas(
             except:
                 pass
         
-        # 2. Check flashcard performance
+        # 2. Check solo quiz performance
+        solo_quizzes = db.query(models.SoloQuiz).filter(
+            models.SoloQuiz.user_id == user.id,
+            models.SoloQuiz.completed == True
+        ).all()
+        
+        # Group quizzes by subject and calculate average score
+        quiz_performance = {}
+        for quiz in solo_quizzes:
+            subject = quiz.subject
+            if subject not in quiz_performance:
+                quiz_performance[subject] = {"total_score": 0, "total_questions": 0, "quiz_count": 0}
+            
+            quiz_performance[subject]["total_score"] += quiz.score
+            quiz_performance[subject]["total_questions"] += quiz.question_count
+            quiz_performance[subject]["quiz_count"] += 1
+        
+        # Find weak subjects from quizzes (less than 60% accuracy)
+        for subject, perf in quiz_performance.items():
+            if perf["total_questions"] > 0:
+                accuracy = (perf["total_score"] / perf["total_questions"]) * 100
+                
+                if accuracy < 60:  # Less than 60% accuracy
+                    weak_areas.append({
+                        "id": len(weak_areas) + 1,
+                        "type": "quiz_subject",
+                        "title": subject,
+                        "description": f"Quiz accuracy: {accuracy:.1f}% across {perf['quiz_count']} quiz(es) - Needs more practice",
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                        "accuracy": accuracy
+                    })
+        
+        # 3. Check flashcard performance
         flashcard_sets = db.query(models.FlashcardSet).filter(
             models.FlashcardSet.user_id == user.id
         ).all()
@@ -15746,12 +16751,12 @@ async def get_weak_areas(
                             "id": len(weak_areas) + 1,
                             "type": "flashcard_set",
                             "title": fset.title,
-                            "description": f"Accuracy: {accuracy:.1f}% - Needs more practice",
+                            "description": f"Flashcard accuracy: {accuracy:.1f}% - Needs more practice",
                             "created_at": fset.created_at.isoformat() if fset.created_at else None,
                             "set_id": fset.id
                         })
         
-        # 3. If still no weak areas, suggest topics based on user activity
+        # 4. If still no weak areas, suggest topics based on user activity
         if len(weak_areas) == 0:
             # Get topics from flashcard sets
             recent_sets = db.query(models.FlashcardSet).filter(
@@ -15782,7 +16787,7 @@ async def get_weak_areas(
                     "created_at": note.updated_at.isoformat() if note.updated_at else None
                 })
         
-        # 4. If STILL no weak areas, suggest based on field of study
+        # 5. If STILL no weak areas, suggest based on field of study
         if len(weak_areas) == 0:
             field_of_study = comprehensive_profile.field_of_study if comprehensive_profile else user.field_of_study
             
@@ -15812,6 +16817,10 @@ async def get_weak_areas(
                     "description": "Start building your knowledge base",
                     "created_at": datetime.now(timezone.utc).isoformat()
                 })
+        
+        # Sort weak areas by type priority: quiz_subject and flashcard_set first, then suggestions
+        type_priority = {"weak_area": 0, "quiz_subject": 1, "flashcard_set": 2, "suggestion": 3}
+        weak_areas.sort(key=lambda x: type_priority.get(x.get("type", "suggestion"), 3))
         
         logger.info(f"Returning {len(weak_areas)} weak areas/suggestions for user {user_id}")
         return {"weak_areas": weak_areas[:10]}  # Return top 10

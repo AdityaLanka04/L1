@@ -2450,7 +2450,7 @@
 }
 
 .quiz-card:hover {
-  box-shadow: 0 0 40px rgba(139, 92, 246, 0.2);
+  box-shadow: 0 0 40px var(--sh-accent-glow);
 }
 
 .shared-card:hover {

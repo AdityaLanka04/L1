@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRight, X, Filter, Calendar } from 'lucide-react';
+import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRight, X, Filter, Calendar, Play, HelpCircle, RefreshCw, Edit, MessageCircle, Target } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import './SearchHub.css';
 import { API_URL } from '../config/api';
@@ -41,6 +41,16 @@ const SearchHub = () => {
     date_from: '',
     date_to: ''
   });
+  
+  // AI Enhancement states
+  const [didYouMean, setDidYouMean] = useState(null);
+  const [relatedSearches, setRelatedSearches] = useState([]);
+  
+  // Autocomplete states (Google-style)
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [autocompleteResults, setAutocompleteResults] = useState([]);
+  const [selectedAutocompleteIndex, setSelectedAutocompleteIndex] = useState(-1);
+  const autocompleteDebounceRef = useRef(null);
 
   useEffect(() => {
     const username = localStorage.getItem('username');
@@ -195,9 +205,86 @@ const SearchHub = () => {
         { text: 'explain {topic}', icon: '💬', action: 'start_chat' },
         { text: 'explain {topic} step-by-step', icon: '📝', action: 'tutor_step_by_step' },
         { text: 'explain {topic} with analogies', icon: '🔄', action: 'create_analogies' },
+        { text: 'explain {topic} like I\'m 5', icon: '👶', action: 'explain_like_im_five' },
       ]},
       { pattern: 'help', suggestions: [
         { text: 'help me with {topic}', icon: '💬', action: 'start_chat' },
+      ]},
+      // NEW NLP PATTERNS
+      { pattern: 'compare', suggestions: [
+        { text: 'compare {topic}', icon: '⚖️', action: 'compare_topics' },
+      ]},
+      { pattern: 'test', suggestions: [
+        { text: 'test me on {topic}', icon: '📝', action: 'test_me' },
+        { text: 'test my knowledge of {topic}', icon: '🧠', action: 'test_me' },
+      ]},
+      { pattern: 'quiz', suggestions: [
+        { text: 'quiz me on {topic}', icon: '❓', action: 'test_me' },
+        { text: 'quick quiz on {topic}', icon: '⚡', action: 'test_me' },
+      ]},
+      { pattern: 'define', suggestions: [
+        { text: 'define {topic}', icon: '📖', action: 'define' },
+        { text: 'what is {topic}', icon: '❓', action: 'define' },
+      ]},
+      { pattern: 'example', suggestions: [
+        { text: 'give examples of {topic}', icon: '📝', action: 'give_examples' },
+        { text: 'show examples of {topic}', icon: '👁️', action: 'give_examples' },
+      ]},
+      { pattern: 'prerequisite', suggestions: [
+        { text: 'prerequisites for {topic}', icon: '📋', action: 'list_prerequisites' },
+        { text: 'what do I need to know before {topic}', icon: '🤔', action: 'list_prerequisites' },
+      ]},
+      { pattern: 'practice', suggestions: [
+        { text: 'practice problems on {topic}', icon: '✏️', action: 'practice_problems' },
+        { text: 'practice {topic}', icon: '💪', action: 'practice_problems' },
+      ]},
+      { pattern: 'summarize', suggestions: [
+        { text: 'summarize {topic}', icon: '📄', action: 'summarize_topic' },
+        { text: 'give me a summary of {topic}', icon: '📋', action: 'summarize_topic' },
+      ]},
+      { pattern: 'how', suggestions: [
+        { text: 'how to {topic}', icon: '🔧', action: 'how_to' },
+        { text: 'how do I {topic}', icon: '❓', action: 'how_to' },
+        { text: 'how am I doing', icon: '📊', action: 'show_statistics' },
+      ]},
+      { pattern: 'pros', suggestions: [
+        { text: 'pros and cons of {topic}', icon: '⚖️', action: 'pros_and_cons' },
+      ]},
+      { pattern: 'timeline', suggestions: [
+        { text: 'timeline of {topic}', icon: '📅', action: 'timeline' },
+        { text: 'history of {topic}', icon: '📜', action: 'timeline' },
+      ]},
+      { pattern: 'remind', suggestions: [
+        { text: 'remind me to study {topic}', icon: '⏰', action: 'remind_me' },
+        { text: 'remind me about {topic}', icon: '🔔', action: 'remind_me' },
+      ]},
+      { pattern: 'due', suggestions: [
+        { text: 'what\'s due today', icon: '📅', action: 'whats_due' },
+        { text: 'what do I need to review', icon: '📚', action: 'whats_due' },
+      ]},
+      { pattern: 'daily', suggestions: [
+        { text: 'start daily review', icon: '📚', action: 'daily_review' },
+        { text: 'daily practice', icon: '💪', action: 'daily_review' },
+      ]},
+      { pattern: 'random', suggestions: [
+        { text: 'random flashcard', icon: '🎲', action: 'random_flashcard' },
+        { text: 'surprise me with a flashcard', icon: '🎁', action: 'random_flashcard' },
+      ]},
+      { pattern: 'mind', suggestions: [
+        { text: 'mind map for {topic}', icon: '🧠', action: 'mind_map' },
+        { text: 'create mind map of {topic}', icon: '🗺️', action: 'mind_map' },
+      ]},
+      { pattern: 'resource', suggestions: [
+        { text: 'resources for {topic}', icon: '📚', action: 'suggest_resources' },
+        { text: 'learning resources for {topic}', icon: '🎓', action: 'suggest_resources' },
+      ]},
+      { pattern: 'export', suggestions: [
+        { text: 'export my flashcards', icon: '📤', action: 'export_content' },
+        { text: 'export my notes', icon: '📤', action: 'export_content' },
+      ]},
+      { pattern: 'stat', suggestions: [
+        { text: 'show my statistics', icon: '📊', action: 'show_statistics' },
+        { text: 'my stats this week', icon: '📈', action: 'show_statistics' },
       ]},
     ];
 
@@ -253,6 +340,61 @@ const SearchHub = () => {
     setSearchQuery(value);
     generateSuggestions(value);
     setSelectedSuggestionIndex(-1);
+    setSelectedAutocompleteIndex(-1);
+    
+    // Fetch autocomplete suggestions with debounce
+    if (autocompleteDebounceRef.current) {
+      clearTimeout(autocompleteDebounceRef.current);
+    }
+    
+    if (value.length >= 2) {
+      autocompleteDebounceRef.current = setTimeout(() => {
+        fetchAutocomplete(value);
+      }, 150); // 150ms debounce
+    } else {
+      setAutocompleteResults([]);
+      setShowAutocomplete(false);
+    }
+  };
+  
+  // Fetch autocomplete suggestions from backend
+  const fetchAutocomplete = async (query) => {
+    try {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      formData.append('user_id', userName);
+      formData.append('query', query);
+      
+      const response = await fetch(`${API_URL}/autocomplete`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAutocompleteResults(data.suggestions || []);
+        setShowAutocomplete(true);
+      }
+    } catch (error) {
+      console.error('Autocomplete error:', error);
+    }
+  };
+  
+  // Handle autocomplete item selection
+  const handleAutocompleteSelect = (item) => {
+    setSearchQuery(item.text);
+    setShowAutocomplete(false);
+    setAutocompleteResults([]);
+    
+    if (item.type === 'command') {
+      handleSearch(item.text);
+    } else if (item.type === 'content') {
+      // Navigate directly to the content
+      handleResultClick({ type: item.contentType, id: item.id, set_id: item.setId });
+    } else {
+      handleSearch(item.text);
+    }
   };
 
   const handleSuggestionClick = (suggestion) => {
@@ -325,6 +467,10 @@ const SearchHub = () => {
         const data = await response.json();
         console.log('✅ Search results:', data);
         setSearchResults(data);
+        
+        // Set AI enhancement data
+        setDidYouMean(data.did_you_mean || null);
+        setRelatedSearches(data.related_searches || []);
         
         if (data.total_results === 0) {
           console.log('💡 No results, getting AI suggestion...');
@@ -796,6 +942,231 @@ const SearchHub = () => {
           navigate('/ai-chat', { 
             state: { 
               initialMessage: searchQuery
+            } 
+          });
+          break;
+        
+        // NEW NLP ACTIONS
+        case 'compare_topics':
+          console.log('⚖️ Comparing topics:', parameters.topics);
+          navigate('/ai-chat', { 
+            state: { 
+              initialMessage: `Compare and contrast: ${parameters.topics?.join(' vs ') || searchQuery}`
+            } 
+          });
+          break;
+        
+        case 'explain_like_im_five':
+          console.log('👶 ELI5:', parameters.topic);
+          navigate('/ai-chat', { 
+            state: { 
+              initialMessage: `Explain ${parameters.topic || searchQuery} like I'm 5 years old. Use simple words and fun analogies.`
+            } 
+          });
+          break;
+        
+        case 'give_examples':
+          console.log('📝 Giving examples:', parameters.topic);
+          navigate('/ai-chat', { 
+            state: { 
+              initialMessage: `Give me ${parameters.count || 5} clear examples of ${parameters.topic || searchQuery}`
+            } 
+          });
+          break;
+        
+        case 'test_me':
+          console.log('📝 Testing on:', parameters.topic);
+          navigate('/solo-quiz', { 
+            state: { 
+              autoStart: true,
+              topics: [parameters.topic],
+              difficulty: parameters.difficulty || 'medium',
+              questionCount: 5
+            } 
+          });
+          break;
+        
+        case 'define':
+          console.log('📖 Defining:', parameters.term);
+          navigate('/ai-chat', { 
+            state: { 
+              initialMessage: `Define "${parameters.term || searchQuery}" clearly and concisely. Include etymology if interesting.`
+            } 
+          });
+          break;
+        
+        case 'list_prerequisites':
+          console.log('📋 Prerequisites for:', parameters.topic);
+          navigate('/ai-chat', { 
+            state: { 
+              initialMessage: `What are the prerequisites I need to know before learning ${parameters.topic || searchQuery}? List them in order from basic to advanced.`
+            } 
+          });
+          break;
+        
+        case 'suggest_resources':
+          console.log('📚 Resources for:', parameters.topic);
+          navigate('/ai-chat', { 
+            state: { 
+              initialMessage: `Suggest the best learning resources for ${parameters.topic || searchQuery}. Include books, websites, videos, and courses.`
+            } 
+          });
+          break;
+        
+        case 'practice_problems':
+          console.log('✏️ Practice problems for:', parameters.topic);
+          navigate('/ai-chat', { 
+            state: { 
+              initialMessage: `Give me ${parameters.count || 5} ${parameters.difficulty || 'medium'} difficulty practice problems on ${parameters.topic || searchQuery}. Include solutions.`
+            } 
+          });
+          break;
+        
+        case 'summarize_topic':
+          console.log('📄 Summarizing:', parameters.topic);
+          const lengthMap = { short: '2-3 sentences', medium: '1 paragraph', long: '3-4 paragraphs' };
+          navigate('/ai-chat', { 
+            state: { 
+              initialMessage: `Summarize ${parameters.topic || searchQuery} in ${lengthMap[parameters.length] || '1 paragraph'}.`
+            } 
+          });
+          break;
+        
+        case 'show_statistics':
+          console.log('📊 Showing statistics');
+          navigate('/dashboard', { 
+            state: { 
+              tab: 'analytics',
+              timeframe: parameters.timeframe || 'week'
+            } 
+          });
+          break;
+        
+        case 'set_goal':
+          console.log('🎯 Setting goal:', parameters.goal);
+          navigate('/dashboard', { 
+            state: { 
+              openGoalModal: true,
+              goalText: parameters.goal,
+              deadline: parameters.deadline
+            } 
+          });
+          break;
+        
+        case 'remind_me':
+          console.log('⏰ Setting reminder:', parameters.topic);
+          setAiSuggestion({
+            description: `I'll remind you to study ${parameters.topic}${parameters.time ? ` ${parameters.time}` : ''}. Reminders feature coming soon!`,
+            suggestions: []
+          });
+          setSearchResults({
+            total_results: 0,
+            results: [],
+            query: searchQuery,
+            action_executed: 'remind_me'
+          });
+          setIsSearching(false);
+          break;
+        
+        case 'export_content':
+          console.log('📤 Exporting content');
+          navigate('/settings', { 
+            state: { 
+              tab: 'export',
+              contentType: parameters.content_type,
+              topic: parameters.topic
+            } 
+          });
+          break;
+        
+        case 'how_to':
+          console.log('📝 How to:', parameters.task);
+          navigate('/ai-chat', { 
+            state: { 
+              initialMessage: `How do I ${parameters.task || searchQuery}? Give me step-by-step instructions.`
+            } 
+          });
+          break;
+        
+        case 'pros_and_cons':
+          console.log('⚖️ Pros and cons:', parameters.topic);
+          navigate('/ai-chat', { 
+            state: { 
+              initialMessage: `List the pros and cons of ${parameters.topic || searchQuery} in a clear table format.`
+            } 
+          });
+          break;
+        
+        case 'timeline':
+          console.log('📅 Timeline:', parameters.topic);
+          navigate('/ai-chat', { 
+            state: { 
+              initialMessage: `Create a timeline of key events for ${parameters.topic || searchQuery}. Include dates and brief descriptions.`
+            } 
+          });
+          break;
+        
+        case 'mind_map':
+          console.log('🧠 Mind map:', parameters.topic);
+          navigate('/ai-chat', { 
+            state: { 
+              initialMessage: `Create a text-based mind map for ${parameters.topic || searchQuery}. Show the main concept in the center with branches to related subtopics.`
+            } 
+          });
+          break;
+        
+        case 'daily_review':
+        case 'whats_due':
+          console.log('📚 Daily review / What\'s due');
+          setIsCreating(true);
+          setCreatingMessage('Finding items due for review...');
+          
+          try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_URL}/adaptive/retention?user_id=${userName}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (res.ok) {
+              const data = await res.json();
+              setIsCreating(false);
+              setIsSearching(false);
+              
+              const reviewResults = (data.due_reviews || []).map((review, idx) => ({
+                id: `review_${idx}`,
+                type: 'review_item',
+                title: review.topic,
+                description: `Mastery: ${(review.mastery_level * 100).toFixed(0)}% | ${review.days_overdue} days overdue`,
+                priority: review.priority
+              }));
+              
+              setAiSuggestion({
+                description: reviewResults.length > 0 
+                  ? `You have ${reviewResults.length} topics due for review today.`
+                  : `Great job! You're all caught up. Nothing due for review right now.`,
+                suggestions: []
+              });
+              
+              setSearchResults({
+                total_results: reviewResults.length,
+                results: reviewResults,
+                query: searchQuery,
+                action_executed: 'whats_due'
+              });
+            }
+          } catch (error) {
+            console.error('Error getting due items:', error);
+            setIsCreating(false);
+            setIsSearching(false);
+          }
+          break;
+        
+        case 'random_flashcard':
+          console.log('🎲 Random flashcard');
+          navigate('/flashcards', { 
+            state: { 
+              randomMode: true,
+              topic: parameters.topic
             } 
           });
           break;
@@ -1364,10 +1735,84 @@ const SearchHub = () => {
     }
   };
 
+  // Handle smart action clicks on search results
+  const handleSmartAction = (e, result, action) => {
+    e.stopPropagation(); // Prevent triggering the card click
+    
+    switch (action.action) {
+      case 'study':
+      case 'view_set':
+        navigate(`/flashcards?set_id=${result.set_id || result.id}`);
+        break;
+      case 'quiz':
+        navigate('/solo-quiz', { 
+          state: { 
+            autoStart: true,
+            topics: [result.title || result.set_name],
+            fromSearch: true
+          } 
+        });
+        break;
+      case 'review':
+        navigate(`/flashcards?set_id=${result.set_id || result.id}&review=true`);
+        break;
+      case 'edit':
+        navigate(`/notes/editor/${result.id}`);
+        break;
+      case 'create_flashcards':
+        navigate('/flashcards', { 
+          state: { 
+            autoCreate: true,
+            topic: result.title,
+            fromNote: result.type === 'note' ? result.id : null
+          } 
+        });
+        break;
+      case 'summarize':
+        navigate('/ai-chat', { 
+          state: { 
+            initialMessage: `Summarize my note titled "${result.title}"`
+          } 
+        });
+        break;
+      case 'continue':
+        navigate(`/ai-chat?session_id=${result.id}`);
+        break;
+      case 'start_quiz':
+      case 'practice':
+        navigate(`/solo-quiz`, { 
+          state: { 
+            questionSetId: result.id,
+            autoStart: true
+          } 
+        });
+        break;
+      default:
+        console.log('Unknown smart action:', action.action);
+    }
+  };
+
+  // Get icon for smart action
+  const getSmartActionIcon = (iconName) => {
+    switch (iconName) {
+      case 'play': return <Play size={14} />;
+      case 'help-circle': return <HelpCircle size={14} />;
+      case 'refresh-cw': return <RefreshCw size={14} />;
+      case 'edit': return <Edit size={14} />;
+      case 'layers': return <Layers size={14} />;
+      case 'file-text': return <FileText size={14} />;
+      case 'message-circle': return <MessageCircle size={14} />;
+      case 'target': return <Target size={14} />;
+      default: return <ChevronRight size={14} />;
+    }
+  };
+
   const clearSearch = () => {
     setSearchQuery('');
     setSearchResults(null);
     setAiSuggestion(null);
+    setDidYouMean(null);
+    setRelatedSearches([]);
     setShowFilters(false);
     setFilters({
       content_types: 'all',
@@ -1409,6 +1854,34 @@ const SearchHub = () => {
   };
 
   const handleKeyDown = (e) => {
+    // Handle autocomplete navigation first
+    if (showAutocomplete && autocompleteResults.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedAutocompleteIndex(prev => 
+          prev < autocompleteResults.length - 1 ? prev + 1 : 0
+        );
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedAutocompleteIndex(prev => 
+          prev > 0 ? prev - 1 : autocompleteResults.length - 1
+        );
+      } else if (e.key === 'Enter' && selectedAutocompleteIndex >= 0) {
+        e.preventDefault();
+        handleAutocompleteSelect(autocompleteResults[selectedAutocompleteIndex]);
+        return;
+      } else if (e.key === 'Escape') {
+        setShowAutocomplete(false);
+        setSelectedAutocompleteIndex(-1);
+        return;
+      } else if (e.key === 'Tab' && selectedAutocompleteIndex >= 0) {
+        e.preventDefault();
+        setSearchQuery(autocompleteResults[selectedAutocompleteIndex].text);
+        setShowAutocomplete(false);
+        return;
+      }
+    }
+    
     if (e.key === 'Enter') {
       if (selectedSuggestionIndex >= 0 && suggestions[selectedSuggestionIndex]) {
         // Use selected suggestion
@@ -1418,17 +1891,12 @@ const SearchHub = () => {
         handleSearch();
       }
       setShowSuggestions(false);
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setSelectedSuggestionIndex(prev => 
-        prev < suggestions.length - 1 ? prev + 1 : prev
-      );
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setSelectedSuggestionIndex(prev => prev > 0 ? prev - 1 : -1);
+      setShowAutocomplete(false);
     } else if (e.key === 'Escape') {
       setShowSuggestions(false);
+      setShowAutocomplete(false);
       setSelectedSuggestionIndex(-1);
+      setSelectedAutocompleteIndex(-1);
     }
   };
 
@@ -1557,7 +2025,37 @@ const SearchHub = () => {
                     value={searchQuery}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
+                    onFocus={() => searchQuery.length >= 2 && setShowAutocomplete(true)}
+                    onBlur={() => setTimeout(() => setShowAutocomplete(false), 200)}
+                    autoComplete="off"
                   />
+                  
+                  {/* Autocomplete Dropdown */}
+                  {showAutocomplete && autocompleteResults.length > 0 && (
+                    <div className="autocomplete-dropdown">
+                      {autocompleteResults.map((item, index) => (
+                        <div
+                          key={index}
+                          className={`autocomplete-item ${selectedAutocompleteIndex === index ? 'selected' : ''} ${item.type}`}
+                          onClick={() => handleAutocompleteSelect(item)}
+                          onMouseEnter={() => setSelectedAutocompleteIndex(index)}
+                        >
+                          <div className="autocomplete-icon">
+                            {item.type === 'command' && <Sparkles size={16} />}
+                            {item.type === 'content' && <FileText size={16} />}
+                            {item.type === 'recent' && <Clock size={16} />}
+                            {item.type === 'suggestion' && <Search size={16} />}
+                          </div>
+                          <div className="autocomplete-content">
+                            <span className="autocomplete-text">{item.text}</span>
+                            {item.subtext && <span className="autocomplete-subtext">{item.subtext}</span>}
+                          </div>
+                          {item.type === 'command' && <span className="autocomplete-badge">Command</span>}
+                          {item.type === 'content' && <span className="autocomplete-badge content">{item.contentType}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 
                 <div className="search-actions">
@@ -1764,11 +2262,50 @@ const SearchHub = () => {
                             )}
                           </div>
                           <span className="result-type">{result.type}</span>
+                          
+                          {/* Smart Actions */}
+                          {result.smart_actions && result.smart_actions.length > 0 && (
+                            <div className="smart-actions">
+                              {result.smart_actions.map((action, actionIndex) => (
+                                <button
+                                  key={actionIndex}
+                                  className="smart-action-btn"
+                                  onClick={(e) => handleSmartAction(e, result, action)}
+                                  title={action.label}
+                                >
+                                  {getSmartActionIcon(action.icon)}
+                                  <span>{action.label}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         <ChevronRight size={20} className="result-arrow" />
                       </div>
                     ))}
                   </div>
+                  
+                  {/* Related Searches */}
+                  {relatedSearches && relatedSearches.length > 0 && (
+                    <div className="related-searches">
+                      <h4>Related Searches</h4>
+                      <div className="related-searches-list">
+                        {relatedSearches.map((related, index) => (
+                          <button
+                            key={index}
+                            className="related-search-btn"
+                            onClick={() => {
+                              setSearchQuery(related);
+                              handleSearch(related);
+                            }}
+                          >
+                            <Search size={14} />
+                            {related}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               ) : aiSuggestion && searchResults.action_executed ? (
                 /* AI-Only Response (no search results needed) */
@@ -1826,6 +2363,22 @@ const SearchHub = () => {
                       ? "Great job! You don't have any weak areas yet!" 
                       : `No results found for "${searchQuery}"`}
                   </h2>
+                  
+                  {/* Did You Mean suggestion */}
+                  {didYouMean && (
+                    <div className="did-you-mean">
+                      <span>Did you mean: </span>
+                      <button 
+                        className="did-you-mean-btn"
+                        onClick={() => {
+                          setSearchQuery(didYouMean);
+                          handleSearch(didYouMean);
+                        }}
+                      >
+                        {didYouMean}
+                      </button>
+                    </div>
+                  )}
                   
                   {aiSuggestion && (
                     <div className="ai-suggestion">
