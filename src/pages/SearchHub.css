@@ -2504,6 +2504,16 @@ input[type="text"]:-webkit-autofill-and-obscured {
 
 /* ==================== NO RESULTS STATE ENHANCEMENTS ==================== */
 
+/* AI Response Section - for AI-only responses without search results */
+.search-hub-page .ai-response-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 36px;
+  padding: 60px 40px;
+  text-align: center;
+}
+
 .search-hub-page .no-results {
   display: flex;
   flex-direction: column;

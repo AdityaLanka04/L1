@@ -404,6 +404,311 @@
   gap: 0;
 }
 
+/* ==================== FILE VIEWER SECTION ==================== */
+.se-file-viewer-section {
+  background: var(--se-bg-secondary);
+  border: 1px solid var(--se-border-subtle);
+  border-radius: 12px;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.se-file-viewer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--se-border-subtle);
+  background: var(--se-bg-tertiary);
+}
+
+.se-file-viewer-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--se-text-primary);
+  margin: 0;
+}
+
+.se-file-viewer-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.se-file-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--se-bg-secondary);
+  border: 1px solid var(--se-border-subtle);
+  border-radius: 8px;
+  color: var(--se-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.se-file-action-btn:hover {
+  background: var(--se-accent);
+  border-color: var(--se-accent);
+  color: var(--se-bg-primary);
+}
+
+/* PDF Viewer */
+.se-pdf-viewer-container {
+  width: 100%;
+  height: 600px;
+  background: var(--se-bg-primary);
+}
+
+.se-pdf-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* PPT Viewer */
+.se-ppt-viewer-container {
+  padding: 0;
+}
+
+.se-ppt-embed-container {
+  width: 100%;
+  height: 500px;
+  background: var(--se-bg-primary);
+  position: relative;
+}
+
+.se-ppt-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #fff;
+}
+
+.se-ppt-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--se-bg-tertiary);
+  color: var(--se-text-secondary);
+}
+
+.se-ppt-fallback svg {
+  color: var(--se-accent);
+}
+
+.se-ppt-fallback h4 {
+  font-size: 16px;
+  color: var(--se-text-primary);
+}
+
+.se-ppt-fallback p {
+  font-size: 13px;
+}
+
+.se-ppt-preview-info-compact {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--se-bg-tertiary);
+  border-top: 1px solid var(--se-border-subtle);
+}
+
+.se-ppt-file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.se-ppt-file-info svg {
+  color: var(--se-accent);
+}
+
+.se-ppt-file-info h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--se-text-primary);
+  margin-bottom: 2px;
+}
+
+.se-ppt-file-info p {
+  font-size: 12px;
+  color: var(--se-text-secondary);
+  margin: 0;
+}
+
+.se-ppt-actions-compact {
+  display: flex;
+  gap: 10px;
+}
+
+.se-ppt-preview-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 20px;
+  background: var(--se-bg-tertiary);
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.se-ppt-preview-info svg {
+  color: var(--se-accent);
+  margin-bottom: 16px;
+}
+
+.se-ppt-preview-info h4 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--se-text-primary);
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
+.se-ppt-preview-info p {
+  font-size: 14px;
+  color: var(--se-text-secondary);
+  margin-bottom: 8px;
+}
+
+.se-ppt-hint {
+  font-size: 13px !important;
+  color: var(--se-text-secondary) !important;
+  max-width: 400px;
+  margin-bottom: 20px !important;
+}
+
+.se-ppt-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.se-ppt-open-btn,
+.se-ppt-download-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.se-ppt-open-btn {
+  background: linear-gradient(135deg, var(--se-accent), color-mix(in srgb, var(--se-accent) 85%, black));
+  color: var(--se-bg-primary);
+}
+
+.se-ppt-open-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--se-accent-glow);
+}
+
+.se-ppt-download-btn {
+  background: var(--se-bg-secondary);
+  border: 1px solid var(--se-border-subtle);
+  color: var(--se-text-primary);
+}
+
+.se-ppt-download-btn:hover {
+  border-color: var(--se-accent);
+  color: var(--se-accent);
+}
+
+/* PPT Thumbnails Grid */
+.se-ppt-thumbnails-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.se-ppt-thumbnail-card {
+  background: var(--se-bg-tertiary);
+  border: 2px solid var(--se-border-subtle);
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.se-ppt-thumbnail-card:hover {
+  border-color: var(--se-accent);
+  transform: translateY(-2px);
+}
+
+.se-ppt-thumbnail-card.active {
+  border-color: var(--se-accent);
+  box-shadow: 0 0 0 2px var(--se-accent-glow);
+}
+
+.se-ppt-thumbnail-img {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+  background: var(--se-bg-primary);
+}
+
+.se-ppt-thumbnail-placeholder {
+  width: 100%;
+  aspect-ratio: 16/9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: var(--se-bg-primary);
+  color: var(--se-text-secondary);
+}
+
+.se-ppt-thumbnail-label {
+  display: block;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--se-text-secondary);
+  text-align: center;
+  background: var(--se-bg-secondary);
+}
+
+.se-ppt-thumbnail-card.active .se-ppt-thumbnail-label {
+  color: var(--se-accent);
+  font-weight: 600;
+}
+
+/* Current Slide Label */
+.se-current-slide-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--se-text-primary);
+  margin: 0;
+}
+
+.se-slide-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.se-slide-preview-note {
+  font-size: 12px;
+  color: var(--se-text-secondary);
+  font-style: italic;
+}
+
 .se-slide-preview-full {
   background: var(--se-bg-secondary);
   border: 1px solid var(--se-border-subtle);

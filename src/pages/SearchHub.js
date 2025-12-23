@@ -68,12 +68,6 @@ const SearchHub = () => {
   };
 
   const loadPersonalizedPrompts = async (username) => {
-    // Temporarily disabled - endpoint not available
-    // Will use default prompts instead
-    setPersonalizedPrompts([]);
-    return;
-    
-    /* COMMENTED OUT UNTIL BACKEND IS RESTARTED
     try {
       const token = localStorage.getItem('token');
       const formData = new FormData();
@@ -88,12 +82,30 @@ const SearchHub = () => {
       if (response.ok) {
         const data = await response.json();
         // Ensure prompts have string values, not objects
-        const sanitizedPrompts = (data.prompts || []).map(prompt => ({
+        const userTopicPrompts = (data.prompts || []).map(prompt => ({
           ...prompt,
           text: typeof prompt.text === 'string' ? prompt.text : (prompt.text?.label || 'Unknown'),
           reason: typeof prompt.reason === 'string' ? prompt.reason : (prompt.reason?.label || null)
-        }));
-        setPersonalizedPrompts(sanitizedPrompts);
+        })).slice(0, 4); // Take first 4 topic-based prompts
+        
+        // Add adaptive learning prompts (always show these)
+        const adaptiveLearningPrompts = [
+          { text: 'what is my learning style', reason: 'AI detects your preferences', priority: 'high' },
+          { text: 'show knowledge gaps', reason: 'Find your blind spots', priority: 'high' },
+          { text: 'optimize my retention', reason: 'Spaced repetition schedule', priority: 'medium' },
+          { text: 'what will I forget next', reason: 'Predict forgetting curve', priority: 'medium' },
+          { text: 'detect my burnout risk', reason: 'Mental health monitoring', priority: 'medium' },
+          { text: 'adapt difficulty to my level', reason: 'Auto-adjust content difficulty', priority: 'low' },
+        ];
+        
+        // Combine: 4 user topic prompts + remaining adaptive prompts (up to 10 total)
+        const remainingSlots = 10 - userTopicPrompts.length;
+        const combinedPrompts = [
+          ...userTopicPrompts,
+          ...adaptiveLearningPrompts.slice(0, remainingSlots)
+        ];
+        
+        setPersonalizedPrompts(combinedPrompts);
       } else {
         console.log('Personalized prompts endpoint not available, using defaults');
         setPersonalizedPrompts([]);
@@ -102,7 +114,6 @@ const SearchHub = () => {
       console.error('Error loading personalized prompts:', error);
       setPersonalizedPrompts([]);
     }
-    */
   };
 
   const saveRecentSearch = (query) => {
@@ -1759,8 +1770,49 @@ const SearchHub = () => {
                     ))}
                   </div>
                 </>
+              ) : aiSuggestion && searchResults.action_executed ? (
+                /* AI-Only Response (no search results needed) */
+                <div className="ai-response-section">
+                  <div className="ai-suggestion">
+                    <div className="ai-suggestion-header">
+                      <Sparkles size={24} />
+                      <h3>AI Assistant</h3>
+                    </div>
+                    <p className="ai-description">{aiSuggestion.description}</p>
+                    
+                    <div className="create-options">
+                      <h4>Or create something new:</h4>
+                      <div className="create-options-grid">
+                        <button
+                          className="create-option-card"
+                          onClick={() => handleCreateContent('flashcards')}
+                        >
+                          <Layers size={32} />
+                          <h5>Create Flashcards</h5>
+                          <p>Build a deck to study this topic</p>
+                        </button>
+                        <button
+                          className="create-option-card"
+                          onClick={() => handleCreateContent('notes')}
+                        >
+                          <FileText size={32} />
+                          <h5>Take Notes</h5>
+                          <p>Start documenting your learning</p>
+                        </button>
+                        <button
+                          className="create-option-card"
+                          onClick={() => handleCreateContent('ai-chat')}
+                        >
+                          <Sparkles size={32} />
+                          <h5>Ask AI</h5>
+                          <p>Get help from your AI tutor</p>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ) : (
-                /* No Results - AI Suggestion */
+                /* No Results - Search yielded nothing */
                 <div className="no-results">
                   <div className="no-results-icon">
                     {searchResults.action_executed === 'show_weak_areas' ? (

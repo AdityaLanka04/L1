@@ -5912,6 +5912,50 @@ async def analyze_slide(
         raise HTTPException(status_code=500, detail=f"Error analyzing slide: {str(e)}")
 
 
+@app.get("/api/slide_file/{slide_id}")
+async def get_slide_file(slide_id: int, db: Session = Depends(get_db)):
+    """Serve the original uploaded slide file for viewing/downloading"""
+    from fastapi.responses import FileResponse
+    
+    try:
+        slide = db.query(models.UploadedSlide).filter(
+            models.UploadedSlide.id == slide_id
+        ).first()
+        
+        if not slide:
+            raise HTTPException(status_code=404, detail="Slide not found")
+        
+        file_path = Path(slide.file_path)
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="Slide file not found")
+        
+        # Determine content type based on file extension
+        filename = slide.original_filename.lower()
+        if filename.endswith('.pdf'):
+            media_type = "application/pdf"
+        elif filename.endswith('.pptx'):
+            media_type = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        elif filename.endswith('.ppt'):
+            media_type = "application/vnd.ms-powerpoint"
+        else:
+            media_type = "application/octet-stream"
+        
+        return FileResponse(
+            path=str(file_path),
+            media_type=media_type,
+            filename=slide.original_filename,
+            headers={
+                "Content-Disposition": f"inline; filename=\"{slide.original_filename}\""
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error serving slide file: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error serving slide file: {str(e)}")
+
+
 @app.get("/api/slide_image/{slide_id}/{page_number}")
 async def get_slide_image(slide_id: int, page_number: int, db: Session = Depends(get_db)):
     """Render a specific page/slide as an image"""
@@ -5961,24 +6005,17 @@ async def get_slide_image(slide_id: int, page_number: int, db: Session = Depends
         # Handle PowerPoint files
         elif slide.original_filename.lower().endswith(('.ppt', '.pptx')):
             try:
-                # For PPT files, we'll try to convert using LibreOffice if available
-                # Otherwise return a placeholder or the extracted text
+                # First try LibreOffice conversion
                 import subprocess
                 import tempfile
                 
-                # Create temp directory for conversion
                 with tempfile.TemporaryDirectory() as temp_dir:
-                    # Try to convert PPT to PDF first, then render
-                    pdf_path = os.path.join(temp_dir, "converted.pdf")
-                    
-                    # Try LibreOffice conversion
                     try:
                         result = subprocess.run([
                             'soffice', '--headless', '--convert-to', 'pdf',
                             '--outdir', temp_dir, str(file_path)
                         ], capture_output=True, timeout=60)
                         
-                        # Find the converted PDF
                         converted_files = [f for f in os.listdir(temp_dir) if f.endswith('.pdf')]
                         if converted_files:
                             pdf_path = os.path.join(temp_dir, converted_files[0])
@@ -6000,28 +6037,131 @@ async def get_slide_image(slide_id: int, page_number: int, db: Session = Depends
                     except (subprocess.TimeoutExpired, FileNotFoundError):
                         pass
                 
-                # If LibreOffice not available, return a placeholder image with slide info
-                # Generate a simple placeholder image using PIL
+                # If LibreOffice not available, use python-pptx to render slide content
                 try:
+                    from pptx import Presentation as PptxPresentation
+                    from pptx.util import Inches, Pt
                     from PIL import Image, ImageDraw, ImageFont
                     
-                    # Create placeholder image
-                    img = Image.new('RGB', (800, 600), color='#1a1a2e')
+                    prs = PptxPresentation(str(file_path))
+                    
+                    if page_number < 1 or page_number > len(prs.slides):
+                        raise HTTPException(status_code=400, detail=f"Invalid page number. File has {len(prs.slides)} slides.")
+                    
+                    ppt_slide = prs.slides[page_number - 1]
+                    
+                    # Create image with slide dimensions (16:9 aspect ratio)
+                    width, height = 1280, 720
+                    img = Image.new('RGB', (width, height), color='#ffffff')
                     draw = ImageDraw.Draw(img)
                     
-                    # Draw slide number
-                    draw.text((400, 280), f"Slide {page_number}", fill='#d7b38c', anchor='mm')
-                    draw.text((400, 320), "PowerPoint preview not available", fill='#888888', anchor='mm')
-                    draw.text((400, 350), "View analysis below for content", fill='#666666', anchor='mm')
+                    # Try to load a font, fall back to default
+                    try:
+                        title_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 36)
+                        body_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 20)
+                        small_font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 16)
+                    except:
+                        try:
+                            title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 36)
+                            body_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 20)
+                            small_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 16)
+                        except:
+                            title_font = ImageFont.load_default()
+                            body_font = ImageFont.load_default()
+                            small_font = ImageFont.load_default()
+                    
+                    # Extract text from shapes
+                    y_position = 40
+                    texts_extracted = []
+                    
+                    for shape in ppt_slide.shapes:
+                        if hasattr(shape, "text") and shape.text.strip():
+                            texts_extracted.append(shape.text.strip())
+                    
+                    # Draw title (first text block, usually the title)
+                    if texts_extracted:
+                        title = texts_extracted[0][:100]  # Limit title length
+                        # Word wrap title
+                        words = title.split()
+                        lines = []
+                        current_line = []
+                        for word in words:
+                            current_line.append(word)
+                            test_line = ' '.join(current_line)
+                            bbox = draw.textbbox((0, 0), test_line, font=title_font)
+                            if bbox[2] > width - 80:
+                                current_line.pop()
+                                if current_line:
+                                    lines.append(' '.join(current_line))
+                                current_line = [word]
+                        if current_line:
+                            lines.append(' '.join(current_line))
+                        
+                        for line in lines[:2]:  # Max 2 lines for title
+                            draw.text((40, y_position), line, fill='#1a1a2e', font=title_font)
+                            y_position += 45
+                        
+                        y_position += 20
+                    
+                    # Draw body text
+                    for text in texts_extracted[1:]:
+                        if y_position > height - 60:
+                            break
+                        
+                        # Word wrap body text
+                        words = text.split()
+                        lines = []
+                        current_line = []
+                        for word in words:
+                            current_line.append(word)
+                            test_line = ' '.join(current_line)
+                            bbox = draw.textbbox((0, 0), test_line, font=body_font)
+                            if bbox[2] > width - 100:
+                                current_line.pop()
+                                if current_line:
+                                    lines.append(' '.join(current_line))
+                                current_line = [word]
+                        if current_line:
+                            lines.append(' '.join(current_line))
+                        
+                        for line in lines[:4]:  # Max 4 lines per text block
+                            if y_position > height - 60:
+                                break
+                            draw.text((50, y_position), f"• {line}", fill='#333333', font=body_font)
+                            y_position += 28
+                        
+                        y_position += 15
+                    
+                    # Add slide number at bottom
+                    draw.text((width - 60, height - 30), f"{page_number}", fill='#888888', font=small_font)
+                    
+                    # If no text was extracted, show a message
+                    if not texts_extracted:
+                        draw.text((width//2, height//2 - 20), f"Slide {page_number}", fill='#1a1a2e', font=title_font, anchor='mm')
+                        draw.text((width//2, height//2 + 30), "(Content preview not available)", fill='#888888', font=body_font, anchor='mm')
                     
                     # Convert to bytes
+                    img_buffer = io.BytesIO()
+                    img.save(img_buffer, format='PNG', quality=95)
+                    img_bytes = img_buffer.getvalue()
+                    
+                    return Response(content=img_bytes, media_type="image/png")
+                    
+                except ImportError as e:
+                    logger.error(f"python-pptx not available: {e}")
+                    # Final fallback - simple placeholder
+                    from PIL import Image, ImageDraw
+                    
+                    img = Image.new('RGB', (800, 600), color='#1a1a2e')
+                    draw = ImageDraw.Draw(img)
+                    draw.text((400, 280), f"Slide {page_number}", fill='#d7b38c', anchor='mm')
+                    draw.text((400, 320), "Preview not available", fill='#888888', anchor='mm')
+                    
                     img_buffer = io.BytesIO()
                     img.save(img_buffer, format='PNG')
                     img_bytes = img_buffer.getvalue()
                     
                     return Response(content=img_bytes, media_type="image/png")
-                except ImportError:
-                    raise HTTPException(status_code=500, detail="Cannot render PowerPoint preview")
                     
             except Exception as e:
                 logger.error(f"Error rendering PowerPoint: {e}")
@@ -14587,6 +14727,84 @@ async def get_import_export_history(
 
 # ==================== SEARCH HUB ENDPOINTS ====================
 
+async def get_expanded_search_terms(query: str) -> list:
+    """
+    Use AI to expand search query into semantically related terms.
+    For example: "Irish Revolution" -> ["Irish Revolution", "Irish War of Independence", "Easter Rising", "Irish independence", "1916 Rising"]
+    """
+    try:
+        # Always include the original query terms
+        original_terms = [query]
+        
+        # Also include individual words from the query (for partial matching)
+        words = [w.strip() for w in query.split() if len(w.strip()) > 2]
+        
+        # Use AI to generate related terms
+        ai_prompt = f"""Given the search query "{query}", generate a list of semantically related terms that someone might use to find the same content.
+
+RULES:
+1. Include synonyms, alternative names, and related concepts
+2. Include historical alternative names if applicable
+3. Include common abbreviations or acronyms
+4. Keep terms concise (1-4 words each)
+5. Return ONLY a JSON array of strings, nothing else
+6. Include 5-10 related terms maximum
+
+EXAMPLES:
+Query: "Irish Revolution"
+["Irish War of Independence", "Easter Rising", "1916 Rising", "Irish independence", "Anglo-Irish War", "Irish rebellion"]
+
+Query: "machine learning"
+["ML", "artificial intelligence", "AI", "deep learning", "neural networks", "data science"]
+
+Query: "World War 2"
+["WWII", "WW2", "Second World War", "World War II", "1939-1945"]
+
+NOW GENERATE RELATED TERMS FOR: "{query}"
+Return ONLY the JSON array:"""
+
+        ai_response = call_ai(ai_prompt, max_tokens=200, temperature=0.3)
+        
+        # Parse the response
+        ai_response_clean = ai_response.strip()
+        
+        # Remove markdown code blocks if present
+        if ai_response_clean.startswith('```'):
+            lines = ai_response_clean.split('\n')
+            json_lines = []
+            in_code_block = False
+            for line in lines:
+                if line.strip().startswith('```'):
+                    in_code_block = not in_code_block
+                    continue
+                if in_code_block or (not line.strip().startswith('```')):
+                    json_lines.append(line)
+            ai_response_clean = '\n'.join(json_lines).strip()
+        
+        related_terms = json.loads(ai_response_clean)
+        
+        if isinstance(related_terms, list):
+            # Combine original query, individual words, and AI-generated terms
+            all_terms = original_terms + words + related_terms
+            # Remove duplicates while preserving order
+            seen = set()
+            unique_terms = []
+            for term in all_terms:
+                term_lower = term.lower()
+                if term_lower not in seen and len(term.strip()) > 0:
+                    seen.add(term_lower)
+                    unique_terms.append(term)
+            
+            logger.info(f"Expanded '{query}' to {len(unique_terms)} terms: {unique_terms}")
+            return unique_terms[:15]  # Limit to 15 terms
+        
+    except Exception as e:
+        logger.error(f"Error expanding search terms: {str(e)}")
+    
+    # Fallback: return original query and its words
+    fallback_terms = [query] + [w.strip() for w in query.split() if len(w.strip()) > 2]
+    return list(set(fallback_terms))
+
 @app.post("/api/search_content")
 async def search_content(
     user_id: str = Form(...),
@@ -14598,7 +14816,7 @@ async def search_content(
     db: Session = Depends(get_db)
 ):
     """
-    Universal search across user's own content with advanced filters
+    Universal search across user's own content with advanced filters and semantic expansion
     
     Filters:
     - content_types: "all" or comma-separated list (flashcard_set,flashcard,note,chat,question_set)
@@ -14615,8 +14833,11 @@ async def search_content(
             return {"results": [], "total": 0, "message": "User not found"}
         
         actual_user_id = user.id
-        search_term = f"%{query.lower()}%"
         results = []
+        
+        # Generate expanded search terms using AI for semantic matching
+        expanded_terms = await get_expanded_search_terms(query)
+        logger.info(f"Expanded search terms: {expanded_terms}")
         
         # Parse content types filter
         if content_types == "all":
@@ -14638,16 +14859,25 @@ async def search_content(
             except:
                 pass
         
+        # Build OR conditions for all search terms
+        def build_search_conditions(column, terms):
+            """Build OR conditions for multiple search terms"""
+            conditions = []
+            for term in terms:
+                search_term = f"%{term.lower()}%"
+                conditions.append(func.lower(column).like(search_term))
+            return or_(*conditions) if conditions else func.lower(column).like(f"%{query.lower()}%")
+        
         # Search Flashcard Sets (only user's own)
         if "flashcard_set" in enabled_types:
             try:
+                title_conditions = build_search_conditions(models.FlashcardSet.title, expanded_terms)
+                desc_conditions = build_search_conditions(models.FlashcardSet.description, expanded_terms)
+                
                 query_builder = db.query(models.FlashcardSet).filter(
                     and_(
                         models.FlashcardSet.user_id == actual_user_id,
-                        (
-                            func.lower(models.FlashcardSet.title).like(search_term) |
-                            func.lower(models.FlashcardSet.description).like(search_term)
-                        )
+                        or_(title_conditions, desc_conditions)
                     )
                 )
                 
@@ -14680,15 +14910,15 @@ async def search_content(
         # Search Individual Flashcards (only user's own)
         if "flashcard" in enabled_types:
             try:
+                question_conditions = build_search_conditions(models.Flashcard.question, expanded_terms)
+                answer_conditions = build_search_conditions(models.Flashcard.answer, expanded_terms)
+                
                 query_builder = db.query(models.Flashcard).join(
                     models.FlashcardSet
                 ).filter(
                     and_(
                         models.FlashcardSet.user_id == actual_user_id,
-                        (
-                            func.lower(models.Flashcard.question).like(search_term) |
-                            func.lower(models.Flashcard.answer).like(search_term)
-                        )
+                        or_(question_conditions, answer_conditions)
                     )
                 )
                 
@@ -14722,14 +14952,14 @@ async def search_content(
         # Search Notes (only user's own)
         if "note" in enabled_types:
             try:
+                title_conditions = build_search_conditions(models.Note.title, expanded_terms)
+                content_conditions = build_search_conditions(models.Note.content, expanded_terms)
+                
                 query_builder = db.query(models.Note).filter(
                     and_(
                         models.Note.user_id == actual_user_id,
                         models.Note.is_deleted == False,
-                        (
-                            func.lower(models.Note.title).like(search_term) |
-                            func.lower(models.Note.content).like(search_term)
-                        )
+                        or_(title_conditions, content_conditions)
                     )
                 )
                 
@@ -14758,10 +14988,12 @@ async def search_content(
         # Search Chat Sessions (only user's own)
         if "chat" in enabled_types:
             try:
+                title_conditions = build_search_conditions(models.ChatSession.title, expanded_terms)
+                
                 query_builder = db.query(models.ChatSession).filter(
                     and_(
                         models.ChatSession.user_id == actual_user_id,
-                        func.lower(models.ChatSession.title).like(search_term)
+                        title_conditions
                     )
                 )
                 
@@ -14795,13 +15027,13 @@ async def search_content(
         # Search Question Sets (only user's own)
         if "question_set" in enabled_types:
             try:
+                title_conditions = build_search_conditions(models.QuestionSet.title, expanded_terms)
+                desc_conditions = build_search_conditions(models.QuestionSet.description, expanded_terms)
+                
                 query_builder = db.query(models.QuestionSet).filter(
                     and_(
                         models.QuestionSet.user_id == actual_user_id,
-                        (
-                            func.lower(models.QuestionSet.title).like(search_term) |
-                            func.lower(models.QuestionSet.description).like(search_term)
-                        )
+                        or_(title_conditions, desc_conditions)
                     )
                 )
                 
@@ -15110,6 +15342,18 @@ RULES:
 - confidence should be 0.8+ for clear matches, 0.5-0.8 for uncertain, <0.5 for unclear
 - Return ONLY the JSON object, nothing else
 
+IMPORTANT - SEARCH INTENT KEYWORDS:
+The following words/phrases indicate the user wants to SEARCH for existing content (intent="search"):
+- "fetch", "get", "get me", "bring", "bring me"
+- "find", "find me", "look for", "look up", "search", "search for"
+- "can I see", "show me", "display", "pull up", "retrieve"
+- "where is", "where are", "locate", "give me"
+- "my flashcards on", "my notes on", "my content on"
+- "do I have", "have I created"
+
+When these keywords are followed by a topic (e.g., "fetch my flashcards on irish", "get me notes on biology"), 
+the intent is SEARCH, NOT create. The user wants to find EXISTING content.
+
 EXAMPLES:
 Query: "create flashcards on machine learning"
 {{"intent": "action", "action": "create_flashcards", "parameters": {{"topic": "machine learning", "count": 10}}, "confidence": 0.95}}
@@ -15125,6 +15369,27 @@ Query: "explain neural networks step by step"
 
 Query: "python programming"
 {{"intent": "search", "action": null, "parameters": {{}}, "confidence": 0.85}}
+
+Query: "fetch my flashcards on irish"
+{{"intent": "search", "action": null, "parameters": {{}}, "confidence": 0.95}}
+
+Query: "get me notes on biology"
+{{"intent": "search", "action": null, "parameters": {{}}, "confidence": 0.95}}
+
+Query: "can I see my flashcards on history"
+{{"intent": "search", "action": null, "parameters": {{}}, "confidence": 0.95}}
+
+Query: "bring me my notes"
+{{"intent": "search", "action": null, "parameters": {{}}, "confidence": 0.90}}
+
+Query: "find flashcards on chemistry"
+{{"intent": "search", "action": null, "parameters": {{}}, "confidence": 0.95}}
+
+Query: "show me my content on math"
+{{"intent": "search", "action": null, "parameters": {{}}, "confidence": 0.95}}
+
+Query: "do I have any notes on physics"
+{{"intent": "search", "action": null, "parameters": {{}}, "confidence": 0.90}}
 
 NOW ANALYZE THIS QUERY AND RETURN ONLY THE JSON:
 "{query}"
@@ -15231,7 +15496,7 @@ async def get_personalized_prompts(
 ):
     """
     Get personalized prompt suggestions based on user's profile, activity, and weak areas.
-    Returns varied suggestions that change based on user activity.
+    Returns 4 topic-based prompts from user activity + adaptive learning prompts.
     """
     try:
         # Get user
@@ -15239,14 +15504,60 @@ async def get_personalized_prompts(
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        prompts = []
+        topic_prompts = []  # Topic-based prompts from user activity
         
-        # Get comprehensive profile
+        import random
+        
+        # 1. Get recent flashcard sets (HIGH PRIORITY - user's active topics)
+        recent_flashcard_sets = db.query(models.FlashcardSet).filter(
+            models.FlashcardSet.user_id == user.id
+        ).order_by(models.FlashcardSet.updated_at.desc()).limit(10).all()
+        
+        if recent_flashcard_sets:
+            selected_sets = random.sample(recent_flashcard_sets, min(2, len(recent_flashcard_sets)))
+            for fs in selected_sets:
+                topic_prompts.append({
+                    "text": f"create a quiz on {fs.title}",
+                    "reason": "Test your flashcard knowledge",
+                    "priority": "high"
+                })
+        
+        # 2. Get recent notes (HIGH PRIORITY - user's study topics)
+        recent_notes = db.query(models.Note).filter(
+            models.Note.user_id == user.id
+        ).order_by(models.Note.updated_at.desc()).limit(10).all()
+        
+        if recent_notes:
+            selected_notes = random.sample(recent_notes, min(2, len(recent_notes)))
+            for note in selected_notes:
+                topic_prompts.append({
+                    "text": f"create flashcards on {note.title}",
+                    "reason": "Turn notes into active learning",
+                    "priority": "high"
+                })
+        
+        # 3. Get recent chat sessions (MEDIUM PRIORITY - topics user asked about)
+        recent_chats = db.query(models.ChatSession).filter(
+            models.ChatSession.user_id == user.id
+        ).order_by(models.ChatSession.updated_at.desc()).limit(10).all()
+        
+        if recent_chats:
+            # Filter out generic titles
+            meaningful_chats = [c for c in recent_chats if c.title and c.title.lower() not in ['new chat', 'untitled', '']]
+            if meaningful_chats:
+                selected_chats = random.sample(meaningful_chats, min(2, len(meaningful_chats)))
+                for chat in selected_chats:
+                    topic_prompts.append({
+                        "text": f"explain {chat.title} step-by-step",
+                        "reason": "Continue learning this topic",
+                        "priority": "medium"
+                    })
+        
+        # 4. Get weak areas from profile (HIGH PRIORITY)
         profile = db.query(models.ComprehensiveUserProfile).filter(
             models.ComprehensiveUserProfile.user_id == user.id
         ).first()
         
-        # 1. Check for weak areas (HIGH PRIORITY)
         weak_topics = []
         if profile and profile.weak_areas:
             try:
@@ -15255,16 +15566,15 @@ async def get_personalized_prompts(
                 pass
         
         if weak_topics:
-            # Rotate through weak topics
-            import random
-            selected_weak = random.choice(weak_topics)
-            prompts.append({
-                "text": f"create flashcards on {selected_weak}",
-                "reason": "Focus on your weak areas",
-                "priority": "high"
-            })
+            selected_weak = random.sample(weak_topics, min(2, len(weak_topics)))
+            for topic in selected_weak:
+                topic_prompts.append({
+                    "text": f"create flashcards on {topic}",
+                    "reason": "Focus on weak areas",
+                    "priority": "high"
+                })
         
-        # 2. Check flashcard performance (HIGH PRIORITY)
+        # 5. Check for flashcards needing review
         weak_flashcard_sets = db.query(models.FlashcardSet).join(
             models.Flashcard
         ).filter(
@@ -15273,135 +15583,38 @@ async def get_personalized_prompts(
         ).distinct().limit(5).all()
         
         if weak_flashcard_sets:
-            prompts.append({
+            topic_prompts.append({
                 "text": "review weak flashcards",
                 "reason": f"{len(weak_flashcard_sets)} sets need attention",
                 "priority": "high"
             })
         
-        # 3. Get recent flashcard sets for variety (MEDIUM PRIORITY)
-        recent_sets = db.query(models.FlashcardSet).filter(
-            models.FlashcardSet.user_id == user.id
-        ).order_by(models.FlashcardSet.created_at.desc()).limit(5).all()
+        # Shuffle and deduplicate topic prompts
+        random.shuffle(topic_prompts)
+        seen_texts = set()
+        unique_prompts = []
+        for p in topic_prompts:
+            text_lower = p["text"].lower()
+            if text_lower not in seen_texts:
+                seen_texts.add(text_lower)
+                unique_prompts.append(p)
         
-        if recent_sets:
-            # Suggest creating related content
-            import random
-            selected_set = random.choice(recent_sets)
-            prompts.append({
-                "text": f"create a quiz on {selected_set.title}",
-                "reason": "Test your knowledge",
-                "priority": "medium"
-            })
-        
-        # 4. Get recent notes for suggestions (MEDIUM PRIORITY)
-        recent_notes = db.query(models.Note).filter(
-            models.Note.user_id == user.id
-        ).order_by(models.Note.updated_at.desc()).limit(5).all()
-        
-        if recent_notes:
-            import random
-            selected_note = random.choice(recent_notes)
-            prompts.append({
-                "text": f"create flashcards on {selected_note.title}",
-                "reason": "Turn notes into active learning",
-                "priority": "medium"
-            })
-        
-        # 5. Check last review date (MEDIUM PRIORITY)
-        last_flashcard_review = db.query(models.FlashcardSet).filter(
-            models.FlashcardSet.user_id == user.id
-        ).order_by(models.FlashcardSet.updated_at.desc()).first()
-        
-        if last_flashcard_review:
-            from datetime import datetime, timedelta, timezone
-            
-            # Ensure both datetimes are timezone-aware
-            now = datetime.now(timezone.utc)
-            updated_at = last_flashcard_review.updated_at
-            
-            # If updated_at is naive, make it aware (assume UTC)
-            if updated_at.tzinfo is None:
-                updated_at = updated_at.replace(tzinfo=timezone.utc)
-            
-            days_since_review = (now - updated_at).days
-            if days_since_review >= 2:
-                prompts.append({
-                    "text": "review flashcards",
-                    "reason": f"Last reviewed {days_since_review} days ago",
-                    "priority": "medium"
-                })
-        
-        # 6. Field of study suggestions (LOW PRIORITY)
-        field_of_study = user.field_of_study if user.field_of_study else None
-        if not field_of_study and profile:
-            # Try to get from profile if it has the attribute
-            field_of_study = getattr(profile, 'field_of_study', None)
-        
-        if field_of_study and field_of_study.lower() not in ['general studies', 'general', 'none', '']:
-            import random
-            topics = [
-                f"advanced concepts in {field_of_study}",
-                f"fundamentals of {field_of_study}",
-                f"practice problems for {field_of_study}",
-                f"key theories in {field_of_study}"
-            ]
-            selected_topic = random.choice(topics)
-            prompts.append({
-                "text": f"create flashcards on {selected_topic}",
-                "reason": "Expand your knowledge",
-                "priority": "low"
-            })
-        
-        # 7. Add utility prompts (LOW PRIORITY)
-        utility_prompts = [
-            {
-                "text": "what am I weak in",
-                "reason": "Analyze your performance",
-                "priority": "low"
-            },
-            {
-                "text": "show my progress",
-                "reason": "Track your learning",
-                "priority": "low"
-            },
-            {
-                "text": "explain a concept",
-                "reason": "Get AI help",
-                "priority": "low"
-            }
-        ]
-        
-        # Add 1-2 random utility prompts
-        import random
-        prompts.extend(random.sample(utility_prompts, min(2, len(utility_prompts))))
-        
-        # Sort by priority and add some randomness within same priority
+        # Sort by priority
         priority_order = {"high": 0, "medium": 1, "low": 2}
-        prompts.sort(key=lambda x: (priority_order.get(x["priority"], 3), random.random()))
+        unique_prompts.sort(key=lambda x: (priority_order.get(x["priority"], 3), random.random()))
         
-        logger.info(f"Generated {len(prompts)} personalized prompts for user {user_id}")
+        logger.info(f"Generated {len(unique_prompts)} personalized prompts for user {user_id}")
         
         return {
-            "prompts": prompts[:6],  # Return top 6
+            "prompts": unique_prompts[:4],  # Return top 4 topic-based prompts
             "user_id": user_id
         }
         
     except Exception as e:
         logger.error(f"Error getting personalized prompts: {str(e)}")
-        # Return varied default prompts
-        import random
-        default_prompts = [
-            {"text": "create flashcards on machine learning", "reason": "Popular topic", "priority": "low"},
-            {"text": "create a note on data structures", "reason": "Build your knowledge", "priority": "low"},
-            {"text": "review flashcards", "reason": "Stay consistent", "priority": "low"},
-            {"text": "what am I weak in", "reason": "Check progress", "priority": "low"},
-            {"text": "explain neural networks", "reason": "Learn something new", "priority": "low"},
-            {"text": "create a quiz on algorithms", "reason": "Test yourself", "priority": "low"}
-        ]
-        random.shuffle(default_prompts)
+        # Return empty - frontend will use defaults
         return {
-            "prompts": default_prompts[:6]
+            "prompts": []
         }
 
 

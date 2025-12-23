@@ -343,25 +343,29 @@ const SlideExplorer = () => {
                     </button>
                   </div>
 
-                  {/* Slide Display - Full Width on Top, Scrollable Content Below */}
+                  {/* AI Analysis Section */}
                   {currentSlide && (
                     <div className="se-slide-display-vertical">
-                      {/* Slide Image - Full Width */}
+                      {/* Slide Content Preview - Shows extracted text rendered as image */}
                       <div className="se-slide-preview-full">
+                        <div className="se-slide-preview-header">
+                          <h3 className="se-current-slide-label">Slide {currentSlide.slide_number} Content</h3>
+                          <span className="se-slide-preview-note">Text extracted from slide</span>
+                        </div>
                         <div className="se-slide-image-container-full">
-                          {!imageErrors[currentSlide.slide_number] ? (
-                            <img 
-                              src={`${API_URL}/slide_image/${selectedSlide.id}/${currentSlide.slide_number}`}
-                              alt={`Slide ${currentSlide.slide_number}`}
-                              className="se-slide-image-full"
-                              onError={() => handleImageError(currentSlide.slide_number)}
-                            />
-                          ) : (
-                            <div className="se-slide-placeholder-full">
-                              <FileText size={64} />
-                              <span className="se-slide-number-large">{currentSlide.slide_number}</span>
-                            </div>
-                          )}
+                          <img 
+                            src={`${API_URL}/slide_image/${selectedSlide.id}/${currentSlide.slide_number}`}
+                            alt={`Slide ${currentSlide.slide_number}`}
+                            className="se-slide-image-full"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div className="se-slide-placeholder-full" style={{ display: 'none' }}>
+                            <FileText size={64} />
+                            <span className="se-slide-number-large">{currentSlide.slide_number}</span>
+                          </div>
                         </div>
                       </div>
 
