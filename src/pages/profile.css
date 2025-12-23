@@ -720,3 +720,905 @@
     font-size: 12px;
   }
 }
+
+/* ==================== LIGHT MODE OVERRIDES ==================== */
+[data-theme-mode="light"] .profile-page {
+  background: #f8f9fa !important;
+}
+
+[data-theme-mode="light"] .profile-header {
+  background: white !important;
+  border-bottom-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .profile-page-title {
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .profile-page-subtitle {
+  color: #666 !important;
+}
+
+[data-theme-mode="light"] .profile-main {
+  background: #f8f9fa !important;
+}
+
+[data-theme-mode="light"] .profile-content {
+  background: #f8f9fa !important;
+}
+
+/* Navigation Buttons */
+[data-theme-mode="light"] .profile-nav-btn,
+[data-theme-mode="light"] .profile-back-btn {
+  background: white !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="light"] .profile-nav-btn:hover,
+[data-theme-mode="light"] .profile-back-btn:hover {
+  background: #f8f9fa !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .profile-nav-btn svg,
+[data-theme-mode="light"] .profile-back-btn svg {
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="light"] .profile-nav-btn:hover svg,
+[data-theme-mode="light"] .profile-back-btn:hover svg {
+  color: var(--accent) !important;
+}
+
+/* Archetype Section */
+[data-theme-mode="light"] .profile-archetype-section {
+  background: white !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .profile-archetype-header h2 {
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="light"] .profile-archetype-header p {
+  color: #666 !important;
+}
+
+[data-theme-mode="light"] .profile-archetype-card {
+  background: white !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .profile-archetype-card:hover {
+  border-color: var(--accent) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .profile-archetype-card h3 {
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .profile-archetype-card h4 {
+  color: #666 !important;
+}
+
+[data-theme-mode="light"] .profile-archetype-card p {
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="light"] .profile-badge {
+  background: var(--accent) !important;
+  color: white !important;
+}
+
+[data-theme-mode="light"] .profile-retake-btn {
+  background: white !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="light"] .profile-retake-btn:hover {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: white !important;
+}
+
+/* Info Cards */
+[data-theme-mode="light"] .profile-info-section,
+[data-theme-mode="light"] .profile-card {
+  background: white !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .profile-info-header h3,
+[data-theme-mode="light"] .profile-card h3 {
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="light"] .profile-info-header p,
+[data-theme-mode="light"] .profile-card p {
+  color: #666 !important;
+}
+
+[data-theme-mode="light"] .profile-info-header svg,
+[data-theme-mode="light"] .profile-card svg {
+  color: var(--accent) !important;
+}
+
+/* Form Elements */
+[data-theme-mode="light"] .profile-form-group label {
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="light"] .profile-input,
+[data-theme-mode="light"] .profile-select,
+[data-theme-mode="light"] input,
+[data-theme-mode="light"] select {
+  background: white !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="light"] .profile-input:focus,
+[data-theme-mode="light"] .profile-select:focus,
+[data-theme-mode="light"] input:focus,
+[data-theme-mode="light"] select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent) !important;
+}
+
+[data-theme-mode="light"] .profile-input::placeholder,
+[data-theme-mode="light"] input::placeholder {
+  color: #999 !important;
+}
+
+/* Save Button */
+[data-theme-mode="light"] .profile-save-btn,
+[data-theme-mode="light"] button[type="submit"] {
+  background: var(--accent) !important;
+  color: white !important;
+  border-color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .profile-save-btn:hover,
+[data-theme-mode="light"] button[type="submit"]:hover {
+  background: color-mix(in srgb, var(--accent) 90%, black) !important;
+}
+
+[data-theme-mode="light"] .profile-save-btn:disabled,
+[data-theme-mode="light"] button[type="submit"]:disabled {
+  background: #e0e0e0 !important;
+  color: #999 !important;
+  border-color: #e0e0e0 !important;
+}
+
+/* Success/Error Messages */
+[data-theme-mode="light"] .profile-success-message {
+  background: color-mix(in srgb, #22c55e 15%, white) !important;
+  border-color: #22c55e !important;
+  color: #166534 !important;
+}
+
+[data-theme-mode="light"] .profile-error-message {
+  background: color-mix(in srgb, #ef4444 15%, white) !important;
+  border-color: #ef4444 !important;
+  color: #991b1b !important;
+}
+
+/* Stats/Metrics */
+[data-theme-mode="light"] .profile-stat-card {
+  background: white !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .profile-stat-label {
+  color: #666 !important;
+}
+
+[data-theme-mode="light"] .profile-stat-value {
+  color: var(--accent) !important;
+}
+
+/* Grid Sections */
+[data-theme-mode="light"] .profile-grid {
+  background: transparent !important;
+}
+
+[data-theme-mode="light"] .profile-section {
+  background: white !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .profile-section h2,
+[data-theme-mode="light"] .profile-section h3 {
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="light"] .profile-section p {
+  color: #666 !important;
+}
+
+/* ==================== ENHANCED ANIMATIONS & GRADIENTS ==================== */
+
+/* Animated gradient background for archetype section */
+[data-theme-mode="light"] .profile-archetype-section {
+  background: linear-gradient(135deg, 
+    white 0%, 
+    color-mix(in srgb, var(--accent) 5%, white) 50%,
+    white 100%) !important;
+  animation: subtleShift 8s ease-in-out infinite;
+}
+
+@keyframes subtleShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Archetype cards with gradient borders and animations */
+[data-theme-mode="light"] .profile-archetype-card {
+  position: relative;
+  background: white !important;
+  border: 2px solid transparent !important;
+  background-clip: padding-box;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeInUp 0.6s ease-out backwards;
+}
+
+[data-theme-mode="light"] .profile-archetype-card:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+[data-theme-mode="light"] .profile-archetype-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+[data-theme-mode="light"] .profile-archetype-card::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, white));
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+[data-theme-mode="light"] .profile-archetype-card:hover::before {
+  opacity: 1;
+}
+
+[data-theme-mode="light"] .profile-archetype-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 40px color-mix(in srgb, var(--accent) 25%, transparent) !important;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Animated icon in archetype cards */
+[data-theme-mode="light"] .profile-archetype-card svg {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 30%, transparent));
+}
+
+[data-theme-mode="light"] .profile-archetype-card:hover svg {
+  transform: scale(1.2) rotate(5deg);
+  filter: drop-shadow(0 0 16px color-mix(in srgb, var(--accent) 50%, transparent));
+}
+
+/* Gradient badge with pulse animation */
+[data-theme-mode="light"] .profile-badge {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 80%, white)) !important;
+  animation: badgePulse 2s ease-in-out infinite;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+@keyframes badgePulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+}
+
+/* Info cards with gradient accents */
+[data-theme-mode="light"] .profile-info-section,
+[data-theme-mode="light"] .profile-card {
+  background: white !important;
+  border-left: 4px solid var(--accent) !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
+  border-right: 1px solid rgba(0, 0, 0, 0.1) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.3s ease;
+  animation: fadeInUp 0.6s ease-out backwards;
+}
+
+[data-theme-mode="light"] .profile-info-section:hover,
+[data-theme-mode="light"] .profile-card:hover {
+  transform: translateX(4px);
+  box-shadow: -4px 8px 24px color-mix(in srgb, var(--accent) 15%, transparent) !important;
+  border-left-width: 6px !important;
+}
+
+/* Animated header with gradient */
+[data-theme-mode="light"] .profile-header {
+  background: linear-gradient(to right, 
+    white 0%, 
+    color-mix(in srgb, var(--accent) 8%, white) 50%,
+    white 100%) !important;
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+/* Title with gradient text */
+[data-theme-mode="light"] .profile-page-title {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: titleShine 3s ease-in-out infinite;
+}
+
+@keyframes titleShine {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.2); }
+}
+
+/* Buttons with gradient and animations */
+[data-theme-mode="light"] .profile-save-btn,
+[data-theme-mode="light"] button[type="submit"] {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 30%, transparent);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme-mode="light"] .profile-save-btn::before,
+[data-theme-mode="light"] button[type="submit"]::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+[data-theme-mode="light"] .profile-save-btn:hover::before,
+[data-theme-mode="light"] button[type="submit"]:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+[data-theme-mode="light"] .profile-save-btn:hover,
+[data-theme-mode="light"] button[type="submit"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 50%, transparent) !important;
+}
+
+[data-theme-mode="light"] .profile-save-btn:active,
+[data-theme-mode="light"] button[type="submit"]:active {
+  transform: translateY(0);
+}
+
+/* Retake button with accent gradient */
+[data-theme-mode="light"] .profile-retake-btn {
+  background: white !important;
+  border: 2px solid var(--accent) !important;
+  color: var(--accent) !important;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+[data-theme-mode="light"] .profile-retake-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black));
+  transition: left 0.4s ease;
+  z-index: -1;
+}
+
+[data-theme-mode="light"] .profile-retake-btn:hover::before {
+  left: 0;
+}
+
+[data-theme-mode="light"] .profile-retake-btn:hover {
+  color: white !important;
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* Input focus with accent glow */
+[data-theme-mode="light"] .profile-input:focus,
+[data-theme-mode="light"] .profile-select:focus,
+[data-theme-mode="light"] input:focus,
+[data-theme-mode="light"] select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent),
+              0 4px 12px color-mix(in srgb, var(--accent) 15%, transparent) !important;
+  transform: translateY(-1px);
+  transition: all 0.3s ease;
+}
+
+/* Success message with gradient */
+[data-theme-mode="light"] .profile-success-message {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, #22c55e 15%, white),
+    color-mix(in srgb, #22c55e 8%, white)) !important;
+  border-left: 4px solid #22c55e !important;
+  animation: slideInRight 0.5s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Stat cards with accent highlights */
+[data-theme-mode="light"] .profile-stat-card {
+  background: linear-gradient(135deg, 
+    white 0%, 
+    color-mix(in srgb, var(--accent) 3%, white) 100%) !important;
+  border-top: 3px solid var(--accent) !important;
+  transition: all 0.3s ease;
+  animation: fadeInUp 0.6s ease-out backwards;
+}
+
+[data-theme-mode="light"] .profile-stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--accent) 20%, transparent) !important;
+  border-top-width: 5px !important;
+}
+
+[data-theme-mode="light"] .profile-stat-value {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #000));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800 !important;
+}
+
+/* Navigation buttons with hover effects */
+[data-theme-mode="light"] .profile-nav-btn,
+[data-theme-mode="light"] .profile-back-btn {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+[data-theme-mode="light"] .profile-nav-btn:hover,
+[data-theme-mode="light"] .profile-back-btn:hover {
+  transform: translateX(-4px);
+  box-shadow: 4px 4px 16px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+/* Section headers with accent underline */
+[data-theme-mode="light"] .profile-section h2::after,
+[data-theme-mode="light"] .profile-info-header h3::after {
+  content: '';
+  display: block;
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(to right, var(--accent), transparent);
+  margin-top: 8px;
+  animation: expandWidth 0.6s ease-out;
+}
+
+@keyframes expandWidth {
+  from { width: 0; }
+  to { width: 60px; }
+}
+
+/* Stagger animations for multiple cards */
+[data-theme-mode="light"] .profile-stat-card:nth-child(1) { animation-delay: 0.1s; }
+[data-theme-mode="light"] .profile-stat-card:nth-child(2) { animation-delay: 0.2s; }
+[data-theme-mode="light"] .profile-stat-card:nth-child(3) { animation-delay: 0.3s; }
+[data-theme-mode="light"] .profile-stat-card:nth-child(4) { animation-delay: 0.4s; }
+
+[data-theme-mode="light"] .profile-info-section:nth-child(1) { animation-delay: 0.15s; }
+[data-theme-mode="light"] .profile-info-section:nth-child(2) { animation-delay: 0.3s; }
+
+/* ==================== MORE ACCENT-COLORED WIDGETS ==================== */
+
+/* Archetype section with accent gradient background */
+[data-theme-mode="light"] .profile-archetype-section {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 12%, white) 0%, 
+    color-mix(in srgb, var(--accent) 20%, white) 50%,
+    color-mix(in srgb, var(--accent) 12%, white) 100%) !important;
+}
+
+[data-theme-mode="light"] .profile-archetype-header h2 {
+  color: white !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme-mode="light"] .profile-archetype-header p {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+[data-theme-mode="light"] .profile-archetype-header svg {
+  color: white !important;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Primary archetype card with accent background */
+[data-theme-mode="light"] .profile-archetype-card:first-child {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
+  border-color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .profile-archetype-card:first-child h3,
+[data-theme-mode="light"] .profile-archetype-card:first-child h4,
+[data-theme-mode="light"] .profile-archetype-card:first-child p {
+  color: white !important;
+}
+
+[data-theme-mode="light"] .profile-archetype-card:first-child svg {
+  color: white !important;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+[data-theme-mode="light"] .profile-archetype-card:first-child .profile-badge {
+  background: rgba(255, 255, 255, 0.25) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+/* Info section headers with accent backgrounds */
+[data-theme-mode="light"] .profile-info-header {
+  background: linear-gradient(135deg, 
+    var(--accent), 
+    color-mix(in srgb, var(--accent) 90%, black)) !important;
+  padding: 16px 20px !important;
+  margin: -1px -1px 0 -1px !important;
+}
+
+[data-theme-mode="light"] .profile-info-header h3 {
+  color: white !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme-mode="light"] .profile-info-header p {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+[data-theme-mode="light"] .profile-info-header svg {
+  color: white !important;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Stat cards with accent backgrounds */
+[data-theme-mode="light"] .profile-stat-card {
+  background: linear-gradient(135deg, 
+    var(--accent), 
+    color-mix(in srgb, var(--accent) 88%, black)) !important;
+  border: none !important;
+  border-top: none !important;
+}
+
+[data-theme-mode="light"] .profile-stat-card * {
+  color: white !important;
+}
+
+[data-theme-mode="light"] .profile-stat-label {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+[data-theme-mode="light"] .profile-stat-value {
+  color: white !important;
+  background: none !important;
+  -webkit-text-fill-color: white !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  font-size: 32px !important;
+  font-weight: 800 !important;
+}
+
+/* Selected/Active subject tags with accent */
+[data-theme-mode="light"] .profile-subject-tag.selected,
+[data-theme-mode="light"] .profile-interest-tag.selected {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
+  color: white !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+/* Section cards with alternating accent backgrounds */
+[data-theme-mode="light"] .profile-section:nth-child(odd) {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 8%, white), 
+    color-mix(in srgb, var(--accent) 4%, white)) !important;
+  border-left: 4px solid var(--accent) !important;
+}
+
+[data-theme-mode="light"] .profile-section:nth-child(odd) h2,
+[data-theme-mode="light"] .profile-section:nth-child(odd) h3 {
+  color: var(--accent) !important;
+  font-weight: 700;
+}
+
+/* Learning preferences section with accent */
+[data-theme-mode="light"] .profile-preferences-section {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 10%, white), 
+    color-mix(in srgb, var(--accent) 15%, white)) !important;
+  border: 2px solid var(--accent) !important;
+}
+
+[data-theme-mode="light"] .profile-preferences-section h3 {
+  color: white !important;
+  background: var(--accent);
+  padding: 12px 20px;
+  margin: -1px -1px 20px -1px;
+}
+
+/* Retake button with solid accent background */
+[data-theme-mode="light"] .profile-retake-btn {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
+  color: white !important;
+  border: none !important;
+}
+
+[data-theme-mode="light"] .profile-retake-btn:hover {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 90%, black), 
+    color-mix(in srgb, var(--accent) 75%, black)) !important;
+  color: white !important;
+}
+
+/* Form labels with accent color */
+[data-theme-mode="light"] .profile-form-group label {
+  color: var(--accent) !important;
+  font-weight: 600;
+}
+
+/* Selected inputs with accent tint */
+[data-theme-mode="light"] .profile-input:not(:placeholder-shown),
+[data-theme-mode="light"] .profile-select:not([value=""]) {
+  background: color-mix(in srgb, var(--accent) 3%, white) !important;
+  border-color: var(--accent) !important;
+}
+
+/* Header with stronger accent gradient */
+[data-theme-mode="light"] .profile-header {
+  background: linear-gradient(to right, 
+    color-mix(in srgb, var(--accent) 15%, white) 0%, 
+    color-mix(in srgb, var(--accent) 25%, white) 50%,
+    color-mix(in srgb, var(--accent) 15%, white) 100%) !important;
+}
+
+/* Navigation buttons with accent */
+[data-theme-mode="light"] .profile-nav-btn {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
+  color: white !important;
+  border: none !important;
+}
+
+[data-theme-mode="light"] .profile-nav-btn svg {
+  color: white !important;
+}
+
+[data-theme-mode="light"] .profile-nav-btn:hover {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 90%, black), 
+    color-mix(in srgb, var(--accent) 75%, black)) !important;
+  color: white !important;
+}
+
+/* Back button with accent outline */
+[data-theme-mode="light"] .profile-back-btn {
+  background: white !important;
+  border: 2px solid var(--accent) !important;
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .profile-back-btn svg {
+  color: var(--accent) !important;
+}
+
+/* Success message with accent */
+[data-theme-mode="light"] .profile-success-message {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 90%, white),
+    color-mix(in srgb, var(--accent) 80%, white)) !important;
+  border-left: 4px solid var(--accent) !important;
+  color: white !important;
+}
+
+[data-theme-mode="light"] .profile-success-message svg {
+  color: white !important;
+}
+
+/* Badges and tags */
+[data-theme-mode="light"] .profile-badge,
+[data-theme-mode="light"] .profile-tag {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
+  color: white !important;
+  border: none !important;
+}
+
+/* Progress bars with accent */
+[data-theme-mode="light"] .profile-progress-bar {
+  background: color-mix(in srgb, var(--accent) 20%, white) !important;
+}
+
+[data-theme-mode="light"] .profile-progress-fill {
+  background: linear-gradient(to right, var(--accent), color-mix(in srgb, var(--accent) 80%, black)) !important;
+}
+
+/* Icons with accent color */
+[data-theme-mode="light"] .profile-icon {
+  color: var(--accent) !important;
+}
+
+/* Dividers with accent */
+[data-theme-mode="light"] .profile-divider {
+  background: linear-gradient(to right, 
+    transparent, 
+    var(--accent), 
+    transparent) !important;
+  height: 2px;
+}
+
+/* Tooltips with accent */
+[data-theme-mode="light"] .profile-tooltip {
+  background: var(--accent) !important;
+  color: white !important;
+}
+
+/* Ensure all text on accent backgrounds is white */
+[data-theme-mode="light"] [style*="background"][style*="var(--accent)"] {
+  color: white !important;
+}
+
+[data-theme-mode="light"] [style*="background"][style*="var(--accent)"] * {
+  color: white !important;
+}
+
+/* ==================== FORCE WHITE TEXT IN ARCHETYPE SECTION ==================== */
+
+/* Learning Archetype section with light accent background and WHITE text */
+[data-theme-mode="light"] .profile-archetype-section {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 85%, white) 0%, 
+    color-mix(in srgb, var(--accent) 75%, white) 50%,
+    color-mix(in srgb, var(--accent) 85%, white) 100%) !important;
+}
+
+/* Force ALL text in archetype section to be WHITE */
+[data-theme-mode="light"] .profile-archetype-section,
+[data-theme-mode="light"] .profile-archetype-section * {
+  color: white !important;
+}
+
+[data-theme-mode="light"] .profile-archetype-section h1,
+[data-theme-mode="light"] .profile-archetype-section h2,
+[data-theme-mode="light"] .profile-archetype-section h3,
+[data-theme-mode="light"] .profile-archetype-section h4,
+[data-theme-mode="light"] .profile-archetype-section h5,
+[data-theme-mode="light"] .profile-archetype-section h6,
+[data-theme-mode="light"] .profile-archetype-section p,
+[data-theme-mode="light"] .profile-archetype-section span,
+[data-theme-mode="light"] .profile-archetype-section div {
+  color: white !important;
+}
+
+[data-theme-mode="light"] .profile-archetype-header h2 {
+  color: white !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme-mode="light"] .profile-archetype-header p {
+  color: white !important;
+  opacity: 0.95;
+}
+
+[data-theme-mode="light"] .profile-archetype-header svg {
+  color: white !important;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Both archetype cards with light accent backgrounds and WHITE text */
+[data-theme-mode="light"] .profile-archetype-card {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 70%, white), 
+    color-mix(in srgb, var(--accent) 60%, white)) !important;
+  border: 2px solid color-mix(in srgb, var(--accent) 50%, white) !important;
+}
+
+[data-theme-mode="light"] .profile-archetype-card * {
+  color: white !important;
+}
+
+[data-theme-mode="light"] .profile-archetype-card h3 {
+  color: white !important;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  font-weight: 800 !important;
+}
+
+[data-theme-mode="light"] .profile-archetype-card h4 {
+  color: white !important;
+  opacity: 0.9;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme-mode="light"] .profile-archetype-card p {
+  color: white !important;
+  opacity: 0.95;
+}
+
+[data-theme-mode="light"] .profile-archetype-card svg {
+  color: white !important;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+/* Primary archetype card - slightly darker accent */
+[data-theme-mode="light"] .profile-archetype-card:first-child {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 80%, white), 
+    color-mix(in srgb, var(--accent) 70%, white)) !important;
+}
+
+/* Secondary archetype card */
+[data-theme-mode="light"] .profile-archetype-card:last-child {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 65%, white), 
+    color-mix(in srgb, var(--accent) 55%, white)) !important;
+}
+
+/* Badges in archetype cards - white with slight transparency */
+[data-theme-mode="light"] .profile-archetype-card .profile-badge {
+  background: rgba(255, 255, 255, 0.3) !important;
+  color: white !important;
+  border: 2px solid rgba(255, 255, 255, 0.5) !important;
+  font-weight: 700 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Retake Assessment button - white with accent text */
+[data-theme-mode="light"] .profile-retake-btn {
+  background: white !important;
+  color: var(--accent) !important;
+  border: 2px solid white !important;
+  font-weight: 700 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme-mode="light"] .profile-retake-btn:hover {
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: var(--accent) !important;
+  transform: scale(1.05);
+}
+
+[data-theme-mode="light"] .profile-retake-btn svg {
+  color: var(--accent) !important;
+}
+
+/* Override any inline styles that might set black text */
+[data-theme-mode="light"] .profile-archetype-section [style*="color"] {
+  color: white !important;
+}

@@ -1299,12 +1299,29 @@
 
 .fc-study-title {
   text-align: center;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
 }
 
 .fc-study-title h2 {
   font-size: 18px;
   font-weight: 600;
   color: var(--fc-text-primary);
+  margin: 0;
+}
+
+.fc-card-counter {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fc-accent);
+  background: var(--fc-accent-glow);
+  padding: 6px 16px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0;
 }
 
 .fc-study-title p {
@@ -1356,6 +1373,31 @@
   padding: 32px;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+/* Card counter above the flashcard */
+.fc-card-counter-above {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fc-accent);
+  background: var(--fc-accent-glow);
+  padding: 10px 24px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 24px;
+  border: 2px solid var(--fc-accent);
+}
+
+[data-theme-mode="light"] .fc-card-counter-above {
+  background: var(--fc-accent);
+  color: white;
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+}
+
+[data-theme-mode="dark"] .fc-card-counter-above {
+  background: rgba(215, 179, 140, 0.15);
+  color: var(--fc-accent);
+  border-color: var(--fc-accent);
 }
 
 .fc-study-card-area {
@@ -1442,35 +1484,24 @@
 
 .fc-study-card {
   flex: 1;
-  min-height: 350px;
+  min-height: 400px;
+  max-height: 500px;
+  height: 500px;
   width: 100%;
-  background: var(--fc-bg-card);
-  border: 1px solid var(--fc-border-subtle);
-  border-radius: 16px;
+  max-width: 700px;
+  background: transparent;
+  border: none;
   cursor: pointer;
-  perspective: 1000px;
-}
-
-/* Gold card in dark mode for better contrast */
-[data-theme-mode="dark"] .fc-study-card {
-  background: linear-gradient(145deg, var(--bg-secondary), var(--bg-primary)) !important;
-  border: 2px solid var(--fc-accent) !important;
-  box-shadow: 0 8px 24px rgba(215, 179, 140, 0.3) !important;
-}
-
-/* Pink card in light mode with glow */
-[data-theme-mode="light"] .fc-study-card {
-  background: linear-gradient(145deg, var(--fc-accent), color-mix(in srgb, var(--fc-accent) 85%, white)) !important;
-  border: 2px solid var(--fc-accent) !important;
-  box-shadow: 0 8px 32px rgba(236, 72, 153, 0.4) !important;
+  perspective: 2000px;
+  position: relative;
 }
 
 .fc-study-card-inner {
   position: relative;
   width: 100%;
   height: 100%;
-  min-height: 350px;
-  transition: transform 0.6s;
+  text-align: center;
+  transition: transform 0.8s;
   transform-style: preserve-3d;
 }
 
@@ -1481,19 +1512,47 @@
 .fc-study-card-front,
 .fc-study-card-back {
   position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
+  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 32px;
+  padding: 40px;
   text-align: center;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border: 2px solid var(--fc-accent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.fc-study-card-front {
+  background: linear-gradient(145deg, var(--bg-secondary), var(--bg-primary));
 }
 
 .fc-study-card-back {
+  background: linear-gradient(145deg, var(--bg-secondary), var(--bg-primary));
   transform: rotateY(180deg);
+}
+
+/* Gold card in dark mode for better contrast */
+[data-theme-mode="dark"] .fc-study-card-front,
+[data-theme-mode="dark"] .fc-study-card-back {
+  background: linear-gradient(145deg, var(--bg-secondary), var(--bg-primary)) !important;
+  border: 2px solid var(--fc-accent) !important;
+  box-shadow: 0 8px 24px rgba(215, 179, 140, 0.3) !important;
+}
+
+/* Pink card in light mode with glow */
+[data-theme-mode="light"] .fc-study-card-front,
+[data-theme-mode="light"] .fc-study-card-back {
+  background: linear-gradient(145deg, var(--fc-accent), color-mix(in srgb, var(--fc-accent) 85%, white)) !important;
+  border: 2px solid var(--fc-accent) !important;
+  box-shadow: 0 8px 32px rgba(236, 72, 153, 0.4) !important;
 }
 
 .fc-study-badge {
@@ -1504,14 +1563,46 @@
   margin-bottom: 20px;
   padding: 6px 12px;
   background: var(--fc-accent-glow);
-  border-radius: 20px;
+  flex-shrink: 0;
 }
 
 .fc-study-card-text {
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1.6;
   color: var(--fc-text-primary);
   max-width: 500px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 10px;
+}
+
+/* Scrollbar styling for card faces */
+.fc-study-card-front::-webkit-scrollbar,
+.fc-study-card-back::-webkit-scrollbar {
+  width: 6px;
+}
+
+.fc-study-card-front::-webkit-scrollbar-track,
+.fc-study-card-back::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.fc-study-card-front::-webkit-scrollbar-thumb,
+.fc-study-card-back::-webkit-scrollbar-thumb {
+  background: var(--fc-accent);
+  border-radius: 3px;
+}
+
+.fc-study-card-front::-webkit-scrollbar-thumb:hover,
+.fc-study-card-back::-webkit-scrollbar-thumb:hover {
+  background: var(--fc-accent-dark);
 }
 
 /* Enhanced text visibility in dark mode */
@@ -1545,7 +1636,8 @@
 .fc-study-hint {
   font-size: 13px;
   color: var(--fc-text-muted);
-  margin-top: 24px;
+  margin-top: 20px;
+  flex-shrink: 0;
 }
 
 .fc-response-btns {
@@ -4016,4 +4108,126 @@
   font-size: 12px;
   color: var(--text-secondary);
   font-style: italic;
+}
+
+/* Light mode flashcard set cards - white bottom section */
+[data-theme-mode="light"] .fc-set-card {
+  background: white !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .fc-set-card:hover {
+  border-color: var(--fc-accent) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+}
+
+[data-theme-mode="light"] .fc-set-title {
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="light"] .fc-set-meta-item {
+  color: #666 !important;
+}
+
+[data-theme-mode="light"] .fc-set-mastery {
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="light"] .fc-set-accuracy {
+  color: #666 !important;
+}
+
+[data-theme-mode="light"] .fc-set-btn.preview {
+  background: white !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+  color: #333 !important;
+}
+
+[data-theme-mode="light"] .fc-set-btn.preview:hover {
+  background: #f8f9fa !important;
+  border-color: var(--fc-accent) !important;
+  color: var(--fc-accent) !important;
+}
+
+[data-theme-mode="light"] .fc-set-btn.study {
+  background: var(--fc-accent) !important;
+  color: white !important;
+}
+
+[data-theme-mode="light"] .fc-set-progress {
+  background: #f0f0f0 !important;
+}
+
+/* Light mode for NEW flashcard set cards - comprehensive overrides */
+[data-theme-mode="light"] .fc-set-card-new {
+  background: white !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .fc-set-card-new:hover {
+  border-color: var(--fc-accent) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+}
+
+[data-theme-mode="light"] .fc-set-content-new {
+  background: white !important;
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="light"] .fc-meta-label {
+  color: #666 !important;
+}
+
+[data-theme-mode="light"] .fc-meta-value {
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="light"] .fc-mastery-label {
+  color: #666 !important;
+}
+
+[data-theme-mode="light"] .fc-mastery-value {
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="light"] .fc-mastery-percentage {
+  color: #666 !important;
+}
+
+[data-theme-mode="light"] .fc-set-date-new {
+  color: #666 !important;
+}
+
+[data-theme-mode="light"] .fc-set-progress-new {
+  background: #f0f0f0 !important;
+}
+
+[data-theme-mode="light"] .fc-set-actions-new {
+  background: white !important;
+}
+
+[data-theme-mode="light"] .fc-action-btn-new {
+  background: white !important;
+  color: #1a1a1a !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-theme-mode="light"] .fc-action-preview {
+  background: white !important;
+  color: #1a1a1a !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+[data-theme-mode="light"] .fc-action-preview:hover {
+  background: #f8f9fa !important;
+  border-color: var(--fc-accent) !important;
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="light"] .fc-action-preview svg {
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="light"] .fc-action-preview:hover svg {
+  color: #1a1a1a !important;
 }

@@ -1267,7 +1267,55 @@ const SearchHub = () => {
   const handleCreateContent = (type) => {
     switch (type) {
       case 'flashcards':
-        navigate('/flashcards', { state: { topic: searchQuery } });
+        // Show loading state like adaptive learning does
+        setIsCreating(true);
+        setIsSearching(true);
+        setCreatingMessage(`Creating flashcards on ${searchQuery || 'this topic'}...`);
+        
+        // Create flashcard set via API
+        (async () => {
+          try {
+            const token = localStorage.getItem('token');
+            const topic = searchQuery || 'New Flashcard Set';
+            const count = 10;
+            
+            const formData = new FormData();
+            formData.append('user_id', userName);
+            formData.append('topic', topic);
+            formData.append('card_count', count);
+            formData.append('difficulty_level', 'medium');
+            formData.append('depth_level', 'standard');
+            formData.append('save_to_set', 'true');
+            formData.append('set_title', topic);
+            
+            const res = await fetch(`${API_URL}/generate_flashcards`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}` },
+              body: formData
+            });
+            
+            if (res.ok) {
+              const data = await res.json();
+              setIsCreating(false);
+              setIsSearching(false);
+              
+              if (data.set_id) {
+                navigate(`/flashcards?set_id=${data.set_id}`);
+              } else {
+                navigate('/flashcards');
+              }
+            } else {
+              setIsCreating(false);
+              setIsSearching(false);
+              navigate('/flashcards', { state: { autoCreate: true, topic, count } });
+            }
+          } catch (error) {
+            console.error('Error creating flashcard set:', error);
+            setIsCreating(false);
+            setIsSearching(false);
+            navigate('/flashcards', { state: { autoCreate: true, topic: searchQuery, count: 10 } });
+          }
+        })();
         break;
       case 'notes':
         navigate('/notes', { state: { topic: searchQuery } });
@@ -1462,7 +1510,11 @@ const SearchHub = () => {
           /* Creating Content Loading */
           <div className="creating-content">
             <div className="creating-content-container">
-              <div className="creating-spinner"></div>
+              <div className="pulse-loader">
+                <div className="pulse-square pulse-1"></div>
+                <div className="pulse-square pulse-2"></div>
+                <div className="pulse-square pulse-3"></div>
+              </div>
               <h2>{creatingMessage}</h2>
               <p>Please wait while we generate your content...</p>
             </div>
@@ -1640,7 +1692,11 @@ const SearchHub = () => {
 
               {isSearching ? (
                 <div className="loading-state">
-                  <div className="loading-spinner"></div>
+                  <div className="pulse-loader">
+                    <div className="pulse-square pulse-1"></div>
+                    <div className="pulse-square pulse-2"></div>
+                    <div className="pulse-square pulse-3"></div>
+                  </div>
                   <p>Searching...</p>
                 </div>
               ) : searchResults.total_results > 0 ? (
@@ -1730,26 +1786,6 @@ const SearchHub = () => {
                         </h3>
                       </div>
                       <p className="ai-description">{aiSuggestion.description}</p>
-                      
-                      {aiSuggestion.suggestions && aiSuggestion.suggestions.length > 0 && (
-                        <div className="create-options">
-                          <h4>Try these commands:</h4>
-                          <div className="suggestion-chips">
-                            {aiSuggestion.suggestions.map((suggestion, index) => (
-                              <button
-                                key={index}
-                                className="search-chip"
-                                onClick={() => {
-                                  setSearchQuery(suggestion);
-                                  handleSearch(suggestion);
-                                }}
-                              >
-                                <span>{suggestion}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                       
                       <div className="create-options">
                         <h4>Or create something new:</h4>

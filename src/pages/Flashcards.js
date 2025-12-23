@@ -650,6 +650,11 @@ const Flashcards = () => {
     const ChevronLeft = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>;
     const ChevronRight = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>;
     
+    const handleCardClick = (e) => {
+      e.stopPropagation();
+      setIsFlipped(prev => !prev);
+    };
+    
     return (
       <div className="flashcards-page">
         <div className="fc-study-mode">
@@ -659,7 +664,6 @@ const Flashcards = () => {
             </button>
             <div className="fc-study-title">
               <h2>{currentSetInfo?.setTitle || 'Preview Mode'}</h2>
-              <p>Card {currentCard + 1} of {previewCards.length}</p>
             </div>
             <button 
               className={`fc-shuffle-btn ${studySettings.shuffle ? 'active' : ''}`}
@@ -677,10 +681,12 @@ const Flashcards = () => {
           </div>
 
           <div className="fc-study-content">
+            <p className="fc-card-counter-above">Card {currentCard + 1} of {previewCards.length}</p>
+            
             <div className="fc-preview-card-container">
               <div 
                 className={`fc-study-card ${isFlipped ? 'flipped' : ''}`}
-                onClick={() => setIsFlipped(!isFlipped)}
+                onClick={handleCardClick}
               >
                 <div className="fc-study-card-inner">
                   <div className="fc-study-card-front">
@@ -700,9 +706,9 @@ const Flashcards = () => {
             <div className="fc-knowledge-btns">
               <button 
                 className="fc-knowledge-btn fc-dont-know"
-                onClick={async () => {
+                onClick={async (e) => {
+                  e.stopPropagation();
                   handleStudyResponse('incorrect');
-                  // Mark card for review if it has an ID (saved card)
                   const card = previewCards[currentCard];
                   if (card?.id) {
                     await markCardForReview(card.id, true);
@@ -718,9 +724,9 @@ const Flashcards = () => {
               </button>
               <button 
                 className="fc-knowledge-btn fc-know"
-                onClick={async () => {
+                onClick={async (e) => {
+                  e.stopPropagation();
                   handleStudyResponse('correct');
-                  // Unmark card from review if it was previously marked
                   const card = previewCards[currentCard];
                   if (card?.id && card?.marked_for_review) {
                     await markCardForReview(card.id, false);
@@ -789,7 +795,7 @@ const Flashcards = () => {
                 </button>
                 <div className="fc-study-title">
                   <h2>{currentSetInfo?.setTitle || 'Study Session'}</h2>
-                  <p>Card {currentCard + 1} of {currentStudyCards.length}</p>
+                  <p className="fc-card-counter">Card {currentCard + 1} of {currentStudyCards.length}</p>
                 </div>
                 <button 
                   className={`fc-shuffle-btn ${studySettings.shuffle ? 'active' : ''}`}

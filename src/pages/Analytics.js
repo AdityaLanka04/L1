@@ -156,7 +156,11 @@ const Analytics = () => {
     return (
       <div className="analytics-page">
         <div className="loading-container">
-          <div className="loading-spinner"></div>
+          <div className="pulse-loader">
+            <div className="pulse-square pulse-1"></div>
+            <div className="pulse-square pulse-2"></div>
+            <div className="pulse-square pulse-3"></div>
+          </div>
           <p>Loading analytics...</p>
         </div>
       </div>
@@ -309,11 +313,14 @@ const Analytics = () => {
             ) : chartType === 'bar' ? (
               <div className="bar-chart">
                 <div className="y-axis">
-                  {[...Array(6)].map((_, i) => (
-                    <span key={i} className="y-label">
-                      {Math.round((maxValue * (5 - i)) / 5)}
-                    </span>
-                  ))}
+                  {[...Array(6)].map((_, i) => {
+                    const value = Math.round((maxValue * (5 - i)) / 5 / 10) * 10;
+                    return (
+                      <span key={i} className="y-label">
+                        {value}
+                      </span>
+                    );
+                  })}
                 </div>
                 <div className="bars-container">
                   {chartData.map((day, idx) => (
@@ -342,29 +349,37 @@ const Analytics = () => {
               </div>
             ) : (
               <div className="line-chart">
-                <svg viewBox={`0 0 ${Math.max(700, chartData.length * 18)} 300`} preserveAspectRatio="xMidYMid meet">
+                <svg viewBox={`0 0 ${Math.max(900, chartData.length * 22 + 60)} 420`} preserveAspectRatio="xMidYMid meet">
                   <defs>
                     <linearGradient id="grid-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
                       <stop offset="0%" stopColor="rgba(255,255,255,0.05)" />
                       <stop offset="100%" stopColor="rgba(255,255,255,0.01)" />
                     </linearGradient>
                   </defs>
-                  {[...Array(6)].map((_, i) => (
-                    <line
-                      key={i}
-                      x1="10"
-                      y1={10 + (i * 280) / 5}
-                      x2={Math.max(690, chartData.length * 18)}
-                      y2={10 + (i * 280) / 5}
-                      stroke="rgba(255,255,255,0.05)"
-                      strokeWidth="1"
-                    />
-                  ))}
+                  {/* Y-axis labels and grid lines */}
+                  {[...Array(6)].map((_, i) => {
+                    const value = Math.round((maxValue * (5 - i)) / 5 / 10) * 10;
+                    const y = 30 + (i * 340) / 5;
+                    return (
+                      <g key={i}>
+                        <text x="5" y={y + 4} fontSize="12" fill="rgba(255,255,255,0.6)" fontWeight="500">{value}</text>
+                        <line
+                          x1="50"
+                          y1={y}
+                          x2={Math.max(890, chartData.length * 22 + 50)}
+                          y2={y}
+                          stroke="rgba(255,255,255,0.08)"
+                          strokeWidth="1"
+                          strokeDasharray={i === 5 ? "0" : "4,4"}
+                        />
+                      </g>
+                    );
+                  })}
                   {selectedMetrics.map(metric => {
                     const points = chartData.map((day, idx) => {
-                      const x = (idx / Math.max(chartData.length - 1, 1)) * (Math.max(680, chartData.length * 18)) + 10;
+                      const x = (idx / Math.max(chartData.length - 1, 1)) * (Math.max(830, chartData.length * 22)) + 60;
                       const value = day[metric] || 0;
-                      const y = 290 - (maxValue > 0 ? (value / maxValue) * 280 : 0);
+                      const y = 370 - (maxValue > 0 ? (value / maxValue) * 340 : 0);
                       return `${x},${y}`;
                     }).join(' ');
 
@@ -373,19 +388,19 @@ const Analytics = () => {
                         <polyline
                           fill="none"
                           stroke={metricConfig[metric].color}
-                          strokeWidth="2"
+                          strokeWidth="3"
                           points={points}
                         />
                         {chartData.length <= 50 && chartData.map((day, idx) => {
-                          const x = (idx / Math.max(chartData.length - 1, 1)) * (Math.max(680, chartData.length * 18)) + 10;
+                          const x = (idx / Math.max(chartData.length - 1, 1)) * (Math.max(830, chartData.length * 22)) + 60;
                           const value = day[metric] || 0;
-                          const y = 290 - (maxValue > 0 ? (value / maxValue) * 280 : 0);
+                          const y = 370 - (maxValue > 0 ? (value / maxValue) * 340 : 0);
                           return (
                             <circle
                               key={idx}
                               cx={x}
                               cy={y}
-                              r={chartData.length > 30 ? 3 : 5}
+                              r={chartData.length > 30 ? 5 : 6}
                               fill={metricConfig[metric].color}
                             >
                               <title>{`${day.label || day.day}: ${metricConfig[metric].label}: ${value}`}</title>
@@ -395,26 +410,30 @@ const Analytics = () => {
                       </g>
                     );
                   })}
-                </svg>
-                <div className="line-x-labels" style={{
-                  justifyContent: chartData.length > 15 ? 'flex-start' : 'space-around',
-                  gap: chartData.length > 15 ? '0' : '8px',
-                  overflowX: chartData.length > 15 ? 'auto' : 'visible'
-                }}>
+                  {/* X-axis day labels directly in SVG */}
                   {chartData.map((day, idx) => {
                     const showLabel = chartData.length <= 15 || 
                       idx === 0 || 
                       idx === chartData.length - 1 || 
                       (chartData.length <= 30 && idx % 3 === 0) ||
                       (chartData.length > 30 && idx % 7 === 0);
-                    return showLabel ? (
-                      <span key={idx} style={{
-                        fontSize: chartData.length > 20 ? '0.65rem' : '0.75rem',
-                        minWidth: chartData.length > 15 ? `${100 / Math.min(chartData.length, 10)}%` : 'auto'
-                      }}>{day.label || day.day}</span>
-                    ) : null;
+                    if (!showLabel) return null;
+                    const x = (idx / Math.max(chartData.length - 1, 1)) * (Math.max(830, chartData.length * 22)) + 60;
+                    return (
+                      <text 
+                        key={idx} 
+                        x={x} 
+                        y="395" 
+                        fontSize={chartData.length > 20 ? "11" : "12"} 
+                        fill="rgba(255,255,255,0.6)" 
+                        textAnchor="middle"
+                        fontWeight="600"
+                      >
+                        {(day.label || day.day).toUpperCase()}
+                      </text>
+                    );
                   })}
-                </div>
+                </svg>
               </div>
             )}
           </div>

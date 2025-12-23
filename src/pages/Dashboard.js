@@ -239,6 +239,19 @@ const Dashboard = () => {
       const token = localStorage.getItem('token');
       const params = new URLSearchParams({ user_id: userName });
       
+      // Load weekly progress from dedicated endpoint
+      const weeklyResponse = await fetch(`${API_URL}/get_weekly_progress?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (weeklyResponse.ok) {
+        const weeklyData = await weeklyResponse.json();
+        setWeeklyProgress(weeklyData.weekly_data || [0, 0, 0, 0, 0, 0, 0]);
+        setDailyBreakdown(weeklyData.daily_breakdown || []);
+        setWeeklyStats(weeklyData.weekly_stats || {});
+      }
+      
+      // Load other dashboard data
       const response = await fetch(`${API_URL}/get_dashboard_data?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -247,9 +260,6 @@ const Dashboard = () => {
         const data = await response.json();
         
         setRecentActivities(data.recent_activities || []);
-        setWeeklyProgress(data.weekly_progress || [0, 0, 0, 0, 0, 0, 0]);
-        setDailyBreakdown(data.daily_breakdown || []);
-        setWeeklyStats(data.weekly_stats || {});
         setMotivationalQuote(data.motivational_quote || 'Keep learning every day!');
         setRandomQuote(data.random_quote || 'Every expert was once a beginner.');
         setAchievements(data.achievements || []);
@@ -976,6 +986,24 @@ const Dashboard = () => {
         const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
         const maxWeeklyValue = Math.max(...weeklyProgress, 1);
         
+        // Round to nearest multiple of 10
+        const roundToTen = (num) => Math.ceil(num / 10) * 10;
+        const maxRounded = roundToTen(maxWeeklyValue);
+        
+        // Create evenly spaced Y-axis labels (4 steps including 0)
+        const step = maxRounded / 3;
+        const yAxisSteps = [
+          maxRounded,
+          Math.round(step * 2 / 10) * 10,
+          Math.round(step / 10) * 10,
+          0
+        ];
+        
+        // Calculate Y positions for each step (evenly spaced)
+        const getYPosition = (value) => {
+          return 100 - (value / maxRounded) * 70;
+        };
+        
         return (
           <div className="stats-overview-widget">
             <div className="widget-header">
@@ -990,27 +1018,41 @@ const Dashboard = () => {
             <div className="stats-line-container">
               <div className="stats-graph-section">
                 <div className="line-chart-wrapper">
-                  <svg viewBox="0 0 280 120" className="stats-line-chart" preserveAspectRatio="xMidYMid meet">
-                    {/* Grid lines */}
-                    <line x1="30" y1="100" x2="270" y2="100" stroke={textSecondary} strokeOpacity="0.2" />
-                    <line x1="30" y1="70" x2="270" y2="70" stroke={textSecondary} strokeOpacity="0.1" strokeDasharray="4" />
-                    <line x1="30" y1="40" x2="270" y2="40" stroke={textSecondary} strokeOpacity="0.1" strokeDasharray="4" />
+                  <svg viewBox="0 0 300 120" className="stats-line-chart" preserveAspectRatio="xMidYMid meet">
+                    {/* Y-axis reference numbers and grid lines */}
+                    {yAxisSteps.map((value, i) => {
+                      const y = getYPosition(value);
+                      return (
+                        <g key={i}>
+                          <text x="5" y={y + 4} fontSize="10" fill={textSecondary} opacity="0.6">{value}</text>
+                          <line 
+                            x1="40" 
+                            y1={y} 
+                            x2="290" 
+                            y2={y} 
+                            stroke={textSecondary} 
+                            strokeOpacity={i === 3 ? "0.3" : "0.15"} 
+                            strokeDasharray="4,4"
+                          />
+                        </g>
+                      );
+                    })}
                     
                     {/* Area fill */}
                     <path
-                      d={`M 30 100 ${weeklyProgress.map((val, i) => {
-                        const x = 30 + (i * 40);
-                        const y = 100 - (val / maxWeeklyValue) * 70;
+                      d={`M 40 100 ${weeklyProgress.map((val, i) => {
+                        const x = 40 + (i * 41.67);
+                        const y = 100 - (val / maxRounded) * 70;
                         return `L ${x} ${y}`;
-                      }).join(' ')} L ${30 + 6 * 40} 100 Z`}
+                      }).join(' ')} L ${40 + 6 * 41.67} 100 Z`}
                       fill={`url(#areaGradient-${widget.id})`}
                     />
                     
                     {/* Line */}
                     <path
                       d={`M ${weeklyProgress.map((val, i) => {
-                        const x = 30 + (i * 40);
-                        const y = 100 - (val / maxWeeklyValue) * 70;
+                        const x = 40 + (i * 41.67);
+                        const y = 100 - (val / maxRounded) * 70;
                         return `${i === 0 ? '' : 'L '}${x} ${y}`;
                       }).join(' ')}`}
                       fill="none"
@@ -1020,10 +1062,18 @@ const Dashboard = () => {
                     
                     {/* Data points */}
                     {weeklyProgress.map((val, i) => {
-                      const x = 30 + (i * 40);
-                      const y = 100 - (val / maxWeeklyValue) * 70;
+                      const x = 40 + (i * 41.67);
+                      const y = 100 - (val / maxRounded) * 70;
                       return (
                         <circle key={i} cx={x} cy={y} r="4" fill={accent} stroke={bgTop} strokeWidth="2" />
+                      );
+                    })}
+                    
+                    {/* Day labels directly in SVG for perfect alignment */}
+                    {dayLabels.map((day, i) => {
+                      const x = 40 + (i * 41.67);
+                      return (
+                        <text key={i} x={x} y="115" fontSize="10" fill={textSecondary} textAnchor="middle">{day}</text>
                       );
                     })}
                     
@@ -1035,11 +1085,6 @@ const Dashboard = () => {
                       </linearGradient>
                     </defs>
                   </svg>
-                  <div className="line-chart-labels">
-                    {dayLabels.map((day, i) => (
-                      <span key={i} className="day-label">{day}</span>
-                    ))}
-                  </div>
                 </div>
               </div>
               <div className="stats-numbers-section">

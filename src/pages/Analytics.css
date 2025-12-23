@@ -493,7 +493,6 @@
   border-color: var(--chip-color);
   color: var(--chip-color);
   transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(var(--chip-color-rgb), 0.2);
 }
 
 .metric-chip:hover::before {
@@ -504,9 +503,6 @@
   background: linear-gradient(135deg, var(--chip-color), color-mix(in srgb, var(--chip-color) 70%, #000));
   color: #000;
   border-color: var(--chip-color);
-  box-shadow: 
-    0 8px 25px rgba(var(--chip-color-rgb), 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
   font-weight: 800;
 }
 
@@ -634,7 +630,6 @@
   width: 14px;
   height: 14px;
   border-radius: 6px;
-  box-shadow: 0 2px 8px currentColor;
   flex-shrink: 0;
 }
 
@@ -748,7 +743,6 @@
   cursor: pointer;
   min-height: 6px;
   position: relative;
-  box-shadow: 0 -4px 15px currentColor;
 }
 
 .bar::before {
@@ -765,7 +759,6 @@
 .bar:hover {
   transform: scaleY(1.05) scaleX(1.15);
   filter: brightness(1.2);
-  box-shadow: 0 -8px 25px currentColor;
 }
 
 .x-label {
@@ -785,7 +778,10 @@
 ============================================ */
 .line-chart {
   position: relative;
-  height: 420px;
+  height: 500px;
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
   overflow-x: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--accent) transparent;
@@ -813,17 +809,15 @@
 }
 
 .line-chart svg polyline {
-  filter: drop-shadow(0 0 12px currentColor);
+  /* Removed glow effect */
 }
 
 .line-chart svg circle {
   transition: var(--transition-smooth);
-  filter: drop-shadow(0 0 8px currentColor);
 }
 
 .line-chart svg circle:hover {
   r: 8;
-  filter: drop-shadow(0 0 15px currentColor);
 }
 
 .line-x-labels {
@@ -969,6 +963,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 0;
+  gap: 20px;
+  min-height: 32px;
 }
 
 .stat-row span:first-child {
@@ -977,6 +973,7 @@
   text-transform: uppercase;
   letter-spacing: 1px;
   font-weight: 600;
+  flex: 1;
 }
 
 .stat-row .value {
@@ -987,6 +984,8 @@
   line-height: 1;
   font-variant-numeric: tabular-nums;
   text-align: right;
+  flex-shrink: 0;
+  min-width: 50px;
 }
 
 .stat-row .value.highlight {
@@ -1132,6 +1131,48 @@
   justify-content: center;
   min-height: 80vh;
   gap: 32px;
+}
+
+.pulse-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.pulse-square {
+  background: var(--accent);
+  animation: pulseGrow 1.5s ease-in-out infinite;
+  box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.pulse-square.pulse-1 {
+  width: 24px;
+  height: 24px;
+  animation-delay: 0s;
+}
+
+.pulse-square.pulse-2 {
+  width: 32px;
+  height: 32px;
+  animation-delay: 0.2s;
+}
+
+.pulse-square.pulse-3 {
+  width: 40px;
+  height: 40px;
+  animation-delay: 0.4s;
+}
+
+@keyframes pulseGrow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
 }
 
 .loading-spinner {
@@ -2449,7 +2490,140 @@
    LIGHT MODE STYLES
 ============================================ */
 [data-theme-mode="light"] .analytics-page {
-  background: var(--background, var(--bg-bottom));
+  background: #f8f9fa !important;
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="light"] .analytics-header {
+  background: white !important;
+  border-bottom-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .analytics-header h1 {
+  color: var(--accent) !important;
+  background: none !important;
+  -webkit-text-fill-color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .analytics-header p {
+  color: #666 !important;
+}
+
+[data-theme-mode="light"] .back-btn {
+  background: white !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  color: #333 !important;
+}
+
+[data-theme-mode="light"] .back-btn:hover {
+  background: #f8f9fa !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .export-btn {
+  background: var(--accent) !important;
+  color: white !important;
+  border-color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .export-btn:hover {
+  background: color-mix(in srgb, var(--accent) 90%, #000) !important;
+}
+
+[data-theme-mode="light"] .summary-card {
+  background: white !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="light"] .summary-card.accent {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, #000)) !important;
+  color: white !important;
+}
+
+[data-theme-mode="light"] .summary-card.accent .card-value,
+[data-theme-mode="light"] .summary-card.accent .card-label,
+[data-theme-mode="light"] .summary-card.accent svg {
+  color: white !important;
+}
+
+[data-theme-mode="light"] .summary-card .card-value {
+  color: #1a1a1a !important;
+}
+
+[data-theme-mode="light"] .summary-card .card-label {
+  color: #666 !important;
+}
+
+[data-theme-mode="light"] .filters-section {
+  background: white !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .filter-group label {
+  color: #666 !important;
+}
+
+[data-theme-mode="light"] .filter-btn {
+  background: white !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+  color: #333 !important;
+}
+
+[data-theme-mode="light"] .filter-btn:hover {
+  background: #f8f9fa !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .filter-btn.active {
+  background: var(--accent) !important;
+  color: white !important;
+  border-color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .metric-chip {
+  background: white !important;
+  border-color: rgba(0, 0, 0, 0.15) !important;
+  color: #333 !important;
+}
+
+[data-theme-mode="light"] .metric-chip:hover {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .metric-chip.active {
+  background: var(--chip-color) !important;
+  color: white !important;
+  border-color: var(--chip-color) !important;
+}
+
+[data-theme-mode="light"] .main-chart-section {
+  background: white !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .chart-header h2 {
+  color: var(--accent) !important;
+  background: none !important;
+  -webkit-text-fill-color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .chart-subtitle {
+  color: #666 !important;
+}
+
+[data-theme-mode="light"] .legend-item {
+  background: #f8f9fa !important;
+  color: #333 !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .legend-item:hover {
+  background: white !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
 }
 
 [data-theme-mode="light"] .analytics-header {
@@ -2462,16 +2636,59 @@
 [data-theme-mode="light"] .main-chart-section,
 [data-theme-mode="light"] .filters-section,
 [data-theme-mode="light"] .points-reference {
-  background: var(--panel, #ffffff);
-  border-color: var(--border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: white !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme-mode="light"] .stat-card {
+  background: white !important;
+}
+
+[data-theme-mode="light"] .stat-header span {
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .stat-row span:first-child {
+  color: #666 !important;
+}
+
+[data-theme-mode="light"] .stat-row .value {
+  color: var(--accent) !important;
 }
 
 [data-theme-mode="light"] .summary-card:hover,
 [data-theme-mode="light"] .stat-card:hover {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  border-color: var(--accent);
-  background-image: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  border-color: var(--accent) !important;
+  transform: translateY(-2px);
+}
+
+[data-theme-mode="light"] .points-reference {
+  background: white !important;
+}
+
+[data-theme-mode="light"] .points-reference h3 {
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .point-item {
+  background: #f8f9fa !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  color: #333 !important;
+}
+
+[data-theme-mode="light"] .point-item:hover {
+  background: white !important;
+  border-color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .point-label {
+  color: #333 !important;
+}
+
+[data-theme-mode="light"] .point-value {
+  color: var(--accent) !important;
 }
 
 [data-theme-mode="light"] .stat-header svg,

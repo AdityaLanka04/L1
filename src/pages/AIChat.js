@@ -313,6 +313,8 @@ const AIChat = ({ sharedMode = false }) => {
       return;
     }
     
+    console.log(`📥 Loading messages for chat session: ${sessionId}`);
+    
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/get_chat_messages?chat_id=${sessionId}`, {
@@ -325,9 +327,11 @@ const AIChat = ({ sharedMode = false }) => {
       
       if (response.ok) {
         const messagesArray = await response.json();
+        console.log(`✅ Loaded ${messagesArray.length} messages from database`);
         setMessages(messagesArray);
         setTimeout(scrollToBottom, 100);
       } else {
+        console.log(`❌ Failed to load messages: ${response.status}`);
         setMessages([]);
       }
     } catch (error) {
@@ -504,6 +508,8 @@ const AIChat = ({ sharedMode = false }) => {
       }
 
       const data = await response.json();
+      
+      console.log(`✅ AI response received. Chat ID: ${data.chat_id || currentChatId}`);
       
       if (!data.answer) {
         throw new Error('No answer received from AI');
@@ -1349,74 +1355,100 @@ const AIChat = ({ sharedMode = false }) => {
   useEffect(() => {
     const initialMsg = location.state?.initialMessage;
     
-    if (initialMsg && userName) {
+    if (initialMsg && userName && !loading) {
       console.log('🚀 Auto-sending initial message:', initialMsg);
       
-      // Set the input message immediately
+      // Set the input message so user can see what they asked
       setInputMessage(initialMsg);
       
       // Wait for component to be ready, then send
-      const timer = setTimeout(() => {
-        // Create a new chat and send the message
-        const messageToSend = initialMsg;
+      const timer = setTimeout(async () => {
+        // Create a new chat session first
+        const newChatId = await createNewChat();
         
-        // Clear input and send
+        if (!newChatId) {
+          console.error('Failed to create new chat session');
+          setLoading(false);
+          return;
+        }
+        
+        console.log(`✅ Created new chat session: ${newChatId}`);
+        
+        // Set active chat and navigate
+        setActiveChatId(newChatId);
+        navigate(`/ai-chat/${newChatId}`, { replace: true });
+        
+        // Add user message to UI
+        const userMessage = {
+          id: `user_${Date.now()}`,
+          type: 'user',
+          content: initialMsg,
+          timestamp: new Date().toISOString()
+        };
+        
+        setMessages([userMessage]);
         setInputMessage('');
         setLoading(true);
         
-        // Call the send logic directly
-        (async () => {
-          try {
-            const token = localStorage.getItem('token');
-            const formData = new FormData();
-            formData.append('user_id', userName);
-            formData.append('question', messageToSend);
-            formData.append('chat_id', '');  // Empty for new chat
-            
-            const response = await fetch(`${API_URL}/ask/`, {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${token}` },
-              body: formData
-            });
-            
-            if (response.ok) {
-              const data = await response.json();
-              
-              // Add user message
-              const userMsg = {
-                id: `user_${Date.now()}`,
-                role: 'user',
-                content: messageToSend,
-                timestamp: new Date().toISOString()
-              };
-              
-              // Add AI response
-              const aiMsg = {
-                id: `ai_${Date.now()}`,
-                role: 'assistant',
-                content: data.answer,
-                timestamp: new Date().toISOString()
-              };
-              
-              setMessages([userMsg, aiMsg]);
-              
-              // Set the chat ID if returned
-              if (data.chat_id) {
-                setActiveChatId(data.chat_id);
-                navigate(`/ai-chat/${data.chat_id}`, { replace: true });
-                loadChatSessions();
-              }
-            }
-          } catch (error) {
-            console.error('Error sending initial message:', error);
-          } finally {
-            setLoading(false);
+        // Send to backend
+        try {
+          const token = localStorage.getItem('token');
+          const formData = new FormData();
+          formData.append('user_id', userName);
+          formData.append('question', initialMsg);
+          formData.append('chat_id', newChatId.toString());
+          
+          const response = await fetch(`${API_URL}/ask_simple/`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
           }
-        })();
+          
+          const data = await response.json();
+          
+          if (!data.answer) {
+            throw new Error('No answer received from AI');
+          }
+          
+          // Add AI response to UI
+          const aiMessage = {
+            id: `ai_${Date.now()}`,
+            type: 'ai',
+            content: data.answer,
+            timestamp: new Date().toISOString(),
+            aiConfidence: data.ai_confidence || 0.9,
+            shouldRequestFeedback: data.should_request_feedback || false,
+            topics: data.topics_discussed || []
+          };
+          
+          setMessages(prev => [...prev, aiMessage]);
+          
+          // Auto-rename chat based on the question
+          await autoRenameChat(newChatId, initialMsg);
+          
+          // Reload chat sessions to show the new chat
+          await loadChatSessions();
+          
+        } catch (error) {
+          console.error('Error sending initial message:', error);
+          const errorMessage = {
+            id: `error_${Date.now()}`,
+            type: 'ai',
+            content: `Sorry, I encountered an error: ${error.message}. Please try again.`,
+            timestamp: new Date().toISOString()
+          };
+          setMessages(prev => [...prev, errorMessage]);
+        } finally {
+          setLoading(false);
+        }
         
         // Clear the location state
         window.history.replaceState({}, document.title);
-      }, 800);
+      }, 500);
       
       return () => clearTimeout(timer);
     }
@@ -1820,10 +1852,10 @@ const AIChat = ({ sharedMode = false }) => {
                 {loading && (
                   <div className="ac-message ai">
                     <div className="ac-message-bubble">
-                      <div className="ac-typing">
-                        <span></span>
-                        <span></span>
-                        <span></span>
+                      <div className="ac-pulse-loader">
+                        <div className="ac-pulse-square ac-pulse-1"></div>
+                        <div className="ac-pulse-square ac-pulse-2"></div>
+                        <div className="ac-pulse-square ac-pulse-3"></div>
                       </div>
                     </div>
                   </div>

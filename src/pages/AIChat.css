@@ -957,6 +957,51 @@
 }
 
 /* Typing Indicator */
+/* Pulsing Squares Loader */
+.ac-pulse-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 20px;
+}
+
+.ac-pulse-square {
+  background: var(--ac-accent);
+  animation: acPulseGrow 1.5s ease-in-out infinite;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--ac-accent) 40%, transparent);
+}
+
+.ac-pulse-square.ac-pulse-1 {
+  width: 8px;
+  height: 8px;
+  animation-delay: 0s;
+}
+
+.ac-pulse-square.ac-pulse-2 {
+  width: 10px;
+  height: 10px;
+  animation-delay: 0.2s;
+}
+
+.ac-pulse-square.ac-pulse-3 {
+  width: 12px;
+  height: 12px;
+  animation-delay: 0.4s;
+}
+
+@keyframes acPulseGrow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+}
+
+/* Legacy typing animation - keep for backwards compatibility */
 .ac-typing {
   display: flex;
   gap: 6px;
