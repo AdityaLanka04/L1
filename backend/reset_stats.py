@@ -16,13 +16,19 @@ def reset_all_stats():
     try:
         print("🔄 Resetting all data...")
         
-        # Delete all chat messages first (foreign key constraint)
-        deleted_messages = db.query(ChatMessage).delete()
-        print(f"✅ Deleted {deleted_messages} chat messages")
+        # Delete all chat messages first (foreign key constraint) - handle if table doesn't exist
+        try:
+            deleted_messages = db.query(ChatMessage).delete()
+            print(f"✅ Deleted {deleted_messages} chat messages")
+        except Exception as e:
+            print(f"⚠️ Could not delete chat messages: {e}")
         
-        # Delete all chat sessions
-        deleted_sessions = db.query(ChatSession).delete()
-        print(f"✅ Deleted {deleted_sessions} chat sessions")
+        # Delete all chat sessions - handle if table doesn't exist
+        try:
+            deleted_sessions = db.query(ChatSession).delete()
+            print(f"✅ Deleted {deleted_sessions} chat sessions")
+        except Exception as e:
+            print(f"⚠️ Could not delete chat sessions: {e}")
         
         # Reset all UserGamificationStats
         stats = db.query(UserGamificationStats).all()

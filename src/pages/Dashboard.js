@@ -251,13 +251,52 @@ const Dashboard = () => {
         setWeeklyStats(weeklyData.weekly_stats || {});
       }
       
-      // Load other dashboard data
+      // Load analytics data for weekly activity graph
+      const analyticsResponse = await fetch(`${API_URL}/get_analytics_history?user_id=${userName}&period=week`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (analyticsResponse.ok) {
+        const analyticsData = await analyticsResponse.json();
+        const history = analyticsData.history || [];
+        
+        // Use analytics for weekly totals only (for the graph)
+        const weeklyAIChats = history.reduce((sum, day) => sum + (day.ai_chats || 0), 0);
+        const weeklyFlashcards = history.reduce((sum, day) => sum + (day.flashcards || 0), 0);
+        const weeklyNotes = history.reduce((sum, day) => sum + (day.notes || 0), 0);
+        const weeklyStudyMinutes = history.reduce((sum, day) => sum + (day.study_minutes || 0), 0);
+        
+        // Store weekly totals for display
+        setWeeklyStats(prev => ({
+          ...prev,
+          weeklyAIChats,
+          weeklyFlashcards,
+          weeklyNotes,
+          weeklyStudyMinutes
+        }));
+      }
+      
+      // Load other dashboard data including gamification stats
       const response = await fetch(`${API_URL}/get_dashboard_data?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
       if (response.ok) {
         const data = await response.json();
+        
+        // Use gamification stats for ALL-TIME totals (this is what should be displayed)
+        if (data.gamification) {
+          setStats({
+            streak: data.gamification.current_streak || 0,
+            totalQuestions: data.gamification.total_ai_chats || 0,  // AI Chats
+            totalFlashcards: data.gamification.total_flashcards_created || 0,  // Flashcard SETS created
+            totalNotes: data.gamification.total_notes_created || 0,
+            totalChatSessions: data.gamification.total_ai_chats || 0,
+            minutes: data.gamification.total_study_minutes || 0
+          });
+          
+          setTotalQuestions(data.gamification.total_ai_chats || 0);
+        }
         
         setRecentActivities(data.recent_activities || []);
         setMotivationalQuote(data.motivational_quote || 'Keep learning every day!');

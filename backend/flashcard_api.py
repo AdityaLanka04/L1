@@ -804,6 +804,11 @@ class FlashcardAPI:
                             
                             db.commit()
                             
+                            # Award points for creating flashcard set
+                            from gamification_system import award_points
+                            points_result = award_points(db, user.id, "flashcard_set")
+                            logger.info(f"Awarded {points_result.get('points_earned', 0)} points for flashcard set creation")
+                            
                             # Check for flashcard set milestones and create notifications (only once)
                             total_sets = db.query(models.FlashcardSet).filter(
                                 models.FlashcardSet.user_id == user.id
