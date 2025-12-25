@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Upload, Youtube, FileText, Save, Copy, Mic, Loader,
   Settings, Brain, Zap, Clock, Globe, ChevronLeft, ChevronRight,
-  BookOpen, CheckCircle, AlertCircle, Play, Trash2, Home, LogOut
+  BookOpen, CheckCircle, AlertCircle, Play, Trash2, Home, LogOut, Menu
 } from 'lucide-react';
 import './AIMediaNotes.css';
 import './AIMediaNotesConvert.css';
@@ -371,6 +371,15 @@ const AIMediaNotes = () => {
             </button>
           </div>
 
+          <button className="mn-new-upload-btn" onClick={() => {
+            setResults(null);
+            setUploadedFile(null);
+            setYoutubeUrl('');
+          }}>
+            <Upload size={18} />
+            <span>New Upload</span>
+          </button>
+
           <nav className="mn-sidebar-nav">
             <div className="mn-nav-section-title">History</div>
             <div className="mn-history-list">
@@ -421,6 +430,17 @@ const AIMediaNotes = () => {
             </button>
           </div>
         </aside>
+
+        {/* Show Sidebar Button - appears when sidebar is collapsed */}
+        {sidebarCollapsed && (
+          <button 
+            className="mn-show-sidebar-btn" 
+            onClick={() => setSidebarCollapsed(false)}
+            title="Show Sidebar"
+          >
+            <Menu size={20} />
+          </button>
+        )}
 
         {/* Main Content */}
         <main className="mn-main">
