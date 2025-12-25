@@ -35,6 +35,10 @@ const SafetyLogin = () => {
       
       // Set safety acceptance flag in sessionStorage (clears when browser closes)
       sessionStorage.setItem('safetyAccepted', 'true');
+      
+      // Set flag to indicate user just accepted safety (prevents auto-redirect)
+      sessionStorage.setItem('justAcceptedSafety', 'true');
+      
       console.log('Safety accepted, navigating to /login');
       
       // Navigate to LOGIN page

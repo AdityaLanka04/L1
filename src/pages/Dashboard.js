@@ -463,9 +463,21 @@ const Dashboard = () => {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
+    const greetings = {
+      morning: ['Good morning', 'Rise and shine', 'Hello there', 'Welcome back', 'Great to see you'],
+      afternoon: ['Good afternoon', 'Hello', 'Welcome back', 'Great to see you', 'Hey there'],
+      evening: ['Good evening', 'Welcome back', 'Hello', 'Hey there', 'Great to see you']
+    };
+    
+    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+    
+    if (hour < 12) {
+      return greetings.morning[dayOfYear % greetings.morning.length];
+    }
+    if (hour < 18) {
+      return greetings.afternoon[dayOfYear % greetings.afternoon.length];
+    }
+    return greetings.evening[dayOfYear % greetings.evening.length];
   };
 
   // Extract first name from userProfile or userName
@@ -568,7 +580,27 @@ const Dashboard = () => {
       "Success is the sum of small efforts repeated day in and day out.",
       "Learning never exhausts the mind.",
       "The beautiful thing about learning is that no one can take it away from you.",
-      "Education is the most powerful weapon which you can use to change the world."
+      "Education is the most powerful weapon which you can use to change the world.",
+      "The capacity to learn is a gift; the ability to learn is a skill; the willingness to learn is a choice.",
+      "Live as if you were to die tomorrow. Learn as if you were to live forever.",
+      "An investment in knowledge pays the best interest.",
+      "The more that you read, the more things you will know. The more that you learn, the more places you'll go.",
+      "Learning is not attained by chance, it must be sought for with ardor and attended to with diligence.",
+      "The mind is not a vessel to be filled, but a fire to be kindled.",
+      "Education is the passport to the future, for tomorrow belongs to those who prepare for it today.",
+      "The roots of education are bitter, but the fruit is sweet.",
+      "Develop a passion for learning. If you do, you will never cease to grow.",
+      "The only person who is educated is the one who has learned how to learn and change.",
+      "Learning is a treasure that will follow its owner everywhere.",
+      "Knowledge is power. Information is liberating. Education is the premise of progress.",
+      "The beautiful thing about learning is nobody can take it away from you.",
+      "Study hard what interests you the most in the most undisciplined, irreverent and original manner possible.",
+      "Intelligence plus character—that is the goal of true education.",
+      "The function of education is to teach one to think intensively and to think critically.",
+      "Anyone who stops learning is old, whether at twenty or eighty.",
+      "Tell me and I forget. Teach me and I remember. Involve me and I learn.",
+      "The expert in anything was once a beginner who refused to give up.",
+      "Learning is the only thing the mind never exhausts, never fears, and never regrets."
     ];
     const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
     setMotivationalQuote(quotes[dayOfYear % quotes.length]);
@@ -838,17 +870,25 @@ const Dashboard = () => {
     const labels = [];
     const weeks = organizeDataByWeeks();
     let currentMonth = -1;
+    let isFirstMonth = true;
+    
     weeks.forEach((week, weekIndex) => {
       const firstValidDay = week.find(day => day !== null);
       if (firstValidDay) {
         const date = new Date(firstValidDay.date);
         const month = date.getMonth();
-        if (month !== currentMonth && weekIndex > 0) {
-          labels.push({ month: getMonthName(month), position: weekIndex * 18 });
+        
+        // Add label when month changes, but skip the very first month
+        if (month !== currentMonth) {
+          if (!isFirstMonth) {
+            labels.push({ month: getMonthName(month), position: weekIndex * 18 });
+          }
           currentMonth = month;
+          isFirstMonth = false;
         }
       }
     });
+    
     return labels;
   };
 
@@ -1507,6 +1547,8 @@ const Dashboard = () => {
               )}
             </div>
             
+            <ThemeSwitcher />
+            
             <div className="dashboard-user-info">
               {userProfile?.picture && (
   <img
@@ -1519,8 +1561,6 @@ const Dashboard = () => {
 )}
               <span className="dashboard-user-name">{displayName}</span>
             </div>
-            
-            <ThemeSwitcher />
           </div>
           
           <h1 className="dashboard-title">cerbyl</h1>
@@ -1531,8 +1571,8 @@ const Dashboard = () => {
               onClick={() => navigate('/search-hub')}
               title="Go to Search Hub"
             >
-              <Search size={18} />
-              <span>SEARCH HUB</span>
+              <Search size={16} />
+              SEARCH HUB
             </button>
             {isCustomizing && (
               <button

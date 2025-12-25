@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRight, X, Filter, Calendar, Play, HelpCircle, RefreshCw, Edit, MessageCircle, Target } from 'lucide-react';
+import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRight, X, Filter, Calendar, Play, HelpCircle, RefreshCw, Edit, MessageCircle, Target, Palette } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import './SearchHub.css';
 import { API_URL } from '../config/api';
@@ -1941,6 +1941,7 @@ const SearchHub = () => {
             className="theme-selector-btn" 
             onClick={() => setShowThemeSelector(!showThemeSelector)}
           >
+            <Palette size={16} />
             Theme
           </button>
           <button className="dashboard-btn" onClick={() => navigate('/dashboard')}>
@@ -1956,9 +1957,20 @@ const SearchHub = () => {
                       key={theme.id}
                       className={`theme-option ${selectedTheme === theme.id ? 'active' : ''}`}
                       onClick={() => handleThemeChange(theme.id)}
-                      style={{ backgroundColor: theme.accent }}
+                      style={{ 
+                        '--theme-primary': '#0b0b0c',
+                        '--theme-accent': theme.accent,
+                        background: `linear-gradient(135deg, #0b0b0c 0%, ${theme.accent} 100%)`
+                      }}
                     >
+                      <span className="sparkle"></span>
+                      <span className="sparkle"></span>
+                      <span className="sparkle"></span>
                       {theme.name}
+                      <div className="theme-colors">
+                        <div className="theme-color-dot theme-color-primary" style={{ background: '#0b0b0c' }}></div>
+                        <div className="theme-color-dot theme-color-accent" style={{ background: theme.accent }}></div>
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -1971,9 +1983,20 @@ const SearchHub = () => {
                       key={theme.id}
                       className={`theme-option ${selectedTheme === theme.id ? 'active' : ''}`}
                       onClick={() => handleThemeChange(theme.id)}
-                      style={{ backgroundColor: theme.accent }}
+                      style={{ 
+                        '--theme-primary': '#fefefe',
+                        '--theme-accent': theme.accent,
+                        background: `linear-gradient(135deg, #fefefe 0%, ${theme.accent} 100%)`
+                      }}
                     >
+                      <span className="sparkle"></span>
+                      <span className="sparkle"></span>
+                      <span className="sparkle"></span>
                       {theme.name}
+                      <div className="theme-colors">
+                        <div className="theme-color-dot theme-color-primary" style={{ background: '#fefefe' }}></div>
+                        <div className="theme-color-dot theme-color-accent" style={{ background: theme.accent }}></div>
+                      </div>
                     </button>
                   ))}
                 </div>

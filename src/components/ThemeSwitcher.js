@@ -1,225 +1,100 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
-import { rgbaFromHex } from '../utils/ThemeManager';
+import { THEMES } from '../utils/ThemeManager';
+import { Palette } from 'lucide-react';
 
 const ThemeSwitcher = () => {
-  const { selectedTheme, changeTheme, themes } = useTheme();
-  const [isOpen, setIsOpen] = useState(false);
+  const { selectedTheme, changeTheme } = useTheme();
+  const [showThemeSelector, setShowThemeSelector] = useState(false);
 
-  const handleThemeSelect = (themeId) => {
+  const handleThemeChange = (themeId) => {
     changeTheme(themeId);
-    setIsOpen(false);
+    setShowThemeSelector(false);
   };
-
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (!event.target.closest('.theme-switcher-dropdown')) {
-        setIsOpen(false);
+      if (!event.target.closest('.dashboard-theme-switcher')) {
+        setShowThemeSelector(false);
       }
     };
 
-    if (isOpen) {
+    if (showThemeSelector) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
     }
-  }, [isOpen]);
-
-  // Group themes into three columns
-  const groupThemesIntoColumns = (themes) => {
-    const column1 = [];
-    const column2 = [];
-    const column3 = [];
-    
-    themes.forEach((theme, index) => {
-      if (index % 3 === 0) {
-        column1.push(theme);
-      } else if (index % 3 === 1) {
-        column2.push(theme);
-      } else {
-        column3.push(theme);
-      }
-    });
-    
-    return [column1, column2, column3];
-  };
-
-  const [column1, column2, column3] = groupThemesIntoColumns(themes);
+  }, [showThemeSelector]);
 
   return (
-    <div className="theme-switcher-dropdown">
+    <div className="dashboard-theme-switcher">
       <button 
-        className="theme-dropdown-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        style={{
-          background: `linear-gradient(135deg, ${selectedTheme.tokens['--panel']} 0%, ${selectedTheme.tokens['--bg-bottom']} 100%)`,
-          borderColor: selectedTheme.tokens['--border'],
-          color: selectedTheme.tokens['--text-primary']
-        }}
+        className="dashboard-theme-selector-btn"
+        onClick={() => setShowThemeSelector(!showThemeSelector)}
       >
-        <div className="theme-preview">
-          <span
-            className="theme-dot"
-            style={{ background: selectedTheme.tokens['--accent'] }}
-          />
-        </div>
-        <span className="theme-name">{selectedTheme.name}</span>
-        <span className={`dropdown-arrow ${isOpen ? 'open' : ''}`}>▼</span>
+        <Palette size={16} />
+        Theme
       </button>
-
-      {isOpen && (
-        <>
-          <div className="dropdown-overlay" onClick={() => setIsOpen(false)} />
-          <div 
-            className="theme-dropdown-menu"
-            style={{
-              background: selectedTheme.tokens['--panel'],
-              borderColor: selectedTheme.tokens['--border'],
-              boxShadow: `0 8px 32px ${rgbaFromHex(selectedTheme.tokens['--accent'], 0.15)}`
-            }}
-          >
-            <div className="dropdown-header" style={{ color: selectedTheme.tokens['--text-secondary'] }}>
-              Choose Theme
-            </div>
-            
-            <div className="theme-options-container">
-              <div className="theme-grid">
-                {/* Column 1 */}
-                <div className="theme-column">
-                  {column1.map(theme => (
-                    <button
-                      key={theme.id}
-                      className={`theme-option ${selectedTheme.id === theme.id ? 'active' : ''}`}
-                      onClick={() => handleThemeSelect(theme.id)}
-                      style={{
-                        borderColor: selectedTheme.id === theme.id 
-                          ? theme.tokens['--accent']
-                          : 'transparent'
-                      }}
-                    >
-                      <div className="theme-option-preview">
-                        <span
-                          className="theme-dot"
-                          style={{ background: theme.tokens['--accent'] }}
-                        />
-                      </div>
-                      <div className="theme-option-info">
-                        <div 
-                          className="theme-option-name"
-                          style={{ color: selectedTheme.tokens['--text-primary'] }}
-                        >
-                          {theme.name}
-                        </div>
-                        <div 
-                          className="theme-option-family"
-                          style={{ color: selectedTheme.tokens['--text-secondary'] }}
-                        >
-                          {theme.family}
-                        </div>
-                      </div>
-                      {selectedTheme.id === theme.id && (
-                        <div className="theme-check" style={{ color: theme.tokens['--accent'] }}>
-                          ✓
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Column 2 */}
-                <div className="theme-column">
-                  {column2.map(theme => (
-                    <button
-                      key={theme.id}
-                      className={`theme-option ${selectedTheme.id === theme.id ? 'active' : ''}`}
-                      onClick={() => handleThemeSelect(theme.id)}
-                      style={{
-                        borderColor: selectedTheme.id === theme.id 
-                          ? theme.tokens['--accent']
-                          : 'transparent'
-                      }}
-                    >
-                      <div className="theme-option-preview">
-                        <span
-                          className="theme-dot"
-                          style={{ background: theme.tokens['--accent'] }}
-                        />
-                      </div>
-                      <div className="theme-option-info">
-                        <div 
-                          className="theme-option-name"
-                          style={{ color: selectedTheme.tokens['--text-primary'] }}
-                        >
-                          {theme.name}
-                        </div>
-                        <div 
-                          className="theme-option-family"
-                          style={{ color: selectedTheme.tokens['--text-secondary'] }}
-                        >
-                          {theme.family}
-                        </div>
-                      </div>
-                      {selectedTheme.id === theme.id && (
-                        <div className="theme-check" style={{ color: theme.tokens['--accent'] }}>
-                          ✓
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Column 3 */}
-                <div className="theme-column">
-                  {column3.map(theme => (
-                    <button
-                      key={theme.id}
-                      className={`theme-option ${selectedTheme.id === theme.id ? 'active' : ''}`}
-                      onClick={() => handleThemeSelect(theme.id)}
-                      style={{
-                        borderColor: selectedTheme.id === theme.id 
-                          ? theme.tokens['--accent']
-                          : 'transparent'
-                      }}
-                    >
-                      <div className="theme-option-preview">
-                        <span
-                          className="theme-dot"
-                          style={{ background: theme.tokens['--accent'] }}
-                        />
-                      </div>
-                      <div className="theme-option-info">
-                        <div 
-                          className="theme-option-name"
-                          style={{ color: selectedTheme.tokens['--text-primary'] }}
-                        >
-                          {theme.name}
-                        </div>
-                        <div 
-                          className="theme-option-family"
-                          style={{ color: selectedTheme.tokens['--text-secondary'] }}
-                        >
-                          {theme.family}
-                        </div>
-                      </div>
-                      {selectedTheme.id === theme.id && (
-                        <div className="theme-check" style={{ color: theme.tokens['--accent'] }}>
-                          ✓
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
+      {showThemeSelector && (
+        <div className="dashboard-theme-selector-dropdown">
+          <div className="dashboard-theme-section">
+            <h4>Dark Themes</h4>
+            <div className="dashboard-theme-grid">
+              {Object.values(THEMES).filter(t => t.mode === 'dark').map(theme => (
+                <button
+                  key={theme.id}
+                  className={`dashboard-theme-option ${selectedTheme === theme.id ? 'active' : ''}`}
+                  onClick={() => handleThemeChange(theme.id)}
+                  style={{ 
+                    '--theme-primary': '#0b0b0c',
+                    '--theme-accent': theme.accent,
+                    background: `linear-gradient(135deg, #0b0b0c 0%, ${theme.accent} 100%)`
+                  }}
+                >
+                  <span className="sparkle"></span>
+                  <span className="sparkle"></span>
+                  <span className="sparkle"></span>
+                  {theme.name}
+                  <div className="dashboard-theme-colors">
+                    <div className="dashboard-theme-color-dot dashboard-theme-color-primary" style={{ background: '#0b0b0c' }}></div>
+                    <div className="dashboard-theme-color-dot dashboard-theme-color-accent" style={{ background: theme.accent }}></div>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
-        </>
+          <div className="dashboard-theme-section">
+            <h4>Light Themes</h4>
+            <div className="dashboard-theme-grid">
+              {Object.values(THEMES).filter(t => t.mode === 'light').map(theme => (
+                <button
+                  key={theme.id}
+                  className={`dashboard-theme-option ${selectedTheme === theme.id ? 'active' : ''}`}
+                  onClick={() => handleThemeChange(theme.id)}
+                  style={{ 
+                    '--theme-primary': '#fefefe',
+                    '--theme-accent': theme.accent,
+                    background: `linear-gradient(135deg, #fefefe 0%, ${theme.accent} 100%)`
+                  }}
+                >
+                  <span className="sparkle"></span>
+                  <span className="sparkle"></span>
+                  <span className="sparkle"></span>
+                  {theme.name}
+                  <div className="dashboard-theme-colors">
+                    <div className="dashboard-theme-color-dot dashboard-theme-color-primary" style={{ background: '#fefefe' }}></div>
+                    <div className="dashboard-theme-color-dot dashboard-theme-color-accent" style={{ background: theme.accent }}></div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
 };
-
 
 export default ThemeSwitcher;

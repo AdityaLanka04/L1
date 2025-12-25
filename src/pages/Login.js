@@ -15,16 +15,6 @@ function Login() {
 
   // Check if user is already logged in
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const username = localStorage.getItem('username');
-    
-    // If user is already logged in, redirect to search hub
-    if (token && username) {
-      console.log('User already logged in, redirecting to search-hub');
-      navigate('/search-hub', { replace: true });
-      return;
-    }
-    
     // Check if safety page was completed
     const safetyAccepted = sessionStorage.getItem('safetyAccepted');
     console.log('Login page - Safety check:', safetyAccepted);
@@ -32,6 +22,26 @@ function Login() {
     if (!safetyAccepted) {
       console.log('Safety not accepted, redirecting to /');
       navigate('/', { replace: true });
+      return;
+    }
+    
+    // Check if user just came from SafetyLogin (first time in this session)
+    const justAcceptedSafety = sessionStorage.getItem('justAcceptedSafety');
+    
+    // If user just accepted safety, show login form (don't auto-redirect)
+    if (justAcceptedSafety) {
+      console.log('Just accepted safety, showing login form');
+      sessionStorage.removeItem('justAcceptedSafety'); // Clear flag
+      return;
+    }
+    
+    // If already logged in AND didn't just accept safety, redirect to search-hub
+    const token = localStorage.getItem('token');
+    const username = localStorage.getItem('username');
+    
+    if (token && username) {
+      console.log('User already logged in, redirecting to search-hub');
+      navigate('/search-hub', { replace: true });
       return;
     }
   }, [navigate]);
