@@ -155,12 +155,14 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:8000",
+        "https://cerbyl.com",
+        "https://www.cerbyl.com",
         "https://ceryl.onrender.com",
         "https://l1.vercel.app", 
         "https://l1-theta.vercel.app",
         "https://l1-7i4bnhcn1-asphar0057s-projects.vercel.app"
     ],
-    allow_origin_regex=r"https://l1-.*\.vercel\.app$",  # Allow all Vercel preview deploys
+    allow_origin_regex=r"https://(l1-.*\.vercel\.app|.*cerbyl\.com)$",  # Allow all Vercel preview deploys and cerbyl.com
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -675,7 +677,7 @@ def health_check():
         "status": "healthy",
         "message": "Brainwave API is running",
         "ai_provider": "Groq",
-        "frontend": "https://l1-theta.vercel.app",
+        "frontend": "https://cerbyl.com",
         "timestamp": datetime.now(timezone.utc).isoformat() + 'Z'
     }
 

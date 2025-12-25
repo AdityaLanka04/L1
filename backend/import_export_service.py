@@ -81,8 +81,7 @@ Return ONLY a JSON array of flashcards with this exact format:
             flashcard_set = FlashcardSet(
                 user_id=user_id,
                 title=set_title,
-                description=f"Generated from notes: {', '.join([n.title for n in notes[:3]])}",
-                card_count=len(flashcards_data)
+                description=f"Generated from notes: {', '.join([n.title for n in notes[:3]])}"
             )
             self.db.add(flashcard_set)
             self.db.flush()
@@ -832,8 +831,7 @@ Return ONLY a JSON array:
             flashcard_set = FlashcardSet(
                 user_id=user_id,
                 title=f"Flashcards: {playlist.title}",
-                description=f"From playlist: {playlist.title}",
-                card_count=len(flashcards_data)
+                description=f"From playlist: {playlist.title}"
             )
             self.db.add(flashcard_set)
             self.db.flush()
