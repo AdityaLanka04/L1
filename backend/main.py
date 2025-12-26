@@ -244,6 +244,16 @@ logger.info("Enhanced Question Bank API with sophisticated AI agents registered 
 register_adaptive_learning_api(app, unified_ai)
 logger.info("✅ Adaptive Learning & Personalization API registered successfully")
 
+# Register AI Chat Agent
+from ai_chat_integration import register_ai_chat_agent
+register_ai_chat_agent(app)
+logger.info("✅ AI Chat Agent registered successfully")
+
+# Register Flashcard Agent
+from flashcard_agent_integration import register_flashcard_agent
+register_flashcard_agent(app)
+logger.info("✅ Flashcard Agent registered successfully")
+
 class Token(BaseModel):
     access_token: str
     token_type: str

@@ -50,6 +50,7 @@ Pillow>=10.0.0
 youtube-transcript-api>=0.6.0
 pytube>=15.0.0
 pydub>=0.25.1
+audioop-lts>=0.2.2
 moviepy>=1.0.3
 assemblyai>=0.17.0
 openai-whisper>=20230314

@@ -63,6 +63,15 @@ const Flashcards = () => {
   const [reviewCards, setReviewCards] = useState({ total_cards: 0, sets: [] });
   const [loadingReviewCards, setLoadingReviewCards] = useState(false);
   
+  // Flashcard Agent Integration States
+  const [agentSessionActive, setAgentSessionActive] = useState(false);
+  const [agentSessionId, setAgentSessionId] = useState(null);
+  const [cardMetrics, setCardMetrics] = useState({});
+  const [weaknessAnalysis, setWeaknessAnalysis] = useState([]);
+  const [studyRecommendations, setStudyRecommendations] = useState([]);
+  const [sessionStartTime, setSessionStartTime] = useState(null);
+  const [showAgentInsights, setShowAgentInsights] = useState(false);
+  
   const [popup, setPopup] = useState({ isOpen: false, message: '', title: '' });
 
   const showPopup = (title, message) => setPopup({ isOpen: true, title, message });
@@ -187,6 +196,143 @@ const Flashcards = () => {
     } catch (error) {
       console.error('Error marking card for review:', error);
       return false;
+    }
+  };
+
+  // Flashcard Agent Integration Functions
+  const startAgentSession = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/flashcard-agent/start-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          session_type: 'review'
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setAgentSessionActive(true);
+        setAgentSessionId(result.data.session_id);
+        setSessionStartTime(Date.now());
+        console.log(`Agent session started: ${result.data.card_count} cards`);
+        console.log(`Estimated accuracy: ${(result.data.prediction.estimated_accuracy * 100).toFixed(0)}%`);
+        return result.data.cards;
+      }
+    } catch (error) {
+      console.error('Error starting agent session:', error);
+    }
+  };
+
+  const reviewCardWithAgent = async (cardId, quality, responseTime) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/flashcard-agent/review-card`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          card_id: cardId.toString(),
+          quality: quality,
+          response_time: responseTime
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        const data = result.data;
+        
+        // Update card metrics
+        setCardMetrics(prev => ({
+          ...prev,
+          [cardId]: {
+            retention: data.retention_rate,
+            confidence: data.confidence_score,
+            nextReview: data.next_review,
+            streak: data.streak
+          }
+        }));
+        
+        // Store weaknesses
+        if (data.weaknesses && data.weaknesses.length > 0) {
+          setWeaknessAnalysis(prev => [...prev, ...data.weaknesses]);
+        }
+        
+        // Store techniques
+        if (data.suggested_techniques && data.suggested_techniques.length > 0) {
+          setStudyRecommendations(prev => [...prev, ...data.suggested_techniques]);
+        }
+        
+        return data;
+      }
+    } catch (error) {
+      console.error('Error reviewing card with agent:', error);
+    }
+  };
+
+  const endAgentSession = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/flashcard-agent/end-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userName
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        const summary = result.data;
+        setAgentSessionActive(false);
+        setShowAgentInsights(true);
+        
+        // Show session summary
+        showPopup('Session Complete!', 
+          `Duration: ${summary.duration_minutes} min\n` +
+          `Accuracy: ${(summary.accuracy * 100).toFixed(0)}%\n` +
+          `Cards Reviewed: ${summary.cards_reviewed}\n` +
+          `Focus Score: ${(summary.focus_score * 100).toFixed(0)}%`
+        );
+        
+        return summary;
+      }
+    } catch (error) {
+      console.error('Error ending agent session:', error);
+    }
+  };
+
+  const getFlashcardReport = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${API_URL}/flashcard-agent/comprehensive-report?user_id=${userName}`,
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        return result.data;
+      }
+    } catch (error) {
+      console.error('Error getting flashcard report:', error);
     }
   };
 
@@ -590,18 +736,33 @@ const Flashcards = () => {
     }
   };
 
-  const handleStudyResponse = (response) => {
+  const handleStudyResponse = async (response) => {
     setStudySessionStats(prev => ({ ...prev, [response]: prev[response] + 1 }));
     const cards = studySettings.shuffle ? shuffledCards : flashcards;
+    
+    // Track with agent if session is active
+    if (agentSessionActive && cards[currentCard]) {
+      const quality = response === 'correct' ? 5 : response === 'incorrect' ? 1 : 3;
+      const responseTime = sessionStartTime ? (Date.now() - sessionStartTime) / 1000 : 5;
+      await reviewCardWithAgent(cards[currentCard].id, quality, responseTime);
+      setSessionStartTime(Date.now()); // Reset for next card
+    }
+    
     if (currentCard < cards.length - 1) {
       setCurrentCard(currentCard + 1);
       setIsFlipped(false);
     } else {
       setShowStudyResults(true);
+      if (agentSessionActive) {
+        await endAgentSession();
+      }
     }
   };
 
   const exitStudyMode = () => {
+    if (agentSessionActive) {
+      endAgentSession();
+    }
     setStudyMode(false);
     setPreviewMode(false);
     setShowStudyResults(false);

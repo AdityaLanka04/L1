@@ -78,7 +78,7 @@ body {
 
 .bento-bg-box {
   position: absolute;
-  border-radius: 24px;
+  border-radius: 0;
   backdrop-filter: blur(40px);
   border: 1px solid rgba(215, 179, 140, 0.15);
 }
@@ -328,7 +328,7 @@ body {
 .bento-box {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 24px;
+  border-radius: 0;
   padding: 30px;
   backdrop-filter: blur(20px);
   box-shadow: var(--shadow-lg);
@@ -551,7 +551,7 @@ body {
   max-height: calc(100vh - 80px);
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 24px;
+  border-radius: 0;
   padding: 30px 40px;
   backdrop-filter: blur(20px);
   box-shadow: var(--shadow-lg);
@@ -620,7 +620,7 @@ body {
   color: var(--text-secondary);
   padding: 8px 16px;
   font-size: 13px;
-  border-radius: 6px;
+  border-radius: 0;
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
@@ -668,7 +668,7 @@ body {
   flex: 1;
   background: var(--bg-bottom);
   border: 2px solid var(--border);
-  border-radius: 12px;
+  border-radius: 0;
   padding: 14px 24px;
   font-size: 15px;
   font-weight: 600;
@@ -701,7 +701,7 @@ body {
 .choice-btn-vertical {
   background: var(--bg-bottom);
   border: 2px solid var(--border);
-  border-radius: 12px;
+  border-radius: 0;
   padding: 14px 20px;
   font-size: 14px;
   font-weight: 500;
@@ -755,7 +755,7 @@ body {
   width: 100%;
   background: var(--bg-bottom);
   border: 2px solid var(--border);
-  border-radius: 12px;
+  border-radius: 0;
   padding: 18px 20px;
   font-size: 15px;
   color: var(--text-primary);
@@ -778,16 +778,48 @@ body {
   right: 20px;
   top: 50%;
   transform: translateY(-50%);
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+  display: flex;
+  gap: 6px;
+  align-items: center;
 }
 
-@keyframes spin {
-  to { transform: translateY(-50%) rotate(360deg); }
+.loading-spinner-cube {
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  animation: typingBounce 1.4s infinite ease-in-out both;
+  box-shadow: 0 2px 6px rgba(215, 179, 140, 0.3);
+}
+
+.loading-spinner .loading-spinner-cube:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.loading-spinner .loading-spinner-cube:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.loading-spinner .loading-spinner-cube:nth-child(3) {
+  animation-delay: 0s;
+}
+
+@keyframes typingBounce {
+  0% {
+    transform: scale(0.7) translateY(0px);
+    opacity: 0.6;
+  }
+  20% {
+    transform: scale(1) translateY(-6px);
+    opacity: 1;
+  }
+  40% {
+    transform: scale(0.7) translateY(0px);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(0.7) translateY(0px);
+    opacity: 0.6;
+  }
 }
 
 .suggestions-dropdown {
@@ -797,7 +829,7 @@ body {
   right: 0;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 0;
   max-height: 250px;
   overflow-y: auto;
   box-shadow: var(--shadow-lg);
@@ -833,7 +865,7 @@ body {
 .subject-tag {
   background: color-mix(in srgb, var(--accent) 15%, var(--bg-bottom));
   border: 1px solid var(--accent);
-  border-radius: 8px;
+  border-radius: 0;
   padding: 10px 16px;
   font-size: 14px;
   color: var(--accent);
@@ -861,7 +893,7 @@ body {
 .submit-btn {
   background: var(--accent);
   border: 2px solid var(--accent);
-  border-radius: 12px;
+  border-radius: 0;
   color: var(--bg-bottom);
   padding: 18px 50px;
   font-size: 16px;
@@ -918,7 +950,7 @@ body {
   height: 6px;
   background: var(--bg-bottom);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 0;
   overflow: hidden;
   margin-bottom: 10px;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
@@ -929,7 +961,7 @@ body {
   background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 80%, white));
   transition: width 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   box-shadow: 0 0 10px var(--glow);
-  border-radius: 12px;
+  border-radius: 0;
 }
 
 .quiz-progress-text {
@@ -986,7 +1018,7 @@ body {
 .option-button {
   background: var(--bg-bottom);
   border: 2px solid var(--border);
-  border-radius: 12px;
+  border-radius: 0;
   padding: 12px 16px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1040,7 +1072,7 @@ body {
   height: 32px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 0;
   color: var(--accent);
   font-size: 14px;
   font-weight: 700;
@@ -1084,7 +1116,7 @@ body {
 .back-btn {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 0;
   color: var(--text-secondary);
   padding: 9px 18px;
   font-size: 13px;
@@ -1123,7 +1155,7 @@ body {
 .continue-btn {
   background: var(--accent);
   border: 2px solid var(--accent);
-  border-radius: 10px;
+  border-radius: 0;
   color: var(--bg-bottom);
   padding: 9px 18px;
   font-size: 12px;
@@ -1171,7 +1203,7 @@ body {
 .skip-quiz-btn {
   background: transparent;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 0;
   color: var(--text-secondary);
   padding: 9px 22px;
   font-size: 12px;
@@ -1215,7 +1247,7 @@ body {
 .skip-warning-modal {
   background: var(--panel);
   border: 2px solid var(--border);
-  border-radius: 24px;
+  border-radius: 0;
   padding: 50px;
   max-width: 600px;
   text-align: center;
@@ -1276,7 +1308,7 @@ body {
   box-shadow: var(--shadow-sm);
   position: relative;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: 0;
 }
 
 .continue-assessment-btn {
@@ -1363,7 +1395,7 @@ body {
   padding: 30px;
   background: rgba(215, 179, 140, 0.05);
   border: 1px solid rgba(215, 179, 140, 0.15);
-  border-radius: 16px;
+  border-radius: 0;
 }
 
 .completion-message {
