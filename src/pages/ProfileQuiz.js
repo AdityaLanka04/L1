@@ -310,13 +310,15 @@ const ProfileQuiz = () => {
 
   const checkQuizStatus = async (username, token) => {
     try {
-      const response = await fetch(`${API_URL}/get_user_profile?user_id=${username}`, {
+      const response = await fetch(`${API_URL}/check_profile_quiz?user_id=${username}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
       if (response.ok) {
         const data = await response.json();
-        if (data.quiz_completed || data.quiz_skipped) {
+        console.log('📋 Quiz status check:', data);
+        if (data.completed) {
+          console.log('✅ Quiz already completed/skipped, redirecting to dashboard');
           navigate('/dashboard');
         }
       }
@@ -496,8 +498,9 @@ const ProfileQuiz = () => {
       });
 
       setCurrentStep('complete');
-      // Set flag to trigger welcome notification
-      localStorage.setItem('justCompletedQuiz', 'true');
+      // Set flags that user just completed onboarding
+      sessionStorage.setItem('justCompletedOnboarding', 'true');
+      sessionStorage.setItem('isFirstTimeUser', 'true');
       sessionStorage.setItem('justLoggedIn', 'true'); // Set flag for welcome notification
       setTimeout(() => {
         navigate('/dashboard');
@@ -515,7 +518,7 @@ const ProfileQuiz = () => {
     try {
       const token = localStorage.getItem('token');
       
-      await fetch(`${API_URL}/save_complete_profile`, {
+      const response = await fetch(`${API_URL}/save_complete_profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -532,7 +535,23 @@ const ProfileQuiz = () => {
         })
       });
 
-      navigate('/dashboard');
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Skip quiz response:', data);
+        console.log('🔍 Saved: quiz_skipped =', data.quiz_skipped);
+        
+        // Set flag that user just completed onboarding (by skipping)
+        sessionStorage.setItem('justCompletedOnboarding', 'true');
+        sessionStorage.setItem('isFirstTimeUser', 'true');
+        
+        // Wait a moment for database to fully commit
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        navigate('/dashboard');
+      } else {
+        console.error('❌ Failed to save skip:', response.status);
+        navigate('/dashboard');
+      }
     } catch (error) {
       console.error('Error saving profile:', error);
       navigate('/dashboard');
@@ -609,6 +628,15 @@ const ProfileQuiz = () => {
             </div>
           </div>
 
+          <div className="bento-box bento-skip-cta" onClick={handleSkip}>
+            <div className="bento-cta-content">
+              <svg className="bento-skip-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M16 18l2.29-2.29-4.88-4.88-4 4L2 7.41 3.41 6l6 6 4-4 6.3 6.29L22 12v6z"/>
+              </svg>
+              <span className="bento-cta-text">skip quiz</span>
+            </div>
+          </div>
+
           <div className="bento-box bento-accent-light"></div>
           <div className="bento-box bento-accent-medium"></div>
 
@@ -626,6 +654,29 @@ const ProfileQuiz = () => {
 
           <div className="bento-box bento-accent-subtle"></div>
         </div>
+        
+        {showSkipWarning && (
+          <div className="skip-warning-overlay">
+            <div className="skip-warning-modal">
+              <h3>skip the quiz?</h3>
+              <p>
+                Taking this quiz helps us understand your learning style and personalize your experience. 
+                We can adapt to your needs much better if you complete it!
+              </p>
+              <p className="warning-emphasis">
+                You can always take the quiz later from your profile section.
+              </p>
+              <div className="warning-actions">
+                <button className="continue-assessment-btn" onClick={cancelSkip}>
+                  Take Quiz
+                </button>
+                <button className="confirm-skip-btn" onClick={confirmSkip}>
+                  Skip Anyway
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

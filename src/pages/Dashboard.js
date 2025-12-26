@@ -165,22 +165,61 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (userName) {
-      const tourKey = `hasCompletedTour_${userName}`;
-      const completedTour = localStorage.getItem(tourKey);
+      // Check if user just completed onboarding
+      const justCompletedOnboarding = sessionStorage.getItem('justCompletedOnboarding') === 'true';
+      const justLoggedIn = sessionStorage.getItem('justLoggedIn');
       
-      console.log('🎯 Tour Check:', {
-        userName,
-        tourKey,
-        completedTour
-      });
-      
-      setHasSeenTour(!!completedTour);
-
-      // DISABLED: Tour will only show when user clicks the help button
-      // Never auto-show the tour
-      console.log('🚫 Auto-tour disabled, will only show via help button');
+      if (justCompletedOnboarding && justLoggedIn) {
+        console.log('🎓 First-time user (just completed onboarding), showing tour');
+        sessionStorage.removeItem('justCompletedOnboarding'); // Clear flag
+        setHasSeenTour(false);
+        setTimeout(() => {
+          setShowTour(true);
+        }, 1000);
+      } else {
+        // Not first-time, don't show tour
+        setHasSeenTour(true);
+      }
     }
   }, [userName]);
+
+  const checkIfFirstTimeUser = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/is_first_time_user?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const isFirstTime = data.is_first_time;
+        
+        console.log('🎯 User Status Check:', {
+          userName,
+          isFirstTime,
+          accountAgeMinutes: data.account_age_minutes,
+          quizCompleted: data.quiz_completed,
+          quizSkipped: data.quiz_skipped
+        });
+        
+        // If NOT first-time, mark tour as seen
+        setHasSeenTour(!isFirstTime);
+
+        // Auto-show tour ONLY for first-time users
+        const justLoggedIn = sessionStorage.getItem('justLoggedIn');
+        if (justLoggedIn && isFirstTime) {
+          console.log('🎓 First-time user detected (new account), showing tour');
+          setTimeout(() => {
+            setShowTour(true);
+          }, 1000);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking user status:', error);
+      // Default to NOT showing tour if check fails
+      setHasSeenTour(true);
+    }
+  };
 
   useEffect(() => {
   if (userName) {
@@ -194,16 +233,33 @@ const Dashboard = () => {
     const hasShownBefore = localStorage.getItem(notificationKey);
     
     if (justLoggedIn && !hasShownBefore) {
+      // Mark as shown immediately to prevent duplicates
+      localStorage.setItem(notificationKey, 'true');
+      sessionStorage.removeItem('justLoggedIn');
+      
+      // Check if user just completed onboarding (came from profile quiz)
+      const isFirstTimeUser = sessionStorage.getItem('isFirstTimeUser') === 'true';
+      sessionStorage.removeItem('isFirstTimeUser'); // Clear flag after reading
+      
+      console.log('🎯 User type:', isFirstTimeUser ? 'FIRST-TIME' : 'RETURNING');
+      
       // Get user's first name from profile, fallback to username
       const displayName = userProfile?.firstName || userName.split('@')[0];
       
+      // Different message for first-time vs returning users
       const welcomeNotif = {
         id: `welcome-${Date.now()}`,
-        title: 'Welcome Back!',
-        message: `Ready to continue learning, ${displayName}?`,
+        title: isFirstTimeUser ? 'Welcome!' : 'Welcome Back!',
+        message: isFirstTimeUser 
+          ? `Let's get started with your learning journey, ${displayName}!`
+          : `Ready to continue learning, ${displayName}?`,
         type: 'welcome',
         created_at: new Date().toISOString()
       };
+      
+      // For first-time users, show notification after tour completes
+      // For returning users, show immediately
+      const delay = isFirstTimeUser ? 3000 : 1500;
       
       setTimeout(() => {
         setSlideNotifQueue(prev => {
@@ -212,11 +268,7 @@ const Dashboard = () => {
           }
           return prev;
         });
-        // Store in localStorage so it persists and is user-specific
-        localStorage.setItem(notificationKey, 'true');
-      }, 1500);
-      
-      sessionStorage.removeItem('justLoggedIn');
+      }, delay);
     }
     
     startNotificationPolling();
@@ -986,19 +1038,53 @@ const Dashboard = () => {
   const startTour = () => setShowTour(true);
   const closeTour = () => {
     setShowTour(false);
-    // Save that user has seen the tour even if they closed it
     setHasSeenTour(true);
-    if (userName) {
-      const tourKey = `hasCompletedTour_${userName}`;
-      localStorage.setItem(tourKey, '1');
-    }
   };
   const completeTour = () => {
     setShowTour(false);
     setHasSeenTour(true);
-    if (userName) {
-      const tourKey = `hasCompletedTour_${userName}`;
-      localStorage.setItem(tourKey, '1');
+  };
+
+  const checkIfFirstTimeUserForNotification = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/is_first_time_user?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const isFirstTimeUser = data.is_first_time;
+        
+        // Get user's first name from profile, fallback to username
+        const displayName = userProfile?.firstName || userName.split('@')[0];
+        
+        // Different message for first-time vs returning users
+        const welcomeNotif = {
+          id: `welcome-${Date.now()}`,
+          title: isFirstTimeUser ? 'Welcome!' : 'Welcome Back!',
+          message: isFirstTimeUser 
+            ? `Let's get started with your learning journey, ${displayName}!`
+            : `Ready to continue learning, ${displayName}?`,
+          type: 'welcome',
+          created_at: new Date().toISOString()
+        };
+        
+        // For first-time users, show notification after tour completes
+        // For returning users, show immediately
+        const delay = isFirstTimeUser ? 3000 : 1500;
+        
+        setTimeout(() => {
+          setSlideNotifQueue(prev => {
+            if (!prev.some(n => n.type === 'welcome')) {
+              return [...prev, welcomeNotif];
+            }
+            return prev;
+          });
+        }, delay);
+      }
+    } catch (error) {
+      console.error('Error checking user status for notification:', error);
     }
   };
 

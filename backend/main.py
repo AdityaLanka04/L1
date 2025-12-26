@@ -1050,6 +1050,10 @@ def google_auth(auth_data: GoogleAuth, db: Session = Depends(get_db)):
             user_stats = models.UserStats(user_id=user.id)
             db.add(user_stats)
             db.commit()
+        else:
+            # Update last_login for existing user
+            user.last_login = datetime.now(timezone.utc)
+            db.commit()
         
         access_token = create_access_token(data={"sub": user.username})
         
@@ -5339,8 +5343,10 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
                 raise HTTPException(status_code=400, detail="Missing required fields")
 
             user = get_user_by_email(db, email)
+            is_new_user = False
             
             if not user:
+                is_new_user = True
                 names = display_name.split(' ') if display_name else ['', '']
                 first_name = names[0] if len(names) > 0 else ''
                 last_name = ' '.join(names[1:]) if len(names) > 1 else ''
@@ -5379,6 +5385,7 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
             return {
                 "access_token": access_token,
                 "token_type": "bearer",
+                "is_new_user": is_new_user,
                 "user": {
                     "id": user.id,
                     "email": user.email,
@@ -5419,6 +5426,11 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
     raise HTTPException(status_code=500, detail="Authentication failed after retries")
 @app.get("/api/check_profile_quiz")
 async def check_profile_quiz(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """
+    Check if user should see the profile quiz.
+    Logic: User is first-time ONLY if account was just created (within last 5 minutes) 
+    AND they haven't completed or skipped the quiz yet.
+    """
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
@@ -5428,20 +5440,103 @@ async def check_profile_quiz(user_id: str = Query(...), db: Session = Depends(ge
             models.ComprehensiveUserProfile.user_id == user.id
         ).first()
 
-        has_archetype = (
+        # Check if user has completed the quiz flow
+        has_completed_quiz = (
             comprehensive_profile is not None and 
             comprehensive_profile.primary_archetype is not None and 
             comprehensive_profile.primary_archetype != ""
         )
+        
+        has_skipped_quiz = (
+            comprehensive_profile is not None and
+            comprehensive_profile.quiz_skipped == True
+        )
+        
+        # User has completed the onboarding if they did quiz OR skipped it
+        quiz_flow_completed = has_completed_quiz or has_skipped_quiz
+        
+        logger.info(f"🔍 check_profile_quiz for {user_id}: completed={has_completed_quiz}, skipped={has_skipped_quiz}, flow_completed={quiz_flow_completed}")
 
         return {
-            "completed": has_archetype,
+            "completed": quiz_flow_completed,
+            "quiz_completed": has_completed_quiz,
+            "quiz_skipped": has_skipped_quiz,
             "user_id": user_id
         }
 
     except Exception as e:
         logger.error(f"Error checking quiz: {str(e)}")
         return {"completed": False}
+
+@app.get("/api/is_first_time_user")
+async def is_first_time_user(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """
+    Check if user is truly first-time (just registered and first login).
+    Returns true ONLY if this is their very first login session.
+    We track this by checking if last_login is very close to created_at (within 2 minutes).
+    """
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        from datetime import datetime, timezone, timedelta
+        now = datetime.now(timezone.utc)
+        
+        # Make timezone-aware if needed
+        user_created = user.created_at
+        if user_created.tzinfo is None:
+            user_created = user_created.replace(tzinfo=timezone.utc)
+            
+        user_last_login = user.last_login
+        if user_last_login and user_last_login.tzinfo is None:
+            user_last_login = user_last_login.replace(tzinfo=timezone.utc)
+        
+        # Check if this is first login (last_login is very close to created_at)
+        # This means they just registered and this is their first session
+        if user_last_login:
+            time_between_creation_and_login = abs((user_last_login - user_created).total_seconds())
+            is_first_login = time_between_creation_and_login < 120  # Within 2 minutes
+        else:
+            is_first_login = True  # No last_login means first time
+        
+        # Also check quiz status for additional context
+        comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
+            models.ComprehensiveUserProfile.user_id == user.id
+        ).first()
+
+        has_completed_quiz = (
+            comprehensive_profile is not None and 
+            comprehensive_profile.primary_archetype is not None and 
+            comprehensive_profile.primary_archetype != ""
+        )
+        
+        has_skipped_quiz = (
+            comprehensive_profile is not None and
+            comprehensive_profile.quiz_skipped == True
+        )
+        
+        quiz_flow_done = has_completed_quiz or has_skipped_quiz
+        
+        # First-time user = first login AND hasn't done quiz flow
+        is_first_time = is_first_login and not quiz_flow_done
+        
+        time_since_creation = now - user_created
+
+        logger.info(f"🔍 is_first_time_user for {user_id}: is_first_time={is_first_time}, is_first_login={is_first_login}, quiz_completed={has_completed_quiz}, quiz_skipped={has_skipped_quiz}, account_age_minutes={time_since_creation.total_seconds() / 60:.2f}")
+
+        return {
+            "is_first_time": is_first_time,
+            "is_first_login": is_first_login,
+            "account_age_minutes": time_since_creation.total_seconds() / 60,
+            "quiz_completed": has_completed_quiz,
+            "quiz_skipped": has_skipped_quiz,
+            "user_id": user_id
+        }
+
+    except Exception as e:
+        logger.error(f"Error checking first-time user: {str(e)}")
+        return {"is_first_time": False}
 
 @app.post("/api/start_session")
 def start_session(
@@ -8221,8 +8316,12 @@ async def save_complete_profile(
 ):
     try:
         user_id = payload.get("user_id")
+        logger.info(f"🔵 save_complete_profile called for {user_id}")
+        logger.info(f"📦 Payload: quiz_completed={payload.get('quiz_completed')}, quiz_skipped={payload.get('quiz_skipped')}")
+        
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
+            logger.error(f"❌ User not found: {user_id}")
             raise HTTPException(status_code=404, detail="User not found")
 
         comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
@@ -8230,8 +8329,11 @@ async def save_complete_profile(
         ).first()
 
         if not comprehensive_profile:
+            logger.info(f"➕ Creating new comprehensive profile for user {user.id}")
             comprehensive_profile = models.ComprehensiveUserProfile(user_id=user.id)
             db.add(comprehensive_profile)
+        else:
+            logger.info(f"📝 Updating existing comprehensive profile for user {user.id}")
 
         # New profile quiz fields
         if "is_college_student" in payload:
@@ -8263,7 +8365,17 @@ async def save_complete_profile(
         comprehensive_profile.quiz_skipped = payload.get("quiz_skipped", False)
         comprehensive_profile.updated_at = datetime.now(timezone.utc)
 
+        db.flush()  # Ensure changes are flushed to database
         db.commit()
+        db.refresh(comprehensive_profile)
+        
+        logger.info(f"✅ Saved profile for {user_id}: quiz_completed={comprehensive_profile.quiz_completed}, quiz_skipped={comprehensive_profile.quiz_skipped}, profile_id={comprehensive_profile.id}")
+        
+        # Verify it was actually saved by querying again
+        verify_profile = db.query(models.ComprehensiveUserProfile).filter(
+            models.ComprehensiveUserProfile.user_id == user.id
+        ).first()
+        logger.info(f"🔍 Verification query: quiz_skipped={verify_profile.quiz_skipped if verify_profile else 'NOT FOUND'}")
         
         # Generate initial proactive greeting message
         if payload.get("quiz_completed"):
@@ -8325,7 +8437,9 @@ Keep it brief and friendly."""
 
         return {
             "status": "success",
-            "message": "Profile saved successfully"
+            "message": "Profile saved successfully",
+            "quiz_completed": comprehensive_profile.quiz_completed,
+            "quiz_skipped": comprehensive_profile.quiz_skipped
         }
 
     except Exception as e:

@@ -415,7 +415,7 @@ body {
 }
 
 .bento-main-cta {
-  grid-column: 2 / 4;
+  grid-column: 2 / 3;
   grid-row: 3 / 4;
   background: linear-gradient(135deg, 
     var(--accent) 0%, 
@@ -461,6 +461,49 @@ body {
   letter-spacing: -1px;
   color: var(--bg-bottom);
   text-transform: lowercase;
+}
+
+.bento-skip-cta {
+  grid-column: 3 / 4;
+  grid-row: 3 / 4;
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 15%, var(--panel)) 0%, 
+    var(--panel) 100%);
+  border: 2px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2;
+}
+
+.bento-skip-cta::before {
+  background: linear-gradient(135deg, 
+    rgba(215, 179, 140, 0.1) 0%, 
+    rgba(215, 179, 140, 0.02) 100%);
+}
+
+.bento-skip-cta:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: var(--shadow-lg), 0 0 30px rgba(215, 179, 140, 0.2);
+  border-color: var(--accent);
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 25%, var(--panel)) 0%, 
+    color-mix(in srgb, var(--accent) 10%, var(--panel)) 100%);
+}
+
+.bento-skip-icon {
+  width: 32px;
+  height: 32px;
+  color: var(--accent);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bento-skip-cta:hover .bento-skip-icon {
+  transform: translateX(6px);
+}
+
+.bento-skip-cta .bento-cta-text {
+  font-size: 20px;
+  color: var(--accent);
 }
 
 .bento-accent-light {
