@@ -33,6 +33,13 @@ const AIChat = ({ sharedMode = false }) => {
   
   const [selectedFiles, setSelectedFiles] = useState([]);
   
+  // AI Agent Integration States
+  const [agentInsights, setAgentInsights] = useState(null);
+  const [showWeaknesses, setShowWeaknesses] = useState(false);
+  const [showRecommendations, setShowRecommendations] = useState(false);
+  const [conversationMode, setConversationMode] = useState('tutoring');
+  const [agentAnalysis, setAgentAnalysis] = useState(null);
+  
   const handleFolderCreation = async () => {
     if (!folderName.trim()) return;
     
@@ -441,6 +448,107 @@ const AIChat = ({ sharedMode = false }) => {
     navigate(`/ai-chat/${chatSessionId}`);
   };
 
+  // AI Agent Integration Functions
+  const sendMessageWithAgent = async (message, chatId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/ai-chat-agent/message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          message: message,
+          chat_id: chatId,
+          mode: conversationMode,
+          context: {
+            subject: userProfile?.main_subject || 'general',
+            difficulty_level: 'intermediate'
+          }
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setAgentAnalysis(result.data.analysis);
+        
+        // Show insights if confusion detected
+        if (result.data.analysis.confusion_detected) {
+          setAgentInsights({
+            type: 'confusion',
+            message: 'I noticed you might be confused. Let me break this down step by step.'
+          });
+        }
+        
+        // Store weaknesses and recommendations
+        if (result.data.weaknesses && result.data.weaknesses.length > 0) {
+          setAgentInsights(prev => ({
+            ...prev,
+            weaknesses: result.data.weaknesses
+          }));
+        }
+        
+        if (result.data.recommendations && result.data.recommendations.length > 0) {
+          setAgentInsights(prev => ({
+            ...prev,
+            recommendations: result.data.recommendations
+          }));
+        }
+        
+        return result.data.response;
+      }
+    } catch (error) {
+      console.error('Error with AI agent:', error);
+      return null;
+    }
+  };
+
+  const getProgressReport = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${API_URL}/ai-chat-agent/progress-report?user_id=${userName}`,
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+      
+      const result = await response.json();
+      if (result.success) {
+        return result.data;
+      }
+    } catch (error) {
+      console.error('Error getting progress:', error);
+    }
+  };
+
+  const switchConversationMode = async (newMode) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/ai-chat-agent/switch-mode`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          mode: newMode
+        })
+      });
+      
+      const result = await response.json();
+      if (result.success) {
+        setConversationMode(newMode);
+      }
+    } catch (error) {
+      console.error('Error switching mode:', error);
+    }
+  };
+
   const sendMessage = async () => {
     if ((!inputMessage.trim() && selectedFiles.length === 0) || loading || !userName) return;
 
@@ -515,10 +623,17 @@ const AIChat = ({ sharedMode = false }) => {
         throw new Error('No answer received from AI');
       }
       
+      // Get agent analysis AFTER receiving the real AI response (don't replace the response)
+      if (messageText && !selectedFiles.length) {
+        sendMessageWithAgent(messageText, currentChatId).catch(err => {
+          console.log('Agent analysis failed (non-critical):', err);
+        });
+      }
+      
       const aiMessage = {
         id: `ai_${Date.now()}`,
         type: 'ai',
-        content: data.answer,
+        content: data.answer,  // Use the real AI response, not agent response
         timestamp: new Date().toISOString(),
         ...(data.ai_confidence !== null && data.ai_confidence !== undefined && {
           aiConfidence: data.ai_confidence,
@@ -528,7 +643,8 @@ const AIChat = ({ sharedMode = false }) => {
         misconceptionDetected: data.misconception_detected || false,
         filesProcessed: data.files_processed || 0,
         fileSummaries: data.file_summaries || [],
-        hasFileContext: data.has_file_context || false
+        hasFileContext: data.has_file_context || false,
+        agentAnalysis: agentAnalysis
       };
 
       setMessages(prev => [...prev, aiMessage]);

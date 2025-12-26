@@ -286,7 +286,11 @@ const Profile = () => {
       <div className="profile-page">
         <div className="profile-container">
           <div className="loading-state">
-            <div className="loading-spinner"></div>
+            <div className="loading-spinner-container">
+              <div className="loading-spinner-cube"></div>
+              <div className="loading-spinner-cube"></div>
+              <div className="loading-spinner-cube"></div>
+            </div>
             <div className="loading-text">Loading your profile...</div>
           </div>
         </div>
