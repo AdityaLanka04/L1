@@ -913,10 +913,11 @@ const Flashcards = () => {
         <div className="fc-study-mode">
           <div className="fc-study-header">
             <button className="fc-exit-btn" onClick={exitStudyMode}>
-              {ChevronLeft} Exit
+              ◀ Exit
             </button>
             <div className="fc-study-title">
               <h2>{currentSetInfo?.setTitle || 'Preview Mode'}</h2>
+              <span className="fc-card-counter">CARD {currentCard + 1} OF {previewCards.length}</span>
             </div>
             <button 
               className={`fc-shuffle-btn ${studySettings.shuffle ? 'active' : ''}`}
@@ -934,8 +935,6 @@ const Flashcards = () => {
           </div>
 
           <div className="fc-study-content">
-            <p className="fc-card-counter-above">Card {currentCard + 1} of {previewCards.length}</p>
-            
             <div className="fc-preview-card-container">
               <button 
                 className="fc-arrow-btn fc-arrow-left"
@@ -1074,11 +1073,11 @@ const Flashcards = () => {
             <>
               <div className="fc-study-header">
                 <button className="fc-exit-btn" onClick={exitStudyMode}>
-                  {Icons.arrowLeft} Exit
+                  ◀ Exit
                 </button>
                 <div className="fc-study-title">
                   <h2>{currentSetInfo?.setTitle || 'Study Session'}</h2>
-                  <p className="fc-card-counter">Card {currentCard + 1} of {currentStudyCards.length}</p>
+                  <span className="fc-card-counter">CARD {currentCard + 1} OF {currentStudyCards.length}</span>
                 </div>
                 <button 
                   className={`fc-shuffle-btn ${studySettings.shuffle ? 'active' : ''}`}
@@ -1097,9 +1096,39 @@ const Flashcards = () => {
 
               <div className="fc-study-content">
                 <div className="fc-study-mcq-area">
-                  <div className="fc-study-question-card">
-                    <div className="fc-study-badge">Question</div>
-                    <div className="fc-study-question-text">{currentStudyCards[currentCard]?.question}</div>
+                  <div className="fc-mcq-question-container">
+                    <button 
+                      className="fc-arrow-btn fc-arrow-left"
+                      onClick={() => {
+                        if (currentCard > 0) {
+                          setCurrentCard(currentCard - 1);
+                          generateMCQOptions(currentStudyCards, currentCard - 1);
+                          setSelectedOption(null);
+                          setShowAnswer(false);
+                        }
+                      }}
+                      disabled={currentCard === 0}
+                    >
+                      ◀
+                    </button>
+                    <div className="fc-study-question-card">
+                      <div className="fc-study-badge">Question</div>
+                      <div className="fc-study-question-text">{currentStudyCards[currentCard]?.question}</div>
+                    </div>
+                    <button 
+                      className="fc-arrow-btn fc-arrow-right"
+                      onClick={() => {
+                        if (currentCard < currentStudyCards.length - 1) {
+                          setCurrentCard(currentCard + 1);
+                          generateMCQOptions(currentStudyCards, currentCard + 1);
+                          setSelectedOption(null);
+                          setShowAnswer(false);
+                        }
+                      }}
+                      disabled={currentCard === currentStudyCards.length - 1}
+                    >
+                      ▶
+                    </button>
                   </div>
 
                   <div className="fc-mcq-options">
@@ -1136,7 +1165,7 @@ const Flashcards = () => {
 
                   {showAnswer && (
                     <button className="fc-next-question-btn" onClick={handleNextMCQ}>
-                      {currentCard < currentStudyCards.length - 1 ? 'Next Question' : 'Finish'}
+                      {currentCard < currentStudyCards.length - 1 ? 'Next Question ▶' : 'Finish'}
                     </button>
                   )}
                 </div>
