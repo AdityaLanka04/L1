@@ -49,6 +49,8 @@ const Dashboard = () => {
 
   const [heatmapData, setHeatmapData] = useState([]);
   const [totalQuestions, setTotalQuestions] = useState(0);
+  const [currentQuestions, setCurrentQuestions] = useState(0);  // Current existing messages
+  const [currentSessions, setCurrentSessions] = useState(0);    // Current existing sessions
   const [heatmapLoading, setHeatmapLoading] = useState(true);
 
   const [sessionStartTime, setSessionStartTime] = useState(null);
@@ -340,14 +342,18 @@ const Dashboard = () => {
         if (data.gamification) {
           setStats({
             streak: data.gamification.current_streak || 0,
-            totalQuestions: data.gamification.total_ai_chats || 0,  // AI Chats
+            totalQuestions: data.gamification.total_ai_chats || 0,  // AI Chats (messages)
             totalFlashcards: data.gamification.total_flashcards_created || 0,  // Flashcard SETS created
             totalNotes: data.gamification.total_notes_created || 0,
-            totalChatSessions: data.gamification.total_ai_chats || 0,
+            totalChatSessions: data.gamification.total_chat_sessions || 0,  // Actual session count
             minutes: data.gamification.total_study_minutes || 0
           });
           
           setTotalQuestions(data.gamification.total_ai_chats || 0);
+          
+          // Set current (existing) questions and sessions for AI widget
+          setCurrentQuestions(data.gamification.current_messages || data.gamification.total_chat_sessions || 0);
+          setCurrentSessions(data.gamification.total_chat_sessions || 0);
         }
         
         setRecentActivities(data.recent_activities || []);
@@ -1324,11 +1330,11 @@ const Dashboard = () => {
             </div>
             <div className="ai-stats-row">
               <div className="ai-stat">
-                <span className="ai-stat-value">{totalQuestions}</span>
+                <span className="ai-stat-value">{currentQuestions}</span>
                 <span className="ai-stat-label">questions</span>
               </div>
               <div className="ai-stat">
-                <span className="ai-stat-value">{stats.totalChatSessions}</span>
+                <span className="ai-stat-value">{currentSessions}</span>
                 <span className="ai-stat-label">sessions</span>
               </div>
             </div>

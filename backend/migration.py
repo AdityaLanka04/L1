@@ -381,6 +381,45 @@ def run_migration():
     except Exception as e:
         print(f"⚠️ concept_connections: {e}")
     
+    # Add share_code column to flashcard_sets if it doesn't exist
+    try:
+        cursor.execute("ALTER TABLE flashcard_sets ADD COLUMN share_code TEXT")
+        print("✅ Added share_code column to flashcard_sets")
+    except sqlite3.OperationalError as e:
+        if "duplicate column" in str(e).lower():
+            pass  # Column already exists
+        else:
+            print(f"⚠️ share_code column: {e}")
+    
+    # Create index for share_code
+    try:
+        cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_flashcard_sets_share_code ON flashcard_sets(share_code)")
+        print("✅ Created index for share_code")
+    except Exception as e:
+        print(f"⚠️ share_code index: {e}")
+    
+    # Generate share codes for existing flashcard sets that don't have one
+    try:
+        import random
+        import string
+        
+        cursor.execute("SELECT id FROM flashcard_sets WHERE share_code IS NULL OR share_code = ''")
+        sets_without_code = cursor.fetchall()
+        
+        if sets_without_code:
+            print(f"📝 Generating share codes for {len(sets_without_code)} flashcard sets...")
+            for (set_id,) in sets_without_code:
+                # Generate unique 6-char code
+                while True:
+                    code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+                    cursor.execute("SELECT id FROM flashcard_sets WHERE share_code = ?", (code,))
+                    if not cursor.fetchone():
+                        break
+                cursor.execute("UPDATE flashcard_sets SET share_code = ? WHERE id = ?", (code, set_id))
+            print(f"✅ Generated share codes for {len(sets_without_code)} flashcard sets")
+    except Exception as e:
+        print(f"⚠️ share code generation: {e}")
+    
     try:
         for model in models:
             sync_table(cursor, model)

@@ -809,7 +809,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 400px;
+  min-height: 300px;
 }
 
 .fc-spinner {
@@ -1409,20 +1409,57 @@
   margin-bottom: 32px;
 }
 
-/* Preview mode specific - center the card without side navigation */
+/* Preview mode specific - center the card with arrow navigation */
 .fc-preview-card-container {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 0;
+  justify-content: center;
+  gap: 24px;
   width: 100%;
-  max-width: 700px;
+  max-width: 900px;
   margin: 0 auto 32px;
 }
 
 .fc-preview-card-container .fc-study-card {
   width: 100%;
   max-width: 700px;
+}
+
+/* Triangle Arrow Buttons */
+.fc-arrow-btn {
+  width: 50px;
+  height: 50px;
+  background: transparent;
+  border: none;
+  color: var(--fc-accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 32px;
+  transition: all 0.2s;
+  opacity: 0.8;
+}
+
+.fc-arrow-btn:hover:not(:disabled) {
+  color: var(--fc-accent);
+  transform: scale(1.2);
+  opacity: 1;
+}
+
+.fc-arrow-btn:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+
+.fc-arrow-left {
+  margin-right: 8px;
+}
+
+.fc-arrow-right {
+  margin-left: 8px;
 }
 
 .fc-study-nav {
@@ -1484,9 +1521,9 @@
 
 .fc-study-card {
   flex: 1;
-  min-height: 400px;
-  max-height: 500px;
-  height: 500px;
+  min-height: 300px;
+  max-height: 380px;
+  height: 380px;
   width: 100%;
   max-width: 700px;
   background: transparent;
@@ -1522,10 +1559,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px;
+  padding: 24px;
   text-align: center;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden !important;
   border: 2px solid var(--fc-accent);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
@@ -1560,50 +1596,31 @@
   font-weight: 600;
   text-transform: uppercase;
   color: var(--fc-accent);
-  margin-bottom: 20px;
+  margin-bottom: auto;
   padding: 6px 12px;
   background: var(--fc-accent-glow);
   flex-shrink: 0;
 }
 
 .fc-study-card-text {
-  font-size: 18px;
-  line-height: 1.6;
+  font-size: 17px;
+  line-height: 1.4;
   color: var(--fc-text-primary);
   max-width: 500px;
+  max-height: 240px;
   word-wrap: break-word;
   overflow-wrap: break-word;
   word-break: break-word;
   white-space: pre-wrap;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 8;
+  -webkit-box-orient: vertical;
+  overflow: hidden !important;
   text-align: center;
-  padding: 10px;
+  padding: 8px;
 }
 
-/* Scrollbar styling for card faces */
-.fc-study-card-front::-webkit-scrollbar,
-.fc-study-card-back::-webkit-scrollbar {
-  width: 6px;
-}
-
-.fc-study-card-front::-webkit-scrollbar-track,
-.fc-study-card-back::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.fc-study-card-front::-webkit-scrollbar-thumb,
-.fc-study-card-back::-webkit-scrollbar-thumb {
-  background: var(--fc-accent);
-  border-radius: 3px;
-}
-
-.fc-study-card-front::-webkit-scrollbar-thumb:hover,
-.fc-study-card-back::-webkit-scrollbar-thumb:hover {
-  background: var(--fc-accent-dark);
-}
+/* Scrollbar removed - no scrolling allowed */
 
 /* Enhanced text visibility in dark mode */
 [data-theme-mode="dark"] .fc-study-card-text {
@@ -1636,7 +1653,8 @@
 .fc-study-hint {
   font-size: 13px;
   color: var(--fc-text-muted);
-  margin-top: 20px;
+  margin-top: auto;
+  padding-top: 20px;
   flex-shrink: 0;
 }
 
@@ -4230,4 +4248,260 @@
 
 [data-theme-mode="light"] .fc-action-preview:hover svg {
   color: #1a1a1a !important;
+}
+
+
+/* ==================== FLASHCARD FIX - NON-SCROLLABLE CARDS ==================== */
+
+/* Force flashcard content to not scroll */
+.fc-flashcard,
+.fc-flashcard-inner,
+.fc-flashcard-front,
+.fc-flashcard-back {
+  overflow: hidden !important;
+  max-height: none !important;
+}
+
+/* Flashcard container - fixed dimensions */
+.fc-flashcard-container {
+  width: 100%;
+  max-width: 700px;
+  height: 360px;
+  margin: 0 auto;
+  perspective: 1000px;
+  position: relative;
+}
+
+/* Card wrapper */
+.fc-flashcard {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fc-flashcard.flipped {
+  transform: rotateY(180deg);
+}
+
+/* Card faces */
+.fc-flashcard-inner {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  backface-visibility: hidden;
+  background: var(--fc-bg-card);
+  border: 1px solid var(--fc-border-default);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.fc-flashcard-front {
+  transform: rotateY(0deg);
+}
+
+.fc-flashcard-back {
+  transform: rotateY(180deg);
+}
+
+/* Card content - fixed height, centered, no scroll */
+.fc-card-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Text container - centered, limited height */
+.fc-card-text {
+  max-width: 100%;
+  max-height: 260px;
+  text-align: center;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 7;
+  -webkit-box-orient: vertical;
+  line-height: 1.5;
+  font-size: 17px;
+  color: var(--fc-text-primary);
+}
+
+/* Question text - larger */
+.fc-card-question {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  max-height: 100px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* Answer text - limited height */
+.fc-card-answer {
+  font-size: 17px;
+  line-height: 1.5;
+  max-height: 220px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 8;
+  -webkit-box-orient: vertical;
+}
+
+/* Card header - info badge */
+.fc-card-header {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--fc-border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.fc-card-number {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fc-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Card footer - fixed at bottom */
+.fc-card-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--fc-border-subtle);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Study mode controls */
+.fc-study-controls {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  justify-content: center;
+}
+
+.fc-study-btn {
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid var(--fc-border-default);
+  background: var(--fc-bg-secondary);
+  color: var(--fc-text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fc-study-btn:hover {
+  background: var(--fc-bg-elevated);
+  border-color: var(--fc-accent);
+  transform: translateY(-2px);
+}
+
+.fc-study-btn.know {
+  border-color: var(--fc-success);
+  color: var(--fc-success);
+}
+
+.fc-study-btn.know:hover {
+  background: color-mix(in srgb, var(--fc-success) 10%, var(--fc-bg-secondary));
+}
+
+.fc-study-btn.dont-know {
+  border-color: var(--fc-danger);
+  color: var(--fc-danger);
+}
+
+.fc-study-btn.dont-know:hover {
+  background: color-mix(in srgb, var(--fc-danger) 10%, var(--fc-bg-secondary));
+}
+
+/* Navigation buttons */
+.fc-nav-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.fc-nav-btn {
+  padding: 10px 20px;
+  background: var(--fc-bg-secondary);
+  border: 1px solid var(--fc-border-default);
+  color: var(--fc-text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.fc-nav-btn:hover:not(:disabled) {
+  background: var(--fc-bg-elevated);
+  border-color: var(--fc-accent);
+  transform: translateY(-2px);
+}
+
+.fc-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .fc-flashcard-container {
+    height: 320px;
+    max-width: 100%;
+  }
+  
+  .fc-card-text {
+    font-size: 15px;
+    max-height: 200px;
+    -webkit-line-clamp: 5;
+  }
+  
+  .fc-card-question {
+    font-size: 18px;
+    max-height: 80px;
+  }
+  
+  .fc-card-answer {
+    font-size: 15px;
+    max-height: 180px;
+    -webkit-line-clamp: 5;
+  }
+}
+
+
+/* Mobile responsive for arrow buttons */
+@media (max-width: 768px) {
+  .fc-preview-card-container {
+    gap: 12px;
+    max-width: 100%;
+    padding: 0 8px;
+  }
+  
+  .fc-arrow-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+  }
+  
+  .fc-arrow-left {
+    margin-right: 4px;
+  }
+  
+  .fc-arrow-right {
+    margin-left: 4px;
+  }
 }

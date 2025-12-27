@@ -327,6 +327,7 @@ class FlashcardSet(Base):
     __tablename__ = "flashcard_sets"
     
     id = Column(Integer, primary_key=True, index=True)
+    share_code = Column(String(6), unique=True, index=True, nullable=True)  # Random 6-char code for URLs
     user_id = Column(Integer, ForeignKey("users.id"))
     title = Column(String(200), default="New Flashcard Set")
     description = Column(Text, default="")

@@ -280,6 +280,33 @@ const Flashcards = () => {
     }
   };
 
+  // Simple mastery update function
+  const updateCardMastery = async (cardId, wasCorrect) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/flashcards/review`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          card_id: cardId.toString(),
+          was_correct: wasCorrect
+        })
+      });
+      
+      const result = await response.json();
+      if (result.success) {
+        console.log('Card mastery updated:', result.set_accuracy);
+      }
+      return result;
+    } catch (error) {
+      console.error('Error updating card mastery:', error);
+    }
+  };
+
   const endAgentSession = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -356,6 +383,46 @@ const Flashcards = () => {
     }
   }, [navigate]);
 
+  // Load flashcard set by share code
+  const loadFlashcardSetByCode = useCallback(async (shareCode, mode = 'preview') => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/flashcards/by-code/${shareCode}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setFlashcards(data.flashcards);
+        setCurrentCard(0);
+        setIsFlipped(false);
+        setCurrentSetInfo({
+          saved: true,
+          setId: data.set.id,
+          shareCode: data.set.share_code,
+          setTitle: data.set.title,
+          cardCount: data.flashcards.length
+        });
+        
+        if (mode === 'preview') {
+          const cards = studySettings.shuffle ? [...data.flashcards].sort(() => Math.random() - 0.5) : data.flashcards;
+          setShuffledCards(cards);
+          setPreviewMode(true);
+        } else if (mode === 'study') {
+          const cards = studySettings.shuffle ? [...data.flashcards].sort(() => Math.random() - 0.5) : data.flashcards;
+          setStudySessionStats({ correct: 0, incorrect: 0, skipped: 0 });
+          setShowStudyResults(false);
+          setShuffledCards(cards);
+          generateMCQOptions(cards, 0);
+          setStudyMode(true);
+          updateStreak();
+        }
+      }
+    } catch (error) {
+      console.error('Error loading flashcard set by code:', error);
+      showPopup('Error', 'Failed to load flashcard set');
+    }
+  }, [studySettings.shuffle]);
+
   useEffect(() => {
     if (userName) {
       loadChatSessions();
@@ -365,14 +432,21 @@ const Flashcards = () => {
       
       // Check for URL parameters to load a specific set
       const params = new URLSearchParams(location.search);
+      const shareCode = params.get('code');
+      const mode = params.get('mode') || 'preview';
       const setId = params.get('set_id');
-      if (setId) {
+      
+      if (shareCode) {
+        console.log('Loading flashcard set from share code:', shareCode, 'mode:', mode);
+        loadFlashcardSetByCode(shareCode, mode);
+        setActivePanel('cards');
+      } else if (setId) {
         console.log('Loading flashcard set from URL:', setId);
-        loadFlashcardSet(parseInt(setId), 'preview');
+        loadFlashcardSet(parseInt(setId), mode);
         setActivePanel('cards');
       }
     }
-  }, [userName, location.search, loadChatSessions, loadFlashcardHistory, loadFlashcardStats, loadReviewCards]);
+  }, [userName, location.search, loadChatSessions, loadFlashcardHistory, loadFlashcardStats, loadReviewCards, loadFlashcardSetByCode]);
 
   useEffect(() => {
     const savedStreak = localStorage.getItem('flashcardStreak');
@@ -555,12 +629,18 @@ const Flashcards = () => {
         setCurrentSetInfo({
           saved: true,
           setId: data.set_id,
+          shareCode: data.share_code,
           setTitle: data.set_title,
           cardCount: data.flashcards.length
         });
         loadFlashcardHistory();
         loadFlashcardStats();
         gamificationService.trackFlashcardSet(userName, data.flashcards.length);
+        
+        // Update URL with share code
+        if (data.share_code) {
+          window.history.replaceState({}, '', `/flashcards?code=${data.share_code}&mode=preview`);
+        }
         
         // Auto-open preview mode after generation
         const cards = studySettings.shuffle ? [...data.flashcards].sort(() => Math.random() - 0.5) : data.flashcards;
@@ -584,6 +664,7 @@ const Flashcards = () => {
   const loadFlashcardSet = async (setId, mode = 'study') => {
     try {
       const token = localStorage.getItem('token');
+      // Use the existing endpoint that works
       const response = await fetch(`${API_URL}/get_flashcards_in_set?set_id=${setId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -592,12 +673,20 @@ const Flashcards = () => {
         setFlashcards(data.flashcards);
         setCurrentCard(0);
         setIsFlipped(false);
+        
         setCurrentSetInfo({
           saved: true,
           setId: setId,
-          setTitle: data.set_title,
+          shareCode: data.share_code,
+          setTitle: data.set_title || 'Flashcard Set',
           cardCount: data.flashcards.length
         });
+        
+        // Update URL with share code if available
+        if (data.share_code) {
+          const newUrl = `/flashcards?code=${data.share_code}&mode=${mode}`;
+          window.history.replaceState({}, '', newUrl);
+        }
         
         if (mode === 'preview') {
           // Preview mode = Flippable cards in full screen
@@ -772,6 +861,9 @@ const Flashcards = () => {
     setSelectedOption(null);
     setShowAnswer(false);
     setMcqOptions([]);
+    
+    // Clear URL parameters
+    window.history.replaceState({}, '', '/flashcards');
   };
 
   const restartStudy = () => {
@@ -845,6 +937,19 @@ const Flashcards = () => {
             <p className="fc-card-counter-above">Card {currentCard + 1} of {previewCards.length}</p>
             
             <div className="fc-preview-card-container">
+              <button 
+                className="fc-arrow-btn fc-arrow-left"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (currentCard > 0) {
+                    setCurrentCard(currentCard - 1);
+                    setIsFlipped(false);
+                  }
+                }}
+                disabled={currentCard === 0}
+              >
+                ◀
+              </button>
               <div 
                 className={`fc-study-card ${isFlipped ? 'flipped' : ''}`}
                 onClick={handleCardClick}
@@ -862,6 +967,19 @@ const Flashcards = () => {
                   </div>
                 </div>
               </div>
+              <button 
+                className="fc-arrow-btn fc-arrow-right"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (currentCard < previewCards.length - 1) {
+                    setCurrentCard(currentCard + 1);
+                    setIsFlipped(false);
+                  }
+                }}
+                disabled={currentCard === previewCards.length - 1}
+              >
+                ▶
+              </button>
             </div>
 
             <div className="fc-knowledge-btns">
@@ -872,6 +990,7 @@ const Flashcards = () => {
                   handleStudyResponse('incorrect');
                   const card = previewCards[currentCard];
                   if (card?.id) {
+                    await updateCardMastery(card.id, false);
                     await markCardForReview(card.id, true);
                   }
                   if (currentCard < previewCards.length - 1) {
@@ -889,8 +1008,11 @@ const Flashcards = () => {
                   e.stopPropagation();
                   handleStudyResponse('correct');
                   const card = previewCards[currentCard];
-                  if (card?.id && card?.marked_for_review) {
-                    await markCardForReview(card.id, false);
+                  if (card?.id) {
+                    await updateCardMastery(card.id, true);
+                    if (card?.marked_for_review) {
+                      await markCardForReview(card.id, false);
+                    }
                   }
                   if (currentCard < previewCards.length - 1) {
                     setCurrentCard(currentCard + 1);

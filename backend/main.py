@@ -81,11 +81,10 @@ load_dotenv()
 from ai_personality import PersonalityEngine, AdaptiveLearningModel
 from neural_adaptation import get_rl_agent, ConversationContextAnalyzer
 import advanced_prompting
-from flashcard_api import register_flashcard_api 
+from flashcard_api_minimal import register_flashcard_api_minimal
 from question_bank_enhanced import register_question_bank_api
 from proactive_ai_system import get_proactive_ai_engine
 from adaptive_learning_api import register_adaptive_learning_api
-from math_processor import process_math_in_response, enhance_display_math
 from math_processor import process_math_in_response, enhance_display_math
 
 from fastapi.staticfiles import StaticFiles
@@ -242,8 +241,8 @@ def call_ai(prompt: str, max_tokens: int = 2000, temperature: float = 0.7) -> st
     response = enhance_display_math(response)
     return response
 
-flashcard_api = register_flashcard_api(app, unified_ai)
-logger.info("✅ Flashcard API integrated successfully")
+register_flashcard_api_minimal(app)
+logger.info("✅ Flashcard API Minimal registered successfully")
 
 register_question_bank_api(app, unified_ai, get_db)
 logger.info("Enhanced Question Bank API with sophisticated AI agents registered successfully")
@@ -255,11 +254,6 @@ logger.info("✅ Adaptive Learning & Personalization API registered successfully
 from ai_chat_integration import register_ai_chat_agent
 register_ai_chat_agent(app)
 logger.info("✅ AI Chat Agent registered successfully")
-
-# Register Flashcard Agent
-from flashcard_agent_integration import register_flashcard_agent
-register_flashcard_agent(app)
-logger.info("✅ Flashcard Agent registered successfully")
 
 class Token(BaseModel):
     access_token: str
@@ -497,33 +491,7 @@ def build_user_profile_dict(user, comprehensive_profile=None) -> Dict[str, Any]:
     return profile
 
 MATHEMATICAL_FORMATTING_INSTRUCTIONS = """
-## CRITICAL: Mathematical Notation Rules (MUST FOLLOW)
-
-ALL mathematical expressions MUST be wrapped in LaTeX delimiters:
-- **Inline math** (in text): `$...$` → "where $x$ is the variable"
-- **Display math** (standalone): `$$...$$` → $$\\frac{a}{b}$$
-
-### REQUIRED PATTERNS:
-1. Variables: "the value $x$", "where $n$ equals"
-2. Expressions: "$x^2 + y^2 = r^2$"
-3. Greek letters: "$\\alpha$", "$\\theta$", "$\\pi$"
-4. Fractions: "$\\frac{a}{b}$" or $$\\frac{numerator}{denominator}$$
-5. Roots: "$\\sqrt{x}$", "$\\sqrt[3]{x}$"
-6. Subscripts/superscripts: "$x_1$", "$x^2$", "$a_{ij}$", "$e^{x}$"
-7. Integrals: $$\\int_0^1 x^2 \\, dx$$
-8. Sums: $$\\sum_{i=1}^{n} i$$
-9. Limits: $$\\lim_{x \\to 0} \\frac{\\sin x}{x}$$
-
-### EXAMPLES:
-✅ CORRECT: "The quadratic formula is $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$"
-✅ CORRECT: "where $a$, $b$, and $c$ are coefficients"
-✅ CORRECT: "The coefficient of the $x^2$ term is $a$"
-
-❌ WRONG: "The quadratic formula is x = (-b ± √(b²-4ac))/2a"
-❌ WRONG: "where a, b, and c are coefficients"  
-❌ WRONG: "The coefficient of the x^2 term"
-
-**NEVER write mathematical notation without $ or $$ delimiters!**
+Use LaTeX: inline $x$, display $$x$$
 """
 
 # Then define the function ONCE (around line 648)
@@ -2658,6 +2626,323 @@ def get_flashcards(user_id: str = Query(...), db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error getting flashcards: {str(e)}", exc_info=True)
         return []
+
+
+@app.get("/get_flashcards_in_set")
+@app.get("/api/get_flashcards_in_set")
+def get_flashcards_in_set(set_id: int = Query(...), db: Session = Depends(get_db)):
+    """Get all flashcards in a specific set"""
+    try:
+        flashcard_set = db.query(models.FlashcardSet).filter(
+            models.FlashcardSet.id == set_id
+        ).first()
+        
+        if not flashcard_set:
+            raise HTTPException(status_code=404, detail="Flashcard set not found")
+        
+        flashcards = db.query(models.Flashcard).filter(
+            models.Flashcard.set_id == set_id
+        ).all()
+        
+        return {
+            "set_id": flashcard_set.id,
+            "set_title": flashcard_set.title,
+            "share_code": getattr(flashcard_set, 'share_code', None),
+            "description": flashcard_set.description or "",
+            "flashcards": [
+                {
+                    "id": card.id,
+                    "question": card.question,
+                    "answer": card.answer,
+                    "difficulty": card.difficulty or "medium",
+                    "times_reviewed": card.times_reviewed or 0,
+                    "correct_count": card.correct_count or 0,
+                    "marked_for_review": card.marked_for_review if hasattr(card, 'marked_for_review') else False
+                }
+                for card in flashcards
+            ]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting flashcards in set: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/get_flashcard_history")
+@app.get("/api/get_flashcard_history")
+def get_flashcard_history(user_id: str = Query(...), limit: int = Query(50), db: Session = Depends(get_db)):
+    """Get flashcard sets with mastery/accuracy for a user"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get all flashcard sets for the user
+        flashcard_sets = db.query(models.FlashcardSet).filter(
+            models.FlashcardSet.user_id == user.id
+        ).order_by(models.FlashcardSet.created_at.desc()).limit(limit).all()
+        
+        result = []
+        for fs in flashcard_sets:
+            # Get all cards in this set
+            cards = db.query(models.Flashcard).filter(
+                models.Flashcard.set_id == fs.id
+            ).all()
+            
+            # Calculate accuracy percentage based on card reviews
+            total_reviews = sum(c.times_reviewed or 0 for c in cards)
+            total_correct = sum(c.correct_count or 0 for c in cards)
+            
+            if total_reviews > 0:
+                accuracy = (total_correct / total_reviews) * 100
+            else:
+                accuracy = 0.0
+            
+            result.append({
+                "id": fs.id,
+                "share_code": getattr(fs, 'share_code', None),
+                "title": fs.title,
+                "description": fs.description or "",
+                "card_count": len(cards),
+                "accuracy_percentage": round(accuracy, 1),
+                "source_type": fs.source_type or "manual",
+                "is_public": fs.is_public if hasattr(fs, 'is_public') else False,
+                "created_at": fs.created_at.isoformat() + 'Z' if fs.created_at else None,
+                "updated_at": fs.updated_at.isoformat() + 'Z' if fs.updated_at else None
+            })
+        
+        logger.info(f"Retrieved {len(result)} flashcard sets for user {user.email}")
+        return {"flashcard_history": result}
+        
+    except Exception as e:
+        logger.error(f"Error getting flashcard history: {str(e)}", exc_info=True)
+        return {"flashcard_history": []}
+
+
+@app.get("/get_flashcard_statistics")
+@app.get("/api/get_flashcard_statistics")
+def get_flashcard_statistics(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """Get flashcard statistics for a user"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            return {"total_sets": 0, "total_cards": 0, "cards_mastered": 0, "average_accuracy": 0}
+        
+        # Count sets
+        total_sets = db.query(func.count(models.FlashcardSet.id)).filter(
+            models.FlashcardSet.user_id == user.id
+        ).scalar() or 0
+        
+        # Count cards
+        total_cards = db.query(func.count(models.Flashcard.id)).join(
+            models.FlashcardSet, models.Flashcard.set_id == models.FlashcardSet.id
+        ).filter(
+            models.FlashcardSet.user_id == user.id
+        ).scalar() or 0
+        
+        # Count mastered cards (correct_count >= 3)
+        cards_mastered = db.query(func.count(models.Flashcard.id)).join(
+            models.FlashcardSet, models.Flashcard.set_id == models.FlashcardSet.id
+        ).filter(
+            models.FlashcardSet.user_id == user.id,
+            models.Flashcard.correct_count >= 3
+        ).scalar() or 0
+        
+        # Calculate average accuracy
+        cards = db.query(models.Flashcard).join(
+            models.FlashcardSet, models.Flashcard.set_id == models.FlashcardSet.id
+        ).filter(
+            models.FlashcardSet.user_id == user.id
+        ).all()
+        
+        total_reviews = sum(c.times_reviewed or 0 for c in cards)
+        total_correct = sum(c.correct_count or 0 for c in cards)
+        average_accuracy = (total_correct / total_reviews * 100) if total_reviews > 0 else 0
+        
+        return {
+            "total_sets": total_sets,
+            "total_cards": total_cards,
+            "cards_mastered": cards_mastered,
+            "average_accuracy": round(average_accuracy, 1)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting flashcard statistics: {str(e)}", exc_info=True)
+        return {"total_sets": 0, "total_cards": 0, "cards_mastered": 0, "average_accuracy": 0}
+
+
+@app.get("/api/get_flashcards_for_review")
+@app.post("/api/get_flashcards_for_review")
+def get_flashcards_for_review(user_id: str = Query(None), db: Session = Depends(get_db)):
+    """Get flashcards that need review"""
+    try:
+        if not user_id:
+            return {"cards": [], "count": 0}
+            
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            return {"cards": [], "count": 0}
+        
+        # Get cards marked for review or with low accuracy
+        cards = db.query(models.Flashcard).join(
+            models.FlashcardSet, models.Flashcard.set_id == models.FlashcardSet.id
+        ).filter(
+            models.FlashcardSet.user_id == user.id,
+            models.Flashcard.marked_for_review == True
+        ).all()
+        
+        result = []
+        for card in cards:
+            result.append({
+                "id": card.id,
+                "set_id": card.set_id,
+                "question": card.question,
+                "answer": card.answer,
+                "times_reviewed": card.times_reviewed or 0,
+                "correct_count": card.correct_count or 0
+            })
+        
+        return {"cards": result, "count": len(result)}
+        
+    except Exception as e:
+        logger.error(f"Error getting flashcards for review: {str(e)}", exc_info=True)
+        return {"cards": [], "count": 0}
+
+
+@app.post("/generate_flashcards")
+@app.post("/api/generate_flashcards")
+async def generate_flashcards_endpoint(
+    user_id: str = Form(...),
+    topic: str = Form(None),
+    generation_type: str = Form("topic"),
+    chat_data: str = Form(None),
+    card_count: int = Form(10),
+    difficulty: str = Form("medium"),
+    set_title: str = Form(None),
+    db: Session = Depends(get_db)
+):
+    """Generate flashcards from topic or chat history"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Generate flashcards using AI
+        if generation_type == "topic" and topic:
+            prompt = f"""Generate {card_count} flashcards about: {topic}
+            
+Difficulty level: {difficulty}
+
+Return ONLY a valid JSON array of flashcard objects. Each object must have:
+- "question": The question or front of the card
+- "answer": The answer or back of the card
+- "difficulty": "{difficulty}"
+
+Example format:
+[
+  {{"question": "What is X?", "answer": "X is...", "difficulty": "{difficulty}"}},
+  {{"question": "Explain Y", "answer": "Y is...", "difficulty": "{difficulty}"}}
+]
+
+Generate educational, clear flashcards. Return ONLY the JSON array, no other text."""
+            
+            content = topic
+        elif generation_type == "chat_history" and chat_data:
+            import json
+            try:
+                chat_history = json.loads(chat_data)
+                chat_text = "\n".join([f"Q: {msg.get('question', '')}\nA: {msg.get('answer', '')}" for msg in chat_history[:10]])
+            except:
+                chat_text = chat_data
+            
+            prompt = f"""Based on this conversation, generate {card_count} flashcards to help remember the key concepts:
+
+{chat_text}
+
+Return ONLY a valid JSON array of flashcard objects. Each object must have:
+- "question": The question or front of the card
+- "answer": The answer or back of the card
+- "difficulty": "{difficulty}"
+
+Generate educational flashcards covering the main topics discussed. Return ONLY the JSON array, no other text."""
+            
+            content = chat_text
+        else:
+            raise HTTPException(status_code=400, detail="Provide topic or chat_data")
+        
+        # Call AI to generate flashcards
+        ai_response = unified_ai.generate(prompt, max_tokens=2000, temperature=0.7)
+        
+        # Parse the response
+        import json
+        import re
+        
+        # Try to extract JSON from response
+        json_match = re.search(r'\[[\s\S]*\]', ai_response)
+        if json_match:
+            try:
+                flashcards = json.loads(json_match.group())
+            except json.JSONDecodeError:
+                flashcards = []
+        else:
+            flashcards = []
+        
+        if not flashcards:
+            # Fallback: create simple flashcards
+            flashcards = [
+                {"question": f"What is {topic}?", "answer": f"A concept related to {topic}", "difficulty": difficulty}
+            ]
+        
+        # Save to database if set_title is provided
+        saved_to_set = False
+        set_id = None
+        
+        if set_title and flashcards:
+            flashcard_set = models.FlashcardSet(
+                user_id=user.id,
+                title=set_title,
+                description=f"Generated {len(flashcards)} cards",
+                source_type="ai_generated"
+            )
+            db.add(flashcard_set)
+            db.commit()
+            db.refresh(flashcard_set)
+            set_id = flashcard_set.id
+            
+            for card in flashcards:
+                db_card = models.Flashcard(
+                    set_id=flashcard_set.id,
+                    question=card.get("question", ""),
+                    answer=card.get("answer", ""),
+                    difficulty=card.get("difficulty", difficulty)
+                )
+                db.add(db_card)
+            
+            db.commit()
+            saved_to_set = True
+            
+            # Add IDs to flashcards
+            db_cards = db.query(models.Flashcard).filter(
+                models.Flashcard.set_id == flashcard_set.id
+            ).all()
+            for i, card in enumerate(flashcards):
+                if i < len(db_cards):
+                    card["id"] = db_cards[i].id
+        
+        return {
+            "success": True,
+            "flashcards": flashcards,
+            "saved_to_set": saved_to_set,
+            "set_id": set_id,
+            "set_title": set_title
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating flashcards: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/get_quiz_history")
@@ -4853,8 +5138,10 @@ def get_enhanced_user_stats(user_id: str = Query(...), db: Session = Depends(get
         total_quizzes = gamification_stats.get("total_quizzes_completed", 0)
         total_study_minutes = gamification_stats.get("total_study_minutes", 0)
         
-        # Count actual chat sessions from database (not messages)
-        total_chat_sessions = db.query(func.count(models.ChatSession.id)).filter(
+        # Count actual chat sessions from database (only sessions with messages)
+        total_chat_sessions = db.query(func.count(func.distinct(models.ChatSession.id))).join(
+            models.ChatMessage, models.ChatMessage.chat_session_id == models.ChatSession.id
+        ).filter(
             models.ChatSession.user_id == user.id
         ).scalar() or 0
         
