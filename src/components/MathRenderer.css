@@ -52,7 +52,7 @@
   border-radius: 4px;
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.88em;
-  color: var(--accent, #f59e0b);
+  color: var(--accent);
 }
 
 .math-content pre {
@@ -71,7 +71,7 @@
 
 .math-content .katex {
   font-size: 1.1em;
-  color: var(--accent, #f59e0b);
+  color: var(--accent);
 }
 
 .math-content .katex * {
@@ -86,30 +86,26 @@
 .math-content .katex .mclose,
 .math-content .katex .mpunct,
 .math-content .katex .minner {
-  color: var(--accent, #f59e0b);
+  color: var(--accent);
 }
 
 .math-content .katex .mfrac .frac-line {
-  border-color: var(--accent, #f59e0b);
-  background: var(--accent, #f59e0b);
+  border-color: var(--accent);
+  background: var(--accent);
 }
 
 .math-content .katex .sqrt-sign {
-  color: var(--accent, #f59e0b);
+  color: var(--accent);
 }
 
 .math-content .katex .sqrt-line {
-  border-color: var(--accent, #f59e0b);
-  background: var(--accent, #f59e0b);
+  border-color: var(--accent);
+  background: var(--accent);
 }
 
 .math-content .katex-display {
   display: block;
-  margin: 1.5em 0;
-  padding: 1.2em 1.5em;
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.03) 100%);
-  border-radius: 12px;
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  margin: 1em 0;
   overflow-x: auto;
   text-align: center;
 }
@@ -128,7 +124,7 @@
 }
 
 .math-content .katex-display::-webkit-scrollbar-thumb {
-  background: var(--accent, #f59e0b);
+  background: var(--accent);
   border-radius: 3px;
 }
 
@@ -138,23 +134,19 @@
 
 .math-inline .katex {
   font-size: 1.1em;
-  color: var(--accent, #f59e0b);
+  color: var(--accent);
 }
 
 .math-block {
   display: block;
-  margin: 1.5em 0;
-  padding: 1.2em 1.5em;
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.03) 100%);
-  border-radius: 12px;
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  margin: 1em 0;
   text-align: center;
   overflow-x: auto;
 }
 
 .math-block .katex {
   font-size: 1.3em;
-  color: var(--accent, #f59e0b);
+  color: var(--accent);
 }
 
 [data-theme-mode="light"] .math-content {
@@ -170,23 +162,6 @@
 
 [data-theme-mode="light"] .math-content code {
   background: rgba(0, 0, 0, 0.05);
-  color: #d97706;
-}
-
-[data-theme-mode="light"] .math-content .katex-display {
-  background: linear-gradient(135deg, rgba(217, 119, 6, 0.1) 0%, rgba(217, 119, 6, 0.03) 100%);
-  border-color: rgba(217, 119, 6, 0.25);
-}
-
-[data-theme-mode="light"] .math-content .katex,
-[data-theme-mode="light"] .math-content .katex * {
-  color: #d97706;
-}
-
-[data-theme-mode="light"] .math-content .katex .frac-line,
-[data-theme-mode="light"] .math-content .katex .sqrt-line {
-  border-color: #d97706;
-  background: #d97706;
 }
 
 @media (max-width: 768px) {
@@ -196,10 +171,6 @@
 
   .math-content .katex {
     font-size: 1.05em;
-  }
-
-  .math-content .katex-display {
-    padding: 1em;
   }
 
   .math-content .katex-display > .katex {

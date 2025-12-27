@@ -354,7 +354,7 @@
   background: linear-gradient(135deg, var(--ac-accent), var(--ac-accent-dark));
   border: none;
   border-radius: 8px;
-  color: var(--ac-bg-primary);
+  color: #ffffff;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
