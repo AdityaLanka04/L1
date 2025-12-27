@@ -85,6 +85,8 @@ from flashcard_api import register_flashcard_api
 from question_bank_enhanced import register_question_bank_api
 from proactive_ai_system import get_proactive_ai_engine
 from adaptive_learning_api import register_adaptive_learning_api
+from math_processor import process_math_in_response, enhance_display_math
+from math_processor import process_math_in_response, enhance_display_math
 
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -232,8 +234,13 @@ def call_ai(prompt: str, max_tokens: int = 2000, temperature: float = 0.7) -> st
     """
     Call AI with Gemini as primary, Groq as fallback
     Used throughout the entire app for all AI calls
+    Automatically processes math notation in responses
     """
-    return unified_ai.generate(prompt, max_tokens, temperature)
+    response = unified_ai.generate(prompt, max_tokens, temperature)
+    # Post-process math notation to ensure proper LaTeX wrapping
+    response = process_math_in_response(response)
+    response = enhance_display_math(response)
+    return response
 
 flashcard_api = register_flashcard_api(app, unified_ai)
 logger.info("✅ Flashcard API integrated successfully")
@@ -490,8 +497,34 @@ def build_user_profile_dict(user, comprehensive_profile=None) -> Dict[str, Any]:
     return profile
 
 MATHEMATICAL_FORMATTING_INSTRUCTIONS = """
-   When writing math: use $x^2$ for inline, $$equation$$ for display. Use \\frac{}{}, \\sum_{i=1}^{n}, \\int_{a}^{b}, Greek letters (\\alpha, \\beta, \\theta), and wrap ALL expressions in $.
-   """
+## CRITICAL: Mathematical Notation Rules (MUST FOLLOW)
+
+ALL mathematical expressions MUST be wrapped in LaTeX delimiters:
+- **Inline math** (in text): `$...$` → "where $x$ is the variable"
+- **Display math** (standalone): `$$...$$` → $$\\frac{a}{b}$$
+
+### REQUIRED PATTERNS:
+1. Variables: "the value $x$", "where $n$ equals"
+2. Expressions: "$x^2 + y^2 = r^2$"
+3. Greek letters: "$\\alpha$", "$\\theta$", "$\\pi$"
+4. Fractions: "$\\frac{a}{b}$" or $$\\frac{numerator}{denominator}$$
+5. Roots: "$\\sqrt{x}$", "$\\sqrt[3]{x}$"
+6. Subscripts/superscripts: "$x_1$", "$x^2$", "$a_{ij}$", "$e^{x}$"
+7. Integrals: $$\\int_0^1 x^2 \\, dx$$
+8. Sums: $$\\sum_{i=1}^{n} i$$
+9. Limits: $$\\lim_{x \\to 0} \\frac{\\sin x}{x}$$
+
+### EXAMPLES:
+✅ CORRECT: "The quadratic formula is $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$"
+✅ CORRECT: "where $a$, $b$, and $c$ are coefficients"
+✅ CORRECT: "The coefficient of the $x^2$ term is $a$"
+
+❌ WRONG: "The quadratic formula is x = (-b ± √(b²-4ac))/2a"
+❌ WRONG: "where a, b, and c are coefficients"  
+❌ WRONG: "The coefficient of the x^2 term"
+
+**NEVER write mathematical notation without $ or $$ delimiters!**
+"""
 
 # Then define the function ONCE (around line 648)
 async def generate_ai_response(prompt: str, user_profile: Dict[str, Any]) -> str:
@@ -516,7 +549,11 @@ Provide clear, educational responses tailored to the student's profile.
             top_p=0.9,
         )
         
-        return chat_completion.choices[0].message.content
+        response = chat_completion.choices[0].message.content
+        # Post-process math notation
+        response = process_math_in_response(response)
+        response = enhance_display_math(response)
+        return response
     except Exception as e:
         logger.error(f"Groq API error: {e}")
         return f"I apologize, but I encountered an error processing your request. Please try again."
@@ -660,28 +697,6 @@ def build_user_profile_dict(user, comprehensive_profile=None) -> Dict[str, Any]:
         })
     
     return profile
-
-
-async def generate_ai_response(prompt: str, user_profile: Dict[str, Any]) -> str:
-    try:
-        system_prompt = f"""AI tutor for {user_profile.get('first_name', 'student')} ({user_profile.get('field_of_study', 'general')}).
-Level: {user_profile.get('difficulty_level', 'intermediate')}, Style: {user_profile.get('learning_style', 'mixed')}. Use LaTeX: $x^2$ inline, $$eq$$ display."""
-
-        chat_completion = groq_client.chat.completions.create(
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt}
-            ],
-            model=GROQ_MODEL,
-            temperature=0.7,
-            max_tokens=2048,
-            top_p=0.9,
-        )
-        
-        return chat_completion.choices[0].message.content
-    except Exception as e:
-        logger.error(f"Groq API error: {e}")
-        return f"I apologize, but I encountered an error processing your request. Please try again."
 
 #@app.get("/")
 #async def root():
@@ -2946,6 +2961,9 @@ Analysis and improved version:"""
         )
         
         result = chat_completion.choices[0].message.content.strip()
+        # Post-process math notation
+        result = process_math_in_response(result)
+        result = enhance_display_math(result)
         
         # Log for debugging
         print(f"🔥 AI Action: {action}")
@@ -2980,6 +2998,9 @@ Start writing the article:"""
             )
             
             result = chat_completion.choices[0].message.content.strip()
+            # Post-process math notation
+            result = process_math_in_response(result)
+            result = enhance_display_math(result)
             print(f"🔥 Retry result length: {len(result)} chars")
             print(f"🔥 Retry result preview: {result[:200]}...")
         
@@ -3335,6 +3356,9 @@ Use HTML formatting. Start directly with content."""
         )
         
         generated_content = chat_completion.choices[0].message.content
+        # Post-process math notation
+        generated_content = process_math_in_response(generated_content)
+        generated_content = enhance_display_math(generated_content)
         generated_content = clean_conversational_elements(generated_content)
         
         # Generate a short title from the conversation
@@ -3421,6 +3445,9 @@ async def expand_note_content(
         )
         
         expanded_content = chat_completion.choices[0].message.content
+        # Post-process math notation
+        expanded_content = process_math_in_response(expanded_content)
+        expanded_content = enhance_display_math(expanded_content)
         expanded_content = clean_conversational_elements(expanded_content)
         
         return {
@@ -6327,6 +6354,8 @@ Generate exactly {question_count} questions:"""
         )
         
         response_text = chat_completion.choices[0].message.content
+        # Post-process math notation in questions
+        response_text = process_math_in_response(response_text)
         
         try:
             json_match = re.search(r'\[.*\]', response_text, re.DOTALL)

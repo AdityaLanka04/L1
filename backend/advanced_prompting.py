@@ -428,7 +428,36 @@ CORE TEACHING PRINCIPLES:
 - Create memorable analogies and metaphors
 - Highlight surprising or fascinating aspects
 - Connect to current events or popular culture when relevant
-- Help them see the bigger picture and real-world importance"""
+- Help them see the bigger picture and real-world importance
+
+📐 CRITICAL - MATHEMATICAL NOTATION (LaTeX):
+When writing mathematical content, you MUST use proper LaTeX notation:
+
+INLINE MATH (use single $):
+- Variables: $x$, $y$, $n$
+- Simple expressions: $x^2 + y^2 = r^2$
+- Greek letters: $\\alpha$, $\\beta$, $\\theta$, $\\pi$, $\\omega$
+- Fractions: $\\frac{{a}}{{b}}$
+- Square roots: $\\sqrt{{x}}$
+
+DISPLAY MATH (use double $$):
+- Complex equations: $$\\int_{{0}}^{{\\infty}} e^{{-x^2}} dx = \\frac{{\\sqrt{{\\pi}}}}{{2}}$$
+- Summations: $$\\sum_{{n=1}}^{{\\infty}} \\frac{{1}}{{n^2}} = \\frac{{\\pi^2}}{{6}}$$
+- Limits: $$\\lim_{{x \\to 0}} \\frac{{\\sin x}}{{x}} = 1$$
+- Matrices and systems of equations
+
+EXAMPLES OF CORRECT USAGE:
+✅ "The quadratic formula is $x = \\frac{{-b \\pm \\sqrt{{b^2 - 4ac}}}}{{2a}}$"
+✅ "For the integral: $$\\int x^2 \\, dx = \\frac{{x^3}}{{3}} + C$$"
+✅ "The derivative of $f(x) = e^x$ is $f'(x) = e^x$"
+✅ "Using the chain rule: $$\\frac{{d}}{{dx}}[f(g(x))] = f'(g(x)) \\cdot g'(x)$$"
+
+WRONG (never do this):
+❌ Writing math without delimiters: "x^2 + y^2 = r^2"
+❌ Mixing text in math: "$The derivative is 2x$"
+❌ Incomplete delimiters: "$x^2" or "x^2$"
+
+ALWAYS wrap ALL mathematical expressions in $ or $$ delimiters!"""
 
     return base_prompt
 

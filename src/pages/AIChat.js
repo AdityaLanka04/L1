@@ -4,7 +4,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { API_URL } from '../config';
 import gamificationService from '../services/gamificationService';
 import MathRenderer from '../components/MathRenderer';
-import { processMathInContent } from '../utils/mathUtils';
+//import { processMathInContent } from '../utils/mathUtils';
 import './AIChat.css';
 
 const AIChat = ({ sharedMode = false }) => {
@@ -1358,8 +1358,7 @@ const AIChat = ({ sharedMode = false }) => {
       if (part.type === 'text') {
         const htmlContent = renderMarkdown(part.content);
         const finalContent = htmlContent && htmlContent.trim() ? htmlContent : `<p>${part.content}</p>`;
-        const mathProcessedContent = processMathInContent(finalContent);
-        return <MathRenderer key={index} content={mathProcessedContent} />;
+        return <MathRenderer key={index} content={finalContent} />;
       } else {
         return (
           <div key={index} className="code-block-container" data-language={part.language}>
