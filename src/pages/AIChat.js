@@ -3,6 +3,8 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { API_URL } from '../config';
 import gamificationService from '../services/gamificationService';
+import MathRenderer from '../components/MathRenderer';
+import { processMathInContent } from '../utils/mathUtils';
 import './AIChat.css';
 
 const AIChat = ({ sharedMode = false }) => {
@@ -1316,32 +1318,12 @@ const AIChat = ({ sharedMode = false }) => {
   const renderMessageContent = (content) => {
     if (!content) return null;
 
-    // Convert symbols to Unicode first
-    content = convertSymbolsToUnicode(content);
-
-    // Convert superscripts and subscripts
-    // Match patterns like x^2, a^n, 10^-3, etc.
-    content = content.replace(/\^(\d+|[a-zA-Z]|\{[^}]+\})/g, (match, exp) => {
-      // Remove curly braces if present
-      const cleanExp = exp.replace(/[{}]/g, '');
-      return `<sup>${cleanExp}</sup>`;
-    });
-    
-    // Match subscripts like H_2O, x_i, etc.
-    content = content.replace(/_(\d+|[a-zA-Z]|\{[^}]+\})/g, (match, sub) => {
-      // Remove curly braces if present
-      const cleanSub = sub.replace(/[{}]/g, '');
-      return `<sub>${cleanSub}</sub>`;
-    });
-
-    // Split content by code blocks (```language\ncode\n```)
     const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
     const parts = [];
     let lastIndex = 0;
     let match;
 
     while ((match = codeBlockRegex.exec(content)) !== null) {
-      // Add text before code block
       if (match.index > lastIndex) {
         parts.push({
           type: 'text',
@@ -1349,7 +1331,6 @@ const AIChat = ({ sharedMode = false }) => {
         });
       }
 
-      // Add code block
       parts.push({
         type: 'code',
         language: match[1] || 'plaintext',
@@ -1359,7 +1340,6 @@ const AIChat = ({ sharedMode = false }) => {
       lastIndex = match.index + match[0].length;
     }
 
-    // Add remaining text
     if (lastIndex < content.length) {
       parts.push({
         type: 'text',
@@ -1367,16 +1347,19 @@ const AIChat = ({ sharedMode = false }) => {
       });
     }
 
-    // If no code blocks found, render as markdown
     if (parts.length === 0) {
-      const htmlContent = renderMarkdown(content);
-      return <div dangerouslySetInnerHTML={{ __html: htmlContent }} />;
+      parts.push({
+        type: 'text',
+        content: content
+      });
     }
 
     return parts.map((part, index) => {
       if (part.type === 'text') {
         const htmlContent = renderMarkdown(part.content);
-        return <div key={index} dangerouslySetInnerHTML={{ __html: htmlContent }} />;
+        const finalContent = htmlContent && htmlContent.trim() ? htmlContent : `<p>${part.content}</p>`;
+        const mathProcessedContent = processMathInContent(finalContent);
+        return <MathRenderer key={index} content={mathProcessedContent} />;
       } else {
         return (
           <div key={index} className="code-block-container" data-language={part.language}>
@@ -2141,4 +2124,4 @@ const AIChat = ({ sharedMode = false }) => {
   );
 };
 
-export default AIChat;
+export default AIChat;  

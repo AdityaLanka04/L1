@@ -1,0 +1,418 @@
+.math-content {
+  line-height: 1.8;
+  color: #ffffff;
+  font-size: 15px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  transition: opacity 0.2s ease-in;
+}
+
+.math-content.math-rendered {
+  opacity: 1;
+}
+
+.math-content p {
+  margin: 0.8em 0;
+  color: #ffffff;
+  line-height: 1.7;
+}
+
+.math-content p:first-child {
+  margin-top: 0;
+}
+
+.math-content p:last-child {
+  margin-bottom: 0;
+}
+
+.math-content h1,
+.math-content h2,
+.math-content h3,
+.math-content h4,
+.math-content h5,
+.math-content h6 {
+  color: #ffffff;
+  margin: 1.2em 0 0.6em 0;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.math-content h1 { font-size: 1.8em; }
+.math-content h2 { font-size: 1.5em; }
+.math-content h3 { font-size: 1.3em; }
+.math-content h4 { font-size: 1.1em; }
+
+.math-content ul,
+.math-content ol {
+  margin: 0.8em 0;
+  padding-left: 1.8em;
+  color: #ffffff;
+}
+
+.math-content li {
+  margin: 0.4em 0;
+  color: #ffffff;
+  line-height: 1.6;
+}
+
+.math-content strong {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.math-content em {
+  font-style: italic;
+  color: #ffffff;
+}
+
+.math-content code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.2em 0.5em;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  font-size: 0.9em;
+  color: var(--accent);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.math-content .katex {
+  font-size: 1.15em;
+  color: var(--accent);
+  display: inline-block;
+  line-height: 1.6;
+  padding: 0.1em 0.2em;
+  margin: 0 0.1em;
+}
+
+.math-content .katex-display {
+  margin: 1.5em 0;
+  padding: 1.2em 1em;
+  overflow-x: auto;
+  overflow-y: hidden;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border-left: 3px solid var(--accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.math-content .katex-display > .katex {
+  display: inline-block;
+  text-align: center;
+  font-size: 1.35em;
+  color: var(--accent);
+  padding: 0.2em 0.5em;
+}
+
+.math-content .katex-display::-webkit-scrollbar {
+  height: 8px;
+}
+
+.math-content .katex-display::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.math-content .katex-display::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.math-content .katex-display::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 80%, white);
+}
+
+.math-content .katex .mord {
+  color: var(--accent);
+}
+
+.math-content .katex .mbin,
+.math-content .katex .mrel {
+  color: var(--accent);
+  padding: 0 0.15em;
+}
+
+.math-content .katex .mop {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.math-content .katex .mopen,
+.math-content .katex .mclose {
+  color: var(--accent);
+}
+
+.math-content .katex .mpunct {
+  color: var(--accent);
+}
+
+.math-content .katex .minner {
+  color: var(--accent);
+}
+
+.math-content .katex .msupsub {
+  font-size: 0.75em;
+  color: var(--accent);
+}
+
+.math-content .katex .mfrac {
+  vertical-align: middle;
+  color: var(--accent);
+}
+
+.math-content .katex .frac-line {
+  border-bottom-color: var(--accent);
+  border-bottom-width: 0.05em;
+  margin: 0.1em 0;
+}
+
+.math-content .katex .mfrac > .vlist-t {
+  color: var(--accent);
+}
+
+.math-content .katex .sqrt {
+  color: var(--accent);
+}
+
+.math-content .katex .sqrt > .root {
+  margin-left: 0.3em;
+  margin-right: -0.3em;
+  color: var(--accent);
+}
+
+.math-content .katex .sqrt .sqrt-line {
+  border-top-color: var(--accent);
+  border-top-width: 0.06em;
+}
+
+.math-content .katex .arraycolsep {
+  width: 0.6em;
+}
+
+.math-content .katex .mop.op-symbol {
+  font-size: 1.4em;
+  color: var(--accent);
+  font-weight: 500;
+  position: relative;
+}
+
+.math-content .katex-display .mop.op-symbol {
+  font-size: 2em;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.math-content .katex .mop.op-limits > .vlist-t {
+  color: var(--accent);
+}
+
+.math-content .katex .mop.op-limits .vlist-r .vlist {
+  color: var(--accent);
+}
+
+.math-content .katex .mop.op-limits .vlist-r .vlist > span {
+  color: var(--accent);
+  font-size: 0.75em;
+}
+
+.math-content .katex .accent > .vlist-t {
+  text-align: center;
+  color: var(--accent);
+}
+
+.math-content .katex .accent-body {
+  color: var(--accent);
+}
+
+.math-content .katex .overline .overline-line,
+.math-content .katex .underline .underline-line {
+  border-bottom-color: var(--accent);
+}
+
+.math-content .katex .base,
+.math-content .katex .strut {
+  color: var(--accent);
+}
+
+.math-content .katex .vlist-t {
+  color: var(--accent);
+}
+
+.math-content .katex .delimsizing {
+  color: var(--accent);
+}
+
+.math-content .katex .delim-size1,
+.math-content .katex .delim-size2,
+.math-content .katex .delim-size3,
+.math-content .katex .delim-size4 {
+  color: var(--accent);
+}
+
+.math-content .katex .sizing {
+  color: var(--accent);
+}
+
+.math-content .katex .pstrut {
+  color: var(--accent);
+}
+
+.math-content .katex .mspace {
+  color: var(--accent);
+}
+
+.math-content .katex .mathit {
+  font-style: italic;
+  color: var(--accent);
+}
+
+.math-content .katex .mathrm {
+  font-style: normal;
+  color: var(--accent);
+}
+
+.math-content .katex .mathbf {
+  font-weight: bold;
+  color: var(--accent);
+}
+
+.math-content .katex .mathbb {
+  color: var(--accent);
+}
+
+.math-content .katex .mathcal {
+  color: var(--accent);
+}
+
+.math-content .katex .mathfrak {
+  color: var(--accent);
+}
+
+.math-content .katex-error {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.15);
+  padding: 0.3em 0.6em;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  font-size: 0.9em;
+}
+
+.math-content table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  width: auto;
+  max-width: 100%;
+}
+
+.math-content table td,
+.math-content table th {
+  padding: 0.5em 1em;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.math-content table th {
+  background: rgba(255, 255, 255, 0.05);
+  font-weight: 600;
+}
+
+[data-theme-mode="light"] .math-content {
+  color: #1a1a1a;
+}
+
+[data-theme-mode="light"] .math-content p,
+[data-theme-mode="light"] .math-content h1,
+[data-theme-mode="light"] .math-content h2,
+[data-theme-mode="light"] .math-content h3,
+[data-theme-mode="light"] .math-content h4,
+[data-theme-mode="light"] .math-content h5,
+[data-theme-mode="light"] .math-content h6,
+[data-theme-mode="light"] .math-content ul,
+[data-theme-mode="light"] .math-content ol,
+[data-theme-mode="light"] .math-content li,
+[data-theme-mode="light"] .math-content strong,
+[data-theme-mode="light"] .math-content em {
+  color: #1a1a1a;
+}
+
+[data-theme-mode="light"] .math-content code {
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+[data-theme-mode="light"] .math-content .katex-display {
+  background: rgba(0, 0, 0, 0.02);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme-mode="light"] .math-content table td,
+[data-theme-mode="light"] .math-content table th {
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  color: #1a1a1a;
+}
+
+[data-theme-mode="light"] .math-content table th {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+@media (max-width: 768px) {
+  .math-content {
+    font-size: 14px;
+  }
+  
+  .math-content .katex {
+    font-size: 1.05em;
+  }
+  
+  .math-content .katex-display > .katex {
+    font-size: 1.2em;
+  }
+  
+  .math-content .katex-display {
+    padding: 1em 0.8em;
+  }
+}
+
+@keyframes mathFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.math-content .katex {
+  animation: mathFadeIn 0.3s ease-out;
+}
+
+.math-content .katex-display {
+  animation: mathFadeIn 0.4s ease-out;
+}
+
+.math-content .katex .mspace.negativemediumspace {
+  margin-left: -0.2222em;
+}
+
+.math-content .katex .mspace.mediumspace {
+  margin-left: 0.2222em;
+}
+
+.math-content .katex .mspace.thinspace {
+  margin-left: 0.1667em;
+}
+
+.math-content .katex .mspace.thickspace {
+  margin-left: 0.2778em;
+}
+
+.math-content .katex .mspace.quad {
+  margin-left: 1em;
+}
+
+.math-content .katex .mspace.qquad {
+  margin-left: 2em;
+}
