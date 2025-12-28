@@ -31,21 +31,30 @@ class StudySessionAnalyzer:
             
             now = datetime.utcnow()
             
-            # Get session start time from last_login
+            # Define session as the MOST RECENT of:
+            # 1. Since last login
+            # 2. Last 4 hours (max session window)
+            # This ensures we only show recent activity, not all-time since login
+            max_session_window = now - timedelta(hours=4)
+            
             if user.last_login:
-                session_start = user.last_login
-                if hasattr(session_start, 'tzinfo') and session_start.tzinfo:
-                    session_start = session_start.replace(tzinfo=None)
+                login_time = user.last_login
+                if hasattr(login_time, 'tzinfo') and login_time.tzinfo:
+                    login_time = login_time.replace(tzinfo=None)
+                # Use the MORE RECENT of last_login or max_session_window
+                session_start = max(login_time, max_session_window)
             else:
-                # No login recorded, use last 24 hours
-                session_start = now - timedelta(hours=24)
+                # No login recorded, use max session window
+                session_start = max_session_window
             
             logger.info(f"=== SESSION ANALYSIS ===")
             logger.info(f"User ID: {self.user_id}")
-            logger.info(f"Session start (last_login): {session_start}")
+            logger.info(f"Last login: {user.last_login}")
+            logger.info(f"Max session window: {max_session_window}")
+            logger.info(f"Session start (using more recent): {session_start}")
             logger.info(f"Current time: {now}")
             
-            # Get actual chat messages from database since last login
+            # Get actual chat messages from database within the session window
             messages = self.db.query(models.ChatMessage).join(
                 models.ChatSession
             ).filter(
@@ -53,7 +62,7 @@ class StudySessionAnalyzer:
                 models.ChatMessage.timestamp >= session_start
             ).order_by(models.ChatMessage.timestamp.desc()).limit(50).all()
             
-            logger.info(f"Found {len(messages)} messages since last login")
+            logger.info(f"Found {len(messages)} messages in current session")
             
             # Extract user questions - THE ACTUAL QUESTIONS ASKED
             user_questions = []
