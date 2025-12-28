@@ -43,6 +43,10 @@
   background: #000;
 }
 
+[data-theme-mode="light"] .study-insights-page .insights-loading {
+  background: #fff;
+}
+
 .study-insights-page .loading-text {
   font-size: 13px;
   font-weight: 600;

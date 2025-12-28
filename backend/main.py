@@ -8443,7 +8443,8 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
                 "brainwaveGoal": comprehensive_profile.brainwave_goal or "",
                 "primaryArchetype": comprehensive_profile.primary_archetype or "",
                 "secondaryArchetype": comprehensive_profile.secondary_archetype or "",
-                "archetypeDescription": comprehensive_profile.archetype_description or ""
+                "archetypeDescription": comprehensive_profile.archetype_description or "",
+                "showStudyInsights": comprehensive_profile.show_study_insights if comprehensive_profile.show_study_insights is not None else True
             })
 
             try:
@@ -8451,6 +8452,8 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
                     result["preferredSubjects"] = json.loads(comprehensive_profile.preferred_subjects)
             except:
                 result["preferredSubjects"] = []
+        else:
+            result["showStudyInsights"] = True
 
         return result
 
@@ -8496,6 +8499,10 @@ async def update_comprehensive_profile(
 
         if "preferredSubjects" in payload:
             comprehensive_profile.preferred_subjects = json.dumps(payload["preferredSubjects"])
+        
+        # Handle showStudyInsights setting
+        if "showStudyInsights" in payload:
+            comprehensive_profile.show_study_insights = payload["showStudyInsights"]
 
         comprehensive_profile.updated_at = datetime.now(timezone.utc)
 

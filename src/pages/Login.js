@@ -49,6 +49,49 @@ function Login() {
   const checkAndRedirect = async (username) => {
     try {
       const token = localStorage.getItem('token');
+      
+      // Fetch comprehensive profile to get showStudyInsights setting
+      try {
+        const profileResponse = await axios.get(`${API_URL}/get_comprehensive_profile?user_id=${username}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (profileResponse.data) {
+          const profileData = profileResponse.data;
+          // Merge with existing profile data in localStorage
+          const existingProfile = localStorage.getItem('userProfile');
+          let mergedProfile = {};
+          if (existingProfile) {
+            try {
+              mergedProfile = JSON.parse(existingProfile);
+            } catch (e) {}
+          }
+          
+          // Update with comprehensive profile data
+          mergedProfile = {
+            ...mergedProfile,
+            firstName: profileData.firstName || mergedProfile.firstName || '',
+            lastName: profileData.lastName || mergedProfile.lastName || '',
+            email: profileData.email || mergedProfile.email || '',
+            fieldOfStudy: profileData.fieldOfStudy || '',
+            brainwaveGoal: profileData.brainwaveGoal || '',
+            preferredSubjects: profileData.preferredSubjects || [],
+            difficultyLevel: profileData.difficultyLevel || 'intermediate',
+            learningPace: profileData.learningPace || 'moderate',
+            primaryArchetype: profileData.primaryArchetype || '',
+            secondaryArchetype: profileData.secondaryArchetype || '',
+            archetypeDescription: profileData.archetypeDescription || '',
+            showStudyInsights: profileData.showStudyInsights !== false
+          };
+          
+          localStorage.setItem('userProfile', JSON.stringify(mergedProfile));
+          console.log('📊 Profile loaded with showStudyInsights:', mergedProfile.showStudyInsights);
+        }
+      } catch (profileError) {
+        console.error('Error fetching profile:', profileError);
+        // Continue with login even if profile fetch fails
+      }
+      
       const response = await axios.get(`${API_URL}/check_profile_quiz?user_id=${username}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });

@@ -11,16 +11,23 @@
 .safety-login {
   width: 100vw;
   height: 100vh;
-  background-color: #000000;
+  background-color: var(--bg-primary, #000000);
   background-image: 
     linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)),
     url("https://www.transparenttextures.com/patterns/shattered-dark.png");
   font-family: 'Quicksand', sans-serif;
-  color: #D7B38C;
+  color: var(--accent, #D7B38C);
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
+}
+
+[data-theme-mode="light"] .safety-login {
+  background-color: var(--bg-primary, #ffffff);
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)),
+    url("https://www.transparenttextures.com/patterns/subtle-white-feathers.png");
 }
 
 .safety-login-container {
@@ -35,14 +42,19 @@
 .login-box {
   width: 100%;
   max-width: 450px;
-  background: rgba(0, 0, 0, 0.6);
+  background: color-mix(in srgb, var(--bg-primary, #000) 60%, transparent);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(215, 179, 140, 0.2);
+  border: 1px solid color-mix(in srgb, var(--accent, #D7B38C) 20%, transparent);
   border-radius: 16px;
   padding: 60px 50px;
   text-align: center;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   animation: fadeInUp 0.6s ease-out;
+}
+
+[data-theme-mode="light"] .login-box {
+  background: color-mix(in srgb, var(--bg-primary, #fff) 90%, transparent);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 @keyframes fadeInUp {
@@ -62,7 +74,7 @@
   letter-spacing: -2px;
   line-height: 1;
   margin-bottom: 12px;
-  color: #D7B38C;
+  color: var(--accent, #D7B38C);
   text-transform: lowercase;
   font-family: 'Inter', sans-serif;
 }
@@ -71,7 +83,7 @@
   font-size: 13px;
   font-weight: 400;
   letter-spacing: 3px;
-  color: rgba(215, 179, 140, 0.7);
+  color: color-mix(in srgb, var(--accent, #D7B38C) 70%, transparent);
   margin-bottom: 40px;
   text-transform: uppercase;
 }
@@ -90,10 +102,10 @@
 .form-group input {
   width: 100%;
   padding: 16px 20px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(215, 179, 140, 0.3);
+  background: color-mix(in srgb, var(--bg-primary, #000) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent, #D7B38C) 30%, transparent);
   border-radius: 8px;
-  color: #FFFFFF;
+  color: var(--text-primary, #FFFFFF);
   font-family: 'Quicksand', sans-serif;
   font-size: 15px;
   font-weight: 500;
@@ -103,17 +115,26 @@
 }
 
 .form-group input::placeholder {
-  color: rgba(215, 179, 140, 0.5);
+  color: color-mix(in srgb, var(--accent, #D7B38C) 50%, transparent);
   font-size: 14px;
   letter-spacing: 0.5px;
   font-weight: 400;
 }
 
 .form-group input:focus {
-  border-color: #D7B38C;
-  background: rgba(0, 0, 0, 0.6);
-  box-shadow: 0 0 0 3px rgba(215, 179, 140, 0.1);
-  color: #FFFFFF;
+  border-color: var(--accent, #D7B38C);
+  background: color-mix(in srgb, var(--bg-primary, #000) 60%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #D7B38C) 10%, transparent);
+  color: var(--text-primary, #FFFFFF);
+}
+
+[data-theme-mode="light"] .form-group input {
+  background: color-mix(in srgb, var(--bg-secondary, #f5f5f5) 80%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+[data-theme-mode="light"] .form-group input:focus {
+  background: #fff;
 }
 
 .error-message {
@@ -131,10 +152,10 @@
 .login-button {
   width: 100%;
   padding: 16px;
-  background: rgba(215, 179, 140, 0.15);
-  border: 1px solid rgba(215, 179, 140, 0.4);
+  background: color-mix(in srgb, var(--accent, #D7B38C) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent, #D7B38C) 40%, transparent);
   border-radius: 8px;
-  color: #D7B38C;
+  color: var(--accent, #D7B38C);
   font-family: 'Quicksand', sans-serif;
   font-size: 14px;
   font-weight: 600;
@@ -146,10 +167,20 @@
 }
 
 .login-button:hover {
-  background: rgba(215, 179, 140, 0.25);
-  border-color: #D7B38C;
+  background: color-mix(in srgb, var(--accent, #D7B38C) 25%, transparent);
+  border-color: var(--accent, #D7B38C);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(215, 179, 140, 0.2);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent, #D7B38C) 20%, transparent);
+}
+
+[data-theme-mode="light"] .login-button {
+  background: var(--accent);
+  color: var(--bg-primary, #fff);
+  border-color: var(--accent);
+}
+
+[data-theme-mode="light"] .login-button:hover {
+  opacity: 0.9;
 }
 
 .login-button:active {

@@ -398,6 +398,16 @@ def run_migration():
     except Exception as e:
         print(f"⚠️ share_code index: {e}")
     
+    # Add show_study_insights column to comprehensive_user_profiles
+    try:
+        cursor.execute("ALTER TABLE comprehensive_user_profiles ADD COLUMN show_study_insights BOOLEAN DEFAULT 1")
+        print("✅ Added show_study_insights column to comprehensive_user_profiles")
+    except sqlite3.OperationalError as e:
+        if "duplicate column" in str(e).lower():
+            pass  # Column already exists
+        else:
+            print(f"⚠️ show_study_insights column: {e}")
+    
     # Generate share codes for existing flashcard sets that don't have one
     try:
         import random

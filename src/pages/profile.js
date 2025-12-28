@@ -18,7 +18,8 @@ const Profile = () => {
     primaryArchetype: '',
     secondaryArchetype: '',
     archetypeDescription: '',
-    archetypeScores: {}
+    archetypeScores: {},
+    showStudyInsights: true
   });
   
   const [quizAnswers, setQuizAnswers] = useState({});
@@ -219,7 +220,8 @@ const Profile = () => {
           primaryArchetype: data.primaryArchetype || '',
           secondaryArchetype: data.secondaryArchetype || '',
           archetypeDescription: data.archetypeDescription || '',
-          archetypeScores: {}
+          archetypeScores: {},
+          showStudyInsights: data.showStudyInsights !== false
         };
 
         try {
@@ -260,10 +262,29 @@ const Profile = () => {
   };
 
   const handleInputChange = (field, value) => {
-    setProfileData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setProfileData(prev => {
+      const newData = {
+        ...prev,
+        [field]: value
+      };
+      
+      // For showStudyInsights, immediately update localStorage so it takes effect right away
+      if (field === 'showStudyInsights') {
+        const currentProfile = localStorage.getItem('userProfile');
+        if (currentProfile) {
+          try {
+            const parsed = JSON.parse(currentProfile);
+            parsed.showStudyInsights = value;
+            localStorage.setItem('userProfile', JSON.stringify(parsed));
+            console.log('📊 Study insights setting updated in localStorage:', value);
+          } catch (e) {
+            console.error('Error updating localStorage:', e);
+          }
+        }
+      }
+      
+      return newData;
+    });
   };
 
   const toggleSubject = (subject) => {
@@ -532,39 +553,26 @@ const Profile = () => {
               <div className="header-content">
                 <TrendingUp className="header-icon" />
                 <div>
-                  <h2 className="card-title">Learning Preferences</h2>
-                  <p className="card-subtitle">How you like to learn</p>
+                  <h2 className="card-title">Study Insights</h2>
+                  <p className="card-subtitle">Control your study insights experience</p>
                 </div>
               </div>
             </div>
 
-            <div className="learning-preferences-grid">
-              <div className="form-group-centered">
-                <label className="form-label">Difficulty Level</label>
-                <select
-                  className="form-select"
-                  value={profileData.difficultyLevel}
-                  onChange={(e) => handleInputChange('difficultyLevel', e.target.value)}
-                >
-                  <option value="beginner">Beginner</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="advanced">Advanced</option>
-                  <option value="expert">Expert</option>
-                </select>
-              </div>
-
-              <div className="form-group-centered">
-                <label className="form-label">Learning Pace</label>
-                <select
-                  className="form-select"
-                  value={profileData.learningPace}
-                  onChange={(e) => handleInputChange('learningPace', e.target.value)}
-                >
-                  <option value="slow">Slow and Steady</option>
-                  <option value="moderate">Moderate</option>
-                  <option value="fast">Fast-paced</option>
-                  <option value="intensive">Intensive</option>
-                </select>
+            <div className="study-insights-settings">
+              <div className="setting-row">
+                <div className="setting-info">
+                  <span className="setting-label">Show Study Insights on Login</span>
+                  <span className="setting-description">Display study insights page when you first log in each day</span>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={profileData.showStudyInsights !== false}
+                    onChange={(e) => handleInputChange('showStudyInsights', e.target.checked)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
               </div>
             </div>
           </section>

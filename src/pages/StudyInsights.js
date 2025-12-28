@@ -22,6 +22,26 @@ const StudyInsights = () => {
       navigate('/login');
       return;
     }
+    
+    // Check if study insights is enabled - check localStorage first
+    const profile = localStorage.getItem('userProfile');
+    console.log('📊 StudyInsights - checking profile from localStorage');
+    if (profile) {
+      try {
+        const parsed = JSON.parse(profile);
+        console.log('📊 StudyInsights - showStudyInsights value:', parsed.showStudyInsights);
+        // Check if explicitly set to false (not just undefined)
+        if (parsed.showStudyInsights === false) {
+          console.log('📊 StudyInsights disabled, redirecting to dashboard');
+          // Study insights is disabled, redirect to dashboard
+          navigate('/dashboard', { replace: true });
+          return;
+        }
+      } catch (e) {
+        console.error('Error parsing profile:', e);
+      }
+    }
+    
     loadInsights();
   }, []);
 

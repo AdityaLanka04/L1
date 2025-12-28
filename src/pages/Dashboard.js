@@ -231,12 +231,25 @@ const Dashboard = () => {
     startDashboardSession();
     
     const justLoggedIn = sessionStorage.getItem('justLoggedIn');
-    const notificationKey = `welcomeNotificationShown_${userName}`;
-    const hasShownBefore = localStorage.getItem(notificationKey);
     
-    if (justLoggedIn && !hasShownBefore) {
-      // Mark as shown immediately to prevent duplicates
-      localStorage.setItem(notificationKey, 'true');
+    // Check if this is the first login today (not just first navigation)
+    const today = new Date().toDateString();
+    const lastLoginDate = localStorage.getItem(`lastLoginDate_${userName}`);
+    const isFirstLoginToday = lastLoginDate !== today;
+    
+    // Check if study insights is enabled in user profile
+    const profile = localStorage.getItem('userProfile');
+    let showStudyInsights = true; // Default to true
+    if (profile) {
+      try {
+        const parsed = JSON.parse(profile);
+        showStudyInsights = parsed.showStudyInsights !== false;
+      } catch (e) {}
+    }
+    
+    if (justLoggedIn && isFirstLoginToday) {
+      // Mark today as logged in
+      localStorage.setItem(`lastLoginDate_${userName}`, today);
       sessionStorage.removeItem('justLoggedIn');
       
       // Check if user just completed onboarding (came from profile quiz)
@@ -244,13 +257,33 @@ const Dashboard = () => {
       sessionStorage.removeItem('isFirstTimeUser'); // Clear flag after reading
       
       console.log('🎯 User type:', isFirstTimeUser ? 'FIRST-TIME' : 'RETURNING');
+      console.log('📊 Study insights enabled:', showStudyInsights);
       
       // Get user's first name from profile, fallback to username
       const displayName = userProfile?.firstName || userName.split('@')[0];
       
-      // For returning users, fetch personalized welcome notification
-      if (!isFirstTimeUser) {
+      // For returning users, fetch personalized welcome notification (only if study insights enabled)
+      if (!isFirstTimeUser && showStudyInsights) {
         fetchPersonalizedWelcome(displayName);
+      } else if (!isFirstTimeUser && !showStudyInsights) {
+        // Show simple welcome without study insights
+        const welcomeNotif = {
+          id: `welcome-${Date.now()}`,
+          title: 'Welcome Back!',
+          message: `Ready to continue learning, ${displayName}?`,
+          type: 'welcome',
+          notification_type: 'welcome',
+          created_at: new Date().toISOString()
+        };
+        
+        setTimeout(() => {
+          setSlideNotifQueue(prev => {
+            if (!prev.some(n => n.type === 'welcome')) {
+              return [...prev, welcomeNotif];
+            }
+            return prev;
+          });
+        }, 1500);
       } else {
         // For first-time users, show simple welcome
         const welcomeNotif = {

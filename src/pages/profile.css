@@ -302,6 +302,16 @@
   box-shadow: 0 4px 12px var(--pf-accent-glow);
 }
 
+/* Light mode retake button - white text */
+[data-theme-mode="light"] .retake-btn {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
+  color: white !important;
+}
+
+[data-theme-mode="light"] .retake-btn:hover {
+  color: white !important;
+}
+
 /* ==================== ARCHETYPE DISPLAY ==================== */
 .archetype-display {
   display: grid;
@@ -809,6 +819,23 @@
 [data-theme-mode="light"] .profile-archetype-section {
   background: white !important;
   border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Light mode for archetype-main (the purple box) */
+[data-theme-mode="light"] .archetype-main {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 80%, #000)) !important;
+  border-color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .archetype-main .archetype-name,
+[data-theme-mode="light"] .archetype-main .archetype-tagline,
+[data-theme-mode="light"] .archetype-main .archetype-description {
+  color: white !important;
+}
+
+[data-theme-mode="light"] .archetype-main .archetype-badge {
+  background: rgba(255, 255, 255, 0.25) !important;
+  color: white !important;
 }
 
 [data-theme-mode="light"] .profile-archetype-header h2 {
@@ -1654,4 +1681,101 @@
 /* Override any inline styles that might set black text */
 [data-theme-mode="light"] .profile-archetype-section [style*="color"] {
   color: white !important;
+}
+
+
+/* ==================== STUDY INSIGHTS SETTINGS ==================== */
+.study-insights-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: var(--pf-bg-tertiary);
+  border: 1px solid var(--pf-border-subtle);
+}
+
+.setting-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.setting-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--pf-text-primary);
+}
+
+.setting-description {
+  font-size: 12px;
+  color: var(--pf-text-secondary);
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--pf-bg-secondary);
+  border: 1px solid var(--pf-border-subtle);
+  transition: 0.3s;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: var(--pf-text-secondary);
+  transition: 0.3s;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: var(--pf-accent);
+  border-color: var(--pf-accent);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(22px);
+  background-color: var(--pf-bg-primary);
+}
+
+/* Light mode toggle switch */
+[data-theme-mode="light"] .toggle-slider {
+  background-color: #e5e7eb;
+  border-color: #d1d5db;
+}
+
+[data-theme-mode="light"] .toggle-slider:before {
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme-mode="light"] .toggle-switch input:checked + .toggle-slider:before {
+  background-color: #fff;
 }

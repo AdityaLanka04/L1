@@ -48,6 +48,24 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
   };
 
   const handleClick = () => {
+    // Check if study insights is enabled for study_insights notifications
+    if (notification.notification_type === 'study_insights' || notification.notification_type === 'welcome_insights') {
+      const profile = localStorage.getItem('userProfile');
+      let showStudyInsights = true;
+      if (profile) {
+        try {
+          const parsed = JSON.parse(profile);
+          showStudyInsights = parsed.showStudyInsights !== false;
+        } catch (e) {}
+      }
+      
+      if (!showStudyInsights) {
+        // If study insights is disabled, stay on dashboard
+        handleClose();
+        return;
+      }
+    }
+    
     // Navigate based on notification type
     switch (notification.notification_type) {
       case 'reminder':

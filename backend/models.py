@@ -1047,6 +1047,9 @@ class ComprehensiveUserProfile(Base):
     archetype_scores = Column(Text, nullable=True)
     archetype_description = Column(Text, nullable=True)
     
+    # Study insights settings
+    show_study_insights = Column(Boolean, default=True)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
