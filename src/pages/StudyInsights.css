@@ -1,0 +1,609 @@
+/* ============================================
+   STUDY INSIGHTS PAGE - BENTO GRID DESIGN
+   All styles scoped to .study-insights-page
+============================================ */
+
+.study-insights-page {
+  min-height: 100vh;
+  width: 100%;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+[data-theme-mode="dark"] .study-insights-page {
+  background:
+    linear-gradient(color-mix(in srgb, #000 45%, transparent), color-mix(in srgb, #000 45%, transparent)),
+    url("https://www.transparenttextures.com/patterns/shattered-dark.png"),
+    radial-gradient(ellipse at top, var(--bg-primary), var(--bg-secondary));
+}
+
+[data-theme-mode="light"] .study-insights-page {
+  background:
+    linear-gradient(color-mix(in srgb, #fff 90%, transparent), color-mix(in srgb, #fff 90%, transparent)),
+    url("https://www.transparenttextures.com/patterns/subtle-white-feathers.png"),
+    radial-gradient(ellipse at top, var(--bg-primary), var(--bg-secondary));
+}
+
+.study-insights-page * {
+  box-sizing: border-box;
+}
+
+/* ============================================
+   LOADING
+============================================ */
+
+.study-insights-page .insights-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 24px;
+}
+
+.study-insights-page .loading-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+/* ============================================
+   HEADER - HORIZONTAL LAYOUT
+============================================ */
+
+.study-insights-page .insights-header {
+  background: color-mix(in srgb, var(--bg-primary) 80%, transparent);
+  backdrop-filter: blur(20px);
+  border-bottom: 2px solid var(--accent);
+  padding: 16px 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.study-insights-page .header-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 32px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 24px;
+}
+
+.study-insights-page .header-username {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: capitalize;
+  justify-self: start;
+}
+
+.study-insights-page .header-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent);
+  text-transform: lowercase;
+  margin: 0;
+  letter-spacing: -0.5px;
+  justify-self: center;
+}
+
+.study-insights-page .header-right {
+  display: flex;
+  gap: 12px;
+  justify-self: end;
+}
+
+.study-insights-page .header-btn {
+  padding: 8px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid var(--accent);
+}
+
+.study-insights-page .header-btn.secondary {
+  background: transparent;
+  color: var(--accent);
+}
+
+.study-insights-page .header-btn.secondary:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.study-insights-page .header-btn.primary {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+.study-insights-page .header-btn.primary:hover {
+  opacity: 0.9;
+}
+
+/* ============================================
+   BENTO GRID
+============================================ */
+
+.study-insights-page .insights-main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px;
+}
+
+.study-insights-page .bento-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: minmax(160px, auto);
+  gap: 16px;
+}
+
+/* ============================================
+   BENTO ITEMS
+============================================ */
+
+.study-insights-page .bento-item {
+  background: var(--bg-secondary);
+  border: 2px solid var(--accent);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+}
+
+.study-insights-page .bento-item:hover {
+  box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.study-insights-page .bento-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin: 0 0 14px 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+/* Summary - Spans 2 columns */
+.study-insights-page .bento-summary {
+  grid-column: span 2;
+  grid-row: span 1;
+}
+
+.study-insights-page .summary-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  margin: 0;
+  flex: 1;
+}
+
+/* Questions - Spans 2 columns, 2 rows */
+.study-insights-page .bento-questions {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+.study-insights-page .questions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.study-insights-page .question-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  background: var(--bg-primary);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.study-insights-page .question-card:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, var(--bg-primary));
+}
+
+.study-insights-page .question-num {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--bg-primary);
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.study-insights-page .question-text {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* Flashcards - Stacked card design */
+.study-insights-page .bento-flashcards-container {
+  grid-column: span 2;
+  grid-row: span 1;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+
+.study-insights-page .bento-flashcards-container:hover {
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-secondary));
+}
+
+.study-insights-page .flashcard-deck {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0;
+  position: relative;
+}
+
+.study-insights-page .flashcard-stack {
+  position: relative;
+  width: 200px;
+  height: 120px;
+}
+
+.study-insights-page .flashcard-card {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: var(--accent);
+  border: 2px solid var(--bg-primary);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+}
+
+.study-insights-page .flashcard-card:nth-child(1) {
+  transform: rotate(-2deg) translateY(0);
+  z-index: 3;
+}
+
+.study-insights-page .flashcard-card:nth-child(2) {
+  transform: rotate(1deg) translateY(4px) translateX(4px);
+  z-index: 2;
+  opacity: 0.8;
+}
+
+.study-insights-page .flashcard-card:nth-child(3) {
+  transform: rotate(3deg) translateY(8px) translateX(8px);
+  z-index: 1;
+  opacity: 0.6;
+}
+
+.study-insights-page .bento-flashcards-container:hover .flashcard-card:nth-child(1) {
+  transform: rotate(-4deg) translateY(-4px);
+}
+
+.study-insights-page .bento-flashcards-container:hover .flashcard-card:nth-child(2) {
+  transform: rotate(2deg) translateY(2px) translateX(6px);
+}
+
+.study-insights-page .flashcard-front {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--bg-primary);
+  text-align: center;
+  margin: 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.study-insights-page .flashcard-count {
+  position: absolute;
+  bottom: 0;
+  right: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.study-insights-page .flashcard-cta {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-align: center;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  opacity: 0.7;
+}
+
+.study-insights-page .bento-flashcards-container:hover .flashcard-cta {
+  opacity: 1;
+}
+
+/* Topics */
+.study-insights-page .bento-topics {
+  grid-column: span 1;
+  grid-row: span 1;
+}
+
+.study-insights-page .topics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.study-insights-page .topic-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--bg-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.study-insights-page .topic-row:hover {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-primary));
+}
+
+.study-insights-page .topic-name {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.study-insights-page .topic-count {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--bg-primary);
+  background: var(--accent);
+  padding: 2px 6px;
+}
+
+/* Problems */
+.study-insights-page .bento-problems,
+.study-insights-page .bento-expressions {
+  grid-column: span 1;
+  grid-row: span 1;
+}
+
+.study-insights-page .problems-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  max-height: 200px;
+}
+
+.study-insights-page .problem-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--bg-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.study-insights-page .problem-row:hover {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-primary));
+}
+
+.study-insights-page .problem-row code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 11px;
+  color: var(--accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.study-insights-page .problem-text {
+  font-size: 11px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+/* Strengths & Weaknesses */
+.study-insights-page .bento-strengths,
+.study-insights-page .bento-weaknesses {
+  grid-column: span 1;
+  grid-row: span 1;
+}
+
+.study-insights-page .sw-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.study-insights-page .sw-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--bg-primary);
+}
+
+.study-insights-page .sw-row.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.study-insights-page .sw-row.clickable:hover {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-primary));
+}
+
+.study-insights-page .sw-name {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.study-insights-page .sw-percent {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+}
+
+.study-insights-page .sw-percent.success {
+  background: color-mix(in srgb, #10b981 20%, transparent);
+  color: #10b981;
+}
+
+.study-insights-page .sw-percent.warning {
+  background: color-mix(in srgb, #f59e0b 20%, transparent);
+  color: #f59e0b;
+}
+
+/* Empty & Loading states */
+.study-insights-page .empty-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0;
+  text-align: center;
+  padding: 16px;
+}
+
+.study-insights-page .bento-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 80px;
+}
+
+/* Empty state */
+.study-insights-page .bento-empty {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px;
+}
+
+.study-insights-page .start-btn {
+  margin-top: 20px;
+  padding: 12px 24px;
+  background: var(--accent);
+  color: var(--bg-primary);
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.study-insights-page .start-btn:hover {
+  opacity: 0.9;
+}
+
+/* ============================================
+   RESPONSIVE
+============================================ */
+
+@media (max-width: 1200px) {
+  .study-insights-page .bento-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .study-insights-page .bento-summary,
+  .study-insights-page .bento-questions,
+  .study-insights-page .bento-flashcards-container {
+    grid-column: span 2;
+  }
+  
+  .study-insights-page .bento-topics,
+  .study-insights-page .bento-problems,
+  .study-insights-page .bento-strengths,
+  .study-insights-page .bento-weaknesses {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .study-insights-page .header-content {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    text-align: center;
+  }
+  
+  .study-insights-page .header-username,
+  .study-insights-page .header-title,
+  .study-insights-page .header-right {
+    justify-self: center;
+  }
+  
+  .study-insights-page .insights-main {
+    padding: 20px 16px;
+  }
+  
+  .study-insights-page .bento-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .study-insights-page .bento-summary,
+  .study-insights-page .bento-questions,
+  .study-insights-page .bento-flashcards-container,
+  .study-insights-page .bento-topics,
+  .study-insights-page .bento-problems,
+  .study-insights-page .bento-strengths,
+  .study-insights-page .bento-weaknesses {
+    grid-column: span 1;
+  }
+  
+  .study-insights-page .bento-questions {
+    grid-row: span 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .study-insights-page .header-title {
+    font-size: 22px;
+  }
+  
+  .study-insights-page .header-btn {
+    padding: 6px 12px;
+    font-size: 10px;
+  }
+  
+  .study-insights-page .bento-item {
+    padding: 14px;
+  }
+}

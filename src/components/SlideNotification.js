@@ -85,6 +85,13 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
       case 'battle_result':
         navigate('/quiz-battle');
         break;
+      case 'study_insights':
+      case 'welcome_insights':
+        navigate('/study-insights');
+        break;
+      case 'welcome':
+        // For welcome notifications without insights, stay on dashboard
+        break;
       default:
         navigate('/dashboard');
     }
@@ -123,6 +130,11 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
       case 'battle_challenge':
       case 'battle_result':
         return <Swords size={20} />;
+      case 'study_insights':
+      case 'welcome_insights':
+        return <TrendingUp size={20} />;
+      case 'welcome':
+        return <Bell size={20} />;
       default:
         return <Bell size={20} />;
     }
@@ -161,6 +173,11 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
       case 'battle_challenge':
       case 'battle_result':
         return '#f59e0b';
+      case 'study_insights':
+      case 'welcome_insights':
+        return '#8b5cf6';
+      case 'welcome':
+        return 'var(--accent)';
       default:
         return 'var(--accent)';
     }
@@ -204,6 +221,11 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
         return 'Battle Challenge';
       case 'battle_result':
         return 'Battle Result';
+      case 'study_insights':
+      case 'welcome_insights':
+        return 'Study Insights';
+      case 'welcome':
+        return 'Notification';
       default:
         return 'Notification';
     }

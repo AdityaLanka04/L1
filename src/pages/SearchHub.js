@@ -733,11 +733,11 @@ const SearchHub = () => {
           break;
           
         case 'show_progress':
-          navigate('/dashboard');
+          navigate('/study-insights');
           break;
           
         case 'show_achievements':
-          navigate('/dashboard?tab=achievements');
+          navigate('/study-insights');
           break;
         
         // NEW SMART FEATURES
@@ -1034,12 +1034,7 @@ const SearchHub = () => {
         
         case 'show_statistics':
           console.log('📊 Showing statistics');
-          navigate('/dashboard', { 
-            state: { 
-              tab: 'analytics',
-              timeframe: parameters.timeframe || 'week'
-            } 
-          });
+          navigate('/study-insights');
           break;
         
         case 'set_goal':
@@ -1944,7 +1939,7 @@ const SearchHub = () => {
             <Palette size={16} />
             Theme
           </button>
-          <button className="dashboard-btn" onClick={() => navigate('/dashboard')}>
+          <button className="dashboard-btn" onClick={() => navigate('/study-insights')}>
             Dashboard
           </button>
           {showThemeSelector && (

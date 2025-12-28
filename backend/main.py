@@ -1001,6 +1001,10 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect username or password")
     
+    # Update last_login for session tracking (use naive datetime for SQLite)
+    user.last_login = datetime.utcnow()
+    db.commit()
+    
     access_token = create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -1009,6 +1013,10 @@ async def login_form(username: str = Form(...), password: str = Form(...), db: S
     user = authenticate_user(db, username, password)
     if not user:
         raise HTTPException(status_code=401, detail="Incorrect username or password")
+    
+    # Update last_login for session tracking (use naive datetime for SQLite)
+    user.last_login = datetime.utcnow()
+    db.commit()
     
     access_token = create_access_token(data={"sub": user.username, "user_id": user.id})
     return {"access_token": access_token, "token_type": "bearer"}
@@ -1047,8 +1055,8 @@ def google_auth(auth_data: GoogleAuth, db: Session = Depends(get_db)):
             db.add(user_stats)
             db.commit()
         else:
-            # Update last_login for existing user
-            user.last_login = datetime.now(timezone.utc)
+            # Update last_login for existing user (use naive datetime for SQLite)
+            user.last_login = datetime.utcnow()
             db.commit()
         
         access_token = create_access_token(data={"sub": user.username})
@@ -12110,6 +12118,467 @@ async def clear_all_notifications(
         logger.error(f"🔔 Error clearing all notifications: {str(e)}")
         db.rollback()
         return {"status": "error", "cleared": 0, "message": str(e)}
+
+
+# ==================== STUDY INSIGHTS ENDPOINTS ====================
+
+@app.get("/api/study_insights/session_summary")
+async def get_study_session_summary(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Get comprehensive summary of user's last study session"""
+    try:
+        from study_session_analyzer import get_study_session_analyzer
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        analyzer = get_study_session_analyzer(db, user.id, unified_ai)
+        summary = analyzer.generate_session_summary()
+        
+        return {
+            "status": "success",
+            "summary": summary
+        }
+    except Exception as e:
+        logger.error(f"Error getting study session summary: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/study_insights/ai_summary")
+async def get_ai_study_summary(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Get AI-generated personalized summary of last study session"""
+    try:
+        from study_session_analyzer import get_study_session_analyzer
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        analyzer = get_study_session_analyzer(db, user.id, unified_ai)
+        ai_summary = await analyzer.generate_ai_summary()
+        
+        return {
+            "status": "success",
+            "summary": ai_summary
+        }
+    except Exception as e:
+        logger.error(f"Error getting AI study summary: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/study_insights/strengths_weaknesses")
+async def get_strengths_weaknesses(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Get user's strengths and weaknesses based on all learning data"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get topic mastery data
+        mastery_data = db.query(models.TopicMastery).filter(
+            models.TopicMastery.user_id == user.id
+        ).all()
+        
+        strengths = []
+        weaknesses = []
+        
+        for m in mastery_data:
+            topic_info = {
+                "topic": m.topic_name,
+                "mastery_level": round(m.mastery_level * 100, 1),
+                "times_studied": m.times_studied,
+                "last_studied": m.last_studied.isoformat() if m.last_studied else None
+            }
+            
+            if m.mastery_level >= 0.7:
+                strengths.append(topic_info)
+            elif m.mastery_level < 0.5:
+                weaknesses.append(topic_info)
+        
+        # Sort by mastery level
+        strengths.sort(key=lambda x: x["mastery_level"], reverse=True)
+        weaknesses.sort(key=lambda x: x["mastery_level"])
+        
+        # Get quiz performance data
+        quiz_performance = db.query(models.UserPerformanceMetrics).filter(
+            models.UserPerformanceMetrics.user_id == user.id
+        ).all()
+        
+        quiz_weak_topics = []
+        quiz_strong_topics = []
+        
+        for p in quiz_performance:
+            if p.accuracy_rate < 60:
+                quiz_weak_topics.append({
+                    "topic": p.topic_name,
+                    "accuracy": round(p.accuracy_rate, 1),
+                    "questions_attempted": p.total_questions
+                })
+            elif p.accuracy_rate >= 80:
+                quiz_strong_topics.append({
+                    "topic": p.topic_name,
+                    "accuracy": round(p.accuracy_rate, 1),
+                    "questions_attempted": p.total_questions
+                })
+        
+        # Get flashcard weak cards
+        weak_flashcards = db.query(models.Flashcard).join(
+            models.FlashcardSet
+        ).filter(
+            models.FlashcardSet.user_id == user.id,
+            models.Flashcard.marked_for_review == True
+        ).all()
+        
+        flashcard_weaknesses = []
+        for card in weak_flashcards[:10]:
+            flashcard_weaknesses.append({
+                "question": card.question[:100],
+                "set_id": card.set_id,
+                "times_reviewed": card.times_reviewed,
+                "correct_rate": round((card.correct_count / max(card.times_reviewed, 1)) * 100, 1)
+            })
+        
+        return {
+            "status": "success",
+            "strengths": {
+                "topics": strengths[:10],
+                "quiz_topics": quiz_strong_topics[:5]
+            },
+            "weaknesses": {
+                "topics": weaknesses[:10],
+                "quiz_topics": quiz_weak_topics[:5],
+                "flashcards": flashcard_weaknesses
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error getting strengths/weaknesses: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/study_insights/recommendations")
+async def get_study_recommendations(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Get personalized study recommendations"""
+    try:
+        from study_session_analyzer import get_study_session_analyzer
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        analyzer = get_study_session_analyzer(db, user.id, unified_ai)
+        summary = analyzer.generate_session_summary()
+        
+        return {
+            "status": "success",
+            "recommendations": summary.get("recommendations", [])
+        }
+    except Exception as e:
+        logger.error(f"Error getting study recommendations: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/study_insights/debug_session")
+async def debug_session_tracking(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Debug endpoint to verify session tracking is working correctly"""
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        now = datetime.utcnow()
+        
+        # Get last_login
+        last_login = user.last_login
+        session_start = last_login if last_login else (now - timedelta(hours=4))
+        
+        # Count messages since session start
+        messages_count = db.query(models.ChatMessage).join(
+            models.ChatSession
+        ).filter(
+            models.ChatSession.user_id == user.id,
+            models.ChatMessage.timestamp >= session_start
+        ).count()
+        
+        # Count total messages
+        total_messages = db.query(models.ChatMessage).join(
+            models.ChatSession
+        ).filter(
+            models.ChatSession.user_id == user.id
+        ).count()
+        
+        # Get recent messages for debugging
+        recent_messages = db.query(models.ChatMessage).join(
+            models.ChatSession
+        ).filter(
+            models.ChatSession.user_id == user.id
+        ).order_by(models.ChatMessage.timestamp.desc()).limit(5).all()
+        
+        recent_list = []
+        for msg in recent_messages:
+            recent_list.append({
+                "timestamp": msg.timestamp.isoformat() if msg.timestamp else None,
+                "user_message": msg.user_message[:100] if msg.user_message else None,
+                "in_session": msg.timestamp >= session_start if msg.timestamp else False
+            })
+        
+        return {
+            "status": "success",
+            "debug_info": {
+                "user_id": user.id,
+                "username": user.username,
+                "last_login": last_login.isoformat() if last_login else None,
+                "session_start": session_start.isoformat(),
+                "current_time": now.isoformat(),
+                "messages_in_session": messages_count,
+                "total_messages": total_messages,
+                "recent_messages": recent_list
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error in debug session: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/study_insights/reset_stats")
+async def reset_user_stats(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """Reset all stats for a user - for testing purposes"""
+    try:
+        user_id = payload.get("user_id")
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Delete chat messages and sessions
+        sessions = db.query(models.ChatSession).filter(models.ChatSession.user_id == user.id).all()
+        for session in sessions:
+            db.query(models.ChatMessage).filter(models.ChatMessage.chat_session_id == session.id).delete()
+        db.query(models.ChatSession).filter(models.ChatSession.user_id == user.id).delete()
+        
+        # Delete topic mastery
+        db.query(models.TopicMastery).filter(models.TopicMastery.user_id == user.id).delete()
+        
+        # Delete flashcard study sessions
+        db.query(models.FlashcardStudySession).filter(models.FlashcardStudySession.user_id == user.id).delete()
+        
+        # Reset last_login to force new session
+        user.last_login = None
+        
+        db.commit()
+        
+        return {
+            "status": "success",
+            "message": "All stats reset. Please log out and log back in."
+        }
+    except Exception as e:
+        logger.error(f"Error resetting stats: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/study_insights/generate_content")
+async def generate_study_content(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """Generate flashcards, notes, or quiz questions based on weak areas"""
+    try:
+        user_id = payload.get("user_id")
+        content_type = payload.get("content_type")  # flashcards, notes, quiz
+        topic = payload.get("topic")
+        count = payload.get("count", 5)
+        context = payload.get("context", "")  # Additional context from source question
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Build context string for more personalized generation
+        context_str = ""
+        if context:
+            context_str = f"\n\nThe student was working on problems like: {context}\nGenerate similar problems at the same level."
+        
+        if content_type == "flashcards":
+            # Generate flashcards for the topic
+            prompt = f"""Generate {count} flashcards for studying "{topic}".{context_str}
+            
+Return as JSON array with this format:
+[
+  {{"question": "...", "answer": "...", "difficulty": "easy|medium|hard"}},
+  ...
+]
+
+Make the flashcards:
+- SPECIFIC to {topic} (not generic)
+- Include actual formulas, equations, or specific examples
+- Progressive in difficulty
+- Test understanding, not just memorization
+Return ONLY the JSON array, no other text."""
+
+            response = unified_ai.generate(prompt, max_tokens=1500, temperature=0.7)
+            
+            # Parse the response
+            try:
+                # Clean up response
+                response = response.strip()
+                if response.startswith("```"):
+                    response = response.split("```")[1]
+                    if response.startswith("json"):
+                        response = response[4:]
+                flashcards = json.loads(response)
+            except:
+                flashcards = []
+            
+            return {
+                "status": "success",
+                "content_type": "flashcards",
+                "topic": topic,
+                "content": flashcards
+            }
+        
+        elif content_type == "quiz":
+            # Generate quiz questions
+            prompt = f"""Generate {count} multiple choice quiz questions about "{topic}".{context_str}
+            
+Return as JSON array with this format:
+[
+  {{
+    "question": "...",
+    "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
+    "correct_answer": "A",
+    "explanation": "..."
+  }},
+  ...
+]
+
+Make questions:
+- SPECIFIC to {topic} (include actual problems/calculations if math-related)
+- Test understanding, not just memorization
+- Include step-by-step explanations
+Return ONLY the JSON array, no other text."""
+
+            response = unified_ai.generate(prompt, max_tokens=2000, temperature=0.7)
+            
+            try:
+                response = response.strip()
+                if response.startswith("```"):
+                    response = response.split("```")[1]
+                    if response.startswith("json"):
+                        response = response[4:]
+                questions = json.loads(response)
+            except:
+                questions = []
+            
+            return {
+                "status": "success",
+                "content_type": "quiz",
+                "topic": topic,
+                "content": questions
+            }
+        
+        elif content_type == "notes":
+            # Generate study notes
+            prompt = f"""Create comprehensive study notes about "{topic}".
+            
+Include:
+1. Key concepts and definitions
+2. Important formulas or rules (if applicable)
+3. Examples
+4. Common mistakes to avoid
+5. Summary points
+
+Format with clear headings and bullet points.
+Make it suitable for exam preparation."""
+
+            response = unified_ai.generate(prompt, max_tokens=2000, temperature=0.7)
+            
+            return {
+                "status": "success",
+                "content_type": "notes",
+                "topic": topic,
+                "content": response
+            }
+        
+        else:
+            raise HTTPException(status_code=400, detail="Invalid content_type")
+        
+    except Exception as e:
+        logger.error(f"Error generating study content: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/study_insights/welcome_notification")
+async def get_welcome_notification(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Get personalized welcome notification with session summary"""
+    try:
+        from study_session_analyzer import get_study_session_analyzer
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        analyzer = get_study_session_analyzer(db, user.id, unified_ai)
+        
+        # Get AI-generated summary
+        ai_summary = await analyzer.generate_ai_summary()
+        
+        # Get quick stats
+        summary = analyzer.generate_session_summary()
+        
+        # Determine if user has recent activity
+        has_recent_activity = summary.get("summary", {}).get("total_activities", 0) > 0
+        
+        user_name = user.first_name or user.username.split('@')[0]
+        
+        return {
+            "status": "success",
+            "notification": {
+                "title": "Welcome Back!" if has_recent_activity else "Welcome!",
+                "message": ai_summary,
+                "has_insights": has_recent_activity,
+                "user_name": user_name,
+                "quick_stats": {
+                    "chat_messages": summary.get("summary", {}).get("chat_messages", 0),
+                    "flashcards_studied": summary.get("summary", {}).get("flashcards_studied", 0),
+                    "quiz_questions": summary.get("summary", {}).get("quiz_questions", 0),
+                    "overall_accuracy": summary.get("summary", {}).get("overall_accuracy", 0)
+                },
+                "top_weakness": summary.get("weaknesses", [{}])[0] if summary.get("weaknesses") else None,
+                "top_recommendation": summary.get("recommendations", [{}])[0] if summary.get("recommendations") else None
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error getting welcome notification: {str(e)}")
+        # Return a basic welcome message on error
+        return {
+            "status": "success",
+            "notification": {
+                "title": "Welcome Back!",
+                "message": "Ready to continue learning?",
+                "has_insights": False
+            }
+        }
 
 @app.get("/api/check_reminder_notifications")
 async def check_reminder_notifications(

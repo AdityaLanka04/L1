@@ -248,29 +248,29 @@ const Dashboard = () => {
       // Get user's first name from profile, fallback to username
       const displayName = userProfile?.firstName || userName.split('@')[0];
       
-      // Different message for first-time vs returning users
-      const welcomeNotif = {
-        id: `welcome-${Date.now()}`,
-        title: isFirstTimeUser ? 'Welcome!' : 'Welcome Back!',
-        message: isFirstTimeUser 
-          ? `Let's get started with your learning journey, ${displayName}!`
-          : `Ready to continue learning, ${displayName}?`,
-        type: 'welcome',
-        created_at: new Date().toISOString()
-      };
-      
-      // For first-time users, show notification after tour completes
-      // For returning users, show immediately
-      const delay = isFirstTimeUser ? 3000 : 1500;
-      
-      setTimeout(() => {
-        setSlideNotifQueue(prev => {
-          if (!prev.some(n => n.type === 'welcome')) {
-            return [...prev, welcomeNotif];
-          }
-          return prev;
-        });
-      }, delay);
+      // For returning users, fetch personalized welcome notification
+      if (!isFirstTimeUser) {
+        fetchPersonalizedWelcome(displayName);
+      } else {
+        // For first-time users, show simple welcome
+        const welcomeNotif = {
+          id: `welcome-${Date.now()}`,
+          title: 'Welcome!',
+          message: `Let's get started with your learning journey, ${displayName}!`,
+          type: 'welcome',
+          notification_type: 'welcome',
+          created_at: new Date().toISOString()
+        };
+        
+        setTimeout(() => {
+          setSlideNotifQueue(prev => {
+            if (!prev.some(n => n.type === 'welcome')) {
+              return [...prev, welcomeNotif];
+            }
+            return prev;
+          });
+        }, 3000);
+      }
     }
     
     startNotificationPolling();
@@ -287,6 +287,79 @@ const Dashboard = () => {
     }
   };
 }, [userName]);
+
+  const fetchPersonalizedWelcome = async (displayName) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/study_insights/welcome_notification?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const notifData = data.notification;
+        
+        const welcomeNotif = {
+          id: `welcome-${Date.now()}`,
+          title: notifData.title || 'Welcome Back!',
+          message: notifData.message || `Ready to continue learning, ${displayName}?`,
+          type: 'welcome',
+          notification_type: notifData.has_insights ? 'study_insights' : 'welcome',
+          has_insights: notifData.has_insights,
+          created_at: new Date().toISOString()
+        };
+        
+        setTimeout(() => {
+          setSlideNotifQueue(prev => {
+            if (!prev.some(n => n.type === 'welcome')) {
+              return [...prev, welcomeNotif];
+            }
+            return prev;
+          });
+        }, 1500);
+      } else {
+        // Fallback to simple welcome
+        const welcomeNotif = {
+          id: `welcome-${Date.now()}`,
+          title: 'Welcome Back!',
+          message: `Ready to continue learning, ${displayName}?`,
+          type: 'welcome',
+          notification_type: 'welcome',
+          created_at: new Date().toISOString()
+        };
+        
+        setTimeout(() => {
+          setSlideNotifQueue(prev => {
+            if (!prev.some(n => n.type === 'welcome')) {
+              return [...prev, welcomeNotif];
+            }
+            return prev;
+          });
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('Error fetching personalized welcome:', error);
+      // Fallback to simple welcome
+      const displayName = userProfile?.firstName || userName.split('@')[0];
+      const welcomeNotif = {
+        id: `welcome-${Date.now()}`,
+        title: 'Welcome Back!',
+        message: `Ready to continue learning, ${displayName}?`,
+        type: 'welcome',
+        notification_type: 'welcome',
+        created_at: new Date().toISOString()
+      };
+      
+      setTimeout(() => {
+        setSlideNotifQueue(prev => {
+          if (!prev.some(n => n.type === 'welcome')) {
+            return [...prev, welcomeNotif];
+          }
+          return prev;
+        });
+      }, 1500);
+    }
+  };
 
   const loadDashboardData = async () => {
     try {

@@ -227,7 +227,7 @@ function Login() {
           <form onSubmit={handleSubmit} className="login-form">
             <input
               type="text"
-              placeholder="USERNAME"
+              placeholder="Username"
               value={username}
               onChange={e => setUsername(e.target.value)}
               className="login-input"
@@ -237,7 +237,7 @@ function Login() {
 
             <input
               type="password"
-              placeholder="PASSWORD"
+              placeholder="Password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="login-input"
