@@ -87,6 +87,9 @@ from proactive_ai_system import get_proactive_ai_engine
 from adaptive_learning_api import register_adaptive_learning_api
 from math_processor import process_math_in_response, enhance_display_math
 
+# LangGraph Agent System
+from agents.setup import register_agent_routes
+
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
@@ -254,6 +257,10 @@ logger.info("✅ Adaptive Learning & Personalization API registered successfully
 from ai_chat_integration import register_ai_chat_agent
 register_ai_chat_agent(app)
 logger.info("✅ AI Chat Agent registered successfully")
+
+# Register LangGraph Agent System Routes
+register_agent_routes(app)
+logger.info("✅ LangGraph Agent routes registered")
 
 class Token(BaseModel):
     access_token: str
@@ -689,61 +696,69 @@ def health_check():
 
 @app.on_event("startup")
 async def fix_database_sequences():
-    """Automatically fix PostgreSQL sequences on startup"""
+    """Automatically fix PostgreSQL sequences and initialize agent system on startup"""
     # Only run for PostgreSQL, not SQLite
     if "postgres" not in DATABASE_URL:
         logger.info("✅ Using SQLite - sequence fix not needed")
-        return
+    else:
+        logger.info("🔧 Checking and fixing PostgreSQL database sequences...")
+        
+        # Run migrations on startup (production)
+        try:
+            logger.info("🔄 Running database migrations...")
+            from migration import run_migration
+            run_migration()
+            logger.info("✅ Database migrations completed")
+        except Exception as e:
+            logger.error(f"❌ Migration error: {e}")
+        
+        try:
+            db = SessionLocal()
+            
+            tables_to_fix = [
+                'users',
+                'chat_sessions',
+                'notes',
+                'activities',
+                'flashcard_sets',
+                'daily_learning_metrics',
+                'user_stats',
+                'folders',
+                'question_sets',
+                'learning_reviews',
+                'uploaded_slides'
+            ]
+            
+            for table in tables_to_fix:
+                try:
+                    # Get max ID
+                    max_id_query = text(f"SELECT COALESCE(MAX(id), 0) FROM {table}")
+                    max_id = db.execute(max_id_query).scalar()
+                    
+                    # Fix the sequence (PostgreSQL only)
+                    fix_query = text(f"SELECT setval('{table}_id_seq', :next_id)")
+                    db.execute(fix_query, {"next_id": max_id + 1})
+                    
+                    logger.info(f"✅ Fixed sequence for {table}: next_id = {max_id + 1}")
+                    
+                except Exception as e:
+                    logger.warning(f"⚠️ Could not fix {table}: {str(e)}")
+            
+            db.commit()
+            db.close()
+            logger.info("✅ Database sequences fixed successfully")
+            
+        except Exception as e:
+            logger.error(f"❌ Sequence fix failed: {str(e)}")
     
-    logger.info("🔧 Checking and fixing PostgreSQL database sequences...")
-    
-    # Run migrations on startup (production)
+    # Initialize LangGraph Agent System
     try:
-        logger.info("🔄 Running database migrations...")
-        from migration import run_migration
-        run_migration()
-        logger.info("✅ Database migrations completed")
+        from agents.setup import setup_agent_system
+        await setup_agent_system(app, unified_ai, enable_knowledge_graph=True)
+        logger.info("✅ LangGraph Agent System initialized successfully")
     except Exception as e:
-        logger.error(f"❌ Migration error: {e}")
-    
-    try:
-        db = SessionLocal()
-        
-        tables_to_fix = [
-            'users',
-            'chat_sessions',
-            'notes',
-            'activities',
-            'flashcard_sets',
-            'daily_learning_metrics',
-            'user_stats',
-            'folders',
-            'question_sets',
-            'learning_reviews',
-            'uploaded_slides'
-        ]
-        
-        for table in tables_to_fix:
-            try:
-                # Get max ID
-                max_id_query = text(f"SELECT COALESCE(MAX(id), 0) FROM {table}")
-                max_id = db.execute(max_id_query).scalar()
-                
-                # Fix the sequence (PostgreSQL only)
-                fix_query = text(f"SELECT setval('{table}_id_seq', :next_id)")
-                db.execute(fix_query, {"next_id": max_id + 1})
-                
-                logger.info(f"✅ Fixed sequence for {table}: next_id = {max_id + 1}")
-                
-            except Exception as e:
-                logger.warning(f"⚠️ Could not fix {table}: {str(e)}")
-        
-        db.commit()
-        db.close()
-        logger.info("✅ Database sequences fixed successfully")
-        
-    except Exception as e:
-        logger.error(f"❌ Sequence fix failed: {str(e)}")
+        logger.warning(f"⚠️ Agent system initialization failed (non-critical): {e}")
+        logger.info("   App will continue without agent system")
 
 @app.get("/api/fix-reminder-timezones")
 async def fix_reminder_timezones(user_id: str = Query(...), db: Session = Depends(get_db)):

@@ -1,6 +1,6 @@
 """
 Comprehensive migration to sync database schema with models
-Checks all tables and adds missing columns
+Creates all tables if they don't exist and adds missing columns
 """
 import sqlite3
 import os
@@ -58,7 +58,7 @@ def get_db_columns(cursor, table_name):
         return {}
 
 def sync_table(cursor, model):
-    """Sync a single table with its model"""
+    """Sync a single table with its model - add missing columns"""
     table_name = model.__tablename__
     print(f"\n📋 Checking table: {table_name}")
     
@@ -66,7 +66,7 @@ def sync_table(cursor, model):
     db_columns = get_db_columns(cursor, table_name)
     
     if not db_columns:
-        print(f"  ⚠️  Table {table_name} doesn't exist - skipping")
+        print(f"  ⚠️  Table {table_name} doesn't exist - will be created by SQLAlchemy")
         return
     
     missing_columns = set(model_columns.keys()) - set(db_columns.keys())
@@ -102,15 +102,26 @@ def run_migration():
             break
     
     if not db_path:
-        print(f"❌ Database not found in any of: {possible_paths}")
-        return
+        # Create the database file if it doesn't exist
+        db_path = possible_paths[0]
+        print(f"📁 Creating new database: {db_path}")
+        open(db_path, 'a').close()
     
     print(f"🔍 Syncing database schema: {db_path}")
     
+    # Step 1: Use SQLAlchemy to create ALL tables that don't exist
+    print("\n🏗️  Creating all tables using SQLAlchemy...")
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("✅ All tables created/verified by SQLAlchemy")
+    except Exception as e:
+        print(f"⚠️ SQLAlchemy table creation warning: {e}")
+    
+    # Step 2: Connect with sqlite3 to add any missing columns to existing tables
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
-    # List of all models to check
+    # List of all models to check for column sync
     models = [
         User, ChatSession, ChatMessage,
         Flashcard, FlashcardSet, Note, LearningReview, UserStats,
@@ -119,267 +130,6 @@ def run_migration():
         Leaderboard, Challenge, ChallengeParticipation, ConceptNode,
         ConceptConnection, KnowledgeRoadmap, Reminder, ReminderList
     ]
-    
-    # Create new tables if they don't exist
-    try:
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS reminder_lists (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                name TEXT NOT NULL,
-                color TEXT DEFAULT '#3b82f6',
-                icon TEXT DEFAULT 'list',
-                is_smart_list BOOLEAN DEFAULT 0,
-                smart_list_type TEXT,
-                sort_order INTEGER DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id)
-            )
-        """)
-        print("✅ reminder_lists table ready")
-    except Exception as e:
-        print(f"⚠️ reminder_lists: {e}")
-    
-    # Check if reminders table exists and add missing columns
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='reminders'")
-    reminders_exists = cursor.fetchone() is not None
-    
-    if reminders_exists:
-        print("📋 Updating existing reminders table with new columns...")
-        new_reminder_columns = [
-            ("list_id", "INTEGER"),
-            ("parent_id", "INTEGER"),
-            ("notes", "TEXT"),
-            ("url", "TEXT"),
-            ("due_date", "DATETIME"),
-            ("completed_at", "DATETIME"),
-            ("is_flagged", "BOOLEAN DEFAULT 0"),
-            ("recurring", "TEXT DEFAULT 'none'"),
-            ("recurring_interval", "INTEGER DEFAULT 1"),
-            ("recurring_end_date", "DATETIME"),
-            ("recurring_days", "TEXT"),
-            ("location", "TEXT"),
-            ("location_reminder", "BOOLEAN DEFAULT 0"),
-            ("tags", "TEXT"),
-            ("sort_order", "INTEGER DEFAULT 0"),
-        ]
-        
-        for col_name, col_type in new_reminder_columns:
-            try:
-                cursor.execute(f"ALTER TABLE reminders ADD COLUMN {col_name} {col_type}")
-                print(f"  ✅ Added column: {col_name}")
-            except sqlite3.OperationalError as e:
-                if "duplicate column" in str(e).lower():
-                    pass  # Column already exists
-                else:
-                    print(f"  ⚠️ {col_name}: {e}")
-    else:
-        try:
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS reminders (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_id INTEGER NOT NULL,
-                    list_id INTEGER,
-                    parent_id INTEGER,
-                    title TEXT NOT NULL,
-                    description TEXT,
-                    notes TEXT,
-                    url TEXT,
-                    reminder_date DATETIME,
-                    due_date DATETIME,
-                    reminder_type TEXT DEFAULT 'reminder',
-                    priority TEXT DEFAULT 'none',
-                    color TEXT DEFAULT '#3b82f6',
-                    is_completed BOOLEAN DEFAULT 0,
-                    completed_at DATETIME,
-                    is_flagged BOOLEAN DEFAULT 0,
-                    is_notified BOOLEAN DEFAULT 0,
-                    notify_before_minutes INTEGER DEFAULT 15,
-                    recurring TEXT DEFAULT 'none',
-                    recurring_interval INTEGER DEFAULT 1,
-                    recurring_end_date DATETIME,
-                    recurring_days TEXT,
-                    location TEXT,
-                    location_reminder BOOLEAN DEFAULT 0,
-                    tags TEXT,
-                    sort_order INTEGER DEFAULT 0,
-                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (user_id) REFERENCES users(id),
-                    FOREIGN KEY (list_id) REFERENCES reminder_lists(id),
-                    FOREIGN KEY (parent_id) REFERENCES reminders(id)
-                )
-            """)
-            print("✅ reminders table created")
-        except Exception as e:
-            print(f"⚠️ reminders: {e}")
-
-    # Create friendships table
-    try:
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS friendships (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                friend_id INTEGER NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id),
-                FOREIGN KEY (friend_id) REFERENCES users(id)
-            )
-        """)
-        print("✅ friendships table ready")
-    except Exception as e:
-        print(f"⚠️ friendships: {e}")
-
-    # Create friend_requests table
-    try:
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS friend_requests (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                sender_id INTEGER NOT NULL,
-                receiver_id INTEGER NOT NULL,
-                status TEXT DEFAULT 'pending',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (sender_id) REFERENCES users(id),
-                FOREIGN KEY (receiver_id) REFERENCES users(id)
-            )
-        """)
-        print("✅ friend_requests table ready")
-    except Exception as e:
-        print(f"⚠️ friend_requests: {e}")
-
-    # Create notifications table
-    try:
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS notifications (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                title TEXT NOT NULL,
-                message TEXT,
-                notification_type TEXT DEFAULT 'general',
-                is_read BOOLEAN DEFAULT 0,
-                action_url TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id)
-            )
-        """)
-        print("✅ notifications table ready")
-    except Exception as e:
-        print(f"⚠️ notifications: {e}")
-
-    # Create leaderboards table
-    try:
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS leaderboards (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                category TEXT DEFAULT 'global',
-                metric TEXT DEFAULT 'total_hours',
-                score REAL DEFAULT 0,
-                rank INTEGER,
-                period TEXT DEFAULT 'all_time',
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id)
-            )
-        """)
-        print("✅ leaderboards table ready")
-    except Exception as e:
-        print(f"⚠️ leaderboards: {e}")
-
-    # Create challenges table
-    try:
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS challenges (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                creator_id INTEGER NOT NULL,
-                title TEXT NOT NULL,
-                description TEXT,
-                challenge_type TEXT DEFAULT 'quiz',
-                difficulty TEXT DEFAULT 'medium',
-                subject TEXT,
-                question_count INTEGER DEFAULT 10,
-                time_limit_minutes INTEGER DEFAULT 30,
-                start_date DATETIME,
-                end_date DATETIME,
-                is_public BOOLEAN DEFAULT 1,
-                max_participants INTEGER,
-                status TEXT DEFAULT 'active',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (creator_id) REFERENCES users(id)
-            )
-        """)
-        print("✅ challenges table ready")
-    except Exception as e:
-        print(f"⚠️ challenges: {e}")
-
-    # Create challenge_participations table
-    try:
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS challenge_participations (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                challenge_id INTEGER NOT NULL,
-                user_id INTEGER NOT NULL,
-                score REAL DEFAULT 0,
-                time_taken_seconds INTEGER,
-                completed_at DATETIME,
-                rank INTEGER,
-                status TEXT DEFAULT 'joined',
-                joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (challenge_id) REFERENCES challenges(id),
-                FOREIGN KEY (user_id) REFERENCES users(id)
-            )
-        """)
-        print("✅ challenge_participations table ready")
-    except Exception as e:
-        print(f"⚠️ challenge_participations: {e}")
-
-    # Create concept_nodes table
-    try:
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS concept_nodes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                concept_name TEXT NOT NULL,
-                description TEXT,
-                category TEXT,
-                importance_score REAL DEFAULT 0.5,
-                mastery_level REAL DEFAULT 0,
-                position_x REAL,
-                position_y REAL,
-                notes_count INTEGER DEFAULT 0,
-                quizzes_count INTEGER DEFAULT 0,
-                flashcards_count INTEGER DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id)
-            )
-        """)
-        print("✅ concept_nodes table ready")
-    except Exception as e:
-        print(f"⚠️ concept_nodes: {e}")
-
-    # Create concept_connections table
-    try:
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS concept_connections (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                source_concept_id INTEGER NOT NULL,
-                target_concept_id INTEGER NOT NULL,
-                connection_type TEXT,
-                strength REAL DEFAULT 0.5,
-                ai_generated BOOLEAN DEFAULT 0,
-                user_confirmed BOOLEAN DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id),
-                FOREIGN KEY (source_concept_id) REFERENCES concept_nodes(id),
-                FOREIGN KEY (target_concept_id) REFERENCES concept_nodes(id)
-            )
-        """)
-        print("✅ concept_connections table ready")
-    except Exception as e:
-        print(f"⚠️ concept_connections: {e}")
     
     # Add share_code column to flashcard_sets if it doesn't exist
     try:
@@ -396,7 +146,8 @@ def run_migration():
         cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_flashcard_sets_share_code ON flashcard_sets(share_code)")
         print("✅ Created index for share_code")
     except Exception as e:
-        print(f"⚠️ share_code index: {e}")
+        if "already exists" not in str(e).lower():
+            print(f"⚠️ share_code index: {e}")
     
     # Add show_study_insights column to comprehensive_user_profiles
     try:
@@ -431,6 +182,7 @@ def run_migration():
         print(f"⚠️ share code generation: {e}")
     
     try:
+        # Sync columns for all models
         for model in models:
             sync_table(cursor, model)
         

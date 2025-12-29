@@ -24,6 +24,17 @@ groq>=0.4.0
 # AI/ML - Google Gemini (Primary)
 google-generativeai>=0.3.0
 
+# LangGraph Agent Framework
+langgraph>=0.2.0
+langchain>=0.3.0
+langchain-core>=0.3.0
+
+# Knowledge Graph - Neo4j
+neo4j>=5.0.0
+
+# Observability (optional - for LangSmith tracing)
+langsmith>=0.1.0
+
 # AI/ML - Transformers (optional)
 torch>=2.0.0
 transformers>=4.30.0
@@ -50,7 +61,7 @@ Pillow>=10.0.0
 youtube-transcript-api>=0.6.0
 pytube>=15.0.0
 pydub>=0.25.1
-audioop-lts>=0.2.2
+
 moviepy>=1.0.3
 assemblyai>=0.17.0
 openai-whisper>=20230314
