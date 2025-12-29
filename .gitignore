@@ -20,3 +20,4 @@ venv/
 start.log
 .env.aws
 .env
+backend/Miniforge3-*.sh
