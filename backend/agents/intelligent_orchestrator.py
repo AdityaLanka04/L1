@@ -16,6 +16,7 @@ from .react_agent import ReActAgent, create_react_agent
 from .tools.knowledge_tools import KnowledgeGraphTools
 from .tools.search_tools import SearchTools
 from .tools.content_tools import ContentTools
+from .memory import MemoryManager, get_memory_manager, initialize_memory_manager
 
 logger = logging.getLogger(__name__)
 
@@ -94,11 +95,13 @@ Response:"""
         self,
         ai_client: Any,
         knowledge_graph: Optional[Any] = None,
-        db_session_factory: Optional[Any] = None
+        db_session_factory: Optional[Any] = None,
+        memory_manager: Optional[MemoryManager] = None
     ):
         self.ai_client = ai_client
         self.knowledge_graph = knowledge_graph
         self.db_session_factory = db_session_factory
+        self.memory_manager = memory_manager or get_memory_manager()
         
         # Initialize tools
         self._init_tools()
@@ -115,7 +118,7 @@ Response:"""
         self.graph = self._build_graph()
         self.compiled = self.graph.compile(checkpointer=MemorySaver())
         
-        logger.info("Intelligent Orchestrator initialized")
+        logger.info("Intelligent Orchestrator initialized with Memory Manager")
     
     def _init_tools(self):
         """Initialize all tools"""
@@ -176,29 +179,57 @@ Response:"""
         return graph
     
     async def _load_context(self, state: IntelligentOrchestratorState) -> IntelligentOrchestratorState:
-        """Load user context and conversation history"""
+        """Load user context from Memory Manager and knowledge graph"""
         user_id = state.get("user_id")
+        session_id = state.get("session_id", "default")
+        query = state.get("user_input", "")
         
-        # Load from knowledge graph
+        # Load context from Memory Manager (the unified brain)
+        if self.memory_manager:
+            try:
+                memory_context = await self.memory_manager.get_context_for_agent(
+                    user_id=user_id,
+                    agent_type="orchestrator",
+                    query=query,
+                    session_id=session_id
+                )
+                
+                state["knowledge_context"] = memory_context
+                state["related_concepts"] = memory_context.get("topics_of_interest", [])
+                state["user_mastery"] = {}  # Will be populated from memory
+                
+                # Extract user preferences
+                prefs = memory_context.get("user_preferences", {})
+                state["learning_style"] = prefs.get("learning_style", state.get("learning_style", "mixed"))
+                state["difficulty_level"] = prefs.get("difficulty_level", state.get("difficulty_level", "intermediate"))
+                
+                # Get recent conversation context
+                state["conversation_history"] = memory_context.get("recent_conversations", [])
+                
+                logger.info(f"Loaded memory context with {len(memory_context.get('relevant_memories', []))} relevant memories")
+                
+            except Exception as e:
+                logger.error(f"Error loading memory context: {e}")
+        
+        # Also load from knowledge graph for concept relationships
         if self.knowledge_graph and user_id:
             try:
-                # Get user's recent topics
-                context = await self.knowledge_graph.get_context(
-                    state.get("user_input", ""),
-                    int(user_id) if user_id.isdigit() else None
-                )
-                state["knowledge_context"] = context
-                state["related_concepts"] = context.get("related_concepts", [])
-                state["user_mastery"] = context.get("user_mastery", {})
+                kg_context = await self.knowledge_graph.get_context(query, int(user_id) if str(user_id).isdigit() else None)
+                
+                # Merge with memory context
+                if "knowledge_context" not in state:
+                    state["knowledge_context"] = {}
+                state["knowledge_context"]["kg_concepts"] = kg_context.get("related_concepts", [])
+                state["knowledge_context"]["kg_mastery"] = kg_context.get("user_mastery", {})
+                
             except Exception as e:
-                logger.error(f"Error loading context: {e}")
+                logger.error(f"Error loading KG context: {e}")
         
         # Initialize state fields
         state["task_plan"] = []
         state["current_task_index"] = 0
         state["agent_results"] = {}
         state["collaboration_notes"] = []
-        state["conversation_history"] = state.get("conversation_history", [])
         state["learned_preferences"] = state.get("learned_preferences", {})
         state["quality_score"] = 0.0
         state["improvement_suggestions"] = []
@@ -373,33 +404,58 @@ Improved response:"""
         return state
     
     async def _update_memory(self, state: IntelligentOrchestratorState) -> IntelligentOrchestratorState:
-        """Update knowledge graph and memory"""
+        """Update Memory Manager with interaction data"""
         user_id = state.get("user_id")
+        session_id = state.get("session_id", "default")
         
-        # Update conversation history
-        state["conversation_history"].append({
-            "user": state.get("user_input", ""),
-            "assistant": state.get("final_response", ""),
-            "timestamp": datetime.utcnow().isoformat()
-        })
+        # Store conversation in Memory Manager
+        if self.memory_manager:
+            try:
+                # Extract topics from the interaction
+                topics = state.get("related_concepts", [])[:5]
+                
+                # Store the conversation
+                await self.memory_manager.remember_conversation(
+                    user_id=user_id,
+                    user_message=state.get("user_input", ""),
+                    ai_response=state.get("final_response", ""),
+                    session_id=session_id,
+                    agent_type="orchestrator",
+                    topics=topics
+                )
+                
+                # Learn from interaction
+                await self.memory_manager.learn_from_interaction(
+                    user_id=user_id,
+                    interaction_data={
+                        "response_length": len(state.get("final_response", "")),
+                        "topics": topics,
+                        "quality_score": state.get("quality_score", 0.5)
+                    }
+                )
+                
+                # Update session context
+                self.memory_manager.set_session_context(session_id, "last_query", state.get("user_input", ""))
+                self.memory_manager.set_session_context(session_id, "last_topics", topics)
+                
+                logger.info(f"Updated memory for user {user_id}")
+                
+            except Exception as e:
+                logger.error(f"Memory update failed: {e}")
         
-        # Keep last 10 exchanges
-        state["conversation_history"] = state["conversation_history"][-10:]
-        
-        # Update knowledge graph with learned concepts
+        # Also update knowledge graph
         if self.knowledge_graph and user_id:
             try:
-                # Extract concepts from the interaction
                 concepts = state.get("related_concepts", [])
                 for concept in concepts[:3]:
                     await self.knowledge_graph.update_user_mastery(
                         int(user_id) if str(user_id).isdigit() else 0,
                         concept,
-                        0.05,  # Small positive delta for engagement
+                        0.05,
                         True
                     )
             except Exception as e:
-                logger.error(f"Memory update failed: {e}")
+                logger.error(f"KG update failed: {e}")
         
         state["execution_path"].append("orchestrator:memory")
         return state
@@ -484,11 +540,13 @@ Improved response:"""
 def create_intelligent_orchestrator(
     ai_client,
     knowledge_graph=None,
-    db_session_factory=None
+    db_session_factory=None,
+    memory_manager=None
 ) -> IntelligentOrchestrator:
     """Factory function to create intelligent orchestrator"""
     return IntelligentOrchestrator(
         ai_client=ai_client,
         knowledge_graph=knowledge_graph,
-        db_session_factory=db_session_factory
+        db_session_factory=db_session_factory,
+        memory_manager=memory_manager
     )

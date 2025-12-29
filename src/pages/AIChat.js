@@ -598,13 +598,19 @@ const AIChat = ({ sharedMode = false }) => {
       formData.append('question', messageText || 'Please analyze the uploaded files.');
       formData.append('chat_id', currentChatId.toString());
 
+      // Add chat mode if set
+      if (conversationMode) {
+        formData.append('chat_mode', conversationMode);
+      }
+
       selectedFiles.forEach(file => {
         formData.append('files', file);
       });
 
+      // Use the enhanced agent endpoint for text-only messages, files endpoint for attachments
       const endpoint = selectedFiles.length > 0 ? 
         `${API_URL}/ask_with_files/` : 
-        `${API_URL}/ask_simple/`;
+        `${API_URL}/ask_agent/`;
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -620,22 +626,28 @@ const AIChat = ({ sharedMode = false }) => {
       const data = await response.json();
       
       console.log(`✅ AI response received. Chat ID: ${data.chat_id || currentChatId}`);
+      console.log(`🤖 Agent mode: ${data.chat_mode}, emotion: ${data.emotional_state}`);
       
       if (!data.answer) {
         throw new Error('No answer received from AI');
       }
       
-      // Get agent analysis AFTER receiving the real AI response (don't replace the response)
-      if (messageText && !selectedFiles.length) {
-        sendMessageWithAgent(messageText, currentChatId).catch(err => {
-          console.log('Agent analysis failed (non-critical):', err);
-        });
+      // Store agent insights from the enhanced response
+      if (data.emotional_state || data.suggested_questions) {
+        setAgentInsights(prev => ({
+          ...prev,
+          emotionalState: data.emotional_state,
+          suggestedQuestions: data.suggested_questions || [],
+          learningActions: data.learning_actions || [],
+          chatMode: data.chat_mode,
+          qualityScore: data.quality_score
+        }));
       }
       
       const aiMessage = {
         id: `ai_${Date.now()}`,
         type: 'ai',
-        content: data.answer,  // Use the real AI response, not agent response
+        content: data.answer,
         timestamp: new Date().toISOString(),
         ...(data.ai_confidence !== null && data.ai_confidence !== undefined && {
           aiConfidence: data.ai_confidence,
@@ -646,7 +658,13 @@ const AIChat = ({ sharedMode = false }) => {
         filesProcessed: data.files_processed || 0,
         fileSummaries: data.file_summaries || [],
         hasFileContext: data.has_file_context || false,
-        agentAnalysis: agentAnalysis
+        // Enhanced agent metadata
+        chatMode: data.chat_mode,
+        emotionalState: data.emotional_state,
+        suggestedQuestions: data.suggested_questions || [],
+        learningActions: data.learning_actions || [],
+        qualityScore: data.quality_score,
+        executionTimeMs: data.execution_time_ms
       };
 
       setMessages(prev => [...prev, aiMessage]);

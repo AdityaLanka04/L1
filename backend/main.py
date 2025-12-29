@@ -1869,6 +1869,189 @@ Current Question: {question}"""
             "has_file_context": False
         }
 
+
+# ==================== Enhanced AI Chat Agent Endpoint ====================
+
+@app.post("/api/ask_agent/")
+async def ask_agent(
+    user_id: str = Form(...),
+    question: str = Form(...),
+    chat_id: Optional[str] = Form(None),
+    chat_mode: Optional[str] = Form(None),  # tutoring, socratic, explanation, etc.
+    response_style: Optional[str] = Form(None),  # concise, detailed, step_by_step, etc.
+    db: Session = Depends(get_db)
+):
+    """
+    Enhanced AI chat endpoint using the LangGraph-based Chat Agent.
+    Provides intelligent tutoring with:
+    - Emotional intelligence (detects confusion, frustration, curiosity)
+    - Adaptive response styles
+    - Memory-aware context
+    - Self-reflection and quality improvement
+    - Suggested follow-up questions
+    """
+    import time
+    start_time = time.time()
+    
+    print(f"\n🤖 ASK_AGENT CALLED 🤖")
+    print(f"🤖 User: {user_id}, Question: {question[:50]}..., Mode: {chat_mode}")
+    
+    try:
+        # Get user
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            print(f"❌ User not found: {user_id}")
+            return {
+                "answer": "Please log in again - your session may have expired.",
+                "ai_confidence": 0.0,
+                "chat_mode": "error",
+                "emotional_state": "neutral",
+                "suggested_questions": [],
+                "topics_discussed": ["error"]
+            }
+        
+        # Validate chat_id
+        chat_id_int = None
+        if chat_id:
+            try:
+                chat_id_int = int(chat_id)
+            except ValueError:
+                chat_id_int = None
+        
+        # Try to use the LangGraph Chat Agent
+        try:
+            from agents.agent_api import get_chat_agent
+            chat_agent = get_chat_agent()
+            
+            # Build state for the agent
+            session_id = f"chat_{user.id}_{chat_id_int or 'new'}"
+            
+            state = {
+                "user_id": str(user.id),
+                "user_input": question,
+                "session_id": session_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "user_preferences": {
+                    "learning_style": user.learning_style or "mixed",
+                    "difficulty_level": "intermediate",
+                    "field_of_study": user.field_of_study or "general"
+                }
+            }
+            
+            # Add optional mode/style
+            if chat_mode:
+                state["chat_mode"] = chat_mode
+            if response_style:
+                state["response_style"] = response_style
+            
+            # Invoke the chat agent
+            result = await chat_agent.invoke(state)
+            
+            response = result.response
+            metadata = result.metadata
+            
+            print(f"🤖 Agent response: {len(response)} chars, mode: {metadata.get('chat_mode')}")
+            
+        except Exception as agent_error:
+            print(f"⚠️ Chat agent failed, falling back to simple AI: {agent_error}")
+            # Fallback to simple AI call
+            first_name = user.first_name or "there"
+            field_of_study = user.field_of_study or "your studies"
+            
+            prompt = f"""You are a helpful AI tutor assisting {first_name}, who is studying {field_of_study}.
+Be warm, encouraging, and personalized. Provide clear, educational responses.
+
+Question: {question}"""
+            
+            response = call_ai(prompt, max_tokens=2000, temperature=0.7)
+            metadata = {
+                "chat_mode": "tutoring",
+                "response_style": "conversational",
+                "emotional_state": "neutral",
+                "quality_score": 0.7,
+                "concepts_discussed": [],
+                "suggested_questions": [],
+                "fallback": True
+            }
+        
+        # Save message to database
+        if chat_id_int:
+            try:
+                existing_message = db.query(models.ChatMessage).filter(
+                    models.ChatMessage.chat_session_id == chat_id_int,
+                    models.ChatMessage.user_message == question,
+                    models.ChatMessage.ai_response == response
+                ).first()
+                
+                if not existing_message:
+                    chat_message = models.ChatMessage(
+                        chat_session_id=chat_id_int,
+                        user_id=user.id,
+                        user_message=question,
+                        ai_response=response,
+                        is_user=True
+                    )
+                    db.add(chat_message)
+                    
+                    # Update chat session timestamp
+                    chat_session = db.query(models.ChatSession).filter(
+                        models.ChatSession.id == chat_id_int
+                    ).first()
+                    if chat_session:
+                        chat_session.updated_at = datetime.now(timezone.utc)
+                    
+                    # Award points
+                    try:
+                        from gamification_system import award_points
+                        award_points(db, user.id, "ai_chat")
+                    except Exception as gam_error:
+                        print(f"⚠️ Points award failed: {gam_error}")
+                    
+                    db.commit()
+                    print(f"✅ Message saved to chat {chat_id_int}")
+            except Exception as save_error:
+                print(f"❌ Save error: {save_error}")
+                db.rollback()
+        
+        execution_time = (time.time() - start_time) * 1000
+        
+        return {
+            "answer": response,
+            "ai_confidence": metadata.get("quality_score", 0.8),
+            "misconception_detected": False,
+            "should_request_feedback": metadata.get("quality_score", 0.8) < 0.6,
+            "topics_discussed": metadata.get("concepts_discussed", []),
+            "query_type": "agent",
+            "model_used": "langgraph_chat_agent",
+            "ai_provider": "LangGraph",
+            "chat_id": chat_id_int,
+            # Enhanced agent metadata
+            "chat_mode": metadata.get("chat_mode", "tutoring"),
+            "response_style": metadata.get("response_style", "conversational"),
+            "emotional_state": metadata.get("emotional_state", "neutral"),
+            "quality_score": metadata.get("quality_score", 0.7),
+            "suggested_questions": metadata.get("suggested_questions", []),
+            "learning_actions": metadata.get("learning_actions", []),
+            "execution_time_ms": execution_time
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"\n❌ ERROR IN ASK_AGENT: {str(e)}")
+        print(f"❌ Traceback:\n{error_details}\n")
+        return {
+            "answer": f"Error: {str(e)}",
+            "ai_confidence": 0.3,
+            "chat_mode": "error",
+            "emotional_state": "neutral",
+            "suggested_questions": [],
+            "topics_discussed": ["error"]
+        }
+
+
 @app.post("/api/create_chat_session")
 def create_chat_session(
     session_data: ChatSessionCreate,
