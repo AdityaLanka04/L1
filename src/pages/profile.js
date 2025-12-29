@@ -124,10 +124,12 @@ const Profile = () => {
     try {
       const saveData = {
         ...profileData,
-        userName,
+        user_id: userName,
         difficultyLevel: profileData.difficultyLevel || 'intermediate',
         learningPace: profileData.learningPace || 'moderate'
       };
+      
+      console.log('📊 Saving profile with showStudyInsights:', saveData.showStudyInsights);
       
       const response = await fetch(`${API_URL}/update_comprehensive_profile`, {
         method: 'POST',
@@ -142,6 +144,9 @@ const Profile = () => {
         lastSavedProfile.current = profileSnapshot;
         setLastSaved(new Date().toLocaleTimeString());
         localStorage.setItem('userProfile', profileSnapshot);
+        console.log('📊 Profile saved successfully');
+      } else {
+        console.error('📊 Failed to save profile:', await response.text());
       }
     } catch (error) {
       console.error('Error auto-saving profile:', error);
@@ -221,8 +226,11 @@ const Profile = () => {
           secondaryArchetype: data.secondaryArchetype || '',
           archetypeDescription: data.archetypeDescription || '',
           archetypeScores: {},
-          showStudyInsights: data.showStudyInsights !== false
+          // Only default to true if showStudyInsights is undefined/null, otherwise use the actual value
+          showStudyInsights: data.showStudyInsights === false ? false : true
         };
+        
+        console.log('📊 Loaded profile - raw showStudyInsights:', data.showStudyInsights, 'type:', typeof data.showStudyInsights, '→ final:', newProfileData.showStudyInsights);
 
         try {
           if (data.archetypeScores) {
@@ -268,7 +276,7 @@ const Profile = () => {
         [field]: value
       };
       
-      // For showStudyInsights, immediately update localStorage so it takes effect right away
+      // For showStudyInsights, immediately update localStorage AND trigger immediate save
       if (field === 'showStudyInsights') {
         const currentProfile = localStorage.getItem('userProfile');
         if (currentProfile) {
@@ -281,6 +289,35 @@ const Profile = () => {
             console.error('Error updating localStorage:', e);
           }
         }
+        
+        // Immediately save to backend (don't wait for auto-save timer)
+        const saveData = {
+          ...newData,
+          user_id: userName,
+          difficultyLevel: newData.difficultyLevel || 'intermediate',
+          learningPace: newData.learningPace || 'moderate'
+        };
+        
+        console.log('📊 Immediately saving showStudyInsights:', value);
+        
+        fetch(`${API_URL}/update_comprehensive_profile`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(saveData)
+        }).then(response => {
+          if (response.ok) {
+            console.log('📊 showStudyInsights saved successfully to backend');
+            lastSavedProfile.current = JSON.stringify(newData);
+            setLastSaved(new Date().toLocaleTimeString());
+          } else {
+            console.error('📊 Failed to save showStudyInsights');
+          }
+        }).catch(error => {
+          console.error('📊 Error saving showStudyInsights:', error);
+        });
       }
       
       return newData;

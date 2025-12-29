@@ -8437,6 +8437,9 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
         }
 
         if comprehensive_profile:
+            show_insights_value = comprehensive_profile.show_study_insights
+            logger.info(f"📊 Loading profile - show_study_insights from DB: {show_insights_value} (type: {type(show_insights_value)})")
+            
             result.update({
                 "difficultyLevel": comprehensive_profile.difficulty_level or "intermediate",
                 "learningPace": comprehensive_profile.learning_pace or "moderate",
@@ -8444,7 +8447,7 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
                 "primaryArchetype": comprehensive_profile.primary_archetype or "",
                 "secondaryArchetype": comprehensive_profile.secondary_archetype or "",
                 "archetypeDescription": comprehensive_profile.archetype_description or "",
-                "showStudyInsights": comprehensive_profile.show_study_insights if comprehensive_profile.show_study_insights is not None else True
+                "showStudyInsights": show_insights_value if show_insights_value is not None else True
             })
 
             try:
@@ -8468,7 +8471,13 @@ async def update_comprehensive_profile(
     db: Session = Depends(get_db)
 ):
     try:
+        logger.info(f"📊 Received profile update payload: {payload}")
+        
         user_id = payload.get("user_id")
+        if not user_id:
+            logger.error("📊 No user_id in payload!")
+            raise HTTPException(status_code=400, detail="user_id is required")
+            
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -8502,7 +8511,12 @@ async def update_comprehensive_profile(
         
         # Handle showStudyInsights setting
         if "showStudyInsights" in payload:
-            comprehensive_profile.show_study_insights = payload["showStudyInsights"]
+            value = payload["showStudyInsights"]
+            # Ensure it's a boolean
+            if isinstance(value, str):
+                value = value.lower() == 'true'
+            comprehensive_profile.show_study_insights = bool(value)
+            logger.info(f"📊 Setting show_study_insights to: {comprehensive_profile.show_study_insights} (received: {payload['showStudyInsights']})")
 
         comprehensive_profile.updated_at = datetime.now(timezone.utc)
 
