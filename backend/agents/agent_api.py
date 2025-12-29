@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from pydantic import BaseModel
 
 from .base_agent import AgentState, AgentType, agent_registry
-from .orchestrator import OrchestratorAgent, create_orchestrator, Intent
+from .intelligent_orchestrator import IntelligentOrchestrator, create_intelligent_orchestrator
 
 logger = logging.getLogger(__name__)
 
@@ -57,11 +57,12 @@ class IntentClassifyResponse(BaseModel):
 
 # ==================== Global State ====================
 
-_orchestrator: Optional[OrchestratorAgent] = None
+_orchestrator: Optional[IntelligentOrchestrator] = None
 _knowledge_graph = None
+_db_session_factory = None
 
 
-def get_orchestrator() -> OrchestratorAgent:
+def get_orchestrator() -> IntelligentOrchestrator:
     """Get the orchestrator instance"""
     if _orchestrator is None:
         raise HTTPException(status_code=503, detail="Agent system not initialized")
@@ -70,16 +71,22 @@ def get_orchestrator() -> OrchestratorAgent:
 
 # ==================== Initialization ====================
 
-async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None):
-    """Initialize the agent system"""
-    global _orchestrator, _knowledge_graph
+async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, db_session_factory: Any = None):
+    """Initialize the intelligent agent system"""
+    global _orchestrator, _knowledge_graph, _db_session_factory
     
-    logger.info("Initializing agent system...")
+    logger.info("Initializing intelligent agent system...")
     
     _knowledge_graph = knowledge_graph
-    _orchestrator = create_orchestrator(ai_client, knowledge_graph)
+    _db_session_factory = db_session_factory
     
-    logger.info("Agent system initialized successfully")
+    _orchestrator = create_intelligent_orchestrator(
+        ai_client=ai_client,
+        knowledge_graph=knowledge_graph,
+        db_session_factory=db_session_factory
+    )
+    
+    logger.info("Intelligent agent system initialized successfully")
     return _orchestrator
 
 
@@ -88,25 +95,24 @@ async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None):
 @router.post("/invoke", response_model=AgentResponse)
 async def invoke_agent(request: AgentRequest):
     """
-    Main endpoint to invoke the agent system.
-    The orchestrator will classify intent and route to appropriate agents.
+    Main endpoint to invoke the intelligent agent system.
+    Uses ReAct reasoning, tool calling, and self-reflection.
     """
     orchestrator = get_orchestrator()
     
     # Build initial state
-    state: AgentState = {
+    state = {
         "user_id": request.user_id,
         "user_input": request.user_input,
         "session_id": request.session_id or f"session_{request.user_id}_{datetime.utcnow().timestamp()}",
         "attachments": request.attachments or [],
         "user_profile": request.context.get("user_profile", {}),
-        "timestamp": datetime.utcnow().isoformat(),
-        "errors": [],
-        "warnings": [],
-        "execution_path": []
+        "learning_style": request.context.get("learning_style", "mixed"),
+        "difficulty_level": request.context.get("difficulty_level", "intermediate"),
+        "timestamp": datetime.utcnow().isoformat()
     }
     
-    # Invoke orchestrator
+    # Invoke intelligent orchestrator
     result = await orchestrator.invoke(state)
     
     return AgentResponse(
@@ -114,7 +120,7 @@ async def invoke_agent(request: AgentRequest):
         response=result.response,
         intent=result.metadata.get("intent"),
         confidence=result.confidence,
-        agents_used=result.metadata.get("agents_used", []),
+        agents_used=result.metadata.get("tools_used", []),
         suggested_followups=result.suggested_followups,
         execution_time_ms=result.execution_time_ms,
         metadata=result.metadata
@@ -124,32 +130,66 @@ async def invoke_agent(request: AgentRequest):
 @router.post("/classify", response_model=IntentClassifyResponse)
 async def classify_intent(request: IntentClassifyRequest):
     """
-    Classify user intent without executing agents.
+    Classify user intent and decompose into tasks.
     Useful for UI hints and pre-processing.
     """
     orchestrator = get_orchestrator()
     
-    result = await orchestrator.intent_classifier.classify(
-        request.user_input,
-        request.context
-    )
+    # Use the AI client directly for classification
+    prompt = f"""Classify this user request into one of these intents:
+- flashcard_create, flashcard_review
+- chat_explain, chat_question
+- notes_create, notes_summarize
+- quiz_generate, quiz_take
+- search_content
+- general
+
+User input: "{request.user_input}"
+
+Return JSON: {{"intent": "...", "confidence": 0.0-1.0, "sub_intents": []}}
+"""
     
-    return IntentClassifyResponse(
-        intent=result["intent"].value,
-        confidence=result["confidence"],
-        sub_intents=[i.value for i in result.get("sub_intents", [])],
-        method=result.get("method", "")
-    )
+    try:
+        import json
+        response = orchestrator.ai_client.generate(prompt, max_tokens=100, temperature=0.1)
+        
+        json_str = response.strip()
+        if "```json" in json_str:
+            json_str = json_str.split("```json")[1].split("```")[0]
+        elif "```" in json_str:
+            json_str = json_str.split("```")[1].split("```")[0]
+        
+        result = json.loads(json_str)
+        
+        return IntentClassifyResponse(
+            intent=result.get("intent", "general"),
+            confidence=result.get("confidence", 0.5),
+            sub_intents=result.get("sub_intents", []),
+            method="llm"
+        )
+    except Exception as e:
+        return IntentClassifyResponse(
+            intent="general",
+            confidence=0.3,
+            sub_intents=[],
+            method="fallback"
+        )
 
 
 @router.get("/status")
 async def get_agent_status():
-    """Get status of the agent system"""
-    registered = agent_registry.get_all()
-    
+    """Get status of the intelligent agent system"""
     return {
         "status": "healthy" if _orchestrator else "not_initialized",
-        "registered_agents": [a.value for a in registered.keys()],
+        "type": "intelligent_orchestrator",
+        "capabilities": [
+            "react_reasoning",
+            "tool_calling", 
+            "self_reflection",
+            "task_decomposition",
+            "knowledge_graph_integration"
+        ],
+        "tools_available": len(_orchestrator.all_tools) if _orchestrator else 0,
         "knowledge_graph_connected": _knowledge_graph is not None,
         "timestamp": datetime.utcnow().isoformat()
     }
@@ -158,16 +198,30 @@ async def get_agent_status():
 @router.get("/intents")
 async def list_intents():
     """List all available intents"""
+    intents = [
+        {"name": "flashcard_create", "description": "Create flashcards from content"},
+        {"name": "flashcard_review", "description": "Review existing flashcards"},
+        {"name": "chat_explain", "description": "Explain a concept"},
+        {"name": "chat_question", "description": "Answer a question"},
+        {"name": "notes_create", "description": "Create notes"},
+        {"name": "notes_summarize", "description": "Summarize content"},
+        {"name": "quiz_generate", "description": "Generate quiz questions"},
+        {"name": "quiz_take", "description": "Take a quiz"},
+        {"name": "search_content", "description": "Search user content"},
+        {"name": "general", "description": "General assistance"}
+    ]
+    return {"intents": intents}
+
+
+@router.get("/tools")
+async def list_tools():
+    """List all available tools"""
+    if not _orchestrator:
+        return {"tools": []}
+    
     return {
-        "intents": [
-            {
-                "name": intent.value,
-                "agent": INTENT_AGENT_MAP.get(intent, AgentType.CHAT).value
-            }
-            for intent in Intent
+        "tools": [
+            {"name": tool.name, "description": tool.description}
+            for tool in _orchestrator.all_tools
         ]
     }
-
-
-# Import for the intents endpoint
-from .orchestrator import INTENT_AGENT_MAP

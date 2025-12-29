@@ -10,14 +10,20 @@ from fastapi import FastAPI
 logger = logging.getLogger(__name__)
 
 
-async def setup_agent_system(app: FastAPI, ai_client, enable_knowledge_graph: bool = True):
+async def setup_agent_system(
+    app: FastAPI, 
+    ai_client, 
+    enable_knowledge_graph: bool = True,
+    db_session_factory = None
+):
     """
-    Initialize and integrate the agent system with FastAPI
+    Initialize and integrate the intelligent agent system with FastAPI
     
     Args:
         app: FastAPI application instance
         ai_client: Unified AI client (Gemini/Groq)
         enable_knowledge_graph: Whether to connect to Neo4j
+        db_session_factory: SQLAlchemy session factory for database access
     """
     from agents.agent_api import initialize_agent_system
     
@@ -35,10 +41,10 @@ async def setup_agent_system(app: FastAPI, ai_client, enable_knowledge_graph: bo
         except Exception as e:
             logger.warning(f"⚠️ Knowledge graph initialization failed: {e}")
     
-    # Initialize agent system
-    await initialize_agent_system(ai_client, knowledge_graph)
+    # Initialize intelligent agent system
+    await initialize_agent_system(ai_client, knowledge_graph, db_session_factory)
     
-    logger.info("✅ Agent system setup complete")
+    logger.info("✅ Intelligent agent system setup complete")
     
     return True
 

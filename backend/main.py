@@ -754,8 +754,13 @@ async def fix_database_sequences():
     # Initialize LangGraph Agent System
     try:
         from agents.setup import setup_agent_system
-        await setup_agent_system(app, unified_ai, enable_knowledge_graph=True)
-        logger.info("✅ LangGraph Agent System initialized successfully")
+        await setup_agent_system(
+            app, 
+            unified_ai, 
+            enable_knowledge_graph=True,
+            db_session_factory=SessionLocal
+        )
+        logger.info("✅ LangGraph Intelligent Agent System initialized successfully")
     except Exception as e:
         logger.warning(f"⚠️ Agent system initialization failed (non-critical): {e}")
         logger.info("   App will continue without agent system")
