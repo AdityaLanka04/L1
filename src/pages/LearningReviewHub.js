@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Map, HelpCircle, BookOpen, TrendingUp } from 'lucide-react';
+import { Map, HelpCircle, BookOpen, TrendingUp, Target, ChevronRight, Play } from 'lucide-react';
 import './LearningReviewHub.css';
 import { API_URL } from '../config';
 
@@ -8,6 +8,7 @@ const LearningReviewHub = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
   const [userName, setUserName] = useState('User');
+  const [hoveredCard, setHoveredCard] = useState(null);
 
   useEffect(() => {
     fetchUserProfile();
@@ -31,80 +32,141 @@ const LearningReviewHub = () => {
     {
       icon: Map,
       title: 'Knowledge Roadmap',
-      description: 'Build an interactive map of a topic with expandable nodes. Navigate through concepts and learn progressively.',
+      description: 'Build interactive concept maps with expandable nodes. Navigate through topics progressively and master complex subjects.',
       path: '/knowledge-roadmap',
-      id: 'roadmap'
+      id: 'roadmap',
+      cta: 'Build Roadmap',
+      stat: 'Visual Learning',
+      featured: true
     },
     {
       icon: HelpCircle,
       title: 'Question Bank',
-      description: 'Create custom practice questions based on your notes, slides, or any topic to test your knowledge.',
+      description: 'Generate custom practice questions from your notes, slides, or any topic. Test and reinforce your knowledge.',
       path: '/question-bank',
-      id: 'questions'
+      id: 'questions',
+      cta: 'Create Questions',
+      stat: 'Active Recall'
     },
     {
       icon: BookOpen,
       title: 'Slide Explorer',
-      description: 'Upload and explore your presentation slides. Generate AI-powered insights and summaries.',
+      description: 'Upload presentations and get AI-powered insights, summaries, and key takeaways from your slides.',
       path: '/slide-explorer',
-      id: 'slides'
+      id: 'slides',
+      cta: 'Upload Slides',
+      stat: 'AI Analysis'
     },
     {
       icon: TrendingUp,
       title: 'Statistics',
-      description: 'Track your learning progress, view performance metrics, and identify your strength and improvement areas.',
+      description: 'Track learning progress, view performance metrics, and identify strengths and areas for improvement.',
       path: '/statistics',
-      id: 'stats'
+      id: 'stats',
+      cta: 'View Stats',
+      stat: 'Progress Tracking'
     }
   ];
 
   return (
-    <div className="learning-review-hub-container">
-      <header className="learning-review-hub-header">
-        <div className="learning-review-hub-header-left">
-          <h1 className="learning-review-hub-logo" onClick={() => navigate('/dashboard')}>cerbyl</h1>
-          <span className="learning-review-hub-subtitle">LEARNING REVIEW HUB</span>
+    <div className="lrh">
+      {/* Ambient Background */}
+      <div className="lrh-ambient">
+        <div className="lrh-ambient-orb lrh-ambient-orb-1"></div>
+        <div className="lrh-ambient-orb lrh-ambient-orb-2"></div>
+        <div className="lrh-ambient-grid"></div>
+      </div>
+
+      {/* Header */}
+      <header className="lrh-header">
+        <div className="lrh-header-left">
+          <h1 className="lrh-logo" onClick={() => navigate('/dashboard')}>
+            cerbyl
+          </h1>
+          <div className="lrh-header-divider"></div>
+          <span className="lrh-subtitle">Learning Hub</span>
         </div>
-        <div className="learning-review-hub-header-right">
-          <button className="learning-review-hub-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
-          <button className="learning-review-hub-nav-btn logout" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>Logout</button>
-        </div>
+        <nav className="lrh-header-right">
+          <button className="lrh-nav-btn lrh-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            <span>Dashboard</span>
+            <ChevronRight size={14} />
+          </button>
+          <button className="lrh-nav-btn lrh-nav-btn-outline" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>
+            Logout
+          </button>
+        </nav>
       </header>
 
-      <div className="learning-review-hub-main">
-        <div className="learning-review-hub-welcome">
-          <h2 className="learning-review-hub-welcome-title">Welcome back, {userName}</h2>
-          <p className="learning-review-hub-welcome-subtitle">Choose a learning tool to get started</p>
-        </div>
+      {/* Main Content */}
+      <main className="lrh-main">
+        {/* Hero Section - Compact */}
+        <section className="lrh-hero">
+          <h2 className="lrh-hero-title">
+            Welcome back, <span className="lrh-hero-name">{userName}</span>
+          </h2>
+          <p className="lrh-hero-subtitle">
+            Select a tool to accelerate your learning journey
+          </p>
+        </section>
 
-        <div className="learning-review-hub-grid">
-          {tools.map(tool => {
+        {/* Tools Grid */}
+        <section className="lrh-grid">
+          {tools.map((tool, index) => {
             const IconComponent = tool.icon;
+            const isHovered = hoveredCard === tool.id;
             return (
-              <div 
+              <article 
                 key={tool.id}
-                className="learning-review-hub-card"
+                className={`lrh-card ${tool.featured ? 'lrh-card-featured' : ''} ${isHovered ? 'lrh-card-hovered' : ''}`}
                 onClick={() => navigate(tool.path)}
+                onMouseEnter={() => setHoveredCard(tool.id)}
+                onMouseLeave={() => setHoveredCard(null)}
+                style={{ '--card-index': index }}
               >
-                <div className="learning-review-hub-card-header">
-                  <div className="learning-review-hub-card-icon">
-                    <IconComponent size={40} strokeWidth={1.5} />
+                {/* Card Glow Effect */}
+                <div className="lrh-card-glow"></div>
+                
+                {/* Card Border Gradient */}
+                <div className="lrh-card-border"></div>
+
+                {/* Card Content */}
+                <div className="lrh-card-inner">
+                  {/* Top Section */}
+                  <div className="lrh-card-top">
+                    <div className="lrh-card-icon-wrapper">
+                      <div className="lrh-card-icon">
+                        <IconComponent size={24} strokeWidth={1.5} />
+                      </div>
+                      <div className="lrh-card-icon-bg"></div>
+                    </div>
+                    <div className="lrh-card-badge">
+                      <Target size={10} />
+                      <span>{tool.stat}</span>
+                    </div>
+                  </div>
+
+                  {/* Middle Section */}
+                  <div className="lrh-card-body">
+                    <h3 className="lrh-card-title">{tool.title}</h3>
+                    <p className="lrh-card-desc">{tool.description}</p>
+                  </div>
+
+                  {/* Bottom Section */}
+                  <div className="lrh-card-footer">
+                    <button className="lrh-card-cta">
+                      <span>{tool.cta}</span>
+                      <Play size={12} fill="currentColor" className="lrh-card-cta-icon" />
+                    </button>
                   </div>
                 </div>
 
-                <div className="learning-review-hub-card-content">
-                  <h3 className="learning-review-hub-card-title">{tool.title}</h3>
-                  <p className="learning-review-hub-card-description">{tool.description}</p>
-                </div>
-
-                <div className="learning-review-hub-card-footer">
-                  <button className="learning-review-hub-card-action">EXPLORE NOW</button>
-                </div>
-              </div>
+                {/* Hover Line */}
+                <div className="lrh-card-line"></div>
+              </article>
             );
           })}
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 };

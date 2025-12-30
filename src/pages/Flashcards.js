@@ -132,10 +132,13 @@ const Flashcards = () => {
       });
       if (response.ok) {
         const data = await response.json();
-        setFlashcardHistory(data.flashcard_history || []);
+        setFlashcardHistory(Array.isArray(data.flashcard_history) ? data.flashcard_history : []);
+      } else {
+        setFlashcardHistory([]);
       }
     } catch (error) {
       console.error('Error loading flashcard history:', error);
+      setFlashcardHistory([]);
     }
     setLoadingHistory(false);
   }, [userName]);
@@ -166,10 +169,15 @@ const Flashcards = () => {
       });
       if (response.ok) {
         const data = await response.json();
-        setReviewCards(data);
+        // Ensure data has the expected structure
+        setReviewCards({
+          total_cards: data.total_cards || 0,
+          sets: Array.isArray(data.sets) ? data.sets : []
+        });
       }
     } catch (error) {
       console.error('Error loading review cards:', error);
+      setReviewCards({ total_cards: 0, sets: [] });
     }
     setLoadingReviewCards(false);
   }, [userName]);
@@ -492,21 +500,21 @@ const Flashcards = () => {
   };
 
   const getFilteredAndSortedSets = () => {
-    let filtered = flashcardHistory;
+    let filtered = flashcardHistory || [];
     if (searchQuery) {
       filtered = filtered.filter(set => 
-        set.title.toLowerCase().includes(searchQuery.toLowerCase())
+        set.title?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
     switch (sortBy) {
       case 'alphabetical':
-        filtered = [...filtered].sort((a, b) => a.title.localeCompare(b.title));
+        filtered = [...filtered].sort((a, b) => (a.title || '').localeCompare(b.title || ''));
         break;
       case 'cards':
-        filtered = [...filtered].sort((a, b) => b.card_count - a.card_count);
+        filtered = [...filtered].sort((a, b) => (b.card_count || 0) - (a.card_count || 0));
         break;
       case 'accuracy':
-        filtered = [...filtered].sort((a, b) => b.accuracy_percentage - a.accuracy_percentage);
+        filtered = [...filtered].sort((a, b) => (b.accuracy_percentage || 0) - (a.accuracy_percentage || 0));
         break;
       default:
         break;
@@ -1508,7 +1516,7 @@ const Flashcards = () => {
                       <div className="fc-sessions-header">
                         <h3>Select Chat Sessions</h3>
                         <div className="fc-sessions-actions">
-                          <button className="fc-btn fc-btn-secondary" onClick={() => setSelectedSessions(chatSessions.map(s => s.id))}>Select All</button>
+                          <button className="fc-btn fc-btn-secondary" onClick={() => setSelectedSessions((chatSessions || []).map(s => s.id))}>Select All</button>
                           <button className="fc-btn fc-btn-secondary" onClick={() => setSelectedSessions([])}>Clear</button>
                         </div>
                       </div>
@@ -1522,7 +1530,7 @@ const Flashcards = () => {
                         </div>
                       ) : (
                         <div className="fc-sessions-list">
-                          {chatSessions.map((session) => (
+                          {(chatSessions || []).map((session) => (
                             <div
                               key={session.id}
                               className={`fc-session-item ${selectedSessions.includes(session.id) ? 'selected' : ''}`}
@@ -1626,14 +1634,14 @@ const Flashcards = () => {
                       <span className="fc-review-count">{reviewCards.total_cards} cards</span> need your attention
                     </div>
                     
-                    {reviewCards.sets.map((setData) => (
+                    {(reviewCards.sets || []).map((setData) => (
                       <div key={setData.set_id} className="fc-review-set">
                         <div className="fc-review-set-header">
                           <h3>{setData.set_title}</h3>
-                          <span className="fc-review-set-count">{setData.cards.length} cards</span>
+                          <span className="fc-review-set-count">{(setData.cards || []).length} cards</span>
                         </div>
                         <div className="fc-review-cards-list">
-                          {setData.cards.map((card) => (
+                          {(setData.cards || []).map((card) => (
                             <div key={card.id} className="fc-review-card-item">
                               <div className="fc-review-card-content">
                                 <div className="fc-review-card-question">
@@ -1663,7 +1671,7 @@ const Flashcards = () => {
                           className="fc-btn fc-btn-primary fc-review-study-btn"
                           onClick={() => {
                             // Load just the review cards from this set for study
-                            const reviewCardsForSet = setData.cards;
+                            const reviewCardsForSet = setData.cards || [];
                             setFlashcards(reviewCardsForSet);
                             setShuffledCards(reviewCardsForSet);
                             setCurrentCard(0);

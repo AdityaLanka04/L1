@@ -8328,6 +8328,41 @@ html[data-theme-mode="dark"] .dashboard-page .widget-timeline-styled svg * {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
+/* Light Mode Notification Dropdown */
+[data-theme-mode="light"] .dashboard-page .notification-dropdown {
+  background: #ffffff;
+  border: 1px solid color-mix(in srgb, var(--accent) 15%, #e2e8f0);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme-mode="light"] .dashboard-page .notif-header {
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 10%, #e2e8f0);
+}
+
+[data-theme-mode="light"] .dashboard-page .notif-title {
+  color: var(--text-primary);
+}
+
+[data-theme-mode="light"] .dashboard-page .notif-item:hover {
+  background: color-mix(in srgb, var(--accent) 8%, #f8f9fa);
+}
+
+[data-theme-mode="light"] .dashboard-page .notif-item.notif-unread {
+  background: color-mix(in srgb, var(--accent) 10%, #f8f9fa);
+}
+
+[data-theme-mode="light"] .dashboard-page .notif-text {
+  color: var(--text-primary);
+}
+
+[data-theme-mode="light"] .dashboard-page .notif-time {
+  color: var(--text-secondary);
+}
+
+[data-theme-mode="light"] .dashboard-page .notif-empty {
+  color: var(--text-secondary);
+}
+
 /* Light Mode View All Button */
 [data-theme-mode="light"] .dashboard-page .view-all-btn {
   color: var(--accent);

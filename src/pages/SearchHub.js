@@ -1950,12 +1950,11 @@ const SearchHub = () => {
                   {Object.values(THEMES).filter(t => t.mode === 'dark').map(theme => (
                     <button
                       key={theme.id}
-                      className={`theme-option ${selectedTheme === theme.id ? 'active' : ''}`}
+                      className={`theme-option theme-option-dark ${selectedTheme === theme.id ? 'active' : ''}`}
                       onClick={() => handleThemeChange(theme.id)}
                       style={{ 
                         '--theme-primary': '#0b0b0c',
-                        '--theme-accent': theme.accent,
-                        background: `linear-gradient(135deg, #0b0b0c 0%, ${theme.accent} 100%)`
+                        '--theme-accent': theme.accent
                       }}
                     >
                       <span className="sparkle"></span>
@@ -1976,12 +1975,11 @@ const SearchHub = () => {
                   {Object.values(THEMES).filter(t => t.mode === 'light').map(theme => (
                     <button
                       key={theme.id}
-                      className={`theme-option ${selectedTheme === theme.id ? 'active' : ''}`}
+                      className={`theme-option theme-option-light ${selectedTheme === theme.id ? 'active' : ''}`}
                       onClick={() => handleThemeChange(theme.id)}
                       style={{ 
                         '--theme-primary': '#fefefe',
-                        '--theme-accent': theme.accent,
-                        background: `linear-gradient(135deg, #fefefe 0%, ${theme.accent} 100%)`
+                        '--theme-accent': theme.accent
                       }}
                     >
                       <span className="sparkle"></span>

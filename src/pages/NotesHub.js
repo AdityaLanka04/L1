@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Upload, Youtube, FileText, Mic, Video, BookOpen, Edit3, User, Zap, ChevronLeft
+  Upload, Youtube, FileText, Mic, BookOpen, Edit3, FolderOpen, Zap, ChevronRight, Play
 } from 'lucide-react';
 import './NotesHub.css';
 import './NotesHubConvert.css';
-import { API_URL } from '../config';
 import ImportExportModal from '../components/ImportExportModal';
 
 const NotesHub = () => {
   const navigate = useNavigate();
   const [showImportExport, setShowImportExport] = useState(false);
+  const [hoveredSection, setHoveredSection] = useState(null);
 
-  // Disable scrolling on this page
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
@@ -24,100 +23,129 @@ const NotesHub = () => {
   }, []);
 
   return (
-    <div className="notes-hub-page notes-hub-split">
-      <div className="notes-hub-header">
-        <div className="header-left">
-          <h1 className="page-title">cerbyl</h1>
-          <span className="page-subtitle">study notes</span>
+    <div className="nh">
+      {/* Ambient Background */}
+      <div className="nh-ambient">
+        <div className="nh-ambient-orb nh-ambient-orb-1"></div>
+        <div className="nh-ambient-orb nh-ambient-orb-2"></div>
+        <div className="nh-ambient-grid"></div>
+      </div>
+
+      {/* Header */}
+      <header className="nh-header">
+        <div className="nh-header-left">
+          <h1 className="nh-logo" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <div className="nh-header-divider"></div>
+          <span className="nh-subtitle">Study Notes</span>
         </div>
-        <div className="header-actions">
+        <nav className="nh-header-right">
           <button 
             onClick={(e) => {
               e.stopPropagation();
               setShowImportExport(true);
             }} 
-            className="convert-btn"
-            title="Convert notes"
+            className="nh-nav-btn nh-nav-btn-accent"
           >
-            <Zap size={18} />
+            <Zap size={16} />
             <span>Convert</span>
           </button>
-          <button onClick={() => navigate('/dashboard')} className="back-to-dashboard">
-            <ChevronLeft size={18} />
-            <span>back to dashboard</span>
+          <button className="nh-nav-btn nh-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            <span>Dashboard</span>
+            <ChevronRight size={14} />
           </button>
-        </div>
-      </div>
+        </nav>
+      </header>
 
-      <div className="split-container">
+      {/* Main Content - Split View */}
+      <main className="nh-main">
         {/* Left Section - AI Media Notes */}
-        <div className="split-section left-section" onClick={() => navigate('/notes/ai-media')}>
-          <div className="section-content">
-            <div className="section-icon-box">
-              <Mic size={48} strokeWidth={1.5} />
+        <section 
+          className={`nh-section nh-section-ai ${hoveredSection === 'ai' ? 'nh-section-hovered' : ''}`}
+          onClick={() => navigate('/notes/ai-media')}
+          onMouseEnter={() => setHoveredSection('ai')}
+          onMouseLeave={() => setHoveredSection(null)}
+        >
+          <div className="nh-section-glow"></div>
+          <div className="nh-section-inner">
+            <div className="nh-section-icon">
+              <Mic size={40} strokeWidth={1.5} />
             </div>
             
-            <h2 className="section-title">AI Media Notes</h2>
-            <p className="section-subtitle">AI-POWERED TRANSCRIPTION & NOTES</p>
-            
-            <div className="section-features">
-              <div className="feature-item">
-                <Upload size={14} />
-                <span>Audio & Video Files</span>
-              </div>
-              <div className="feature-item">
-                <Youtube size={14} />
-                <span>YouTube Transcripts</span>
-              </div>
-              <div className="feature-item">
-                <FileText size={14} />
-                <span>AI-Generated Notes</span>
+            <div className="nh-section-content">
+              <h2 className="nh-section-title">AI Media Notes</h2>
+              <p className="nh-section-tag">AI-Powered Transcription</p>
+              
+              <div className="nh-features">
+                <div className="nh-feature">
+                  <Upload size={14} />
+                  <span>Audio & Video Files</span>
+                </div>
+                <div className="nh-feature">
+                  <Youtube size={14} />
+                  <span>YouTube Transcripts</span>
+                </div>
+                <div className="nh-feature">
+                  <FileText size={14} />
+                  <span>AI-Generated Notes</span>
+                </div>
               </div>
             </div>
 
-            <button className="section-cta">
-              START GENERATING
+            <button className="nh-section-cta">
+              <span>Start Generating</span>
+              <Play size={12} fill="currentColor" />
             </button>
           </div>
-        </div>
+          <div className="nh-section-line"></div>
+        </section>
 
-        <div className="divider-vertical">
-          <span>OR</span>
+        {/* Divider */}
+        <div className="nh-divider">
+          <span className="nh-divider-text">or</span>
         </div>
 
         {/* Right Section - My Notes */}
-        <div className="split-section right-section" onClick={() => navigate('/notes/my-notes')}>
-          <div className="section-content">
-            <div className="section-icon-box">
-              <BookOpen size={48} strokeWidth={1.5} />
+        <section 
+          className={`nh-section nh-section-manual ${hoveredSection === 'manual' ? 'nh-section-hovered' : ''}`}
+          onClick={() => navigate('/notes/my-notes')}
+          onMouseEnter={() => setHoveredSection('manual')}
+          onMouseLeave={() => setHoveredSection(null)}
+        >
+          <div className="nh-section-glow"></div>
+          <div className="nh-section-inner">
+            <div className="nh-section-icon">
+              <BookOpen size={40} strokeWidth={1.5} />
             </div>
             
-            <h2 className="section-title">my notes</h2>
-            <p className="section-subtitle">MANUAL NOTE-TAKING</p>
-            
-            <div className="section-features">
-              <div className="feature-item">
-                <Edit3 size={14} />
-                <span>Rich Text Editor</span>
-              </div>
-              <div className="feature-item">
-                <FileText size={14} />
-                <span>Organize Notes</span>
-              </div>
-              <div className="feature-item">
-                <User size={14} />
-                <span>Personal Library</span>
+            <div className="nh-section-content">
+              <h2 className="nh-section-title">My Notes</h2>
+              <p className="nh-section-tag">Manual Note-Taking</p>
+              
+              <div className="nh-features">
+                <div className="nh-feature">
+                  <Edit3 size={14} />
+                  <span>Rich Text Editor</span>
+                </div>
+                <div className="nh-feature">
+                  <FileText size={14} />
+                  <span>Organize Notes</span>
+                </div>
+                <div className="nh-feature">
+                  <FolderOpen size={14} />
+                  <span>Personal Library</span>
+                </div>
               </div>
             </div>
 
-            <button className="section-cta">
-              VIEW MY NOTES
+            <button className="nh-section-cta">
+              <span>View My Notes</span>
+              <Play size={12} fill="currentColor" />
             </button>
           </div>
-        </div>
-      </div>
+          <div className="nh-section-line"></div>
+        </section>
+      </main>
       
-      {/* Import/Export Modal */}
       <ImportExportModal
         isOpen={showImportExport}
         onClose={() => setShowImportExport(false)}
