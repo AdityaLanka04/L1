@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from .base_agent import AgentState, AgentType, agent_registry
 from .intelligent_orchestrator import IntelligentOrchestrator, create_intelligent_orchestrator
 from .chat_agent import ChatAgent, create_chat_agent, ChatMode, ResponseStyle
+from .flashcard_agent import FlashcardAgent, create_flashcard_agent, FlashcardAction
 
 logger = logging.getLogger(__name__)
 
@@ -81,10 +82,36 @@ class ChatAgentResponse(BaseModel):
     metadata: Dict[str, Any] = {}
 
 
+class FlashcardAgentRequest(BaseModel):
+    """Request for the flashcard agent"""
+    user_id: str
+    action: str  # generate, review, analyze, recommend, explain
+    topic: Optional[str] = None
+    content: Optional[str] = None
+    card_count: int = 10
+    difficulty: str = "medium"
+    review_results: Optional[List[Dict[str, Any]]] = None
+    session_id: Optional[str] = None
+
+
+class FlashcardAgentResponse(BaseModel):
+    """Response from the flashcard agent"""
+    success: bool
+    action: str
+    response: str
+    cards: Optional[List[Dict[str, str]]] = None
+    session_stats: Optional[Dict[str, Any]] = None
+    recommendations: Optional[List[Dict[str, Any]]] = None
+    analysis: Optional[Dict[str, Any]] = None
+    execution_time_ms: float = 0.0
+    metadata: Dict[str, Any] = {}
+
+
 # ==================== Global State ====================
 
 _orchestrator: Optional[IntelligentOrchestrator] = None
 _chat_agent: Optional[ChatAgent] = None
+_flashcard_agent: Optional[FlashcardAgent] = None
 _knowledge_graph = None
 _db_session_factory = None
 _memory_manager = None
@@ -104,6 +131,13 @@ def get_chat_agent() -> ChatAgent:
     return _chat_agent
 
 
+def get_flashcard_agent() -> FlashcardAgent:
+    """Get the flashcard agent instance"""
+    if _flashcard_agent is None:
+        raise HTTPException(status_code=503, detail="Flashcard agent not initialized")
+    return _flashcard_agent
+
+
 def get_memory():
     """Get the memory manager instance"""
     from .memory import get_memory_manager
@@ -114,7 +148,7 @@ def get_memory():
 
 async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, db_session_factory: Any = None):
     """Initialize the intelligent agent system with unified memory"""
-    global _orchestrator, _chat_agent, _knowledge_graph, _db_session_factory, _memory_manager
+    global _orchestrator, _chat_agent, _flashcard_agent, _knowledge_graph, _db_session_factory, _memory_manager
     
     logger.info("Initializing intelligent agent system with unified memory...")
     
@@ -136,6 +170,15 @@ async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, d
         memory_manager=_memory_manager
     )
     logger.info("✅ Advanced Chat Agent initialized")
+    
+    # Initialize the Flashcard Agent
+    _flashcard_agent = create_flashcard_agent(
+        ai_client=ai_client,
+        knowledge_graph=knowledge_graph,
+        memory_manager=_memory_manager,
+        db_session_factory=db_session_factory
+    )
+    logger.info("✅ Flashcard Agent initialized")
     
     # Initialize orchestrator with memory manager
     _orchestrator = create_intelligent_orchestrator(
@@ -495,3 +538,210 @@ async def remember_interaction(
         raise HTTPException(status_code=400, detail=f"Unknown interaction type: {interaction_type}")
     
     return {"status": "remembered", "type": interaction_type}
+
+
+# ==================== Flashcard Agent API Endpoints ====================
+
+@router.post("/flashcards", response_model=FlashcardAgentResponse)
+async def flashcard_agent_invoke(request: FlashcardAgentRequest):
+    """
+    Main endpoint for the flashcard agent.
+    Supports actions: generate, review, analyze, recommend, explain
+    """
+    import time
+    start_time = time.time()
+    
+    flashcard_agent = get_flashcard_agent()
+    
+    # Build initial state
+    state = {
+        "user_id": request.user_id,
+        "action": request.action,
+        "session_id": request.session_id or f"flashcard_{request.user_id}_{datetime.utcnow().timestamp()}",
+        "timestamp": datetime.utcnow().isoformat(),
+        "action_params": {
+            "topic": request.topic,
+            "card_count": request.card_count,
+            "difficulty": request.difficulty
+        }
+    }
+    
+    # Add topic/content based on action
+    if request.topic:
+        state["topic"] = request.topic
+        state["user_input"] = f"Generate flashcards about {request.topic}"
+    if request.content:
+        state["source_content"] = request.content
+    if request.review_results:
+        state["review_results"] = request.review_results
+    
+    try:
+        # Invoke the flashcard agent
+        result = await flashcard_agent.invoke(state)
+        
+        execution_time = (time.time() - start_time) * 1000
+        
+        # Extract response data
+        response_data = result.metadata.get("response_data", {})
+        
+        return FlashcardAgentResponse(
+            success=result.success,
+            action=request.action,
+            response=result.response,
+            cards=response_data.get("cards"),
+            session_stats=response_data.get("session_stats"),
+            recommendations=response_data.get("recommendations"),
+            analysis=response_data.get("analysis"),
+            execution_time_ms=execution_time,
+            metadata=result.metadata
+        )
+        
+    except Exception as e:
+        logger.error(f"Flashcard agent error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/flashcards/generate", response_model=FlashcardAgentResponse)
+async def flashcard_generate(
+    user_id: str = Body(...),
+    topic: str = Body(None),
+    content: str = Body(None),
+    card_count: int = Body(10),
+    difficulty: str = Body("medium"),
+    session_id: str = Body(None)
+):
+    """Generate flashcards from topic or content using the agent"""
+    request = FlashcardAgentRequest(
+        user_id=user_id,
+        action="generate",
+        topic=topic,
+        content=content,
+        card_count=card_count,
+        difficulty=difficulty,
+        session_id=session_id
+    )
+    return await flashcard_agent_invoke(request)
+
+
+@router.post("/flashcards/review", response_model=FlashcardAgentResponse)
+async def flashcard_review(
+    user_id: str = Body(...),
+    review_results: List[Dict[str, Any]] = Body(...),
+    session_id: str = Body(None)
+):
+    """Process a review session and get spaced repetition updates"""
+    request = FlashcardAgentRequest(
+        user_id=user_id,
+        action="review",
+        review_results=review_results,
+        session_id=session_id
+    )
+    return await flashcard_agent_invoke(request)
+
+
+@router.get("/flashcards/analyze")
+async def flashcard_analyze(user_id: str = Query(...)):
+    """Analyze flashcard performance for a user"""
+    import time
+    start_time = time.time()
+    
+    flashcard_agent = get_flashcard_agent()
+    
+    state = {
+        "user_id": user_id,
+        "action": "analyze",
+        "user_input": "Analyze my flashcard performance",
+        "session_id": f"analyze_{user_id}_{datetime.utcnow().timestamp()}",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    
+    try:
+        result = await flashcard_agent.invoke(state)
+        execution_time = (time.time() - start_time) * 1000
+        
+        response_data = result.metadata.get("response_data", {})
+        
+        return {
+            "success": result.success,
+            "action": "analyze",
+            "response": result.response,
+            "analysis": response_data.get("analysis", {}),
+            "insights": response_data.get("insights", []),
+            "execution_time_ms": execution_time
+        }
+    except Exception as e:
+        logger.error(f"Flashcard analysis error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/flashcards/recommendations")
+async def flashcard_recommendations(user_id: str = Query(...)):
+    """Get study recommendations for a user"""
+    import time
+    start_time = time.time()
+    
+    flashcard_agent = get_flashcard_agent()
+    
+    state = {
+        "user_id": user_id,
+        "action": "recommend",
+        "user_input": "What should I study next?",
+        "session_id": f"recommend_{user_id}_{datetime.utcnow().timestamp()}",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    
+    try:
+        result = await flashcard_agent.invoke(state)
+        execution_time = (time.time() - start_time) * 1000
+        
+        response_data = result.metadata.get("response_data", {})
+        
+        return {
+            "success": result.success,
+            "action": "recommend",
+            "response": result.response,
+            "recommendations": response_data.get("recommendations", []),
+            "execution_time_ms": execution_time
+        }
+    except Exception as e:
+        logger.error(f"Flashcard recommendations error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/flashcards/explain")
+async def flashcard_explain(
+    user_id: str = Body(...),
+    concept: str = Body(...),
+    session_id: str = Body(None)
+):
+    """Get an explanation for a flashcard concept"""
+    import time
+    start_time = time.time()
+    
+    flashcard_agent = get_flashcard_agent()
+    
+    state = {
+        "user_id": user_id,
+        "action": "explain",
+        "topic": concept,
+        "user_input": f"Explain: {concept}",
+        "session_id": session_id or f"explain_{user_id}_{datetime.utcnow().timestamp()}",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    
+    try:
+        result = await flashcard_agent.invoke(state)
+        execution_time = (time.time() - start_time) * 1000
+        
+        response_data = result.metadata.get("response_data", {})
+        
+        return {
+            "success": result.success,
+            "action": "explain",
+            "concept": concept,
+            "explanation": response_data.get("explanation", result.response),
+            "execution_time_ms": execution_time
+        }
+    except Exception as e:
+        logger.error(f"Flashcard explanation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

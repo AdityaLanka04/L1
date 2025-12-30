@@ -211,7 +211,9 @@ const Flashcards = () => {
   const startAgentSession = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/flashcard-agent/start-session`, {
+      
+      // Use the new agent API endpoint
+      const response = await fetch(`${API_URL}/agents/flashcards`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -219,7 +221,8 @@ const Flashcards = () => {
         },
         body: JSON.stringify({
           user_id: userName,
-          session_type: 'review'
+          action: 'recommend',
+          session_id: `review_${Date.now()}`
         })
       });
       
@@ -227,11 +230,16 @@ const Flashcards = () => {
       
       if (result.success) {
         setAgentSessionActive(true);
-        setAgentSessionId(result.data.session_id);
+        setAgentSessionId(`session_${Date.now()}`);
         setSessionStartTime(Date.now());
-        console.log(`Agent session started: ${result.data.card_count} cards`);
-        console.log(`Estimated accuracy: ${(result.data.prediction.estimated_accuracy * 100).toFixed(0)}%`);
-        return result.data.cards;
+        console.log('🎴 Agent session started');
+        
+        // Store recommendations
+        if (result.recommendations) {
+          setStudyRecommendations(result.recommendations);
+        }
+        
+        return result;
       }
     } catch (error) {
       console.error('Error starting agent session:', error);
@@ -241,7 +249,9 @@ const Flashcards = () => {
   const reviewCardWithAgent = async (cardId, quality, responseTime) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/flashcard-agent/review-card`, {
+      
+      // Use the new agent review endpoint
+      const response = await fetch(`${API_URL}/agents/flashcards/review`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -249,37 +259,29 @@ const Flashcards = () => {
         },
         body: JSON.stringify({
           user_id: userName,
-          card_id: cardId.toString(),
-          quality: quality,
-          response_time: responseTime
+          review_results: [{
+            card_id: cardId,
+            quality: quality === 5 ? 'easy' : quality === 1 ? 'again' : 'good',
+            correct: quality >= 3,
+            response_time_ms: responseTime * 1000
+          }]
         })
       });
       
       const result = await response.json();
       
       if (result.success) {
-        const data = result.data;
+        const data = result.data || result;
         
         // Update card metrics
         setCardMetrics(prev => ({
           ...prev,
           [cardId]: {
-            retention: data.retention_rate,
-            confidence: data.confidence_score,
-            nextReview: data.next_review,
-            streak: data.streak
+            retention: data.session_stats?.accuracy || 0,
+            confidence: quality / 5,
+            streak: data.session_stats?.correct || 0
           }
         }));
-        
-        // Store weaknesses
-        if (data.weaknesses && data.weaknesses.length > 0) {
-          setWeaknessAnalysis(prev => [...prev, ...data.weaknesses]);
-        }
-        
-        // Store techniques
-        if (data.suggested_techniques && data.suggested_techniques.length > 0) {
-          setStudyRecommendations(prev => [...prev, ...data.suggested_techniques]);
-        }
         
         return data;
       }
@@ -318,56 +320,97 @@ const Flashcards = () => {
   const endAgentSession = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/flashcard-agent/end-session`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          user_id: userName
-        })
+      
+      // Get analysis from the agent
+      const response = await fetch(`${API_URL}/agents/flashcards/analyze?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       
       const result = await response.json();
       
       if (result.success) {
-        const summary = result.data;
         setAgentSessionActive(false);
         setShowAgentInsights(true);
         
+        const sessionDuration = sessionStartTime ? Math.round((Date.now() - sessionStartTime) / 60000) : 0;
+        
         // Show session summary
         showPopup('Session Complete!', 
-          `Duration: ${summary.duration_minutes} min\n` +
-          `Accuracy: ${(summary.accuracy * 100).toFixed(0)}%\n` +
-          `Cards Reviewed: ${summary.cards_reviewed}\n` +
-          `Focus Score: ${(summary.focus_score * 100).toFixed(0)}%`
+          `Duration: ${sessionDuration} min\n` +
+          `${result.response || 'Great study session!'}`
         );
         
-        return summary;
+        return result;
       }
     } catch (error) {
       console.error('Error ending agent session:', error);
+      setAgentSessionActive(false);
     }
   };
 
   const getFlashcardReport = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(
-        `${API_URL}/flashcard-agent/comprehensive-report?user_id=${userName}`,
-        {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
-      );
+      
+      // Use the new agent analyze endpoint
+      const response = await fetch(`${API_URL}/agents/flashcards/analyze?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       
       const result = await response.json();
       
       if (result.success) {
-        return result.data;
+        return result.analysis || result;
       }
     } catch (error) {
       console.error('Error getting flashcard report:', error);
+    }
+  };
+
+  // Get study recommendations from agent
+  const getAgentRecommendations = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`${API_URL}/agents/flashcards/recommendations?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success && result.recommendations) {
+        setStudyRecommendations(result.recommendations);
+        return result.recommendations;
+      }
+    } catch (error) {
+      console.error('Error getting recommendations:', error);
+    }
+  };
+
+  // Get concept explanation from agent
+  const explainConcept = async (concept) => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`${API_URL}/agents/flashcards/explain`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          concept: concept
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        return result.explanation;
+      }
+    } catch (error) {
+      console.error('Error explaining concept:', error);
     }
   };
 
@@ -589,6 +632,94 @@ const Flashcards = () => {
     setGenerating(true);
     try {
       const token = localStorage.getItem('token');
+      
+      // Try the new agent endpoint first for BOTH modes
+      try {
+        const formData = new FormData();
+        formData.append('user_id', userName);
+        formData.append('action', 'generate');
+        formData.append('card_count', cardCount.toString());
+        formData.append('difficulty', difficultyLevel);
+        formData.append('depth_level', depthLevel);
+        
+        if (generationMode === 'topic') {
+          // Topic-based generation
+          formData.append('topic', topic);
+        } else {
+          // Chat history-based generation
+          const chatHistory = await loadChatHistoryData();
+          
+          // Convert chat history to content string for the agent
+          const chatContent = chatHistory
+            .map(msg => `Q: ${msg.user_message || msg.content}\nA: ${msg.ai_response || ''}`)
+            .join('\n\n');
+          
+          formData.append('content', chatContent);
+          
+          // Generate a title from the chat
+          const summaryTitle = await generateChatSummaryTitle(chatHistory);
+          formData.append('topic', summaryTitle); // Use as topic hint
+        }
+        
+        console.log('🎴 Calling flashcard agent...');
+        const agentResponse = await fetch(`${API_URL}/flashcard_agent/`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+        
+        console.log('🎴 Agent response status:', agentResponse.status);
+        
+        if (agentResponse.ok) {
+          const data = await agentResponse.json();
+          console.log('🎴 Agent response data:', data);
+          
+          // Cards can be at data.cards or data.data.cards
+          const cards = data.cards || data.data?.cards;
+          
+          if (data.success && cards && cards.length > 0) {
+            setFlashcards(cards);
+            setCurrentCard(0);
+            setIsFlipped(false);
+            
+            const setTitle = data.set_title || data.data?.set_title || (generationMode === 'topic' ? `Flashcards: ${topic}` : 'Chat Study Cards');
+            
+            setCurrentSetInfo({
+              saved: true,
+              setId: data.set_id || data.data?.set_id,
+              shareCode: data.share_code || data.data?.share_code,
+              setTitle: setTitle,
+              cardCount: cards.length
+            });
+            
+            loadFlashcardHistory();
+            loadFlashcardStats();
+            gamificationService.trackFlashcardSet(userName, cards.length);
+            
+            // Update URL with share code
+            const shareCode = data.share_code || data.data?.share_code;
+            if (shareCode) {
+              window.history.replaceState({}, '', `/flashcards?code=${shareCode}&mode=preview`);
+            }
+            
+            // Auto-open preview mode after generation
+            const shuffledCards = studySettings.shuffle ? [...cards].sort(() => Math.random() - 0.5) : cards;
+            setShuffledCards(shuffledCards);
+            setPreviewMode(true);
+            
+            console.log('🎴 Flashcards generated via agent:', cards.length);
+            setGenerating(false);
+            return;
+          }
+        }
+        
+        // If agent fails, fall through to legacy endpoint
+        console.log('⚠️ Agent endpoint failed, falling back to legacy. Response ok:', agentResponse?.ok);
+      } catch (agentError) {
+        console.log('⚠️ Agent error, using legacy endpoint:', agentError.message || agentError);
+      }
+      
+      // Legacy endpoint fallback
       const formData = new FormData();
       formData.append('user_id', userName);
       formData.append('card_count', cardCount.toString());
@@ -722,7 +853,7 @@ const Flashcards = () => {
     if (!window.confirm('Are you sure you want to delete this flashcard set?')) return;
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/delete_flashcard_set/${setId}`, {
+      const response = await fetch(`${API_URL}/flashcards/sets/${setId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

@@ -2052,6 +2052,252 @@ Question: {question}"""
         }
 
 
+# ==================== Flashcard Agent Endpoint ====================
+
+@app.post("/api/flashcard_agent/")
+async def flashcard_agent_endpoint(
+    user_id: str = Form(...),
+    action: str = Form(...),  # generate, review, analyze, recommend, explain
+    topic: Optional[str] = Form(None),
+    content: Optional[str] = Form(None),
+    card_count: int = Form(10),
+    difficulty: str = Form("medium"),
+    depth_level: str = Form("standard"),  # surface, standard, deep
+    review_results: Optional[str] = Form(None),  # JSON string of review results
+    db: Session = Depends(get_db)
+):
+    """
+    Flashcard Agent endpoint for intelligent flashcard operations.
+    Supports:
+    - generate: Create flashcards from topic or content
+    - review: Process review session with spaced repetition
+    - analyze: Analyze performance and identify weak areas
+    - recommend: Get personalized study recommendations
+    - explain: Get detailed explanation of a concept
+    """
+    import time
+    start_time = time.time()
+    
+    print(f"\n🎴 FLASHCARD_AGENT CALLED 🎴")
+    print(f"🎴 User: {user_id}, Action: {action}, Topic: {topic}")
+    
+    try:
+        # Get user
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            print(f"❌ User not found: {user_id}")
+            return {
+                "success": False,
+                "error": "User not found",
+                "action": action
+            }
+        
+        # Try to use the LangGraph Flashcard Agent
+        try:
+            from agents.agent_api import get_flashcard_agent
+            flashcard_agent = get_flashcard_agent()
+            
+            # Build state for the agent
+            session_id = f"flashcard_{user.id}_{action}"
+            
+            state = {
+                "user_id": str(user.id),
+                "action": action,
+                "session_id": session_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "card_count": card_count,  # Direct state value
+                "difficulty": difficulty,   # Direct state value
+                "depth_level": depth_level,  # surface, standard, deep
+                "action_params": {
+                    "topic": topic,
+                    "card_count": card_count,
+                    "difficulty": difficulty,
+                    "depth_level": depth_level
+                }
+            }
+            
+            # Add action-specific data
+            if topic:
+                state["topic"] = topic
+                if content:
+                    state["user_input"] = f"Generate flashcards from this content about {topic}"
+                else:
+                    state["user_input"] = f"Generate flashcards about {topic}"
+            elif content:
+                state["user_input"] = "Generate flashcards from this content"
+            
+            if content:
+                state["source_content"] = content
+            if review_results:
+                try:
+                    state["review_results"] = json.loads(review_results)
+                except json.JSONDecodeError:
+                    state["review_results"] = []
+            
+            # Invoke the flashcard agent
+            result = await flashcard_agent.invoke(state)
+            
+            response_data = result.metadata.get("response_data", {})
+            execution_time = (time.time() - start_time) * 1000
+            
+            print(f"🎴 Agent response: action={action}, success={result.success}")
+            
+            # Save generated cards to database if action is generate
+            if action == "generate" and response_data.get("cards"):
+                cards = response_data["cards"]
+                set_title = f"AI Generated: {topic or 'Study Session'}"
+                
+                # Generate unique share code
+                import random
+                import string
+                share_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+                
+                # Create flashcard set
+                flashcard_set = models.FlashcardSet(
+                    user_id=user.id,
+                    title=set_title,
+                    description=f"Generated {len(cards)} cards via AI Agent",
+                    source_type="ai_agent",
+                    share_code=share_code
+                )
+                db.add(flashcard_set)
+                db.commit()
+                db.refresh(flashcard_set)
+                
+                # Add cards to set
+                for card in cards:
+                    db_card = models.Flashcard(
+                        set_id=flashcard_set.id,
+                        question=card.get("question", ""),
+                        answer=card.get("answer", ""),
+                        difficulty=card.get("difficulty", difficulty)
+                    )
+                    db.add(db_card)
+                
+                db.commit()
+                
+                # Award points
+                try:
+                    from gamification_system import award_points
+                    award_points(db, user.id, "flashcard_create")
+                except Exception as gam_error:
+                    print(f"⚠️ Points award failed: {gam_error}")
+                
+                return {
+                    "success": True,
+                    "action": action,
+                    "response": result.response,
+                    "cards": cards,
+                    "set_id": flashcard_set.id,
+                    "share_code": share_code,
+                    "set_title": set_title,
+                    "card_count": len(cards),
+                    "execution_time_ms": execution_time
+                }
+            
+            # Ensure cards are at top level for generate action
+            response = {
+                "success": result.success,
+                "action": action,
+                "response": result.response,
+                "data": response_data,
+                "execution_time_ms": execution_time
+            }
+            
+            # If generate action, ensure cards are at top level
+            if action == "generate" and response_data.get("cards"):
+                response["cards"] = response_data["cards"]
+                response["card_count"] = len(response_data["cards"])
+            
+            return response
+            
+        except Exception as agent_error:
+            print(f"⚠️ Flashcard agent failed, falling back to simple generation: {agent_error}")
+            
+            # Fallback to simple flashcard generation
+            if action == "generate" and (topic or content):
+                from flashcard_minimal import generate_flashcards_minimal
+                
+                # Use content if provided, otherwise use topic
+                if content:
+                    cards = generate_flashcards_minimal(
+                        unified_ai,
+                        content,
+                        card_count,
+                        difficulty,
+                        is_topic=False  # Content mode
+                    )
+                    set_title = topic or "Chat Study Cards"
+                else:
+                    cards = generate_flashcards_minimal(
+                        unified_ai,
+                        topic,
+                        card_count,
+                        difficulty,
+                        is_topic=True
+                    )
+                    set_title = f"Flashcards: {topic}"
+                
+                if cards:
+                    # Save to database
+                    import random
+                    import string
+                    share_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+                    
+                    flashcard_set = models.FlashcardSet(
+                        user_id=user.id,
+                        title=set_title,
+                        description=f"Generated {len(cards)} cards",
+                        source_type="ai_generated",
+                        share_code=share_code
+                    )
+                    db.add(flashcard_set)
+                    db.commit()
+                    db.refresh(flashcard_set)
+                    
+                    for card in cards:
+                        db_card = models.Flashcard(
+                            set_id=flashcard_set.id,
+                            question=card.get("question", ""),
+                            answer=card.get("answer", ""),
+                            difficulty=card.get("difficulty", difficulty)
+                        )
+                        db.add(db_card)
+                    
+                    db.commit()
+                    
+                    return {
+                        "success": True,
+                        "action": action,
+                        "response": f"Generated {len(cards)} flashcards",
+                        "cards": cards,
+                        "set_id": flashcard_set.id,
+                        "share_code": share_code,
+                        "set_title": set_title,
+                        "fallback": True
+                    }
+            
+            return {
+                "success": False,
+                "action": action,
+                "error": str(agent_error),
+                "fallback": True
+            }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"\n❌ ERROR IN FLASHCARD_AGENT: {str(e)}")
+        print(f"❌ Traceback:\n{error_details}\n")
+        return {
+            "success": False,
+            "action": action,
+            "error": str(e)
+        }
+
+
 @app.post("/api/create_chat_session")
 def create_chat_session(
     session_data: ChatSessionCreate,

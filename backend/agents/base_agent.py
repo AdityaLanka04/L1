@@ -262,12 +262,17 @@ class BaseAgent(ABC):
             
             execution_time = (time.time() - start_time) * 1000
             
+            # Include response_data in metadata for downstream use
+            metadata = result.get("response_metadata", {})
+            if result.get("response_data"):
+                metadata["response_data"] = result.get("response_data")
+            
             return AgentResponse(
                 success=not result.get("errors"),
                 response=result.get("final_response", ""),
                 agent_type=self.agent_type,
                 confidence=result.get("confidence", 0.0),
-                metadata=result.get("response_metadata", {}),
+                metadata=metadata,
                 knowledge_updates=result.get("knowledge_updates", []),
                 suggested_followups=result.get("suggested_followups", []),
                 execution_time_ms=execution_time,
