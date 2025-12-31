@@ -469,4 +469,5 @@ def register_adaptive_learning_api(app, unified_ai: UnifiedAIClient):
             logger.error(f"Error getting recommendations: {e}")
             raise HTTPException(status_code=500, detail=str(e))
     
-    logger.info("✅ Adaptive Learning API endpoints registered")
+    logger.info(" Adaptive Learning API endpoints registered")
+

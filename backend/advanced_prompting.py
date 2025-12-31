@@ -295,7 +295,7 @@ CRITICAL CONTEXT YOU MUST REMEMBER:
 - Example: "Statistics isn't just numbers - it's about understanding people. When we calculate averages, we're learning about human experiences, hopes, and challenges. Each data point represents someone's story."
 - Show the emotional and human side of every subject, making it personally meaningful""",
             
-            'Seeker': """🔍 SEEKER TEACHING APPROACH - They're motivated by curiosity and discovery:
+            'Seeker': """ SEEKER TEACHING APPROACH - They're motivated by curiosity and discovery:
 - Present intriguing mysteries, fascinating questions, and mind-bending puzzles
 - Share surprising facts, counterintuitive discoveries, and "did you know?" moments
 - Encourage exploration with open-ended questions and investigative challenges
@@ -303,7 +303,7 @@ CRITICAL CONTEXT YOU MUST REMEMBER:
 - Example: "Here's a mystery: Why do ice cubes float? It seems simple, but this one property of water makes life on Earth possible! Let's investigate the molecular detective story..."
 - Make them curious to learn more with cliffhangers and fascinating revelations""",
             
-            'Resonant': """🎵 RESONANT TEACHING APPROACH - They're highly adaptable and flexible:
+            'Resonant': """ RESONANT TEACHING APPROACH - They're highly adaptable and flexible:
 - Dynamically adjust your teaching style based on their responses and engagement
 - Offer multiple explanation approaches and let them choose what resonates
 - Be highly responsive to their learning pace, interests, and feedback
@@ -317,7 +317,7 @@ CRITICAL CONTEXT YOU MUST REMEMBER:
     
     if brainwave_goal:
         goal_context = {
-            'exam_prep': """🎯 EXAM PREPARATION MODE:
+            'exam_prep': """ EXAM PREPARATION MODE:
 - Focus on high-yield concepts most likely to appear on tests
 - Provide memory techniques, mnemonics, and recall strategies
 - Include practice problems with detailed step-by-step solutions
@@ -387,13 +387,13 @@ CRITICAL CONTEXT YOU MUST REMEMBER:
     base_prompt += f"""
 
 CORE TEACHING PRINCIPLES:
-🎯 ALWAYS EXPLAIN IN DETAIL: Never give brief or surface-level answers. Dive deep into concepts, explain the 'why' behind everything, and provide comprehensive understanding.
+ ALWAYS EXPLAIN IN DETAIL: Never give brief or surface-level answers. Dive deep into concepts, explain the 'why' behind everything, and provide comprehensive understanding.
 
 📚 ALWAYS PROVIDE EXAMPLES: For every concept you explain, give at least 2-3 concrete, practical examples. Use real-world scenarios, step-by-step demonstrations, and relatable analogies.
 
 🔗 CONNECT CONCEPTS: Show how new information relates to what they already know. Build bridges between ideas and highlight patterns across different topics.
 
-💡 ENCOURAGE CURIOSITY: Ask thought-provoking questions, present interesting facts, and inspire them to explore further. Make learning exciting and engaging.
+ ENCOURAGE CURIOSITY: Ask thought-provoking questions, present interesting facts, and inspire them to explore further. Make learning exciting and engaging.
 
 🎨 USE MULTIPLE EXPLANATION STYLES: 
 - Visual descriptions and analogies
@@ -402,7 +402,7 @@ CORE TEACHING PRINCIPLES:
 - Historical context when relevant
 - Mathematical or logical proofs when appropriate
 
-📝 STRUCTURE YOUR RESPONSES:
+ STRUCTURE YOUR RESPONSES:
 - Start with a clear, engaging opening that addresses their question directly
 - Provide detailed explanations with multiple examples
 - Include practical applications or exercises they can try
@@ -415,7 +415,7 @@ CORE TEACHING PRINCIPLES:
 - Provide actionable advice they can immediately apply
 - Anticipate follow-up questions and address them proactively
 
-💬 COMMUNICATION STYLE:
+ COMMUNICATION STYLE:
 - Be natural and conversational like a knowledgeable friend
 - Use their name occasionally but not excessively
 - Vary your response structure to keep things interesting
@@ -423,7 +423,7 @@ CORE TEACHING PRINCIPLES:
 - Don't announce your teaching methods - just naturally implement them
 - Reference their past conversations and learning journey when relevant
 
-🚀 MAKE IT MEMORABLE:
+ MAKE IT MEMORABLE:
 - Use storytelling when appropriate
 - Create memorable analogies and metaphors
 - Highlight surprising or fascinating aspects
@@ -447,15 +447,15 @@ DISPLAY MATH (use double $$):
 - Matrices and systems of equations
 
 EXAMPLES OF CORRECT USAGE:
-✅ "The quadratic formula is $x = \\frac{{-b \\pm \\sqrt{{b^2 - 4ac}}}}{{2a}}$"
-✅ "For the integral: $$\\int x^2 \\, dx = \\frac{{x^3}}{{3}} + C$$"
-✅ "The derivative of $f(x) = e^x$ is $f'(x) = e^x$"
-✅ "Using the chain rule: $$\\frac{{d}}{{dx}}[f(g(x))] = f'(g(x)) \\cdot g'(x)$$"
+ "The quadratic formula is $x = \\frac{{-b \\pm \\sqrt{{b^2 - 4ac}}}}{{2a}}$"
+ "For the integral: $$\\int x^2 \\, dx = \\frac{{x^3}}{{3}} + C$$"
+ "The derivative of $f(x) = e^x$ is $f'(x) = e^x$"
+ "Using the chain rule: $$\\frac{{d}}{{dx}}[f(g(x))] = f'(g(x)) \\cdot g'(x)$$"
 
 WRONG (never do this):
-❌ Writing math without delimiters: "x^2 + y^2 = r^2"
-❌ Mixing text in math: "$The derivative is 2x$"
-❌ Incomplete delimiters: "$x^2" or "x^2$"
+ Writing math without delimiters: "x^2 + y^2 = r^2"
+ Mixing text in math: "$The derivative is 2x$"
+ Incomplete delimiters: "$x^2" or "x^2$"
 
 ALWAYS wrap ALL mathematical expressions in $ or $$ delimiters!"""
 
@@ -558,7 +558,7 @@ async def generate_enhanced_ai_response(
         
         if response_adjustments['detail_level'] > 0.7:
             system_prompt += """
-🔍 MAXIMUM DETAIL MODE: Provide exceptionally thorough explanations with:
+ MAXIMUM DETAIL MODE: Provide exceptionally thorough explanations with:
 - Complete step-by-step breakdowns of every process
 - Detailed background context and foundational concepts
 - Multiple layers of explanation (basic → intermediate → advanced)
@@ -591,7 +591,7 @@ async def generate_enhanced_ai_response(
 - Provide specific praise for good questions and insights"""
         
         if rl_agent.user_corrections:
-            system_prompt += "\n\n🔧 IMPORTANT - Previous corrections:"
+            system_prompt += "\n\n IMPORTANT - Previous corrections:"
             for correction_data in list(rl_agent.user_corrections.values())[-5:]:
                 system_prompt += f"\n- Never: {correction_data['mistake']}"
                 system_prompt += f"\n  Always: {correction_data['correction']}"
@@ -599,14 +599,14 @@ async def generate_enhanced_ai_response(
         # Final reinforcement for comprehensive responses
         system_prompt += """
 
-🎯 RESPONSE QUALITY CHECKLIST - Every response must include:
-✅ Detailed explanation that thoroughly addresses their question
-✅ At least 2-3 concrete, practical examples
-✅ Step-by-step breakdown when explaining processes
-✅ Real-world applications and relevance
-✅ Connections to related concepts or their field of study
-✅ Engaging, conversational tone that maintains their interest
-✅ Follow-up questions or suggestions for further exploration
+ RESPONSE QUALITY CHECKLIST - Every response must include:
+ Detailed explanation that thoroughly addresses their question
+ At least 2-3 concrete, practical examples
+ Step-by-step breakdown when explaining processes
+ Real-world applications and relevance
+ Connections to related concepts or their field of study
+ Engaging, conversational tone that maintains their interest
+ Follow-up questions or suggestions for further exploration
 
 Remember: Your goal is to provide such comprehensive, helpful responses that they feel truly educated and inspired to learn more. Never give brief or superficial answers - always go deep and make it meaningful."""
         
@@ -659,10 +659,10 @@ Remember: Your goal is to provide such comprehensive, helpful responses that the
         import traceback
         error_details = traceback.format_exc()
         print(f"\n{'='*80}")
-        print(f"❌ ERROR IN generate_enhanced_ai_response")
-        print(f"❌ Error: {str(e)}")
-        print(f"❌ Type: {type(e).__name__}")
-        print(f"❌ Traceback:\n{error_details}")
+        print(f" ERROR IN generate_enhanced_ai_response")
+        print(f" Error: {str(e)}")
+        print(f" Type: {type(e).__name__}")
+        print(f" Traceback:\n{error_details}")
         print(f"{'='*80}\n")
         return "I apologize, but I encountered an error. Could you please rephrase your question?"
 

@@ -27,9 +27,9 @@ def add_is_public_column():
                         "ALTER TABLE flashcard_sets ADD COLUMN is_public BOOLEAN DEFAULT 0"
                     ))
                     connection.commit()
-                    print("✅ Successfully added is_public column")
+                    print(" Successfully added is_public column")
                 else:
-                    print("✅ is_public column already exists")
+                    print(" is_public column already exists")
             
             else:  # PostgreSQL
                 # Check if column exists
@@ -45,17 +45,17 @@ def add_is_public_column():
                         "ALTER TABLE flashcard_sets ADD COLUMN is_public BOOLEAN DEFAULT FALSE"
                     ))
                     connection.commit()
-                    print("✅ Successfully added is_public column")
+                    print(" Successfully added is_public column")
                 else:
-                    print("✅ is_public column already exists")
+                    print(" is_public column already exists")
                     
         except Exception as e:
-            print(f"❌ Error: {e}")
+            print(f" Error: {e}")
             connection.rollback()
         finally:
             connection.close()
 
 if __name__ == "__main__":
-    print("🔧 Running migration to add is_public column...")
+    print(" Running migration to add is_public column...")
     add_is_public_column()
-    print("✅ Migration complete!")
+    print(" Migration complete!")

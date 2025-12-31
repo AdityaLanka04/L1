@@ -1,4 +1,4 @@
-"""
+﻿"""
 Memory Manager
 High-level interface for the Unified Memory System
 Provides easy access for all agents and API endpoints
@@ -38,7 +38,6 @@ class MemoryManager:
         )
         self._user_profiles: Dict[str, Dict[str, Any]] = {}
         
-        logger.info("Memory Manager initialized")
     
     # ==================== Context API (Main Interface for Agents) ====================
     
@@ -412,5 +411,6 @@ async def initialize_memory_manager(
         db_session_factory=db_session_factory
     )
     
-    logger.info("Global Memory Manager initialized")
     return _memory_manager
+
+

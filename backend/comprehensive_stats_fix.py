@@ -34,7 +34,7 @@ def get_postgres_session():
                     break
     
     if not db_url:
-        print("❌ DATABASE_URL not found in .env file")
+        print(" DATABASE_URL not found in .env file")
         sys.exit(1)
     
     print(f"📊 Connecting to PostgreSQL database...")
@@ -47,7 +47,7 @@ def comprehensive_stats_fix():
     
     try:
         print("\n" + "="*80)
-        print("🔧 COMPREHENSIVE STATISTICS FIX")
+        print(" COMPREHENSIVE STATISTICS FIX")
         print("="*80 + "\n")
         
         # Get all users
@@ -65,7 +65,7 @@ def comprehensive_stats_fix():
             ).first()
             
             if not stats:
-                print("⚠️  Creating new gamification stats record...")
+                print("  Creating new gamification stats record...")
                 stats = models.UserGamificationStats(
                     user_id=user.id,
                     total_points=0,
@@ -77,7 +77,7 @@ def comprehensive_stats_fix():
                 )
                 db.add(stats)
                 db.flush()
-                print("✅ Stats record created\n")
+                print(" Stats record created\n")
             
             # Calculate week boundaries
             now = datetime.now(timezone.utc)
@@ -148,7 +148,7 @@ def comprehensive_stats_fix():
             # ============================================================
             # 3. AI CHAT SESSIONS
             # ============================================================
-            print("💬 AI CHAT SESSIONS:")
+            print(" AI CHAT SESSIONS:")
             print("-" * 40)
             
             # Count from ChatSession table
@@ -173,7 +173,7 @@ def comprehensive_stats_fix():
             # ============================================================
             # 4. NOTES
             # ============================================================
-            print("📝 NOTES:")
+            print(" NOTES:")
             print("-" * 40)
             
             total_notes = db.query(func.count(models.Note.id)).filter(
@@ -258,40 +258,40 @@ def comprehensive_stats_fix():
             
             stats.updated_at = datetime.now(timezone.utc)
             
-            print(f"  ✅ Flashcard Sets: {total_flashcard_sets} (weekly: {weekly_flashcard_sets})")
-            print(f"  ✅ Cards Reviewed: {total_cards_reviewed} (weekly: {weekly_cards_reviewed})")
-            print(f"  ✅ AI Chats: {total_chat_sessions} (weekly: {weekly_chat_sessions})")
-            print(f"  ✅ Notes: {total_notes} (weekly: {weekly_notes})")
-            print(f"  ✅ Questions: {total_questions} (weekly: {weekly_questions})")
-            print(f"  ✅ Quizzes: {total_quizzes} (weekly: {weekly_quizzes})")
+            print(f"   Flashcard Sets: {total_flashcard_sets} (weekly: {weekly_flashcard_sets})")
+            print(f"   Cards Reviewed: {total_cards_reviewed} (weekly: {weekly_cards_reviewed})")
+            print(f"   AI Chats: {total_chat_sessions} (weekly: {weekly_chat_sessions})")
+            print(f"   Notes: {total_notes} (weekly: {weekly_notes})")
+            print(f"   Questions: {total_questions} (weekly: {weekly_questions})")
+            print(f"   Quizzes: {total_quizzes} (weekly: {weekly_quizzes})")
             print()
         
         # Commit all changes
         db.commit()
         
         print("="*80)
-        print("✅ COMPREHENSIVE FIX COMPLETED SUCCESSFULLY!")
+        print(" COMPREHENSIVE FIX COMPLETED SUCCESSFULLY!")
         print("="*80)
         print("\n📊 SUMMARY:")
         print("  • All statistics recalculated from actual database tables")
         print("  • Flashcard sets counted correctly")
         print("  • AI chats separated from flashcards")
         print("  • Weekly and all-time totals updated")
-        print("\n🎯 WHAT'S TRACKED:")
+        print("\n WHAT'S TRACKED:")
         print("  • Flashcard Sets: From FlashcardSet table")
         print("  • Flashcard Reviews: From FlashcardStudySession table")
         print("  • AI Chats: From ChatSession table")
         print("  • Notes: From Note table")
         print("  • Questions: From PointTransaction (question_answered)")
         print("  • Quizzes: From PointTransaction (quiz_completed, solo_quiz)")
-        print("\n💡 NEXT STEPS:")
+        print("\n NEXT STEPS:")
         print("  1. Refresh your Dashboard page")
         print("  2. Check that flashcard count shows correctly")
         print("  3. Stats will auto-update when you add/delete items")
         print()
         
     except Exception as e:
-        print(f"\n❌ ERROR: {str(e)}")
+        print(f"\n ERROR: {str(e)}")
         import traceback
         traceback.print_exc()
         db.rollback()

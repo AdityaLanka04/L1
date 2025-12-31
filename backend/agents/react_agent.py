@@ -1,4 +1,4 @@
-"""
+﻿"""
 ReAct Agent Implementation
 Implements Reason-Act-Observe loop for intelligent decision making
 """
@@ -527,3 +527,4 @@ def create_react_agent(
         knowledge_graph=knowledge_graph,
         max_steps=max_steps
     )
+

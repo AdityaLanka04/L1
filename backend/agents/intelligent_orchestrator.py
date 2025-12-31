@@ -1,4 +1,4 @@
-"""
+﻿"""
 Intelligent Orchestrator
 Advanced orchestrator with planning, multi-agent collaboration, and self-reflection
 """
@@ -122,7 +122,6 @@ Response:"""
         self.graph = self._build_graph()
         self.compiled = self.graph.compile(checkpointer=MemorySaver())
         
-        logger.info("Intelligent Orchestrator initialized with Memory Manager")
     
     def _init_tools(self):
         """Initialize all tools"""
@@ -147,7 +146,6 @@ Response:"""
         # Combine all tools
         self.all_tools = self.kg_tools + self.search_tools + self.content_tools
         
-        logger.info(f"Initialized {len(self.all_tools)} tools")
 
     def _build_graph(self) -> StateGraph:
         """Build the intelligent orchestrator graph"""
@@ -554,3 +552,5 @@ def create_intelligent_orchestrator(
         db_session_factory=db_session_factory,
         memory_manager=memory_manager
     )
+
+

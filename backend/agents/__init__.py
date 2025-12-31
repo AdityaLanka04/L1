@@ -1,4 +1,4 @@
-# Brainwave AI Agent System
+﻿# Brainwave AI Agent System
 # LangGraph-based multi-agent architecture with Knowledge Graph integration
 
 from .base_agent import BaseAgent, AgentState, AgentResponse, AgentType, agent_registry
@@ -52,3 +52,4 @@ __all__ = [
     'get_memory_manager',
     'initialize_memory_manager',
 ]
+

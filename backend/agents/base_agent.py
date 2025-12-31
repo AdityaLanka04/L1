@@ -1,4 +1,4 @@
-"""
+﻿"""
 Base Agent Class for LangGraph-based Agent System
 Provides common functionality for all specialized agents
 """
@@ -332,3 +332,6 @@ class AgentRegistry:
 
 # Global registry instance
 agent_registry = AgentRegistry()
+
+
+

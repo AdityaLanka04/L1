@@ -1,6 +1,6 @@
 from sqlalchemy import (
     create_engine, Column, Integer, String, Text, DateTime, ForeignKey,
-    Boolean, Float, JSON, Date, func  # ✅ ADD func here
+    Boolean, Float, JSON, Date, func  #  ADD func here
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker, backref
@@ -834,9 +834,9 @@ class LearningReviewAttempt(Base):
     user_response = Column(Text, nullable=False)
     covered_points = Column(Text)  # JSON array of points the user covered
     missing_points = Column(Text)  # JSON array of points the user missed
-    completeness_percentage = Column(Float, default=0.0)  # ✅ Percentage score
-    feedback = Column(Text)  # ✅ ADD THIS - AI-generated feedback
-    submitted_at = Column(DateTime, default=datetime.utcnow)  # ✅ ADD THIS
+    completeness_percentage = Column(Float, default=0.0)  #  Percentage score
+    feedback = Column(Text)  #  ADD THIS - AI-generated feedback
+    submitted_at = Column(DateTime, default=datetime.utcnow)  #  ADD THIS
     created_at = Column(DateTime, default=datetime.utcnow)
     
 class LearningReviewHint(Base):
@@ -2036,4 +2036,4 @@ def get_db():
 
 if __name__ == "__main__":
     create_tables()
-    print("✅ Database tables created successfully!")
+    print(" Database tables created successfully!")

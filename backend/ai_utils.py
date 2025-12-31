@@ -1,4 +1,4 @@
-"""
+﻿"""
 Unified AI utilities for Gemini (primary) and Groq (fallback)
 """
 import logging
@@ -24,9 +24,9 @@ class UnifiedAIClient:
                 self.gemini_client = gemini_client.GenerativeModel(gemini_model)
                 logger.info(f"Gemini model created: {type(self.gemini_client)}")
                 self.primary_ai = "gemini"
-                logger.info(f"✅ UnifiedAIClient using GEMINI as primary (model: {gemini_model})")
+                logger.info(f" UnifiedAIClient using GEMINI as primary (model: {gemini_model})")
             except Exception as e:
-                logger.error(f"❌ Failed to create Gemini model: {e}")
+                logger.error(f" Failed to create Gemini model: {e}")
                 import traceback
                 traceback.print_exc()
                 self.gemini_client = None
@@ -56,7 +56,7 @@ class UnifiedAIClient:
         """
         try:
             if self.primary_ai == "gemini" and self.gemini_api_key:
-                logger.info(f"📡 Calling Gemini REST API directly...")
+                logger.info(f" Calling Gemini REST API directly...")
                 try:
                     # Use REST API directly to avoid SDK hanging issues
                     import requests
@@ -79,63 +79,63 @@ class UnifiedAIClient:
                     max_retries = 3
                     for attempt in range(max_retries):
                         try:
-                            logger.info(f"📡 Sending REST request to Gemini (attempt {attempt + 1}/{max_retries})...")
+                            logger.info(f" Sending REST request to Gemini (attempt {attempt + 1}/{max_retries})...")
                             response = requests.post(url, json=payload, timeout=60)
                             
                             if response.status_code == 200:
                                 data = response.json()
                                 if 'candidates' in data and len(data['candidates']) > 0:
                                     text = data['candidates'][0]['content']['parts'][0]['text']
-                                    logger.info(f"✅ Gemini REST response received: {len(text)} chars")
+                                    logger.info(f" Gemini REST response received: {len(text)} chars")
                                     return text
                                 else:
-                                    logger.error(f"❌ Gemini response has no candidates: {data}")
+                                    logger.error(f" Gemini response has no candidates: {data}")
                                     raise Exception("Gemini response has no candidates")
                             elif response.status_code == 429:
                                 # Rate limit - immediately fall back to Groq instead of retrying
-                                logger.warning(f"⚠️ Gemini rate limited (429), falling back to Groq immediately...")
+                                logger.warning(f" Gemini rate limited (429), falling back to Groq immediately...")
                                 raise Exception(f"Gemini quota exceeded: {response.status_code}")
                             else:
-                                logger.error(f"❌ Gemini REST API error: {response.status_code} - {response.text}")
+                                logger.error(f" Gemini REST API error: {response.status_code} - {response.text}")
                                 if attempt == max_retries - 1:
                                     raise Exception(f"Gemini API error: {response.status_code}")
                                 time.sleep(1)
                                 continue
                                 
                         except requests.exceptions.Timeout:
-                            logger.warning(f"⚠️ Gemini timeout on attempt {attempt + 1}")
+                            logger.warning(f" Gemini timeout on attempt {attempt + 1}")
                             if attempt == max_retries - 1:
                                 raise
                             time.sleep(2)
                             continue
                         except requests.exceptions.ConnectionError:
-                            logger.warning(f"⚠️ Gemini connection error on attempt {attempt + 1}")
+                            logger.warning(f" Gemini connection error on attempt {attempt + 1}")
                             if attempt == max_retries - 1:
                                 raise
                             time.sleep(2)
                             continue
                         
                 except Exception as gemini_error:
-                    logger.error(f"❌ Gemini error: {type(gemini_error).__name__}: {gemini_error}")
+                    logger.error(f" Gemini error: {type(gemini_error).__name__}: {gemini_error}")
                     raise
             elif self.groq_client:
-                logger.info("📡 Calling Groq API...")
+                logger.info(" Calling Groq API...")
                 response = self.groq_client.chat.completions.create(
                     model=self.groq_model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=temperature,
                     max_tokens=max_tokens
                 )
-                logger.info(f"✅ Groq response received")
+                logger.info(f" Groq response received")
                 return response.choices[0].message.content.strip()
             else:
-                logger.error("❌ No AI client available!")
+                logger.error(" No AI client available!")
                 raise Exception("No AI client available")
         except Exception as e:
-            logger.error(f"❌ Primary AI ({self.primary_ai}) failed: {type(e).__name__}: {e}")
+            logger.error(f" Primary AI ({self.primary_ai}) failed: {type(e).__name__}: {e}")
             # Fallback
             if self.primary_ai == "gemini" and self.groq_client:
-                logger.warning("⚠️ Falling back to Groq...")
+                logger.warning(" Falling back to Groq...")
                 try:
                     response = self.groq_client.chat.completions.create(
                         model=self.groq_model,
@@ -143,22 +143,22 @@ class UnifiedAIClient:
                         temperature=temperature,
                         max_tokens=max_tokens
                     )
-                    logger.info("✅ Groq fallback successful")
+                    logger.info(" Groq fallback successful")
                     return response.choices[0].message.content.strip()
                 except Exception as groq_error:
-                    logger.error(f"❌ Groq fallback also failed: {groq_error}")
+                    logger.error(f" Groq fallback also failed: {groq_error}")
                     raise
             elif self.primary_ai == "groq" and self.gemini_client:
-                logger.warning("⚠️ Falling back to Gemini...")
+                logger.warning(" Falling back to Gemini...")
                 try:
                     response = self.gemini_client.generate_content(prompt)
-                    logger.info("✅ Gemini fallback successful")
+                    logger.info(" Gemini fallback successful")
                     return response.text
                 except Exception as gemini_error:
-                    logger.error(f"❌ Gemini fallback also failed: {gemini_error}")
+                    logger.error(f" Gemini fallback also failed: {gemini_error}")
                     raise
             else:
-                logger.error(f"❌ No fallback available. Both clients failed.")
+                logger.error(f" No fallback available. Both clients failed.")
                 raise Exception(f"Both AI clients failed: {e}")
     
     def generate_stream(self, prompt: str, max_tokens: int = 2000, temperature: float = 0.7):
@@ -175,7 +175,7 @@ class UnifiedAIClient:
         """
         # For streaming, prefer Groq as it has better streaming support
         if self.groq_client:
-            logger.info("📡 Calling Groq API with streaming...")
+            logger.info(" Calling Groq API with streaming...")
             try:
                 stream = self.groq_client.chat.completions.create(
                     model=self.groq_model,
@@ -189,16 +189,16 @@ class UnifiedAIClient:
                     if chunk.choices and chunk.choices[0].delta.content:
                         yield chunk.choices[0].delta.content
                 
-                logger.info("✅ Groq streaming completed")
+                logger.info(" Groq streaming completed")
                 return
                         
             except Exception as groq_error:
-                logger.error(f"❌ Groq streaming error: {groq_error}")
+                logger.error(f" Groq streaming error: {groq_error}")
                 # Don't raise, try Gemini fallback
         
         # Fallback to Gemini (non-streaming, but split into chunks)
         if self.primary_ai == "gemini" and self.gemini_api_key:
-            logger.warning("⚠️ Using Gemini with simulated streaming (Groq unavailable)")
+            logger.warning(" Using Gemini with simulated streaming (Groq unavailable)")
             try:
                 # Get full response from Gemini
                 full_response = self.generate(prompt, max_tokens, temperature)
@@ -211,13 +211,15 @@ class UnifiedAIClient:
                     else:
                         yield word
                 
-                logger.info("✅ Gemini simulated streaming completed")
+                logger.info(" Gemini simulated streaming completed")
                 return
                         
             except Exception as gemini_error:
-                logger.error(f"❌ Gemini fallback error: {gemini_error}")
+                logger.error(f" Gemini fallback error: {gemini_error}")
                 raise
         
         # No AI available
-        logger.error("❌ No AI client available for streaming!")
+        logger.error(" No AI client available for streaming!")
         raise Exception("No AI client available for streaming")
+
+

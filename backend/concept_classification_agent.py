@@ -521,10 +521,10 @@ If not related, return: {{"related": false}}"""
                 if response.status_code == 200:
                     data = response.json()
                     text = data['candidates'][0]['content']['parts'][0]['text']
-                    logger.info(f"✅ Gemini REST response received")
+                    logger.info(f" Gemini REST response received")
                     return text
                 else:
-                    logger.error(f"❌ Gemini REST API error: {response.status_code}")
+                    logger.error(f" Gemini REST API error: {response.status_code}")
                     raise Exception(f"Gemini API error: {response.status_code}")
                     
             elif self.groq_client:

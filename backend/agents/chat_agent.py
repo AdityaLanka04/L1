@@ -1,4 +1,4 @@
-"""
+﻿"""
 Advanced AI Chat Agent
 High-capacity LangGraph-based agent for intelligent tutoring conversations
 with multi-modal reasoning, adaptive responses, and deep memory integration.
@@ -486,7 +486,6 @@ class ChatAgent(BaseAgent):
             checkpointer=checkpointer or MemorySaver()
         )
         
-        logger.info("Advanced Chat Agent initialized")
     
     def _build_graph(self) -> None:
         """Build the LangGraph state machine"""
@@ -528,7 +527,7 @@ class ChatAgent(BaseAgent):
         # Compile
         self.graph = graph
         self.compiled_graph = graph.compile(checkpointer=self.checkpointer)
-        logger.info("Chat Agent graph compiled")
+        
     
     # ==================== Graph Nodes ====================
     
@@ -966,5 +965,8 @@ def create_chat_agent(
         memory_manager=memory_manager
     )
     agent_registry.register(agent)
-    logger.info("✅ Advanced Chat Agent registered")
+    logger.info(" Advanced Chat Agent registered")
     return agent
+
+
+

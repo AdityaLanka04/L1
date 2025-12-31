@@ -19,16 +19,16 @@ def reset_all_stats():
         # Delete all chat messages first (foreign key constraint) - handle if table doesn't exist
         try:
             deleted_messages = db.query(ChatMessage).delete()
-            print(f"✅ Deleted {deleted_messages} chat messages")
+            print(f" Deleted {deleted_messages} chat messages")
         except Exception as e:
-            print(f"⚠️ Could not delete chat messages: {e}")
+            print(f" Could not delete chat messages: {e}")
         
         # Delete all chat sessions - handle if table doesn't exist
         try:
             deleted_sessions = db.query(ChatSession).delete()
-            print(f"✅ Deleted {deleted_sessions} chat sessions")
+            print(f" Deleted {deleted_sessions} chat sessions")
         except Exception as e:
-            print(f"⚠️ Could not delete chat sessions: {e}")
+            print(f" Could not delete chat sessions: {e}")
         
         # Reset all UserGamificationStats
         stats = db.query(UserGamificationStats).all()
@@ -54,23 +54,23 @@ def reset_all_stats():
             stat.current_streak = 0
             stat.updated_at = datetime.now(timezone.utc)
         
-        print(f"✅ Reset {len(stats)} user stats")
+        print(f" Reset {len(stats)} user stats")
         
         # Delete all point transactions
         deleted_transactions = db.query(PointTransaction).delete()
-        print(f"✅ Deleted {deleted_transactions} point transactions")
+        print(f" Deleted {deleted_transactions} point transactions")
         
         # Reset daily metrics
         deleted_metrics = db.query(DailyLearningMetrics).delete()
-        print(f"✅ Deleted {deleted_metrics} daily metrics")
+        print(f" Deleted {deleted_metrics} daily metrics")
         
         db.commit()
-        print("\n✅ All data reset successfully!")
+        print("\n All data reset successfully!")
         print("Users can now start fresh with proper point tracking.")
         
     except Exception as e:
         db.rollback()
-        print(f"❌ Error: {e}")
+        print(f" Error: {e}")
         import traceback
         traceback.print_exc()
     finally:

@@ -643,8 +643,6 @@ const Flashcards = () => {
         formData.append('depth_level', depthLevel);
         formData.append('is_public', isPublic.toString());
         
-        console.log('🎴 AGENT CALL - is_public:', isPublic);
-        
         if (generationMode === 'topic') {
           // Topic-based generation
           formData.append('topic', topic);
@@ -664,18 +662,14 @@ const Flashcards = () => {
           formData.append('topic', summaryTitle); // Use as topic hint
         }
         
-        console.log('🎴 Calling flashcard agent...');
         const agentResponse = await fetch(`${API_URL}/flashcard_agent/`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
           body: formData
         });
         
-        console.log('🎴 Agent response status:', agentResponse.status);
-        
         if (agentResponse.ok) {
           const data = await agentResponse.json();
-          console.log('🎴 Agent response data:', data);
           
           // Cards can be at data.cards or data.data.cards
           const cards = data.cards || data.data?.cards;
@@ -710,16 +704,15 @@ const Flashcards = () => {
             setShuffledCards(shuffledCards);
             setPreviewMode(true);
             
-            console.log('🎴 Flashcards generated via agent:', cards.length);
             setGenerating(false);
             return;
           }
         }
         
         // If agent fails, fall through to legacy endpoint
-        console.log('⚠️ Agent endpoint failed, falling back to legacy. Response ok:', agentResponse?.ok);
+
       } catch (agentError) {
-        console.log('⚠️ Agent error, using legacy endpoint:', agentError.message || agentError);
+
       }
       
       // Legacy endpoint fallback
@@ -730,8 +723,6 @@ const Flashcards = () => {
       formData.append('depth_level', depthLevel);
       formData.append('save_to_set', autoSave.toString());
       formData.append('is_public', isPublic.toString());
-
-      console.log('🎴 GENERATING FLASHCARDS - is_public:', isPublic, 'autoSave:', autoSave, 'topic:', topic);
 
       if (generationMode === 'topic') {
         formData.append('topic', topic);
@@ -745,11 +736,6 @@ const Flashcards = () => {
           const summaryTitle = await generateChatSummaryTitle(chatHistory);
           formData.append('set_title', summaryTitle);
         }
-      }
-
-      console.log('📤 SENDING TO API - FormData entries:');
-      for (let [key, value] of formData.entries()) {
-        console.log(`  ${key}: ${value}`);
       }
 
       const response = await fetch(`${API_URL}/generate_flashcards`, {

@@ -61,10 +61,10 @@ def add_column_if_missing(cursor, table_name, column_name, column_type, default_
         
         sql = f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}{default_clause}"
         cursor.execute(sql)
-        print(f"  ✅ Added {table_name}.{column_name} ({column_type})")
+        print(f"   Added {table_name}.{column_name} ({column_type})")
         return True
     except sqlite3.OperationalError as e:
-        print(f"  ❌ Error adding {table_name}.{column_name}: {e}")
+        print(f"   Error adding {table_name}.{column_name}: {e}")
         return False
 
 def run_comprehensive_migration():
@@ -74,13 +74,13 @@ def run_comprehensive_migration():
     db_path = get_db_path()
     
     if db_path and os.path.exists(db_path):
-        print(f"🔧 Running SQLite migration on: {db_path}")
+        print(f" Running SQLite migration on: {db_path}")
         run_sqlite_migration(db_path)
     elif "postgres" in DATABASE_URL:
-        print("🔧 PostgreSQL detected - using SQLAlchemy approach")
+        print(" PostgreSQL detected - using SQLAlchemy approach")
         run_postgres_migration()
     else:
-        print(f"❌ Database not found")
+        print(f" Database not found")
 
 def run_sqlite_migration(db_path):
     """Run SQLite migration"""
@@ -207,13 +207,13 @@ def run_sqlite_migration(db_path):
         
         print("\n" + "=" * 80)
         if changes_made > 0:
-            print(f"✅ Migration completed successfully! {changes_made} columns added.")
+            print(f" Migration completed successfully! {changes_made} columns added.")
         else:
-            print("✅ Database schema is up to date. No changes needed.")
+            print(" Database schema is up to date. No changes needed.")
         print("=" * 80)
         
     except Exception as e:
-        print(f"\n❌ Migration failed: {e}")
+        print(f"\n Migration failed: {e}")
         conn.rollback()
         import traceback
         traceback.print_exc()
@@ -231,7 +231,7 @@ def run_postgres_migration():
     
     with engine.connect() as connection:
         try:
-            print("🔧 Running PostgreSQL migration...")
+            print(" Running PostgreSQL migration...")
             
             # Add is_public to flashcard_sets
             try:
@@ -240,27 +240,27 @@ def run_postgres_migration():
                     ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT FALSE
                 """))
                 connection.commit()
-                print("✅ Added is_public column to flashcard_sets")
+                print(" Added is_public column to flashcard_sets")
             except Exception as e:
-                print(f"⚠️ flashcard_sets.is_public: {e}")
+                print(f" flashcard_sets.is_public: {e}")
             
             # Add other missing columns as needed
             # ... (add more PostgreSQL-specific migrations here)
             
-            print("✅ PostgreSQL migration completed")
+            print(" PostgreSQL migration completed")
             
         except Exception as e:
-            print(f"❌ PostgreSQL migration failed: {e}")
+            print(f" PostgreSQL migration failed: {e}")
             connection.rollback()
 
 if __name__ == "__main__":
-    print("🚀 Starting Comprehensive Database Migration")
+    print(" Starting Comprehensive Database Migration")
     print("=" * 80)
     
     # Check if we're using SQLite locally
     if "sqlite" in DATABASE_URL or not DATABASE_URL.startswith("postgres"):
         # Force SQLite migration for local development
-        print("🔍 Detected local SQLite database")
+        print(" Detected local SQLite database")
         db_path = get_db_path()
         if db_path and os.path.exists(db_path):
             print(f"📂 Database location: {db_path}")
@@ -268,6 +268,6 @@ if __name__ == "__main__":
             original_url = DATABASE_URL
             run_comprehensive_migration()
         else:
-            print("❌ SQLite database not found")
+            print(" SQLite database not found")
     else:
         run_comprehensive_migration()

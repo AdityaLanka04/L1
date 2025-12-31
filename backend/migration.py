@@ -66,16 +66,16 @@ def sync_table(cursor, model):
     db_columns = get_db_columns(cursor, table_name)
     
     if not db_columns:
-        print(f"  ⚠️  Table {table_name} doesn't exist - will be created by SQLAlchemy")
+        print(f"    Table {table_name} doesn't exist - will be created by SQLAlchemy")
         return
     
     missing_columns = set(model_columns.keys()) - set(db_columns.keys())
     
     if not missing_columns:
-        print(f"  ✅ All columns present")
+        print(f"   All columns present")
         return
     
-    print(f"  🔧 Adding {len(missing_columns)} missing columns:")
+    print(f"   Adding {len(missing_columns)} missing columns:")
     for column_name in missing_columns:
         column_def = model_columns[column_name]
         print(f"     - {column_name} ({column_def})")
@@ -85,7 +85,7 @@ def sync_table(cursor, model):
                 ADD COLUMN {column_name} {column_def}
             """)
         except sqlite3.OperationalError as e:
-            print(f"     ❌ Error adding {column_name}: {e}")
+            print(f"      Error adding {column_name}: {e}")
 
 def run_migration():
     # Check multiple possible database locations (prioritize brainwave_tutor.db)
@@ -107,15 +107,15 @@ def run_migration():
         print(f"📁 Creating new database: {db_path}")
         open(db_path, 'a').close()
     
-    print(f"🔍 Syncing database schema: {db_path}")
+    print(f" Syncing database schema: {db_path}")
     
     # Step 1: Use SQLAlchemy to create ALL tables that don't exist
     print("\n🏗️  Creating all tables using SQLAlchemy...")
     try:
         Base.metadata.create_all(bind=engine)
-        print("✅ All tables created/verified by SQLAlchemy")
+        print(" All tables created/verified by SQLAlchemy")
     except Exception as e:
-        print(f"⚠️ SQLAlchemy table creation warning: {e}")
+        print(f" SQLAlchemy table creation warning: {e}")
     
     # Step 2: Connect with sqlite3 to add any missing columns to existing tables
     conn = sqlite3.connect(db_path)
@@ -134,30 +134,30 @@ def run_migration():
     # Add share_code column to flashcard_sets if it doesn't exist
     try:
         cursor.execute("ALTER TABLE flashcard_sets ADD COLUMN share_code TEXT")
-        print("✅ Added share_code column to flashcard_sets")
+        print(" Added share_code column to flashcard_sets")
     except sqlite3.OperationalError as e:
         if "duplicate column" in str(e).lower():
             pass  # Column already exists
         else:
-            print(f"⚠️ share_code column: {e}")
+            print(f" share_code column: {e}")
     
     # Create index for share_code
     try:
         cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_flashcard_sets_share_code ON flashcard_sets(share_code)")
-        print("✅ Created index for share_code")
+        print(" Created index for share_code")
     except Exception as e:
         if "already exists" not in str(e).lower():
-            print(f"⚠️ share_code index: {e}")
+            print(f" share_code index: {e}")
     
     # Add show_study_insights column to comprehensive_user_profiles
     try:
         cursor.execute("ALTER TABLE comprehensive_user_profiles ADD COLUMN show_study_insights BOOLEAN DEFAULT 1")
-        print("✅ Added show_study_insights column to comprehensive_user_profiles")
+        print(" Added show_study_insights column to comprehensive_user_profiles")
     except sqlite3.OperationalError as e:
         if "duplicate column" in str(e).lower():
             pass  # Column already exists
         else:
-            print(f"⚠️ show_study_insights column: {e}")
+            print(f" show_study_insights column: {e}")
     
     # Generate share codes for existing flashcard sets that don't have one
     try:
@@ -168,7 +168,7 @@ def run_migration():
         sets_without_code = cursor.fetchall()
         
         if sets_without_code:
-            print(f"📝 Generating share codes for {len(sets_without_code)} flashcard sets...")
+            print(f" Generating share codes for {len(sets_without_code)} flashcard sets...")
             for (set_id,) in sets_without_code:
                 # Generate unique 6-char code
                 while True:
@@ -177,9 +177,9 @@ def run_migration():
                     if not cursor.fetchone():
                         break
                 cursor.execute("UPDATE flashcard_sets SET share_code = ? WHERE id = ?", (code, set_id))
-            print(f"✅ Generated share codes for {len(sets_without_code)} flashcard sets")
+            print(f" Generated share codes for {len(sets_without_code)} flashcard sets")
     except Exception as e:
-        print(f"⚠️ share code generation: {e}")
+        print(f" share code generation: {e}")
     
     try:
         # Sync columns for all models
@@ -187,10 +187,10 @@ def run_migration():
             sync_table(cursor, model)
         
         conn.commit()
-        print("\n✅ Schema sync completed successfully!")
+        print("\n Schema sync completed successfully!")
         
     except Exception as e:
-        print(f"\n❌ Migration failed: {e}")
+        print(f"\n Migration failed: {e}")
         conn.rollback()
         import traceback
         traceback.print_exc()

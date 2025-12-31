@@ -1,4 +1,4 @@
-"""
+﻿"""
 Search Tools
 Tools for agents to search content and the web
 """
@@ -235,3 +235,4 @@ class SearchTools:
             get_study_statistics,
             semantic_search
         ]
+

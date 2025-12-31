@@ -281,4 +281,5 @@ async def reset_agent(user_id: str = Query(...)):
 def register_ai_chat_agent(app):
     """Register AI Chat Agent routes with the FastAPI app"""
     app.include_router(router)
-    logger.info("✅ AI Chat Agent API registered successfully")
+    logger.info(" AI Chat Agent API registered successfully")
+

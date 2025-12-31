@@ -35,7 +35,7 @@ def get_db_session():
                         break
         
         if not db_url:
-            print("❌ DATABASE_URL not found in .env file")
+            print(" DATABASE_URL not found in .env file")
             sys.exit(1)
         
         print(f"📊 Connecting to PostgreSQL database...")
@@ -44,7 +44,7 @@ def get_db_session():
         db_path = os.path.join(os.path.dirname(__file__), 'brainwave_tutor.db')
         
         if not os.path.exists(db_path):
-            print(f"❌ SQLite database not found at: {db_path}")
+            print(f" SQLite database not found at: {db_path}")
             sys.exit(1)
         
         print(f"📊 Connecting to SQLite database: {db_path}")
@@ -136,12 +136,12 @@ def backfill_transactions():
                         existing_by_type[key] = []
                     existing_by_type[key].append(transaction)
             
-            print(f"  ✅ Created {flashcard_count} flashcard set transactions")
+            print(f"   Created {flashcard_count} flashcard set transactions")
             
             # ============================================================
             # 2. BACKFILL NOTES
             # ============================================================
-            print("\n📝 BACKFILLING NOTES:")
+            print("\n BACKFILLING NOTES:")
             print("-" * 40)
             
             notes = db.query(models.Note).filter(
@@ -171,12 +171,12 @@ def backfill_transactions():
                     note_count += 1
                     user_transactions_created += 1
             
-            print(f"  ✅ Created {note_count} note transactions")
+            print(f"   Created {note_count} note transactions")
             
             # ============================================================
             # 3. BACKFILL AI CHAT SESSIONS
             # ============================================================
-            print("\n💬 BACKFILLING AI CHAT SESSIONS:")
+            print("\n BACKFILLING AI CHAT SESSIONS:")
             print("-" * 40)
             
             # Get chat messages (each message = 1 point)
@@ -208,7 +208,7 @@ def backfill_transactions():
                     chat_count += 1
                     user_transactions_created += 1
             
-            print(f"  ✅ Created {chat_count} AI chat transactions")
+            print(f"   Created {chat_count} AI chat transactions")
             
             # ============================================================
             # 4. SUMMARY
@@ -223,23 +223,23 @@ def backfill_transactions():
         db.commit()
         
         print("="*80)
-        print("✅ BACKFILL COMPLETED SUCCESSFULLY!")
+        print(" BACKFILL COMPLETED SUCCESSFULLY!")
         print("="*80)
         print(f"\n📊 SUMMARY:")
         print(f"  • Total new transactions created: {total_created}")
         print(f"  • Users processed: {len(users)}")
-        print("\n💡 WHAT WAS BACKFILLED:")
+        print("\n WHAT WAS BACKFILLED:")
         print("  • Flashcard Sets: 10 points each")
         print("  • Notes: 20 points each")
         print("  • AI Chat Messages: 1 point each")
-        print("\n🎯 NEXT STEPS:")
+        print("\n NEXT STEPS:")
         print("  1. Refresh your Analytics page")
         print("  2. Charts will now show complete historical data")
         print("  3. All future activities will automatically create transactions")
         print()
         
     except Exception as e:
-        print(f"\n❌ ERROR: {str(e)}")
+        print(f"\n ERROR: {str(e)}")
         import traceback
         traceback.print_exc()
         db.rollback()
@@ -247,11 +247,11 @@ def backfill_transactions():
         db.close()
 
 if __name__ == "__main__":
-    print("\n⚠️  WARNING: This script will create PointTransaction records for existing activities.")
+    print("\n  WARNING: This script will create PointTransaction records for existing activities.")
     print("This is safe to run multiple times - it checks for existing transactions.\n")
     
     response = input("Continue? (yes/no): ").strip().lower()
     if response in ['yes', 'y']:
         backfill_transactions()
     else:
-        print("❌ Cancelled")
+        print(" Cancelled")

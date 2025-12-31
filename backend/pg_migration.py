@@ -180,7 +180,7 @@ def sync_table_columns(conn, model, is_postgres):
     table_name = model.__tablename__
     
     if not table_exists(conn, table_name, is_postgres):
-        print(f"  ⚠️  Table doesn't exist - will be created")
+        print(f"    Table doesn't exist - will be created")
         return 0, []
     
     db_columns = get_db_columns(conn, table_name, is_postgres)
@@ -213,12 +213,12 @@ def sync_table_columns(conn, model, is_postgres):
         success, error = add_column(conn, table_name, column.name, col_type, default_clause, is_postgres)
         
         if success:
-            print(f"  ✅ Added: {column.name} ({col_type})")
+            print(f"   Added: {column.name} ({col_type})")
             added += 1
         elif error == "exists":
             print(f"  ✓ {column.name} already exists")
         else:
-            print(f"  ❌ Error adding {column.name}: {error}")
+            print(f"   Error adding {column.name}: {error}")
             errors.append((column.name, error))
     
     return added, errors
@@ -227,30 +227,30 @@ def sync_table_columns(conn, model, is_postgres):
 def run_migration():
     """Run comprehensive migration - check ALL models and ALL columns"""
     print("=" * 60)
-    print("🚀 COMPREHENSIVE DATABASE MIGRATION")
-    print(f"📡 Database: {'PostgreSQL' if IS_POSTGRES else 'SQLite'}")
+    print(" COMPREHENSIVE DATABASE MIGRATION")
+    print(f" Database: {'PostgreSQL' if IS_POSTGRES else 'SQLite'}")
     print(f"🔗 URL: {DATABASE_URL[:50]}...")
     print("=" * 60)
     
     engine = create_engine(DATABASE_URL)
     
     # Import models
-    print("\n📦 Loading models...")
+    print("\n Loading models...")
     try:
         from models import Base
         models = get_all_models_from_base(Base)
         print(f"  Found {len(models)} model classes")
     except Exception as e:
-        print(f"  ❌ Error loading models: {e}")
+        print(f"   Error loading models: {e}")
         return -1
     
     # Create missing tables first
     print("\n📋 Creating missing tables...")
     try:
         Base.metadata.create_all(bind=engine)
-        print("  ✅ All tables created/verified")
+        print("   All tables created/verified")
     except Exception as e:
-        print(f"  ⚠️ Table creation warning: {e}")
+        print(f"   Table creation warning: {e}")
     
     # Sync columns
     print("\n📋 Syncing columns for all tables...")
@@ -272,7 +272,7 @@ def run_migration():
             db_columns = get_db_columns(conn, table_name, IS_POSTGRES)
             db_col_count = len(db_columns)
             
-            print(f"\n🔍 {table_name} (model: {model_col_count} cols, db: {db_col_count} cols)")
+            print(f"\n {table_name} (model: {model_col_count} cols, db: {db_col_count} cols)")
             
             try:
                 added, errors = sync_table_columns(conn, model, IS_POSTGRES)
@@ -283,14 +283,14 @@ def run_migration():
                     print(f"  ✓ All columns present")
                     
             except Exception as e:
-                print(f"  ❌ Error: {e}")
+                print(f"   Error: {e}")
                 total_errors.append((table_name, str(e)))
         
         conn.commit()
     
     # Summary
     print("\n" + "=" * 60)
-    print(f"✅ MIGRATION COMPLETE")
+    print(f" MIGRATION COMPLETE")
     print(f"   Tables processed: {tables_processed}")
     print(f"   Columns added: {total_added}")
     if total_errors:

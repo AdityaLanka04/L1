@@ -1,4 +1,4 @@
-"""
+﻿"""
 Unified Memory System
 Central memory layer that provides context to all agents
 """
@@ -126,7 +126,6 @@ class UnifiedMemory:
         # Memory index for fast lookup
         self._index: Dict[str, Dict[str, List[str]]] = defaultdict(lambda: defaultdict(list))  # user_id -> type -> memory_ids
         
-        logger.info("Unified Memory System initialized")
     
     def _generate_id(self, content: str, user_id: str) -> str:
         """Generate unique memory ID"""
@@ -602,3 +601,5 @@ class UnifiedMemory:
             "avg_importance": sum(m.importance for m in memories) / max(len(memories), 1),
             "working_sessions": len(self._working)
         }
+
+

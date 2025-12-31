@@ -1,4 +1,4 @@
-# Agent Tools Module
+﻿# Agent Tools Module
 # Tools that agents can use to interact with the system
 
 from .knowledge_tools import KnowledgeGraphTools
@@ -10,3 +10,4 @@ __all__ = [
     'SearchTools', 
     'ContentTools'
 ]
+

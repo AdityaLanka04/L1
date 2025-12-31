@@ -32,7 +32,7 @@ def get_postgres_session():
                     break
     
     if not db_url:
-        print("❌ DATABASE_URL not found in .env file")
+        print(" DATABASE_URL not found in .env file")
         sys.exit(1)
     
     print(f"📊 Connecting to PostgreSQL database...")
@@ -61,7 +61,7 @@ def fix_flashcard_stats():
             ).first()
             
             if not stats:
-                print(f"  ⚠️  No gamification stats found, creating new record...")
+                print(f"    No gamification stats found, creating new record...")
                 stats = models.UserGamificationStats(
                     user_id=user.id,
                     total_points=0,
@@ -120,7 +120,7 @@ def fix_flashcard_stats():
             print(f"  • This week: {weekly_sets} sets, {weekly_cards} cards reviewed, {weekly_mastered} mastered")
             
             # === AI CHAT STATISTICS ===
-            print(f"\n💬 AI CHAT STATISTICS:")
+            print(f"\n AI CHAT STATISTICS:")
             
             ai_chat_count = db.query(func.count(models.PointTransaction.id)).filter(
                 models.PointTransaction.user_id == user.id,
@@ -172,12 +172,12 @@ def fix_flashcard_stats():
             
             stats.updated_at = datetime.now(timezone.utc)
             
-            print(f"  ✅ Stats updated successfully!\n")
+            print(f"   Stats updated successfully!\n")
         
         db.commit()
         
         print(f"\n{'='*60}")
-        print("✅ ALL STATISTICS FIXED SUCCESSFULLY!")
+        print(" ALL STATISTICS FIXED SUCCESSFULLY!")
         print(f"{'='*60}")
         print("\n📊 Summary:")
         print("  • Flashcards: Counted from FlashcardSet and FlashcardStudySession tables")
@@ -187,7 +187,7 @@ def fix_flashcard_stats():
         print("\n✨ Your dashboard and analytics will now show correct numbers!")
         
     except Exception as e:
-        print(f"\n❌ Error: {str(e)}")
+        print(f"\n Error: {str(e)}")
         import traceback
         traceback.print_exc()
         db.rollback()

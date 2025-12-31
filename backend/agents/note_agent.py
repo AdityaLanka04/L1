@@ -1,4 +1,4 @@
-"""
+﻿"""
 Advanced Note Agent
 LangGraph-based agent for intelligent note-taking, content generation,
 writing assistance, and adaptive learning with knowledge graph integration.
@@ -600,7 +600,6 @@ class NoteAgent(BaseAgent):
             checkpointer=checkpointer or MemorySaver()
         )
         
-        logger.info("Note Agent initialized")
     
     def _build_graph(self) -> None:
         """Build the LangGraph state machine"""
@@ -655,7 +654,7 @@ class NoteAgent(BaseAgent):
         # Compile
         self.graph = graph
         self.compiled_graph = graph.compile(checkpointer=self.checkpointer)
-        logger.info("Note Agent graph compiled")
+        
 
     # ==================== Graph Nodes ====================
     
@@ -1082,5 +1081,8 @@ def create_note_agent(
         db_session_factory=db_session_factory
     )
     agent_registry.register(agent)
-    logger.info("✅ Note Agent registered")
+    logger.info(" Note Agent registered")
     return agent
+
+
+

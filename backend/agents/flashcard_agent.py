@@ -1,4 +1,4 @@
-"""
+﻿"""
 Advanced Flashcard Agent
 LangGraph-based agent for intelligent flashcard generation, spaced repetition,
 and adaptive learning with knowledge graph integration.
@@ -561,7 +561,6 @@ class FlashcardAgent(BaseAgent):
             checkpointer=checkpointer or MemorySaver()
         )
         
-        logger.info("Flashcard Agent initialized")
     
     def _build_graph(self) -> None:
         """Build the LangGraph state machine"""
@@ -619,7 +618,7 @@ class FlashcardAgent(BaseAgent):
         # Compile
         self.graph = graph
         self.compiled_graph = graph.compile(checkpointer=self.checkpointer)
-        logger.info("Flashcard Agent graph compiled")
+        
     
     # ==================== Graph Nodes ====================
     
@@ -1034,5 +1033,8 @@ def create_flashcard_agent(
         db_session_factory=db_session_factory
     )
     agent_registry.register(agent)
-    logger.info("✅ Flashcard Agent registered")
+    logger.info(" Flashcard Agent registered")
     return agent
+
+
+

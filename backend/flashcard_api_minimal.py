@@ -496,7 +496,7 @@ async def toggle_flashcard_set_visibility(
     flashcard_set.is_public = is_public
     db.commit()
     
-    logger.info(f"✅ Flashcard set {set_id} visibility changed to {'public' if is_public else 'private'}")
+    logger.info(f" Flashcard set {set_id} visibility changed to {'public' if is_public else 'private'}")
     
     return {
         "success": True,
@@ -508,4 +508,4 @@ async def toggle_flashcard_set_visibility(
 def register_flashcard_api_minimal(app):
     """Register streamlined flashcard routes"""
     app.include_router(router)
-    logger.info("✅ Minimal Flashcard API registered")
+    logger.info(" Minimal Flashcard API registered")

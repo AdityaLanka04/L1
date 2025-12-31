@@ -1,4 +1,4 @@
-"""
+﻿"""
 Knowledge Graph Tools
 Tools for agents to query and update the knowledge graph
 """
@@ -179,3 +179,4 @@ class KnowledgeGraphTools:
             get_learning_context,
             create_concept
         ]
+

@@ -206,7 +206,7 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
     ).first()
     
     if recent_transaction:
-        print(f"⚠️  Duplicate {activity_type} detected within 2 seconds - skipping")
+        print(f"  Duplicate {activity_type} detected within 2 seconds - skipping")
         return {
             "points_earned": 0,
             "total_points": stats.total_points,

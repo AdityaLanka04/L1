@@ -1,4 +1,4 @@
-# Unified Memory Layer
+﻿# Unified Memory Layer
 # Provides shared context across all agents
 
 from .unified_memory import UnifiedMemory, MemoryType, MemoryEntry
@@ -12,3 +12,4 @@ __all__ = [
     'get_memory_manager',
     'initialize_memory_manager'
 ]
+

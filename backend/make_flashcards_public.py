@@ -21,13 +21,13 @@ def make_all_flashcards_public():
         # Make them all public
         for fset in flashcard_sets:
             fset.is_public = True
-            print(f"✅ Made public: {fset.title} (ID: {fset.id}, User: {fset.user_id})")
+            print(f" Made public: {fset.title} (ID: {fset.id}, User: {fset.user_id})")
         
         db.commit()
-        print(f"\n✅ Successfully made {len(flashcard_sets)} flashcard sets public!")
+        print(f"\n Successfully made {len(flashcard_sets)} flashcard sets public!")
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f" Error: {e}")
         db.rollback()
     finally:
         db.close()

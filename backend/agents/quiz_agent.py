@@ -1,4 +1,4 @@
-"""
+﻿"""
 Advanced Quiz Agent
 LangGraph-based agent for intelligent quiz generation, adaptive testing,
 performance analysis, and personalized learning with knowledge graph integration.
@@ -874,7 +874,6 @@ class QuizAgent(BaseAgent):
             checkpointer=checkpointer or MemorySaver()
         )
         
-        logger.info("Quiz Agent initialized")
     
     def _build_graph(self) -> None:
         """Build the LangGraph state machine"""
@@ -941,7 +940,7 @@ class QuizAgent(BaseAgent):
         # Compile
         self.graph = graph
         self.compiled_graph = graph.compile(checkpointer=self.checkpointer)
-        logger.info("Quiz Agent graph compiled")
+        
     
     # ==================== Graph Nodes ====================
     
@@ -1478,3 +1477,6 @@ def create_quiz_agent(
         memory_manager=memory_manager,
         db_session_factory=db_session_factory
     )
+
+
+

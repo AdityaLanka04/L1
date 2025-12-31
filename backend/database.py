@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, event
+﻿from sqlalchemy import create_engine, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool, NullPool
@@ -10,11 +10,11 @@ logger = logging.getLogger(__name__)
 # Detect Render's PostgreSQL or fallback to local SQLite
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./brainwave_tutor.db")
 
-# ✅ CRITICAL FIX: Switch to Transaction mode for Supabase (port 6543)
+#  CRITICAL FIX: Switch to Transaction mode for Supabase (port 6543)
 if "postgresql" in DATABASE_URL or "postgres" in DATABASE_URL:
     if ":5432/" in DATABASE_URL:
         DATABASE_URL = DATABASE_URL.replace(":5432/", ":6543/")
-        logger.info("✅ Switched to Transaction mode pooling (port 6543)")
+        logger.info(" Switched to Transaction mode pooling (port 6543)")
 
 # Conditional configuration based on database type
 if DATABASE_URL.startswith("sqlite"):
@@ -25,18 +25,18 @@ if DATABASE_URL.startswith("sqlite"):
         connect_args=connect_args,
         echo=False
     )
-    logger.info("🗄️ Using SQLite database (local development)")
+    logger.info(" Using SQLite database (local development)")
     
 else:
     # PostgreSQL configuration (production with Supabase/Render)
     engine = create_engine(
         DATABASE_URL,
-        poolclass=QueuePool,           # ✅ Use connection pooling
-        pool_size=10,                  # ✅ 10 permanent connections
-        max_overflow=20,               # ✅ +20 temporary connections (total: 30)
-        pool_timeout=30,               # ✅ Wait 30s for available connection
-        pool_recycle=1800,             # ✅ Recycle connections every 30 mins
-        pool_pre_ping=True,            # ✅ Test connections before use
+        poolclass=QueuePool,           #  Use connection pooling
+        pool_size=10,                  #  10 permanent connections
+        max_overflow=20,               #  +20 temporary connections (total: 30)
+        pool_timeout=30,               #  Wait 30s for available connection
+        pool_recycle=1800,             #  Recycle connections every 30 mins
+        pool_pre_ping=True,            #  Test connections before use
         connect_args={
             "connect_timeout": 10,
             "application_name": "brainwave_api",
@@ -47,7 +47,7 @@ else:
         },
         echo=False  # Set to True for debugging SQL queries
     )
-    logger.info("🐘 Using PostgreSQL with optimized connection pooling")
+    logger.info(" Using PostgreSQL with optimized connection pooling")
     
     # Optional: Log connection events for monitoring
     @event.listens_for(engine, "connect")
@@ -69,4 +69,5 @@ def get_db():
     try:
         yield db
     finally:
-        db.close()  # ✅ Always close connection
+        db.close()  #  Always close connection
+

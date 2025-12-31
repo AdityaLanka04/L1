@@ -43,7 +43,7 @@ for user_id, title, count in duplicates:
             db.delete(n)
 
 db.commit()
-print("\n✅ Cleanup complete!")
+print("\n Cleanup complete!")
 
 # Show final count
 final_count = db.query(Notification).count()

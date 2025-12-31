@@ -1,4 +1,4 @@
-import re
+﻿import re
 import numpy as np
 from typing import Dict, List, Any, Optional
 from ml.user_profiler import UserProfiler
@@ -149,7 +149,7 @@ class MathRoutingAgent:
             enhanced += "\n\n📊 Visual tip: Try drawing this problem or using diagrams to help visualize the solution."
         
         if analysis['subjects'] and 'algebra' in analysis['subjects']:
-            enhanced += "\n\n🔍 Remember: In algebra, we're finding unknown values. Always check your answer by substituting back!"
+            enhanced += "\n\n Remember: In algebra, we're finding unknown values. Always check your answer by substituting back!"
         
         return enhanced
     

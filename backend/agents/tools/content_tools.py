@@ -1,4 +1,4 @@
-"""
+﻿"""
 Content Tools
 Tools for agents to create and manage learning content
 """
@@ -271,3 +271,4 @@ class ContentTools:
             explain_concept,
             generate_study_plan
         ]
+

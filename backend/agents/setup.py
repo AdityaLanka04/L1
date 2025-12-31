@@ -1,4 +1,4 @@
-"""
+﻿"""
 Agent System Setup and Integration
 Initializes the LangGraph agent system with the main FastAPI app
 """
@@ -35,16 +35,14 @@ async def setup_agent_system(
             from knowledge_graph import get_knowledge_graph
             knowledge_graph = await get_knowledge_graph()
             if knowledge_graph:
-                logger.info("✅ Knowledge graph connected")
+                pass  # Knowledge graph connected
             else:
-                logger.warning("⚠️ Knowledge graph not available - running without it")
+                logger.warning("Knowledge graph not available - running without it")
         except Exception as e:
-            logger.warning(f"⚠️ Knowledge graph initialization failed: {e}")
+            logger.warning(f" Knowledge graph initialization failed: {e}")
     
     # Initialize intelligent agent system
     await initialize_agent_system(ai_client, knowledge_graph, db_session_factory)
-    
-    logger.info("✅ Intelligent agent system setup complete")
     
     return True
 
@@ -56,4 +54,4 @@ def register_agent_routes(app: FastAPI):
     """
     from agents.agent_api import router
     app.include_router(router)
-    logger.info("Agent API routes registered")
+

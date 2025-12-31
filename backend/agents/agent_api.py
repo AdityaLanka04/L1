@@ -1,4 +1,4 @@
-"""
+﻿"""
 Agent System API Endpoints
 FastAPI routes for the LangGraph agent system
 """
@@ -185,7 +185,7 @@ async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, d
     """Initialize the intelligent agent system with unified memory"""
     global _orchestrator, _chat_agent, _flashcard_agent, _note_agent, _quiz_agent, _knowledge_graph, _db_session_factory, _memory_manager
     
-    logger.info("Initializing intelligent agent system with unified memory...")
+    
     
     _knowledge_graph = knowledge_graph
     _db_session_factory = db_session_factory
@@ -196,7 +196,6 @@ async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, d
         knowledge_graph=knowledge_graph,
         db_session_factory=db_session_factory
     )
-    logger.info("✅ Unified Memory Manager initialized")
     
     # Initialize the Advanced Chat Agent
     _chat_agent = create_chat_agent(
@@ -204,7 +203,6 @@ async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, d
         knowledge_graph=knowledge_graph,
         memory_manager=_memory_manager
     )
-    logger.info("✅ Advanced Chat Agent initialized")
     
     # Initialize the Flashcard Agent
     _flashcard_agent = create_flashcard_agent(
@@ -213,7 +211,6 @@ async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, d
         memory_manager=_memory_manager,
         db_session_factory=db_session_factory
     )
-    logger.info("✅ Flashcard Agent initialized")
     
     # Initialize the Note Agent
     _note_agent = create_note_agent(
@@ -222,7 +219,6 @@ async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, d
         memory_manager=_memory_manager,
         db_session_factory=db_session_factory
     )
-    logger.info("✅ Note Agent initialized")
     
     # Initialize the Quiz Agent
     _quiz_agent = create_quiz_agent(
@@ -231,7 +227,6 @@ async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, d
         memory_manager=_memory_manager,
         db_session_factory=db_session_factory
     )
-    logger.info("✅ Quiz Agent initialized")
     
     # Initialize orchestrator with memory manager
     _orchestrator = create_intelligent_orchestrator(
@@ -241,7 +236,7 @@ async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, d
         memory_manager=_memory_manager
     )
     
-    logger.info("✅ Intelligent agent system initialized with unified memory")
+    logger.info("Agent system initialized")
     return _orchestrator
 
 
@@ -1638,3 +1633,5 @@ async def list_difficulties():
         ],
         "default_mix": {"easy": 3, "medium": 5, "hard": 2}
     }
+
+
