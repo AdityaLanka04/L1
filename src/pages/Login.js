@@ -22,20 +22,8 @@ function Login() {
       return;
     }
     
-    const justAcceptedSafety = sessionStorage.getItem('justAcceptedSafety');
-    
-    if (justAcceptedSafety) {
-      sessionStorage.removeItem('justAcceptedSafety');
-      return;
-    }
-    
-    const token = localStorage.getItem('token');
-    const username = localStorage.getItem('username');
-    
-    if (token && username) {
-      navigate('/search-hub', { replace: true });
-      return;
-    }
+    // Don't auto-redirect if already logged in - let user stay on login page
+    // They can manually go to dashboard if needed
   }, [navigate]);
 
   const checkAndRedirect = async (username) => {
@@ -85,7 +73,7 @@ function Login() {
 
       if (response.data.completed) {
         sessionStorage.setItem('justLoggedIn', 'true');
-        navigate('/search-hub');
+        navigate('/dashboard');
       } else {
         navigate('/profile-quiz');
       }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRight, X, Filter, Calendar, Play, HelpCircle, RefreshCw, Edit, MessageCircle, Target, Palette, Brain, TrendingUp, Zap, BarChart3 } from 'lucide-react';
+import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRight, X, Filter, Calendar, Play, HelpCircle, RefreshCw, Edit, MessageCircle, Target, Palette, Brain, TrendingUp, Zap, BarChart3, LogIn, UserPlus } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import './SearchHub.css';
 import { API_URL } from '../config/api';
@@ -45,14 +45,31 @@ const SearchHub = () => {
   const [autocompleteResults, setAutocompleteResults] = useState([]);
   const [selectedAutocompleteIndex, setSelectedAutocompleteIndex] = useState(-1);
   const autocompleteDebounceRef = useRef(null);
+  const [showLoginMessage, setShowLoginMessage] = useState(false);
 
   useEffect(() => {
     const username = localStorage.getItem('username');
+    const token = localStorage.getItem('token');
 
-    if (username) {
+    // Only consider logged in if BOTH username AND token exist
+    if (username && token) {
       setUserName(username);
       loadRecentSearches(username);
       loadPersonalizedPrompts(username);
+    } else {
+      // Not logged in - clear any stale data and show default recommendations
+      setUserName('');
+      const defaultPrompts = [
+        { text: 'explain quantum physics', reason: 'Popular topic', priority: 'high' },
+        { text: 'how to learn faster', reason: 'Study tips', priority: 'high' },
+        { text: 'summarize world history', reason: 'Quick overview', priority: 'medium' },
+        { text: 'explain calculus basics', reason: 'Math fundamentals', priority: 'medium' },
+        { text: 'what is machine learning', reason: 'Tech trends', priority: 'medium' },
+        { text: 'improve memory retention', reason: 'Brain training', priority: 'low' },
+        { text: 'learn a new language', reason: 'Language skills', priority: 'low' },
+        { text: 'understand economics', reason: 'Financial literacy', priority: 'low' },
+      ];
+      setPersonalizedPrompts(defaultPrompts);
     }
 
     if (searchInputRef.current) {
@@ -554,17 +571,30 @@ const SearchHub = () => {
     <div className="search-hub-page">
       <header className="search-hub-header">
         <div className="header-content">
-          <div className="header-left">
-            {/* Header content if needed */}
-          </div>
-          <div className="header-right">
+          <div className="header-buttons">
             <button 
-              className="theme-selector-btn"
+              className="theme-btn"
               onClick={() => setShowThemeSelector(!showThemeSelector)}
             >
-              <Palette size={16} />
-              THEME
+              <Palette size={18} />
             </button>
+
+            {!userName && (
+              <>
+                <button 
+                  className="header-text-btn login-signup-btn"
+                  onClick={() => navigate('/login')}
+                >
+                  Login
+                </button>
+                <button 
+                  className="header-text-btn login-signup-btn"
+                  onClick={() => navigate('/register')}
+                >
+                  Sign Up
+                </button>
+              </>
+            )}
             
             {showThemeSelector && (
               <div className="theme-selector-dropdown">
@@ -638,15 +668,46 @@ const SearchHub = () => {
               </div>
             )}
             
-            <button 
-              className="dashboard-btn"
-              onClick={() => navigate('/dashboard')}
-            >
-              DASHBOARD
-            </button>
+            {userName ? (
+              <>
+                <button 
+                  className="header-text-btn login-signup-btn"
+                  onClick={() => navigate('/dashboard')}
+                >
+                  Dashboard
+                </button>
+                <button 
+                  className="header-text-btn login-signup-btn"
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('username');
+                    setUserName('');
+                    window.location.reload();
+                  }}
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <button 
+                className="header-text-btn login-signup-btn"
+                onClick={() => {
+                  setShowLoginMessage(true);
+                  setTimeout(() => setShowLoginMessage(false), 3000);
+                }}
+              >
+                Dashboard
+              </button>
+            )}
           </div>
         </div>
       </header>
+
+      {showLoginMessage && (
+        <div className="login-required-message">
+          PLEASE LOGIN TO CONTINUE
+        </div>
+      )}
 
       <main className="search-hub-content">
         {!searchResults && !isSearching && !isCreating ? (
@@ -663,10 +724,7 @@ const SearchHub = () => {
             <div className="hero-content">
               {personalizedPrompts.length > 0 && (
                 <div className="recommendations-section">
-                  <div className="section-header">
-                    <Sparkles className="section-icon" />
-                    <h2 className="section-title">Recommended For You</h2>
-                  </div>
+                  <h2 className="recommendations-title">RECOMMENDATIONS</h2>
 
                   <div className="recommendations-grid">
                     {personalizedPrompts.map((prompt, index) => {
@@ -713,6 +771,25 @@ const SearchHub = () => {
                         value={searchQuery}
                         onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
+                        onFocus={() => {
+                          // Scroll down when clicking on search bar
+                          if (showAutocomplete && autocompleteResults.length > 0) {
+                            setTimeout(() => {
+                              const dropdown = document.querySelector('.autocomplete-dropdown');
+                              if (dropdown) {
+                                const lastItem = dropdown.lastElementChild;
+                                if (lastItem) {
+                                  const rect = lastItem.getBoundingClientRect();
+                                  const absoluteBottom = window.pageYOffset + rect.bottom;
+                                  window.scrollTo({ 
+                                    top: absoluteBottom - window.innerHeight + 10, 
+                                    behavior: 'smooth' 
+                                  });
+                                }
+                              }
+                            }, 200);
+                          }
+                        }}
                         placeholder="Search for anything..."
                         className="hero-search-input"
                         autoComplete="off"
@@ -742,11 +819,9 @@ const SearchHub = () => {
                       </div>
                     )}
                   </div>
-                  <div className="search-label">
-                    <span className="search-label-text">search</span>
-                    <Sparkles className="sparkle-icon sparkle-1" />
-                    <Sparkles className="sparkle-icon sparkle-2" />
-                  </div>
+                  <p className="search-helper-text">
+                    EXPLORE ANY TOPIC OF INTEREST, FROM SCIENCE TO HISTORY
+                  </p>
                 </div>
               </div>
 

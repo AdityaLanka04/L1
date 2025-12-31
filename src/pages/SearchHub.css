@@ -51,7 +51,47 @@
 }
 
 .search-hub-page .search-hub-header {
-  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: transparent;
+  backdrop-filter: none;
+  border-bottom: none;
+  padding: 8px 20px;
+  height: 56px;
+  box-shadow: none;
+  display: block;
+}
+
+.search-hub-page .login-required-message {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: var(--bg-primary);
+  padding: 16px 32px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  z-index: 1000;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 .search-hub-page .header-content {
@@ -62,7 +102,149 @@
   flex-direction: row;
   justify-content: flex-end;
   align-items: center;
-  gap: 20px;
+}
+
+.search-hub-page .header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-hub-page .header-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: transparent;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.search-hub-page .header-btn:hover {
+  background: transparent;
+  border-color: var(--accent-hover);
+  color: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 50%, rgba(0, 0, 0, 0.3));
+}
+
+.search-hub-page .header-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* Theme button - simple visible style */
+.search-hub-page .theme-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: none;
+  color: var(--accent);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.search-hub-page .theme-btn svg {
+  color: var(--accent);
+  width: 18px;
+  height: 18px;
+}
+
+.search-hub-page .theme-btn:hover {
+  color: var(--accent-hover);
+  transform: scale(1.1);
+}
+
+.search-hub-page .theme-btn:hover svg {
+  color: var(--accent-hover);
+}
+
+.search-hub-page .theme-btn:active {
+  transform: scale(0.95);
+}
+
+/* Dashboard button with text - outline style */
+.search-hub-page .dashboard-btn-text {
+  height: 40px;
+  padding: 0 20px;
+  background: transparent;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: none;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  min-width: 120px;
+}
+
+.search-hub-page .dashboard-btn-text:hover {
+  background: transparent;
+  border-color: var(--accent-hover);
+  color: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 50%, rgba(0, 0, 0, 0.3));
+}
+
+.search-hub-page .dashboard-btn-text:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* Login/Signup text button */
+.search-hub-page .header-text-btn {
+  height: 40px;
+  padding: 0 20px;
+  background: transparent;
+  color: var(--accent);
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: visible;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.search-hub-page .header-text-btn:hover {
+  color: var(--accent-hover);
+  transform: translateY(-2px);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--accent) 50%, rgba(0, 0, 0, 0.3));
+}
+
+.search-hub-page .header-text-btn:active {
+  transform: translateY(0);
+}
+
+.search-hub-page .login-signup-btn {
+  text-decoration: none;
 }
 
 .search-hub-page .header-left {
@@ -475,8 +657,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  transform: translateY(-65px);
   position: relative;
+  width: 100%;
 }
 
 .search-hub-page .giant-logo {
@@ -485,11 +667,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
+  gap: 2rem;
 }
 
 .search-hub-page .logo-text {
-  font-size: clamp(12.5rem, 31.25vw, 35rem);
+  font-size: clamp(2.65625rem, 6.640625vw, 7.4375rem);
   font-weight: 900;
   color: var(--accent);
   letter-spacing: -0.05em;
@@ -501,43 +683,70 @@
   z-index: 1;
   width: 100%;
   text-align: center;
+  animation: logoFadeIn 1s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes logoFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .search-hub-page .search-box-wrapper {
   position: relative;
-  width: 56%;
-  max-width: none;
+  width: 45%;
+  max-width: 600px;
   margin: 0 auto;
-  margin-left: 15%;
-  margin-right: 29%;
-  transform: translateY(-2.8vh);
   z-index: 3;
+  animation: searchBoxFadeIn 1s ease-out 0.3s forwards;
+  opacity: 0;
+}
+
+@keyframes searchBoxFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .search-hub-page .search-box-cutout {
   position: relative;
   width: 100%;
   display: flex;
-  border: 4px solid var(--accent);
+  border: 3px solid var(--accent);
   background: var(--bg-primary);
   overflow: visible;
 }
 
 .search-hub-page .hero-search-input {
   flex: 1;
-  padding: 1.05rem 2.5rem;
+  padding: 0.75rem 1.5rem;
   background: transparent;
   border: none;
-  font-size: 1.25rem;
-  color: var(--text-primary);
-  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--accent);
+  font-weight: 700;
   outline: none;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .search-hub-page .hero-search-input::placeholder {
-  color: color-mix(in srgb, var(--text-primary) 40%, transparent);
-  font-weight: 400;
+  color: color-mix(in srgb, var(--accent) 40%, transparent);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .search-hub-page .hero-search-input:focus {
@@ -571,6 +780,31 @@
 
 .search-hub-page .search-submit-btn:active svg {
   transform: rotate(0deg) scale(0.9);
+}
+
+.search-hub-page .search-helper-text {
+  margin-top: 1.5rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  text-align: center;
+  opacity: 0.7;
+  animation: helperTextFadeIn 1s ease-out 0.6s forwards;
+  opacity: 0;
+}
+
+@keyframes helperTextFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 0.7;
+    transform: translateY(0);
+  }
 }
 
 .search-hub-page .search-label {
@@ -619,12 +853,12 @@
   left: 0;
   right: 0;
   background: var(--bg-primary);
-  border: 4px solid var(--accent);
+  border: 3px solid var(--accent);
   border-top: none;
   max-height: 400px;
   overflow-y: auto;
   overflow-x: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  box-shadow: none;
   z-index: 10000;
 }
 
@@ -755,8 +989,8 @@
 .search-hub-page .recommendations-section {
   position: relative;
   width: 100%;
-  height: auto;
-  margin-bottom: 4rem;
+  max-width: 1400px;
+  margin: 0 auto 4rem auto;
   pointer-events: none;
   z-index: 10;
 }
@@ -1663,5 +1897,40 @@
 
   .search-hub-page .search-hub-content {
     margin-top: 60px;
+  }
+}
+.search-hub-page .recommendations-title {
+  font-size: 0.6rem;
+  font-weight: 900;
+  color: var(--accent);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0 0 2rem 0;
+  text-align: center;
+  text-shadow: 0 0 20px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.search-hub-page .search-hub-content {
+  margin-top: 56px;
+}
+
+@media (max-width: 768px) {
+  .search-hub-page .header-buttons {
+    gap: 6px;
+  }
+  
+  .search-hub-page .header-btn {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .search-hub-page .header-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .search-hub-page .recommendations-title {
+    font-size: 1rem;
+    margin: 0 0 1.5rem 0;
   }
 }

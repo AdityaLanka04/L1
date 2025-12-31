@@ -73,13 +73,13 @@ function App() {
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<SafetyLogin />} />
+            <Route path="/search-hub" element={<SafetyProtectedRoute><SearchHub /></SafetyProtectedRoute>} />
             <Route path="/login" element={<SafetyProtectedRoute><Login /></SafetyProtectedRoute>} />
             <Route path="/register" element={<SafetyProtectedRoute><Register /></SafetyProtectedRoute>} />
             
             {/* Protected Routes */}
             <Route path="/homepage" element={<ProtectedRoute><Homepage /></ProtectedRoute>} />
             <Route path="/profile-quiz" element={<ProtectedRoute><ProfileQuiz /></ProtectedRoute>} />
-            <Route path="/search-hub" element={<ProtectedRoute><SearchHub /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/study-insights" element={<ProtectedRoute><StudyInsights /></ProtectedRoute>} />
             <Route path="/ai-chat" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />

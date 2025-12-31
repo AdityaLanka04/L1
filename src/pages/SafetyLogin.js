@@ -39,10 +39,10 @@ const SafetyLogin = () => {
       // Set flag to indicate user just accepted safety (prevents auto-redirect)
       sessionStorage.setItem('justAcceptedSafety', 'true');
       
-      console.log('Safety accepted, navigating to /login');
+      console.log('Safety accepted, navigating to /search-hub');
       
-      // Navigate to LOGIN page
-      navigate('/login');
+      // Navigate to SEARCH HUB page (public, no login required)
+      navigate('/search-hub');
     } else {
       setError('Invalid credentials. Please try again.');
     }
