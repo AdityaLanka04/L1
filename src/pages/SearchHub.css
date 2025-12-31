@@ -1234,6 +1234,8 @@
   max-width: 1600px;
   margin: 0 auto;
   padding: 40px;
+  border-top: 1px solid var(--accent);
+  margin-top: 0;
 }
 
 .search-hub-page .results-header {
@@ -1243,6 +1245,61 @@
   margin-bottom: 32px;
   flex-wrap: wrap;
   gap: 20px;
+  position: sticky;
+  top: 0;
+  background: var(--bg-primary);
+  z-index: 100;
+  padding: 20px 0;
+  margin-left: -40px;
+  margin-right: -40px;
+  padding-left: 40px;
+  padding-right: 40px;
+  margin-top: -40px;
+}
+
+/* Back Button */
+.search-hub-page .back-btn-compact {
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+
+.search-hub-page .back-btn-compact::before {
+  content: '';
+  width: 0;
+  height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 7px solid var(--accent);
+  transition: border-right-color 0.3s ease;
+}
+
+.search-hub-page .back-btn-compact:hover::before {
+  border-right-color: var(--bg-primary);
+}
+
+.search-hub-page .back-btn-compact:hover {
+  background: var(--accent);
+  color: var(--bg-primary);
+  transform: translateX(-5px);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 40%, rgba(0, 0, 0, 0.3));
+}
+
+.search-hub-page .results-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .search-hub-page .results-info p {
@@ -1265,19 +1322,19 @@
 }
 
 .search-hub-page .filter-btn {
-  padding: 14px 28px;
+  padding: 8px 16px;
   background: transparent;
   color: var(--accent);
-  border: 3px solid var(--accent);
+  border: 2px solid var(--accent);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 1.2px;
+  letter-spacing: 1px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   position: relative;
   overflow: hidden;
 }
@@ -1406,6 +1463,229 @@
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
 
+/* ==================== AI DESCRIPTION SECTION ==================== */
+.search-hub-page .ai-description-section {
+  background: transparent;
+  border: none;
+  padding: 40px 0;
+  margin-bottom: 40px;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+.search-hub-page .ai-description-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.search-hub-page .ai-description-header svg {
+  color: var(--accent);
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 40%, transparent));
+  width: 20px;
+  height: 20px;
+}
+
+.search-hub-page .ai-description-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--accent);
+}
+
+.search-hub-page .ai-description-text {
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--text-primary);
+  margin: 0 auto 32px auto;
+  font-weight: 400;
+  text-align: center;
+  max-width: 900px;
+}
+
+/* Continue in AI Chat Button */
+.search-hub-page .continue-chat-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 24px auto 0 auto;
+  padding: 10px 24px;
+  background: transparent;
+  color: var(--accent);
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  width: fit-content;
+}
+
+.search-hub-page .continue-chat-btn:hover {
+  color: var(--accent-hover);
+  transform: translateY(-2px);
+}
+
+.search-hub-page .continue-chat-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Login Required Modal */
+.search-hub-page .login-required-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease;
+}
+
+.search-hub-page .login-modal-content {
+  background: var(--bg-secondary);
+  border: 3px solid var(--accent);
+  padding: 48px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.search-hub-page .login-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.search-hub-page .login-modal-header svg {
+  color: var(--accent);
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent) 50%, transparent));
+}
+
+.search-hub-page .login-modal-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--accent);
+}
+
+.search-hub-page .login-modal-text {
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--text-primary);
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.search-hub-page .login-modal-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.search-hub-page .login-modal-btn {
+  padding: 12px 32px;
+  background: var(--accent);
+  color: var(--bg-primary);
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  transition: all 0.3s ease;
+}
+
+.search-hub-page .login-modal-btn:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 50%, rgba(0, 0, 0, 0.3));
+}
+
+.search-hub-page .login-modal-btn.secondary {
+  background: transparent;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+}
+
+.search-hub-page .login-modal-btn.secondary:hover {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* No Results with AI */
+.search-hub-page .no-results-with-ai {
+  margin-top: 32px;
+}
+
+.search-hub-page .no-results-with-ai .create-options h4 {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-primary);
+  margin-bottom: 24px;
+}
+
+/* Results Section Header */
+.search-hub-page .results-section-header {
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--accent);
+}
+
+.search-hub-page .results-section-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--accent);
+}
+
+.search-hub-page .results-section-header p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
 /* Results Grid */
 .search-hub-page .results-grid {
   display: grid;
@@ -1512,13 +1792,50 @@
   line-height: 1.3;
 }
 
+.search-hub-page .result-description {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.search-hub-page .result-card-count {
+  margin: 0;
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.search-hub-page .result-author,
+.search-hub-page .result-source,
+.search-hub-page .result-visibility {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.search-hub-page .result-visibility.public {
+  color: var(--accent);
+}
+
+.search-hub-page .result-visibility.private {
+  color: var(--text-tertiary);
+}
+
 .search-hub-page .result-preview {
   margin: 0;
   font-size: 14px;
   color: var(--text-secondary);
   line-height: 1.5;
   display: -webkit-box;
-  
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1540,12 +1857,16 @@
   gap: 4px;
 }
 
-.search-hub-page .result-type {
+.search-hub-page .result-type-badge {
   font-size: 11px;
   font-weight: 700;
   color: var(--accent);
   text-transform: uppercase;
   letter-spacing: 0.8px;
+  padding: 4px 8px;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border-radius: 2px;
+  width: fit-content;
 }
 
 .search-hub-page .smart-actions {

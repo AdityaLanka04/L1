@@ -46,6 +46,7 @@ const SearchHub = () => {
   const [selectedAutocompleteIndex, setSelectedAutocompleteIndex] = useState(-1);
   const autocompleteDebounceRef = useRef(null);
   const [showLoginMessage, setShowLoginMessage] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
     const username = localStorage.getItem('username');
@@ -312,9 +313,14 @@ const SearchHub = () => {
   };
 
   const handleSearch = async (query = searchQuery) => {
-    if (!query || !query.trim()) return;
+    console.log('🔍 handleSearch called with query:', query);
+    if (!query || !query.trim()) {
+      console.log('⚠️ Empty query, returning');
+      return;
+    }
 
     const finalQuery = query.trim();
+    console.log('🚀 Starting search...');
     setIsSearching(true);
     setShowSuggestions(false);
     setShowAutocomplete(false);
@@ -325,36 +331,231 @@ const SearchHub = () => {
 
     try {
       const token = localStorage.getItem('token');
+      console.log('🔑 Token exists:', !!token);
+      console.log('👤 Username:', userName);
+      
+      // First, detect intent using AI
+      console.log('🤖 Detecting intent...');
+      const intentFormData = new FormData();
+      intentFormData.append('user_id', userName || 'guest');
+      intentFormData.append('query', finalQuery);
+      
+      const intentResponse = await fetch(`${API_URL}/detect_search_intent`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: intentFormData
+      });
+      
+      console.log('📥 Intent response status:', intentResponse.status);
+      
+      if (intentResponse.ok) {
+        const intentData = await intentResponse.json();
+        console.log('🎯 Intent data:', intentData);
+        
+        // Execute action based on intent
+        if (intentData.intent === 'action') {
+          console.log('⚡ Executing action:', intentData.action);
+          await executeAction(intentData);
+          return;
+        }
+      }
+      
+      // If no action intent, perform regular search
+      console.log('🔎 Performing regular search...');
       const formData = new FormData();
+      formData.append('user_id', userName || 'guest');
       formData.append('query', finalQuery);
-      formData.append('user_id', userName);
       formData.append('content_types', filters.content_types);
       formData.append('sort_by', filters.sort_by);
       if (filters.date_from) formData.append('date_from', filters.date_from);
       if (filters.date_to) formData.append('date_to', filters.date_to);
 
-      const response = await fetch(`${API_URL}/search`, {
+      const response = await fetch(`${API_URL}/search_content`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
       });
 
-      if (!response.ok) throw new Error('Search failed');
+      console.log('📥 Search response status:', response.status);
 
-      const data = await response.json();
-      setSearchResults(data);
-      setAiSuggestion(data.ai_suggestion || null);
-      setDidYouMean(data.did_you_mean || null);
-      setRelatedSearches(data.related_searches || []);
-
-      if (data.follow_up_suggestions && data.follow_up_suggestions.length > 0) {
-        setShowFollowUp(true);
-        setFollowUpContext(data.follow_up_suggestions);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Search results:', data);
+        setSearchResults(data);
+        setDidYouMean(data.did_you_mean || null);
+        setRelatedSearches(data.related_searches || []);
+        
+        if (data.total_results === 0 || !data.results || data.results.length === 0) {
+          console.log('💡 No results, getting AI description...');
+          await getAiDescription(finalQuery);
+        } else {
+          setAiSuggestion(data.ai_suggestion || null);
+        }
+      } else {
+        throw new Error('Search failed');
       }
     } catch (error) {
-      console.error('Search error:', error);
-      setSearchResults({ results: [], total: 0, error: 'Search failed. Please try again.' });
+      console.error('❌ Error searching:', error);
+      // Even on error, try to get AI description
+      await getAiDescription(finalQuery);
     } finally {
+      console.log('🏁 Search complete, setting isSearching to false');
+      setIsSearching(false);
+    }
+  };
+
+  const getAiDescription = async (topic) => {
+    try {
+      console.log('🤖 Getting AI description for:', topic);
+      console.log('🔗 API_URL:', API_URL);
+      const token = localStorage.getItem('token');
+      
+      // Try to get AI-generated description from backend
+      const formData = new FormData();
+      formData.append('user_id', userName || 'guest');
+      formData.append('topic', topic);
+      
+      const fullUrl = `${API_URL}/generate_topic_description`;
+      console.log('📡 Calling:', fullUrl);
+      
+      const response = await fetch(fullUrl, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      
+      console.log('📥 Response status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ AI description received:', data);
+        setAiSuggestion({
+          description: data.description || data.summary || `Let me help you learn about ${topic}.`,
+          suggestions: [
+            `create flashcards on ${topic}`,
+            `create a note on ${topic}`,
+            `explain ${topic} in detail`,
+            `quiz me on ${topic}`
+          ]
+        });
+        
+        // Set empty results but keep the query
+        setSearchResults({
+          results: [],
+          total_results: 0,
+          query: topic,
+          has_ai_description: true
+        });
+      } else {
+        console.log('⚠️ Response not OK, status:', response.status);
+        const errorText = await response.text();
+        console.log('❌ Error response:', errorText);
+        
+        // Fallback: Show helpful message
+        setAiSuggestion({
+          description: `I couldn't find any existing study materials about "${topic}". Let's create some! I can help you generate flashcards, notes, or start a learning session.`,
+          suggestions: [
+            `create flashcards on ${topic}`,
+            `create a note on ${topic}`,
+            `explain ${topic}`,
+            `start learning ${topic}`
+          ]
+        });
+        
+        setSearchResults({
+          results: [],
+          total_results: 0,
+          query: topic,
+          has_ai_description: true
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error getting AI description:', error);
+      // Fallback AI suggestion
+      setAiSuggestion({
+        description: `I couldn't find any existing study materials about "${topic}". Would you like to create some? I can help you generate flashcards, notes, or start a learning session.`,
+        suggestions: [
+          `create flashcards on ${topic}`,
+          `create a note on ${topic}`,
+          `explain ${topic}`
+        ]
+      });
+      
+      setSearchResults({
+        results: [],
+        total_results: 0,
+        query: topic,
+        has_ai_description: true
+      });
+    }
+  };
+
+  const executeAction = async (intentData) => {
+    console.log('⚡ executeAction called with:', intentData);
+    const { action, parameters } = intentData;
+    
+    try {
+      console.log('🎬 Executing action:', action);
+      switch (action) {
+        case 'create_note':
+          console.log('📝 Creating note');
+          setIsCreating(true);
+          setCreatingMessage('Creating note...');
+          navigate('/notes');
+          break;
+          
+        case 'create_flashcards':
+          console.log('🃏 Creating flashcards');
+          setIsCreating(true);
+          setCreatingMessage(`Creating flashcards on ${parameters.topic}...`);
+          setTimeout(() => {
+            setIsCreating(false);
+            navigate('/flashcards', { 
+              state: { 
+                autoCreate: true,
+                topic: parameters.topic,
+                count: parameters.count || 10
+              } 
+            });
+          }, 500);
+          break;
+          
+        case 'create_quiz':
+          console.log('❓ Starting quiz');
+          setIsCreating(true);
+          setCreatingMessage('Preparing quiz...');
+          setTimeout(() => {
+            setIsCreating(false);
+            navigate('/solo-quiz');
+          }, 500);
+          break;
+          
+        case 'start_chat':
+          console.log('💬 Starting chat');
+          navigate('/ai-chat', { 
+            state: { 
+              initialMessage: parameters.message || parameters.topic
+            } 
+          });
+          break;
+          
+        case 'show_progress':
+          navigate('/study-insights');
+          break;
+          
+        case 'show_achievements':
+          navigate('/study-insights');
+          break;
+          
+        default:
+          console.log('🔄 Unknown action, performing regular search');
+          // Fall back to regular search
+          setIsSearching(false);
+          break;
+      }
+    } catch (error) {
+      console.error('❌ Error executing action:', error);
+      setIsCreating(false);
       setIsSearching(false);
     }
   };
@@ -375,7 +576,7 @@ const SearchHub = () => {
         const token = localStorage.getItem('token');
         const formData = new FormData();
         formData.append('query', query);
-        formData.append('user_id', userName);
+        formData.append('user_id', userName || 'guest');
 
         const response = await fetch(`${API_URL}/autocomplete`, {
           method: 'POST',
@@ -490,6 +691,12 @@ const SearchHub = () => {
   };
 
   const handleCreateContent = async (type) => {
+    // Check if user is logged in
+    if (!userName) {
+      setShowLoginModal(true);
+      return;
+    }
+    
     setIsCreating(true);
     
     const messages = {
@@ -887,11 +1094,26 @@ const SearchHub = () => {
           <div className="results-container">
             <div className="results-header">
               <div className="results-info">
-                <p>
-                  Found <strong>{searchResults?.total || 0}</strong> results for "<strong>{searchQuery}</strong>"
-                </p>
+                {aiSuggestion && searchResults?.has_ai_description ? (
+                  <p>Exploring "<strong>{searchQuery}</strong>"</p>
+                ) : (
+                  <p>
+                    Found <strong>{searchResults?.total_results || 0}</strong> results for "<strong>{searchQuery}</strong>"
+                  </p>
+                )}
               </div>
               <div className="results-actions">
+                <button 
+                  className="back-btn-compact"
+                  onClick={() => {
+                    setSearchResults(null);
+                    setAiSuggestion(null);
+                    setSearchQuery('');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                >
+                  Back
+                </button>
                 <button 
                   className={`filter-btn ${showFilters ? 'active' : ''}`}
                   onClick={() => setShowFilters(!showFilters)}
@@ -962,8 +1184,44 @@ const SearchHub = () => {
             )}
 
             <div className="results-content">
+              {/* AI Description Section - Show at top when available */}
+              {aiSuggestion && aiSuggestion.description && (
+                <div className="ai-description-section">
+                  <div className="ai-description-header">
+                    <Sparkles size={20} />
+                    <h3>AI Overview</h3>
+                  </div>
+                  <p className="ai-description-text">{aiSuggestion.description}</p>
+                  
+                  <button
+                    className="continue-chat-btn"
+                    onClick={() => {
+                      if (!userName) {
+                        setShowLoginModal(true);
+                        return;
+                      }
+                      navigate('/ai-chat', { 
+                        state: { 
+                          initialMessage: `Tell me more about ${searchQuery}`
+                        } 
+                      });
+                    }}
+                  >
+                    <MessageCircle size={16} />
+                    Continue in AI Chat
+                  </button>
+                </div>
+              )}
+
+              {/* Search Results Grid */}
               {searchResults && searchResults.results && searchResults.results.length > 0 ? (
                 <>
+                  {/* User Results Section Header */}
+                  <div className="results-section-header">
+                    <h3>User Results</h3>
+                    <p>Study materials created by the community</p>
+                  </div>
+
                   <div className="results-grid">
                     {searchResults.results.map((result, index) => (
                       <div
@@ -977,13 +1235,24 @@ const SearchHub = () => {
                         </div>
                         <div className="result-details">
                           <h3 className="result-title">{result.title || result.name}</h3>
-                          {result.preview && (
-                            <p className="result-preview">{result.preview}</p>
+                          
+                          {result.description && (
+                            <p className="result-description">{result.description}</p>
                           )}
+                          
+                          {result.card_count !== undefined && (
+                            <p className="result-card-count">{result.card_count} cards</p>
+                          )}
+                          
+                          {result.question_count !== undefined && (
+                            <p className="result-card-count">{result.question_count} questions</p>
+                          )}
+                          
                           <div className="result-meta">
-                            {result.match_score && (
-                              <span className="result-score">
-                                {Math.round(result.match_score * 100)}% match
+                            {result.author && (
+                              <span className="result-author">
+                                <Users size={14} />
+                                Created by {result.is_own ? 'You' : result.author}
                               </span>
                             )}
                             {result.created_at && (
@@ -992,8 +1261,19 @@ const SearchHub = () => {
                                 {formatDate(result.created_at)}
                               </span>
                             )}
+                            {result.source_type && (
+                              <span className="result-source">
+                                {result.source_type === 'ai_generated' ? '🤖 AI Generated' : '✍️ Manual'}
+                              </span>
+                            )}
+                            {result.is_public !== undefined && (
+                              <span className={`result-visibility ${result.is_public ? 'public' : 'private'}`}>
+                                {result.is_public ? '🌍 Public' : '🔒 Private'}
+                              </span>
+                            )}
                           </div>
-                          <span className="result-type">{result.type}</span>
+                          
+                          <span className="result-type-badge">{result.type.replace('_', ' ')}</span>
                           
                           {result.smart_actions && result.smart_actions.length > 0 && (
                             <div className="smart-actions">
@@ -1037,7 +1317,54 @@ const SearchHub = () => {
                     </div>
                   )}
                 </>
-              ) : aiSuggestion && searchResults.action_executed ? (
+              ) : searchResults?.has_ai_description ? (
+                /* No results but has AI description - show create options */
+                <div className="no-results-with-ai">
+                  <div className="create-options">
+                    <h4>Create study materials or explore this topic:</h4>
+                    <div className="create-options-grid">
+                      <button
+                        className="create-option-card"
+                        onClick={() => handleCreateContent('flashcards')}
+                      >
+                        <Layers size={32} />
+                        <h5>Create Flashcards</h5>
+                        <p>Build a deck to study this topic</p>
+                      </button>
+                      <button
+                        className="create-option-card"
+                        onClick={() => handleCreateContent('notes')}
+                      >
+                        <FileText size={32} />
+                        <h5>Take Notes</h5>
+                        <p>Start documenting your learning</p>
+                      </button>
+                      <button
+                        className="create-option-card"
+                        onClick={() => handleCreateContent('ai-chat')}
+                      >
+                        <MessageCircle size={32} />
+                        <h5>Ask AI</h5>
+                        <p>Get help from your AI tutor</p>
+                      </button>
+                      <button
+                        className="create-option-card"
+                        onClick={() => {
+                          if (!userName) {
+                            setShowLoginModal(true);
+                            return;
+                          }
+                          navigate('/dashboard');
+                        }}
+                      >
+                        <BarChart3 size={32} />
+                        <h5>View Progress</h5>
+                        <p>Track your learning journey</p>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : searchResults?.action_executed ? (
                 <div className="ai-response-section">
                   <div className="ai-suggestion">
                     <div className="ai-suggestion-header">
@@ -1156,6 +1483,43 @@ const SearchHub = () => {
           </div>
         )}
       </main>
+
+      {/* Login Required Modal */}
+      {showLoginModal && (
+        <div className="login-required-modal" onClick={() => setShowLoginModal(false)}>
+          <div className="login-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="login-modal-header">
+              <Sparkles size={28} />
+              <h3>Sign In Required</h3>
+            </div>
+            <p className="login-modal-text">
+              To unlock the full power of Cerbyl and access personalized learning features, you'll need to create an account or sign in. 
+              Join thousands of learners who are already mastering their subjects with AI-powered study tools, adaptive flashcards, 
+              intelligent progress tracking, and personalized learning paths tailored just for you.
+            </p>
+            <div className="login-modal-actions">
+              <button 
+                className="login-modal-btn"
+                onClick={() => {
+                  setShowLoginModal(false);
+                  navigate('/login');
+                }}
+              >
+                Sign In
+              </button>
+              <button 
+                className="login-modal-btn secondary"
+                onClick={() => {
+                  setShowLoginModal(false);
+                  navigate('/register');
+                }}
+              >
+                Create Account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -641,6 +641,9 @@ const Flashcards = () => {
         formData.append('card_count', cardCount.toString());
         formData.append('difficulty', difficultyLevel);
         formData.append('depth_level', depthLevel);
+        formData.append('is_public', isPublic.toString());
+        
+        console.log('🎴 AGENT CALL - is_public:', isPublic);
         
         if (generationMode === 'topic') {
           // Topic-based generation
@@ -728,6 +731,8 @@ const Flashcards = () => {
       formData.append('save_to_set', autoSave.toString());
       formData.append('is_public', isPublic.toString());
 
+      console.log('🎴 GENERATING FLASHCARDS - is_public:', isPublic, 'autoSave:', autoSave, 'topic:', topic);
+
       if (generationMode === 'topic') {
         formData.append('topic', topic);
         formData.append('generation_type', 'topic');
@@ -740,6 +745,11 @@ const Flashcards = () => {
           const summaryTitle = await generateChatSummaryTitle(chatHistory);
           formData.append('set_title', summaryTitle);
         }
+      }
+
+      console.log('📤 SENDING TO API - FormData entries:');
+      for (let [key, value] of formData.entries()) {
+        console.log(`  ${key}: ${value}`);
       }
 
       const response = await fetch(`${API_URL}/generate_flashcards`, {

@@ -142,7 +142,8 @@ async def generate_flashcards(payload: FlashcardGenerationRequest, db: Session =
                 title=set_title,
                 description=f"Generated {len(flashcards)} cards",
                 source_type="ai_generated",
-                share_code=share_code
+                share_code=share_code,
+                is_public=payload.is_public  # Use the is_public parameter from frontend
             )
             db.add(flashcard_set)
             db.commit()
@@ -472,6 +473,35 @@ async def delete_set(set_id: int, db: Session = Depends(get_db)):
     return {
         "success": True,
         "message": "Set deleted"
+    }
+
+
+@router.post("/toggle_visibility")
+async def toggle_flashcard_set_visibility(
+    set_id: int = Query(...),
+    is_public: bool = Query(...),
+    db: Session = Depends(models.get_db)
+):
+    """
+    Toggle flashcard set visibility (public/private)
+    """
+    flashcard_set = db.query(models.FlashcardSet).filter(
+        models.FlashcardSet.id == set_id
+    ).first()
+    
+    if not flashcard_set:
+        raise HTTPException(status_code=404, detail="Flashcard set not found")
+    
+    # Update visibility
+    flashcard_set.is_public = is_public
+    db.commit()
+    
+    logger.info(f"✅ Flashcard set {set_id} visibility changed to {'public' if is_public else 'private'}")
+    
+    return {
+        "success": True,
+        "message": f"Flashcard set is now {'public' if is_public else 'private'}",
+        "is_public": is_public
     }
 
 

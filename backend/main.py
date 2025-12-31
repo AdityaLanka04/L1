@@ -2064,6 +2064,7 @@ async def flashcard_agent_endpoint(
     difficulty: str = Form("medium"),
     depth_level: str = Form("standard"),  # surface, standard, deep
     review_results: Optional[str] = Form(None),  # JSON string of review results
+    is_public: bool = Form(False),
     db: Session = Depends(get_db)
 ):
     """
@@ -2147,6 +2148,8 @@ async def flashcard_agent_endpoint(
                 cards = response_data["cards"]
                 set_title = f"AI Generated: {topic or 'Study Session'}"
                 
+                logger.info(f"💾 AGENT SAVING FLASHCARD SET - title: {set_title}, is_public: {is_public}, user_id: {user.id}")
+                
                 # Generate unique share code
                 import random
                 import string
@@ -2158,11 +2161,14 @@ async def flashcard_agent_endpoint(
                     title=set_title,
                     description=f"Generated {len(cards)} cards via AI Agent",
                     source_type="ai_agent",
-                    share_code=share_code
+                    share_code=share_code,
+                    is_public=is_public
                 )
                 db.add(flashcard_set)
                 db.commit()
                 db.refresh(flashcard_set)
+                
+                logger.info(f"✅ AGENT SAVED FLASHCARD SET - set_id: {flashcard_set.id}, is_public: {flashcard_set.is_public}")
                 
                 # Add cards to set
                 for card in cards:
@@ -2240,6 +2246,8 @@ async def flashcard_agent_endpoint(
                 
                 if cards:
                     # Save to database
+                    logger.info(f"💾 FALLBACK SAVING FLASHCARD SET - title: {set_title}, is_public: {is_public}, user_id: {user.id}")
+                    
                     import random
                     import string
                     share_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
@@ -2249,11 +2257,14 @@ async def flashcard_agent_endpoint(
                         title=set_title,
                         description=f"Generated {len(cards)} cards",
                         source_type="ai_generated",
-                        share_code=share_code
+                        share_code=share_code,
+                        is_public=is_public
                     )
                     db.add(flashcard_set)
                     db.commit()
                     db.refresh(flashcard_set)
+                    
+                    logger.info(f"✅ FALLBACK SAVED FLASHCARD SET - set_id: {flashcard_set.id}, is_public: {flashcard_set.is_public}")
                     
                     for card in cards:
                         db_card = models.Flashcard(
@@ -3277,9 +3288,11 @@ async def generate_flashcards_endpoint(
     card_count: int = Form(10),
     difficulty: str = Form("medium"),
     set_title: str = Form(None),
+    is_public: bool = Form(False),
     db: Session = Depends(get_db)
 ):
     """Generate flashcards from topic or chat history"""
+    logger.info(f"🎴 FLASHCARD GENERATION - user_id: {user_id}, topic: {topic}, is_public: {is_public}, set_title: {set_title}")
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
@@ -3356,16 +3369,19 @@ Generate educational flashcards covering the main topics discussed. Return ONLY 
         set_id = None
         
         if set_title and flashcards:
+            logger.info(f"💾 SAVING FLASHCARD SET - title: {set_title}, is_public: {is_public}, user_id: {user.id}")
             flashcard_set = models.FlashcardSet(
                 user_id=user.id,
                 title=set_title,
                 description=f"Generated {len(flashcards)} cards",
-                source_type="ai_generated"
+                source_type="ai_generated",
+                is_public=is_public
             )
             db.add(flashcard_set)
             db.commit()
             db.refresh(flashcard_set)
             set_id = flashcard_set.id
+            logger.info(f"✅ SAVED FLASHCARD SET - set_id: {set_id}, is_public: {flashcard_set.is_public}")
             
             for card in flashcards:
                 db_card = models.Flashcard(
@@ -16371,9 +16387,13 @@ async def search_content(
         
         # Parse content types filter
         if content_types == "all":
-            enabled_types = ["flashcard_set", "flashcard", "note", "chat", "question_set"]
+            # For "all", exclude individual flashcards - only show sets
+            enabled_types = ["flashcard_set", "note", "chat", "question_set"]
         else:
             enabled_types = [t.strip() for t in content_types.split(",")]
+            # Remove "flashcard" if present - we only want sets
+            if "flashcard" in enabled_types:
+                enabled_types.remove("flashcard")
         
         # Parse date filters
         date_from_obj = None
@@ -16398,16 +16418,20 @@ async def search_content(
                 conditions.append(func.lower(column).like(search_term))
             return or_(*conditions) if conditions else func.lower(column).like(f"%{query.lower()}%")
         
-        # Search Flashcard Sets (only user's own)
+        # Search Flashcard Sets (user's own + public from others)
         if "flashcard_set" in enabled_types:
             try:
                 title_conditions = build_search_conditions(models.FlashcardSet.title, expanded_terms)
                 desc_conditions = build_search_conditions(models.FlashcardSet.description, expanded_terms)
                 
+                # Search user's own flashcard sets OR public flashcard sets from any user
                 query_builder = db.query(models.FlashcardSet).filter(
                     and_(
-                        models.FlashcardSet.user_id == actual_user_id,
-                        or_(title_conditions, desc_conditions)
+                        or_(title_conditions, desc_conditions),
+                        or_(
+                            models.FlashcardSet.user_id == actual_user_id,  # User's own sets
+                            models.FlashcardSet.is_public == True  # Public sets from anyone
+                        )
                     )
                 )
                 
@@ -16418,12 +16442,17 @@ async def search_content(
                     query_builder = query_builder.filter(models.FlashcardSet.created_at <= date_to_obj)
                 
                 flashcard_sets = query_builder.all()
-                logger.info(f"Found {len(flashcard_sets)} flashcard sets")
+                logger.info(f"🔍 Found {len(flashcard_sets)} flashcard sets (own + public)")
                 
                 for fset in flashcard_sets:
+                    logger.info(f"  📦 Set: id={fset.id}, title={fset.title}, is_public={fset.is_public}, user_id={fset.user_id}, own={fset.user_id == actual_user_id}")
                     card_count = db.query(models.Flashcard).filter(
                         models.Flashcard.set_id == fset.id
                     ).count()
+                    
+                    # Get author username
+                    author = db.query(models.User).filter(models.User.id == fset.user_id).first()
+                    author_name = author.username if author else "Unknown"
                     
                     results.append({
                         "id": fset.id,
@@ -16432,23 +16461,31 @@ async def search_content(
                         "description": fset.description or "",
                         "created_at": fset.created_at.isoformat() if fset.created_at else None,
                         "card_count": card_count,
-                        "source_type": fset.source_type
+                        "source_type": fset.source_type,
+                        "author": author_name,
+                        "author_id": fset.user_id,
+                        "is_public": fset.is_public,
+                        "is_own": fset.user_id == actual_user_id
                     })
             except Exception as e:
                 logger.error(f"Error searching flashcard sets: {str(e)}")
         
-        # Search Individual Flashcards (only user's own)
+        # Search Individual Flashcards (user's own + public from others)
         if "flashcard" in enabled_types:
             try:
                 question_conditions = build_search_conditions(models.Flashcard.question, expanded_terms)
                 answer_conditions = build_search_conditions(models.Flashcard.answer, expanded_terms)
                 
+                # Search flashcards from user's own sets OR public sets from any user
                 query_builder = db.query(models.Flashcard).join(
                     models.FlashcardSet
                 ).filter(
                     and_(
-                        models.FlashcardSet.user_id == actual_user_id,
-                        or_(question_conditions, answer_conditions)
+                        or_(question_conditions, answer_conditions),
+                        or_(
+                            models.FlashcardSet.user_id == actual_user_id,  # User's own flashcards
+                            models.FlashcardSet.is_public == True  # Public flashcards from anyone
+                        )
                     )
                 )
                 
@@ -16459,12 +16496,16 @@ async def search_content(
                     query_builder = query_builder.filter(models.Flashcard.created_at <= date_to_obj)
                 
                 flashcards = query_builder.limit(50).all()
-                logger.info(f"Found {len(flashcards)} individual flashcards")
+                logger.info(f"Found {len(flashcards)} individual flashcards (own + public)")
                 
                 for card in flashcards:
                     fset = db.query(models.FlashcardSet).filter(
                         models.FlashcardSet.id == card.set_id
                     ).first()
+                    
+                    # Get author username
+                    author = db.query(models.User).filter(models.User.id == fset.user_id).first() if fset else None
+                    author_name = author.username if author else "Unknown"
                     
                     results.append({
                         "id": card.id,
@@ -16474,12 +16515,16 @@ async def search_content(
                         "created_at": card.created_at.isoformat() if card.created_at else None,
                         "set_name": fset.title if fset else None,
                         "set_id": card.set_id,
-                        "difficulty": card.difficulty
+                        "difficulty": card.difficulty,
+                        "author": author_name,
+                        "author_id": fset.user_id if fset else None,
+                        "is_public": fset.is_public if fset else False,
+                        "is_own": fset.user_id == actual_user_id if fset else False
                     })
             except Exception as e:
                 logger.error(f"Error searching flashcards: {str(e)}")
         
-        # Search Notes (only user's own)
+        # Search Notes (user's own + public from others)
         if "note" in enabled_types:
             try:
                 title_conditions = build_search_conditions(models.Note.title, expanded_terms)
@@ -16487,9 +16532,12 @@ async def search_content(
                 
                 query_builder = db.query(models.Note).filter(
                     and_(
-                        models.Note.user_id == actual_user_id,
                         models.Note.is_deleted == False,
-                        or_(title_conditions, content_conditions)
+                        or_(title_conditions, content_conditions),
+                        or_(
+                            models.Note.user_id == actual_user_id,  # User's own notes
+                            models.Note.is_public == True  # Public notes from anyone
+                        )
                     )
                 )
                 
@@ -16500,9 +16548,13 @@ async def search_content(
                     query_builder = query_builder.filter(models.Note.created_at <= date_to_obj)
                 
                 notes = query_builder.limit(50).all()
-                logger.info(f"Found {len(notes)} notes")
+                logger.info(f"Found {len(notes)} notes (own + public)")
                 
                 for note in notes:
+                    # Get author username
+                    author = db.query(models.User).filter(models.User.id == note.user_id).first()
+                    author_name = author.username if author else "Unknown"
+                    
                     results.append({
                         "id": note.id,
                         "type": "note",
@@ -16510,7 +16562,11 @@ async def search_content(
                         "description": note.content[:200] if note.content else "",
                         "created_at": note.created_at.isoformat() if note.created_at else None,
                         "is_favorite": note.is_favorite,
-                        "folder_id": note.folder_id
+                        "folder_id": note.folder_id,
+                        "author": author_name,
+                        "author_id": note.user_id,
+                        "is_public": note.is_public,
+                        "is_own": note.user_id == actual_user_id
                     })
             except Exception as e:
                 logger.error(f"Error searching notes: {str(e)}")
@@ -17768,6 +17824,87 @@ NOW ANALYZE THIS QUERY AND RETURN ONLY THE JSON:
             "confidence": 0.3,
             "original_query": query,
             "error": str(e)
+        }
+
+
+@app.post("/api/generate_topic_description")
+async def generate_topic_description(
+    user_id: str = Form(...),
+    topic: str = Form(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Generate a brief, educational AI description of a topic when no search results are found.
+    This helps users understand the topic and provides context before creating study materials.
+    """
+    try:
+        logger.info(f"🤖 Generating topic description for: '{topic}' (user: {user_id})")
+        
+        # Get user profile for personalization
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        
+        # Build AI prompt for topic description
+        ai_prompt = f"""You are an educational AI assistant. Provide a brief, clear, and engaging description of the following topic.
+
+TOPIC: "{topic}"
+
+INSTRUCTIONS:
+1. Write 2-3 sentences that explain what this topic is about
+2. Make it educational and informative
+3. Use simple, accessible language
+4. Focus on the core concepts and why it matters
+5. Be encouraging and make the user curious to learn more
+6. DO NOT use phrases like "I couldn't find" or "no results" - just describe the topic
+7. Keep it concise (max 150 words)
+
+{MATHEMATICAL_FORMATTING_INSTRUCTIONS if any(char in topic.lower() for char in ['math', 'calculus', 'algebra', 'equation', 'formula']) else ''}
+
+EXAMPLES:
+
+Topic: "quantum physics"
+Description: "Quantum physics is the branch of physics that studies the behavior of matter and energy at the smallest scales - atoms and subatomic particles. It reveals a fascinating world where particles can exist in multiple states simultaneously and can be connected across vast distances. Understanding quantum physics opens doors to cutting-edge technologies like quantum computing and helps explain the fundamental nature of our universe."
+
+Topic: "machine learning"
+Description: "Machine learning is a field of artificial intelligence that enables computers to learn and improve from experience without being explicitly programmed. It powers many technologies you use daily, from recommendation systems to voice assistants. By studying patterns in data, machine learning algorithms can make predictions, recognize images, understand language, and solve complex problems."
+
+Topic: "photosynthesis"
+Description: "Photosynthesis is the remarkable process by which plants convert sunlight into chemical energy, producing the oxygen we breathe and the food that sustains life on Earth. During this process, plants use chlorophyll to capture light energy and transform carbon dioxide and water into glucose and oxygen. It's one of the most important biological processes on our planet."
+
+Now generate a description for: "{topic}"
+
+Return ONLY the description text, no labels or extra formatting."""
+
+        # Call AI to generate description
+        description = call_ai(ai_prompt, max_tokens=300, temperature=0.7)
+        
+        # Clean up the response
+        description = description.strip()
+        
+        # Remove any labels if present
+        if description.lower().startswith("description:"):
+            description = description[12:].strip()
+        
+        logger.info(f"✅ Generated description: {description[:100]}...")
+        
+        return {
+            "success": True,
+            "description": description,
+            "topic": topic,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error generating topic description: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        # Return a generic but helpful fallback
+        return {
+            "success": True,
+            "description": f"Let's explore {topic} together! This is a fascinating subject with many interesting aspects to discover. I can help you create flashcards, notes, or start a learning session to dive deeper into this topic.",
+            "topic": topic,
+            "fallback": True,
+            "timestamp": datetime.now().isoformat()
         }
 
 

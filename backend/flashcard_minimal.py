@@ -18,6 +18,7 @@ class FlashcardGenerationRequest(BaseModel):
     difficulty_level: str = "medium"
     save_to_set: bool = False
     set_title: Optional[str] = None
+    is_public: bool = False
 
 
 class MinimalFlashcardPrompts:
