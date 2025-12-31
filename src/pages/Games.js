@@ -80,8 +80,7 @@ const Games = () => {
         loadDailyChallenge(username)
       ]);
     } catch (error) {
-      console.error('Error loading data:', error);
-    } finally {
+      } finally {
       setLoading(false);
     }
   };
@@ -108,8 +107,7 @@ const Games = () => {
         }
       }
     } catch (error) {
-      console.error('Error loading gamification stats:', error);
-    }
+      }
   };
 
   const loadBingoStats = async (username) => {
@@ -121,22 +119,15 @@ const Games = () => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('📊 Bingo Stats Response:', data);
-        console.log('📊 Stats Object:', data.stats);
-        
         // Make sure we have the stats object
         if (data.stats) {
           setBingoStats(data.stats);
-          console.log('✅ Bingo stats set:', data.stats);
-        } else {
-          console.error('❌ No stats in response');
-        }
+          } else {
+          }
       } else {
-        console.error('❌ Bingo stats request failed:', response.status);
-      }
+        }
     } catch (error) {
-      console.error('❌ Error loading bingo stats:', error);
-    }
+      }
   };
 
   const loadWeeklyProgress = async (username) => {
@@ -148,12 +139,10 @@ const Games = () => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('📈 Weekly Progress Response:', data);
         setWeeklyProgress(data);
       }
     } catch (error) {
-      console.error('Error loading weekly progress:', error);
-    }
+      }
   };
 
   const loadRecentActivities = async (username) => {
@@ -168,8 +157,7 @@ const Games = () => {
         setRecentActivities(data.activities || []);
       }
     } catch (error) {
-      console.error('Error loading activities:', error);
-    }
+      }
   };
 
   const loadDailyChallenge = async (username) => {
@@ -185,7 +173,6 @@ const Games = () => {
         setDailyChallengeProgress(data.progress || 0);
       }
     } catch (error) {
-      console.error('Error loading daily challenge:', error);
       // Generate a fallback challenge if backend doesn't support it yet
       generateFallbackChallenge();
     }
@@ -223,7 +210,6 @@ const Games = () => {
 
   const isTaskCompleted = (task) => {
     const statValue = bingoStats[task.stat] || 0;
-    console.log(`Task ${task.title}: stat=${task.stat}, value=${statValue}, target=${task.target}`);
     return statValue >= task.target;
   };
 

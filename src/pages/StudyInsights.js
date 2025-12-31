@@ -25,21 +25,17 @@ const StudyInsights = () => {
     
     // Check if study insights is enabled - check localStorage first
     const profile = localStorage.getItem('userProfile');
-    console.log('📊 StudyInsights - checking profile from localStorage');
     if (profile) {
       try {
         const parsed = JSON.parse(profile);
-        console.log('📊 StudyInsights - showStudyInsights value:', parsed.showStudyInsights);
         // Check if explicitly set to false (not just undefined)
         if (parsed.showStudyInsights === false) {
-          console.log('📊 StudyInsights disabled, redirecting to dashboard');
           // Study insights is disabled, redirect to dashboard
           navigate('/dashboard', { replace: true });
           return;
         }
       } catch (e) {
-        console.error('Error parsing profile:', e);
-      }
+        }
     }
     
     loadInsights();
@@ -62,8 +58,6 @@ const StudyInsights = () => {
         const topics = summary?.specific_topics || [];
         const messageCount = summary?.summary?.chat_messages || 0;
         const questions = summary?.user_questions || [];
-        
-        console.log('Session data:', { topics, messageCount, questions });
         
         setUserQuestions(questions);
         
@@ -127,8 +121,7 @@ const StudyInsights = () => {
         }
       }
     } catch (err) {
-      console.error('Error loading insights:', err);
-    } finally {
+      } finally {
       setLoading(false);
     }
   };
@@ -166,7 +159,6 @@ const StudyInsights = () => {
         navigate(`/flashcards?set_id=${data.set_id}`);
       }
     } catch (err) {
-      console.error('Error saving flashcards:', err);
       navigate('/flashcards');
     }
   };

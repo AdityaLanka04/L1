@@ -19,8 +19,6 @@ const SoloQuiz = () => {
     const autoStartData = location.state;
     
     if (autoStartData?.autoStart && autoStartData.topics?.length > 0) {
-      console.log('🚀 Auto-starting quiz with:', autoStartData);
-      
       // Set the form values
       const topic = autoStartData.topics[0];
       setSubject(topic);
@@ -47,12 +45,10 @@ const SoloQuiz = () => {
             const data = await response.json();
             navigate(`/solo-quiz/${data.quiz_id}`, { replace: true });
           } else {
-            console.error('Failed to create quiz');
             // Show the modal so user can try manually
             setShowCreateModal(true);
           }
         } catch (error) {
-          console.error('Error creating solo quiz:', error);
           // Show the modal so user can try manually
           setShowCreateModal(true);
         }
@@ -92,7 +88,6 @@ const SoloQuiz = () => {
         alert('Failed to create quiz');
       }
     } catch (error) {
-      console.error('Error creating solo quiz:', error);
       alert('Failed to create quiz');
     }
   };

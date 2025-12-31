@@ -59,7 +59,6 @@ const ChallengeSession = () => {
         }
       }
     } catch (error) {
-      console.error('Error loading challenge:', error);
       alert('Failed to load challenge');
       navigate('/challenges');
     }
@@ -95,7 +94,6 @@ const ChallengeSession = () => {
         throw new Error('Failed to generate questions');
       }
     } catch (error) {
-      console.error('Error generating questions:', error);
       alert('Failed to generate questions. Please try again.');
       navigate('/challenges');
     } finally {
@@ -201,7 +199,6 @@ const ChallengeSession = () => {
         setShowResult(true);
       }
     } catch (error) {
-      console.error('Error submitting challenge:', error);
       alert('Failed to submit results');
     } finally {
       setIsSubmitting(false);

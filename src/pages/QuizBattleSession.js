@@ -30,12 +30,8 @@ const QuizBattleSession = () => {
 
   // WebSocket for live notifications (shared connection)
   const { isConnected } = useSharedWebSocket(token, (message) => {
-    // Log ALL messages with full details
-    console.log('📨 [QuizBattleSession] Received message:', message.type, 'Full message:', JSON.stringify(message));
-    
     // Don't skip - process all messages
     if (message.type === 'connected') {
-      console.log('✅ [QuizBattleSession] Connected to WebSocket');
       return;
     }
     
@@ -43,45 +39,24 @@ const QuizBattleSession = () => {
       return; // Skip pong silently
     }
     
-    console.log('🔍 [QuizBattleSession] Processing message type:', message.type);
-    console.log('🔍 [QuizBattleSession] Current battle ID:', battleId, 'Message battle ID:', message.battle_id, 'Match:', message.battle_id === parseInt(battleId));
-    
     if (message.type === 'battle_answer_submitted') {
-      console.log('📥 [QuizBattleSession] *** ANSWER NOTIFICATION RECEIVED ***');
-      console.log('� [Q[uizBattleSession] Battle ID from message:', message.battle_id);
-      console.log('📥 [QuizBattleSession] Current battle ID:', battleId);
-      console.log('📥 [QuizBattleSession] Parsed battle ID:', parseInt(battleId));
-      console.log('📥 [QuizBattleSession] Match result:', message.battle_id === parseInt(battleId));
-      
       if (message.battle_id === parseInt(battleId)) {
-        console.log('🎯 [QuizBattleSession] *** MATCH! SHOWING NOTIFICATION ***');
         const notificationData = {
           questionIndex: message.question_index,
           isCorrect: message.is_correct
         };
-        console.log('📝 [QuizBattleSession] Notification data:', notificationData);
-        
         // Show opponent's answer notification
         setOpponentNotification(notificationData);
-        console.log('✅ [QuizBattleSession] State updated, notification should appear!');
-        
         // Hide notification after 2 seconds
         setTimeout(() => {
-          console.log('⏰ [QuizBattleSession] Hiding notification');
           setOpponentNotification(null);
         }, 2000);
-      } else {
-        console.log('⚠️ [QuizBattleSession] Battle ID mismatch, ignoring notification');
-        console.log('⚠️ [QuizBattleSession] Expected:', parseInt(battleId), 'Got:', message.battle_id);
       }
     } else if (message.type === 'battle_opponent_completed' && message.battle_id === parseInt(battleId)) {
-      console.log('✅ Opponent completed the battle');
       setOpponentCompleted(true);
       // Immediately try to fetch results
-      console.log('🔄 Attempting to fetch results after opponent completion...');
       setTimeout(() => fetchDetailedResults(), 500);
     } else if (message.type === 'battle_completed' && message.battle_id === parseInt(battleId)) {
-      console.log('🏁 Both users completed, fetching detailed results');
       // Both completed, fetch detailed results
       setOpponentCompleted(true);
       setTimeout(() => fetchDetailedResults(), 500);
@@ -95,7 +70,6 @@ const QuizBattleSession = () => {
   // Poll for detailed results when opponent completes
   useEffect(() => {
     if (opponentCompleted && showResult && !showDetailedResults) {
-      console.log('🔄 Opponent completed, fetching detailed results...');
       fetchDetailedResults();
     }
   }, [opponentCompleted, showResult, showDetailedResults]);
@@ -103,14 +77,11 @@ const QuizBattleSession = () => {
   // Poll for results when waiting
   useEffect(() => {
     if (showResult && !showDetailedResults && !opponentCompleted) {
-      console.log('⏳ Polling for opponent completion...');
       const pollInterval = setInterval(() => {
-        console.log('🔄 Checking if opponent completed...');
         fetchDetailedResults();
       }, 3000); // Poll every 3 seconds
 
       return () => {
-        console.log('🛑 Stopping poll interval');
         clearInterval(pollInterval);
       };
     }
@@ -119,11 +90,8 @@ const QuizBattleSession = () => {
   // Debug: Log when notification state changes
   useEffect(() => {
     if (opponentNotification) {
-      console.log('🔔 Notification state updated:', opponentNotification);
-      console.log('🎨 Notification should be visible now!');
-    } else {
-      console.log('🔕 Notification state cleared');
-    }
+      } else {
+      }
   }, [opponentNotification]);
 
   useEffect(() => {
@@ -158,7 +126,6 @@ const QuizBattleSession = () => {
         }
       }
     } catch (error) {
-      console.error('Error loading battle:', error);
       alert('Failed to load battle');
       navigate('/quiz-battles');
     }
@@ -188,7 +155,6 @@ const QuizBattleSession = () => {
         throw new Error('Failed to generate questions');
       }
     } catch (error) {
-      console.error('Error generating questions:', error);
       alert('Failed to generate questions. Please try again.');
       navigate('/quiz-battles');
     } finally {
@@ -210,7 +176,6 @@ const QuizBattleSession = () => {
 
   const submitAnswerNotification = async (questionIndex, isCorrect) => {
     try {
-      console.log(`📤 Submitting answer notification: Q${questionIndex}, Correct: ${isCorrect}`);
       const response = await fetch(`${API_URL}/submit_battle_answer`, {
         method: 'POST',
         headers: {
@@ -225,13 +190,10 @@ const QuizBattleSession = () => {
       });
       
       if (response.ok) {
-        console.log('✅ Answer notification sent successfully');
-      } else {
-        console.error('❌ Failed to send answer notification:', response.status);
-      }
+        } else {
+        }
     } catch (error) {
-      console.error('❌ Error submitting answer notification:', error);
-    }
+      }
   };
 
   const handleNextQuestion = (answerIndex = selectedAnswer) => {
@@ -297,7 +259,6 @@ const QuizBattleSession = () => {
         }
       }
     } catch (error) {
-      console.error('Error submitting battle:', error);
       alert('Failed to submit results');
     } finally {
       setIsSubmitting(false);
@@ -306,21 +267,13 @@ const QuizBattleSession = () => {
 
   const fetchDetailedResults = async () => {
     try {
-      console.log('🔄 Fetching detailed results for battle:', battleId);
       const response = await fetch(`${API_URL}/quiz_battle/${battleId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
       if (response.ok) {
         const data = await response.json();
-        console.log('📊 Battle data received:', data);
-        console.log('✅ Your completed:', data.battle.your_completed);
-        console.log('✅ Opponent completed:', data.battle.opponent_completed);
-        console.log('📦 Has your_answers:', !!data.battle.your_answers);
-        console.log('📦 Has opponent_answers:', !!data.battle.opponent_answers);
-        
         if (data.battle.opponent_completed && data.battle.your_completed) {
-          console.log('🎉 Both completed! Showing detailed results');
           setDetailedBattleData(data);
           setShowDetailedResults(true);
           setOpponentCompleted(true); // Ensure this is set
@@ -337,16 +290,11 @@ const QuizBattleSession = () => {
             }
           }
         } else {
-          console.log('⏳ Still waiting...');
-          console.log('   - Your completed:', data.battle.your_completed);
-          console.log('   - Opponent completed:', data.battle.opponent_completed);
-        }
+          }
       } else {
-        console.error('❌ Failed to fetch battle data:', response.status);
-      }
+        }
     } catch (error) {
-      console.error('❌ Error fetching detailed results:', error);
-    }
+      }
   };
 
   const formatTime = (seconds) => {
@@ -436,12 +384,12 @@ const QuizBattleSession = () => {
                               <div className="selection-indicators">
                                 {youSelected && (
                                   <span className={`user-badge you ${yourCorrect ? 'correct' : 'incorrect'}`}>
-                                    You {yourCorrect ? '✓' : '✗'}
+                                    You {yourCorrect ? '' : ''}
                                   </span>
                                 )}
                                 {opponentSelected && (
                                   <span className={`user-badge opponent ${opponentCorrect ? 'correct' : 'incorrect'}`}>
-                                    Opponent {opponentCorrect ? '✓' : '✗'}
+                                    Opponent {opponentCorrect ? '' : ''}
                                   </span>
                                 )}
                               </div>

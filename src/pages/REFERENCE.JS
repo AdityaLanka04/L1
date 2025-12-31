@@ -120,8 +120,6 @@ const Dashboard = () => {
   const lastActivityRef = useRef(Date.now());
   const inactivityTimerRef = useRef(null);
 
-
-
   useEffect(() => {
     const token = localStorage.getItem('token');
     const username = localStorage.getItem('username');
@@ -139,8 +137,7 @@ const Dashboard = () => {
       try {
         setUserProfile(JSON.parse(profile));
       } catch (error) {
-        console.error('Error parsing user profile:', error);
-      }
+        }
     }
 
     if (savedWidgets) {
@@ -170,8 +167,7 @@ const Dashboard = () => {
         // Save the migrated widgets back to localStorage
         localStorage.setItem('dashboardWidgets', JSON.stringify(parsedWidgets));
       } catch (error) {
-        console.error('Error parsing saved widgets:', error);
-      }
+        }
     }
   }, []);
 
@@ -195,10 +191,7 @@ const Dashboard = () => {
     const justLoggedIn = sessionStorage.getItem('justLoggedIn');
     const notificationAlreadyShown = sessionStorage.getItem('notificationShown');
     
-    console.log('🔔 Dashboard mounted, justLoggedIn:', justLoggedIn, 'alreadyShown:', notificationAlreadyShown);
-    
     if (justLoggedIn === 'true') {
-      console.log('🔔 Fresh login detected');
       sessionStorage.removeItem('justLoggedIn');
       sessionStorage.setItem('notificationShown', 'true');
       
@@ -237,11 +230,9 @@ const Dashboard = () => {
           setLastNotificationIds(new Set(existingNotifs.map(n => n.id)));
           setNotifications(existingNotifs);
           setUnreadCount(existingNotifs.filter(n => !n.is_read).length);
-          console.log('📬 Initialized with', existingNotifs.length, 'existing notifications');
-        }
+          }
       } catch (error) {
-        console.error('📬 Error initializing notifications:', error);
-      }
+        }
     };
     initializeNotifications();
     
@@ -287,7 +278,6 @@ const Dashboard = () => {
       const IDLE_THRESHOLD = 10 * 1000; // 10 seconds
 
       if (idleTime > IDLE_THRESHOLD && !showInactivitySuggestion) {
-        console.log('🔔 User is idle for 10 seconds, showing inactivity modal');
         setShowInactivitySuggestion(true);
       }
     }, 5 * 1000); // Check every 5 seconds
@@ -299,8 +289,6 @@ const Dashboard = () => {
       clearInterval(idleCheckInterval);
     };
   }, [userName]);
-
-
 
   const handleEngagementSuggestion = async (action) => {
     setShowInactivitySuggestion(false);
@@ -344,8 +332,7 @@ const Dashboard = () => {
         setLearningReviews(data.reviews || []);
       }
     } catch (error) {
-      console.error('Error loading learning reviews:', error);
-    }
+      }
   };
 
   const clearAllNotifications = async () => {
@@ -358,10 +345,8 @@ const Dashboard = () => {
       });
       setNotifications([]);
       setUnreadCount(0);
-      console.log('📬 All notifications cleared');
-    } catch (error) {
-      console.error('Error clearing notifications:', error);
-    }
+      } catch (error) {
+      }
   };
 
   const loadNotifications = async (showSlideNotifs = false) => {
@@ -370,15 +355,12 @@ const Dashboard = () => {
     // Debounce: Don't check too frequently (minimum 2 seconds between checks)
     const now = Date.now();
     if (showSlideNotifs && (now - lastNotificationCheckRef.current) < 2000) {
-      console.log('📬 Skipping notification check - too soon since last check');
       return;
     }
     
     try {
       const token = localStorage.getItem('token');
       const url = `${API_URL}/get_notifications?user_id=${userName}`;
-      console.log('📬 Loading notifications from:', url);
-      
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -386,8 +368,6 @@ const Dashboard = () => {
       if (response.ok) {
         const data = await response.json();
         const newNotifications = data.notifications || [];
-        console.log('📬 Loaded notifications:', newNotifications.length, newNotifications);
-        
         // Check for new unread notifications to show as slide-in
         if (showSlideNotifs) {
           lastNotificationCheckRef.current = now;
@@ -396,7 +376,6 @@ const Dashboard = () => {
           const newUnreadNotifs = unreadNotifs.filter(n => !lastNotificationIds.has(n.id));
           
           if (newUnreadNotifs.length > 0) {
-            console.log('📬 New notifications to show as slide-in:', newUnreadNotifs.length);
             // Add new notifications to the slide queue (max 3 at a time)
             const notifsToShow = newUnreadNotifs.slice(0, 3);
             
@@ -405,7 +384,6 @@ const Dashboard = () => {
               const existingIds = new Set(prev.map(n => n.id));
               const uniqueNotifs = notifsToShow.filter(n => !existingIds.has(n.id));
               if (uniqueNotifs.length > 0) {
-                console.log('📬 Adding unique notifications to queue:', uniqueNotifs.length);
                 // Play notification sound only for truly new notifications
                 playNotificationSound();
                 // Show browser notification for the first one
@@ -421,12 +399,9 @@ const Dashboard = () => {
         
         setNotifications(newNotifications);
         setUnreadCount(newNotifications.filter(n => !n.is_read).length);
-        console.log('📬 Notifications state updated:', newNotifications.length);
-      } else {
-        console.error('📬 Failed to load notifications:', response.status);
-      }
+        } else {
+        }
     } catch (error) {
-      console.error('📬 Error loading notifications:', error);
       // If endpoint doesn't exist, set empty array
       setNotifications([]);
       setUnreadCount(0);
@@ -451,8 +426,7 @@ const Dashboard = () => {
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.3);
     } catch (e) {
-      console.log('Could not play notification sound:', e);
-    }
+      }
   };
   
   // Show browser notification
@@ -499,16 +473,13 @@ const Dashboard = () => {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('📅 Reminder check result:', data);
         if (data.notifications_created > 0) {
-          console.log('📅 Created reminder notifications:', data.notifications_created, data.details);
           // Don't reload here - the polling interval will pick it up
           // This prevents duplicate notifications
         }
       }
     } catch (error) {
-      console.error('Error checking reminder notifications:', error);
-    }
+      }
   };
 
   // Check for proactive AI messages (work notifications on login)
@@ -517,18 +488,13 @@ const Dashboard = () => {
     try {
       const token = localStorage.getItem('token');
       
-      console.log('🤖 Checking for proactive AI message, isLogin:', isLogin);
-      
       const response = await fetch(`${API_URL}/check_proactive_message?user_id=${userName}&is_login=${isLogin}&is_idle=false`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
       if (response.ok) {
         const data = await response.json();
-        console.log('🤖 Proactive AI result:', data);
-        
         if (data.should_notify && data.message) {
-          console.log('🤖 AI work notification created:', data.message);
           // Reload notifications to show the new AI notification
           setTimeout(() => {
             loadNotifications(true);
@@ -536,8 +502,7 @@ const Dashboard = () => {
         }
       }
     } catch (error) {
-      console.error('Error checking proactive AI message:', error);
-    }
+      }
   };
 
   const markNotificationAsRead = async (notificationId) => {
@@ -550,8 +515,7 @@ const Dashboard = () => {
       
       loadNotifications();
     } catch (error) {
-      console.error('Error marking notification as read:', error);
-    }
+      }
   };
 
   const markAllNotificationsAsRead = async () => {
@@ -563,8 +527,7 @@ const Dashboard = () => {
       });
       loadNotifications();
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-    }
+      }
   };
 
   const deleteNotification = async (notificationId) => {
@@ -576,8 +539,7 @@ const Dashboard = () => {
       });
       loadNotifications();
     } catch (error) {
-      console.error('Error deleting notification:', error);
-    }
+      }
   };
 
   const createLearningReview = async () => {
@@ -627,7 +589,6 @@ const Dashboard = () => {
       }
     }
   } catch (error) {
-    console.error('Error creating learning review:', error);
     // On error, still navigate to the page
     await endDashboardSession();
     window.location.href = '/learning-review';
@@ -667,10 +628,8 @@ const Dashboard = () => {
     const analyticsResponse = await fetch(`${API_URL}/get_learning_analytics?user_id=${userName}&period=week`, { headers });
     if (analyticsResponse.ok) {
       const analyticsData = await analyticsResponse.json();
-      console.log('📊 Analytics received:', analyticsData);
       setLearningAnalytics(analyticsData);
     } else {
-      console.error('❌ Analytics failed');
       setLearningAnalytics({ total_sessions: 0, total_time_minutes: 0 });
     }
 
@@ -686,16 +645,13 @@ const Dashboard = () => {
     loadNotifications();
     
   } catch (error) {
-    console.error('Error loading dashboard data:', error);
-  }
+    }
 };
 
   async function responseToJsonSafely(resp) {
     try { return await resp.json(); } catch { return {}; }
   }
-   
 
-  
   const loadMotivationalQuote = () => {
     const quotes = [
       "The expert in anything was once a beginner.",
@@ -789,8 +745,7 @@ const Dashboard = () => {
         setTotalQuestions(data.total_count || 0);
       }
     } catch (error) {
-      console.error('Error loading heatmap data:', error);
-    } finally {
+      } finally {
       setHeatmapLoading(false);
     }
   };
@@ -898,8 +853,7 @@ const Dashboard = () => {
         startSessionTimeUpdater();
       }
     } catch (error) {
-      console.error('Error starting dashboard session:', error);
-    }
+      }
   };
 
   const startTimeTracking = () => {
@@ -960,8 +914,7 @@ const Dashboard = () => {
         }
       }
     } catch (error) {
-      console.error('Error ending dashboard session:', error);
-    } finally {
+      } finally {
       if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
       if (sessionUpdateRef.current) clearInterval(sessionUpdateRef.current);
       if (window.dashboardTimeTrackingCleanup) window.dashboardTimeTrackingCleanup();
@@ -998,7 +951,6 @@ const Dashboard = () => {
         setStats({ streak: 0, totalQuestions: 0, minutes: 0, totalFlashcards: 0, totalNotes: 0, totalChatSessions: 0 });
       }
     } catch (error) {
-      console.error('Error loading stats:', error);
       setStats({ streak: 0, totalQuestions: 0, minutes: 0, totalFlashcards: 0, totalNotes: 0, totalChatSessions: 0 });
     }
   };
@@ -1076,17 +1028,14 @@ const Dashboard = () => {
         alert('Error deleting review: ' + (errorData.detail || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Error deleting learning review:', error);
       alert('Error deleting learning review');
     }
   };
 
   // Debug CSS variables
   useEffect(() => {
-    console.log('Dashboard - Selected theme:', selectedTheme);
-    console.log('Dashboard - Theme tokens:', selectedTheme.tokens);
-    console.log('Dashboard - CSS --accent:', getComputedStyle(document.documentElement).getPropertyValue('--accent'));
-    console.log('Dashboard - CSS --text-primary:', getComputedStyle(document.documentElement).getPropertyValue('--text-primary'));
+    .getPropertyValue('--accent'));
+    .getPropertyValue('--text-primary'));
   }, [selectedTheme]);
 
   const SortableWidget = ({ widget }) => {

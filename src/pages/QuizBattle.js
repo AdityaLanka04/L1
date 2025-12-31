@@ -55,16 +55,15 @@ const QuizBattle = () => {
         const data = await response.json();
         setBattles(data.battles);
       }
-    } catch (error) { console.error('Error fetching battles:', error); }
+    } catch (error) { }
     finally { setLoading(false); }
   };
-
 
   const fetchFriends = async () => {
     try {
       const response = await fetch(`${API_URL}/friends`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (response.ok) { const data = await response.json(); setFriends(data.friends); }
-    } catch (error) { console.error('Error fetching friends:', error); }
+    } catch (error) { }
   };
 
   const handleCreateBattle = async (e) => {
@@ -83,7 +82,7 @@ const QuizBattle = () => {
         fetchBattles();
         alert('Battle challenge sent!');
       }
-    } catch (error) { console.error('Error creating battle:', error); }
+    } catch (error) { }
   };
 
   const handleAcceptBattle = async (battleId = null) => {
@@ -100,7 +99,7 @@ const QuizBattle = () => {
         setPendingBattle(null);
         navigate(`/quiz-battle/${id}`);
       }
-    } catch (error) { console.error('Error accepting battle:', error); }
+    } catch (error) { }
   };
 
   const handleDeclineBattle = async () => {
@@ -116,7 +115,7 @@ const QuizBattle = () => {
         setPendingBattle(null);
         fetchBattles();
       }
-    } catch (error) { console.error('Error declining battle:', error); }
+    } catch (error) { }
   };
 
   const getBattleStatusColor = (status) => {
@@ -144,7 +143,6 @@ const QuizBattle = () => {
     }
     return <div className="qb-opponent-avatar">{initial}</div>;
   };
-
 
   return (
     <div className="qb-page">
@@ -245,7 +243,6 @@ const QuizBattle = () => {
           )}
         </div>
       </div>
-
 
       {showCreateModal && (
         <div className="qb-modal-overlay" onClick={() => setShowCreateModal(false)}>

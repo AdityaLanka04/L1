@@ -39,8 +39,6 @@ const SafetyLogin = () => {
       // Set flag to indicate user just accepted safety (prevents auto-redirect)
       sessionStorage.setItem('justAcceptedSafety', 'true');
       
-      console.log('Safety accepted, navigating to /login');
-      
       // Navigate to LOGIN page
       navigate('/login');
     } else {
@@ -54,8 +52,7 @@ const SafetyLogin = () => {
         <div className="login-box">
           <h1 className="safety-title">cerbyl</h1>
           <p className="safety-subtitle">SAFETY VERIFICATION</p>
-        
-          
+
           <form onSubmit={handleLogin} className="login-form">
             <div className="form-group">
               <input

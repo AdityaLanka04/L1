@@ -258,8 +258,7 @@ try {
     Quill.register('modules/tableUI', QuillTableUI.default);
   }
 } catch (error) {
-  console.warn('Quill Table UI not available:', error);
-}
+  }
 
 let katex;
 try {
@@ -268,8 +267,7 @@ try {
     window.katex = katex;
   }
 } catch (error) {
-  console.warn('KaTeX not available:', error);
-}
+  }
 
 const NotesRedesign = ({ sharedMode = false }) => {
   const { noteId } = useParams();
@@ -386,9 +384,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   
   // Debug: Log when showChatImport changes
   useEffect(() => {
-    console.log('🔥 showChatImport changed to:', showChatImport);
-    console.log('🔥 chatSessions count:', chatSessions.length);
-  }, [showChatImport, chatSessions]);
+    }, [showChatImport, chatSessions]);
 
   // Voice state
   const [isRecording, setIsRecording] = useState(false);
@@ -411,9 +407,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   
   // Theme effects
   useEffect(() => {
-    console.log('Notes - Selected theme:', selectedTheme);
-    console.log('Notes - Theme tokens:', selectedTheme?.tokens);
-  }, [selectedTheme]);
+    }, [selectedTheme]);
 
   useEffect(() => {
     if (selectedTheme && selectedTheme.tokens) {
@@ -423,8 +417,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         root.style.setProperty(`--${key}`, value);
       });
       
-      console.log('Applied theme variables to DOM');
-    }
+      }
   }, [selectedTheme]);
 
   // Font registration
@@ -458,8 +451,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         ];
         Quill.register(Font, true);
       } catch (error) {
-        console.warn('Font registration failed:', error);
-      }
+        }
     }
   }, []);
 
@@ -496,7 +488,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
         throw new Error('Failed to load shared note');
       }
     } catch (error) {
-      console.error('Error loading shared note:', error);
       showPopup("Error", "Failed to load shared note");
       navigate('/social');
     }
@@ -526,8 +517,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         try {
           setUserProfile(JSON.parse(profile));
         } catch (error) {
-          console.error("Error parsing user profile:", error);
-        }
+          }
       }
     }
   }, [navigate, sharedMode, noteId]);
@@ -545,8 +535,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         try {
           setRecentlyViewed(JSON.parse(stored));
         } catch (e) {
-          console.error('Error loading recently viewed:', e);
-        }
+          }
       }
     }
   }, [userName, isSharedContent]);
@@ -577,7 +566,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
         throw new Error(`Failed to load notes: ${res.status}`);
       }
     } catch (e) {
-      console.error("Error loading notes:", e);
       showPopup("Error", "Failed to load notes");
     }
   };
@@ -680,7 +668,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
       return;
     }
 
-    console.log(`Processing text with action: ${action}`);
     setGeneratingAI(true);
 
     try {
@@ -714,7 +701,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
       setNoteContent(quill.root.innerHTML);
       showPopup("Success", `Text ${action} completed`);
     } catch (error) {
-      console.error("AI processing error:", error);
       showPopup("Error", "Failed to process text");
     } finally {
       setGeneratingAI(false);
@@ -726,7 +712,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const quickTextAction = async (actionType) => {
     if (isSharedContent && !canEdit) return;
     
-    console.log(`Quick action: ${actionType}`);
     setGeneratingAI(true);
 
     try {
@@ -759,7 +744,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
       setNoteContent(quill.root.innerHTML);
       showPopup("Success", `${actionType} content added`);
     } catch (error) {
-      console.error("AI action error:", error);
       showPopup("Error", "Failed to generate content");
     } finally {
       setGeneratingAI(false);
@@ -779,8 +763,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         setFolders(data.folders || []);
       }
     } catch (e) {
-      console.error("Error loading folders:", e);
-    }
+      }
   };
 
   const loadTrash = async () => {
@@ -794,8 +777,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         setTrashedNotes(data.trash || []);
       }
     } catch (e) {
-      console.error("Error loading trash:", e);
-    }
+      }
   };
 
   const loadChatSessions = async () => {
@@ -809,8 +791,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         setChatSessions(data.sessions || []);
       }
     } catch (e) {
-      console.error("Error loading chat sessions:", e);
-    }
+      }
   };
 
   const createFolder = async () => {
@@ -850,7 +831,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
         throw new Error(`Failed to create folder: ${res.status}`);
       }
     } catch (e) {
-      console.error("Error creating folder:", e);
       showPopup("Error", "Failed to create folder");
     }
   };
@@ -893,7 +873,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
         throw new Error(`Failed to create note: ${res.status}`);
       }
     } catch (error) {
-      console.error("Error creating note in folder:", error);
       showPopup("Error", "Failed to create note");
     }
   };
@@ -917,7 +896,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
         throw new Error(`Failed to delete folder: ${res.status}`);
       }
     } catch (e) {
-      console.error("Error deleting folder:", e);
       showPopup("Error", "Failed to delete folder");
     }
   };
@@ -948,7 +926,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
         throw new Error(`Failed to move note: ${res.status}`);
       }
     } catch (e) {
-      console.error("Error moving note:", e);
       showPopup("Error", "Failed to move note");
     }
   };
@@ -1020,8 +997,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         showPopup("Success", newFavoriteStatus ? "Added to favorites" : "Removed from favorites");
       }
     } catch (e) {
-      console.error("Error toggling favorite:", e);
-    }
+      }
   };
 
   const moveToTrash = async (noteId) => {
@@ -1060,7 +1036,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
         throw new Error(`Failed to move to trash: ${res.status}`);
       }
     } catch (e) {
-      console.error("Error moving to trash:", e);
       showPopup("Error", "Failed to move note to trash");
     }
   };
@@ -1082,7 +1057,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
         throw new Error(`Failed to restore note: ${res.status}`);
       }
     } catch (e) {
-      console.error("Error restoring note:", e);
       showPopup("Error", "Failed to restore note");
     }
   };
@@ -1104,7 +1078,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
         throw new Error(`Failed to delete note: ${res.status}`);
       }
     } catch (e) {
-      console.error("Error permanently deleting:", e);
       showPopup("Error", "Failed to delete note");
     }
   };
@@ -1167,7 +1140,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
         throw new Error(`Failed to create note: ${res.status}`);
       }
     } catch (error) {
-      console.error("Error creating new note:", error);
       showPopup("Error", "Failed to create note");
     }
   };
@@ -1198,7 +1170,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
         throw new Error(`Failed to duplicate note: ${res.status}`);
       }
     } catch (error) {
-      console.error("Error duplicating note:", error);
       showPopup("Error", "Failed to duplicate note");
     }
   };
@@ -1236,8 +1207,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
           setPageProperties(props);
         }
       } catch (e) {
-        console.error('Error parsing note properties:', e);
-      }
+        }
     }
   };
   
@@ -1408,7 +1378,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
         }
       } catch (error) {
         setSaving(false);
-        console.error('Save error:', error);
         showPopup("Error", "Failed to save changes");
       }
     } else {
@@ -1460,7 +1429,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
         }
       } catch (error) {
         setSaving(false);
-        console.error("Save error:", error);
         showPopup("Error", "Failed to save note");
       }
     }
@@ -1674,7 +1642,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
       setNoteContent(quillRef.current?.getEditor().root.innerHTML);
       showPopup("AI Generated", "Content inserted successfully");
     } catch (error) {
-      console.error("AI generation error:", error);
       showPopup("Error", "Failed to generate AI content");
     } finally {
       setGeneratingAI(false);
@@ -1718,7 +1685,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
       setNoteContent(quillRef.current?.getEditor().root.innerHTML);
       showPopup("AI Generated", `${actionType} content inserted`);
     } catch (error) {
-      console.error("AI action error:", error);
       showPopup("Error", "Failed to generate content");
     } finally {
       setGeneratingAI(false);
@@ -1784,16 +1750,12 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
-          console.log("Audio chunk received:", event.data.size, "bytes");
           audioChunksRef.current.push(event.data);
         }
       };
 
       mediaRecorder.onstop = async () => {
-        console.log("Recording stopped, total chunks:", audioChunksRef.current.length);
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        console.log("Audio blob created, size:", audioBlob.size, "bytes");
-        
         if (audioBlob.size === 0) {
           showPopup("Error", "No audio was recorded. Please try again.");
           stream.getTracks().forEach(track => track.stop());
@@ -1806,10 +1768,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
       mediaRecorder.start();
       setIsRecording(true);
-      console.log("Recording started");
       showPopup("Recording", "Voice recording started");
     } catch (error) {
-      console.error("Error starting recording:", error);
       showPopup("Error", "Failed to start recording. Please check microphone permissions.");
     }
   };
@@ -1829,10 +1789,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
       formData.append("audio_file", audioBlob, "recording.webm");
       formData.append("user_id", userName);
 
-      console.log("Sending audio to transcribe endpoint...");
-      console.log("Audio blob size:", audioBlob.size);
-      console.log("User:", userName);
-
       const transcribeRes = await fetch(`${API_URL}/transcribe_audio/`, {
         method: "POST",
         headers: { 
@@ -1841,21 +1797,14 @@ const NotesRedesign = ({ sharedMode = false }) => {
         body: formData,
       });
 
-      console.log("Transcribe response status:", transcribeRes.status);
-
       if (!transcribeRes.ok) {
         const errorText = await transcribeRes.text();
-        console.error("Transcription error:", errorText);
         throw new Error(`Transcription failed: ${transcribeRes.status} - ${errorText}`);
       }
 
       const transcribeData = await transcribeRes.json();
-      console.log("Transcription result:", transcribeData);
-      
       const transcript = transcribeData.transcript;
       setVoiceTranscript(transcript);
-
-      console.log("Sending transcript to AI:", transcript);
 
       const aiRes = await fetch(`${API_URL}/generate_note_content/`, {
         method: "POST",
@@ -1872,13 +1821,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
       if (!aiRes.ok) {
         const errorText = await aiRes.text();
-        console.error("AI generation error:", errorText);
         throw new Error(`AI response failed: ${aiRes.status}`);
       }
 
       const aiData = await aiRes.json();
-      console.log("AI response received");
-      
       const quill = quillRef.current?.getEditor();
 
       if (quill) {
@@ -1893,7 +1839,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
       showPopup("Success", "Voice transcribed and AI response added to note");
       setVoiceTranscript("");
     } catch (error) {
-      console.error("Voice processing error:", error);
       showPopup("Error", error.message || "Failed to process voice input");
     } finally {
       setProcessingVoice(false);
@@ -2014,7 +1959,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
       setSelectedBlockId(null);
       showPopup("Success", `AI ${aiAssistAction} completed`);
     } catch (error) {
-      console.error("AI assistant error:", error);
       showPopup("Error", "Failed to process text");
     } finally {
       setGeneratingAI(false);
@@ -2028,10 +1972,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const clearAllSessions = () => setSelectedSessions([]);
 
   const convertChatToNote = async () => {
-    console.log('🔥 convertChatToNote called');
-    console.log('🔥 selectedSessions:', selectedSessions);
-    console.log('🔥 chatSessions:', chatSessions);
-    
     if (selectedSessions.length === 0) {
       showPopup("No Sessions Selected", "Please select at least one chat session.");
       return;
@@ -2041,24 +1981,18 @@ const NotesRedesign = ({ sharedMode = false }) => {
       const token = localStorage.getItem("token");
       const allMessages = [];
       
-      console.log('🔥 Fetching chat histories...');
       for (const sid of selectedSessions) {
-        console.log('🔥 Fetching session:', sid);
         const r = await fetch(`${API_URL}/get_chat_history/${sid}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (r.ok) {
           const data = await r.json();
-          console.log('🔥 Chat data:', data);
           const s = chatSessions.find((x) => x.id === sid);
           allMessages.push({ sessionTitle: s?.title || "Chat Session", messages: data.messages });
         } else {
-          console.error('🔥 Failed to fetch chat history:', r.status);
-        }
+          }
       }
       
-      console.log('🔥 All messages:', allMessages);
-
       const conversationData = allMessages
         .map((s) => s.messages.map((m) => `Q: ${m.user_message}\nA: ${m.ai_response}`).join("\n\n"))
         .join("\n\n--- New Session ---\n\n");
@@ -2122,7 +2056,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
         throw new Error(`Failed to create note: ${createRes.status}`);
       }
     } catch (err) {
-      console.error("Convert error:", err);
       showPopup("Conversion Failed", "Unable to convert chat to note.");
     }
     setImporting(false);
@@ -2598,8 +2531,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     <button
                       className="tool-panel-btn"
                       onClick={() => {
-                        console.log('🔥 From Chat button clicked');
-                        console.log('🔥 Chat sessions:', chatSessions);
                         setShowChatImport(true);
                       }}
                       title="Import from AI Chat"
@@ -2677,8 +2608,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     <PomodoroTimer 
                       noteId={selectedNote?.id}
                       onTimeTracked={(noteId, minutes) => {
-                        console.log(`Tracked ${minutes} minutes on note ${noteId}`);
-                      }}
+                        }}
                     />
                   </div>
                 )}
@@ -2976,8 +2906,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     // Save properties with note
                     if (selectedNote) {
                       // You can save this to the note's properties field
-                      console.log('Saving page properties:', newProps);
-                    }
+                      }
                   }}
                   readOnly={viewMode === "preview"}
                 />
@@ -3065,7 +2994,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 </div>
               )}
             </div>
-
 
           </div>
         ) : (
@@ -3626,7 +3554,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
           <SmartFolders
             notes={notes}
             onFolderSelect={(filteredNotes, folderName) => {
-              console.log(`Smart folder "${folderName}" contains ${filteredNotes.length} notes`);
               // You can add logic here to display filtered notes
               setShowSmartFolders(false);
             }}

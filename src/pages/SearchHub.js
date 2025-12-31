@@ -72,8 +72,7 @@ const SearchHub = () => {
       try {
         setRecentSearches(JSON.parse(saved));
       } catch (error) {
-        console.error('Error loading recent searches:', error);
-      }
+        }
     }
   };
 
@@ -117,11 +116,9 @@ const SearchHub = () => {
         
         setPersonalizedPrompts(combinedPrompts);
       } else {
-        console.log('Personalized prompts endpoint not available, using defaults');
         setPersonalizedPrompts([]);
       }
     } catch (error) {
-      console.error('Error loading personalized prompts:', error);
       setPersonalizedPrompts([]);
     }
   };
@@ -146,145 +143,145 @@ const SearchHub = () => {
     // Command templates - ENHANCED WITH ADAPTIVE LEARNING
     const commands = [
       { pattern: 'create', suggestions: [
-        { text: 'create a note on {topic}', icon: '📝', action: 'create_note' },
-        { text: 'create flashcards on {topic}', icon: '🃏', action: 'create_flashcards' },
-        { text: 'create a quiz on {topic}', icon: '❓', action: 'create_quiz' },
-        { text: 'create a personalized curriculum for {topic}', icon: '📚', action: 'create_curriculum' },
+        { text: 'create a note on {topic}', icon: '', action: 'create_note' },
+        { text: 'create flashcards on {topic}', icon: '', action: 'create_flashcards' },
+        { text: 'create a quiz on {topic}', icon: '', action: 'create_quiz' },
+        { text: 'create a personalized curriculum for {topic}', icon: '', action: 'create_curriculum' },
       ]},
       { pattern: 'make', suggestions: [
-        { text: 'make a note about {topic}', icon: '📝', action: 'create_note' },
-        { text: 'make flashcards for {topic}', icon: '🃏', action: 'create_flashcards' },
-        { text: 'make a quiz about {topic}', icon: '❓', action: 'create_quiz' },
+        { text: 'make a note about {topic}', icon: '', action: 'create_note' },
+        { text: 'make flashcards for {topic}', icon: '', action: 'create_flashcards' },
+        { text: 'make a quiz about {topic}', icon: '', action: 'create_quiz' },
       ]},
       { pattern: 'adapt', suggestions: [
-        { text: 'adapt difficulty to my level', icon: '🎯', action: 'adapt_difficulty' },
-        { text: 'adapt content for me', icon: '✨', action: 'adapt_content' },
+        { text: 'adapt difficulty to my level', icon: '', action: 'adapt_difficulty' },
+        { text: 'adapt content for me', icon: '', action: 'adapt_content' },
       ]},
       { pattern: 'review', suggestions: [
-        { text: 'review flashcards', icon: '📚', action: 'review_flashcards' },
-        { text: 'review weak flashcards', icon: '⚠️', action: 'review_flashcards' },
-        { text: 'review what I\'ll forget next', icon: '🔮', action: 'predict_forgetting' },
+        { text: 'review flashcards', icon: '', action: 'review_flashcards' },
+        { text: 'review weak flashcards', icon: '', action: 'review_flashcards' },
+        { text: 'review what I\'ll forget next', icon: '', action: 'predict_forgetting' },
       ]},
       { pattern: 'show', suggestions: [
-        { text: 'show my progress', icon: '📊', action: 'show_progress' },
-        { text: 'show weak areas', icon: '🔍', action: 'show_weak_areas' },
-        { text: 'show my achievements', icon: '🏆', action: 'show_achievements' },
-        { text: 'show my learning style', icon: '🧠', action: 'show_learning_style' },
-        { text: 'show knowledge gaps', icon: '🕳️', action: 'show_knowledge_gaps' },
+        { text: 'show my progress', icon: '', action: 'show_progress' },
+        { text: 'show weak areas', icon: '', action: 'show_weak_areas' },
+        { text: 'show my achievements', icon: '', action: 'show_achievements' },
+        { text: 'show my learning style', icon: '', action: 'show_learning_style' },
+        { text: 'show knowledge gaps', icon: '', action: 'show_knowledge_gaps' },
       ]},
       { pattern: 'find', suggestions: [
-        { text: 'find my knowledge blind spots', icon: '🔍', action: 'show_knowledge_gaps' },
-        { text: 'find my study twin', icon: '👥', action: 'find_study_twin' },
-        { text: 'find complementary learners', icon: '🤝', action: 'find_complementary' },
+        { text: 'find my knowledge blind spots', icon: '', action: 'show_knowledge_gaps' },
+        { text: 'find my study twin', icon: '', action: 'find_study_twin' },
+        { text: 'find complementary learners', icon: '', action: 'find_complementary' },
       ]},
       { pattern: 'what', suggestions: [
-        { text: 'what am I weak in', icon: '🔍', action: 'show_weak_areas' },
-        { text: 'what is my learning style', icon: '🧠', action: 'show_learning_style' },
-        { text: 'what will I forget next', icon: '🔮', action: 'predict_forgetting' },
-        { text: 'what is {topic}', icon: '💬', action: 'start_chat' },
+        { text: 'what am I weak in', icon: '', action: 'show_weak_areas' },
+        { text: 'what is my learning style', icon: '', action: 'show_learning_style' },
+        { text: 'what will I forget next', icon: '', action: 'predict_forgetting' },
+        { text: 'what is {topic}', icon: '', action: 'start_chat' },
       ]},
       { pattern: 'optimize', suggestions: [
-        { text: 'optimize my retention', icon: '🎯', action: 'optimize_retention' },
-        { text: 'optimize my study schedule', icon: '📅', action: 'optimize_schedule' },
+        { text: 'optimize my retention', icon: '', action: 'optimize_retention' },
+        { text: 'optimize my study schedule', icon: '', action: 'optimize_schedule' },
       ]},
       { pattern: 'suggest', suggestions: [
-        { text: 'suggest break times', icon: '☕', action: 'suggest_breaks' },
-        { text: 'suggest prerequisite topics', icon: '📖', action: 'suggest_prerequisites' },
+        { text: 'suggest break times', icon: '', action: 'suggest_breaks' },
+        { text: 'suggest prerequisite topics', icon: '', action: 'suggest_prerequisites' },
       ]},
       { pattern: 'detect', suggestions: [
-        { text: 'detect my burnout risk', icon: '⚡', action: 'detect_burnout' },
+        { text: 'detect my burnout risk', icon: '', action: 'detect_burnout' },
       ]},
       { pattern: 'predict', suggestions: [
-        { text: 'predict my focus level', icon: '🎯', action: 'predict_focus' },
-        { text: 'predict what I\'ll forget', icon: '🔮', action: 'predict_forgetting' },
+        { text: 'predict my focus level', icon: '', action: 'predict_focus' },
+        { text: 'predict what I\'ll forget', icon: '', action: 'predict_forgetting' },
       ]},
       { pattern: 'simplify', suggestions: [
-        { text: 'simplify {topic} for beginners', icon: '📖', action: 'simplify_content' },
+        { text: 'simplify {topic} for beginners', icon: '', action: 'simplify_content' },
       ]},
       { pattern: 'explain', suggestions: [
-        { text: 'explain {topic}', icon: '💬', action: 'start_chat' },
-        { text: 'explain {topic} step-by-step', icon: '📝', action: 'tutor_step_by_step' },
-        { text: 'explain {topic} with analogies', icon: '🔄', action: 'create_analogies' },
-        { text: 'explain {topic} like I\'m 5', icon: '👶', action: 'explain_like_im_five' },
+        { text: 'explain {topic}', icon: '', action: 'start_chat' },
+        { text: 'explain {topic} step-by-step', icon: '', action: 'tutor_step_by_step' },
+        { text: 'explain {topic} with analogies', icon: '', action: 'create_analogies' },
+        { text: 'explain {topic} like I\'m 5', icon: '', action: 'explain_like_im_five' },
       ]},
       { pattern: 'help', suggestions: [
-        { text: 'help me with {topic}', icon: '💬', action: 'start_chat' },
+        { text: 'help me with {topic}', icon: '', action: 'start_chat' },
       ]},
       // NEW NLP PATTERNS
       { pattern: 'compare', suggestions: [
-        { text: 'compare {topic}', icon: '⚖️', action: 'compare_topics' },
+        { text: 'compare {topic}', icon: '', action: 'compare_topics' },
       ]},
       { pattern: 'test', suggestions: [
-        { text: 'test me on {topic}', icon: '📝', action: 'test_me' },
-        { text: 'test my knowledge of {topic}', icon: '🧠', action: 'test_me' },
+        { text: 'test me on {topic}', icon: '', action: 'test_me' },
+        { text: 'test my knowledge of {topic}', icon: '', action: 'test_me' },
       ]},
       { pattern: 'quiz', suggestions: [
-        { text: 'quiz me on {topic}', icon: '❓', action: 'test_me' },
-        { text: 'quick quiz on {topic}', icon: '⚡', action: 'test_me' },
+        { text: 'quiz me on {topic}', icon: '', action: 'test_me' },
+        { text: 'quick quiz on {topic}', icon: '', action: 'test_me' },
       ]},
       { pattern: 'define', suggestions: [
-        { text: 'define {topic}', icon: '📖', action: 'define' },
-        { text: 'what is {topic}', icon: '❓', action: 'define' },
+        { text: 'define {topic}', icon: '', action: 'define' },
+        { text: 'what is {topic}', icon: '', action: 'define' },
       ]},
       { pattern: 'example', suggestions: [
-        { text: 'give examples of {topic}', icon: '📝', action: 'give_examples' },
-        { text: 'show examples of {topic}', icon: '👁️', action: 'give_examples' },
+        { text: 'give examples of {topic}', icon: '', action: 'give_examples' },
+        { text: 'show examples of {topic}', icon: '', action: 'give_examples' },
       ]},
       { pattern: 'prerequisite', suggestions: [
-        { text: 'prerequisites for {topic}', icon: '📋', action: 'list_prerequisites' },
-        { text: 'what do I need to know before {topic}', icon: '🤔', action: 'list_prerequisites' },
+        { text: 'prerequisites for {topic}', icon: '', action: 'list_prerequisites' },
+        { text: 'what do I need to know before {topic}', icon: '', action: 'list_prerequisites' },
       ]},
       { pattern: 'practice', suggestions: [
-        { text: 'practice problems on {topic}', icon: '✏️', action: 'practice_problems' },
-        { text: 'practice {topic}', icon: '💪', action: 'practice_problems' },
+        { text: 'practice problems on {topic}', icon: '', action: 'practice_problems' },
+        { text: 'practice {topic}', icon: '', action: 'practice_problems' },
       ]},
       { pattern: 'summarize', suggestions: [
-        { text: 'summarize {topic}', icon: '📄', action: 'summarize_topic' },
-        { text: 'give me a summary of {topic}', icon: '📋', action: 'summarize_topic' },
+        { text: 'summarize {topic}', icon: '', action: 'summarize_topic' },
+        { text: 'give me a summary of {topic}', icon: '', action: 'summarize_topic' },
       ]},
       { pattern: 'how', suggestions: [
-        { text: 'how to {topic}', icon: '🔧', action: 'how_to' },
-        { text: 'how do I {topic}', icon: '❓', action: 'how_to' },
-        { text: 'how am I doing', icon: '📊', action: 'show_statistics' },
+        { text: 'how to {topic}', icon: '', action: 'how_to' },
+        { text: 'how do I {topic}', icon: '', action: 'how_to' },
+        { text: 'how am I doing', icon: '', action: 'show_statistics' },
       ]},
       { pattern: 'pros', suggestions: [
-        { text: 'pros and cons of {topic}', icon: '⚖️', action: 'pros_and_cons' },
+        { text: 'pros and cons of {topic}', icon: '', action: 'pros_and_cons' },
       ]},
       { pattern: 'timeline', suggestions: [
-        { text: 'timeline of {topic}', icon: '📅', action: 'timeline' },
-        { text: 'history of {topic}', icon: '📜', action: 'timeline' },
+        { text: 'timeline of {topic}', icon: '', action: 'timeline' },
+        { text: 'history of {topic}', icon: '', action: 'timeline' },
       ]},
       { pattern: 'remind', suggestions: [
-        { text: 'remind me to study {topic}', icon: '⏰', action: 'remind_me' },
-        { text: 'remind me about {topic}', icon: '🔔', action: 'remind_me' },
+        { text: 'remind me to study {topic}', icon: '', action: 'remind_me' },
+        { text: 'remind me about {topic}', icon: '', action: 'remind_me' },
       ]},
       { pattern: 'due', suggestions: [
-        { text: 'what\'s due today', icon: '📅', action: 'whats_due' },
-        { text: 'what do I need to review', icon: '📚', action: 'whats_due' },
+        { text: 'what\'s due today', icon: '', action: 'whats_due' },
+        { text: 'what do I need to review', icon: '', action: 'whats_due' },
       ]},
       { pattern: 'daily', suggestions: [
-        { text: 'start daily review', icon: '📚', action: 'daily_review' },
-        { text: 'daily practice', icon: '💪', action: 'daily_review' },
+        { text: 'start daily review', icon: '', action: 'daily_review' },
+        { text: 'daily practice', icon: '', action: 'daily_review' },
       ]},
       { pattern: 'random', suggestions: [
-        { text: 'random flashcard', icon: '🎲', action: 'random_flashcard' },
-        { text: 'surprise me with a flashcard', icon: '🎁', action: 'random_flashcard' },
+        { text: 'random flashcard', icon: '', action: 'random_flashcard' },
+        { text: 'surprise me with a flashcard', icon: '', action: 'random_flashcard' },
       ]},
       { pattern: 'mind', suggestions: [
-        { text: 'mind map for {topic}', icon: '🧠', action: 'mind_map' },
-        { text: 'create mind map of {topic}', icon: '🗺️', action: 'mind_map' },
+        { text: 'mind map for {topic}', icon: '', action: 'mind_map' },
+        { text: 'create mind map of {topic}', icon: '', action: 'mind_map' },
       ]},
       { pattern: 'resource', suggestions: [
-        { text: 'resources for {topic}', icon: '📚', action: 'suggest_resources' },
-        { text: 'learning resources for {topic}', icon: '🎓', action: 'suggest_resources' },
+        { text: 'resources for {topic}', icon: '', action: 'suggest_resources' },
+        { text: 'learning resources for {topic}', icon: '', action: 'suggest_resources' },
       ]},
       { pattern: 'export', suggestions: [
-        { text: 'export my flashcards', icon: '📤', action: 'export_content' },
-        { text: 'export my notes', icon: '📤', action: 'export_content' },
+        { text: 'export my flashcards', icon: '', action: 'export_content' },
+        { text: 'export my notes', icon: '', action: 'export_content' },
       ]},
       { pattern: 'stat', suggestions: [
-        { text: 'show my statistics', icon: '📊', action: 'show_statistics' },
-        { text: 'my stats this week', icon: '📈', action: 'show_statistics' },
+        { text: 'show my statistics', icon: '', action: 'show_statistics' },
+        { text: 'my stats this week', icon: '', action: 'show_statistics' },
       ]},
     ];
 
@@ -377,8 +374,7 @@ const SearchHub = () => {
         setShowAutocomplete(true);
       }
     } catch (error) {
-      console.error('Autocomplete error:', error);
-    }
+      }
   };
   
   // Handle autocomplete item selection
@@ -404,23 +400,16 @@ const SearchHub = () => {
   };
 
   const handleSearch = async (query = searchQuery) => {
-    console.log('🔍 handleSearch called with query:', query);
     if (!query.trim()) {
-      console.log('⚠️ Empty query, returning');
       return;
     }
 
-    console.log('🚀 Starting search...');
     setIsSearching(true);
     saveRecentSearch(query);
 
     try {
       const token = localStorage.getItem('token');
-      console.log('🔑 Token exists:', !!token);
-      console.log('👤 Username:', userName);
-      
       // First, detect intent using AI
-      console.log('🤖 Detecting intent...');
       const intentFormData = new FormData();
       intentFormData.append('user_id', userName);
       intentFormData.append('query', query);
@@ -431,22 +420,16 @@ const SearchHub = () => {
         body: intentFormData
       });
       
-      console.log('📥 Intent response status:', intentResponse.status);
-      
       if (intentResponse.ok) {
         const intentData = await intentResponse.json();
-        console.log('🎯 Intent data:', intentData);
-        
         // Execute action based on intent
         if (intentData.intent === 'action') {
-          console.log('⚡ Executing action:', intentData.action);
           await executeAction(intentData);
           return;
         }
       }
       
       // If no action intent, perform regular search
-      console.log('🔎 Performing regular search...');
       const formData = new FormData();
       formData.append('user_id', userName);
       formData.append('query', query);
@@ -461,11 +444,8 @@ const SearchHub = () => {
         body: formData
       });
 
-      console.log('📥 Search response status:', response.status);
-
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Search results:', data);
         setSearchResults(data);
         
         // Set AI enhancement data
@@ -473,28 +453,22 @@ const SearchHub = () => {
         setRelatedSearches(data.related_searches || []);
         
         if (data.total_results === 0) {
-          console.log('💡 No results, getting AI suggestion...');
           await getAiSuggestion(query);
         }
       }
     } catch (error) {
-      console.error('❌ Error searching:', error);
       await getAiSuggestion(query);
     } finally {
-      console.log('🏁 Search complete, setting isSearching to false');
       setIsSearching(false);
     }
   };
   
   const executeAction = async (intentData) => {
-    console.log('⚡ executeAction called with:', intentData);
     const { action, parameters } = intentData;
     
     try {
-      console.log('🎬 Executing action:', action);
       switch (action) {
         case 'create_note':
-          console.log('📝 Creating note with title:', parameters.title);
           setIsCreating(true);
           setCreatingMessage('Creating note...');
           
@@ -503,8 +477,6 @@ const SearchHub = () => {
             const token = localStorage.getItem('token');
             const noteTitle = parameters.title || parameters.topic || 'New Note';
             const noteContent = parameters.content || '';
-            
-            console.log('🔑 Creating note with:', { noteTitle, noteContent, userName });
             
             const res = await fetch(`${API_URL}/create_note`, {
               method: 'POST',
@@ -520,23 +492,18 @@ const SearchHub = () => {
               })
             });
             
-            console.log('📥 Create note response status:', res.status);
-            
             if (res.ok) {
               const newNote = await res.json();
-              console.log('✅ Note created:', newNote);
               setIsCreating(false);
               // Navigate to the editor with the new note ID
               navigate(`/notes/editor/${newNote.id}`);
             } else {
               const errorText = await res.text();
-              console.error('❌ Failed to create note:', res.status, errorText);
               setIsCreating(false);
               // Fallback to notes hub
               navigate('/notes');
             }
           } catch (error) {
-            console.error('❌ Error creating note:', error);
             setIsCreating(false);
             // Fallback to notes hub
             navigate('/notes');
@@ -544,7 +511,6 @@ const SearchHub = () => {
           break;
           
         case 'create_flashcards':
-          console.log('🃏 Creating flashcard set with topic:', parameters.topic);
           setIsCreating(true);
           setCreatingMessage(`Creating ${parameters.count || 10} flashcards on ${parameters.topic}...`);
           
@@ -553,8 +519,6 @@ const SearchHub = () => {
             const token = localStorage.getItem('token');
             const topic = parameters.topic || 'New Flashcard Set';
             const count = parameters.count || 10;
-            
-            console.log('🔑 Creating flashcard set with:', { topic, count, userName });
             
             // Call the generate_flashcards endpoint
             const formData = new FormData();
@@ -574,32 +538,24 @@ const SearchHub = () => {
               body: formData
             });
             
-            console.log('📥 Generate flashcards response status:', res.status);
-            
             if (res.ok) {
               const data = await res.json();
-              console.log('✅ Flashcard set created:', data);
-              
               setIsCreating(false);
               setIsSearching(false);
               
               // Navigate to the specific flashcard set if set_id is returned
               if (data.set_id) {
-                console.log('🚀 Navigating to flashcard set:', data.set_id);
                 setTimeout(() => {
                   navigate(`/flashcards?set_id=${data.set_id}`);
                 }, 100);
               } else {
                 // Fallback to flashcards page
-                console.log('🚀 Navigating to flashcards page');
                 setTimeout(() => {
                   navigate('/flashcards');
                 }, 100);
               }
             } else {
               const errorText = await res.text();
-              console.error('❌ Failed to create flashcard set:', res.status, errorText);
-              
               setIsCreating(false);
               setIsSearching(false);
               
@@ -613,8 +569,6 @@ const SearchHub = () => {
               });
             }
           } catch (error) {
-            console.error('❌ Error creating flashcard set:', error);
-            
             setIsCreating(false);
             setIsSearching(false);
             
@@ -630,7 +584,6 @@ const SearchHub = () => {
           break;
           
         case 'create_quiz':
-          console.log('❓ Starting solo quiz');
           setIsCreating(true);
           setCreatingMessage(`Preparing quiz on ${parameters.topics?.[0] || 'selected topics'}...`);
           
@@ -649,7 +602,6 @@ const SearchHub = () => {
           break;
           
         case 'start_chat':
-          console.log('💬 Navigating to ai-chat');
           navigate('/ai-chat', { 
             state: { 
               initialMessage: parameters.message || parameters.topic
@@ -658,7 +610,6 @@ const SearchHub = () => {
           break;
           
         case 'review_flashcards':
-          console.log('📚 Fetching flashcards for review');
           // Fetch flashcards that need review
           const token = localStorage.getItem('token');
           const reviewFormData = new FormData();
@@ -674,10 +625,8 @@ const SearchHub = () => {
           if (reviewResponse.ok) {
             const reviewData = await reviewResponse.json();
             if (reviewData.set_id) {
-              console.log('✅ Navigating to flashcard set:', reviewData.set_id);
               navigate(`/flashcards?set_id=${reviewData.set_id}&review=true`);
             } else {
-              console.log('✅ Setting search results with flashcards');
               setSearchResults({
                 total_results: reviewData.flashcards?.length || 0,
                 results: reviewData.flashcards || [],
@@ -689,7 +638,6 @@ const SearchHub = () => {
           break;
           
         case 'show_weak_areas':
-          console.log('📊 Fetching weak areas');
           setIsCreating(true);
           setCreatingMessage('Analyzing your performance...');
           
@@ -707,8 +655,6 @@ const SearchHub = () => {
             
             if (weakResponse.ok) {
               const weakData = await weakResponse.json();
-              console.log('✅ Weak areas data:', weakData);
-              
               setIsCreating(false);
               setIsSearching(false);
               
@@ -721,12 +667,10 @@ const SearchHub = () => {
                 show_as_suggestions: true  // Flag to show different UI
               });
             } else {
-              console.error('❌ Failed to fetch weak areas');
               setIsCreating(false);
               setIsSearching(false);
             }
           } catch (error) {
-            console.error('❌ Error fetching weak areas:', error);
             setIsCreating(false);
             setIsSearching(false);
           }
@@ -742,7 +686,6 @@ const SearchHub = () => {
         
         // NEW SMART FEATURES
         case 'suggest_study_next':
-          console.log('🎯 Getting study suggestions');
           setIsCreating(true);
           setCreatingMessage('Analyzing what you should study next...');
           
@@ -769,14 +712,12 @@ const SearchHub = () => {
               });
             }
           } catch (error) {
-            console.error('Error getting suggestions:', error);
             setIsCreating(false);
             setIsSearching(false);
           }
           break;
         
         case 'summarize_notes':
-          console.log('📝 Summarizing notes');
           setIsCreating(true);
           setCreatingMessage(`Summarizing notes${parameters.topic ? ` on ${parameters.topic}` : ''}...`);
           
@@ -809,14 +750,12 @@ const SearchHub = () => {
               });
             }
           } catch (error) {
-            console.error('Error summarizing notes:', error);
             setIsCreating(false);
             setIsSearching(false);
           }
           break;
         
         case 'create_study_plan':
-          console.log('📅 Creating study plan');
           setIsCreating(true);
           setCreatingMessage(`Creating study plan for ${parameters.topic || 'your goals'}...`);
           
@@ -849,14 +788,12 @@ const SearchHub = () => {
               });
             }
           } catch (error) {
-            console.error('Error creating study plan:', error);
             setIsCreating(false);
             setIsSearching(false);
           }
           break;
         
         case 'search_recent':
-          console.log('🕐 Searching recent content');
           setIsCreating(true);
           setCreatingMessage('Finding recent content...');
           
@@ -884,24 +821,20 @@ const SearchHub = () => {
               });
             }
           } catch (error) {
-            console.error('Error searching recent:', error);
             setIsCreating(false);
             setIsSearching(false);
           }
           break;
         
         case 'find_study_buddies':
-          console.log('👥 Finding study buddies');
           navigate('/social');
           break;
         
         case 'challenge_friend':
-          console.log('⚔️ Starting quiz battle');
           navigate('/quiz-battles');
           break;
         
         case 'show_popular_content':
-          console.log('🔥 Showing popular content');
           setIsCreating(true);
           setCreatingMessage('Finding trending content...');
           
@@ -928,7 +861,6 @@ const SearchHub = () => {
               });
             }
           } catch (error) {
-            console.error('Error getting popular content:', error);
             setIsCreating(false);
             setIsSearching(false);
           }
@@ -948,7 +880,6 @@ const SearchHub = () => {
         
         // NEW NLP ACTIONS
         case 'compare_topics':
-          console.log('⚖️ Comparing topics:', parameters.topics);
           navigate('/ai-chat', { 
             state: { 
               initialMessage: `Compare and contrast: ${parameters.topics?.join(' vs ') || searchQuery}`
@@ -957,7 +888,6 @@ const SearchHub = () => {
           break;
         
         case 'explain_like_im_five':
-          console.log('👶 ELI5:', parameters.topic);
           navigate('/ai-chat', { 
             state: { 
               initialMessage: `Explain ${parameters.topic || searchQuery} like I'm 5 years old. Use simple words and fun analogies.`
@@ -966,7 +896,6 @@ const SearchHub = () => {
           break;
         
         case 'give_examples':
-          console.log('📝 Giving examples:', parameters.topic);
           navigate('/ai-chat', { 
             state: { 
               initialMessage: `Give me ${parameters.count || 5} clear examples of ${parameters.topic || searchQuery}`
@@ -975,7 +904,6 @@ const SearchHub = () => {
           break;
         
         case 'test_me':
-          console.log('📝 Testing on:', parameters.topic);
           navigate('/solo-quiz', { 
             state: { 
               autoStart: true,
@@ -987,7 +915,6 @@ const SearchHub = () => {
           break;
         
         case 'define':
-          console.log('📖 Defining:', parameters.term);
           navigate('/ai-chat', { 
             state: { 
               initialMessage: `Define "${parameters.term || searchQuery}" clearly and concisely. Include etymology if interesting.`
@@ -996,7 +923,6 @@ const SearchHub = () => {
           break;
         
         case 'list_prerequisites':
-          console.log('📋 Prerequisites for:', parameters.topic);
           navigate('/ai-chat', { 
             state: { 
               initialMessage: `What are the prerequisites I need to know before learning ${parameters.topic || searchQuery}? List them in order from basic to advanced.`
@@ -1005,7 +931,6 @@ const SearchHub = () => {
           break;
         
         case 'suggest_resources':
-          console.log('📚 Resources for:', parameters.topic);
           navigate('/ai-chat', { 
             state: { 
               initialMessage: `Suggest the best learning resources for ${parameters.topic || searchQuery}. Include books, websites, videos, and courses.`
@@ -1014,7 +939,6 @@ const SearchHub = () => {
           break;
         
         case 'practice_problems':
-          console.log('✏️ Practice problems for:', parameters.topic);
           navigate('/ai-chat', { 
             state: { 
               initialMessage: `Give me ${parameters.count || 5} ${parameters.difficulty || 'medium'} difficulty practice problems on ${parameters.topic || searchQuery}. Include solutions.`
@@ -1023,7 +947,6 @@ const SearchHub = () => {
           break;
         
         case 'summarize_topic':
-          console.log('📄 Summarizing:', parameters.topic);
           const lengthMap = { short: '2-3 sentences', medium: '1 paragraph', long: '3-4 paragraphs' };
           navigate('/ai-chat', { 
             state: { 
@@ -1033,12 +956,10 @@ const SearchHub = () => {
           break;
         
         case 'show_statistics':
-          console.log('📊 Showing statistics');
           navigate('/study-insights');
           break;
         
         case 'set_goal':
-          console.log('🎯 Setting goal:', parameters.goal);
           navigate('/dashboard', { 
             state: { 
               openGoalModal: true,
@@ -1049,7 +970,6 @@ const SearchHub = () => {
           break;
         
         case 'remind_me':
-          console.log('⏰ Setting reminder:', parameters.topic);
           setAiSuggestion({
             description: `I'll remind you to study ${parameters.topic}${parameters.time ? ` ${parameters.time}` : ''}. Reminders feature coming soon!`,
             suggestions: []
@@ -1064,7 +984,6 @@ const SearchHub = () => {
           break;
         
         case 'export_content':
-          console.log('📤 Exporting content');
           navigate('/settings', { 
             state: { 
               tab: 'export',
@@ -1075,7 +994,6 @@ const SearchHub = () => {
           break;
         
         case 'how_to':
-          console.log('📝 How to:', parameters.task);
           navigate('/ai-chat', { 
             state: { 
               initialMessage: `How do I ${parameters.task || searchQuery}? Give me step-by-step instructions.`
@@ -1084,7 +1002,6 @@ const SearchHub = () => {
           break;
         
         case 'pros_and_cons':
-          console.log('⚖️ Pros and cons:', parameters.topic);
           navigate('/ai-chat', { 
             state: { 
               initialMessage: `List the pros and cons of ${parameters.topic || searchQuery} in a clear table format.`
@@ -1093,7 +1010,6 @@ const SearchHub = () => {
           break;
         
         case 'timeline':
-          console.log('📅 Timeline:', parameters.topic);
           navigate('/ai-chat', { 
             state: { 
               initialMessage: `Create a timeline of key events for ${parameters.topic || searchQuery}. Include dates and brief descriptions.`
@@ -1102,7 +1018,6 @@ const SearchHub = () => {
           break;
         
         case 'mind_map':
-          console.log('🧠 Mind map:', parameters.topic);
           navigate('/ai-chat', { 
             state: { 
               initialMessage: `Create a text-based mind map for ${parameters.topic || searchQuery}. Show the main concept in the center with branches to related subtopics.`
@@ -1112,7 +1027,6 @@ const SearchHub = () => {
         
         case 'daily_review':
         case 'whats_due':
-          console.log('📚 Daily review / What\'s due');
           setIsCreating(true);
           setCreatingMessage('Finding items due for review...');
           
@@ -1150,14 +1064,12 @@ const SearchHub = () => {
               });
             }
           } catch (error) {
-            console.error('Error getting due items:', error);
             setIsCreating(false);
             setIsSearching(false);
           }
           break;
         
         case 'random_flashcard':
-          console.log('🎲 Random flashcard');
           navigate('/flashcards', { 
             state: { 
               randomMode: true,
@@ -1168,7 +1080,6 @@ const SearchHub = () => {
         
         // ADAPTIVE LEARNING FEATURES
         case 'adapt_difficulty':
-          console.log('🎯 Adapting difficulty level');
           setIsCreating(true);
           setCreatingMessage('Analyzing your performance...');
           
@@ -1194,14 +1105,12 @@ const SearchHub = () => {
               });
             }
           } catch (error) {
-            console.error('Error adapting difficulty:', error);
             setIsCreating(false);
             setIsSearching(false);
           }
           break;
         
         case 'show_learning_style':
-          console.log('🧠 Detecting learning style');
           setIsCreating(true);
           setCreatingMessage('Analyzing your learning patterns...');
           
@@ -1232,14 +1141,12 @@ const SearchHub = () => {
               });
             }
           } catch (error) {
-            console.error('Error detecting learning style:', error);
             setIsCreating(false);
             setIsSearching(false);
           }
           break;
         
         case 'show_knowledge_gaps':
-          console.log('🕳️ Finding knowledge gaps');
           setIsCreating(true);
           setCreatingMessage('Analyzing your knowledge blind spots...');
           
@@ -1271,14 +1178,12 @@ const SearchHub = () => {
               });
             }
           } catch (error) {
-            console.error('Error finding knowledge gaps:', error);
             setIsCreating(false);
             setIsSearching(false);
           }
           break;
         
         case 'create_curriculum':
-          console.log('📚 Creating personalized curriculum');
           setIsCreating(true);
           setCreatingMessage(`Building personalized curriculum for ${parameters.topic}...`);
           
@@ -1311,14 +1216,12 @@ const SearchHub = () => {
               });
             }
           } catch (error) {
-            console.error('Error creating curriculum:', error);
             setIsCreating(false);
             setIsSearching(false);
           }
           break;
         
         case 'optimize_retention':
-          console.log('🎯 Optimizing retention');
           setIsCreating(true);
           setCreatingMessage('Analyzing your retention patterns...');
           
@@ -1349,14 +1252,12 @@ const SearchHub = () => {
               });
             }
           } catch (error) {
-            console.error('Error optimizing retention:', error);
             setIsCreating(false);
             setIsSearching(false);
           }
           break;
         
         case 'predict_forgetting':
-          console.log('🔮 Predicting forgetting');
           setIsCreating(true);
           setCreatingMessage('Predicting what you\'ll forget next...');
           
@@ -1391,14 +1292,12 @@ const SearchHub = () => {
               });
             }
           } catch (error) {
-            console.error('Error predicting forgetting:', error);
             setIsCreating(false);
             setIsSearching(false);
           }
           break;
         
         case 'detect_burnout':
-          console.log('⚡ Detecting burnout risk');
           setIsCreating(true);
           setCreatingMessage('Analyzing your study patterns...');
           
@@ -1429,14 +1328,12 @@ const SearchHub = () => {
               });
             }
           } catch (error) {
-            console.error('Error detecting burnout:', error);
             setIsCreating(false);
             setIsSearching(false);
           }
           break;
         
         case 'suggest_breaks':
-          console.log('☕ Suggesting break times');
           setIsCreating(true);
           setCreatingMessage('Calculating optimal break schedule...');
           
@@ -1468,14 +1365,12 @@ const SearchHub = () => {
               });
             }
           } catch (error) {
-            console.error('Error suggesting breaks:', error);
             setIsCreating(false);
             setIsSearching(false);
           }
           break;
         
         case 'predict_focus':
-          console.log('🎯 Predicting focus level');
           const currentHour = new Date().getHours();
           setIsCreating(true);
           setCreatingMessage('Analyzing your focus patterns...');
@@ -1506,14 +1401,12 @@ const SearchHub = () => {
               });
             }
           } catch (error) {
-            console.error('Error predicting focus:', error);
             setIsCreating(false);
             setIsSearching(false);
           }
           break;
         
         case 'find_study_twin':
-          console.log('👥 Finding study twin');
           setIsCreating(true);
           setCreatingMessage('Finding your perfect study partner...');
           
@@ -1548,14 +1441,12 @@ const SearchHub = () => {
               });
             }
           } catch (error) {
-            console.error('Error finding study twin:', error);
             setIsCreating(false);
             setIsSearching(false);
           }
           break;
         
         case 'find_complementary':
-          console.log('🤝 Finding complementary learners');
           setIsCreating(true);
           setCreatingMessage('Finding learners with complementary strengths...');
           
@@ -1586,7 +1477,6 @@ const SearchHub = () => {
               });
             }
           } catch (error) {
-            console.error('Error finding complementary learners:', error);
             setIsCreating(false);
             setIsSearching(false);
           }
@@ -1610,7 +1500,6 @@ const SearchHub = () => {
           handleSearch(searchQuery);
       }
     } catch (error) {
-      console.error('Error executing action:', error);
       setIsSearching(false);
     }
   };
@@ -1633,7 +1522,6 @@ const SearchHub = () => {
         setAiSuggestion(data);
       }
     } catch (error) {
-      console.error('Error getting AI suggestion:', error);
       setAiSuggestion({
         description: `It looks like you're searching for "${query}". This could be a great topic to explore!`,
         suggestions: []
@@ -1687,7 +1575,6 @@ const SearchHub = () => {
               navigate('/flashcards', { state: { autoCreate: true, topic, count } });
             }
           } catch (error) {
-            console.error('Error creating flashcard set:', error);
             setIsCreating(false);
             setIsSearching(false);
             navigate('/flashcards', { state: { autoCreate: true, topic: searchQuery, count: 10 } });
@@ -1706,7 +1593,7 @@ const SearchHub = () => {
   };
 
   const handleResultClick = (result) => {
-    console.log('Clicked result:', result); // Debug log
+    // Debug log
     switch (result.type) {
       case 'flashcard':
       case 'flashcard_set':
@@ -1725,7 +1612,6 @@ const SearchHub = () => {
         navigate(`/question-bank?set_id=${result.id}`);
         break;
       default:
-        console.log('Unknown result type:', result.type);
         break;
     }
   };
@@ -1783,8 +1669,7 @@ const SearchHub = () => {
         });
         break;
       default:
-        console.log('Unknown smart action:', action.action);
-    }
+        }
   };
 
   // Get icon for smart action

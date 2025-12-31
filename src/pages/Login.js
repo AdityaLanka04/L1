@@ -17,10 +17,7 @@ function Login() {
   useEffect(() => {
     // Check if safety page was completed
     const safetyAccepted = sessionStorage.getItem('safetyAccepted');
-    console.log('Login page - Safety check:', safetyAccepted);
-    
     if (!safetyAccepted) {
-      console.log('Safety not accepted, redirecting to /');
       navigate('/', { replace: true });
       return;
     }
@@ -30,7 +27,6 @@ function Login() {
     
     // If user just accepted safety, show login form (don't auto-redirect)
     if (justAcceptedSafety) {
-      console.log('Just accepted safety, showing login form');
       sessionStorage.removeItem('justAcceptedSafety'); // Clear flag
       return;
     }
@@ -40,7 +36,6 @@ function Login() {
     const username = localStorage.getItem('username');
     
     if (token && username) {
-      console.log('User already logged in, redirecting to search-hub');
       navigate('/search-hub', { replace: true });
       return;
     }
@@ -85,10 +80,8 @@ function Login() {
           };
           
           localStorage.setItem('userProfile', JSON.stringify(mergedProfile));
-          console.log('📊 Profile loaded with showStudyInsights:', mergedProfile.showStudyInsights);
-        }
+          }
       } catch (profileError) {
-        console.error('Error fetching profile:', profileError);
         // Continue with login even if profile fetch fails
       }
       
@@ -96,20 +89,13 @@ function Login() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      console.log('Quiz check response:', response.data);
-
       if (response.data.completed) {
-        console.log('Quiz completed - going to search hub');
-        console.log('🔔 Setting justLoggedIn flag in sessionStorage');
         sessionStorage.setItem('justLoggedIn', 'true'); // Set flag for notification
-        console.log('🔔 Flag set, value:', sessionStorage.getItem('justLoggedIn'));
         navigate('/search-hub');
       } else {
-        console.log('Quiz not completed - going to profile-quiz');
         navigate('/profile-quiz');
       }
     } catch (error) {
-      console.error('Error checking quiz status:', error);
       navigate('/profile-quiz');
     }
   };
@@ -122,7 +108,7 @@ function Login() {
       
       const idToken = await user.getIdToken();
       
-      // ✅ FIXED: Changed single quotes to backticks for template literal
+      //  FIXED: Changed single quotes to backticks for template literal
       const backendResponse = await axios.post(`${API_URL}/firebase-auth`, {
         idToken: idToken,
         email: user.email,
@@ -133,7 +119,6 @@ function Login() {
 
       const { access_token, user: userData } = backendResponse.data;
       
-      console.log('Google login successful, setting tokens...');
       localStorage.setItem('token', access_token);
       localStorage.setItem('username', userData.email);
       localStorage.setItem('userProfile', JSON.stringify({
@@ -146,20 +131,15 @@ function Login() {
       
       // Ensure safety flag is set after successful login
       sessionStorage.setItem('safetyAccepted', 'true');
-      console.log('Tokens and safety flag set:', { token: access_token, username: userData.email });
-
       // Trigger notification check after login
       sessionStorage.setItem('justLoggedIn', 'true');
 
       await checkAndRedirect(userData.email);
     } catch (error) {
-      console.error('Firebase Google sign-in error:', error);
-      
       if (error.code === 'auth/popup-blocked') {
         alert('Popup was blocked. Please allow popups for this site and try again.');
       } else if (error.code === 'auth/popup-closed-by-user') {
-        console.log('User cancelled sign-in');
-      } else {
+        } else {
         alert('Google sign-in failed: ' + (error.message || 'Unknown error'));
       }
     }
@@ -176,7 +156,7 @@ function Login() {
 
     setLoading(true);
     try {
-      // ✅ FIXED: Changed single quotes to backticks for template literal
+      //  FIXED: Changed single quotes to backticks for template literal
       const response = await axios.post(`${API_URL}/token`,
         new URLSearchParams({
           username,
@@ -190,20 +170,16 @@ function Login() {
       );
 
       const token = response.data.access_token;
-      console.log('Normal login successful, setting tokens...');
       localStorage.setItem('token', token);
       localStorage.setItem('username', username);
       
       // Ensure safety flag is set after successful login
       sessionStorage.setItem('safetyAccepted', 'true');
-      console.log('Tokens and safety flag set:', { token, username });
-      
       // Trigger notification check after login
       sessionStorage.setItem('justLoggedIn', 'true');
       
       await checkAndRedirect(username);
     } catch (err) {
-      console.error(err);
       alert('Login failed: ' + (err.response?.data?.detail || 'Unknown error'));
     }
     setLoading(false);

@@ -23,8 +23,7 @@ const LearningReviewHub = () => {
         setUserName(data.first_name || 'User');
       }
     } catch (error) {
-      console.error('Error fetching user:', error);
-    }
+      }
   };
 
   const tools = [

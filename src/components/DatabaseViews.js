@@ -258,7 +258,7 @@ const DatabaseViews = ({ notes, folders, onSelectNote }) => {
           onClick={() => onSelectNote(note)}
         >
           <div className="gallery-card-image">
-            📄
+            
           </div>
           <div className="gallery-card-content">
             <div className="gallery-card-title">{note.title}</div>

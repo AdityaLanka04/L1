@@ -49,7 +49,6 @@ const SoloQuizSession = () => {
         setLoading(false);
       }
     } catch (error) {
-      console.error('Error loading quiz:', error);
       alert('Failed to load quiz');
       navigate('/solo-quiz');
     }
@@ -123,8 +122,7 @@ const SoloQuizSession = () => {
 
       setShowResult(true);
     } catch (error) {
-      console.error('Error submitting quiz:', error);
-    }
+      }
   };
 
   const formatTime = (seconds) => {
@@ -215,7 +213,7 @@ const SoloQuizSession = () => {
                             <div className="selection-indicators">
                               {userSelected && (
                                 <span className={`user-badge you ${userCorrect ? 'correct' : 'incorrect'}`}>
-                                  Your Answer {userCorrect ? '✓' : '✗'}
+                                  Your Answer {userCorrect ? '' : ''}
                                 </span>
                               )}
                             </div>

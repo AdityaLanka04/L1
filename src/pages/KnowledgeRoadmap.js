@@ -102,8 +102,7 @@ const KnowledgeRoadmap = () => {
         timestamp: Date.now()
       };
       localStorage.setItem(`roadmap_state_${currentRoadmap.id}`, JSON.stringify(roadmapState));
-      console.log('Saved roadmap UI state:', roadmapState);
-    }
+      }
   }, [expandedNodes, exploredNodesCache, currentRoadmap, nodes]);
   const [showChatSelectModal, setShowChatSelectModal] = useState(false);
 const [chatSessions, setChatSessions] = useState([]);
@@ -120,8 +119,7 @@ const fetchChatSessions = async () => {
       setChatSessions(data.sessions || []);
     }
   } catch (error) {
-    console.error('Error fetching chat sessions:', error);
-  }
+    }
 };
 
 // Create roadmap from chat
@@ -180,7 +178,6 @@ const createRoadmapFromChat = async () => {
       alert('Failed to create roadmap');
     }
   } catch (error) {
-    console.error('Error creating roadmap from chat:', error);
     alert('Error creating roadmap from chat');
   } finally {
     setLoading(false);
@@ -192,11 +189,9 @@ const createRoadmapFromChat = async () => {
     if (savedState) {
       try {
         const state = JSON.parse(savedState);
-        console.log('Loading saved roadmap UI state:', state);
         return state;
       } catch (error) {
-        console.error('Error loading roadmap state:', error);
-      }
+        }
     }
     return null;
   }, []);
@@ -236,11 +231,9 @@ const createRoadmapFromChat = async () => {
         const data = await response.json();
         setRoadmaps(data.roadmaps || []);
       } else {
-        console.error('Failed to fetch roadmaps:', response.status);
-      }
+        }
     } catch (error) {
-      console.error('Error fetching roadmaps:', error);
-    } finally {
+      } finally {
       setLoading(false);
     }
   };
@@ -279,7 +272,6 @@ const createRoadmapFromChat = async () => {
         alert('Failed to create roadmap');
       }
     } catch (error) {
-      console.error('Error creating roadmap:', error);
       alert('Error creating roadmap');
     } finally {
       setLoading(false);
@@ -319,15 +311,12 @@ const createRoadmapFromChat = async () => {
         alert('Failed to delete roadmap');
       }
     } catch (error) {
-      console.error('Error deleting roadmap:', error);
       alert('Error deleting roadmap');
     }
   };
 
   // FIXED: expandNode with useCallback to prevent stale closures and handle sibling collapse
   const expandNode = useCallback(async (nodeId) => {
-    console.log('Expanding node:', nodeId);
-    
     setNodes((nds) => {
       return nds.map(n =>
         n.data.nodeId === nodeId
@@ -524,7 +513,6 @@ const createRoadmapFromChat = async () => {
             const parentNode = nds.find(n => n.data.nodeId === nodeId);
             
             if (!parentNode) {
-              console.error('Parent node not found');
               return nds.map(n =>
                 n.data.nodeId === nodeId
                   ? { ...n, data: { ...n.data, isExpanding: false } }
@@ -665,7 +653,6 @@ const createRoadmapFromChat = async () => {
           }, 2000);
         }
       } else {
-        console.error('Failed to expand node:', response.status);
         setNodes((nds) =>
           nds.map(n =>
             n.data.nodeId === nodeId
@@ -675,7 +662,6 @@ const createRoadmapFromChat = async () => {
         );
       }
     } catch (error) {
-      console.error('Error expanding node:', error);
       setNodes((nds) =>
         nds.map(n =>
           n.data.nodeId === nodeId
@@ -691,11 +677,8 @@ const createRoadmapFromChat = async () => {
 
   // FIXED: exploreNode with useCallback to prevent stale closures and caching
   const exploreNode = useCallback(async (nodeId) => {
-    console.log('Exploring node:', nodeId);
-    
     // Check if we have cached data for this node
     if (exploredNodesCache.has(nodeId)) {
-      console.log('Loading cached exploration data for node:', nodeId);
       const cachedData = exploredNodesCache.get(nodeId);
       setNodeExplanation(cachedData);
       return;
@@ -720,12 +703,9 @@ const createRoadmapFromChat = async () => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Explore node response - Full data:', JSON.stringify(data, null, 2));
         
         // Extract the node data - could be directly in data or in data.node
         const nodeData = data.node || data;
-        console.log('Setting node explanation with:', nodeData);
-        
         // Ensure we're setting the complete node data
         const completeNodeData = {
           ...nodeData,
@@ -751,7 +731,6 @@ const createRoadmapFromChat = async () => {
         );
       } else {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Explore node error:', errorData);
         alert(`Failed to explore node: ${errorData.detail || 'Unknown error'}`);
         
         setNodes((nds) =>
@@ -763,7 +742,6 @@ const createRoadmapFromChat = async () => {
         );
       }
     } catch (error) {
-      console.error('Error exploring node:', error);
       alert('Failed to explore node');
       
       setNodes((nds) =>
@@ -824,7 +802,6 @@ User question: ${messageText}`);
         throw new Error('Failed to get AI response');
       }
     } catch (error) {
-      console.error('Error sending chat message:', error);
       const errorMessage = {
         id: `error_${Date.now()}`,
         type: 'assistant',
@@ -866,16 +843,12 @@ User question: ${messageText}`);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Roadmap data:', data);
         setCurrentRoadmap(data.roadmap);
         
         // Use nodes_flat from backend response
         const allNodes = data.nodes_flat || [];
-        console.log('All nodes from backend:', allNodes.length);
-        
         // Use saved expanded nodes if available, otherwise start with empty (only root visible)
         const savedExpandedNodes = savedState ? new Set(savedState.expandedNodes) : new Set();
-        console.log('Saved UI expanded nodes:', Array.from(savedExpandedNodes));
         
         // Restore explored nodes cache
         if (savedState && savedState.exploredNodesCache) {
@@ -895,8 +868,6 @@ User question: ${messageText}`);
         
         // Find root nodes (no parent)
         const rootNodes = allNodes.filter(node => !node.parent_id);
-        console.log('Root nodes:', rootNodes.length);
-        
         // BFS to find visible nodes based on SAVED UI state (not backend expansion_status)
         // A node is visible if:
         // 1. It's a root node, OR
@@ -915,15 +886,11 @@ User question: ${messageText}`);
           }
         }
         
-        console.log('Visible node IDs based on saved state:', Array.from(visibleNodeIds));
-        
         // Update expandedNodes state to match saved state
         setExpandedNodes(savedExpandedNodes);
         
         // Filter to only visible nodes
         const visibleNodes = allNodes.filter(node => visibleNodeIds.has(node.id));
-        console.log('Visible nodes count:', visibleNodes.length);
-        
         // Group nodes by depth for positioning
         const nodesByDepth = new Map();
         visibleNodes.forEach(node => {
@@ -986,13 +953,11 @@ User question: ${messageText}`);
           }
         });
 
-        console.log('Setting nodes:', flowNodes.length, 'edges:', flowEdges.length);
         setNodes(flowNodes);
         setEdges(flowEdges);
       }
     } catch (error) {
-      console.error('Error viewing roadmap:', error);
-    } finally {
+      } finally {
       setLoading(false);
     }
   };
@@ -1112,7 +1077,7 @@ User question: ${messageText}`);
         // Learning Tips
         if (node.learning_tips) {
           content += `<div style="margin-left: ${indent}px; margin-bottom: 16px; padding: 12px; background: color-mix(in srgb, var(--success) 10%, transparent); border-radius: 4px; border: 1px solid var(--success);">`;
-          content += `<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--success); text-transform: uppercase; letter-spacing: 0.5px;">💡 Learning Tips</h4>`;
+          content += `<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--success); text-transform: uppercase; letter-spacing: 0.5px;"> Learning Tips</h4>`;
           content += `<p style="color: var(--text-primary); line-height: 1.7; font-size: 14px;">${node.learning_tips}</p>`;
           content += `</div>`;
         }
@@ -1170,7 +1135,6 @@ User question: ${messageText}`);
       }
 
     } catch (error) {
-      console.error('Error exporting roadmap:', error);
       alert('Failed to export roadmap to notes. Please try again.');
     } finally {
       setExporting(false);

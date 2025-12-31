@@ -39,7 +39,7 @@ const TrialModal = ({ isOpen, onClose, timeRemaining, isWarning = false, onLogin
       <div className={`trial-modal ${isWarning ? 'warning' : 'expired'}`}>
         <div className="trial-modal-header">
           <div className="trial-icon">
-            {isWarning ? '⏰' : '⛔'}
+            {isWarning ? '' : ''}
           </div>
           <h2 className="trial-modal-title">
             {isWarning ? 'Trial Time Running Out' : 'Trial Time Expired'}
@@ -75,11 +75,11 @@ const TrialModal = ({ isOpen, onClose, timeRemaining, isWarning = false, onLogin
           <div className="trial-benefits">
             <h3>With a free account, you get:</h3>
             <ul>
-              <li>✨ Unlimited AI tutoring sessions</li>
-              <li>📚 Personalized study materials</li>
-              <li>🎯 Progress tracking and analytics</li>
-              <li>💾 Save your conversations and notes</li>
-              <li>🔄 Sync across all your devices</li>
+              <li> Unlimited AI tutoring sessions</li>
+              <li> Personalized study materials</li>
+              <li> Progress tracking and analytics</li>
+              <li> Save your conversations and notes</li>
+              <li> Sync across all your devices</li>
             </ul>
           </div>
         </div>

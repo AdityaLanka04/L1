@@ -33,8 +33,7 @@ const SlideExplorer = () => {
         setUploadedSlides(data.slides || []);
       }
     } catch (error) {
-      console.error('Error fetching slides:', error);
-    } finally {
+      } finally {
       setLoading(false);
     }
   }, [userId, token]);
@@ -101,7 +100,6 @@ const SlideExplorer = () => {
         alert(`Failed to upload: ${errorData.detail || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error uploading slides:', error);
       alert('Error uploading slides');
     } finally {
       setUploading(false);
@@ -168,7 +166,6 @@ const SlideExplorer = () => {
         alert(`Failed to analyze: ${errorData.detail || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error('Error analyzing slide:', error);
       alert('Error analyzing slides. Please try again.');
     } finally {
       setAnalyzing(false);
@@ -195,7 +192,6 @@ const SlideExplorer = () => {
         alert('Failed to delete slide');
       }
     } catch (error) {
-      console.error('Error deleting slide:', error);
       alert('Error deleting slide');
     }
   };
@@ -380,7 +376,7 @@ const SlideExplorer = () => {
                           )}
                           {currentSlide.estimated_study_time && (
                             <span className="se-study-time-badge">
-                              ⏱️ {currentSlide.estimated_study_time}
+                              {currentSlide.estimated_study_time}
                             </span>
                           )}
                         </div>

@@ -27,8 +27,7 @@ const ActivityFeed = () => {
         setActivities(data.activities);
       }
     } catch (error) {
-      console.error('Error fetching activity feed:', error);
-    } finally {
+      } finally {
       setLoading(false);
     }
   };
@@ -41,15 +40,14 @@ const ActivityFeed = () => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ activity_id: activityId, reaction_type: '👏' })
+        body: JSON.stringify({ activity_id: activityId, reaction_type: '' })
       });
 
       if (response.ok) {
         fetchActivityFeed();
       }
     } catch (error) {
-      console.error('Error giving kudos:', error);
-    }
+      }
   };
 
   const getIconComponent = (iconName) => {

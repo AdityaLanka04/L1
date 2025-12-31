@@ -49,61 +49,61 @@ const Profile = () => {
 
   const archetypeInfo = {
     Logicor: {
-      icon: '🧩',
+      icon: '',
       color: '#4A90E2',
       tagline: 'The Systematic Thinker',
       description: 'You excel at logical analysis and breaking down complex problems into manageable parts.'
     },
     Flowist: {
-      icon: '⚡',
+      icon: '',
       color: '#50C878',
       tagline: 'The Dynamic Learner',
       description: 'You thrive through hands-on experiences and adapt easily to new challenges.'
     },
     Kinetiq: {
-      icon: '⚙️',
+      icon: '',
       color: '#FF6B6B',
       tagline: 'The Movement Master',
       description: 'You learn best through physical engagement and kinesthetic experiences.'
     },
     Synth: {
-      icon: '🔗',
+      icon: '',
       color: '#9B59B6',
       tagline: 'The Pattern Connector',
       description: 'You naturally see connections and integrate knowledge across domains.'
     },
     Dreamweaver: {
-      icon: '✨',
+      icon: '',
       color: '#F39C12',
       tagline: 'The Visionary',
       description: 'You think in possibilities and excel with visual and imaginative approaches.'
     },
     Anchor: {
-      icon: '⚓',
+      icon: '',
       color: '#34495E',
       tagline: 'The Structured Strategist',
       description: 'You value organization and thrive with clear systems and methodical approaches.'
     },
     Spark: {
-      icon: '💡',
+      icon: '',
       color: '#E74C3C',
       tagline: 'The Creative Innovator',
       description: 'You\'re driven by creativity and love exploring novel ideas and methods.'
     },
     Empathion: {
-      icon: '♥️',
+      icon: '',
       color: '#E91E63',
       tagline: 'The Empathetic Learner',
       description: 'You connect deeply with meaning and understand through emotional intelligence.'
     },
     Seeker: {
-      icon: '🔍',
+      icon: '',
       color: '#00BCD4',
       tagline: 'The Curious Explorer',
       description: 'You\'re motivated by discovery and love expanding your knowledge horizons.'
     },
     Resonant: {
-      icon: '♪',
+      icon: '',
       color: '#8E44AD',
       tagline: 'The Adaptive Mind',
       description: 'You\'re highly flexible and tune into different learning environments effortlessly.'
@@ -129,8 +129,6 @@ const Profile = () => {
         learningPace: profileData.learningPace || 'moderate'
       };
       
-      console.log('📊 Saving profile with showStudyInsights:', saveData.showStudyInsights);
-      
       const response = await fetch(`${API_URL}/update_comprehensive_profile`, {
         method: 'POST',
         headers: {
@@ -144,12 +142,8 @@ const Profile = () => {
         lastSavedProfile.current = profileSnapshot;
         setLastSaved(new Date().toLocaleTimeString());
         localStorage.setItem('userProfile', profileSnapshot);
-        console.log('📊 Profile saved successfully');
-      } else {
-        console.error('📊 Failed to save profile:', await response.text());
       }
     } catch (error) {
-      console.error('Error auto-saving profile:', error);
     } finally {
       setAutoSaving(false);
     }
@@ -230,8 +224,6 @@ const Profile = () => {
           showStudyInsights: data.showStudyInsights === false ? false : true
         };
         
-        console.log('📊 Loaded profile - raw showStudyInsights:', data.showStudyInsights, 'type:', typeof data.showStudyInsights, '→ final:', newProfileData.showStudyInsights);
-
         try {
           if (data.archetypeScores) {
             newProfileData.archetypeScores = typeof data.archetypeScores === 'string' 
@@ -239,8 +231,7 @@ const Profile = () => {
               : data.archetypeScores;
           }
         } catch (e) {
-          console.error('Error parsing archetype scores:', e);
-        }
+          }
 
         setProfileData(newProfileData);
         lastSavedProfile.current = JSON.stringify(newProfileData);
@@ -252,8 +243,7 @@ const Profile = () => {
               : data.quizResponses;
             setQuizAnswers(parsedQuiz);
           } catch (e) {
-            console.error('Error parsing quiz responses:', e);
-          }
+            }
         }
 
         localStorage.setItem('userProfile', JSON.stringify(newProfileData));
@@ -264,7 +254,6 @@ const Profile = () => {
         setDataLoaded(true);
       }
     } catch (error) {
-      console.error('Error loading profile:', error);
       setDataLoaded(true);
     }
   };
@@ -284,10 +273,8 @@ const Profile = () => {
             const parsed = JSON.parse(currentProfile);
             parsed.showStudyInsights = value;
             localStorage.setItem('userProfile', JSON.stringify(parsed));
-            console.log('📊 Study insights setting updated in localStorage:', value);
-          } catch (e) {
-            console.error('Error updating localStorage:', e);
-          }
+            } catch (e) {
+            }
         }
         
         // Immediately save to backend (don't wait for auto-save timer)
@@ -298,8 +285,6 @@ const Profile = () => {
           learningPace: newData.learningPace || 'moderate'
         };
         
-        console.log('📊 Immediately saving showStudyInsights:', value);
-        
         fetch(`${API_URL}/update_comprehensive_profile`, {
           method: 'POST',
           headers: {
@@ -309,15 +294,12 @@ const Profile = () => {
           body: JSON.stringify(saveData)
         }).then(response => {
           if (response.ok) {
-            console.log('📊 showStudyInsights saved successfully to backend');
             lastSavedProfile.current = JSON.stringify(newData);
             setLastSaved(new Date().toLocaleTimeString());
           } else {
-            console.error('📊 Failed to save showStudyInsights');
-          }
+            }
         }).catch(error => {
-          console.error('📊 Error saving showStudyInsights:', error);
-        });
+          });
       }
       
       return newData;

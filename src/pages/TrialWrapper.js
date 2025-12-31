@@ -22,11 +22,8 @@ const TrialWrapper = ({ children }) => {
   const isTrialAccessibleRoute = trialAccessibleRoutes.includes(location.pathname);
 
   const initializeTrial = useCallback(async () => {
-    console.log('Initializing trial...', { path: location.pathname, isLoggedIn: trialManager.isUserLoggedIn() });
-    
     // Skip trial for logged-in users
     if (trialManager.isUserLoggedIn()) {
-      console.log('User is logged in, skipping trial');
       setIsLoading(false);
       setAllowTrialAccess(true);
       setTrialInitialized(true);
@@ -37,11 +34,9 @@ const TrialWrapper = ({ children }) => {
     if (isTrialAccessibleRoute) {
       try {
         const status = await trialManager.initializeTrial();
-        console.log('Trial status:', status);
         setTrialStatus(status);
         
         if (status.expired) {
-          console.log('Trial expired, showing modal');
           setShowExpiredModal(true);
           setAllowTrialAccess(false);
           setIsLoading(false);
@@ -49,21 +44,18 @@ const TrialWrapper = ({ children }) => {
           return;
         }
 
-        console.log('Trial active, allowing access');
         setTimeRemaining(status.timeRemaining);
         setAllowTrialAccess(true);
         setTrialInitialized(true);
         startTrialTimer();
         setIsLoading(false);
       } catch (error) {
-        console.error('Trial initialization failed:', error);
         setAllowTrialAccess(false);
         setIsLoading(false);
         setTrialInitialized(true);
       }
     } else {
       // For non-protected routes (homepage, login, register), allow access without trial
-      console.log('Non-protected route, allowing access');
       setIsLoading(false);
       setAllowTrialAccess(true);
       setTrialInitialized(true);
@@ -71,14 +63,11 @@ const TrialWrapper = ({ children }) => {
   }, [location.pathname, isTrialAccessibleRoute]);
 
   const startTrialTimer = useCallback(() => {
-    console.log('Starting trial timer');
-    
     // Update timer every second
     timerRef.current = setInterval(() => {
       const currentStatus = trialManager.getCurrentStatus();
       
       if (currentStatus.expired) {
-        console.log('Trial expired during timer');
         setShowExpiredModal(true);
         setTimeRemaining(0);
         setAllowTrialAccess(false);
@@ -90,7 +79,6 @@ const TrialWrapper = ({ children }) => {
 
       // Show warning modal when 1 minute remains
       if (currentStatus.showWarning && !showWarningModal && !showExpiredModal) {
-        console.log('Showing warning modal');
         setShowWarningModal(true);
       }
     }, 1000);
@@ -101,14 +89,13 @@ const TrialWrapper = ({ children }) => {
         const fingerprint = trialManager.generateFingerprint();
         const serverCheck = await trialManager.checkServerTrial(fingerprint);
         if (serverCheck.blocked) {
-          console.log('Server blocked trial');
           setShowExpiredModal(true);
           setAllowTrialAccess(false);
           if (timerRef.current) clearInterval(timerRef.current);
           if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
         }
       } catch (error) {
-        console.warn('Server check failed:', error);
+        // Server check failed
       }
     }, 30000);
   }, [showWarningModal, showExpiredModal]);
@@ -123,7 +110,6 @@ const TrialWrapper = ({ children }) => {
 
   // Re-initialize when route changes
   useEffect(() => {
-    console.log('Route changed to:', location.pathname);
     setTrialInitialized(false);
     initializeTrial();
   }, [location.pathname, initializeTrial]);

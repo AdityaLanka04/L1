@@ -21,10 +21,7 @@ const Register = () => {
   // Check if safety page was completed
   useEffect(() => {
     const safetyAccepted = sessionStorage.getItem('safetyAccepted');
-    console.log('Register page - Safety check:', safetyAccepted);
-    
     if (!safetyAccepted) {
-      console.log('Safety not accepted, redirecting to /');
       navigate('/', { replace: true });
     }
   }, [navigate]);
@@ -74,7 +71,6 @@ const Register = () => {
       throw new Error(data.detail || `HTTP ${res.status}`);
     }
 
-    console.log("Registration successful:", data);
     localStorage.setItem("userProfile", JSON.stringify({
       firstName: formData.firstName,
       lastName: formData.lastName,
@@ -85,13 +81,11 @@ const Register = () => {
     alert("Registration successful! Please log in.");
     navigate("/login");
   } catch (err) {
-    console.error("Registration error:", err);
     alert("Registration failed: " + err.message);
   } finally {
     setLoading(false);
   }
 };
-
 
   return (
     <div className="register-page">

@@ -252,8 +252,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           setHistory([[...parsed.canvasElements]]);
         }
       } catch (e) {
-        console.log('No canvas data to load');
-      }
+        }
     }
   }, [initialContent]);
 
@@ -1718,7 +1717,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                         fontWeight="bold"
                         textAnchor="middle"
                       >
-                        {el.priority === 'urgent' ? '!' : el.priority === 'important' ? '★' : '✓'}
+                        {el.priority === 'urgent' ? '!' : el.priority === 'important' ? '' : ''}
                       </text>
                     </g>
                   )}
