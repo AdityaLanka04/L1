@@ -146,10 +146,10 @@ class MathRoutingAgent:
             enhanced += "\n\nStep-by-step breakdown:\n1. Identify what we need to find\n2. Apply the appropriate method\n3. Calculate the result\n4. Check our answer"
         
         if user_profile.get('learning_style') == 'visual':
-            enhanced += "\n\n📊 Visual tip: Try drawing this problem or using diagrams to help visualize the solution."
+            enhanced += "\n\n Visual tip: Try drawing this problem or using diagrams to help visualize the solution."
         
         if analysis['subjects'] and 'algebra' in analysis['subjects']:
-            enhanced += "\n\n🔍 Remember: In algebra, we're finding unknown values. Always check your answer by substituting back!"
+            enhanced += "\n\n Remember: In algebra, we're finding unknown values. Always check your answer by substituting back!"
         
         return enhanced
     

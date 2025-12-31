@@ -894,7 +894,6 @@ if __name__ == "__main__":
         "That makes more sense now, thanks!"
     ]
     
-    print("=== AI Chat Agent Demo ===\n")
     
     for msg in messages:
         print(f"Student: {msg}")
@@ -911,14 +910,9 @@ if __name__ == "__main__":
             for insight in result['insights']:
                 print(f"  - {insight['title']}: {insight['description']}")
         
-        print("\n" + "="*50 + "\n")
     
     # Get progress report
-    print("\n=== Progress Report ===")
     report = agent.get_progress_report()
-    print(json.dumps(report, indent=2, default=str))
     
     # Get study plan
-    print("\n=== Study Plan (60 minutes) ===")
     plan = agent.get_study_plan(60)
-    print(json.dumps(plan, indent=2, default=str))

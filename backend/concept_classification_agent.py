@@ -521,10 +521,10 @@ If not related, return: {{"related": false}}"""
                 if response.status_code == 200:
                     data = response.json()
                     text = data['candidates'][0]['content']['parts'][0]['text']
-                    logger.info(f"✅ Gemini REST response received")
+                    logger.info(f" Gemini REST response received")
                     return text
                 else:
-                    logger.error(f"❌ Gemini REST API error: {response.status_code}")
+                    logger.error(f" Gemini REST API error: {response.status_code}")
                     raise Exception(f"Gemini API error: {response.status_code}")
                     
             elif self.groq_client:
@@ -586,14 +586,14 @@ CRITICAL CLASSIFICATION RULES:
    - If multiple concepts are about a person/topic → use that topic as category
 
 3. SMART GROUPING EXAMPLES:
-   ✓ GOOD: "Merge Sort", "Quick Sort" → category: "Sorting Algorithms"
-   ✗ BAD: "Merge Sort" → "Computer Science", "Quick Sort" → "Algorithms" (inconsistent!)
+    GOOD: "Merge Sort", "Quick Sort" → category: "Sorting Algorithms"
+    BAD: "Merge Sort" → "Computer Science", "Quick Sort" → "Algorithms" (inconsistent!)
    
-   ✓ GOOD: "Newtons Laws", "Newtons Laws Flashcards" → category: "Newtons Laws"
-   ✗ BAD: One as "Physics", other as "Classical Mechanics" (inconsistent!)
+    GOOD: "Newtons Laws", "Newtons Laws Flashcards" → category: "Newtons Laws"
+    BAD: One as "Physics", other as "Classical Mechanics" (inconsistent!)
    
-   ✓ GOOD: "Messi", "Football" → category: "Sports" or "Football"
-   ✗ BAD: "Messi" → "General", "Football" → "Sports" (inconsistent!)
+    GOOD: "Messi", "Football" → category: "Sports" or "Football"
+    BAD: "Messi" → "General", "Football" → "Sports" (inconsistent!)
 
 4. CATEGORY HIERARCHY:
    - Use the MOST SPECIFIC common category that groups related concepts

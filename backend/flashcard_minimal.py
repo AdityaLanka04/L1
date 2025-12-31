@@ -1,7 +1,4 @@
-"""
-Streamlined Flashcard Generation System
-Minimal prompting, maximum efficiency
-"""
+"""Streamlined Flashcard Generation System"""
 
 import logging
 from typing import Dict, List, Optional
@@ -21,18 +18,13 @@ class FlashcardGenerationRequest(BaseModel):
 
 
 class MinimalFlashcardPrompts:
-    """Streamlined prompts for flashcard generation"""
-    
     @staticmethod
     def build_prompt(content: str, card_count: int, difficulty: str) -> str:
-        """Build minimal, effective prompt"""
-        
         difficulty_guides = {
             "easy": "basic recall and definitions",
             "medium": "application and understanding",
             "hard": "analysis and synthesis"
         }
-        
         guide = difficulty_guides.get(difficulty, "mixed difficulty")
         
         return f"""Generate {card_count} flashcards from this content for {guide}.
@@ -51,14 +43,10 @@ FORMAT (JSON):
 RULES:
 - Questions: Clear, specific, testable
 - Answers: Concise (2-4 sentences max), informative
-- No scrolling needed - keep answers brief
-- Focus on key concepts only
-- Avoid redundancy"""
+- Focus on key concepts only"""
     
     @staticmethod
     def build_topic_prompt(topic: str, card_count: int, difficulty: str) -> str:
-        """Generate from topic"""
-        
         return f"""Generate {card_count} flashcards about: {topic}
 
 Difficulty: {difficulty}
@@ -74,30 +62,21 @@ FORMAT (JSON):
 RULES:
 - Cover essential concepts only
 - Answers: 2-4 sentences maximum
-- Questions must be clear and specific
-- Progressive difficulty if mixed
-- No fluff or filler content"""
+- Questions must be clear and specific"""
 
 
 class SmartFlashcardAgent:
-    """
-    Simplified agent - tracks only essential metrics
-    Replaces the 1300-line complex agent
-    """
-    
     def __init__(self, user_id: str):
         self.user_id = user_id
-        self.card_reviews = {}  # card_id -> {correct: int, total: int}
+        self.card_reviews = {}
         self.session_active = False
         self.current_session = None
     
     def add_card(self, card_id: str):
-        """Add card to tracking"""
         if card_id not in self.card_reviews:
             self.card_reviews[card_id] = {"correct": 0, "total": 0}
     
     def review_card(self, card_id: str, was_correct: bool):
-        """Record review result"""
         if card_id not in self.card_reviews:
             self.add_card(card_id)
         
@@ -112,30 +91,26 @@ class SmartFlashcardAgent:
         }
     
     def _get_retention(self, card_id: str) -> float:
-        """Calculate retention rate"""
         reviews = self.card_reviews.get(card_id, {"correct": 0, "total": 0})
         if reviews["total"] == 0:
             return 0.0
         return reviews["correct"] / reviews["total"]
     
     def get_weak_cards(self) -> List[str]:
-        """Get cards with < 70% retention"""
         weak = []
         for card_id, reviews in self.card_reviews.items():
-            if reviews["total"] >= 3:  # At least 3 reviews
+            if reviews["total"] >= 3:
                 retention = self._get_retention(card_id)
                 if retention < 0.7:
                     weak.append(card_id)
         return weak
     
     def get_statistics(self) -> Dict:
-        """Get simple stats"""
         if not self.card_reviews:
             return {"total_cards": 0, "total_reviews": 0, "average_retention": 0.0}
         
         total_reviews = sum(r["total"] for r in self.card_reviews.values())
         total_correct = sum(r["correct"] for r in self.card_reviews.values())
-        
         avg_retention = total_correct / total_reviews if total_reviews > 0 else 0.0
         
         return {
@@ -153,11 +128,6 @@ def generate_flashcards_minimal(
     difficulty: str,
     is_topic: bool = False
 ) -> List[Dict]:
-    """
-    Streamlined flashcard generation
-    Single AI call, clean output
-    """
-    
     try:
         if is_topic:
             prompt = MinimalFlashcardPrompts.build_topic_prompt(
@@ -168,30 +138,21 @@ def generate_flashcards_minimal(
                 content_or_topic, card_count, difficulty
             )
         
-        # Single AI call
-        response = unified_ai.chat(
-            message=prompt,
-            model="gemini-2.0-flash-exp",
-            temperature=0.7
-        )
+        response = unified_ai.generate(prompt, max_tokens=2000, temperature=0.7)
         
-        # Parse JSON response
         import json
         import re
         
-        # Extract JSON from response
         json_match = re.search(r'\{[\s\S]*"flashcards"[\s\S]*\}', response)
         if json_match:
             data = json.loads(json_match.group())
             flashcards = data.get("flashcards", [])
             
-            # Validate and clean
             valid_cards = []
             for card in flashcards[:card_count]:
                 if "question" in card and "answer" in card:
-                    # Trim answers to prevent scrolling
                     answer = card["answer"]
-                    if len(answer) > 400:  # ~4 sentences max
+                    if len(answer) > 400:
                         answer = answer[:400] + "..."
                     
                     valid_cards.append({
@@ -210,11 +171,9 @@ def generate_flashcards_minimal(
         return []
 
 
-# Active agents (in-memory, use Redis in production)
 active_agents = {}
 
 def get_agent(user_id: str) -> SmartFlashcardAgent:
-    """Get or create agent"""
     if user_id not in active_agents:
         active_agents[user_id] = SmartFlashcardAgent(user_id)
     return active_agents[user_id]

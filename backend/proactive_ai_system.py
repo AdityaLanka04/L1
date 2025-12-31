@@ -245,11 +245,10 @@ class ProactiveAIEngine:
         if user_history is None:
             user_history = {}
         
-        print(f"🔔 should_reach_out called with is_login={is_login}")
         
         # 1. Login greeting (highest priority - only on fresh login)
         if is_login:
-            print(f"🔔 Login detected! Returning login_greeting")
+            print(f" Login detected! Returning login_greeting")
             return True, "login_greeting", 0.9
         
         # Calculate ML intervention score
@@ -563,7 +562,7 @@ Generate a brief encouraging message that:
 4. Sounds genuine, warm, and supportive"""
         
         try:
-            print(f"🔔 Calling AI with prompt length: {len(prompt)}")
+            print(f" Calling AI with prompt length: {len(prompt)}")
             
             # Use unified AI (now with REST API for Gemini)
             import asyncio
@@ -572,14 +571,14 @@ Generate a brief encouraging message that:
                     asyncio.to_thread(self.unified_ai.generate, prompt, max_tokens=200, temperature=0.8),
                     timeout=12.0  # 12 second timeout (10s for API + 2s buffer)
                 )
-                print(f"🔔 AI generated message: {message}")
+                print(f" AI generated message: {message}")
                 return message
             except asyncio.TimeoutError:
-                print(f"🔔 AI generation timed out after 12s, using fallback")
+                print(f" AI generation timed out after 12s, using fallback")
                 raise Exception("AI timeout")
             
         except Exception as e:
-            print(f"🔔 AI generation failed: {e}, using fallback")
+            print(f" AI generation failed: {e}, using fallback")
             # Fallback messages
             reason_key = reason.split(":")[0]
             topic_name = reason.split(":")[1] if ':' in reason else 'this topic'
@@ -596,7 +595,7 @@ Generate a brief encouraging message that:
                 "encouragement": f"You're doing great, {first_name}! Keep up the awesome work - your consistency is paying off!",
                 "welcome": f"Welcome {first_name}! I'm excited to help you with {field_of_study}. What would you like to learn first?"
             }
-            print(f"🔔 Using fallback message for reason: {reason_key}")
+            print(f" Using fallback message for reason: {reason_key}")
             return fallbacks.get(reason_key, fallbacks["login_greeting"])
     
     async def check_and_send_proactive_message(self, db: Session, user_id: int, user_profile: dict, is_idle: bool = False, is_login: bool = False):
@@ -605,11 +604,10 @@ Generate a brief encouraging message that:
         Uses ML to determine optimal timing and intervention strategy
         """
         
-        print(f"🔔 check_and_send_proactive_message called: is_login={is_login}")
         
         # FORCE LOGIN GREETING - Always show on login
         if is_login:
-            print(f"🔔 LOGIN DETECTED - Forcing notification")
+            print(f" LOGIN DETECTED - Forcing notification")
             user = db.query(models.User).filter(models.User.id == user_id).first()
             first_name = user.first_name or "there"
             field_of_study = user.field_of_study or "your studies"
@@ -635,22 +633,21 @@ Generate a brief encouraging message that:
         # ML-based decision
         should_reach, reason, urgency_score = self.should_reach_out(patterns, user_history, is_login)
         
-        print(f"🔔 ML Decision: should_reach={should_reach}, reason={reason}, urgency={urgency_score}")
         
         if not should_reach:
-            print(f"🔔 Not reaching out - score too low")
+            print(f" Not reaching out - score too low")
             return None
         
         # NO ANTI-SPAM CHECK FOR LOGIN - Always show on fresh login
-        print(f"🔔 Proceeding with notification (reason: {reason})")
+        print(f" Proceeding with notification (reason: {reason})")
         
         # Calculate optimal timing (in minutes)
         optimal_delay_minutes = self.calculate_optimal_timing(urgency_score, patterns)
         
         # Generate the personalized message using AI
-        print(f"🔔 Generating message for reason: {reason}")
+        print(f" Generating message for reason: {reason}")
         message = await self.generate_proactive_message(db, user_id, reason, user_profile)
-        print(f"🔔 Generated message: {message[:100]}...")
+        print(f" Generated message: {message[:100]}...")
         
         # Track notification for ML learning
         self._track_notification(db, user_id, reason, urgency_score, patterns)
@@ -663,7 +660,6 @@ Generate a brief encouraging message that:
             "optimal_delay_minutes": optimal_delay_minutes,
             "should_show_now": optimal_delay_minutes <= 5  # Show immediately if high urgency
         }
-        print(f"🔔 Returning result: should_notify=True, message length={len(message)}")
         return result
     
     def _get_user_history(self, db: Session, user_id: int) -> dict:

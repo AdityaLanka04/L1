@@ -3,6 +3,7 @@ import sys
 import re
 import json
 import logging
+import warnings
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
 import asyncio
@@ -23,7 +24,12 @@ import requests
 from dotenv import load_dotenv
 from groq import Groq
 
-# Set up logger early so it's available for import warnings
+# Suppress warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning, module="pydub")
+warnings.filterwarnings("ignore", category=FutureWarning, module="google.generativeai")
+warnings.filterwarnings("ignore", category=DeprecationWarning, message=".*on_event.*")
+
+# Set up logger early
 logger = logging.getLogger(__name__)
 
 # Media Processing Imports (optional - will be imported when needed)
@@ -142,10 +148,28 @@ def sync_sequences():
 sync_sequences()
 
 
+# Lifespan context manager for startup/shutdown events
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    if "postgres" not in DATABASE_URL:
+        logger.info("Using SQLite - sequence fix not needed")
+    else:
+        logger.info("Checking PostgreSQL database sequences...")
+        try:
+            from migration import run_migration
+            run_migration()
+            logger.info("Database migrations completed")
+        except Exception as e:
+            logger.error(f"Migration error: {e}")
+    
+    yield
+    # Shutdown (if needed)
 
 
-
-app = FastAPI(title="Brainwave Backend API", version="3.0.0")  # ✅ Keep this, remove duplicate
+app = FastAPI(title="Brainwave Backend API", version="3.0.0", lifespan=lifespan)
 
 # ==================== CORS CONFIGURATION ====================
 
@@ -170,7 +194,7 @@ app.add_middleware(
 )
 
 
-logger.info("✅ CORS configured for localhost, Render, and Vercel deployments")
+logger.info(" CORS configured for localhost, Render, and Vercel deployments")
 
 ph = PasswordHasher()
 security = HTTPBearer()
@@ -194,39 +218,39 @@ try:
         genai.configure(api_key=GEMINI_API_KEY)
         # Don't create model here, create it in ai_utils with correct name
         gemini_client = genai  # Pass the genai module itself
-        logger.info(f"✅ GEMINI API configured: {GEMINI_API_KEY[:10]}... (PRIMARY)")
+        logger.info(f" GEMINI API configured: {GEMINI_API_KEY[:10]}... (PRIMARY)")
     else:
         gemini_client = None
-        logger.warning("⚠️  No GEMINI_API_KEY found in .env")
+        logger.warning("  No GEMINI_API_KEY found in .env")
 except ImportError as e:
     gemini_client = None
-    logger.error(f"⚠️  google-generativeai not installed: {e}")
+    logger.error(f"  google-generativeai not installed: {e}")
     logger.warning("Install with: pip install google-generativeai")
 except Exception as e:
     gemini_client = None
-    logger.error(f"⚠️  Error initializing Gemini: {e}")
+    logger.error(f"  Error initializing Gemini: {e}")
 
 if groq_client:
-    logger.info(f"✅ GROQ API configured: {GROQ_API_KEY[:10]}... (FALLBACK)")
+    logger.info(f" GROQ API configured: {GROQ_API_KEY[:10]}... (FALLBACK)")
 else:
-    logger.error("❌ NO GROQ_API_KEY found")
+    logger.error(" NO GROQ_API_KEY found")
 
 # Determine which AI to use
 if gemini_client:
-    logger.info("🎯 Using GEMINI as primary AI (free tier)")
+    logger.info(" Using GEMINI as primary AI (free tier)")
     primary_ai = "gemini"
 elif groq_client:
-    logger.info("🎯 Using GROQ as primary AI")
+    logger.info(" Using GROQ as primary AI")
     primary_ai = "groq"
 else:
-    logger.error("❌ NO AI API KEYS CONFIGURED!")
+    logger.error(" NO AI API KEYS CONFIGURED!")
     primary_ai = None
 
 # Initialize unified AI client
 from ai_utils import UnifiedAIClient
 # Use Gemini as primary, Groq as fallback
 unified_ai = UnifiedAIClient(gemini_client, groq_client, GEMINI_MODEL, GROQ_MODEL, GEMINI_API_KEY)
-logger.info("✅ Unified AI client initialized (GEMINI PRIMARY, GROQ FALLBACK)")
+logger.info(" Unified AI client initialized (GEMINI PRIMARY, GROQ FALLBACK)")
 
 # Unified AI call function - uses the unified_ai client
 def call_ai(prompt: str, max_tokens: int = 2000, temperature: float = 0.7) -> str:
@@ -242,18 +266,18 @@ def call_ai(prompt: str, max_tokens: int = 2000, temperature: float = 0.7) -> st
     return response
 
 register_flashcard_api_minimal(app)
-logger.info("✅ Flashcard API Minimal registered successfully")
+logger.info(" Flashcard API Minimal registered successfully")
 
 register_question_bank_api(app, unified_ai, get_db)
 logger.info("Enhanced Question Bank API with sophisticated AI agents registered successfully")
 
 register_adaptive_learning_api(app, unified_ai)
-logger.info("✅ Adaptive Learning & Personalization API registered successfully")
+logger.info(" Adaptive Learning & Personalization API registered successfully")
 
 # Register AI Chat Agent
 from ai_chat_integration import register_ai_chat_agent
 register_ai_chat_agent(app)
-logger.info("✅ AI Chat Agent registered successfully")
+logger.info(" AI Chat Agent registered successfully")
 
 class Token(BaseModel):
     access_token: str
@@ -687,64 +711,6 @@ def health_check():
         "timestamp": datetime.now(timezone.utc).isoformat() + 'Z'
     }
 
-@app.on_event("startup")
-async def fix_database_sequences():
-    """Automatically fix PostgreSQL sequences on startup"""
-    # Only run for PostgreSQL, not SQLite
-    if "postgres" not in DATABASE_URL:
-        logger.info("✅ Using SQLite - sequence fix not needed")
-        return
-    
-    logger.info("🔧 Checking and fixing PostgreSQL database sequences...")
-    
-    # Run migrations on startup (production)
-    try:
-        logger.info("🔄 Running database migrations...")
-        from migration import run_migration
-        run_migration()
-        logger.info("✅ Database migrations completed")
-    except Exception as e:
-        logger.error(f"❌ Migration error: {e}")
-    
-    try:
-        db = SessionLocal()
-        
-        tables_to_fix = [
-            'users',
-            'chat_sessions',
-            'notes',
-            'activities',
-            'flashcard_sets',
-            'daily_learning_metrics',
-            'user_stats',
-            'folders',
-            'question_sets',
-            'learning_reviews',
-            'uploaded_slides'
-        ]
-        
-        for table in tables_to_fix:
-            try:
-                # Get max ID
-                max_id_query = text(f"SELECT COALESCE(MAX(id), 0) FROM {table}")
-                max_id = db.execute(max_id_query).scalar()
-                
-                # Fix the sequence (PostgreSQL only)
-                fix_query = text(f"SELECT setval('{table}_id_seq', :next_id)")
-                db.execute(fix_query, {"next_id": max_id + 1})
-                
-                logger.info(f"✅ Fixed sequence for {table}: next_id = {max_id + 1}")
-                
-            except Exception as e:
-                logger.warning(f"⚠️ Could not fix {table}: {str(e)}")
-        
-        db.commit()
-        db.close()
-        logger.info("✅ Database sequences fixed successfully")
-        
-    except Exception as e:
-        logger.error(f"❌ Sequence fix failed: {str(e)}")
-
 @app.get("/api/fix-reminder-timezones")
 async def fix_reminder_timezones(user_id: str = Query(...), db: Session = Depends(get_db)):
     """
@@ -901,7 +867,7 @@ def get_daily_goal_progress(user_id: str = Query(...), db: Session = Depends(get
 
 
 # -----------------------------
-# 1️⃣ Pydantic model (JSON body)
+# 1⃣ Pydantic model (JSON body)
 # -----------------------------
 class RegisterPayload(BaseModel):
     first_name: str
@@ -916,7 +882,7 @@ class RegisterPayload(BaseModel):
 
 
 # -----------------------------
-# 2️⃣ Register endpoint (JSON)
+# 2⃣ Register endpoint (JSON)
 # -----------------------------
 from sqlalchemy import text  # Make sure this is imported
 
@@ -962,7 +928,7 @@ async def register(payload: RegisterPayload, db: Session = Depends(get_db)):
             db.add(user_stats)
             db.commit()
 
-            logger.info(f"✅ User {payload.username} registered successfully")
+            logger.info(f" User {payload.username} registered successfully")
             return {"message": "User registered successfully"}
             
         except Exception as e:
@@ -971,7 +937,7 @@ async def register(payload: RegisterPayload, db: Session = Depends(get_db)):
             
             # Check if it's a sequence/duplicate key error
             if "duplicate key" in error_msg and "pkey" in error_msg and attempt < max_retries - 1:
-                logger.warning(f"⚠️ Sequence error detected, fixing... (attempt {attempt + 1})")
+                logger.warning(f" Sequence error detected, fixing... (attempt {attempt + 1})")
                 
                 try:
                     # Fix the sequence using text()
@@ -982,14 +948,14 @@ async def register(payload: RegisterPayload, db: Session = Depends(get_db)):
                     db.execute(fix_query, {"next_id": max_id + 1})
                     db.commit()
                     
-                    logger.info(f"✅ Sequence fixed to {max_id + 1}, retrying registration...")
+                    logger.info(f" Sequence fixed to {max_id + 1}, retrying registration...")
                     continue  # Retry registration
                     
                 except Exception as fix_error:
-                    logger.error(f"❌ Failed to fix sequence: {str(fix_error)}")
+                    logger.error(f" Failed to fix sequence: {str(fix_error)}")
             
             # If not a sequence error or retry failed, raise the error
-            logger.error(f"❌ Registration failed: {str(e)}")
+            logger.error(f" Registration failed: {str(e)}")
             raise HTTPException(status_code=500, detail="Registration failed. Please try again.")
     
     # If we get here, all retries failed
@@ -1172,7 +1138,7 @@ async def ask_ai_enhanced(
     chat_id: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
-    logger.info(f"🤖 Processing AI query for user {user_id}")
+    logger.info(f" Processing AI query for user {user_id}")
     
     try:
         chat_id_int = int(chat_id) if chat_id else None
@@ -1250,7 +1216,7 @@ async def ask_ai_enhanced(
                 logger.error(f"Error parsing subjects: {e}")
                 user_profile["preferred_subjects"] = []
         
-        logger.info(f"📊 Profile: {user_profile['primary_archetype']} | {user_profile['field_of_study']}")
+        logger.info(f" Profile: {user_profile['primary_archetype']} | {user_profile['field_of_study']}")
         
         conversation_history = []
         if chat_id_int:
@@ -1292,7 +1258,7 @@ async def ask_ai_enhanced(
         state = rl_agent.encode_state(context)
         response_adjustments = rl_agent.get_response_adjustment()
         
-        logger.info(f"🧠 Neural adjustments: {response_adjustments}")
+        logger.info(f" Neural adjustments: {response_adjustments}")
         
         # Use unified call_ai function (Gemini primary, Groq fallback)
         response = await advanced_prompting.generate_enhanced_ai_response(
@@ -1308,7 +1274,7 @@ async def ask_ai_enhanced(
         
         known_mistake = rl_agent.check_for_known_mistakes(response)
         if known_mistake:
-            logger.info(f"🔧 Correcting known mistake")
+            logger.info(f" Correcting known mistake")
             response = known_mistake
         
         # All tracking (messages, activities, metrics, points) is handled by save_chat_message endpoint
@@ -1346,14 +1312,12 @@ async def ask_ai_enhanced(
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
-        logger.error(f"❌ ERROR IN ASK_AI: {str(e)}")
-        logger.error(f"❌ FULL TRACEBACK:\n{error_details}")
-        print(f"\n{'='*80}")
-        print(f"❌ ERROR IN /api/ask/")
-        print(f"❌ Error: {str(e)}")
-        print(f"❌ Type: {type(e).__name__}")
-        print(f"❌ Traceback:\n{error_details}")
-        print(f"{'='*80}\n")
+        logger.error(f" ERROR IN ASK_AI: {str(e)}")
+        logger.error(f" FULL TRACEBACK:\n{error_details}")
+        print(f" ERROR IN /api/ask/")
+        print(f" Error: {str(e)}")
+        print(f" Type: {type(e).__name__}")
+        print(f" Traceback:\n{error_details}")
         return {
             "answer": "I apologize, but I encountered an error. Could you please rephrase your question?",
             "ai_confidence": 0.3,
@@ -1384,15 +1348,15 @@ async def ask_simple(
     db: Session = Depends(get_db)
 ):
     """Simplified /ask endpoint that bypasses all complex logic"""
-    print(f"\n🔥 ASK_SIMPLE CALLED 🔥")
-    print(f"🔥 User: {user_id}, Question: {question[:50]}...")
+    print(f"\n ASK_SIMPLE CALLED ")
+    print(f" User: {user_id}, Question: {question[:50]}...")
     
     try:
         # Get user
-        print(f"🔍 Looking up user: {user_id}")
+        print(f" Looking up user: {user_id}")
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
-            print(f"❌ User not found in database: {user_id}")
+            print(f" User not found in database: {user_id}")
             return {
                 "answer": "Please log in again - your session may have expired.",
                 "ai_confidence": 0.0,
@@ -1414,12 +1378,12 @@ async def ask_simple(
                     models.ChatSession.user_id == user.id
                 ).first()
                 if not chat_session:
-                    print(f"⚠️ Chat session {chat_id_int} not found or doesn't belong to user {user.id}")
+                    print(f" Chat session {chat_id_int} not found or doesn't belong to user {user.id}")
                     # Don't create a new session - the frontend should have created it
                     # Just use the provided chat_id and let the message save handle it
-                    print(f"📝 Will use provided chat_id: {chat_id_int}")
+                    print(f" Will use provided chat_id: {chat_id_int}")
             except ValueError as e:
-                print(f"⚠️ Invalid chat_id format: {str(e)}")
+                print(f" Invalid chat_id format: {str(e)}")
                 chat_id_int = None
         
         # Load chat history for context
@@ -1438,9 +1402,9 @@ async def ask_simple(
                         # Each message has both user_message and ai_response
                         chat_history += f"Student: {msg.user_message}\n"
                         chat_history += f"You: {msg.ai_response}\n"
-                    print(f"📜 Loaded {len(recent_messages)} previous message pairs for context")
+                    print(f" Loaded {len(recent_messages)} previous message pairs for context")
             except Exception as e:
-                print(f"⚠️ Error loading chat history: {str(e)}")
+                print(f" Error loading chat history: {str(e)}")
         
         # Build personalized prompt
         first_name = user.first_name or "there"
@@ -1467,14 +1431,14 @@ CRITICAL - Mathematical Notation Rules:
 Current Question: {question}"""
         
         # Generate response using simple AI call
-        print(f"🔥 Calling AI for {first_name}...")
+        print(f" Calling AI for {first_name}...")
         response = call_ai(prompt, max_tokens=2000, temperature=0.7)
-        print(f"🔥 AI response received: {len(response)} chars")
+        print(f" AI response received: {len(response)} chars")
         
         # Save message to database and award points
         if chat_id_int:
             try:
-                print(f"💾 Attempting to save message for chat_id: {chat_id_int}, user_id: {user.id}")
+                print(f" Attempting to save message for chat_id: {chat_id_int}, user_id: {user.id}")
                 
                 # Check if this exact message already exists (prevent double-saving)
                 existing_message = db.query(models.ChatMessage).filter(
@@ -1493,7 +1457,7 @@ Current Question: {question}"""
                         is_user=True
                     )
                     db.add(chat_message)
-                    print(f"✅ Message object created and added to session")
+                    print(f" Message object created and added to session")
                     
                     # Update chat session timestamp
                     chat_session = db.query(models.ChatSession).filter(
@@ -1501,29 +1465,29 @@ Current Question: {question}"""
                     ).first()
                     if chat_session:
                         chat_session.updated_at = datetime.now(timezone.utc)
-                        print(f"✅ Chat session timestamp updated")
+                        print(f" Chat session timestamp updated")
                     
                     # Award points for AI chat (only once per message)
                     try:
                         from gamification_system import award_points
                         result = award_points(db, user.id, "ai_chat")
-                        print(f"✅ Points awarded: {result}")
+                        print(f" Points awarded: {result}")
                     except Exception as gam_error:
-                        print(f"⚠️ Failed to award AI chat points: {gam_error}")
+                        print(f" Failed to award AI chat points: {gam_error}")
                         import traceback
                         traceback.print_exc()
                     
                     db.commit()
-                    print(f"✅ Database committed - message saved!")
+                    print(f" Database committed - message saved!")
                 else:
-                    print(f"⚠️ Message already exists, skipping save and point award")
+                    print(f" Message already exists, skipping save and point award")
             except Exception as save_error:
-                print(f"❌ Error saving message: {str(save_error)}")
+                print(f" Error saving message: {str(save_error)}")
                 import traceback
                 traceback.print_exc()
                 db.rollback()
         else:
-            print(f"⚠️ No chat_id_int, cannot save message")
+            print(f" No chat_id_int, cannot save message")
         
         return {
             "answer": response,
@@ -1542,8 +1506,8 @@ Current Question: {question}"""
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
-        print(f"\n❌ ERROR IN ASK_SIMPLE: {str(e)}")
-        print(f"❌ Traceback:\n{error_details}\n")
+        print(f"\n ERROR IN ASK_SIMPLE: {str(e)}")
+        print(f" Traceback:\n{error_details}\n")
         return {
             "answer": f"Error: {str(e)}",
             "ai_confidence": 0.3,
@@ -1564,15 +1528,15 @@ async def ask_with_files(
     db: Session = Depends(get_db)
 ):
     """Handle questions with file attachments"""
-    print(f"\n🔥 ASK_WITH_FILES CALLED 🔥")
-    print(f"🔥 User: {user_id}, Question: {question[:50]}..., Files: {len(files)}")
+    print(f"\n ASK_WITH_FILES CALLED ")
+    print(f" User: {user_id}, Question: {question[:50]}..., Files: {len(files)}")
     
     try:
         # Get user
-        print(f"🔍 Looking up user: {user_id}")
+        print(f" Looking up user: {user_id}")
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
-            print(f"❌ User not found in database: {user_id}")
+            print(f" User not found in database: {user_id}")
             return {
                 "answer": "Please log in again - your session may have expired.",
                 "ai_confidence": 0.0,
@@ -1597,9 +1561,9 @@ async def ask_with_files(
                     models.ChatSession.user_id == user.id
                 ).first()
                 if not chat_session:
-                    print(f"⚠️ Chat session {chat_id_int} not found or doesn't belong to user {user.id}")
+                    print(f" Chat session {chat_id_int} not found or doesn't belong to user {user.id}")
                     # Create a new chat session instead of failing
-                    print(f"📝 Creating new chat session for user {user.id}")
+                    print(f" Creating new chat session for user {user.id}")
                     new_chat = models.ChatSession(
                         user_id=user.id,
                         title="New Chat with Files"
@@ -1608,9 +1572,9 @@ async def ask_with_files(
                     db.commit()
                     db.refresh(new_chat)
                     chat_id_int = new_chat.id
-                    print(f"✅ Created new chat session: {chat_id_int}")
+                    print(f" Created new chat session: {chat_id_int}")
             except Exception as e:
-                print(f"⚠️ Error validating chat_id: {str(e)}")
+                print(f" Error validating chat_id: {str(e)}")
                 # Create new chat on error too
                 try:
                     new_chat = models.ChatSession(
@@ -1621,7 +1585,7 @@ async def ask_with_files(
                     db.commit()
                     db.refresh(new_chat)
                     chat_id_int = new_chat.id
-                    print(f"✅ Created new chat session after error: {chat_id_int}")
+                    print(f" Created new chat session after error: {chat_id_int}")
                 except:
                     chat_id_int = None
         
@@ -1630,7 +1594,7 @@ async def ask_with_files(
         file_context = ""
         
         if files and len(files) > 0:
-            print(f"🔥 Processing {len(files)} files...")
+            print(f" Processing {len(files)} files...")
             for file in files:
                 if file.filename:
                     file_content = ""
@@ -1648,21 +1612,21 @@ async def ask_with_files(
                                 for page in pdf_reader.pages:
                                     pdf_text += page.extract_text() + "\n"
                                 file_content = pdf_text[:4000]  # Limit to 4000 chars
-                                print(f"📄 Extracted {len(file_content)} chars from PDF: {file.filename}")
+                                print(f" Extracted {len(file_content)} chars from PDF: {file.filename}")
                             except Exception as pdf_error:
-                                print(f"⚠️ PDF extraction error: {pdf_error}")
+                                print(f" PDF extraction error: {pdf_error}")
                                 file_content = f"[Could not extract text from PDF: {file.filename}]"
                         
                         elif file.content_type and file.content_type.startswith('image/'):
                             # For images, we'll describe them in context
                             file_content = f"[Image file attached: {file.filename}]"
-                            print(f"🖼️ Image detected: {file.filename}")
+                            print(f" Image detected: {file.filename}")
                         
                         else:
                             # Try to read as text
                             try:
                                 file_content = content.decode('utf-8')[:4000]
-                                print(f"📝 Text file read: {file.filename}")
+                                print(f" Text file read: {file.filename}")
                             except:
                                 file_content = f"[Binary file: {file.filename}]"
                         
@@ -1677,7 +1641,7 @@ async def ask_with_files(
                         file_context += f"\n\n=== Content from {file.filename} ===\n{file_content}\n"
                         
                     except Exception as e:
-                        print(f"❌ Error processing file {file.filename}: {str(e)}")
+                        print(f" Error processing file {file.filename}: {str(e)}")
                         file_summaries.append({
                             "file_name": file.filename,
                             "file_type": file.content_type,
@@ -1702,9 +1666,9 @@ async def ask_with_files(
                         # Each message has both user_message and ai_response
                         chat_history += f"Student: {msg.user_message}\n"
                         chat_history += f"You: {msg.ai_response}\n"
-                    print(f"📜 Loaded {len(recent_messages)} previous message pairs for context")
+                    print(f" Loaded {len(recent_messages)} previous message pairs for context")
             except Exception as e:
-                print(f"⚠️ Error loading chat history: {str(e)}")
+                print(f" Error loading chat history: {str(e)}")
         
         # Build personalized prompt
         first_name = user.first_name or "there"
@@ -1755,14 +1719,14 @@ CRITICAL - Mathematical Notation Rules:
 Current Question: {question}"""
         
         # Generate response using simple AI call
-        print(f"🔥 Calling AI for {first_name}...")
+        print(f" Calling AI for {first_name}...")
         response = call_ai(prompt, max_tokens=2000, temperature=0.7)
-        print(f"🔥 AI response received: {len(response)} chars")
+        print(f" AI response received: {len(response)} chars")
         
         # Save message to database and award points
         if chat_id_int:
             try:
-                print(f"💾 Attempting to save message for chat_id: {chat_id_int}, user_id: {user.id}")
+                print(f" Attempting to save message for chat_id: {chat_id_int}, user_id: {user.id}")
                 
                 # Check if this exact message already exists (prevent double-saving)
                 existing_message = db.query(models.ChatMessage).filter(
@@ -1781,7 +1745,7 @@ Current Question: {question}"""
                         is_user=True
                     )
                     db.add(chat_message)
-                    print(f"✅ Message object created and added to session")
+                    print(f" Message object created and added to session")
                     
                     # Update chat session timestamp
                     chat_session = db.query(models.ChatSession).filter(
@@ -1789,29 +1753,29 @@ Current Question: {question}"""
                     ).first()
                     if chat_session:
                         chat_session.updated_at = datetime.now(timezone.utc)
-                        print(f"✅ Chat session timestamp updated")
+                        print(f" Chat session timestamp updated")
                     
                     # Award points for AI chat (only once per message)
                     try:
                         from gamification_system import award_points
                         result = award_points(db, user.id, "ai_chat")
-                        print(f"✅ Points awarded: {result}")
+                        print(f" Points awarded: {result}")
                     except Exception as gam_error:
-                        print(f"⚠️ Failed to award AI chat points: {gam_error}")
+                        print(f" Failed to award AI chat points: {gam_error}")
                         import traceback
                         traceback.print_exc()
                     
                     db.commit()
-                    print(f"✅ Database committed - message saved!")
+                    print(f" Database committed - message saved!")
                 else:
-                    print(f"⚠️ Message already exists, skipping save and point award")
+                    print(f" Message already exists, skipping save and point award")
             except Exception as save_error:
-                print(f"❌ Error saving message: {str(save_error)}")
+                print(f" Error saving message: {str(save_error)}")
                 import traceback
                 traceback.print_exc()
                 db.rollback()
         else:
-            print(f"⚠️ No chat_id_int, cannot save message")
+            print(f" No chat_id_int, cannot save message")
         
         return {
             "answer": response,
@@ -1833,8 +1797,8 @@ Current Question: {question}"""
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
-        print(f"\n❌ ERROR IN ASK_WITH_FILES: {str(e)}")
-        print(f"❌ Traceback:\n{error_details}\n")
+        print(f"\n ERROR IN ASK_WITH_FILES: {str(e)}")
+        print(f" Traceback:\n{error_details}\n")
         return {
             "answer": f"Error processing your request: {str(e)}",
             "ai_confidence": 0.3,
@@ -1868,7 +1832,7 @@ def create_chat_session(
         db.commit()
         db.refresh(chat_session)
         
-        logger.info(f"✅ Chat session created: ID={chat_session.id} for user {user.email}")
+        logger.info(f" Chat session created: ID={chat_session.id} for user {user.email}")
         
         return {
             "id": chat_session.id,
@@ -1907,7 +1871,7 @@ def rename_chat_session(
         chat_session.updated_at = datetime.now(timezone.utc)
         db.commit()
         
-        logger.info(f"✅ Chat session renamed: ID={chat_id} to '{new_title}'")
+        logger.info(f" Chat session renamed: ID={chat_id} to '{new_title}'")
         
         return {
             "status": "success",
@@ -1988,7 +1952,7 @@ def get_chat_sessions(user_id: str = Query(...), db: Session = Depends(get_db)):
 @app.get("/api/get_chat_messages")
 def get_chat_messages(chat_id: int = Query(...), db: Session = Depends(get_db)):
     try:
-        logger.info(f"📥 Loading messages for chat_id: {chat_id}")
+        logger.info(f" Loading messages for chat_id: {chat_id}")
         
         messages = db.query(models.ChatMessage).filter(
             models.ChatMessage.chat_session_id == chat_id
@@ -2017,7 +1981,7 @@ def get_chat_messages(chat_id: int = Query(...), db: Session = Depends(get_db)):
                 "shouldRequestFeedback": False
             })
         
-        logger.info(f"📤 Returning {len(result)} individual messages")
+        logger.info(f" Returning {len(result)} individual messages")
         return result
         
     except Exception as e:
@@ -2348,15 +2312,15 @@ async def transcribe_audio(
 ):
     temp_audio_path = None
     try:
-        logger.info(f"🎤 Transcribing audio for user: {user_id}")
-        logger.info(f"📁 File info - Name: {audio_file.filename}, Type: {audio_file.content_type}")
+        logger.info(f" Transcribing audio for user: {user_id}")
+        logger.info(f" File info - Name: {audio_file.filename}, Type: {audio_file.content_type}")
         
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
         audio_content = await audio_file.read()
-        logger.info(f"📊 Audio size: {len(audio_content)} bytes")
+        logger.info(f" Audio size: {len(audio_content)} bytes")
         
         if len(audio_content) == 0:
             raise HTTPException(status_code=400, detail="Empty audio file")
@@ -2365,11 +2329,11 @@ async def transcribe_audio(
             temp_file.write(audio_content)
             temp_audio_path = temp_file.name
         
-        logger.info(f"💾 Saved to: {temp_audio_path}")
+        logger.info(f" Saved to: {temp_audio_path}")
         
         try:
             with open(temp_audio_path, "rb") as f:
-                logger.info("🚀 Calling Groq Whisper API...")
+                logger.info(" Calling Groq Whisper API...")
                 transcription = groq_client.audio.transcriptions.create(
                     file=f,
                     model="whisper-large-v3-turbo",
@@ -2378,7 +2342,7 @@ async def transcribe_audio(
                 )
             
             transcript_text = transcription.text
-            logger.info(f"✅ Transcription successful: '{transcript_text[:100]}...'")
+            logger.info(f" Transcription successful: '{transcript_text[:100]}...'")
             
             return {
                 "status": "success",
@@ -2388,7 +2352,7 @@ async def transcribe_audio(
             }
             
         except Exception as groq_error:
-            logger.error(f"❌ Groq API error: {str(groq_error)}")
+            logger.error(f" Groq API error: {str(groq_error)}")
             logger.error(f"Error type: {type(groq_error).__name__}")
             raise HTTPException(
                 status_code=500, 
@@ -2398,7 +2362,7 @@ async def transcribe_audio(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Unexpected error: {str(e)}", exc_info=True)
+        logger.error(f" Unexpected error: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500, 
             detail=f"Failed to transcribe audio: {str(e)}"
@@ -2407,9 +2371,9 @@ async def transcribe_audio(
         if temp_audio_path and os.path.exists(temp_audio_path):
             try:
                 os.remove(temp_audio_path)
-                logger.info(f"🗑️ Cleaned up temp file: {temp_audio_path}")
+                logger.info(f" Cleaned up temp file: {temp_audio_path}")
             except Exception as cleanup_error:
-                logger.warning(f"⚠️ Failed to cleanup temp file: {cleanup_error}")
+                logger.warning(f" Failed to cleanup temp file: {cleanup_error}")
 
 @app.get("/api/test_transcribe")
 def test_transcribe_endpoint():
@@ -2489,7 +2453,7 @@ def fix_all_notes(db: Session = Depends(get_db)):
         # Commit all changes
         db.commit()
         
-        logger.info(f"✅ Note fix completed: {fixed_count} fixed, {verified_count} verified, {error_count} errors")
+        logger.info(f" Note fix completed: {fixed_count} fixed, {verified_count} verified, {error_count} errors")
         
         return {
             "status": "success",
@@ -2523,10 +2487,10 @@ def get_folders(user_id: str = Query(...), db: Session = Depends(get_db)):
         
         result = []
         for folder in folders:
-            # ✅ Count only non-deleted notes
+            #  Count only non-deleted notes
             note_count = db.query(models.Note).filter(
                 models.Note.folder_id == folder.id,
-                models.Note.is_deleted == False  # ✅ Exclude deleted notes from count
+                models.Note.is_deleted == False  #  Exclude deleted notes from count
             ).count()
             
             result.append({
@@ -2562,7 +2526,7 @@ def get_trash(user_id: str = Query(...), db: Session = Depends(get_db)):
             models.Note.deleted_at >= thirty_days_ago
         ).order_by(models.Note.deleted_at.desc()).all()
         
-        logger.info(f"📥 Found {len(notes)} deleted notes for user {user.email}")
+        logger.info(f" Found {len(notes)} deleted notes for user {user.email}")
         
         result = []
         for note in notes:
@@ -3259,14 +3223,14 @@ Analysis and improved version:"""
         result = enhance_display_math(result)
         
         # Log for debugging
-        print(f"🔥 AI Action: {action}")
-        print(f"🔥 Input length: {len(content)} chars")
-        print(f"🔥 Output length: {len(result)} chars")
-        print(f"🔥 Result preview: {result[:200]}...")
+        print(f" AI Action: {action}")
+        print(f" Input length: {len(content)} chars")
+        print(f" Output length: {len(result)} chars")
+        print(f" Result preview: {result[:200]}...")
         
         # If generate action returned too short, try again with more explicit prompt
         if action == "generate" and len(result.split()) < 50:
-            print(f"⚠️ Result too short ({len(result.split())} words), retrying with explicit prompt...")
+            print(f" Result too short ({len(result.split())} words), retrying with explicit prompt...")
             
             retry_prompt = f"""Write a detailed educational article about {content}.
 
@@ -3294,8 +3258,8 @@ Start writing the article:"""
             # Post-process math notation
             result = process_math_in_response(result)
             result = enhance_display_math(result)
-            print(f"🔥 Retry result length: {len(result)} chars")
-            print(f"🔥 Retry result preview: {result[:200]}...")
+            print(f" Retry result length: {len(result)} chars")
+            print(f" Retry result preview: {result[:200]}...")
         
         return {
             "status": "success",
@@ -4286,9 +4250,9 @@ def update_note(note_data: NoteUpdate, db: Session = Depends(get_db)):
         if not note:
             raise HTTPException(status_code=404, detail="Note not found")
         
-        # ✅ CRITICAL: Do not allow updating deleted notes
+        #  CRITICAL: Do not allow updating deleted notes
         if note.is_deleted:
-            logger.warning(f"⚠️ Attempted to update deleted note {note.id}")
+            logger.warning(f" Attempted to update deleted note {note.id}")
             raise HTTPException(status_code=400, detail="Cannot update a deleted note")
         
         note.title = note_data.title
@@ -4298,7 +4262,7 @@ def update_note(note_data: NoteUpdate, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(note)
         
-        logger.info(f"✅ Note {note.id} updated successfully")
+        logger.info(f" Note {note.id} updated successfully")
         
         return {
             "id": note.id,
@@ -4508,7 +4472,7 @@ def get_favorite_notes(user_id: str = Query(...), db: Session = Depends(get_db))
         notes = db.query(models.Note).filter(
             models.Note.user_id == user.id,
             models.Note.is_favorite == True,
-            models.Note.is_deleted == False  # ✅ Exclude deleted notes
+            models.Note.is_deleted == False  #  Exclude deleted notes
         ).order_by(models.Note.updated_at.desc()).all()
         
         return {
@@ -4600,7 +4564,7 @@ def create_chat_folder(folder_data: ChatFolderCreate, db: Session = Depends(get_
         db.commit()
         db.refresh(new_folder)
         
-        logger.info(f"✅ Chat folder created: {new_folder.name} for user {user.email}")
+        logger.info(f" Chat folder created: {new_folder.name} for user {user.email}")
         
         return {
             "id": new_folder.id,
@@ -4756,7 +4720,7 @@ Generate only the title, nothing else. Make it specific and informative."""
             chat.updated_at = datetime.now(timezone.utc)
             db.commit()
             
-            logger.info(f"✅ Generated title for chat {chat.id}: {generated_title}")
+            logger.info(f" Generated title for chat {chat.id}: {generated_title}")
             
             return {
                 "title": generated_title,
@@ -4863,22 +4827,19 @@ async def check_proactive_message(
         if lock_key in _notification_lock:
             time_since = current_time - _notification_lock[lock_key]
             if time_since < 5:
-                print(f"\n🔔 BLOCKED DUPLICATE CALL (called {time_since:.1f}s ago)\n")
+                print(f"\n BLOCKED DUPLICATE CALL (called {time_since:.1f}s ago)\n")
                 return {"should_notify": False, "message": None}
         
         _notification_lock[lock_key] = current_time
         
-        print(f"\n{'='*80}")
-        print(f"🔔 PROACTIVE CHECK ENDPOINT CALLED")
-        print(f"🔔 user_id={user_id}, is_idle={is_idle}, is_login={is_login}")
-        print(f"{'='*80}\n")
-        logger.info(f"🔔 Proactive check: user_id={user_id}, is_idle={is_idle}, is_login={is_login}")
+        print(f" PROACTIVE CHECK ENDPOINT CALLED")
+        logger.info(f" Proactive check: user_id={user_id}, is_idle={is_idle}, is_login={is_login}")
         
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        logger.info(f"🔔 User found: {user.first_name} {user.last_name}")
+        logger.info(f" User found: {user.first_name} {user.last_name}")
         
         # Get proactive AI engine
         proactive_engine = get_proactive_ai_engine(unified_ai)
@@ -4904,23 +4865,23 @@ async def check_proactive_message(
             })
         
         # Check if we should send a proactive message (ML-based decision)
-        logger.info(f"🔔 Calling ML engine with is_login={is_login}...")
+        logger.info(f" Calling ML engine with is_login={is_login}...")
         result = await proactive_engine.check_and_send_proactive_message(
             db, user.id, user_profile, is_idle, is_login
         )
         
-        logger.info(f"🔔 ML engine returned: {result}")
+        logger.info(f" ML engine returned: {result}")
         
         # If ML system determined we should reach out
         if result:
             # FIRST: Delete old empty check-in chats (no user replies)
-            print(f"\n🗑️ Checking for empty check-in chats to delete...")
+            print(f"\n Checking for empty check-in chats to delete...")
             old_checkin_chats = db.query(models.ChatSession).filter(
                 models.ChatSession.user_id == user.id,
                 models.ChatSession.title == "AI Tutor Check-in"
             ).all()
             
-            print(f"🗑️ Found {len(old_checkin_chats)} check-in chats to check")
+            print(f" Found {len(old_checkin_chats)} check-in chats to check")
             
             deleted_count = 0
             for old_chat in old_checkin_chats:
@@ -4931,7 +4892,7 @@ async def check_proactive_message(
                     models.ChatMessage.user_message.isnot(None)
                 ).count()
                 
-                print(f"🗑️ Chat ID {old_chat.id}: {user_messages} user messages")
+                print(f" Chat ID {old_chat.id}: {user_messages} user messages")
                 
                 if user_messages == 0:
                     # No user replies - delete this chat
@@ -4940,15 +4901,15 @@ async def check_proactive_message(
                     ).delete()
                     db.delete(old_chat)
                     deleted_count += 1
-                    print(f"🗑️ ✅ Deleted empty check-in chat ID: {old_chat.id}")
+                    print(f"  Deleted empty check-in chat ID: {old_chat.id}")
                 else:
-                    print(f"✅ Keeping check-in chat ID: {old_chat.id} (user replied)")
+                    print(f" Keeping check-in chat ID: {old_chat.id} (user replied)")
             
             if deleted_count > 0:
                 db.commit()
-                print(f"🗑️ Deleted {deleted_count} empty check-in chats\n")
+                print(f" Deleted {deleted_count} empty check-in chats\n")
             else:
-                print(f"🗑️ No empty chats to delete\n")
+                print(f" No empty chats to delete\n")
             
             # NOW: Create new chat session for this proactive message
             new_session = models.ChatSession(
@@ -5001,9 +4962,8 @@ async def check_proactive_message(
                 db.commit()
                 db.refresh(notification)
                 
-                print(f"\n🔔 NOTIFICATION CREATED: ID={notification.id}, user_id={user.id}\n")
             else:
-                print(f"\n🔔 SKIPPING DUPLICATE NOTIFICATION (recent one exists)\n")
+                print(f"\n SKIPPING DUPLICATE NOTIFICATION (recent one exists)\n")
                 notification = recent_notif
             
             response_data = {
@@ -5014,12 +4974,12 @@ async def check_proactive_message(
                 "reason": result["reason"],
                 "notification_id": notification.id
             }
-            print(f"\n🔔 RETURNING SUCCESS: {response_data}\n")
+            print(f"\n RETURNING SUCCESS: {response_data}\n")
             logger.info(f"ML-based proactive message sent to user {user.id}: {result['reason']}")
             return response_data
         
         # No intervention needed based on ML analysis
-        print(f"\n🔔 RETURNING NO NOTIFICATION (result was None)\n")
+        print(f"\n RETURNING NO NOTIFICATION (result was None)\n")
         logger.info(f"ML system determined no intervention needed for user {user.id}")
         return {
             "should_notify": False,
@@ -5081,7 +5041,7 @@ Warm greeting (2 sentences max). Ask what they'd like to work on. Use emoji if a
     except Exception as e:
         logger.error(f"Error generating welcome message: {e}")
         first_name = payload.get("first_name", "there")
-        return {"message": f"Hey {first_name}! 👋 Welcome back! What would you like to learn today?"}
+        return {"message": f"Hey {first_name}!  Welcome back! What would you like to learn today?"}
 
 @app.post("/api/generate_chat_summary")
 async def generate_chat_summary(
@@ -5655,7 +5615,7 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
                 db.add(gamif_stats)
                 
                 db.commit()
-                logger.info(f"✅ New user created via Firebase: {email}")
+                logger.info(f" New user created via Firebase: {email}")
 
             access_token = create_access_token(
                 data={"sub": user.username, "user_id": user.id}
@@ -5683,7 +5643,7 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
             
             # Check if it's a sequence error and retry
             if "duplicate key" in error_msg and "pkey" in error_msg and attempt < max_retries - 1:
-                logger.warning(f"⚠️ Sequence error on Firebase auth, fixing... (attempt {attempt + 1})")
+                logger.warning(f" Sequence error on Firebase auth, fixing... (attempt {attempt + 1})")
                 try:
                     # Fix the sequence
                     if "postgres" in DATABASE_URL:
@@ -5692,10 +5652,10 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
                         fix_query = text("SELECT setval('users_id_seq', :next_id)")
                         db.execute(fix_query, {"next_id": max_id + 1})
                         db.commit()
-                        logger.info(f"✅ Sequence fixed, retrying...")
+                        logger.info(f" Sequence fixed, retrying...")
                         continue  # Retry
                 except Exception as fix_error:
-                    logger.error(f"❌ Failed to fix sequence: {str(fix_error)}")
+                    logger.error(f" Failed to fix sequence: {str(fix_error)}")
             
             # If not a sequence error or retry failed
             logger.error(f"Firebase auth error: {str(e)}", exc_info=True)
@@ -5734,7 +5694,7 @@ async def check_profile_quiz(user_id: str = Query(...), db: Session = Depends(ge
         # User has completed the onboarding if they did quiz OR skipped it
         quiz_flow_completed = has_completed_quiz or has_skipped_quiz
         
-        logger.info(f"🔍 check_profile_quiz for {user_id}: completed={has_completed_quiz}, skipped={has_skipped_quiz}, flow_completed={quiz_flow_completed}")
+        logger.info(f" check_profile_quiz for {user_id}: completed={has_completed_quiz}, skipped={has_skipped_quiz}, flow_completed={quiz_flow_completed}")
 
         return {
             "completed": quiz_flow_completed,
@@ -5802,7 +5762,7 @@ async def is_first_time_user(user_id: str = Query(...), db: Session = Depends(ge
         
         time_since_creation = now - user_created
 
-        logger.info(f"🔍 is_first_time_user for {user_id}: is_first_time={is_first_time}, is_first_login={is_first_login}, quiz_completed={has_completed_quiz}, quiz_skipped={has_skipped_quiz}, account_age_minutes={time_since_creation.total_seconds() / 60:.2f}")
+        logger.info(f" is_first_time_user for {user_id}: is_first_time={is_first_time}, is_first_login={is_first_login}, quiz_completed={has_completed_quiz}, quiz_skipped={has_skipped_quiz}, account_age_minutes={time_since_creation.total_seconds() / 60:.2f}")
 
         return {
             "is_first_time": is_first_time,
@@ -5892,7 +5852,7 @@ def end_session(
         
         db.commit()
         
-        logger.info(f"✅ Session ended: user={user.email}, sessions_today={daily_metric.sessions_completed}, time={daily_metric.time_spent_minutes}")
+        logger.info(f" Session ended: user={user.email}, sessions_today={daily_metric.sessions_completed}, time={daily_metric.time_spent_minutes}")
         
         return {
             "status": "success",
@@ -6832,7 +6792,7 @@ async def submit_question_answers(
         question_results = []
         
         for question in questions:
-            # ✅ CRITICAL FIX: Check if question was answered at all
+            #  CRITICAL FIX: Check if question was answered at all
             question_id_str = str(question.id)
             
             # If question ID not in answers dict at all = unanswered
@@ -8438,7 +8398,7 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
 
         if comprehensive_profile:
             show_insights_value = comprehensive_profile.show_study_insights
-            logger.info(f"📊 Loading profile - show_study_insights from DB: {show_insights_value} (type: {type(show_insights_value)})")
+            logger.info(f" Loading profile - show_study_insights from DB: {show_insights_value} (type: {type(show_insights_value)})")
             
             result.update({
                 "difficultyLevel": comprehensive_profile.difficulty_level or "intermediate",
@@ -8471,11 +8431,11 @@ async def update_comprehensive_profile(
     db: Session = Depends(get_db)
 ):
     try:
-        logger.info(f"📊 Received profile update payload: {payload}")
+        logger.info(f" Received profile update payload: {payload}")
         
         user_id = payload.get("user_id")
         if not user_id:
-            logger.error("📊 No user_id in payload!")
+            logger.error(" No user_id in payload!")
             raise HTTPException(status_code=400, detail="user_id is required")
             
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -8516,7 +8476,7 @@ async def update_comprehensive_profile(
             if isinstance(value, str):
                 value = value.lower() == 'true'
             comprehensive_profile.show_study_insights = bool(value)
-            logger.info(f"📊 Setting show_study_insights to: {comprehensive_profile.show_study_insights} (received: {payload['showStudyInsights']})")
+            logger.info(f" Setting show_study_insights to: {comprehensive_profile.show_study_insights} (received: {payload['showStudyInsights']})")
 
         comprehensive_profile.updated_at = datetime.now(timezone.utc)
 
@@ -8589,12 +8549,12 @@ async def save_complete_profile(
 ):
     try:
         user_id = payload.get("user_id")
-        logger.info(f"🔵 save_complete_profile called for {user_id}")
-        logger.info(f"📦 Payload: quiz_completed={payload.get('quiz_completed')}, quiz_skipped={payload.get('quiz_skipped')}")
+        logger.info(f" save_complete_profile called for {user_id}")
+        logger.info(f" Payload: quiz_completed={payload.get('quiz_completed')}, quiz_skipped={payload.get('quiz_skipped')}")
         
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
-            logger.error(f"❌ User not found: {user_id}")
+            logger.error(f" User not found: {user_id}")
             raise HTTPException(status_code=404, detail="User not found")
 
         comprehensive_profile = db.query(models.ComprehensiveUserProfile).filter(
@@ -8602,11 +8562,11 @@ async def save_complete_profile(
         ).first()
 
         if not comprehensive_profile:
-            logger.info(f"➕ Creating new comprehensive profile for user {user.id}")
+            logger.info(f" Creating new comprehensive profile for user {user.id}")
             comprehensive_profile = models.ComprehensiveUserProfile(user_id=user.id)
             db.add(comprehensive_profile)
         else:
-            logger.info(f"📝 Updating existing comprehensive profile for user {user.id}")
+            logger.info(f" Updating existing comprehensive profile for user {user.id}")
 
         # New profile quiz fields
         if "is_college_student" in payload:
@@ -8642,13 +8602,13 @@ async def save_complete_profile(
         db.commit()
         db.refresh(comprehensive_profile)
         
-        logger.info(f"✅ Saved profile for {user_id}: quiz_completed={comprehensive_profile.quiz_completed}, quiz_skipped={comprehensive_profile.quiz_skipped}, profile_id={comprehensive_profile.id}")
+        logger.info(f" Saved profile for {user_id}: quiz_completed={comprehensive_profile.quiz_completed}, quiz_skipped={comprehensive_profile.quiz_skipped}, profile_id={comprehensive_profile.id}")
         
         # Verify it was actually saved by querying again
         verify_profile = db.query(models.ComprehensiveUserProfile).filter(
             models.ComprehensiveUserProfile.user_id == user.id
         ).first()
-        logger.info(f"🔍 Verification query: quiz_skipped={verify_profile.quiz_skipped if verify_profile else 'NOT FOUND'}")
+        logger.info(f" Verification query: quiz_skipped={verify_profile.quiz_skipped if verify_profile else 'NOT FOUND'}")
         
         # Generate initial proactive greeting message
         if payload.get("quiz_completed"):
@@ -8698,7 +8658,7 @@ Keep it brief and friendly."""
                 greeting_chat = models.ChatMessage(
                     chat_session_id=new_session.id,
                     user_id=user.id,
-                    user_message="🎓 PROFILE_COMPLETED",
+                    user_message=" PROFILE_COMPLETED",
                     ai_response=greeting_message,
                     timestamp=datetime.now(timezone.utc)
                 )
@@ -9228,7 +9188,7 @@ async def give_kudos(
             raise HTTPException(status_code=404, detail="User not found")
         
         activity_id = payload.get("activity_id")
-        reaction_type = payload.get("reaction_type", "👏")
+        reaction_type = payload.get("reaction_type", "")
         
         if not activity_id:
             raise HTTPException(status_code=400, detail="activity_id is required")
@@ -9426,7 +9386,7 @@ async def create_quiz_battle(
         db.commit()
         db.refresh(battle)
         
-        logger.info(f"⚔️ Battle created: ID={battle.id}")
+        logger.info(f" Battle created: ID={battle.id}")
         
         # Create persistent notification for opponent
         battle_notification = models.Notification(
@@ -9460,12 +9420,12 @@ async def create_quiz_battle(
         notification_sent = await notify_battle_challenge(opponent_id, battle_data)
         
         if notification_sent:
-            logger.info(f"✅ Notification sent to opponent {opponent_id}")
+            logger.info(f" Notification sent to opponent {opponent_id}")
         else:
-            logger.warning(f"⚠️ Opponent {opponent_id} not connected to WebSocket - notification not sent")
+            logger.warning(f" Opponent {opponent_id} not connected to WebSocket - notification not sent")
         
         # Log active connections for debugging
-        logger.info(f"📊 Active WebSocket connections: {list(manager.active_connections.keys())}")
+        logger.info(f" Active WebSocket connections: {list(manager.active_connections.keys())}")
         
         return {
             "status": "success",
@@ -9476,7 +9436,7 @@ async def create_quiz_battle(
         }
     
     except Exception as e:
-        logger.error(f"❌ Error creating battle: {str(e)}")
+        logger.error(f" Error creating battle: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -10338,7 +10298,7 @@ async def share_content(
 ):
     """Share a note or chat with friends"""
     try:
-        logger.info(f"📤 Sharing content for user {current_user.id}")
+        logger.info(f" Sharing content for user {current_user.id}")
         
         # Verify content ownership
         if share_data.content_type == 'note':
@@ -10361,7 +10321,7 @@ async def share_content(
         # Create share records for each friend
         shared_records = []
         for friend_id in share_data.friend_ids:
-            # ✅ FIXED: Check for 'active' status instead of 'accepted'
+            #  FIXED: Check for 'active' status instead of 'accepted'
             friendship = db.query(models.Friendship).filter(
                 and_(
                     or_(
@@ -10374,12 +10334,12 @@ async def share_content(
                             models.Friendship.friend_id == current_user.id
                         )
                     ),
-                    models.Friendship.status == 'active'  # ✅ Changed from 'accepted' to 'active'
+                    models.Friendship.status == 'active'  #  Changed from 'accepted' to 'active'
                 )
             ).first()
             
             if not friendship:
-                logger.warning(f"⚠️ User {friend_id} is not a friend of {current_user.id}")
+                logger.warning(f" User {friend_id} is not a friend of {current_user.id}")
                 continue  # Skip if not friends
             
             # Check if already shared
@@ -10396,7 +10356,7 @@ async def share_content(
                 existing_share.message = share_data.message
                 existing_share.shared_at = datetime.now(timezone.utc)
                 shared_records.append(existing_share)
-                logger.info(f"🔄 Updated existing share for friend {friend_id}")
+                logger.info(f" Updated existing share for friend {friend_id}")
             else:
                 # Create new share
                 shared_content = models.SharedContent(
@@ -10410,7 +10370,7 @@ async def share_content(
                 )
                 db.add(shared_content)
                 shared_records.append(shared_content)
-                logger.info(f"✅ Created new share for friend {friend_id}")
+                logger.info(f" Created new share for friend {friend_id}")
                 
                 # Create notification for the friend
                 content_title = content.title if hasattr(content, 'title') else share_data.content_type
@@ -10434,7 +10394,7 @@ async def share_content(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Error sharing content: {str(e)}", exc_info=True)
+        logger.error(f" Error sharing content: {str(e)}", exc_info=True)
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -10445,25 +10405,25 @@ def get_shared_with_me(
 ):
     """Get all content shared with the current user"""
     try:
-        logger.info(f"🔍 Starting shared_with_me endpoint for user: {current_user.id}")
+        logger.info(f" Starting shared_with_me endpoint for user: {current_user.id}")
         
         # Get all shared content for this user
         shared_items = db.query(models.SharedContent).filter(
             models.SharedContent.shared_with_id == current_user.id
         ).order_by(models.SharedContent.shared_at.desc()).all()
         
-        logger.info(f"📦 Found {len(shared_items)} shared items for user {current_user.id}")
+        logger.info(f" Found {len(shared_items)} shared items for user {current_user.id}")
         
         # Debug: Log all shared items
         for item in shared_items:
-            logger.info(f"🔄 Shared item: id={item.id}, type={item.content_type}, content_id={item.content_id}, owner_id={item.owner_id}")
+            logger.info(f" Shared item: id={item.id}, type={item.content_type}, content_id={item.content_id}, owner_id={item.owner_id}")
         
         result = []
         for item in shared_items:
             # Get owner info
             owner = db.query(models.User).filter(models.User.id == item.owner_id).first()
             if not owner:
-                logger.warning(f"⚠️ Owner not found for shared item {item.id}")
+                logger.warning(f" Owner not found for shared item {item.id}")
                 continue
             
             # Get content details
@@ -10475,18 +10435,18 @@ def get_shared_with_me(
                 if note:
                     title = note.title or "Untitled Note"
                     content_exists = True
-                    logger.info(f"📝 Note found: {title}")
+                    logger.info(f" Note found: {title}")
                 else:
-                    logger.warning(f"⚠️ Note not found for ID: {item.content_id}")
+                    logger.warning(f" Note not found for ID: {item.content_id}")
                     title = "Deleted Note"
             elif item.content_type == 'chat':
                 chat = db.query(models.ChatSession).filter(models.ChatSession.id == item.content_id).first()
                 if chat:
                     title = chat.title or "Untitled Chat"
                     content_exists = True
-                    logger.info(f"💬 Chat found: {title}")
+                    logger.info(f" Chat found: {title}")
                 else:
-                    logger.warning(f"⚠️ Chat not found for ID: {item.content_id}")
+                    logger.warning(f" Chat not found for ID: {item.content_id}")
                     title = "Deleted Chat"
             
             # Only include if content still exists
@@ -10509,13 +10469,13 @@ def get_shared_with_me(
                     }
                 })
             else:
-                logger.info(f"🗑️ Skipping deleted content: {item.content_type} {item.content_id}")
+                logger.info(f" Skipping deleted content: {item.content_type} {item.content_id}")
         
-        logger.info(f"✅ Returning {len(result)} valid shared items")
+        logger.info(f" Returning {len(result)} valid shared items")
         return {"shared_items": result}
         
     except Exception as e:
-        logger.error(f"❌ Error getting shared content: {str(e)}", exc_info=True)
+        logger.error(f" Error getting shared content: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/debug_friendships")
@@ -10576,7 +10536,7 @@ def get_shared_content(
 ):
     """Get details of shared content"""
     try:
-        logger.info(f"🔍 Accessing shared content: {content_type} {content_id} for user: {current_user.id}")
+        logger.info(f" Accessing shared content: {content_type} {content_id} for user: {current_user.id}")
         
         # Check if content is shared with user or owned by user
         shared = db.query(models.SharedContent).filter(
@@ -10663,7 +10623,7 @@ def get_shared_content(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Error getting shared content: {str(e)}", exc_info=True)
+        logger.error(f" Error getting shared content: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/debug_shared_content")
@@ -10728,7 +10688,7 @@ def remove_shared_access(
 ):
     """Remove access to shared content"""
     try:
-        logger.info(f"🗑️ User {current_user.id} attempting to remove shared access {share_id}")
+        logger.info(f" User {current_user.id} attempting to remove shared access {share_id}")
         
         # Find shared content - user can remove if they are the recipient OR the owner
         shared = db.query(models.SharedContent).filter(
@@ -10736,17 +10696,17 @@ def remove_shared_access(
         ).first()
         
         if not shared:
-            logger.error(f"❌ Shared content not found: {share_id}")
+            logger.error(f" Shared content not found: {share_id}")
             raise HTTPException(status_code=404, detail="Shared content not found")
         
         # Check permissions: user can remove if they are the recipient OR the owner
         can_remove = (shared.shared_with_id == current_user.id) or (shared.owner_id == current_user.id)
         
         if not can_remove:
-            logger.warning(f"⚠️ User {current_user.id} not authorized to remove share {share_id}")
+            logger.warning(f" User {current_user.id} not authorized to remove share {share_id}")
             raise HTTPException(status_code=403, detail="Not authorized to remove this shared content")
         
-        logger.info(f"✅ Removing shared access: share_id={share_id}, owner={shared.owner_id}, recipient={shared.shared_with_id}")
+        logger.info(f" Removing shared access: share_id={share_id}, owner={shared.owner_id}, recipient={shared.shared_with_id}")
         
         db.delete(shared)
         db.commit()
@@ -10760,7 +10720,7 @@ def remove_shared_access(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Error removing shared access: {str(e)}", exc_info=True)
+        logger.error(f" Error removing shared access: {str(e)}", exc_info=True)
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -10843,7 +10803,7 @@ build_dir = Path(__file__).parent.parent / "build"
 
 # Only serve React if build exists (for local testing)
 if build_dir.exists() and os.getenv("SERVE_REACT", "false").lower() == "true":
-    logger.info(f"✅ Serving React app from {build_dir}")
+    logger.info(f" Serving React app from {build_dir}")
     
     app.mount("/static", StaticFiles(directory=build_dir / "static"), name="static")
     
@@ -10861,7 +10821,7 @@ if build_dir.exists() and os.getenv("SERVE_REACT", "false").lower() == "true":
         
         return FileResponse(build_dir / "index.html")
 else:
-    logger.info("ℹ️ Not serving React app (frontend on Vercel)")
+    logger.info("ℹ Not serving React app (frontend on Vercel)")
     
     # Simple root endpoint
     @app.get("/")
@@ -10888,11 +10848,11 @@ async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = None):
     db = None
     
     try:
-        logger.info(f"📥 WebSocket connection attempt")
+        logger.info(f" WebSocket connection attempt")
         
         # Validate token BEFORE accepting
         if not token:
-            logger.error("❌ No token provided")
+            logger.error(" No token provided")
             await websocket.close(code=1008, reason="No token")
             return
         
@@ -10905,44 +10865,44 @@ async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = None):
             username = payload.get("sub")
             
             if not username:
-                logger.error("❌ No username in token")
+                logger.error(" No username in token")
                 await websocket.close(code=1008, reason="Invalid token")
                 return
             
-            logger.info(f"🔑 Token verified for: {username}")
+            logger.info(f" Token verified for: {username}")
             
             # Get user from database
             user = get_user_by_username(db, username) or get_user_by_email(db, username)
             if not user:
-                logger.error(f"❌ User not found: {username}")
+                logger.error(f" User not found: {username}")
                 await websocket.close(code=1008, reason="User not found")
                 return
             
             user_id = user.id
-            logger.info(f"✅ User {user_id} authenticated successfully")
+            logger.info(f" User {user_id} authenticated successfully")
             
         except JWTError as e:
-            logger.error(f"❌ JWT Error: {str(e)}")
+            logger.error(f" JWT Error: {str(e)}")
             await websocket.close(code=1008, reason="Invalid token")
             return
         except Exception as e:
-            logger.error(f"❌ Auth error: {str(e)}")
+            logger.error(f" Auth error: {str(e)}")
             await websocket.close(code=1011, reason="Auth error")
             return
         
         # NOW accept the connection (after validation)
         await websocket.accept()
-        logger.info(f"✅ WebSocket accepted for user {user_id}")
+        logger.info(f" WebSocket accepted for user {user_id}")
         
         # Close database connection immediately after auth
         if db:
             db.close()
             db = None
-            logger.info(f"🔒 Database connection closed for user {user_id}")
+            logger.info(f" Database connection closed for user {user_id}")
         
         # Store connection
         manager.active_connections[user_id] = websocket
-        logger.info(f"✅ User {user_id} connected (Total: {len(manager.active_connections)})")
+        logger.info(f" User {user_id} connected (Total: {len(manager.active_connections)})")
         
         # Send confirmation
         await websocket.send_json({
@@ -10958,17 +10918,16 @@ async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = None):
                 
                 if data.get("type") == "ping":
                     await websocket.send_json({"type": "pong"})
-                    logger.debug(f"🏓 Ping from user {user_id}")
                 
             except WebSocketDisconnect:
-                logger.info(f"🔌 User {user_id} disconnected")
+                logger.info(f" User {user_id} disconnected")
                 break
             except Exception as e:
-                logger.error(f"❌ Error in WebSocket loop: {str(e)}")
+                logger.error(f" Error in WebSocket loop: {str(e)}")
                 break
     
     except Exception as e:
-        logger.error(f"❌ WebSocket error: {str(e)}")
+        logger.error(f" WebSocket error: {str(e)}")
         try:
             await websocket.close(code=1011, reason="Error")
         except:
@@ -10978,13 +10937,13 @@ async def websocket_endpoint(websocket: WebSocket, token: Optional[str] = None):
         # Cleanup
         if user_id and user_id in manager.active_connections:
             del manager.active_connections[user_id]
-            logger.info(f"👋 User {user_id} cleaned up")
+            logger.info(f" User {user_id} cleaned up")
         
         # Ensure database connection is closed
         if db:
             try:
                 db.close()
-                logger.info(f"🔒 Database connection closed in cleanup")
+                logger.info(f" Database connection closed in cleanup")
             except:
                 pass
             
@@ -11024,7 +10983,7 @@ async def accept_quiz_battle(
         db.commit()
         db.refresh(battle)
         
-        logger.info(f"✅ Battle {battle_id} accepted by user {current_user.id}")
+        logger.info(f" Battle {battle_id} accepted by user {current_user.id}")
         
         # Notify challenger
         await notify_battle_accepted(battle.challenger_id, battle.id)
@@ -11040,7 +10999,7 @@ async def accept_quiz_battle(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Error accepting battle: {str(e)}")
+        logger.error(f" Error accepting battle: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -11079,7 +11038,7 @@ async def decline_quiz_battle(
         
         db.commit()
         
-        logger.info(f"❌ Battle {battle_id} declined by user {current_user.id}")
+        logger.info(f" Battle {battle_id} declined by user {current_user.id}")
         
         # Notify challenger
         opponent_name = f"{current_user.first_name} {current_user.last_name}" if current_user.first_name else current_user.username
@@ -11094,7 +11053,7 @@ async def decline_quiz_battle(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Error declining battle: {str(e)}")
+        logger.error(f" Error declining battle: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -11129,8 +11088,8 @@ async def submit_battle_answer(
         opponent_id = battle.opponent_id if is_challenger else battle.challenger_id
         
         # Send live notification to opponent
-        logger.info(f"📤 Sending answer notification to opponent {opponent_id}: Battle {battle_id}, Q{question_index}, Correct: {is_correct}")
-        logger.info(f"📊 Active WebSocket connections: {list(manager.active_connections.keys())}")
+        logger.info(f" Sending answer notification to opponent {opponent_id}: Battle {battle_id}, Q{question_index}, Correct: {is_correct}")
+        logger.info(f" Active WebSocket connections: {list(manager.active_connections.keys())}")
         
         success = await manager.send_personal_message({
             "type": "battle_answer_submitted",
@@ -11141,9 +11100,9 @@ async def submit_battle_answer(
         }, opponent_id)
         
         if success:
-            logger.info(f"✅ Answer notification delivered to opponent {opponent_id}")
+            logger.info(f" Answer notification delivered to opponent {opponent_id}")
         else:
-            logger.warning(f"⚠️ Failed to deliver notification - opponent {opponent_id} not connected")
+            logger.warning(f" Failed to deliver notification - opponent {opponent_id} not connected")
         
         return {
             "status": "success",
@@ -11151,7 +11110,7 @@ async def submit_battle_answer(
         }
     
     except Exception as e:
-        logger.error(f"❌ Error submitting answer: {str(e)}")
+        logger.error(f" Error submitting answer: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/create_solo_quiz")
@@ -11319,7 +11278,7 @@ async def complete_solo_quiz(
             )
             db.add(notification)
             db.commit()
-            logger.info(f"✅ Created poor performance notification for user {current_user.id}")
+            logger.info(f" Created poor performance notification for user {current_user.id}")
         elif score >= 90:
             # Excellent performance
             logger.info(f"Creating excellent performance notification (score {score} >= 90)")
@@ -11331,7 +11290,7 @@ async def complete_solo_quiz(
             )
             db.add(notification)
             db.commit()
-            logger.info(f"✅ Created excellent performance notification for user {current_user.id}")
+            logger.info(f" Created excellent performance notification for user {current_user.id}")
         else:
             logger.info(f"No notification created - score {score} is between 50-89")
         
@@ -11481,9 +11440,7 @@ async def track_gamification_activity(
         metadata = payload.get("metadata", {})
         
         # COMPREHENSIVE LOGGING
-        print(f"\n{'='*80}")
-        print(f"🎯 TRACK_GAMIFICATION_ACTIVITY CALLED")
-        print(f"{'='*80}")
+        print(f" TRACK_GAMIFICATION_ACTIVITY CALLED")
         print(f"User: {current_user.email} (ID: {current_user.id})")
         print(f"Activity Type: {activity_type}")
         print(f"Metadata: {metadata}")
@@ -11491,13 +11448,12 @@ async def track_gamification_activity(
         print(f"Call Stack:")
         for line in traceback.format_stack()[:-1]:
             print(line.strip())
-        print(f"{'='*80}\n")
         
         # Use centralized gamification system
         result = award_points(db, current_user.id, activity_type, metadata)
         db.commit()
         
-        print(f"✅ Points awarded: {result.get('points_earned', 0)}")
+        print(f" Points awarded: {result.get('points_earned', 0)}")
         print(f"   Total points now: {result.get('total_points', 0)}\n")
         
         return {
@@ -12092,11 +12048,11 @@ async def clear_old_notifications(
 ):
     """Clear all old notifications from previous sessions when user logs in"""
     try:
-        logger.info(f"🔔 Clearing old notifications for user: {user_id}")
+        logger.info(f" Clearing old notifications for user: {user_id}")
         
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
-            logger.warning(f"🔔 User not found: {user_id}")
+            logger.warning(f" User not found: {user_id}")
             return {"status": "success", "cleared": 0, "message": "User not found, nothing to clear"}
         
         # Delete all notifications for this user
@@ -12106,10 +12062,10 @@ async def clear_old_notifications(
         
         db.commit()
         
-        logger.info(f"🔔 Cleared {deleted} old notifications for user {user_id}")
+        logger.info(f" Cleared {deleted} old notifications for user {user_id}")
         return {"status": "success", "cleared": deleted, "message": f"Cleared {deleted} old notifications"}
     except Exception as e:
-        logger.error(f"🔔 Error clearing notifications: {str(e)}")
+        logger.error(f" Error clearing notifications: {str(e)}")
         return {"status": "error", "cleared": 0, "message": str(e)}
 
 @app.delete("/api/clear_all_notifications")
@@ -12119,11 +12075,11 @@ async def clear_all_notifications(
 ):
     """Clear all notifications for a user (used on fresh login)"""
     try:
-        logger.info(f"🔔 Clearing ALL notifications for user: {user_id}")
+        logger.info(f" Clearing ALL notifications for user: {user_id}")
         
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
-            logger.warning(f"🔔 User not found: {user_id}")
+            logger.warning(f" User not found: {user_id}")
             return {"status": "success", "cleared": 0, "message": "User not found"}
         
         # Delete all notifications for this user
@@ -12133,10 +12089,10 @@ async def clear_all_notifications(
         
         db.commit()
         
-        logger.info(f"🔔 Cleared {deleted} notifications for user {user_id}")
+        logger.info(f" Cleared {deleted} notifications for user {user_id}")
         return {"status": "success", "cleared": deleted, "message": f"Cleared {deleted} notifications"}
     except Exception as e:
-        logger.error(f"🔔 Error clearing all notifications: {str(e)}")
+        logger.error(f" Error clearing all notifications: {str(e)}")
         db.rollback()
         return {"status": "error", "cleared": 0, "message": str(e)}
 
@@ -12965,13 +12921,13 @@ async def generate_concept_web(
             # Smart category selection: use the most specific one
             if ai_category_raw and ai_category_raw not in ["General", "Academic", "Discussion"]:
                 ai_category = ai_category_raw
-                logger.info(f"✓ '{display_title}' → '{ai_category}' (from AI category)")
+                logger.info(f" '{display_title}' → '{ai_category}' (from AI category)")
             elif subcategory and subcategory not in ["General", "Academic", "Discussion"]:
                 ai_category = subcategory
-                logger.info(f"✓ '{display_title}' → '{subcategory}' (from AI subcategory)")
+                logger.info(f" '{display_title}' → '{subcategory}' (from AI subcategory)")
             else:
                 ai_category = category
-                logger.info(f"✓ '{display_title}' → '{category}' (fallback)")
+                logger.info(f" '{display_title}' → '{category}' (fallback)")
             
             # Enhanced description showing all source types
             source_str = ", ".join(source_types)
@@ -13592,7 +13548,7 @@ def serialize_reminder(r):
     """Helper to serialize a reminder object"""
     # Debug logging for timezone issues (only log first few to avoid spam)
     if r.reminder_date and r.id % 10 == 1:  # Only log every 10th reminder
-        logger.info(f"📤 SERIALIZING REMINDER: {r.title}")
+        logger.info(f" SERIALIZING REMINDER: {r.title}")
         logger.info(f"   Stored date: {r.reminder_date}")
         logger.info(f"   Serialized as: {r.reminder_date.isoformat()} (no Z suffix = local time)")
     
@@ -13851,7 +13807,7 @@ async def create_reminder(
             # Parse as naive datetime (local time) and store as-is
             # The datetime-local input sends time in user's local timezone
             parsed_reminder_date = datetime.fromisoformat(reminder_date.replace('Z', '').replace('+00:00', ''))
-            logger.info(f"📅 REMINDER CREATION DEBUG:")
+            logger.info(f" REMINDER CREATION DEBUG:")
             logger.info(f"   Raw input: {reminder_date}")
             logger.info(f"   Parsed as: {parsed_reminder_date} (treated as local time)")
             logger.info(f"   User timezone: {user_timezone}")
@@ -14422,14 +14378,14 @@ async def get_attachment(filename: str):
         raise HTTPException(status_code=500, detail=f"Failed to serve attachment: {str(e)}")
 
 # ==================== LEARNING PLAYLIST API ====================
-logger.info("🎵 Registering Learning Playlist API endpoints...")
+logger.info(" Registering Learning Playlist API endpoints...")
 
 @app.get("/api/playlists/test")
 async def test_playlist_endpoint():
     """Test endpoint to verify playlist routes are working"""
     return {"message": "Playlist API is working!"}
 
-logger.info("✅ Playlist test endpoint registered")
+logger.info(" Playlist test endpoint registered")
 
 @app.get("/api/playlists")
 async def get_playlists(
@@ -14566,7 +14522,7 @@ async def create_playlist(
     try:
         # Get raw body for debugging
         body = await request.json()
-        logger.info(f"📦 Received playlist data: {body}")
+        logger.info(f" Received playlist data: {body}")
         
         # Parse into model
         playlist_data = PlaylistCreateRequest(**body)
@@ -17229,10 +17185,10 @@ NOW ANALYZE THIS QUERY AND RETURN ONLY THE JSON:
 """
         
         # Call AI to parse intent
-        logger.info(f"🤖 Calling AI for intent detection: '{query}'")
+        logger.info(f" Calling AI for intent detection: '{query}'")
         ai_response = call_ai(ai_prompt, max_tokens=500, temperature=0.1)
         
-        logger.info(f"📥 AI response: {ai_response[:200]}...")
+        logger.info(f" AI response: {ai_response[:200]}...")
         
         # Parse JSON response (handle markdown code blocks if present)
         ai_response_clean = ai_response.strip()
@@ -17268,7 +17224,7 @@ NOW ANALYZE THIS QUERY AND RETURN ONLY THE JSON:
             result.setdefault("confidence", 0.5)
             
             # Log successful detection
-            logger.info(f"✅ Intent detected - Intent: {result['intent']}, Action: {result['action']}, Confidence: {result['confidence']}")
+            logger.info(f" Intent detected - Intent: {result['intent']}, Action: {result['action']}, Confidence: {result['confidence']}")
             
             # Add original query
             result["original_query"] = query
@@ -17276,7 +17232,7 @@ NOW ANALYZE THIS QUERY AND RETURN ONLY THE JSON:
             return result
             
         except json.JSONDecodeError as e:
-            logger.error(f"❌ Failed to parse AI response as JSON: {e}")
+            logger.error(f" Failed to parse AI response as JSON: {e}")
             logger.error(f"Raw response: {ai_response_clean}")
             
             # Fallback: try to extract action from response text
@@ -17287,7 +17243,7 @@ NOW ANALYZE THIS QUERY AND RETURN ONLY THE JSON:
                     break
             
             if action_match:
-                logger.info(f"⚠️ Fallback: Extracted action '{action_match}' from text")
+                logger.info(f" Fallback: Extracted action '{action_match}' from text")
                 return {
                     "intent": "action",
                     "action": action_match,
@@ -17297,7 +17253,7 @@ NOW ANALYZE THIS QUERY AND RETURN ONLY THE JSON:
                 }
             else:
                 # Default to search
-                logger.info(f"⚠️ Fallback: Defaulting to search")
+                logger.info(f" Fallback: Defaulting to search")
                 return {
                     "intent": "search",
                     "action": None,
@@ -17307,7 +17263,7 @@ NOW ANALYZE THIS QUERY AND RETURN ONLY THE JSON:
                 }
         
     except Exception as e:
-        logger.error(f"❌ Intent detection error: {str(e)}")
+        logger.error(f" Intent detection error: {str(e)}")
         import traceback
         traceback.print_exc()
         

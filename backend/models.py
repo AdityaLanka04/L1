@@ -1,6 +1,6 @@
 from sqlalchemy import (
     create_engine, Column, Integer, String, Text, DateTime, ForeignKey,
-    Boolean, Float, JSON, Date, func  # ✅ ADD func here
+    Boolean, Float, JSON, Date, func  #  ADD func here
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker, backref
@@ -314,7 +314,7 @@ class Activity(Base):
 
     user = relationship("User", back_populates="activities")
 
-# (⚡ Keep your other ORM classes here: FlashcardSet, Flashcard, FlashcardStudySession, 
+# ( Keep your other ORM classes here: FlashcardSet, Flashcard, FlashcardStudySession, 
 # UserPersonalityProfile, LearningPattern, UserPreferences, TopicMastery, 
 # ComprehensiveUserProfile, EnhancedUserStats, DailyLearningMetrics, 
 # Achievement, UserAchievement, GlobalKnowledgeBase, AIResponseImprovement, 
@@ -834,9 +834,9 @@ class LearningReviewAttempt(Base):
     user_response = Column(Text, nullable=False)
     covered_points = Column(Text)  # JSON array of points the user covered
     missing_points = Column(Text)  # JSON array of points the user missed
-    completeness_percentage = Column(Float, default=0.0)  # ✅ Percentage score
-    feedback = Column(Text)  # ✅ ADD THIS - AI-generated feedback
-    submitted_at = Column(DateTime, default=datetime.utcnow)  # ✅ ADD THIS
+    completeness_percentage = Column(Float, default=0.0)  #  Percentage score
+    feedback = Column(Text)  #  ADD THIS - AI-generated feedback
+    submitted_at = Column(DateTime, default=datetime.utcnow)  #  ADD THIS
     created_at = Column(DateTime, default=datetime.utcnow)
     
 class LearningReviewHint(Base):
@@ -1104,7 +1104,7 @@ class Kudos(Base):
     id = Column(Integer, primary_key=True, index=True)
     activity_id = Column(Integer, ForeignKey("friend_activities.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    reaction_type = Column(String(20), default="👏")  # emoji reaction
+    reaction_type = Column(String(20), default="")  # emoji reaction
     created_at = Column(DateTime, default=datetime.utcnow)
     
     activity = relationship("FriendActivity", foreign_keys=[activity_id])
@@ -2036,4 +2036,4 @@ def get_db():
 
 if __name__ == "__main__":
     create_tables()
-    print("✅ Database tables created successfully!")
+    print(" Database tables created successfully!")

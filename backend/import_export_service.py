@@ -511,7 +511,7 @@ Return ONLY a JSON array:
                         for opt in options:
                             is_correct = opt.startswith(question.correct_answer)
                             if is_correct:
-                                content += f"<li><strong>✓ {opt}</strong></li>\n"
+                                content += f"<li><strong> {opt}</strong></li>\n"
                             else:
                                 content += f"<li>{opt}</li>\n"
                         content += "</ul>\n"
