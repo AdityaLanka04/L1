@@ -41,8 +41,7 @@ const PlaylistDetailPage = () => {
         setIsFollowing(data.is_following || false);
       }
     } catch (error) {
-      console.error('Error fetching playlist:', error);
-    } finally {
+          } finally {
       setLoading(false);
     }
   };
@@ -66,8 +65,7 @@ const PlaylistDetailPage = () => {
         }));
       }
     } catch (error) {
-      console.error('Error toggling follow:', error);
-    } finally {
+          } finally {
       setFollowLoading(false);
     }
   };
@@ -88,8 +86,7 @@ const PlaylistDetailPage = () => {
         fetchPlaylistDetails();
       }
     } catch (error) {
-      console.error('Error adding item:', error);
-    }
+          }
   };
 
   const handleDeleteItem = async (itemId) => {
@@ -105,8 +102,7 @@ const PlaylistDetailPage = () => {
         fetchPlaylistDetails();
       }
     } catch (error) {
-      console.error('Error deleting item:', error);
-    }
+          }
   };
 
   const toggleItem = (itemId) => {
@@ -132,8 +128,7 @@ const PlaylistDetailPage = () => {
             setShowViewModal(true);
           }
         } catch (error) {
-          console.error('Error loading item:', error);
-        }
+                  }
       }
     } else if (item.url) {
       window.open(item.url, '_blank', 'noopener,noreferrer');
@@ -534,8 +529,7 @@ const AddItemModal = ({ onClose, onAdd }) => {
         }
       }
     } catch (error) {
-      console.error('Error fetching resources:', error);
-    } finally {
+          } finally {
       setLoadingResources(false);
     }
   };

@@ -78,7 +78,7 @@ const TrialModal = ({ isOpen, onClose, timeRemaining, isWarning = false, onLogin
               <li>✨ Unlimited AI tutoring sessions</li>
               <li>📚 Personalized study materials</li>
               <li>🎯 Progress tracking and analytics</li>
-              <li>💾 Save your conversations and notes</li>
+              <li> Save your conversations and notes</li>
               <li>🔄 Sync across all your devices</li>
             </ul>
           </div>

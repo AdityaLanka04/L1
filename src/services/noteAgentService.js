@@ -57,8 +57,7 @@ class NoteAgentService {
         metadata: data.metadata
       };
     } catch (error) {
-      console.error('Note agent error:', error);
-      throw error;
+            throw error;
     }
   }
 
@@ -251,8 +250,7 @@ class NoteAgentService {
       if (!response.ok) throw new Error('Failed to get actions');
       return await response.json();
     } catch (error) {
-      console.error('Error getting actions:', error);
-      return { actions: [] };
+            return { actions: [] };
     }
   }
 
@@ -267,8 +265,7 @@ class NoteAgentService {
       if (!response.ok) throw new Error('Failed to get tones');
       return await response.json();
     } catch (error) {
-      console.error('Error getting tones:', error);
-      return { tones: [] };
+            return { tones: [] };
     }
   }
 
@@ -283,8 +280,7 @@ class NoteAgentService {
       if (!response.ok) throw new Error('Failed to get depths');
       return await response.json();
     } catch (error) {
-      console.error('Error getting depths:', error);
-      return { depths: [] };
+            return { depths: [] };
     }
   }
 }

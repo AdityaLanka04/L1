@@ -316,15 +316,12 @@ const ProfileQuiz = () => {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('📋 Quiz status check:', data);
-        if (data.completed) {
-          console.log('✅ Quiz already completed/skipped, redirecting to dashboard');
-          navigate('/dashboard');
+                if (data.completed) {
+                    navigate('/dashboard');
         }
       }
     } catch (error) {
-      console.error('Error checking quiz status:', error);
-    }
+          }
   };
 
   const generateMainSubjectSuggestions = (input) => {
@@ -369,8 +366,7 @@ const ProfileQuiz = () => {
     if (!answers.subjects.includes(subject)) {
       setAnswers(prev => {
         const newSubjects = [...prev.subjects, subject];
-        console.log('Adding subject:', subject, 'New subjects array:', newSubjects);
-        // Scroll to goal section after first subject is added
+                // Scroll to goal section after first subject is added
         if (newSubjects.length === 1) {
           scrollToRef(goalRef);
         }
@@ -506,8 +502,7 @@ const ProfileQuiz = () => {
         navigate('/dashboard');
       }, 5000);
     } catch (error) {
-      console.error('Error saving profile:', error);
-    }
+          }
   };
 
   const handleSkip = () => {
@@ -537,9 +532,7 @@ const ProfileQuiz = () => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Skip quiz response:', data);
-        console.log('🔍 Saved: quiz_skipped =', data.quiz_skipped);
-        
+                        
         // Set flag that user just completed onboarding (by skipping)
         sessionStorage.setItem('justCompletedOnboarding', 'true');
         sessionStorage.setItem('isFirstTimeUser', 'true');
@@ -549,12 +542,10 @@ const ProfileQuiz = () => {
         
         navigate('/dashboard');
       } else {
-        console.error('❌ Failed to save skip:', response.status);
-        navigate('/dashboard');
+                navigate('/dashboard');
       }
     } catch (error) {
-      console.error('Error saving profile:', error);
-      navigate('/dashboard');
+            navigate('/dashboard');
     }
   };
 

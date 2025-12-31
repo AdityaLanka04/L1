@@ -141,8 +141,7 @@ const Dashboard = () => {
     // This handles page refreshes where sessionStorage might be cleared
     if (token && username) {
       sessionStorage.setItem('safetyAccepted', 'true');
-      console.log('Dashboard: Safety flag set for authenticated user');
-    }
+          }
 
     if (username) setUserName(username);
 
@@ -150,8 +149,7 @@ const Dashboard = () => {
       try {
         setUserProfile(JSON.parse(profile));
       } catch (error) {
-        console.error('Error parsing user profile:', error);
-      }
+              }
     }
 
     if (savedLayout) {
@@ -160,8 +158,7 @@ const Dashboard = () => {
         setPlacedWidgets(parsed.placed || defaultLayout);
         setAvailableWidgets(parsed.available || []);
       } catch (error) {
-        console.error('Error parsing saved layout:', error);
-      }
+              }
     }
   }, []);
 
@@ -172,7 +169,6 @@ const Dashboard = () => {
       const justLoggedIn = sessionStorage.getItem('justLoggedIn');
       
       if (justCompletedOnboarding && justLoggedIn) {
-        console.log('🎓 First-time user (just completed onboarding), showing tour');
         sessionStorage.removeItem('justCompletedOnboarding'); // Clear flag
         setHasSeenTour(false);
         setTimeout(() => {
@@ -196,28 +192,19 @@ const Dashboard = () => {
         const data = await response.json();
         const isFirstTime = data.is_first_time;
         
-        console.log('🎯 User Status Check:', {
-          userName,
-          isFirstTime,
-          accountAgeMinutes: data.account_age_minutes,
-          quizCompleted: data.quiz_completed,
-          quizSkipped: data.quiz_skipped
-        });
-        
+                
         // If NOT first-time, mark tour as seen
         setHasSeenTour(!isFirstTime);
 
         // Auto-show tour ONLY for first-time users
         const justLoggedIn = sessionStorage.getItem('justLoggedIn');
         if (justLoggedIn && isFirstTime) {
-          console.log('🎓 First-time user detected (new account), showing tour');
           setTimeout(() => {
             setShowTour(true);
           }, 1000);
         }
       }
     } catch (error) {
-      console.error('Error checking user status:', error);
       // Default to NOT showing tour if check fails
       setHasSeenTour(true);
     }
@@ -256,9 +243,7 @@ const Dashboard = () => {
       const isFirstTimeUser = sessionStorage.getItem('isFirstTimeUser') === 'true';
       sessionStorage.removeItem('isFirstTimeUser'); // Clear flag after reading
       
-      console.log('🎯 User type:', isFirstTimeUser ? 'FIRST-TIME' : 'RETURNING');
-      console.log('📊 Study insights enabled:', showStudyInsights);
-      
+                  
       // Get user's first name from profile, fallback to username
       const displayName = userProfile?.firstName || userName.split('@')[0];
       
@@ -371,8 +356,7 @@ const Dashboard = () => {
         }, 1500);
       }
     } catch (error) {
-      console.error('Error fetching personalized welcome:', error);
-      // Fallback to simple welcome
+            // Fallback to simple welcome
       const displayName = userProfile?.firstName || userName.split('@')[0];
       const welcomeNotif = {
         id: `welcome-${Date.now()}`,
@@ -471,8 +455,7 @@ const Dashboard = () => {
         setLearningReviews(data.learning_reviews || []);
       }
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
-    }
+          }
   };
 
   const checkForMissedAchievements = async () => {
@@ -500,8 +483,7 @@ const Dashboard = () => {
         }
       }
     } catch (error) {
-      console.error('Error checking missed achievements:', error);
-    }
+          }
   };
 
   const startNotificationPolling = () => {
@@ -552,8 +534,7 @@ const Dashboard = () => {
           }
         }
       } catch (error) {
-        console.error('Error polling notifications:', error);
-      }
+              }
     };
 
     pollNotifications();
@@ -583,8 +564,7 @@ const Dashboard = () => {
         setUnreadCount(prev => Math.max(0, prev - 1));
       }
     } catch (error) {
-      console.error('Error marking notification as read:', error);
-    }
+          }
   };
 
   const deleteNotification = async (notifId) => {
@@ -608,8 +588,7 @@ const Dashboard = () => {
         if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
       }
     } catch (error) {
-      console.error('Error deleting notification:', error);
-    }
+          }
   };
 
   const handleEngagementSuggestion = (action) => {
@@ -695,8 +674,7 @@ const Dashboard = () => {
         loadDashboardData();
       }
     } catch (error) {
-      console.error('Error updating learning review:', error);
-    }
+          }
   };
 
   const startLearningReview = (review) => {
@@ -730,8 +708,7 @@ const Dashboard = () => {
         alert('Error deleting review: ' + (errorData.detail || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Error deleting learning review:', error);
-      alert('Error deleting learning review');
+            alert('Error deleting learning review');
     }
   };
 
@@ -960,8 +937,7 @@ const Dashboard = () => {
         setTotalQuestions(data.total_count || 0);
       }
     } catch (error) {
-      console.error('Error loading heatmap data:', error);
-    } finally {
+          } finally {
       setHeatmapLoading(false);
     }
   };
@@ -1077,8 +1053,7 @@ const Dashboard = () => {
         startSessionTimeUpdater();
       }
     } catch (error) {
-      console.error('Error starting dashboard session:', error);
-    }
+          }
   };
 
   const startTimeTracking = () => {
@@ -1139,8 +1114,7 @@ const Dashboard = () => {
         }
       }
     } catch (error) {
-      console.error('Error ending dashboard session:', error);
-    } finally {
+          } finally {
       if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
       if (sessionUpdateRef.current) clearInterval(sessionUpdateRef.current);
       if (window.dashboardTimeTrackingCleanup) window.dashboardTimeTrackingCleanup();
@@ -1196,8 +1170,7 @@ const Dashboard = () => {
         }, delay);
       }
     } catch (error) {
-      console.error('Error checking user status for notification:', error);
-    }
+          }
   };
 
   const loadUserStats = async () => {
@@ -1235,8 +1208,7 @@ const Dashboard = () => {
         }
       }
     } catch (error) {
-      console.error('Error loading user stats:', error);
-    }
+          }
   };
 
   const renderWidget = (widget) => {
@@ -1261,7 +1233,9 @@ const Dashboard = () => {
       case 'stats':
         // Weekly line graph data
         const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        const maxWeeklyValue = Math.max(...weeklyProgress, 1);
+        // Ensure we have valid data (7 days)
+        const validWeeklyProgress = weeklyProgress && weeklyProgress.length === 7 ? weeklyProgress : [0, 0, 0, 0, 0, 0, 0];
+        const maxWeeklyValue = Math.max(...validWeeklyProgress, 1);
         
         // Round to nearest multiple of 10
         const roundToTen = (num) => Math.ceil(num / 10) * 10;
@@ -1317,7 +1291,7 @@ const Dashboard = () => {
                     
                     {/* Area fill */}
                     <path
-                      d={`M 40 100 ${weeklyProgress.map((val, i) => {
+                      d={`M 40 100 ${validWeeklyProgress.map((val, i) => {
                         const x = 40 + (i * 41.67);
                         const y = 100 - (val / maxRounded) * 70;
                         return `L ${x} ${y}`;
@@ -1327,7 +1301,7 @@ const Dashboard = () => {
                     
                     {/* Line */}
                     <path
-                      d={`M ${weeklyProgress.map((val, i) => {
+                      d={`M ${validWeeklyProgress.map((val, i) => {
                         const x = 40 + (i * 41.67);
                         const y = 100 - (val / maxRounded) * 70;
                         return `${i === 0 ? '' : 'L '}${x} ${y}`;
@@ -1338,7 +1312,7 @@ const Dashboard = () => {
                     />
                     
                     {/* Data points */}
-                    {weeklyProgress.map((val, i) => {
+                    {validWeeklyProgress.map((val, i) => {
                       const x = 40 + (i * 41.67);
                       const y = 100 - (val / maxRounded) * 70;
                       return (

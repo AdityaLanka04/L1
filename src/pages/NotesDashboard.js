@@ -62,8 +62,7 @@ const NotesDashboard = () => {
         setNotes(data.filter(n => !n.is_deleted));
       }
     } catch (error) {
-      console.error('Error loading notes:', error);
-    }
+          }
   };
 
   const loadFolders = async (username) => {
@@ -77,8 +76,7 @@ const NotesDashboard = () => {
         setFolders(data.folders || []);
       }
     } catch (error) {
-      console.error('Error loading folders:', error);
-    }
+          }
   };
 
   const handleSelectNote = (note) => {
@@ -106,8 +104,7 @@ const NotesDashboard = () => {
         navigate(`/notes/editor/${newNote.id}`);
       }
     } catch (error) {
-      console.error('Error creating note:', error);
-    }
+          }
   };
 
   const handleTemplateSelect = async (template) => {
@@ -138,8 +135,7 @@ const NotesDashboard = () => {
         navigate(`/notes/editor/${newNote.id}`);
       }
     } catch (error) {
-      console.error('Error creating note from template:', error);
-    }
+          }
   };
 
   // Helper function to convert blocks to HTML

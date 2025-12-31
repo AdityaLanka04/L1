@@ -152,8 +152,7 @@ const SearchHub = () => {
       try {
         setRecentSearches(JSON.parse(saved));
       } catch (error) {
-        console.error('Error loading recent searches:', error);
-      }
+              }
     }
   };
 
@@ -194,12 +193,10 @@ const SearchHub = () => {
         
         setPersonalizedPrompts(combinedPrompts);
       } else {
-        console.log('Personalized prompts endpoint not available, using defaults');
-        setPersonalizedPrompts([]);
+                setPersonalizedPrompts([]);
       }
     } catch (error) {
-      console.error('Error loading personalized prompts:', error);
-      setPersonalizedPrompts([]);
+            setPersonalizedPrompts([]);
     }
   };
 
@@ -237,23 +234,23 @@ const SearchHub = () => {
       ]},
       { pattern: 'review', suggestions: [
         { text: 'review flashcards', icon: '📚', action: 'review_flashcards' },
-        { text: 'review weak flashcards', icon: '⚠️', action: 'review_flashcards' },
+        { text: 'review weak flashcards', icon: '', action: 'review_flashcards' },
         { text: 'review what I\'ll forget next', icon: '🔮', action: 'predict_forgetting' },
       ]},
       { pattern: 'show', suggestions: [
         { text: 'show my progress', icon: '📊', action: 'show_progress' },
-        { text: 'show weak areas', icon: '🔍', action: 'show_weak_areas' },
+        { text: 'show weak areas', icon: '', action: 'show_weak_areas' },
         { text: 'show my achievements', icon: '🏆', action: 'show_achievements' },
         { text: 'show my learning style', icon: '🧠', action: 'show_learning_style' },
         { text: 'show knowledge gaps', icon: '🕳️', action: 'show_knowledge_gaps' },
       ]},
       { pattern: 'find', suggestions: [
-        { text: 'find my knowledge blind spots', icon: '🔍', action: 'show_knowledge_gaps' },
+        { text: 'find my knowledge blind spots', icon: '', action: 'show_knowledge_gaps' },
         { text: 'find my study twin', icon: '👥', action: 'find_study_twin' },
         { text: 'find complementary learners', icon: '🤝', action: 'find_complementary' },
       ]},
       { pattern: 'what', suggestions: [
-        { text: 'what am I weak in', icon: '🔍', action: 'show_weak_areas' },
+        { text: 'what am I weak in', icon: '', action: 'show_weak_areas' },
         { text: 'what is my learning style', icon: '🧠', action: 'show_learning_style' },
         { text: 'what will I forget next', icon: '🔮', action: 'predict_forgetting' },
         { text: 'what are my knowledge gaps', icon: '🕳️', action: 'show_knowledge_gaps' },
@@ -270,7 +267,7 @@ const SearchHub = () => {
       ]},
       { pattern: 'quiz', suggestions: [
         { text: 'quiz me on {topic}', icon: '❓', action: 'quiz' },
-        { text: 'quiz me on weak areas', icon: '⚠️', action: 'quiz_weak' },
+        { text: 'quiz me on weak areas', icon: '', action: 'quiz_weak' },
       ]},
       { pattern: 'optimize', suggestions: [
         { text: 'optimize my retention', icon: '🧠', action: 'optimize_retention' },
@@ -313,15 +310,12 @@ const SearchHub = () => {
   };
 
   const handleSearch = async (query = searchQuery) => {
-    console.log('🔍 handleSearch called with query:', query);
-    if (!query || !query.trim()) {
-      console.log('⚠️ Empty query, returning');
-      return;
+        if (!query || !query.trim()) {
+            return;
     }
 
     const finalQuery = query.trim();
-    console.log('🚀 Starting search...');
-    setIsSearching(true);
+        setIsSearching(true);
     setShowSuggestions(false);
     setShowAutocomplete(false);
     saveRecentSearch(finalQuery);
@@ -331,12 +325,9 @@ const SearchHub = () => {
 
     try {
       const token = localStorage.getItem('token');
-      console.log('🔑 Token exists:', !!token);
-      console.log('👤 Username:', userName);
-      
+                  
       // First, detect intent using AI
-      console.log('🤖 Detecting intent...');
-      const intentFormData = new FormData();
+            const intentFormData = new FormData();
       intentFormData.append('user_id', userName || 'guest');
       intentFormData.append('query', finalQuery);
       
@@ -346,23 +337,19 @@ const SearchHub = () => {
         body: intentFormData
       });
       
-      console.log('📥 Intent response status:', intentResponse.status);
-      
+            
       if (intentResponse.ok) {
         const intentData = await intentResponse.json();
-        console.log('🎯 Intent data:', intentData);
-        
+                
         // Execute action based on intent
         if (intentData.intent === 'action') {
-          console.log('⚡ Executing action:', intentData.action);
-          await executeAction(intentData);
+                    await executeAction(intentData);
           return;
         }
       }
       
       // If no action intent, perform regular search
-      console.log('🔎 Performing regular search...');
-      const formData = new FormData();
+            const formData = new FormData();
       formData.append('user_id', userName || 'guest');
       formData.append('query', finalQuery);
       formData.append('content_types', filters.content_types);
@@ -376,18 +363,15 @@ const SearchHub = () => {
         body: formData
       });
 
-      console.log('📥 Search response status:', response.status);
-
+      
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Search results:', data);
-        setSearchResults(data);
+                setSearchResults(data);
         setDidYouMean(data.did_you_mean || null);
         setRelatedSearches(data.related_searches || []);
         
         if (data.total_results === 0 || !data.results || data.results.length === 0) {
-          console.log('💡 No results, getting AI description...');
-          await getAiDescription(finalQuery);
+                    await getAiDescription(finalQuery);
         } else {
           setAiSuggestion(data.ai_suggestion || null);
         }
@@ -395,20 +379,16 @@ const SearchHub = () => {
         throw new Error('Search failed');
       }
     } catch (error) {
-      console.error('❌ Error searching:', error);
-      // Even on error, try to get AI description
+            // Even on error, try to get AI description
       await getAiDescription(finalQuery);
     } finally {
-      console.log('🏁 Search complete, setting isSearching to false');
-      setIsSearching(false);
+            setIsSearching(false);
     }
   };
 
   const getAiDescription = async (topic) => {
     try {
-      console.log('🤖 Getting AI description for:', topic);
-      console.log('🔗 API_URL:', API_URL);
-      const token = localStorage.getItem('token');
+                  const token = localStorage.getItem('token');
       
       // Try to get AI-generated description from backend
       const formData = new FormData();
@@ -416,20 +396,17 @@ const SearchHub = () => {
       formData.append('topic', topic);
       
       const fullUrl = `${API_URL}/generate_topic_description`;
-      console.log('📡 Calling:', fullUrl);
-      
+            
       const response = await fetch(fullUrl, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
       });
       
-      console.log('📥 Response status:', response.status);
-      
+            
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ AI description received:', data);
-        setAiSuggestion({
+                setAiSuggestion({
           description: data.description || data.summary || `Let me help you learn about ${topic}.`,
           suggestions: [
             `create flashcards on ${topic}`,
@@ -447,10 +424,8 @@ const SearchHub = () => {
           has_ai_description: true
         });
       } else {
-        console.log('⚠️ Response not OK, status:', response.status);
-        const errorText = await response.text();
-        console.log('❌ Error response:', errorText);
-        
+                const errorText = await response.text();
+                
         // Fallback: Show helpful message
         setAiSuggestion({
           description: `I couldn't find any existing study materials about "${topic}". Let's create some! I can help you generate flashcards, notes, or start a learning session.`,
@@ -470,8 +445,7 @@ const SearchHub = () => {
         });
       }
     } catch (error) {
-      console.error('❌ Error getting AI description:', error);
-      // Fallback AI suggestion
+            // Fallback AI suggestion
       setAiSuggestion({
         description: `I couldn't find any existing study materials about "${topic}". Would you like to create some? I can help you generate flashcards, notes, or start a learning session.`,
         suggestions: [
@@ -491,22 +465,18 @@ const SearchHub = () => {
   };
 
   const executeAction = async (intentData) => {
-    console.log('⚡ executeAction called with:', intentData);
-    const { action, parameters } = intentData;
+        const { action, parameters } = intentData;
     
     try {
-      console.log('🎬 Executing action:', action);
-      switch (action) {
+            switch (action) {
         case 'create_note':
-          console.log('📝 Creating note');
-          setIsCreating(true);
+                    setIsCreating(true);
           setCreatingMessage('Creating note...');
           navigate('/notes');
           break;
           
         case 'create_flashcards':
-          console.log('🃏 Creating flashcards');
-          setIsCreating(true);
+                    setIsCreating(true);
           setCreatingMessage(`Creating flashcards on ${parameters.topic}...`);
           setTimeout(() => {
             setIsCreating(false);
@@ -521,8 +491,7 @@ const SearchHub = () => {
           break;
           
         case 'create_quiz':
-          console.log('❓ Starting quiz');
-          setIsCreating(true);
+                    setIsCreating(true);
           setCreatingMessage('Preparing quiz...');
           setTimeout(() => {
             setIsCreating(false);
@@ -531,8 +500,7 @@ const SearchHub = () => {
           break;
           
         case 'start_chat':
-          console.log('💬 Starting chat');
-          navigate('/ai-chat', { 
+                    navigate('/ai-chat', { 
             state: { 
               initialMessage: parameters.message || parameters.topic
             } 
@@ -548,14 +516,12 @@ const SearchHub = () => {
           break;
           
         default:
-          console.log('🔄 Unknown action, performing regular search');
-          // Fall back to regular search
+                    // Fall back to regular search
           setIsSearching(false);
           break;
       }
     } catch (error) {
-      console.error('❌ Error executing action:', error);
-      setIsCreating(false);
+            setIsCreating(false);
       setIsSearching(false);
     }
   };
@@ -593,8 +559,7 @@ const SearchHub = () => {
           }
         }
       } catch (error) {
-        console.error('Autocomplete error:', error);
-      }
+              }
 
       // Fallback: Show filtered recent searches and personalized prompts
       const queryLower = query.toLowerCase();
@@ -731,8 +696,7 @@ const SearchHub = () => {
         navigate(`/chat/new?query=${encodeURIComponent(searchQuery)}`);
       }
     } catch (error) {
-      console.error('Error creating content:', error);
-    } finally {
+          } finally {
       setIsCreating(false);
     }
   };

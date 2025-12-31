@@ -61,8 +61,7 @@ const PlaylistsPage = () => {
         setPlaylists(data.playlists || []);
       }
     } catch (error) {
-      console.error('Error fetching playlists:', error);
-    } finally {
+          } finally {
       setLoading(false);
     }
   };
@@ -83,8 +82,7 @@ const PlaylistsPage = () => {
         fetchPlaylists();
       }
     } catch (error) {
-      console.error('Error creating playlist:', error);
-    }
+          }
   };
 
   const handlePlaylistClick = (playlistId) => {

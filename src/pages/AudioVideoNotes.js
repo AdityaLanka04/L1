@@ -82,8 +82,7 @@ const AudioVideoNotes = () => {
         throw new Error('Failed to generate notes');
       }
     } catch (error) {
-      console.error('Error generating notes:', error);
-      alert('Failed to generate notes. Please try again.');
+            alert('Failed to generate notes. Please try again.');
     } finally {
       setIsGenerating(false);
       setTimeout(() => setGenerationProgress(0), 1000);
@@ -117,8 +116,7 @@ const AudioVideoNotes = () => {
         navigate(`/notes/editor/${newNote.id}`);
       }
     } catch (error) {
-      console.error('Error saving notes:', error);
-      alert('Failed to save notes');
+            alert('Failed to save notes');
     }
   };
 

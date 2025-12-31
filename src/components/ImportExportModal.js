@@ -108,8 +108,7 @@ const ImportExportModal = ({
         setAvailableItems(items);
       }
     } catch (error) {
-      console.error('Error loading items:', error);
-    }
+          }
     setLoading(false);
   };
 
@@ -229,8 +228,7 @@ const ImportExportModal = ({
         throw new Error('Failed to convert');
       }
     } catch (error) {
-      console.error('Conversion error:', error);
-      setResult({
+            setResult({
         success: false,
         message: error.message || 'Conversion failed',
         type: 'error'

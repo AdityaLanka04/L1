@@ -32,8 +32,7 @@ const Leaderboards = () => {
         setCurrentUserRank(data.current_user_rank);
       }
     } catch (error) {
-      console.error('Error fetching leaderboard:', error);
-    } finally {
+          } finally {
       setLoading(false);
     }
   };

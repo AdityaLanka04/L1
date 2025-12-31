@@ -138,8 +138,7 @@ const AIMediaNotes = () => {
       setActiveTab('notes');
 
     } catch (error) {
-      console.error('Processing error:', error);
-      alert(`Failed to process media: ${error.message}`);
+            alert(`Failed to process media: ${error.message}`);
     } finally {
       setIsProcessing(false);
       setProcessingStage('');
@@ -198,8 +197,7 @@ const AIMediaNotes = () => {
       navigate(`/notes/editor/${data.note_id}`);
 
     } catch (error) {
-      console.error('Save error:', error);
-      alert('Failed to save notes');
+            alert('Failed to save notes');
     }
   };
 
@@ -253,8 +251,7 @@ const AIMediaNotes = () => {
       navigate('/flashcards');
 
     } catch (error) {
-      console.error('Save flashcards error:', error);
-      alert('Failed to save flashcards');
+            alert('Failed to save flashcards');
     }
   };
 
@@ -291,8 +288,7 @@ const AIMediaNotes = () => {
         setHistory(data.history || []);
       }
     } catch (error) {
-      console.error('Error fetching history:', error);
-    }
+          }
   };
 
   const loadHistoryItem = async (item) => {
@@ -319,8 +315,7 @@ const AIMediaNotes = () => {
         setActiveTab('notes');
       }
     } catch (error) {
-      console.error('Error loading history item:', error);
-      alert('Failed to load note');
+            alert('Failed to load note');
     }
   };
 
@@ -342,8 +337,7 @@ const AIMediaNotes = () => {
         }
       }
     } catch (error) {
-      console.error('Error deleting note:', error);
-      alert('Failed to delete note');
+            alert('Failed to delete note');
     }
   };
 

@@ -252,8 +252,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           setHistory([[...parsed.canvasElements]]);
         }
       } catch (e) {
-        console.log('No canvas data to load');
-      }
+              }
     }
   }, [initialContent]);
 
@@ -1428,7 +1427,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           {showGrid && (
             <defs>
               <pattern id="grid" width={GRID_SIZE} height={GRID_SIZE} patternUnits="userSpaceOnUse">
-                <path d={`M ${GRID_SIZE} 0 L 0 0 0 ${GRID_SIZE}`} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5"/>
+                <path d={`M ${GRID_SIZE} 0 L 0 0 L 0 ${GRID_SIZE}`} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5"/>
               </pattern>
             </defs>
           )}

@@ -76,16 +76,14 @@ const FormattingToolbar = ({ onFormat, onAIAssist, showAI = true, onInsertBlock 
     try {
       const success = document.execCommand(command, false, value);
       if (!success) {
-        console.warn('execCommand failed for:', command);
-      }
+              }
       
       if (onFormat) onFormat(command, value);
       
       // Save the new selection and update active formats
       saveSelection();
     } catch (err) {
-      console.error('Format command failed:', err);
-    }
+          }
   };
 
   // Update active formats when selection changes

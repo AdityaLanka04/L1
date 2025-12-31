@@ -68,8 +68,7 @@ const AIChat = ({ sharedMode = false }) => {
         loadChatFolders();
       }
     } catch (error) {
-      console.error('Error creating folder:', error);
-    }
+          }
   };
 
   const handleMoveToFolder = async (chatId, folderId) => {
@@ -92,8 +91,7 @@ const AIChat = ({ sharedMode = false }) => {
         setShowMoveMenu(null);
       }
     } catch (error) {
-      console.error('Error moving chat:', error);
-    }
+          }
   };
 
   const handleContextMenu = (e, chatId) => {
@@ -164,8 +162,7 @@ const AIChat = ({ sharedMode = false }) => {
         throw new Error('Failed to load shared chat');
       }
     } catch (error) {
-      console.error('Error loading shared chat:', error);
-      navigate('/social');
+            navigate('/social');
     }
   };
 
@@ -294,8 +291,7 @@ const AIChat = ({ sharedMode = false }) => {
         setFolders(foldersData || []);
       }
     } catch (error) {
-      console.error('Error loading chat folders:', error);
-    }
+          }
   };
 
   const loadChatSessions = async () => {
@@ -313,8 +309,7 @@ const AIChat = ({ sharedMode = false }) => {
         setChatSessions(sessions);
       }
     } catch (error) {
-      console.error('Error loading chat sessions:', error);
-    }
+          }
   };
 
   const loadChatMessages = async (sessionId) => {
@@ -322,8 +317,7 @@ const AIChat = ({ sharedMode = false }) => {
       return;
     }
     
-    console.log(`📥 Loading messages for chat session: ${sessionId}`);
-    
+        
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/get_chat_messages?chat_id=${sessionId}`, {
@@ -336,16 +330,13 @@ const AIChat = ({ sharedMode = false }) => {
       
       if (response.ok) {
         const messagesArray = await response.json();
-        console.log(`✅ Loaded ${messagesArray.length} messages from database`);
-        setMessages(messagesArray);
+                setMessages(messagesArray);
         setTimeout(scrollToBottom, 100);
       } else {
-        console.log(`❌ Failed to load messages: ${response.status}`);
-        setMessages([]);
+                setMessages([]);
       }
     } catch (error) {
-      console.error('Error loading messages:', error);
-      setMessages([]);
+            setMessages([]);
     } finally {
       isLoadingRef.current = false;
     }
@@ -380,12 +371,10 @@ const AIChat = ({ sharedMode = false }) => {
         setChatSessions(prev => [sessionData, ...prev]);
         return sessionData.id;
       } else {
-        console.error('Failed to create chat session:', await response.text());
         return null;
       }
     } catch (error) {
-      console.error('Error creating new chat:', error);
-      return null;
+            return null;
     }
   };
 
@@ -427,12 +416,10 @@ const AIChat = ({ sharedMode = false }) => {
           }
         } catch (innerError) {
           // Don't let one failed cleanup stop the others
-          console.error(`Error checking chat ${chat.id}:`, innerError);
-        }
+                  }
       }
     } catch (error) {
-      console.error('Error cleaning up empty chats:', error);
-    }
+          }
   };
 
   const handleNewChat = async () => {
@@ -503,8 +490,7 @@ const AIChat = ({ sharedMode = false }) => {
         return result.data.response;
       }
     } catch (error) {
-      console.error('Error with AI agent:', error);
-      return null;
+            return null;
     }
   };
 
@@ -523,8 +509,7 @@ const AIChat = ({ sharedMode = false }) => {
         return result.data;
       }
     } catch (error) {
-      console.error('Error getting progress:', error);
-    }
+          }
   };
 
   const switchConversationMode = async (newMode) => {
@@ -547,8 +532,7 @@ const AIChat = ({ sharedMode = false }) => {
         setConversationMode(newMode);
       }
     } catch (error) {
-      console.error('Error switching mode:', error);
-    }
+          }
   };
 
   const sendMessage = async () => {
@@ -625,9 +609,7 @@ const AIChat = ({ sharedMode = false }) => {
 
       const data = await response.json();
       
-      console.log(`✅ AI response received. Chat ID: ${data.chat_id || currentChatId}`);
-      console.log(`🤖 Agent mode: ${data.chat_mode}, emotion: ${data.emotional_state}`);
-      
+                  
       if (!data.answer) {
         throw new Error('No answer received from AI');
       }
@@ -673,8 +655,7 @@ const AIChat = ({ sharedMode = false }) => {
       // Check if the backend used a different chat_id (in case of validation issues)
       const actualChatId = data.chat_id;
       if (actualChatId && actualChatId !== currentChatId) {
-        console.log(`Chat ID changed from ${currentChatId} to ${actualChatId}`);
-        setActiveChatId(actualChatId);
+                setActiveChatId(actualChatId);
         navigate(`/ai-chat/${actualChatId}`, { replace: true });
         currentChatId = actualChatId;
       }
@@ -693,8 +674,7 @@ const AIChat = ({ sharedMode = false }) => {
       // Points are now awarded by backend when saving message
 
     } catch (error) {
-      console.error('Error in sendMessage:', error);
-      const errorMessage = {
+            const errorMessage = {
         id: `error_${Date.now()}`,
         type: 'ai',
         content: `Sorry, I encountered an error: ${error.message}. Please try again.`,
@@ -751,8 +731,7 @@ const AIChat = ({ sharedMode = false }) => {
         ));
       }
     } catch (error) {
-      console.error('Error auto-renaming chat:', error);
-    }
+          }
   };
 
   const confirmDeleteChat = async () => {
@@ -783,8 +762,7 @@ const AIChat = ({ sharedMode = false }) => {
         setChatToDelete(null);
       }
     } catch (error) {
-      console.error('Error deleting chat:', error);
-    }
+          }
   };
 
   const rateResponse = async (messageId, rating) => {
@@ -813,8 +791,7 @@ const AIChat = ({ sharedMode = false }) => {
         }
       }
     } catch (error) {
-      console.error('Error rating response:', error);
-    }
+          }
   };
 
   const submitFeedback = async (messageId) => {
@@ -851,8 +828,7 @@ const AIChat = ({ sharedMode = false }) => {
         ));
       }
     } catch (error) {
-      console.error('Error submitting feedback:', error);
-    }
+          }
   };
 
   const getConfidenceClass = (confidence) => {
@@ -898,8 +874,7 @@ const AIChat = ({ sharedMode = false }) => {
       setCopiedCode(codeIndex);
       setTimeout(() => setCopiedCode(null), 2000);
     }).catch(err => {
-      console.error('Failed to copy:', err);
-    });
+          });
   };
 
   // Convert text symbols to Unicode symbols
@@ -1452,8 +1427,7 @@ const AIChat = ({ sharedMode = false }) => {
         const displayName = parsedProfile?.firstName || username;
         setGreeting(getRandomGreeting(displayName));
       } catch (error) {
-        console.error('Error parsing user profile:', error);
-        setGreeting(getRandomGreeting(username || 'there'));
+                setGreeting(getRandomGreeting(username || 'there'));
       }
     } else {
       setGreeting(getRandomGreeting(username || 'there'));
@@ -1472,8 +1446,7 @@ const AIChat = ({ sharedMode = false }) => {
     const initialMsg = location.state?.initialMessage;
     
     if (initialMsg && userName && !loading) {
-      console.log('🚀 Auto-sending initial message:', initialMsg);
-      
+            
       // Set the input message so user can see what they asked
       setInputMessage(initialMsg);
       
@@ -1483,13 +1456,11 @@ const AIChat = ({ sharedMode = false }) => {
         const newChatId = await createNewChat();
         
         if (!newChatId) {
-          console.error('Failed to create new chat session');
-          setLoading(false);
+                    setLoading(false);
           return;
         }
         
-        console.log(`✅ Created new chat session: ${newChatId}`);
-        
+                
         // Set active chat and navigate
         setActiveChatId(newChatId);
         navigate(`/ai-chat/${newChatId}`, { replace: true });
@@ -1550,8 +1521,7 @@ const AIChat = ({ sharedMode = false }) => {
           await loadChatSessions();
           
         } catch (error) {
-          console.error('Error sending initial message:', error);
-          const errorMessage = {
+                    const errorMessage = {
             id: `error_${Date.now()}`,
             type: 'ai',
             content: `Sorry, I encountered an error: ${error.message}. Please try again.`,

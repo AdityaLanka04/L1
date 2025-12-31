@@ -11,13 +11,11 @@ const useSharedWebSocket = (token, onMessage, componentId) => {
 
   useEffect(() => {
     if (!token) {
-      console.warn(`⚠️ [${listenerIdRef.current}] No token provided`);
-      return;
+            return;
     }
 
     const listenerId = listenerIdRef.current;
-    console.log(`🎧 [${listenerId}] Subscribing to WebSocket`);
-
+    
     // Connect if not already connected (manager prevents duplicates)
     wsManager.connect(token);
 
@@ -37,8 +35,7 @@ const useSharedWebSocket = (token, onMessage, componentId) => {
 
     // Cleanup on unmount
     return () => {
-      console.log(`🎧 [${listenerId}] Unsubscribing from WebSocket`);
-      wsManager.unsubscribe(listenerId);
+            wsManager.unsubscribe(listenerId);
     };
   }, [token]); // Removed onMessage and componentId from dependencies to prevent reconnects
 

@@ -64,8 +64,7 @@ function Login() {
           localStorage.setItem('userProfile', JSON.stringify(mergedProfile));
         }
       } catch (profileError) {
-        console.error('Error fetching profile:', profileError);
-      }
+              }
       
       const response = await axios.get(`${API_URL}/check_profile_quiz?user_id=${username}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -78,8 +77,7 @@ function Login() {
         navigate('/profile-quiz');
       }
     } catch (error) {
-      console.error('Error checking quiz status:', error);
-      navigate('/profile-quiz');
+            navigate('/profile-quiz');
     }
   };
 
@@ -116,13 +114,11 @@ function Login() {
 
       await checkAndRedirect(userData.email);
     } catch (error) {
-      console.error('Firebase Google sign-in error:', error);
-      
+            
       if (error.code === 'auth/popup-blocked') {
         alert('Popup was blocked. Please allow popups for this site and try again.');
       } else if (error.code === 'auth/popup-closed-by-user') {
-        console.log('User cancelled sign-in');
-      } else {
+              } else {
         alert('Google sign-in failed: ' + (error.message || 'Unknown error'));
       }
     }
@@ -160,8 +156,7 @@ function Login() {
       
       await checkAndRedirect(username);
     } catch (err) {
-      console.error(err);
-      alert('Login failed: ' + (err.response?.data?.detail || 'Unknown error'));
+            alert('Login failed: ' + (err.response?.data?.detail || 'Unknown error'));
     }
     setLoading(false);
   };

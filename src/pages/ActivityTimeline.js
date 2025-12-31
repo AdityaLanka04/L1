@@ -114,8 +114,7 @@ const ActivityTimeline = () => {
         setSmartListCounts(data.smart_lists || {});
       }
     } catch (error) {
-      console.error('Error loading reminder lists:', error);
-    }
+          }
   };
 
   const loadReminders = async () => {
@@ -137,8 +136,7 @@ const ActivityTimeline = () => {
         setReminders(data);
       }
     } catch (error) {
-      console.error('Error loading reminders:', error);
-    }
+          }
   };
 
   const createReminderList = async () => {
@@ -162,8 +160,7 @@ const ActivityTimeline = () => {
         setListForm({ name: '', color: '#3b82f6', icon: 'list' });
       }
     } catch (error) {
-      console.error('Error creating list:', error);
-    }
+          }
   };
 
   const deleteReminderList = async (listId) => {
@@ -182,8 +179,7 @@ const ActivityTimeline = () => {
         setSelectedSmartList('all');
       }
     } catch (error) {
-      console.error('Error deleting list:', error);
-    }
+          }
   };
 
   const createReminder = async () => {
@@ -219,8 +215,7 @@ const ActivityTimeline = () => {
         resetReminderForm();
       }
     } catch (error) {
-      console.error('Error creating reminder:', error);
-    }
+          }
   };
 
   const fixReminderTimezones = async () => {
@@ -232,8 +227,7 @@ const ActivityTimeline = () => {
       
       if (res.ok) {
         const data = await res.json();
-        console.log('Timezone fix result:', data);
-        
+                
         if (data.fixed_reminders && data.fixed_reminders.length > 0) {
           alert(`Fixed ${data.fixed_reminders.length} reminders with incorrect timezones!`);
           await loadReminders(); // Reload to show updated times
@@ -242,8 +236,7 @@ const ActivityTimeline = () => {
         }
       }
     } catch (error) {
-      console.error('Error fixing reminder timezones:', error);
-      alert('Error fixing reminder timezones. Please try again.');
+            alert('Error fixing reminder timezones. Please try again.');
     }
   };
 
@@ -267,8 +260,7 @@ const ActivityTimeline = () => {
         await loadReminderLists();
       }
     } catch (error) {
-      console.error('Error updating reminder:', error);
-    }
+          }
   };
 
   const toggleReminderComplete = async (reminder) => {
@@ -286,8 +278,7 @@ const ActivityTimeline = () => {
       await loadReminders();
       await loadReminderLists();
     } catch (error) {
-      console.error('Error toggling flag:', error);
-    }
+          }
   };
 
   const deleteReminder = async (reminderId) => {
@@ -300,8 +291,7 @@ const ActivityTimeline = () => {
       await loadReminders();
       await loadReminderLists();
     } catch (error) {
-      console.error('Error deleting reminder:', error);
-    }
+          }
   };
 
   const addSubtask = async (parentId, title) => {
@@ -320,8 +310,7 @@ const ActivityTimeline = () => {
         await loadReminders();
       }
     } catch (error) {
-      console.error('Error adding subtask:', error);
-    }
+          }
   };
 
   const resetReminderForm = () => {
@@ -499,8 +488,7 @@ const ActivityTimeline = () => {
           }
         }
       } catch (e) {
-        console.log('Flashcards endpoint not available');
-      }
+              }
 
       // Load Chat Sessions
       const chatRes = await fetch(`${API_URL}/get_chat_sessions?user_id=${userName}`, {
@@ -523,8 +511,7 @@ const ActivityTimeline = () => {
       allActivities.sort((a, b) => b.timestamp - a.timestamp);
       setActivities(allActivities);
     } catch (error) {
-      console.error('Error loading activities:', error);
-    } finally {
+          } finally {
       setLoading(false);
     }
   };

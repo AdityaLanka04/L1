@@ -99,8 +99,7 @@ const MermaidBlock = ({ block, updateBlock, readOnly }) => {
           const { svg } = await mermaid.render(id, block.content);
           mermaidRef.current.innerHTML = svg;
         } catch (error) {
-          console.error('Mermaid render error:', error);
-          setRenderError(error.message || 'Invalid diagram syntax');
+                    setRenderError(error.message || 'Invalid diagram syntax');
           // Clear any partial render
           if (mermaidRef.current) {
             mermaidRef.current.innerHTML = '';
@@ -226,8 +225,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
         }
       });
     } catch (error) {
-      console.error('File upload error:', error);
-      alert('Failed to upload file');
+            alert('Failed to upload file');
     }
   };
 

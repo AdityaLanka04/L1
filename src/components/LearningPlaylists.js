@@ -59,8 +59,7 @@ const LearningPlaylists = ({ currentUserId, token }) => {
         setPlaylists(data.playlists || []);
       }
     } catch (error) {
-      console.error('Error fetching playlists:', error);
-    } finally {
+          } finally {
       setLoading(false);
     }
   };
@@ -81,16 +80,14 @@ const LearningPlaylists = ({ currentUserId, token }) => {
         fetchPlaylists();
       }
     } catch (error) {
-      console.error('Error creating playlist:', error);
-    }
+          }
   };
 
 
 
   const fetchPlaylistDetails = async (playlistId) => {
     // Navigate to dedicated playlist detail page
-    console.log('Navigating to playlist:', playlistId);
-    navigate(`/social/playlists/${playlistId}`);
+        navigate(`/social/playlists/${playlistId}`);
   };
 
 

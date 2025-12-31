@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";
 
-// ⚠️ REPLACE THIS with your new Firebase configuration
+//  REPLACE THIS with your new Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCsAiyiy-O83HiPKEr_p49GcLcoYAXuP5M",
   authDomain: "brainwave-a65dc.firebaseapp.com",

@@ -66,8 +66,7 @@ const MyNotes = () => {
         setNotes(data.filter(n => !n.is_deleted));
       }
     } catch (error) {
-      console.error('Error loading notes:', error);
-    } finally {
+          } finally {
       setLoading(false);
     }
   };
@@ -83,8 +82,7 @@ const MyNotes = () => {
         setFolders(data.folders || []);
       }
     } catch (error) {
-      console.error('Error loading folders:', error);
-    }
+          }
   };
 
   const loadChatSessions = async () => {
@@ -98,8 +96,7 @@ const MyNotes = () => {
         setChatSessions(data.sessions || []);
       }
     } catch (error) {
-      console.error('Error loading chat sessions:', error);
-    }
+          }
   };
 
   const loadTrash = async () => {
@@ -113,8 +110,7 @@ const MyNotes = () => {
         setTrashedNotes(data.trash || []);
       }
     } catch (error) {
-      console.error('Error loading trash:', error);
-    }
+          }
   };
 
   const createNewNote = async () => {
@@ -139,8 +135,7 @@ const MyNotes = () => {
         navigate(`/notes/editor/${newNote.id}`);
       }
     } catch (error) {
-      console.error('Error creating note:', error);
-    }
+          }
   };
 
   const createFolder = async () => {
@@ -167,8 +162,7 @@ const MyNotes = () => {
         setShowFolderModal(false);
       }
     } catch (error) {
-      console.error('Error creating folder:', error);
-    }
+          }
   };
 
   const importFromChat = async () => {
@@ -213,8 +207,7 @@ const MyNotes = () => {
       setShowChatImport(false);
       setSelectedSessions([]);
     } catch (error) {
-      console.error('Error importing from chat:', error);
-    } finally {
+          } finally {
       setImporting(false);
     }
   };
@@ -242,8 +235,7 @@ const MyNotes = () => {
         setNoteToMove(null);
       }
     } catch (error) {
-      console.error('Error moving note:', error);
-    }
+          }
   };
 
   const deleteNote = async (noteId) => {
@@ -260,8 +252,7 @@ const MyNotes = () => {
         await loadNotes();
       }
     } catch (error) {
-      console.error('Error deleting note:', error);
-    }
+          }
   };
 
   const handleTemplateSelect = async (template) => {
@@ -291,8 +282,7 @@ const MyNotes = () => {
         navigate(`/notes/editor/${newNote.id}`);
       }
     } catch (error) {
-      console.error('Error creating note from template:', error);
-    }
+          }
   };
 
   const blocksToHtml = (blocks) => {
@@ -678,8 +668,7 @@ const MyNotes = () => {
           <SmartFolders
             notes={notes}
             onFolderSelect={(filteredNotes, folderName) => {
-              console.log(`Smart folder "${folderName}" contains ${filteredNotes.length} notes`);
-              setShowSmartFolders(false);
+                            setShowSmartFolders(false);
             }}
             onClose={() => setShowSmartFolders(false)}
           />

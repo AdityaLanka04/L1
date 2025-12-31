@@ -27,8 +27,7 @@ const ActivityFeed = () => {
         setActivities(data.activities);
       }
     } catch (error) {
-      console.error('Error fetching activity feed:', error);
-    } finally {
+          } finally {
       setLoading(false);
     }
   };
@@ -48,8 +47,7 @@ const ActivityFeed = () => {
         fetchActivityFeed();
       }
     } catch (error) {
-      console.error('Error giving kudos:', error);
-    }
+          }
   };
 
   const getIconComponent = (iconName) => {

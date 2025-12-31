@@ -197,21 +197,18 @@ const ConceptWeb = () => {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Loaded concept web data:', data);
-        
+                
         if (data.nodes && data.nodes.length > 0) {
           setConcepts(data.nodes);
           setConnections(data.connections || []);
           setNodePositions(initializeNodePositions(data.nodes));
         } else if (isInitial) {
           // Auto-generate on first load if no concepts
-          console.log('No concepts found, auto-generating...');
-          await autoGenerateConceptWeb(username);
+                    await autoGenerateConceptWeb(username);
         }
       }
     } catch (error) {
-      console.error('Error loading concept web:', error);
-    } finally {
+          } finally {
       setLoading(false);
       setInitialLoad(false);
     }
@@ -220,8 +217,7 @@ const ConceptWeb = () => {
   // Auto-generate concept web (silently, no alerts)
   const autoGenerateConceptWeb = async (username) => {
     try {
-      console.log('Auto-generating concept web from latest content...');
-      const token = localStorage.getItem('token');
+            const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/generate_concept_web`, {
         method: 'POST',
         headers: {
@@ -233,13 +229,11 @@ const ConceptWeb = () => {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Auto-generation result:', data);
-        // Silently succeed - no alerts needed
+                // Silently succeed - no alerts needed
         return data;
       }
     } catch (error) {
-      console.error('Error auto-generating:', error);
-      // Fail silently - user will see existing concepts or empty state
+            // Fail silently - user will see existing concepts or empty state
     }
   };
 
@@ -270,8 +264,7 @@ const ConceptWeb = () => {
         }
       }
     } catch (error) {
-      console.error('Error generating:', error);
-    } finally {
+          } finally {
       setGenerating(false);
     }
   };
@@ -304,8 +297,7 @@ const ConceptWeb = () => {
         loadConceptWeb(userName);
       }
     } catch (error) {
-      console.error('Error adding concept:', error);
-    }
+          }
   };
 
   const deleteConcept = async (nodeId) => {
@@ -320,8 +312,7 @@ const ConceptWeb = () => {
       loadConceptWeb(userName);
       setSelectedNode(null);
     } catch (error) {
-      console.error('Error deleting:', error);
-    }
+          }
   };
 
   const deleteAllConcepts = async () => {
@@ -342,8 +333,7 @@ const ConceptWeb = () => {
         alert('All concepts deleted successfully');
       }
     } catch (error) {
-      console.error('Error deleting all:', error);
-      alert('Failed to delete all concepts');
+            alert('Failed to delete all concepts');
     }
   };
 
@@ -592,8 +582,7 @@ const ConceptWeb = () => {
       setSelectedConcepts(new Set());
       setSelectedNode(null);
     } catch (error) {
-      console.error('Error deleting selected:', error);
-    }
+          }
   };
 
   const generateConceptContent = async (contentType) => {
@@ -632,7 +621,7 @@ const ConceptWeb = () => {
       
       if (response.ok) {
         const data = await response.json();
-        alert(`✅ Generated ${contentNames[contentType]}! Mastery increased to ${Math.round(data.new_mastery * 100)}%`);
+        alert(` Generated ${contentNames[contentType]}! Mastery increased to ${Math.round(data.new_mastery * 100)}%`);
         
         await loadConceptWeb(userName);
         
@@ -648,8 +637,7 @@ const ConceptWeb = () => {
         alert(`Failed to generate content: ${error.detail}`);
       }
     } catch (error) {
-      console.error('Error generating content:', error);
-      alert('Failed to generate content');
+            alert('Failed to generate content');
     } finally {
       setGeneratingContent(null);
     }

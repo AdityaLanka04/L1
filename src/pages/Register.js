@@ -64,12 +64,10 @@ function Register() {
       sessionStorage.setItem('justLoggedIn', 'true');
       navigate('/profile-quiz');
     } catch (error) {
-      console.error('Firebase Google sign-in error:', error);
-      if (error.code === 'auth/popup-blocked') {
+            if (error.code === 'auth/popup-blocked') {
         alert('Popup was blocked. Please allow popups for this site and try again.');
       } else if (error.code === 'auth/popup-closed-by-user') {
-        console.log('User cancelled sign-in');
-      } else {
+              } else {
         alert('Google sign-in failed: ' + (error.message || 'Unknown error'));
       }
     }
@@ -120,8 +118,7 @@ function Register() {
       alert("Registration successful! Please log in.");
       navigate("/login");
     } catch (err) {
-      console.error("Registration error:", err);
-      alert("Registration failed: " + err.message);
+            alert("Registration failed: " + err.message);
     } finally {
       setLoading(false);
     }

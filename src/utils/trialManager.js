@@ -78,8 +78,7 @@ class TrialManager {
         return { expired: true, timeUsed: this.TRIAL_DURATION, reason: 'server_blocked' };
       }
     } catch (error) {
-      console.warn('Server trial check failed:', error);
-    }
+          }
     
     // Start new trial
     const trialData = {
@@ -96,8 +95,7 @@ class TrialManager {
     try {
       await this.notifyServerTrialStart(fingerprint);
     } catch (error) {
-      console.warn('Server notification failed:', error);
-    }
+          }
     
     return { 
       expired: false, 
@@ -223,8 +221,7 @@ class TrialManager {
         })
       });
     } catch (error) {
-      console.warn('Failed to notify server of trial start:', error);
-    }
+          }
   }
 
   // Utility methods

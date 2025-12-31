@@ -19,17 +19,14 @@ class WebSocketManager {
     // Prevent multiple connections
     if (this.ws) {
       if (this.ws.readyState === WebSocket.OPEN) {
-        console.log('🔌 [WebSocketManager] Already connected, reusing connection');
-        return;
+                return;
       } else if (this.ws.readyState === WebSocket.CONNECTING) {
-        console.log('🔌 [WebSocketManager] Connection in progress, waiting...');
-        return;
+                return;
       }
     }
 
     if (!token) {
-      console.warn('⚠️ [WebSocketManager] No token provided');
-      return;
+            return;
     }
 
     this.token = token;
@@ -47,14 +44,11 @@ class WebSocketManager {
     wsUrl = wsUrl.replace('/api', '');
     const wsEndpoint = `${wsUrl}/ws?token=${encodeURIComponent(token)}`;
     
-    console.log('🔌 [WebSocketManager] Connecting to:', wsEndpoint.replace(token, 'TOKEN_HIDDEN'));
-
     try {
       this.ws = new WebSocket(wsEndpoint);
 
       this.ws.onopen = () => {
-        console.log('✅ [WebSocketManager] Connected');
-        this.isConnected = true;
+                this.isConnected = true;
         this.reconnectAttempts = 0;
         
         // Notify all listeners
@@ -70,37 +64,31 @@ class WebSocketManager {
       this.ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('📨 [WebSocketManager] Message received:', data.type);
-          
+                    
           // Broadcast to all listeners
           this.notifyListeners(data);
         } catch (error) {
-          console.error('❌ [WebSocketManager] Error parsing message:', error);
-        }
+                  }
       };
 
       this.ws.onerror = (error) => {
-        console.error('❌ [WebSocketManager] Error:', error);
-        this.isConnected = false;
+                this.isConnected = false;
         this.notifyListeners({ type: '_connected', isConnected: false });
       };
 
       this.ws.onclose = (event) => {
-        console.log('🔌 [WebSocketManager] Disconnected. Code:', event.code);
-        this.isConnected = false;
+                this.isConnected = false;
         this.notifyListeners({ type: '_connected', isConnected: false });
 
         // Don't reconnect if authentication error
         if (event.code === 1008) {
-          console.error('❌ [WebSocketManager] Authentication failed');
-          return;
+                    return;
         }
 
         // Attempt reconnect
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
           const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
-          console.log(`🔄 [WebSocketManager] Reconnecting in ${delay}ms...`);
-          
+                    
           this.reconnectTimeout = setTimeout(() => {
             this.reconnectAttempts++;
             this.connect(this.token);
@@ -108,8 +96,7 @@ class WebSocketManager {
         }
       };
     } catch (error) {
-      console.error('❌ [WebSocketManager] Error creating WebSocket:', error);
-    }
+          }
   }
 
   disconnect() {
@@ -118,8 +105,7 @@ class WebSocketManager {
     }
     
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      console.log('🧹 [WebSocketManager] Disconnecting');
-      this.ws.close(1000, 'Manual disconnect');
+            this.ws.close(1000, 'Manual disconnect');
     }
     
     this.ws = null;
@@ -127,21 +113,18 @@ class WebSocketManager {
   }
 
   subscribe(id, callback) {
-    console.log(`📝 [WebSocketManager] Subscriber added: ${id}`);
-    this.listeners.set(id, callback);
+        this.listeners.set(id, callback);
     
     // Send current connection status
     callback({ type: '_connected', isConnected: this.isConnected });
   }
 
   unsubscribe(id) {
-    console.log(`📝 [WebSocketManager] Subscriber removed: ${id}`);
-    this.listeners.delete(id);
+        this.listeners.delete(id);
     
     // If no more listeners, disconnect
     if (this.listeners.size === 0) {
-      console.log('📝 [WebSocketManager] No more listeners, disconnecting...');
-      this.disconnect();
+            this.disconnect();
     }
   }
 
@@ -150,8 +133,7 @@ class WebSocketManager {
       try {
         callback(message);
       } catch (error) {
-        console.error(`❌ [WebSocketManager] Error in listener ${id}:`, error);
-      }
+              }
     });
   }
 
@@ -159,8 +141,7 @@ class WebSocketManager {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message));
     } else {
-      console.warn('⚠️ [WebSocketManager] Not connected, queuing message');
-      this.messageQueue.push(message);
+            this.messageQueue.push(message);
     }
   }
 }

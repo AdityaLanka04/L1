@@ -37,8 +37,7 @@ const Challenges = () => {
         setChallenges(data.challenges);
       }
     } catch (error) {
-      console.error('Error fetching challenges:', error);
-    } finally {
+          } finally {
       setLoading(false);
     }
   };
@@ -74,8 +73,7 @@ const Challenges = () => {
         fetchChallenges();
       }
     } catch (error) {
-      console.error('Error creating challenge:', error);
-    }
+          }
   };
 
   const handleJoinChallenge = async (challengeId) => {
@@ -93,8 +91,7 @@ const Challenges = () => {
         fetchChallenges();
       }
     } catch (error) {
-      console.error('Error joining challenge:', error);
-    }
+          }
   };
 
   const resetForm = () => {

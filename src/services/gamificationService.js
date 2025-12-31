@@ -21,12 +21,10 @@ class GamificationService {
 
       if (response.ok) {
         const data = await response.json();
-        console.log(`✅ Gamification: +${data.points_earned} pts for ${activityType}`);
-        return data;
+                return data;
       }
     } catch (error) {
-      console.error('Gamification tracking error:', error);
-    }
+          }
   }
 
   async trackAIChat(userName) {

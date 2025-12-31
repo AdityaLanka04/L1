@@ -38,8 +38,7 @@ const SoloQuiz = () => {
           const response = await quizAgentService.getRecommendations(username);
           setRecommendations(response.recommendations || []);
         } catch (err) {
-          console.log('Could not load recommendations:', err);
-        }
+                  }
       }
     };
     loadRecommendations();
@@ -50,8 +49,7 @@ const SoloQuiz = () => {
     const autoStartData = location.state;
     
     if (autoStartData?.autoStart && autoStartData.topics?.length > 0) {
-      console.log('🚀 Auto-starting quiz with:', autoStartData);
-      setSubject(autoStartData.topics[0]);
+            setSubject(autoStartData.topics[0]);
       setDifficulty(autoStartData.difficulty || 'medium');
       setQuestionCount(autoStartData.questionCount || 10);
       
@@ -110,8 +108,7 @@ const SoloQuiz = () => {
         setError('Failed to generate questions. Please try again.');
       }
     } catch (err) {
-      console.error('Error creating quiz:', err);
-      setError(err.message || 'Failed to create quiz');
+            setError(err.message || 'Failed to create quiz');
     } finally {
       setLoading(false);
       setShowCreateModal(false);

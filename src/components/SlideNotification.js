@@ -11,8 +11,7 @@ const SlideNotification = ({ notification, onClose, onMarkRead, style = {} }) =>
   useEffect(() => {
     // Validate notification
     if (!notification || !notification.id || (!notification.title && !notification.message)) {
-      console.log('📬 Invalid notification, closing:', notification);
-      setIsValid(false);
+            setIsValid(false);
       if (onClose) {
         setTimeout(() => onClose(), 0);
       }

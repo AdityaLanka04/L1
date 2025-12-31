@@ -118,8 +118,7 @@ const SoloQuizSession = () => {
 
       setShowResult(true);
     } catch (error) {
-      console.error('Error grading quiz:', error);
-      // Fallback to local grading
+            // Fallback to local grading
       setResults({
         total_questions: questions.length,
         correct_answers: score,

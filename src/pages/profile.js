@@ -97,7 +97,7 @@ const Profile = () => {
       description: 'You connect deeply with meaning and understand through emotional intelligence.'
     },
     Seeker: {
-      icon: '🔍',
+      icon: '',
       color: '#00BCD4',
       tagline: 'The Curious Explorer',
       description: 'You\'re motivated by discovery and love expanding your knowledge horizons.'
@@ -129,8 +129,7 @@ const Profile = () => {
         learningPace: profileData.learningPace || 'moderate'
       };
       
-      console.log('📊 Saving profile with showStudyInsights:', saveData.showStudyInsights);
-      
+            
       const response = await fetch(`${API_URL}/update_comprehensive_profile`, {
         method: 'POST',
         headers: {
@@ -144,13 +143,11 @@ const Profile = () => {
         lastSavedProfile.current = profileSnapshot;
         setLastSaved(new Date().toLocaleTimeString());
         localStorage.setItem('userProfile', profileSnapshot);
-        console.log('📊 Profile saved successfully');
       } else {
-        console.error('📊 Failed to save profile:', await response.text());
+        // Profile not found
       }
     } catch (error) {
-      console.error('Error auto-saving profile:', error);
-    } finally {
+          } finally {
       setAutoSaving(false);
     }
   }, [API_URL, token, userName, profileData, autoSaving, lastSavedProfile, setLastSaved, setAutoSaving]);
@@ -230,8 +227,7 @@ const Profile = () => {
           showStudyInsights: data.showStudyInsights === false ? false : true
         };
         
-        console.log('📊 Loaded profile - raw showStudyInsights:', data.showStudyInsights, 'type:', typeof data.showStudyInsights, '→ final:', newProfileData.showStudyInsights);
-
+        
         try {
           if (data.archetypeScores) {
             newProfileData.archetypeScores = typeof data.archetypeScores === 'string' 
@@ -239,8 +235,7 @@ const Profile = () => {
               : data.archetypeScores;
           }
         } catch (e) {
-          console.error('Error parsing archetype scores:', e);
-        }
+                  }
 
         setProfileData(newProfileData);
         lastSavedProfile.current = JSON.stringify(newProfileData);
@@ -252,8 +247,7 @@ const Profile = () => {
               : data.quizResponses;
             setQuizAnswers(parsedQuiz);
           } catch (e) {
-            console.error('Error parsing quiz responses:', e);
-          }
+                      }
         }
 
         localStorage.setItem('userProfile', JSON.stringify(newProfileData));
@@ -264,8 +258,7 @@ const Profile = () => {
         setDataLoaded(true);
       }
     } catch (error) {
-      console.error('Error loading profile:', error);
-      setDataLoaded(true);
+            setDataLoaded(true);
     }
   };
 
@@ -284,10 +277,8 @@ const Profile = () => {
             const parsed = JSON.parse(currentProfile);
             parsed.showStudyInsights = value;
             localStorage.setItem('userProfile', JSON.stringify(parsed));
-            console.log('📊 Study insights setting updated in localStorage:', value);
-          } catch (e) {
-            console.error('Error updating localStorage:', e);
-          }
+                      } catch (e) {
+                      }
         }
         
         // Immediately save to backend (don't wait for auto-save timer)
@@ -298,8 +289,7 @@ const Profile = () => {
           learningPace: newData.learningPace || 'moderate'
         };
         
-        console.log('📊 Immediately saving showStudyInsights:', value);
-        
+                
         fetch(`${API_URL}/update_comprehensive_profile`, {
           method: 'POST',
           headers: {
@@ -309,15 +299,12 @@ const Profile = () => {
           body: JSON.stringify(saveData)
         }).then(response => {
           if (response.ok) {
-            console.log('📊 showStudyInsights saved successfully to backend');
-            lastSavedProfile.current = JSON.stringify(newData);
+                        lastSavedProfile.current = JSON.stringify(newData);
             setLastSaved(new Date().toLocaleTimeString());
           } else {
-            console.error('📊 Failed to save showStudyInsights');
-          }
+                      }
         }).catch(error => {
-          console.error('📊 Error saving showStudyInsights:', error);
-        });
+                  });
       }
       
       return newData;

@@ -26,8 +26,7 @@ class QuizAgentService {
     };
 
     try {
-      console.log('📡 Quiz Agent Request:', url);
-      const response = await fetch(url, { 
+            const response = await fetch(url, { 
         ...defaultOptions, 
         ...options,
         headers: {
@@ -38,8 +37,7 @@ class QuizAgentService {
       
       // Handle expired token
       if (response.status === 401) {
-        console.warn('🔒 Token expired, redirecting to login...');
-        localStorage.removeItem('token');
+                localStorage.removeItem('token');
         window.location.href = '/login';
         throw new Error('Session expired. Please login again.');
       }
@@ -51,8 +49,7 @@ class QuizAgentService {
       
       return await response.json();
     } catch (error) {
-      console.error(`❌ Quiz Agent API Error: ${error.message}`);
-      throw error;
+            throw error;
     }
   }
 

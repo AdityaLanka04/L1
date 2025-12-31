@@ -36,8 +36,7 @@ const SmartFolders = ({ notes = [], onFolderSelect, onClose }) => {
         const parsed = JSON.parse(stored);
         setSmartFolders(Array.isArray(parsed) ? parsed : []);
       } catch (e) {
-        console.error('Error loading smart folders:', e);
-        setSmartFolders([]);
+                setSmartFolders([]);
       }
     }
   }, []);
@@ -203,8 +202,7 @@ const SmartFolders = ({ notes = [], onFolderSelect, onClose }) => {
               return true;
           }
         } catch (e) {
-          console.error('Error filtering note:', e);
-          return false;
+                    return false;
         }
       });
     });

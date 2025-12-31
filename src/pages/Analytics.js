@@ -53,8 +53,7 @@ const Analytics = () => {
         loadHistoricalData()
       ]);
     } catch (error) {
-      console.error('Error loading analytics:', error);
-    } finally {
+          } finally {
       setLoading(false);
     }
   };
@@ -72,8 +71,7 @@ const Analytics = () => {
         setWeeklyStats(data.weekly_stats || {});
       }
     } catch (error) {
-      console.error('Error loading weekly progress:', error);
-    }
+          }
   };
 
   const loadGamificationStats = async () => {
@@ -86,8 +84,7 @@ const Analytics = () => {
         setGamificationStats(data);
       }
     } catch (error) {
-      console.error('Error loading gamification stats:', error);
-    }
+          }
   };
 
   const loadHistoricalData = async () => {
@@ -105,8 +102,7 @@ const Analytics = () => {
         });
       }
     } catch (error) {
-      console.error('Error loading historical data:', error);
-    }
+          }
   };
 
   const toggleMetric = (metric) => {

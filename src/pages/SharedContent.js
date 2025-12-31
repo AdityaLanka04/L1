@@ -29,8 +29,7 @@ const SharedContent = () => {
         setSharedItems(data.shared_items);
       }
     } catch (error) {
-      console.error('Error fetching shared content:', error);
-    } finally {
+          } finally {
       setLoading(false);
     }
   };
@@ -58,8 +57,7 @@ const SharedContent = () => {
         setSharedItems(prev => prev.filter(item => item.id !== shareId));
       }
     } catch (error) {
-      console.error('Error removing shared access:', error);
-    }
+          }
   };
 
   const getFilteredAndSortedItems = () => {

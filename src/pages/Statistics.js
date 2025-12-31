@@ -29,8 +29,7 @@ const Statistics = () => {
         setUserName(data.first_name || 'User');
       }
     } catch (error) {
-      console.error('Error fetching user:', error);
-    }
+          }
   };
 
   const fetchStatistics = async () => {
@@ -48,8 +47,7 @@ const Statistics = () => {
         setStats(calculatedStats);
       }
     } catch (error) {
-      console.error('Error fetching statistics:', error);
-    } finally {
+          } finally {
       setLoading(false);
     }
   };

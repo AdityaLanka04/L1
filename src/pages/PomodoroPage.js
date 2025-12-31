@@ -53,8 +53,7 @@ const PomodoroPage = () => {
             <PomodoroTimer 
               noteId={null}
               onTimeTracked={(noteId, minutes) => {
-                console.log(`Tracked ${minutes} minutes`);
-              }}
+                              }}
             />
           </div>
 

@@ -65,8 +65,7 @@ const QuestionBankDashboard = () => {
         setQuestionSets(data.question_sets || []);
       }
     } catch (error) {
-      console.error('Error fetching question sets:', error);
-    } finally {
+          } finally {
       setLoading(false);
     }
   };
@@ -81,8 +80,7 @@ const QuestionBankDashboard = () => {
         setUploadedDocuments(data.documents || []);
       }
     } catch (error) {
-      console.error('Error fetching documents:', error);
-    }
+          }
   };
 
   const fetchChatSessions = async () => {
@@ -95,8 +93,7 @@ const QuestionBankDashboard = () => {
         setChatSessions(data.sessions || []);
       }
     } catch (error) {
-      console.error('Error fetching chat sessions:', error);
-    }
+          }
   };
 
   const fetchUploadedSlides = async () => {
@@ -109,8 +106,7 @@ const QuestionBankDashboard = () => {
         setUploadedSlides(data.slides || []);
       }
     } catch (error) {
-      console.error('Error fetching slides:', error);
-    }
+          }
   };
 
   const fetchAnalytics = async () => {
@@ -124,8 +120,7 @@ const QuestionBankDashboard = () => {
         setAnalytics(data);
       }
     } catch (error) {
-      console.error('Error fetching analytics:', error);
-    } finally {
+          } finally {
       setLoading(false);
     }
   };
@@ -154,8 +149,7 @@ const QuestionBankDashboard = () => {
         alert('Failed to upload PDF');
       }
     } catch (error) {
-      console.error('Error uploading PDF:', error);
-      alert('Error uploading PDF');
+            alert('Error uploading PDF');
     } finally {
       setLoading(false);
     }
@@ -201,8 +195,7 @@ const QuestionBankDashboard = () => {
         alert('Failed to generate questions');
       }
     } catch (error) {
-      console.error('Error generating questions:', error);
-      alert('Error generating questions');
+            alert('Error generating questions');
     } finally {
       setLoading(false);
     }
@@ -252,8 +245,7 @@ const QuestionBankDashboard = () => {
         alert('Some questions failed to generate');
       }
     } catch (error) {
-      console.error('Error generating questions:', error);
-      alert('Error generating questions');
+            alert('Error generating questions');
     } finally {
       setLoading(false);
     }
@@ -301,8 +293,7 @@ const QuestionBankDashboard = () => {
         alert('Failed to generate questions');
       }
     } catch (error) {
-      console.error('Error generating questions:', error);
-      alert('Error generating questions');
+            alert('Error generating questions');
     } finally {
       setLoading(false);
     }
@@ -326,8 +317,7 @@ const QuestionBankDashboard = () => {
         setShowStudyModal(true);
       }
     } catch (error) {
-      console.error('Error loading question set:', error);
-      alert('Error loading questions');
+            alert('Error loading questions');
     } finally {
       setLoading(false);
     }
@@ -366,8 +356,7 @@ const QuestionBankDashboard = () => {
         }
       }
     } catch (error) {
-      console.error('Error submitting answers:', error);
-      alert('Error submitting answers');
+            alert('Error submitting answers');
     } finally {
       setLoading(false);
     }
@@ -387,8 +376,7 @@ const QuestionBankDashboard = () => {
         await fetchQuestionSets();
       }
     } catch (error) {
-      console.error('Error deleting question set:', error);
-      alert('Error deleting question set');
+            alert('Error deleting question set');
     } finally {
       setLoading(false);
     }
@@ -429,8 +417,7 @@ const QuestionBankDashboard = () => {
         alert('Failed to generate similar question');
       }
     } catch (error) {
-      console.error('Error generating similar question:', error);
-      alert('Error generating similar question');
+            alert('Error generating similar question');
     } finally {
       setLoading(false);
     }

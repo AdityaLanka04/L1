@@ -310,8 +310,7 @@ const BlockEditor = ({ blocks, onChange, readOnly = false }) => {
       );
       onChange(newBlocks);
     } catch (error) {
-      console.error('File upload error:', error);
-      alert('Failed to upload file');
+            alert('Failed to upload file');
     }
   };
 

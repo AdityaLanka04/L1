@@ -1916,9 +1916,6 @@ async def ask_agent(
     import time
     start_time = time.time()
     
-    print(f"\n🤖 ASK_AGENT CALLED 🤖")
-    print(f"🤖 User: {user_id}, Question: {question[:50]}..., Mode: {chat_mode}")
-    
     try:
         # Get user
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
@@ -1972,8 +1969,6 @@ async def ask_agent(
             
             response = result.response
             metadata = result.metadata
-            
-            print(f"🤖 Agent response: {len(response)} chars, mode: {metadata.get('chat_mode')}")
             
         except Exception as agent_error:
             print(f" Chat agent failed, falling back to simple AI: {agent_error}")
@@ -2163,8 +2158,6 @@ async def flashcard_agent_endpoint(
             
             response_data = result.metadata.get("response_data", {})
             execution_time = (time.time() - start_time) * 1000
-            
-            print(f" Agent response: action={action}, success={result.success}")
             
             # Save generated cards to database if action is generate
             if action == "generate" and response_data.get("cards"):
@@ -11960,25 +11953,9 @@ async def track_gamification_activity(
         activity_type = payload.get("activity_type")
         metadata = payload.get("metadata", {})
         
-        # COMPREHENSIVE LOGGING
-        print(f"\n{'='*80}")
-        print(f" TRACK_GAMIFICATION_ACTIVITY CALLED")
-        print(f"{'='*80}")
-        print(f"User: {current_user.email} (ID: {current_user.id})")
-        print(f"Activity Type: {activity_type}")
-        print(f"Metadata: {metadata}")
-        print(f"Timestamp: {datetime.now(timezone.utc)}")
-        print(f"Call Stack:")
-        for line in traceback.format_stack()[:-1]:
-            print(line.strip())
-        print(f"{'='*80}\n")
-        
         # Use centralized gamification system
         result = award_points(db, current_user.id, activity_type, metadata)
         db.commit()
-        
-        print(f" Points awarded: {result.get('points_earned', 0)}")
-        print(f"   Total points now: {result.get('total_points', 0)}\n")
         
         return {
             "status": "success",

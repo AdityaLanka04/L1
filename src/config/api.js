@@ -2,14 +2,10 @@
  * API Configuration
  */
 
-// ✅ In production (Vercel), this will be: https://ceryl.onrender.com/api
-// ✅ In development, this will be: http://localhost:8000/api
+//  In production (Vercel), this will be: https://ceryl.onrender.com/api
+//  In development, this will be: http://localhost:8000/api
 export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
-console.log('🔧 API Configuration:', {
-  environment: process.env.NODE_ENV,
-  apiUrl: API_URL
-});
 
 /**
  * Helper function for making authenticated API requests
@@ -19,8 +15,7 @@ export const apiRequest = async (endpoint, options = {}) => {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
   const url = `${API_URL}/${cleanEndpoint}`;
   
-  console.log('📡 API Request:', url);
-  
+    
   const token = localStorage.getItem('token');
   
   const defaultHeaders = {
@@ -39,8 +34,7 @@ export const apiRequest = async (endpoint, options = {}) => {
 
     // Handle expired token - auto logout
     if (response.status === 401) {
-      console.warn('🔒 Token expired or invalid, logging out...');
-      localStorage.removeItem('token');
+            localStorage.removeItem('token');
       localStorage.removeItem('username');
       localStorage.removeItem('userProfile');
       sessionStorage.removeItem('safetyAccepted');
@@ -55,8 +49,7 @@ export const apiRequest = async (endpoint, options = {}) => {
 
     return await response.json();
   } catch (error) {
-    console.error(`❌ API Request to ${url} failed:`, error);
-    throw error;
+        throw error;
   }
 };
 

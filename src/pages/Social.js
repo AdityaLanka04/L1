@@ -57,8 +57,7 @@ const Social = () => {
         setUserId(data.email || data.username);
       }
     } catch (error) {
-      console.error('Error fetching user:', error);
-    }
+          }
   };
 
   const fetchFriendRequests = async () => {
@@ -71,8 +70,7 @@ const Social = () => {
         setFriendRequests(data);
       }
     } catch (error) {
-      console.error('Error fetching friend requests:', error);
-    }
+          }
   };
 
   const fetchFriends = async () => {
@@ -85,8 +83,7 @@ const Social = () => {
         setFriends(data.friends);
       }
     } catch (error) {
-      console.error('Error fetching friends:', error);
-    }
+          }
   };
 
   const fetchSharedContent = async () => {
@@ -103,8 +100,7 @@ const Social = () => {
         setSharedItems(data.shared_items || []);
       }
     } catch (error) {
-      console.error('Error fetching shared content:', error);
-    }
+          }
   };
 
   const fetchMyContent = async () => {
@@ -125,8 +121,7 @@ const Social = () => {
         setMyChats(chatsData.sessions || []);
       }
     } catch (error) {
-      console.error('Error fetching my content:', error);
-    }
+          }
   };
 
   const handleSearch = async (query) => {
@@ -146,8 +141,7 @@ const Social = () => {
         setSearchResults(data.users);
       }
     } catch (error) {
-      console.error('Error searching users:', error);
-    } finally {
+          } finally {
       setIsSearching(false);
     }
   };
@@ -170,8 +164,7 @@ const Social = () => {
         fetchFriendRequests();
       }
     } catch (error) {
-      console.error('Error sending friend request:', error);
-    }
+          }
   };
 
   const respondToFriendRequest = async (requestId, action) => {
@@ -190,8 +183,7 @@ const Social = () => {
         fetchFriends();
       }
     } catch (error) {
-      console.error('Error responding to friend request:', error);
-    }
+          }
   };
 
   const removeFriend = async (friendId) => {
@@ -211,8 +203,7 @@ const Social = () => {
         fetchFriends();
       }
     } catch (error) {
-      console.error('Error removing friend:', error);
-    }
+          }
   };
 
   const handleOpenSharedItem = (item) => {
@@ -238,8 +229,7 @@ const Social = () => {
         setSharedItems(prev => prev.filter(item => item.id !== shareId));
       }
     } catch (error) {
-      console.error('Error removing shared access:', error);
-    }
+          }
   };
 
   const handleShareNewContent = async () => {

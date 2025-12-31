@@ -118,8 +118,7 @@ const Flashcards = () => {
         setChatSessions(data.sessions || []);
       }
     } catch (error) {
-      console.error('Error loading chat sessions:', error);
-    }
+          }
   }, [userName]);
 
   const loadFlashcardHistory = useCallback(async () => {
@@ -137,8 +136,7 @@ const Flashcards = () => {
         setFlashcardHistory([]);
       }
     } catch (error) {
-      console.error('Error loading flashcard history:', error);
-      setFlashcardHistory([]);
+            setFlashcardHistory([]);
     }
     setLoadingHistory(false);
   }, [userName]);
@@ -155,8 +153,7 @@ const Flashcards = () => {
         setFlashcardStats(data);
       }
     } catch (error) {
-      console.error('Error loading flashcard statistics:', error);
-    }
+          }
   }, [userName]);
 
   const loadReviewCards = useCallback(async () => {
@@ -176,8 +173,7 @@ const Flashcards = () => {
         });
       }
     } catch (error) {
-      console.error('Error loading review cards:', error);
-      setReviewCards({ total_cards: 0, sets: [] });
+            setReviewCards({ total_cards: 0, sets: [] });
     }
     setLoadingReviewCards(false);
   }, [userName]);
@@ -202,8 +198,7 @@ const Flashcards = () => {
       }
       return false;
     } catch (error) {
-      console.error('Error marking card for review:', error);
-      return false;
+            return false;
     }
   };
 
@@ -232,8 +227,7 @@ const Flashcards = () => {
         setAgentSessionActive(true);
         setAgentSessionId(`session_${Date.now()}`);
         setSessionStartTime(Date.now());
-        console.log('🎴 Agent session started');
-        
+                
         // Store recommendations
         if (result.recommendations) {
           setStudyRecommendations(result.recommendations);
@@ -242,8 +236,7 @@ const Flashcards = () => {
         return result;
       }
     } catch (error) {
-      console.error('Error starting agent session:', error);
-    }
+          }
   };
 
   const reviewCardWithAgent = async (cardId, quality, responseTime) => {
@@ -286,8 +279,7 @@ const Flashcards = () => {
         return data;
       }
     } catch (error) {
-      console.error('Error reviewing card with agent:', error);
-    }
+          }
   };
 
   // Simple mastery update function
@@ -309,12 +301,10 @@ const Flashcards = () => {
       
       const result = await response.json();
       if (result.success) {
-        console.log('Card mastery updated:', result.set_accuracy);
-      }
+              }
       return result;
     } catch (error) {
-      console.error('Error updating card mastery:', error);
-    }
+          }
   };
 
   const endAgentSession = async () => {
@@ -343,8 +333,7 @@ const Flashcards = () => {
         return result;
       }
     } catch (error) {
-      console.error('Error ending agent session:', error);
-      setAgentSessionActive(false);
+            setAgentSessionActive(false);
     }
   };
 
@@ -363,8 +352,7 @@ const Flashcards = () => {
         return result.analysis || result;
       }
     } catch (error) {
-      console.error('Error getting flashcard report:', error);
-    }
+          }
   };
 
   // Get study recommendations from agent
@@ -383,8 +371,7 @@ const Flashcards = () => {
         return result.recommendations;
       }
     } catch (error) {
-      console.error('Error getting recommendations:', error);
-    }
+          }
   };
 
   // Get concept explanation from agent
@@ -410,8 +397,7 @@ const Flashcards = () => {
         return result.explanation;
       }
     } catch (error) {
-      console.error('Error explaining concept:', error);
-    }
+          }
   };
 
   // Effects
@@ -429,8 +415,7 @@ const Flashcards = () => {
       try {
         setUserProfile(JSON.parse(profile));
       } catch (error) {
-        console.error('Error parsing user profile:', error);
-      }
+              }
     }
   }, [navigate]);
 
@@ -469,8 +454,7 @@ const Flashcards = () => {
         }
       }
     } catch (error) {
-      console.error('Error loading flashcard set by code:', error);
-      showPopup('Error', 'Failed to load flashcard set');
+            showPopup('Error', 'Failed to load flashcard set');
     }
   }, [studySettings.shuffle]);
 
@@ -488,12 +472,10 @@ const Flashcards = () => {
       const setId = params.get('set_id');
       
       if (shareCode) {
-        console.log('Loading flashcard set from share code:', shareCode, 'mode:', mode);
-        loadFlashcardSetByCode(shareCode, mode);
+                loadFlashcardSetByCode(shareCode, mode);
         setActivePanel('cards');
       } else if (setId) {
-        console.log('Loading flashcard set from URL:', setId);
-        loadFlashcardSet(parseInt(setId), mode);
+                loadFlashcardSet(parseInt(setId), mode);
         setActivePanel('cards');
       }
     }
@@ -582,8 +564,7 @@ const Flashcards = () => {
       }
       return allMessages;
     } catch (error) {
-      console.error('Error loading chat history:', error);
-      return [];
+            return [];
     }
   };
 
@@ -790,8 +771,7 @@ const Flashcards = () => {
         setPreviewMode(true);
       }
     } catch (error) {
-      console.error('Error generating flashcards:', error);
-      showPopup('Error', 'Failed to generate flashcards. Please try again.');
+            showPopup('Error', 'Failed to generate flashcards. Please try again.');
     }
     setGenerating(false);
   };
@@ -840,8 +820,7 @@ const Flashcards = () => {
         }
       }
     } catch (error) {
-      console.error('Error loading flashcard set:', error);
-      showPopup('Error', 'Failed to load flashcard set');
+            showPopup('Error', 'Failed to load flashcard set');
     }
   };
 
@@ -863,8 +842,7 @@ const Flashcards = () => {
         }
       }
     } catch (error) {
-      console.error('Error deleting flashcard set:', error);
-      showPopup('Error', 'Failed to delete flashcard set');
+            showPopup('Error', 'Failed to delete flashcard set');
     }
   };
 
@@ -888,8 +866,7 @@ const Flashcards = () => {
         showPopup('Renamed', 'Flashcard set renamed successfully');
       }
     } catch (error) {
-      console.error('Error renaming set:', error);
-    }
+          }
     setEditingSetId(null);
     setEditingTitle('');
   };

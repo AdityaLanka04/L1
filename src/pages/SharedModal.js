@@ -32,8 +32,7 @@ const ShareModal = ({ isOpen, onClose, itemType, itemId, itemTitle, onShare }) =
         setFriends(data.friends);
       }
     } catch (error) {
-      console.error('Error fetching friends:', error);
-    }
+          }
   };
 
   const generateShareLink = () => {
@@ -91,8 +90,7 @@ const ShareModal = ({ isOpen, onClose, itemType, itemId, itemTitle, onShare }) =
         setError(error.detail || 'Failed to share content');
       }
     } catch (error) {
-      console.error('Error sharing:', error);
-      setError('Failed to share content. Please try again.');
+            setError('Failed to share content. Please try again.');
     } finally {
       setLoading(false);
     }

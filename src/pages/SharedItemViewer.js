@@ -59,8 +59,7 @@ const SharedItemViewer = () => {
         setEditedContent(data.content);
       }
     } catch (err) {
-      console.error('Error fetching shared content:', err);
-      setError('Failed to load shared content. Please try again.');
+            setError('Failed to load shared content. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -89,8 +88,7 @@ const SharedItemViewer = () => {
         setIsEditing(false);
       }
     } catch (err) {
-      console.error('Error saving edit:', err);
-      alert('Failed to save changes');
+            alert('Failed to save changes');
     }
   };
 

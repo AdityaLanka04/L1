@@ -39,8 +39,7 @@ const SafetyLogin = () => {
       // Set flag to indicate user just accepted safety (prevents auto-redirect)
       sessionStorage.setItem('justAcceptedSafety', 'true');
       
-      console.log('Safety accepted, navigating to /search-hub');
-      
+            
       // Navigate to SEARCH HUB page (public, no login required)
       navigate('/search-hub');
     } else {

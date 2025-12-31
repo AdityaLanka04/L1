@@ -78,10 +78,9 @@ const MathRenderer = memo(({ content, className = '' }) => {
           });
           renderedRef.current = true;
         } catch (err) {
-          console.error('KaTeX render error:', err);
-        }
+                  }
       })
-      .catch(err => console.error('KaTeX load error:', err));
+      .catch(err => {});
   }, [content]);
 
   return (
