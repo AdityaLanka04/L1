@@ -65,6 +65,10 @@ Available capabilities:
 4. search_knowledge - Search user's notes and flashcards
 5. analyze_progress - Check learning progress
 6. create_study_plan - Generate study schedules
+7. generate_notes - Generate note content on a topic
+8. improve_notes - Improve existing note content
+9. summarize_notes - Summarize note content
+10. expand_notes - Expand notes with more details
 
 Decompose into 1-5 tasks. Return JSON:
 {{

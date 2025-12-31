@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { API_URL } from '../config';
 import gamificationService from '../services/gamificationService';
+import noteAgentService from '../services/noteAgentService';
 import ImportExportModal from '../components/ImportExportModal';
 
 // Enhanced Notes Features
@@ -684,31 +685,23 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setGeneratingAI(true);
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/ai_writing_assistant/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          user_id: userName,
-          content: selectedText,
-          action: action,
-          tone: aiAssistTone,
-          context: noteContent,
-        }),
+      // Use the note agent service
+      const result = await noteAgentService.invoke(action, {
+        userId: userName,
+        content: selectedText,
+        tone: aiAssistTone,
+        context: noteContent
       });
 
-      if (!res.ok) throw new Error("AI processing failed");
+      if (!result.success) throw new Error("AI processing failed");
 
-      const data = await res.json();
+      const resultContent = result.content || result.response;
       const quill = quillRef.current?.getEditor();
 
       if (quill && selectedRange) {
         quill.deleteText(selectedRange.index, selectedRange.length);
-        quill.insertText(selectedRange.index, data.result);
-        quill.setSelection(selectedRange.index + data.result.length);
+        quill.insertText(selectedRange.index, resultContent);
+        quill.setSelection(selectedRange.index + resultContent.length);
       }
 
       setNoteContent(quill.root.innerHTML);
@@ -730,30 +723,35 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setGeneratingAI(true);
 
     try {
-      const token = localStorage.getItem("token");
+      // Map old action types to new agent actions
+      const actionMap = {
+        'explain': 'explain',
+        'key_points': 'key_points',
+        'guide': 'generate',
+        'summary': 'summarize',
+        'general': 'generate'
+      };
       
-      const fd = new FormData();
-      fd.append("user_id", userName);
-      fd.append("prompt", selectedText);
-      fd.append("content_type", actionType);
-      fd.append("existing_content", noteContent);
-
-      const res = await fetch(`${API_URL}/generate_note_content/`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: fd,
+      const agentAction = actionMap[actionType] || 'generate';
+      
+      // Use the note agent service
+      const result = await noteAgentService.invoke(agentAction, {
+        userId: userName,
+        content: selectedText,
+        topic: selectedText,
+        context: noteContent
       });
 
-      if (!res.ok) throw new Error("AI generation failed");
+      if (!result.success) throw new Error("AI generation failed");
 
-      const data = await res.json();
+      const resultContent = result.content || result.response;
       const quill = quillRef.current?.getEditor();
 
       if (quill && selectedRange) {
         const insertPosition = selectedRange.index + selectedRange.length;
         quill.insertText(insertPosition, "\n\n");
-        quill.clipboard.dangerouslyPasteHTML(insertPosition + 2, data.content);
-        quill.setSelection(insertPosition + data.content.length + 2);
+        quill.clipboard.dangerouslyPasteHTML(insertPosition + 2, resultContent);
+        quill.setSelection(insertPosition + resultContent.length + 2);
       }
 
       setNoteContent(quill.root.innerHTML);
@@ -1635,40 +1633,37 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
     setGeneratingAI(true);
     try {
-      const token = localStorage.getItem("token");
-      
-      let actionType = "general";
+      // Determine action type from prompt
+      let actionType = "generate";
       if (aiPrompt.toLowerCase().includes("explain")) {
         actionType = "explain";
       } else if (aiPrompt.toLowerCase().includes("key points")) {
         actionType = "key_points";
-      } else if (aiPrompt.toLowerCase().includes("guide")) {
-        actionType = "guide";
+      } else if (aiPrompt.toLowerCase().includes("outline")) {
+        actionType = "outline";
+      } else if (aiPrompt.toLowerCase().includes("summarize")) {
+        actionType = "summarize";
       }
 
-      const fd = new FormData();
-      fd.append("user_id", userName);
-      fd.append("prompt", aiPrompt);
-      fd.append("content_type", actionType);
-      fd.append("existing_content", noteContent);
-
-      const res = await fetch(`${API_URL}/generate_note_content/`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: fd,
+      // Use the note agent service
+      const result = await noteAgentService.invoke(actionType, {
+        userId: userName,
+        topic: aiPrompt,
+        content: aiPrompt,
+        context: noteContent
       });
 
-      if (!res.ok) throw new Error("AI generation failed");
+      if (!result.success) throw new Error("AI generation failed");
 
-      const data = await res.json();
+      const resultContent = result.content || result.response;
       const quill = quillRef.current?.getEditor();
 
       if (quill) {
         const range = quill.getSelection();
         const index = range ? range.index : quill.getLength();
         quill.insertText(index, "\n");
-        quill.clipboard.dangerouslyPasteHTML(index + 1, data.content);
-        quill.setSelection(index + data.content.length + 1);
+        quill.clipboard.dangerouslyPasteHTML(index + 1, resultContent);
+        quill.setSelection(index + resultContent.length + 1);
       }
 
       setNoteContent(quillRef.current?.getEditor().root.innerHTML);
@@ -1688,31 +1683,36 @@ const NotesRedesign = ({ sharedMode = false }) => {
     
     setGeneratingAI(true);
     try {
-      const token = localStorage.getItem("token");
+      // Map old action types to new agent actions
+      const actionMap = {
+        'explain': 'explain',
+        'key_points': 'key_points',
+        'guide': 'generate',
+        'summary': 'summarize',
+        'general': 'generate'
+      };
       
-      const fd = new FormData();
-      fd.append("user_id", userName);
-      fd.append("prompt", aiPrompt || "Generate content");
-      fd.append("content_type", actionType);
-      fd.append("existing_content", noteContent);
-
-      const res = await fetch(`${API_URL}/generate_note_content/`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: fd,
+      const agentAction = actionMap[actionType] || 'generate';
+      
+      // Use the note agent service
+      const result = await noteAgentService.invoke(agentAction, {
+        userId: userName,
+        topic: aiPrompt || "Generate content",
+        content: aiPrompt || "Generate content",
+        context: noteContent
       });
 
-      if (!res.ok) throw new Error("AI generation failed");
+      if (!result.success) throw new Error("AI generation failed");
 
-      const data = await res.json();
+      const resultContent = result.content || result.response;
       const quill = quillRef.current?.getEditor();
 
       if (quill) {
         const range = quill.getSelection();
         const index = range ? range.index : quill.getLength();
         quill.insertText(index, "\n");
-        quill.clipboard.dangerouslyPasteHTML(index + 1, data.content);
-        quill.setSelection(index + data.content.length + 1);
+        quill.clipboard.dangerouslyPasteHTML(index + 1, resultContent);
+        quill.setSelection(index + resultContent.length + 1);
       }
 
       setNoteContent(quillRef.current?.getEditor().root.innerHTML);
@@ -1857,26 +1857,19 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
       console.log("Sending transcript to AI:", transcript);
 
-      const aiRes = await fetch(`${API_URL}/generate_note_content/`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: (() => {
-          const fd = new FormData();
-          fd.append("user_id", userName);
-          fd.append("prompt", transcript);
-          fd.append("content_type", "voice_response");
-          fd.append("existing_content", noteContent);
-          return fd;
-        })(),
+      // Use the note agent service for voice transcription processing
+      const result = await noteAgentService.invoke('generate', {
+        userId: userName,
+        topic: transcript,
+        content: transcript,
+        context: noteContent
       });
 
-      if (!aiRes.ok) {
-        const errorText = await aiRes.text();
-        console.error("AI generation error:", errorText);
-        throw new Error(`AI response failed: ${aiRes.status}`);
+      if (!result.success) {
+        throw new Error("AI response failed");
       }
 
-      const aiData = await aiRes.json();
+      const resultContent = result.content || result.response;
       console.log("AI response received");
       
       const quill = quillRef.current?.getEditor();
@@ -1885,8 +1878,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
         const range = quill.getSelection();
         const index = range ? range.index : quill.getLength();
         quill.insertText(index, "\n\n");
-        quill.clipboard.dangerouslyPasteHTML(index + 2, aiData.content);
-        quill.setSelection(index + aiData.content.length + 2);
+        quill.clipboard.dangerouslyPasteHTML(index + 2, resultContent);
+        quill.setSelection(index + resultContent.length + 2);
       }
 
       setNoteContent(quillRef.current?.getEditor().root.innerHTML);
@@ -1922,26 +1915,34 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
     setGeneratingAI(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/ai_writing_assistant/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          user_id: userName,
-          content: textToProcess || selectedText,
-          action: aiAssistAction,
-          tone: aiAssistTone,
-          context: noteBlocks.map(b => b.content).join('\n'),
-        }),
+      // Map actions to note agent actions
+      const actionMap = {
+        'generate': 'generate',
+        'continue': 'continue',
+        'improve': 'improve',
+        'simplify': 'simplify',
+        'expand': 'expand',
+        'summarize': 'summarize',
+        'fix_grammar': 'grammar',
+        'grammar': 'grammar',
+        'tone_change': 'tone_change',
+        'translate': 'improve'  // Use improve as fallback for translate
+      };
+      
+      const agentAction = actionMap[aiAssistAction] || aiAssistAction;
+      
+      // Use the note agent service
+      const result = await noteAgentService.invoke(agentAction, {
+        userId: userName,
+        content: textToProcess || selectedText,
+        topic: textToProcess || selectedText,
+        tone: aiAssistTone,
+        context: noteBlocks.map(b => b.content).join('\n')
       });
 
-      if (!res.ok) throw new Error("AI assist failed");
+      if (!result.success) throw new Error("AI assist failed");
 
-      const data = await res.json();
-      const resultText = data.result;
+      const resultText = result.content || result.response;
       
       if (!resultText || resultText.trim() === '') {
         showPopup("Error", "AI returned empty response");

@@ -1,129 +1,141 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Clock, Target, Trophy, CheckCircle, XCircle, Loader } from 'lucide-react';
-import './QuizBattleSession.css'; // Reuse the same CSS
-import { API_URL } from '../config';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Clock, Target, Trophy, CheckCircle, XCircle, Loader, Lightbulb, RefreshCw, AlertCircle } from 'lucide-react';
+import './QuizBattleSession.css';
+import quizAgentService from '../services/quizAgentService';
 
 const SoloQuizSession = () => {
   const navigate = useNavigate();
-  const { quizId } = useParams();
-  const token = localStorage.getItem('token');
+  const username = localStorage.getItem('username');
   
-  const [quiz, setQuiz] = useState(null);
   const [questions, setQuestions] = useState([]);
+  const [quizData, setQuizData] = useState(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [answeredQuestions, setAnsweredQuestions] = useState([]);
+  const [userAnswers, setUserAnswers] = useState({});
   const [score, setScore] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [grading, setGrading] = useState(false);
   const [showResult, setShowResult] = useState(false);
-  const [pointsEarned, setPointsEarned] = useState(null);
+  const [results, setResults] = useState(null);
+  const [analysis, setAnalysis] = useState(null);
+  const [startTime, setStartTime] = useState(null);
 
+  // Load quiz from sessionStorage
   useEffect(() => {
-    loadQuiz();
-  }, [quizId]);
+    const storedData = sessionStorage.getItem('quizData');
+    if (storedData) {
+      const data = JSON.parse(storedData);
+      setQuizData(data);
+      setQuestions(data.questions || []);
+      setTimeRemaining((data.questions?.length || 10) * 60); // 1 min per question
+      setStartTime(Date.now());
+      setLoading(false);
+    } else {
+      navigate('/solo-quiz');
+    }
+  }, [navigate]);
 
+  // Timer
   useEffect(() => {
-    if (timeRemaining > 0 && !showResult) {
+    if (timeRemaining > 0 && !showResult && !loading) {
       const timer = setTimeout(() => {
         setTimeRemaining(prev => prev - 1);
       }, 1000);
       return () => clearTimeout(timer);
-    } else if (timeRemaining === 0 && questions.length > 0) {
-      handleTimeUp();
+    } else if (timeRemaining === 0 && questions.length > 0 && !showResult) {
+      handleSubmitQuiz();
     }
-  }, [timeRemaining, showResult]);
-
-  const loadQuiz = async () => {
-    try {
-      const response = await fetch(`${API_URL}/solo_quiz/${quizId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setQuiz(data.quiz);
-        setQuestions(data.questions);
-        setTimeRemaining(data.quiz.time_limit_seconds);
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error('Error loading quiz:', error);
-      alert('Failed to load quiz');
-      navigate('/solo-quiz');
-    }
-  };
+  }, [timeRemaining, showResult, loading, questions.length]);
 
   const handleAnswerSelect = (answerIndex) => {
     if (selectedAnswer !== null) return;
-    setSelectedAnswer(answerIndex);
     
-    // Automatically advance after 2 seconds
-    setTimeout(() => {
-      handleNextQuestion(answerIndex);
-    }, 2000);
-  };
-
-  const handleNextQuestion = (answerIndex = selectedAnswer) => {
     const currentQuestion = questions[currentQuestionIndex];
-    const isCorrect = answerIndex === currentQuestion.correct_answer;
+    const questionId = String(currentQuestion.id ?? currentQuestionIndex);
     
-    const newAnsweredQuestions = [
-      ...answeredQuestions,
-      {
-        question_id: currentQuestion.id,
-        selected_answer: answerIndex,
-        is_correct: isCorrect,
-        time_taken: quiz.time_limit_seconds - timeRemaining
-      }
-    ];
-    
-    setAnsweredQuestions(newAnsweredQuestions);
-    
-    const newScore = score + (isCorrect ? 1 : 0);
-    setScore(newScore);
-
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setSelectedAnswer(null);
+    // Store answer based on question type
+    let answerValue;
+    if (currentQuestion.question_type === 'multiple_choice') {
+      answerValue = String.fromCharCode(65 + answerIndex); // A, B, C, D
+    } else if (currentQuestion.question_type === 'true_false') {
+      answerValue = answerIndex === 0 ? 'true' : 'false';
     } else {
-      submitQuiz(newScore, newAnsweredQuestions);
+      answerValue = String(answerIndex);
     }
+    
+    setSelectedAnswer(answerIndex);
+    setUserAnswers(prev => ({
+      ...prev,
+      [questionId]: answerValue
+    }));
+
+    // Check if correct for immediate feedback
+    const correctAnswer = String(currentQuestion.correct_answer || '').toLowerCase();
+    const isCorrect = answerValue.toLowerCase() === correctAnswer || 
+                      answerValue.toLowerCase() === correctAnswer.charAt(0);
+    
+    if (isCorrect) {
+      setScore(prev => prev + 1);
+    }
+
+    // Auto-advance after delay
+    setTimeout(() => {
+      if (currentQuestionIndex < questions.length - 1) {
+        setCurrentQuestionIndex(prev => prev + 1);
+        setSelectedAnswer(null);
+      } else {
+        handleSubmitQuiz();
+      }
+    }, 1500);
   };
 
-  const handleTimeUp = () => {
-    submitQuiz(score, answeredQuestions);
-  };
+  const handleSubmitQuiz = async () => {
+    setGrading(true);
+    const timeTaken = Math.round((Date.now() - startTime) / 1000);
 
-  const submitQuiz = async (finalScore, answers) => {
     try {
-      // Calculate percentage score
-      const percentageScore = questions.length > 0 
-        ? Math.round((finalScore / questions.length) * 100) 
-        : 0;
-      
-      const response = await fetch(`${API_URL}/complete_solo_quiz`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          quiz_id: parseInt(quizId),
-          score: percentageScore,
-          answers: answers
-        })
+      // Grade the quiz using the agent
+      const gradeResponse = await quizAgentService.gradeQuiz({
+        userId: username,
+        questions,
+        answers: userAnswers,
+        timeTakenSeconds: timeTaken
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setPointsEarned(data);
+      setResults(gradeResponse);
+
+      // Analyze performance
+      if (gradeResponse.results) {
+        const analyzeResponse = await quizAgentService.analyzePerformance({
+          userId: username,
+          results: gradeResponse.results,
+          timeTakenSeconds: timeTaken
+        });
+        setAnalysis(analyzeResponse.analysis);
       }
 
       setShowResult(true);
     } catch (error) {
-      console.error('Error submitting quiz:', error);
+      console.error('Error grading quiz:', error);
+      // Fallback to local grading
+      setResults({
+        total_questions: questions.length,
+        correct_answers: score,
+        percentage: Math.round((score / questions.length) * 100),
+        results: questions.map((q, idx) => ({
+          question_text: q.question_text,
+          user_answer: userAnswers[String(q.id ?? idx)] || '',
+          correct_answer: q.correct_answer,
+          is_correct: (userAnswers[String(q.id ?? idx)] || '').toLowerCase() === String(q.correct_answer || '').toLowerCase().charAt(0),
+          explanation: q.explanation
+        }))
+      });
+      setShowResult(true);
+    } finally {
+      setGrading(false);
+      sessionStorage.removeItem('quizData');
     }
   };
 
@@ -131,6 +143,10 @@ const SoloQuizSession = () => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleRetry = () => {
+    navigate('/solo-quiz');
   };
 
   if (loading) {
@@ -142,7 +158,20 @@ const SoloQuizSession = () => {
     );
   }
 
+  if (grading) {
+    return (
+      <div className="battle-session-loading">
+        <Loader size={48} className="spinner" />
+        <h2>Grading Your Answers...</h2>
+        <p>AI is analyzing your performance</p>
+      </div>
+    );
+  }
+
   if (showResult) {
+    const percentage = results?.percentage || Math.round((score / questions.length) * 100);
+    const correctCount = results?.correct_answers || score;
+
     return (
       <div className="battle-result-page detailed">
         <div className="result-container detailed">
@@ -154,79 +183,103 @@ const SoloQuizSession = () => {
           <div className="result-stats">
             <div className="result-stat">
               <span className="stat-label">Your Score</span>
-              <span className="stat-value">{score}</span>
-            </div>
-            <div className="result-stat">
-              <span className="stat-label">Total Questions</span>
-              <span className="stat-value">{questions.length}</span>
+              <span className="stat-value">{correctCount}/{questions.length}</span>
             </div>
             <div className="result-stat">
               <span className="stat-label">Accuracy</span>
-              <span className="stat-value">{Math.round((score / questions.length) * 100)}%</span>
+              <span className="stat-value">{percentage}%</span>
             </div>
-            {pointsEarned && (
-              <div className="result-stat points-earned">
-                <span className="stat-label">Points Earned</span>
-                <span className="stat-value highlight">+{pointsEarned.points_earned}</span>
+            {analysis?.avg_time_per_question && (
+              <div className="result-stat">
+                <span className="stat-label">Avg Time/Question</span>
+                <span className="stat-value">{Math.round(analysis.avg_time_per_question)}s</span>
               </div>
             )}
           </div>
-          
-          {pointsEarned?.points_breakdown?.bonus_reasons?.length > 0 && (
-            <div className="bonus-badges">
-              {pointsEarned.points_breakdown.bonus_reasons.map((reason, idx) => (
-                <span key={idx} className="bonus-badge">{reason}</span>
-              ))}
+
+          {/* Weak/Strong Areas */}
+          {analysis && (
+            <div className="performance-insights">
+              {analysis.weak_topics?.length > 0 && (
+                <div className="insight-section weak">
+                  <h3><AlertCircle size={18} /> Areas to Improve</h3>
+                  <div className="topic-tags">
+                    {analysis.weak_topics.map((topic, idx) => (
+                      <span key={idx} className="topic-tag weak">{topic}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {analysis.strong_topics?.length > 0 && (
+                <div className="insight-section strong">
+                  <h3><CheckCircle size={18} /> Strong Areas</h3>
+                  <div className="topic-tags">
+                    {analysis.strong_topics.map((topic, idx) => (
+                      <span key={idx} className="topic-tag strong">{topic}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
+          {/* Question Review */}
           <div className="question-by-question">
             <h3>Review Your Answers</h3>
             <div className="questions-comparison-list">
-              {questions.map((question, index) => {
-                const userAnswer = answeredQuestions[index];
-                const userCorrect = userAnswer?.is_correct;
-                const userSelectedIndex = userAnswer?.selected_answer;
-                const correctAnswerIndex = question.correct_answer;
-                const showExplanation = !userCorrect;
+              {(results?.results || []).map((result, index) => {
+                const question = questions[index];
+                const isCorrect = result.is_correct;
+                let options = question?.options || [];
+                if (typeof options === 'string') {
+                  try { options = JSON.parse(options); } catch { options = []; }
+                }
 
                 return (
-                  <div key={index} className="question-comparison-item expanded">
+                  <div key={index} className={`question-comparison-item expanded ${isCorrect ? 'correct' : 'incorrect'}`}>
                     <div className="question-comparison-header">
                       <div className="question-number">Q{index + 1}</div>
-                      <div className="question-text-full">{question.question}</div>
+                      <div className="question-text-full">{result.question_text || question?.question_text}</div>
+                      <span className={`status-badge ${isCorrect ? 'correct' : 'incorrect'}`}>
+                        {isCorrect ? '✓ Correct' : '✗ Incorrect'}
+                      </span>
                     </div>
                     
-                    <div className="answer-options-review">
-                      {question.options.map((option, optIndex) => {
-                        const isCorrect = optIndex === correctAnswerIndex;
-                        const userSelected = optIndex === userSelectedIndex;
-                        
-                        return (
-                          <div 
-                            key={optIndex} 
-                            className={`answer-option-review ${isCorrect ? 'correct-answer' : ''} ${userSelected ? 'selected' : ''}`}
-                          >
-                            <div className="option-content">
-                              <span className="option-letter">{String.fromCharCode(65 + optIndex)}</span>
-                              <span className="option-text">{option}</span>
-                              {isCorrect && <CheckCircle size={16} className="correct-icon" />}
-                            </div>
-                            <div className="selection-indicators">
-                              {userSelected && (
-                                <span className={`user-badge you ${userCorrect ? 'correct' : 'incorrect'}`}>
-                                  Your Answer {userCorrect ? '✓' : '✗'}
+                    {options.length > 0 && (
+                      <div className="answer-options-review">
+                        {options.map((option, optIndex) => {
+                          const optionLetter = String.fromCharCode(65 + optIndex);
+                          const correctAnswer = String(result.correct_answer || '').toUpperCase();
+                          const userAnswer = String(result.user_answer || '').toUpperCase();
+                          const isCorrectOption = optionLetter === correctAnswer || correctAnswer.startsWith(optionLetter);
+                          const isUserSelected = optionLetter === userAnswer || userAnswer.startsWith(optionLetter);
+                          const optionText = typeof option === 'string' ? option.replace(/^[A-D]\)\s*/, '') : option;
+                          
+                          return (
+                            <div 
+                              key={optIndex} 
+                              className={`answer-option-review ${isCorrectOption ? 'correct-answer' : ''} ${isUserSelected ? 'selected' : ''}`}
+                            >
+                              <div className="option-content">
+                                <span className="option-letter">{optionLetter}</span>
+                                <span className="option-text">{optionText}</span>
+                                {isCorrectOption && <CheckCircle size={16} className="correct-icon" />}
+                              </div>
+                              {isUserSelected && (
+                                <span className={`user-badge ${isCorrect ? 'correct' : 'incorrect'}`}>
+                                  Your Answer {isCorrect ? '✓' : '✗'}
                                 </span>
                               )}
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                          );
+                        })}
+                      </div>
+                    )}
 
-                    {showExplanation && question.explanation && (
+                    {!isCorrect && (result.explanation || question?.explanation) && (
                       <div className="question-explanation">
-                        <strong>Explanation:</strong> {question.explanation}
+                        <Lightbulb size={16} />
+                        <span>{result.explanation || question?.explanation}</span>
                       </div>
                     )}
                   </div>
@@ -235,19 +288,31 @@ const SoloQuizSession = () => {
             </div>
           </div>
 
-          <button 
-            className="result-button"
-            onClick={() => navigate('/solo-quiz')}
-          >
-            Back
-          </button>
+          <div className="result-actions">
+            <button className="result-button primary" onClick={handleRetry}>
+              <RefreshCw size={18} />
+              Try Another Quiz
+            </button>
+            <button className="result-button secondary" onClick={() => navigate('/dashboard')}>
+              Back to Dashboard
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
+  // Quiz in progress
   const currentQuestion = questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+  
+  let options = currentQuestion?.options || [];
+  if (typeof options === 'string') {
+    try { options = JSON.parse(options); } catch { options = []; }
+  }
+  if (currentQuestion?.question_type === 'true_false' && options.length === 0) {
+    options = ['True', 'False'];
+  }
 
   return (
     <div className="battle-session-page">
@@ -255,7 +320,7 @@ const SoloQuizSession = () => {
         <div className="session-info">
           <div className="info-item">
             <Target size={16} />
-            <span>{quiz?.subject}</span>
+            <span>{quizData?.topic || 'Quiz'}</span>
           </div>
           <div className="info-item">
             <span className="question-counter">
@@ -279,20 +344,34 @@ const SoloQuizSession = () => {
       <div className="battle-session-container">
         <div className="question-card">
           <div className="question-header">
-            <h2 className="question-text">{currentQuestion.question}</h2>
-            <div className="question-difficulty">
-              <span className={`difficulty-badge ${quiz?.difficulty}`}>
-                {quiz?.difficulty}
+            <div className="question-meta">
+              <span className="question-type-badge">
+                {currentQuestion?.question_type?.replace('_', ' ')}
+              </span>
+              <span className={`difficulty-badge ${currentQuestion?.difficulty}`}>
+                {currentQuestion?.difficulty}
               </span>
             </div>
+            <h2 className="question-text">{currentQuestion?.question_text}</h2>
+            {currentQuestion?.topic && (
+              <p className="question-topic">Topic: {currentQuestion.topic}</p>
+            )}
           </div>
 
           <div className="answers-grid">
-            {currentQuestion.options.map((option, index) => {
+            {options.map((option, index) => {
               const isSelected = selectedAnswer === index;
-              const isCorrect = index === currentQuestion.correct_answer;
-              const showCorrect = selectedAnswer !== null && isCorrect;
-              const showIncorrect = selectedAnswer !== null && isSelected && !isCorrect;
+              const optionText = typeof option === 'string' ? option.replace(/^[A-D]\)\s*/, '') : option;
+              
+              // Show correct/incorrect after selection
+              let showCorrect = false;
+              let showIncorrect = false;
+              if (selectedAnswer !== null) {
+                const correctAnswer = String(currentQuestion?.correct_answer || '').toLowerCase();
+                const selectedLetter = String.fromCharCode(65 + index).toLowerCase();
+                showCorrect = selectedLetter === correctAnswer || correctAnswer.startsWith(selectedLetter);
+                showIncorrect = isSelected && !showCorrect;
+              }
 
               return (
                 <button
@@ -302,7 +381,7 @@ const SoloQuizSession = () => {
                   disabled={selectedAnswer !== null}
                 >
                   <span className="option-letter">{String.fromCharCode(65 + index)}</span>
-                  <span className="option-text">{option}</span>
+                  <span className="option-text">{optionText}</span>
                   {showCorrect && <CheckCircle size={20} className="option-icon" />}
                   {showIncorrect && <XCircle size={20} className="option-icon" />}
                 </button>

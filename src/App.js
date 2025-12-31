@@ -95,6 +95,7 @@ function App() {
             <Route path="/quiz-battles" element={<ProtectedRoute><QuizBattle /></ProtectedRoute>} />
             <Route path="/quiz-battle/:battleId" element={<ProtectedRoute><QuizBattleSession /></ProtectedRoute>} />
             <Route path="/solo-quiz" element={<ProtectedRoute><SoloQuiz /></ProtectedRoute>} />
+            <Route path="/solo-quiz/session" element={<ProtectedRoute><SoloQuizSession /></ProtectedRoute>} />
             <Route path="/solo-quiz/:quizId" element={<ProtectedRoute><SoloQuizSession /></ProtectedRoute>} />
             <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
             <Route path="/games" element={<ProtectedRoute><Games /></ProtectedRoute>} />

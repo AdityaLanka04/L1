@@ -1,18 +1,49 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Target, BookOpen, Zap, TrendingUp, Play } from 'lucide-react';
+import { Target, Zap, TrendingUp, Play, Brain, Sparkles, Loader, AlertCircle, Lightbulb } from 'lucide-react';
 import './SoloQuiz.css';
-import { API_URL } from '../config';
+import quizAgentService from '../services/quizAgentService';
 
 const SoloQuiz = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const token = localStorage.getItem('token');
+  const username = localStorage.getItem('username');
   
   const [subject, setSubject] = useState('');
-  const [difficulty, setDifficulty] = useState('intermediate');
+  const [difficulty, setDifficulty] = useState('medium');
   const [questionCount, setQuestionCount] = useState(10);
+  const [questionTypes] = useState(['multiple_choice']);
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  const [useAdaptive, setUseAdaptive] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
+
+  // Difficulty mix based on selected difficulty
+  const getDifficultyMix = () => {
+    switch (difficulty) {
+      case 'easy': return { easy: 6, medium: 3, hard: 1 };
+      case 'medium': return { easy: 3, medium: 5, hard: 2 };
+      case 'hard': return { easy: 1, medium: 4, hard: 5 };
+      default: return { easy: 3, medium: 5, hard: 2 };
+    }
+  };
+
+  // Load recommendations on mount
+  useEffect(() => {
+    const loadRecommendations = async () => {
+      if (username) {
+        try {
+          const response = await quizAgentService.getRecommendations(username);
+          setRecommendations(response.recommendations || []);
+        } catch (err) {
+          console.log('Could not load recommendations:', err);
+        }
+      }
+    };
+    loadRecommendations();
+  }, [username]);
 
   // Handle autoStart from SearchHub
   useEffect(() => {
@@ -20,80 +51,70 @@ const SoloQuiz = () => {
     
     if (autoStartData?.autoStart && autoStartData.topics?.length > 0) {
       console.log('🚀 Auto-starting quiz with:', autoStartData);
-      
-      // Set the form values
-      const topic = autoStartData.topics[0];
-      setSubject(topic);
+      setSubject(autoStartData.topics[0]);
       setDifficulty(autoStartData.difficulty || 'medium');
       setQuestionCount(autoStartData.questionCount || 10);
       
-      // Auto-create the quiz
-      setTimeout(async () => {
-        try {
-          const response = await fetch(`${API_URL}/create_solo_quiz`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              subject: topic,
-              difficulty: autoStartData.difficulty || 'medium',
-              question_count: autoStartData.questionCount || 10
-            })
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            navigate(`/solo-quiz/${data.quiz_id}`, { replace: true });
-          } else {
-            console.error('Failed to create quiz');
-            // Show the modal so user can try manually
-            setShowCreateModal(true);
-          }
-        } catch (error) {
-          console.error('Error creating solo quiz:', error);
-          // Show the modal so user can try manually
-          setShowCreateModal(true);
-        }
-        
-        // Clear location state
-        window.history.replaceState({}, document.title);
+      setTimeout(() => {
+        handleStartQuiz(null, autoStartData.topics[0], autoStartData.difficulty || 'medium', autoStartData.questionCount || 10);
       }, 500);
+      
+      window.history.replaceState({}, document.title);
     }
   }, [location.state]);
 
-  const handleStartQuiz = async (e) => {
-    e.preventDefault();
+  const handleStartQuiz = async (e, autoTopic = null, autoDifficulty = null, autoCount = null) => {
+    if (e) e.preventDefault();
     
-    if (!subject) {
-      alert('Please enter a subject');
+    const topicToUse = autoTopic || subject;
+    const difficultyToUse = autoDifficulty || difficulty;
+    const countToUse = autoCount || questionCount;
+    
+    if (!topicToUse) {
+      setError('Please enter a subject');
       return;
     }
 
-    try {
-      const response = await fetch(`${API_URL}/create_solo_quiz`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          subject,
-          difficulty,
-          question_count: questionCount
-        })
-      });
+    setLoading(true);
+    setError(null);
 
-      if (response.ok) {
-        const data = await response.json();
-        navigate(`/solo-quiz/${data.quiz_id}`);
+    try {
+      let response;
+      
+      if (useAdaptive) {
+        response = await quizAgentService.generateAdaptiveQuiz({
+          userId: username,
+          topic: topicToUse,
+          questionCount: countToUse
+        });
       } else {
-        alert('Failed to create quiz');
+        response = await quizAgentService.generateQuiz({
+          userId: username,
+          topic: topicToUse,
+          questionCount: countToUse,
+          difficultyMix: getDifficultyMix(),
+          questionTypes
+        });
       }
-    } catch (error) {
-      console.error('Error creating solo quiz:', error);
-      alert('Failed to create quiz');
+
+      if (response.success && response.questions?.length > 0) {
+        // Store quiz data in sessionStorage and navigate
+        sessionStorage.setItem('quizData', JSON.stringify({
+          questions: response.questions,
+          topic: topicToUse,
+          difficulty: difficultyToUse,
+          adaptiveConfig: response.adaptive_config
+        }));
+        navigate('/solo-quiz/session');
+      } else {
+        setError('Failed to generate questions. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error creating quiz:', err);
+      setError(err.message || 'Failed to create quiz');
+    } finally {
+      setLoading(false);
+      setShowCreateModal(false);
     }
   };
 
@@ -102,10 +123,10 @@ const SoloQuiz = () => {
       <header className="sq-header">
         <div className="sq-header-left">
           <h1 className="sq-logo">cerbyl</h1>
-          <span className="sq-subtitle">SOLO PRACTICE</span>
+          <span className="sq-subtitle">AI QUIZ</span>
         </div>
         <div className="sq-header-right">
-          <button className="sq-nav-btn" onClick={() => navigate('/social')}>Back to Social</button>
+          <button className="sq-nav-btn" onClick={() => navigate('/quiz-hub')}>Quiz Hub</button>
           <button className="sq-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
         </div>
       </header>
@@ -113,23 +134,28 @@ const SoloQuiz = () => {
       <div className="sq-content">
         <div className="sq-welcome">
           <div className="sq-welcome-inner">
-            <BookOpen size={48} className="sq-icon" />
-            <h2 className="sq-title">Practice Solo</h2>
+            <Brain size={48} className="sq-icon" />
+            <h2 className="sq-title">AI-Powered Quiz</h2>
             <p className="sq-desc">
-              Test your knowledge with AI-generated quizzes. Choose your subject, difficulty, and start learning!
+              Test your knowledge with intelligent quizzes generated by AI. Get personalized questions based on your learning progress.
             </p>
           </div>
           <button className="sq-start-btn" onClick={() => setShowCreateModal(true)}>
-            <Play size={20} />
+            <Sparkles size={20} />
             <span>Start New Quiz</span>
           </button>
         </div>
 
         <div className="sq-features">
           <div className="sq-feature-card">
+            <Brain size={32} />
+            <h3>AI Generated</h3>
+            <p>Questions crafted by advanced AI</p>
+          </div>
+          <div className="sq-feature-card">
             <Target size={32} />
-            <h3>Personalized</h3>
-            <p>Choose your subject and difficulty level</p>
+            <h3>Adaptive</h3>
+            <p>Adjusts to your skill level</p>
           </div>
           <div className="sq-feature-card">
             <Zap size={32} />
@@ -142,52 +168,111 @@ const SoloQuiz = () => {
             <p>Monitor your learning journey</p>
           </div>
         </div>
+
+        {/* Recommendations */}
+        {recommendations.length > 0 && (
+          <div className="sq-recommendations">
+            <h3><Lightbulb size={20} /> Recommended Topics</h3>
+            <div className="sq-rec-list">
+              {recommendations.slice(0, 3).map((rec, idx) => (
+                <div 
+                  key={idx} 
+                  className="sq-rec-item"
+                  onClick={() => {
+                    setSubject(rec.topic || rec.topics?.[0] || '');
+                    setShowCreateModal(true);
+                  }}
+                >
+                  <span className="sq-rec-topic">{rec.topic || rec.topics?.[0]}</span>
+                  <span className="sq-rec-reason">{rec.reason}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="sq-error">
+            <AlertCircle size={20} />
+            <span>{error}</span>
+            <button onClick={() => setError(null)}>×</button>
+          </div>
+        )}
       </div>
 
       {showCreateModal && (
         <div className="sq-modal-overlay" onClick={() => setShowCreateModal(false)}>
           <div className="sq-modal" onClick={(e) => e.stopPropagation()}>
             <div className="sq-modal-header">
-              <h3>Create Solo Quiz</h3>
+              <h3><Brain size={20} /> Create AI Quiz</h3>
               <button className="sq-modal-close" onClick={() => setShowCreateModal(false)}>×</button>
             </div>
 
             <form onSubmit={handleStartQuiz} className="sq-form">
               <div className="sq-form-group">
-                <label>Subject</label>
+                <label>Subject / Topic</label>
                 <input
                   type="text"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  placeholder="e.g., Mathematics, Physics, History..."
+                  placeholder="e.g., Machine Learning, World War II, Calculus..."
                   required
                 />
               </div>
 
-              <div className="sq-form-group">
-                <label>Difficulty</label>
-                <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
-                  <option value="beginner">Beginner</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="advanced">Advanced</option>
-                </select>
+              <div className="sq-form-row">
+                <div className="sq-form-group">
+                  <label>Difficulty</label>
+                  <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                  </select>
+                </div>
+
+                <div className="sq-form-group">
+                  <label>Questions</label>
+                  <input
+                    type="number"
+                    value={questionCount}
+                    onChange={(e) => setQuestionCount(Math.min(20, Math.max(5, parseInt(e.target.value) || 5)))}
+                    min="5"
+                    max="20"
+                  />
+                </div>
               </div>
 
-              <div className="sq-form-group">
-                <label>Number of Questions</label>
-                <input
-                  type="number"
-                  value={questionCount}
-                  onChange={(e) => setQuestionCount(parseInt(e.target.value))}
-                  min="5"
-                  max="20"
-                  required
-                />
+              <div className="sq-form-group sq-adaptive-toggle">
+                <label className="sq-toggle-label">
+                  <input
+                    type="checkbox"
+                    checked={useAdaptive}
+                    onChange={(e) => setUseAdaptive(e.target.checked)}
+                  />
+                  <span className="sq-toggle-text">
+                    <Sparkles size={16} />
+                    Use Adaptive Mode
+                  </span>
+                </label>
+                <p className="sq-toggle-desc">AI adjusts questions based on your past performance</p>
               </div>
 
-              <button type="submit" className="sq-submit-btn">
-                <Play size={16} />
-                <span>Start Quiz</span>
+
+
+
+
+              <button type="submit" className="sq-submit-btn" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader size={16} className="spinner" />
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play size={16} />
+                    <span>Start Quiz</span>
+                  </>
+                )}
               </button>
             </form>
           </div>

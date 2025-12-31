@@ -14,6 +14,7 @@ from .base_agent import AgentState, AgentType, agent_registry
 from .intelligent_orchestrator import IntelligentOrchestrator, create_intelligent_orchestrator
 from .chat_agent import ChatAgent, create_chat_agent, ChatMode, ResponseStyle
 from .flashcard_agent import FlashcardAgent, create_flashcard_agent, FlashcardAction
+from .note_agent import NoteAgent, create_note_agent, NoteAction, WritingTone, ContentDepth
 
 logger = logging.getLogger(__name__)
 
@@ -107,11 +108,38 @@ class FlashcardAgentResponse(BaseModel):
     metadata: Dict[str, Any] = {}
 
 
+class NoteAgentRequest(BaseModel):
+    """Request for the note agent"""
+    user_id: str
+    action: str  # generate, improve, expand, simplify, summarize, continue, explain, key_points, grammar, tone_change, outline, organize, analyze, suggest, code_explain
+    content: Optional[str] = None
+    topic: Optional[str] = None
+    tone: str = "professional"
+    depth: str = "standard"
+    context: Optional[str] = None
+    session_id: Optional[str] = None
+
+
+class NoteAgentResponse(BaseModel):
+    """Response from the note agent"""
+    success: bool
+    action: str
+    response: str
+    content: Optional[str] = None
+    analysis: Optional[Dict[str, Any]] = None
+    suggestions: Optional[List[Dict[str, Any]]] = None
+    concepts: Optional[List[str]] = None
+    word_count: int = 0
+    execution_time_ms: float = 0.0
+    metadata: Dict[str, Any] = {}
+
+
 # ==================== Global State ====================
 
 _orchestrator: Optional[IntelligentOrchestrator] = None
 _chat_agent: Optional[ChatAgent] = None
 _flashcard_agent: Optional[FlashcardAgent] = None
+_note_agent: Optional[NoteAgent] = None
 _knowledge_graph = None
 _db_session_factory = None
 _memory_manager = None
@@ -138,6 +166,13 @@ def get_flashcard_agent() -> FlashcardAgent:
     return _flashcard_agent
 
 
+def get_note_agent() -> NoteAgent:
+    """Get the note agent instance"""
+    if _note_agent is None:
+        raise HTTPException(status_code=503, detail="Note agent not initialized")
+    return _note_agent
+
+
 def get_memory():
     """Get the memory manager instance"""
     from .memory import get_memory_manager
@@ -148,7 +183,7 @@ def get_memory():
 
 async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, db_session_factory: Any = None):
     """Initialize the intelligent agent system with unified memory"""
-    global _orchestrator, _chat_agent, _flashcard_agent, _knowledge_graph, _db_session_factory, _memory_manager
+    global _orchestrator, _chat_agent, _flashcard_agent, _note_agent, _quiz_agent, _knowledge_graph, _db_session_factory, _memory_manager
     
     logger.info("Initializing intelligent agent system with unified memory...")
     
@@ -179,6 +214,24 @@ async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, d
         db_session_factory=db_session_factory
     )
     logger.info("✅ Flashcard Agent initialized")
+    
+    # Initialize the Note Agent
+    _note_agent = create_note_agent(
+        ai_client=ai_client,
+        knowledge_graph=knowledge_graph,
+        memory_manager=_memory_manager,
+        db_session_factory=db_session_factory
+    )
+    logger.info("✅ Note Agent initialized")
+    
+    # Initialize the Quiz Agent
+    _quiz_agent = create_quiz_agent(
+        ai_client=ai_client,
+        knowledge_graph=knowledge_graph,
+        memory_manager=_memory_manager,
+        db_session_factory=db_session_factory
+    )
+    logger.info("✅ Quiz Agent initialized")
     
     # Initialize orchestrator with memory manager
     _orchestrator = create_intelligent_orchestrator(
@@ -284,12 +337,21 @@ async def get_agent_status():
     return {
         "status": "healthy" if _orchestrator else "not_initialized",
         "type": "intelligent_orchestrator",
+        "agents": {
+            "orchestrator": _orchestrator is not None,
+            "chat": _chat_agent is not None,
+            "flashcard": _flashcard_agent is not None,
+            "note": _note_agent is not None,
+            "quiz": _quiz_agent is not None
+        },
         "capabilities": [
             "react_reasoning",
             "tool_calling", 
             "self_reflection",
             "task_decomposition",
-            "knowledge_graph_integration"
+            "knowledge_graph_integration",
+            "quiz_generation",
+            "adaptive_testing"
         ],
         "tools_available": len(_orchestrator.all_tools) if _orchestrator else 0,
         "knowledge_graph_connected": _knowledge_graph is not None,
@@ -309,6 +371,9 @@ async def list_intents():
         {"name": "notes_summarize", "description": "Summarize content"},
         {"name": "quiz_generate", "description": "Generate quiz questions"},
         {"name": "quiz_take", "description": "Take a quiz"},
+        {"name": "quiz_grade", "description": "Grade quiz answers"},
+        {"name": "quiz_analyze", "description": "Analyze quiz performance"},
+        {"name": "quiz_adaptive", "description": "Generate adaptive quiz"},
         {"name": "search_content", "description": "Search user content"},
         {"name": "general", "description": "General assistance"}
     ]
@@ -745,3 +810,831 @@ async def flashcard_explain(
     except Exception as e:
         logger.error(f"Flashcard explanation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== Note Agent API Endpoints ====================
+
+@router.post("/notes", response_model=NoteAgentResponse)
+async def note_agent_invoke(request: NoteAgentRequest):
+    """
+    Main endpoint for the note agent.
+    Supports actions: generate, improve, expand, simplify, summarize, continue, 
+    explain, key_points, grammar, tone_change, outline, organize, analyze, suggest, code_explain
+    """
+    import time
+    start_time = time.time()
+    
+    note_agent = get_note_agent()
+    
+    # Build initial state
+    state = {
+        "user_id": request.user_id,
+        "action": request.action,
+        "session_id": request.session_id or f"note_{request.user_id}_{datetime.utcnow().timestamp()}",
+        "timestamp": datetime.utcnow().isoformat(),
+        "tone": request.tone,
+        "depth": request.depth,
+        "action_params": {
+            "tone": request.tone,
+            "depth": request.depth,
+            "content": request.content,
+            "topic": request.topic,
+            "context": request.context
+        }
+    }
+    
+    # Add topic/content based on action
+    if request.topic:
+        state["topic"] = request.topic
+        state["user_input"] = f"{request.action} about {request.topic}"
+    if request.content:
+        state["source_content"] = request.content
+    if request.context:
+        state["context"] = request.context
+    
+    try:
+        # Invoke the note agent
+        result = await note_agent.invoke(state)
+        
+        execution_time = (time.time() - start_time) * 1000
+        
+        # Extract response data
+        response_data = result.metadata.get("response_data", {})
+        
+        return NoteAgentResponse(
+            success=result.success,
+            action=request.action,
+            response=result.response,
+            content=response_data.get("content"),
+            analysis=response_data.get("analysis"),
+            suggestions=response_data.get("suggestions"),
+            concepts=response_data.get("concepts"),
+            word_count=response_data.get("word_count", 0),
+            execution_time_ms=execution_time,
+            metadata=result.metadata
+        )
+        
+    except Exception as e:
+        logger.error(f"Note agent error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/notes/generate", response_model=NoteAgentResponse)
+async def note_generate(
+    user_id: str = Body(...),
+    topic: str = Body(...),
+    tone: str = Body("professional"),
+    depth: str = Body("standard"),
+    context: str = Body(None),
+    session_id: str = Body(None)
+):
+    """Generate note content from a topic using the agent"""
+    request = NoteAgentRequest(
+        user_id=user_id,
+        action="generate",
+        topic=topic,
+        tone=tone,
+        depth=depth,
+        context=context,
+        session_id=session_id
+    )
+    return await note_agent_invoke(request)
+
+
+@router.post("/notes/improve", response_model=NoteAgentResponse)
+async def note_improve(
+    user_id: str = Body(...),
+    content: str = Body(...),
+    tone: str = Body("professional"),
+    session_id: str = Body(None)
+):
+    """Improve existing note content"""
+    request = NoteAgentRequest(
+        user_id=user_id,
+        action="improve",
+        content=content,
+        tone=tone,
+        session_id=session_id
+    )
+    return await note_agent_invoke(request)
+
+
+@router.post("/notes/expand", response_model=NoteAgentResponse)
+async def note_expand(
+    user_id: str = Body(...),
+    content: str = Body(...),
+    depth: str = Body("standard"),
+    tone: str = Body("professional"),
+    session_id: str = Body(None)
+):
+    """Expand note content with more details"""
+    request = NoteAgentRequest(
+        user_id=user_id,
+        action="expand",
+        content=content,
+        depth=depth,
+        tone=tone,
+        session_id=session_id
+    )
+    return await note_agent_invoke(request)
+
+
+@router.post("/notes/simplify", response_model=NoteAgentResponse)
+async def note_simplify(
+    user_id: str = Body(...),
+    content: str = Body(...),
+    session_id: str = Body(None)
+):
+    """Simplify complex note content"""
+    request = NoteAgentRequest(
+        user_id=user_id,
+        action="simplify",
+        content=content,
+        session_id=session_id
+    )
+    return await note_agent_invoke(request)
+
+
+@router.post("/notes/summarize", response_model=NoteAgentResponse)
+async def note_summarize(
+    user_id: str = Body(...),
+    content: str = Body(...),
+    session_id: str = Body(None)
+):
+    """Summarize note content"""
+    request = NoteAgentRequest(
+        user_id=user_id,
+        action="summarize",
+        content=content,
+        session_id=session_id
+    )
+    return await note_agent_invoke(request)
+
+
+@router.post("/notes/continue", response_model=NoteAgentResponse)
+async def note_continue(
+    user_id: str = Body(...),
+    content: str = Body(...),
+    tone: str = Body("professional"),
+    session_id: str = Body(None)
+):
+    """Continue writing note content"""
+    request = NoteAgentRequest(
+        user_id=user_id,
+        action="continue",
+        content=content,
+        tone=tone,
+        session_id=session_id
+    )
+    return await note_agent_invoke(request)
+
+
+@router.post("/notes/explain", response_model=NoteAgentResponse)
+async def note_explain(
+    user_id: str = Body(...),
+    topic: str = Body(...),
+    depth: str = Body("standard"),
+    tone: str = Body("professional"),
+    context: str = Body(None),
+    session_id: str = Body(None)
+):
+    """Generate an explanation for a topic"""
+    request = NoteAgentRequest(
+        user_id=user_id,
+        action="explain",
+        topic=topic,
+        depth=depth,
+        tone=tone,
+        context=context,
+        session_id=session_id
+    )
+    return await note_agent_invoke(request)
+
+
+@router.post("/notes/key_points", response_model=NoteAgentResponse)
+async def note_key_points(
+    user_id: str = Body(...),
+    content: str = Body(...),
+    session_id: str = Body(None)
+):
+    """Extract key points from note content"""
+    request = NoteAgentRequest(
+        user_id=user_id,
+        action="key_points",
+        content=content,
+        session_id=session_id
+    )
+    return await note_agent_invoke(request)
+
+
+@router.post("/notes/grammar", response_model=NoteAgentResponse)
+async def note_grammar(
+    user_id: str = Body(...),
+    content: str = Body(...),
+    session_id: str = Body(None)
+):
+    """Fix grammar and spelling in note content"""
+    request = NoteAgentRequest(
+        user_id=user_id,
+        action="grammar",
+        content=content,
+        session_id=session_id
+    )
+    return await note_agent_invoke(request)
+
+
+@router.post("/notes/tone_change", response_model=NoteAgentResponse)
+async def note_tone_change(
+    user_id: str = Body(...),
+    content: str = Body(...),
+    tone: str = Body(...),
+    session_id: str = Body(None)
+):
+    """Change the tone of note content"""
+    request = NoteAgentRequest(
+        user_id=user_id,
+        action="tone_change",
+        content=content,
+        tone=tone,
+        session_id=session_id
+    )
+    return await note_agent_invoke(request)
+
+
+@router.post("/notes/outline", response_model=NoteAgentResponse)
+async def note_outline(
+    user_id: str = Body(...),
+    topic: str = Body(...),
+    depth: str = Body("standard"),
+    context: str = Body(None),
+    session_id: str = Body(None)
+):
+    """Create an outline for a topic"""
+    request = NoteAgentRequest(
+        user_id=user_id,
+        action="outline",
+        topic=topic,
+        depth=depth,
+        context=context,
+        session_id=session_id
+    )
+    return await note_agent_invoke(request)
+
+
+@router.post("/notes/organize", response_model=NoteAgentResponse)
+async def note_organize(
+    user_id: str = Body(...),
+    content: str = Body(...),
+    session_id: str = Body(None)
+):
+    """Organize and restructure note content"""
+    request = NoteAgentRequest(
+        user_id=user_id,
+        action="organize",
+        content=content,
+        session_id=session_id
+    )
+    return await note_agent_invoke(request)
+
+
+@router.post("/notes/analyze", response_model=NoteAgentResponse)
+async def note_analyze(
+    user_id: str = Body(...),
+    content: str = Body(...),
+    session_id: str = Body(None)
+):
+    """Analyze note content for insights"""
+    request = NoteAgentRequest(
+        user_id=user_id,
+        action="analyze",
+        content=content,
+        session_id=session_id
+    )
+    return await note_agent_invoke(request)
+
+
+@router.post("/notes/suggest", response_model=NoteAgentResponse)
+async def note_suggest(
+    user_id: str = Body(...),
+    content: str = Body(...),
+    session_id: str = Body(None)
+):
+    """Get improvement suggestions for note content"""
+    request = NoteAgentRequest(
+        user_id=user_id,
+        action="suggest",
+        content=content,
+        session_id=session_id
+    )
+    return await note_agent_invoke(request)
+
+
+@router.post("/notes/code_explain", response_model=NoteAgentResponse)
+async def note_code_explain(
+    user_id: str = Body(...),
+    content: str = Body(...),
+    session_id: str = Body(None)
+):
+    """Explain code snippets in notes"""
+    request = NoteAgentRequest(
+        user_id=user_id,
+        action="code_explain",
+        content=content,
+        session_id=session_id
+    )
+    return await note_agent_invoke(request)
+
+
+@router.get("/notes/actions")
+async def list_note_actions():
+    """List all available note agent actions"""
+    return {
+        "actions": [
+            {"name": "generate", "description": "Generate new content from a topic", "requires_topic": True},
+            {"name": "improve", "description": "Improve and enhance existing text", "requires_content": True},
+            {"name": "expand", "description": "Expand text with more details and examples", "requires_content": True},
+            {"name": "simplify", "description": "Simplify complex text for easier understanding", "requires_content": True},
+            {"name": "summarize", "description": "Create a concise summary", "requires_content": True},
+            {"name": "continue", "description": "Continue writing from where text ends", "requires_content": True},
+            {"name": "explain", "description": "Explain a concept clearly", "requires_topic": True},
+            {"name": "key_points", "description": "Extract key points from content", "requires_content": True},
+            {"name": "grammar", "description": "Fix grammar and spelling errors", "requires_content": True},
+            {"name": "tone_change", "description": "Change the writing tone", "requires_content": True},
+            {"name": "outline", "description": "Create a structured outline", "requires_topic": True},
+            {"name": "organize", "description": "Reorganize content for better structure", "requires_content": True},
+            {"name": "analyze", "description": "Analyze content for insights", "requires_content": True},
+            {"name": "suggest", "description": "Get improvement suggestions", "requires_content": True},
+            {"name": "code_explain", "description": "Explain code snippets", "requires_content": True}
+        ]
+    }
+
+
+@router.get("/notes/tones")
+async def list_note_tones():
+    """List available writing tones"""
+    return {
+        "tones": [
+            {"name": "professional", "description": "Clear, business-appropriate language"},
+            {"name": "casual", "description": "Relaxed, conversational style"},
+            {"name": "academic", "description": "Formal, scholarly tone"},
+            {"name": "friendly", "description": "Warm and approachable"},
+            {"name": "formal", "description": "Strict, official language"},
+            {"name": "creative", "description": "Imaginative and expressive"},
+            {"name": "technical", "description": "Precise, specialized terminology"},
+            {"name": "simple", "description": "Easy to understand, plain language"}
+        ]
+    }
+
+
+@router.get("/notes/depths")
+async def list_note_depths():
+    """List available content depth levels"""
+    return {
+        "depths": [
+            {"name": "surface", "description": "Brief overview with key facts"},
+            {"name": "standard", "description": "Balanced explanation with examples"},
+            {"name": "deep", "description": "Comprehensive coverage with details"},
+            {"name": "expert", "description": "Advanced technical depth"}
+        ]
+    }
+
+
+# ==================== Quiz Agent API Endpoints ====================
+
+from .quiz_agent import QuizAgent, create_quiz_agent, QuizAction
+
+_quiz_agent: Optional[QuizAgent] = None
+
+
+def get_quiz_agent() -> QuizAgent:
+    """Get the quiz agent instance"""
+    if _quiz_agent is None:
+        raise HTTPException(status_code=503, detail="Quiz agent not initialized")
+    return _quiz_agent
+
+
+class QuizAgentRequest(BaseModel):
+    """Request for the quiz agent"""
+    user_id: str
+    action: str  # generate, grade, analyze, recommend, explain, adaptive, similar, review
+    topic: Optional[str] = None
+    content: Optional[str] = None
+    question_count: int = 10
+    difficulty: str = "medium"
+    difficulty_mix: Optional[Dict[str, int]] = None
+    question_types: Optional[List[str]] = None
+    topics: Optional[List[str]] = None
+    questions: Optional[List[Dict[str, Any]]] = None
+    answers: Optional[Dict[str, str]] = None
+    results: Optional[List[Dict[str, Any]]] = None
+    question: Optional[Dict[str, Any]] = None
+    user_answer: Optional[str] = None
+    time_taken_seconds: Optional[int] = None
+    session_id: Optional[str] = None
+
+
+class QuizAgentResponse(BaseModel):
+    """Response from the quiz agent"""
+    success: bool
+    action: str
+    response: str
+    questions: Optional[List[Dict[str, Any]]] = None
+    results: Optional[List[Dict[str, Any]]] = None
+    analysis: Optional[Dict[str, Any]] = None
+    recommendations: Optional[List[Dict[str, Any]]] = None
+    score: Optional[float] = None
+    accuracy: Optional[float] = None
+    percentage: Optional[float] = None
+    explanation: Optional[str] = None
+    adaptive_config: Optional[Dict[str, Any]] = None
+    execution_time_ms: float = 0.0
+    metadata: Dict[str, Any] = {}
+
+
+@router.post("/quiz", response_model=QuizAgentResponse)
+async def quiz_agent_invoke(request: QuizAgentRequest):
+    """
+    Main endpoint for the quiz agent.
+    Supports actions: generate, grade, analyze, recommend, explain, adaptive, similar, review
+    """
+    import time
+    start_time = time.time()
+    
+    quiz_agent = get_quiz_agent()
+    
+    # Build initial state with direct field assignment
+    difficulty_mix = request.difficulty_mix or {"easy": 3, "medium": 5, "hard": 2}
+    logger.info(f"Quiz request - action: {request.action}, topic: {request.topic}, count: {request.question_count}, difficulty_mix: {difficulty_mix}")
+    
+    state = {
+        "user_id": request.user_id,
+        "action": request.action,
+        "session_id": request.session_id or f"quiz_{request.user_id}_{datetime.utcnow().timestamp()}",
+        "timestamp": datetime.utcnow().isoformat(),
+        # Set fields directly at top level
+        "topic": request.topic or "",
+        "source_content": request.content or "",
+        "question_count": request.question_count or 10,
+        "difficulty": request.difficulty or "medium",
+        "difficulty_mix": difficulty_mix,
+        "question_types": ["multiple_choice"],  # Force MCQ only
+        "topics": request.topics or [],
+        "user_input": f"Generate quiz about {request.topic}" if request.topic else "",
+        # Also keep action_params for backward compatibility
+        "action_params": {
+            "topic": request.topic,
+            "content": request.content,
+            "question_count": request.question_count or 10,
+            "difficulty": request.difficulty,
+            "difficulty_mix": difficulty_mix,
+            "question_types": ["multiple_choice"],
+            "topics": request.topics,
+            "questions": request.questions,
+            "answers": request.answers,
+            "results": request.results,
+            "question": request.question,
+            "user_answer": request.user_answer,
+            "time_taken_seconds": request.time_taken_seconds
+        }
+    }
+    
+    # Add questions/answers/results if provided
+    if request.questions:
+        state["generated_questions"] = request.questions
+    if request.answers:
+        state["user_answers"] = request.answers
+    if request.results:
+        state["grading_results"] = request.results
+    
+    logger.info(f"Quiz agent invoke: action={request.action}, topic={request.topic}, count={request.question_count}")
+    
+    try:
+        # Invoke the quiz agent
+        result = await quiz_agent.invoke(state)
+        
+        execution_time = (time.time() - start_time) * 1000
+        
+        # Extract response data
+        response_data = result.metadata.get("response_data", {})
+        
+        return QuizAgentResponse(
+            success=result.success,
+            action=request.action,
+            response=result.response,
+            questions=response_data.get("questions"),
+            results=response_data.get("results"),
+            analysis=response_data.get("analysis"),
+            recommendations=response_data.get("recommendations"),
+            score=response_data.get("score"),
+            accuracy=response_data.get("accuracy"),
+            percentage=response_data.get("percentage"),
+            explanation=response_data.get("explanation"),
+            adaptive_config=response_data.get("adaptive_config"),
+            execution_time_ms=execution_time,
+            metadata=result.metadata
+        )
+        
+    except Exception as e:
+        logger.error(f"Quiz agent error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/quiz/generate", response_model=QuizAgentResponse)
+async def quiz_generate(
+    user_id: str = Body(...),
+    topic: str = Body(...),
+    content: str = Body(None),
+    question_count: int = Body(10),
+    difficulty_mix: Dict[str, int] = Body(None),
+    question_types: List[str] = Body(None),
+    topics: List[str] = Body(None),
+    session_id: str = Body(None)
+):
+    """Generate quiz questions from topic or content"""
+    request = QuizAgentRequest(
+        user_id=user_id,
+        action="generate",
+        topic=topic,
+        content=content,
+        question_count=question_count,
+        difficulty_mix=difficulty_mix,
+        question_types=question_types,
+        topics=topics,
+        session_id=session_id
+    )
+    return await quiz_agent_invoke(request)
+
+
+@router.post("/quiz/adaptive", response_model=QuizAgentResponse)
+async def quiz_adaptive(
+    user_id: str = Body(...),
+    topic: str = Body(...),
+    content: str = Body(None),
+    question_count: int = Body(10),
+    session_id: str = Body(None)
+):
+    """Generate adaptive quiz questions based on user performance"""
+    request = QuizAgentRequest(
+        user_id=user_id,
+        action="adaptive",
+        topic=topic,
+        content=content,
+        question_count=question_count,
+        session_id=session_id
+    )
+    return await quiz_agent_invoke(request)
+
+
+@router.post("/quiz/grade", response_model=QuizAgentResponse)
+async def quiz_grade(
+    user_id: str = Body(...),
+    questions: List[Dict[str, Any]] = Body(...),
+    answers: Dict[str, str] = Body(...),
+    time_taken_seconds: int = Body(None),
+    session_id: str = Body(None)
+):
+    """Grade quiz answers and return results"""
+    request = QuizAgentRequest(
+        user_id=user_id,
+        action="grade",
+        questions=questions,
+        answers=answers,
+        time_taken_seconds=time_taken_seconds,
+        session_id=session_id
+    )
+    return await quiz_agent_invoke(request)
+
+
+@router.post("/quiz/analyze", response_model=QuizAgentResponse)
+async def quiz_analyze(
+    user_id: str = Body(...),
+    results: List[Dict[str, Any]] = Body(...),
+    time_taken_seconds: int = Body(None),
+    session_id: str = Body(None)
+):
+    """Analyze quiz performance and provide insights"""
+    request = QuizAgentRequest(
+        user_id=user_id,
+        action="analyze",
+        results=results,
+        time_taken_seconds=time_taken_seconds,
+        session_id=session_id
+    )
+    return await quiz_agent_invoke(request)
+
+
+@router.get("/quiz/recommendations")
+async def quiz_recommendations(
+    user_id: str = Query(...),
+    session_id: str = Query(None)
+):
+    """Get study recommendations based on quiz performance"""
+    import time
+    start_time = time.time()
+    
+    quiz_agent = get_quiz_agent()
+    
+    state = {
+        "user_id": user_id,
+        "action": "recommend",
+        "user_input": "What should I study based on my quiz performance?",
+        "session_id": session_id or f"recommend_{user_id}_{datetime.utcnow().timestamp()}",
+        "timestamp": datetime.utcnow().isoformat(),
+        "action_params": {}
+    }
+    
+    try:
+        result = await quiz_agent.invoke(state)
+        execution_time = (time.time() - start_time) * 1000
+        
+        response_data = result.metadata.get("response_data", {})
+        
+        return {
+            "success": result.success,
+            "action": "recommend",
+            "response": result.response,
+            "recommendations": response_data.get("recommendations", []),
+            "next_quiz_config": response_data.get("next_quiz_config", {}),
+            "execution_time_ms": execution_time
+        }
+    except Exception as e:
+        logger.error(f"Quiz recommendations error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/quiz/explain")
+async def quiz_explain(
+    user_id: str = Body(...),
+    question: Dict[str, Any] = Body(...),
+    user_answer: str = Body(""),
+    session_id: str = Body(None)
+):
+    """Get detailed explanation for a quiz question"""
+    import time
+    start_time = time.time()
+    
+    quiz_agent = get_quiz_agent()
+    
+    state = {
+        "user_id": user_id,
+        "action": "explain",
+        "user_input": f"Explain this question: {question.get('question_text', '')}",
+        "session_id": session_id or f"explain_{user_id}_{datetime.utcnow().timestamp()}",
+        "timestamp": datetime.utcnow().isoformat(),
+        "action_params": {
+            "question": question,
+            "user_answer": user_answer
+        }
+    }
+    
+    try:
+        result = await quiz_agent.invoke(state)
+        execution_time = (time.time() - start_time) * 1000
+        
+        response_data = result.metadata.get("response_data", {})
+        
+        return {
+            "success": result.success,
+            "action": "explain",
+            "question": response_data.get("question"),
+            "explanation": response_data.get("explanation", result.response),
+            "correct_answer": response_data.get("correct_answer"),
+            "user_answer": response_data.get("user_answer"),
+            "execution_time_ms": execution_time
+        }
+    except Exception as e:
+        logger.error(f"Quiz explanation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/quiz/similar")
+async def quiz_similar(
+    user_id: str = Body(...),
+    question: Dict[str, Any] = Body(...),
+    difficulty: str = Body(None),
+    count: int = Body(1),
+    session_id: str = Body(None)
+):
+    """Generate similar questions to a given question"""
+    import time
+    start_time = time.time()
+    
+    quiz_agent = get_quiz_agent()
+    
+    state = {
+        "user_id": user_id,
+        "action": "similar",
+        "user_input": "Generate similar questions",
+        "session_id": session_id or f"similar_{user_id}_{datetime.utcnow().timestamp()}",
+        "timestamp": datetime.utcnow().isoformat(),
+        "action_params": {
+            "question": question,
+            "difficulty": difficulty,
+            "count": count
+        }
+    }
+    
+    try:
+        result = await quiz_agent.invoke(state)
+        execution_time = (time.time() - start_time) * 1000
+        
+        response_data = result.metadata.get("response_data", {})
+        
+        return {
+            "success": result.success,
+            "action": "similar",
+            "questions": response_data.get("questions", []),
+            "original_question": response_data.get("original_question"),
+            "execution_time_ms": execution_time
+        }
+    except Exception as e:
+        logger.error(f"Similar question generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/quiz/review")
+async def quiz_review(
+    user_id: str = Body(...),
+    results: List[Dict[str, Any]] = Body(...),
+    session_id: str = Body(None)
+):
+    """Review wrong answers from a quiz session"""
+    import time
+    start_time = time.time()
+    
+    quiz_agent = get_quiz_agent()
+    
+    state = {
+        "user_id": user_id,
+        "action": "review",
+        "user_input": "Review my wrong answers",
+        "session_id": session_id or f"review_{user_id}_{datetime.utcnow().timestamp()}",
+        "timestamp": datetime.utcnow().isoformat(),
+        "action_params": {
+            "results": results
+        },
+        "grading_results": results
+    }
+    
+    try:
+        result = await quiz_agent.invoke(state)
+        execution_time = (time.time() - start_time) * 1000
+        
+        response_data = result.metadata.get("response_data", {})
+        
+        return {
+            "success": result.success,
+            "action": "review",
+            "response": result.response,
+            "wrong_count": response_data.get("wrong_count", 0),
+            "total_questions": response_data.get("total_questions", 0),
+            "review_items": response_data.get("review_items", []),
+            "topics_to_review": response_data.get("topics_to_review", []),
+            "execution_time_ms": execution_time
+        }
+    except Exception as e:
+        logger.error(f"Quiz review error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/quiz/actions")
+async def list_quiz_actions():
+    """List all available quiz agent actions"""
+    return {
+        "actions": [
+            {"name": "generate", "description": "Generate quiz questions from topic or content"},
+            {"name": "adaptive", "description": "Generate adaptive questions based on user performance"},
+            {"name": "grade", "description": "Grade quiz answers and calculate score"},
+            {"name": "analyze", "description": "Analyze quiz performance and identify weak areas"},
+            {"name": "recommend", "description": "Get study recommendations based on performance"},
+            {"name": "explain", "description": "Get detailed explanation for a question"},
+            {"name": "similar", "description": "Generate similar questions for practice"},
+            {"name": "review", "description": "Review wrong answers from a quiz"}
+        ]
+    }
+
+
+@router.get("/quiz/question_types")
+async def list_question_types():
+    """List available question types"""
+    return {
+        "question_types": [
+            {"name": "multiple_choice", "description": "4 options with one correct answer"},
+            {"name": "true_false", "description": "True or false statement"},
+            {"name": "short_answer", "description": "Brief text answer (1-3 words)"},
+            {"name": "fill_blank", "description": "Fill in the blank in a sentence"}
+        ]
+    }
+
+
+@router.get("/quiz/difficulties")
+async def list_difficulties():
+    """List available difficulty levels"""
+    return {
+        "difficulties": [
+            {"name": "easy", "description": "Basic recall and simple definitions"},
+            {"name": "medium", "description": "Understanding concepts and making connections"},
+            {"name": "hard", "description": "Analysis, synthesis, and complex problem-solving"}
+        ],
+        "default_mix": {"easy": 3, "medium": 5, "hard": 2}
+    }

@@ -5,6 +5,8 @@ from .base_agent import BaseAgent, AgentState, AgentResponse, AgentType, agent_r
 from .orchestrator import OrchestratorAgent, IntentClassifier
 from .chat_agent import ChatAgent, create_chat_agent, ChatMode, ResponseStyle
 from .flashcard_agent import FlashcardAgent, create_flashcard_agent, FlashcardAction
+from .note_agent import NoteAgent, create_note_agent, NoteAction, WritingTone, ContentDepth
+from .quiz_agent import QuizAgent, create_quiz_agent, QuizAction, QuestionType, DifficultyLevel
 from .intelligent_orchestrator import IntelligentOrchestrator, create_intelligent_orchestrator
 from .react_agent import ReActAgent, create_react_agent
 from .memory import MemoryManager, get_memory_manager, initialize_memory_manager
@@ -30,6 +32,18 @@ __all__ = [
     'FlashcardAgent',
     'create_flashcard_agent',
     'FlashcardAction',
+    # Note Agent
+    'NoteAgent',
+    'create_note_agent',
+    'NoteAction',
+    'WritingTone',
+    'ContentDepth',
+    # Quiz Agent
+    'QuizAgent',
+    'create_quiz_agent',
+    'QuizAction',
+    'QuestionType',
+    'DifficultyLevel',
     # ReAct
     'ReActAgent',
     'create_react_agent',

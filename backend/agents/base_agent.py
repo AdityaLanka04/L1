@@ -26,6 +26,9 @@ class AgentType(str, Enum):
     SEARCH = "search"
     CONVERSION = "conversion"
     SEARCHHUB = "searchhub"
+    MEDIA = "media"
+    STUDY_PLAN = "study_plan"
+    GAMIFICATION = "gamification"
 
 
 class AgentState(TypedDict, total=False):

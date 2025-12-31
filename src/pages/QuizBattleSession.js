@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Clock, Target, Trophy, AlertCircle, CheckCircle, XCircle, Loader } from 'lucide-react';
+import { Clock, Target, Trophy, CheckCircle, XCircle, Loader } from 'lucide-react';
 import './QuizBattleSession.css';
 import { API_URL } from '../config';
 import useSharedWebSocket from '../hooks/useSharedWebSocket';
 import gamificationService from '../services/gamificationService';
+import quizAgentService from '../services/quizAgentService';
 
 const QuizBattleSession = () => {
   const navigate = useNavigate();
@@ -166,31 +167,88 @@ const QuizBattleSession = () => {
 
   const generateQuestions = async (battleData) => {
     setGeneratingQuestions(true);
+    const username = localStorage.getItem('username');
+    
     try {
-      const response = await fetch(`${API_URL}/generate_battle_questions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          battle_id: battleId,
-          subject: battleData.subject,
-          difficulty: battleData.difficulty,
-          question_count: battleData.question_count
-        })
+      // First try to use Quiz Agent for better question generation
+      const difficultyMap = {
+        'beginner': { easy: 7, medium: 3, hard: 0 },
+        'intermediate': { easy: 3, medium: 5, hard: 2 },
+        'advanced': { easy: 1, medium: 3, hard: 6 }
+      };
+      
+      const agentResponse = await quizAgentService.generateQuiz({
+        userId: username,
+        topic: battleData.subject,
+        questionCount: battleData.question_count,
+        difficultyMix: difficultyMap[battleData.difficulty] || difficultyMap['intermediate'],
+        questionTypes: ['multiple_choice']
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setQuestions(data.questions);
+      if (agentResponse.success && agentResponse.questions?.length > 0) {
+        // Transform questions to match battle format
+        const battleQuestions = agentResponse.questions.map((q, idx) => {
+          // Parse options if they're a string
+          let options = q.options || [];
+          if (typeof options === 'string') {
+            try { options = JSON.parse(options); } catch { options = []; }
+          }
+          
+          // Determine correct answer index
+          let correctIndex = 0;
+          if (typeof q.correct_answer === 'number') {
+            correctIndex = q.correct_answer;
+          } else if (typeof q.correct_answer === 'string') {
+            // Handle letter answers (A, B, C, D)
+            const letter = q.correct_answer.toUpperCase().charAt(0);
+            correctIndex = letter.charCodeAt(0) - 65; // A=0, B=1, etc.
+            if (correctIndex < 0 || correctIndex >= options.length) correctIndex = 0;
+          }
+          
+          return {
+            id: idx,
+            question: q.question_text,
+            options: options.map(opt => typeof opt === 'string' ? opt.replace(/^[A-D]\)\s*/, '') : opt),
+            correct_answer: correctIndex,
+            explanation: q.explanation,
+            difficulty: q.difficulty
+          };
+        });
+        
+        setQuestions(battleQuestions);
       } else {
-        throw new Error('Failed to generate questions');
+        throw new Error('Agent returned no questions');
       }
-    } catch (error) {
-      console.error('Error generating questions:', error);
-      alert('Failed to generate questions. Please try again.');
-      navigate('/quiz-battles');
+    } catch (agentError) {
+      console.warn('Quiz Agent failed, falling back to original API:', agentError);
+      
+      // Fallback to original battle question generation
+      try {
+        const response = await fetch(`${API_URL}/generate_battle_questions`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            battle_id: battleId,
+            subject: battleData.subject,
+            difficulty: battleData.difficulty,
+            question_count: battleData.question_count
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setQuestions(data.questions);
+        } else {
+          throw new Error('Failed to generate questions');
+        }
+      } catch (fallbackError) {
+        console.error('Both generation methods failed:', fallbackError);
+        alert('Failed to generate questions. Please try again.');
+        navigate('/quiz-battles');
+      }
     } finally {
       setGeneratingQuestions(false);
       setLoading(false);
