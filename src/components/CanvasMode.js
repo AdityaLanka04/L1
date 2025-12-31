@@ -1424,14 +1424,14 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           }}
         >
           {/* Grid */}
-          {showGrid && (
+          {showGrid && GRID_SIZE > 0 && (
             <defs>
               <pattern id="grid" width={GRID_SIZE} height={GRID_SIZE} patternUnits="userSpaceOnUse">
                 <path d={`M ${GRID_SIZE} 0 L 0 0 0 ${GRID_SIZE}`} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5"/>
               </pattern>
             </defs>
           )}
-          {showGrid && <rect x="-10000" y="-10000" width="20000" height="20000" fill="url(#grid)" />}
+          {showGrid && GRID_SIZE > 0 && <rect x="-10000" y="-10000" width="20000" height="20000" fill="url(#grid)" />}
 
           {/* Draggable Ruler Tool */}
           {rulerTool && (
@@ -1518,7 +1518,19 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           )}
 
           {/* Render Elements */}
-          {elements.map(el => {
+          {elements.filter(el => {
+            // Filter out elements with invalid dimensions
+            if (el.type === 'rectangle' || el.type === 'circle' || el.type === 'sticky' || el.type === 'table') {
+              return el.x !== undefined && el.y !== undefined && el.width > 0 && el.height > 0;
+            }
+            if (el.type === 'line' || el.type === 'arrow') {
+              return el.x1 !== undefined && el.y1 !== undefined && el.x2 !== undefined && el.y2 !== undefined;
+            }
+            if (el.type === 'draw') {
+              return el.points && el.points.length > 0;
+            }
+            return true;
+          }).map(el => {
             if (el.type === 'draw') {
               return (
                 <polyline
@@ -1771,13 +1783,15 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                     </div>
                   </foreignObject>
                   {/* Corner curl effect */}
-                  <path
-                    d={`M ${el.x + el.width - 20} ${el.y + el.height} 
-                        L ${el.x + el.width} ${el.y + el.height - 20} 
-                        L ${el.x + el.width} ${el.y + el.height} Z`}
-                    fill={`color-mix(in srgb, ${el.color} 60%, black)`}
-                    opacity="0.3"
-                  />
+                  {el.width > 0 && el.height > 0 && el.x !== undefined && el.y !== undefined && (
+                    <path
+                      d={`M ${el.x + el.width - 20} ${el.y + el.height} 
+                          L ${el.x + el.width} ${el.y + el.height - 20} 
+                          L ${el.x + el.width} ${el.y + el.height} Z`}
+                      fill={`color-mix(in srgb, ${el.color} 60%, black)`}
+                      opacity="0.3"
+                    />
+                  )}
                   
                   {/* Resize handles - only show when selected */}
                   {selectedElement?.id === el.id && tool === 'select' && (

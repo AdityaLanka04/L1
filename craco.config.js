@@ -10,6 +10,12 @@ module.exports = {
         sourceMapLoaderRule.exclude = /node_modules\/positioning/;
       }
       
+      // Suppress specific console warnings
+      webpackConfig.ignoreWarnings = [
+        /onBeforeLift/,
+        /Cross-Origin-Opener-Policy/,
+      ];
+      
       return webpackConfig;
     },
   },
