@@ -339,7 +339,6 @@ function Login() {
         <div className="login-right">
           <div className="login-container">
             <div className="login-header">
-              <div className="login-title">Get Started</div>
               <h1 className="login-subtitle">Sign in to continue</h1>
             </div>
 
