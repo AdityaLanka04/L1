@@ -141,6 +141,36 @@ class MemoryManager:
 
     # ==================== Memory Storage API ====================
     
+    async def store(
+        self,
+        user_id: str,
+        memory_type: str,
+        content: str,
+        metadata: Dict[str, Any] = None,
+        importance: float = 0.5,
+        source_agent: str = "",
+        tags: List[str] = None
+    ):
+        """Store a memory - delegates to UnifiedMemory"""
+        # Convert string memory_type to MemoryType enum if needed
+        if isinstance(memory_type, str):
+            try:
+                memory_type = MemoryType(memory_type)
+            except ValueError:
+                # If not a standard type, just use it as a custom type
+                # Store as a generic memory with custom metadata
+                memory_type = MemoryType.CONVERSATION
+        
+        return await self.memory.store(
+            user_id=user_id,
+            memory_type=memory_type,
+            content=content,
+            metadata=metadata,
+            importance=importance,
+            source_agent=source_agent,
+            tags=tags
+        )
+    
     async def remember_conversation(
         self,
         user_id: str,

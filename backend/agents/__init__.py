@@ -7,6 +7,8 @@ from .chat_agent import ChatAgent, create_chat_agent, ChatMode, ResponseStyle
 from .flashcard_agent import FlashcardAgent, create_flashcard_agent, FlashcardAction
 from .note_agent import NoteAgent, create_note_agent, NoteAction, WritingTone, ContentDepth
 from .quiz_agent import QuizAgent, create_quiz_agent, QuizAction, QuestionType, DifficultyLevel
+from .question_bank_agent import QuestionBankAgent, create_question_bank_agent
+from .slide_explorer_agent import SlideExplorerAgent, create_slide_explorer_agent
 from .intelligent_orchestrator import IntelligentOrchestrator, create_intelligent_orchestrator
 from .react_agent import ReActAgent, create_react_agent
 from .memory import MemoryManager, get_memory_manager, initialize_memory_manager
@@ -44,6 +46,12 @@ __all__ = [
     'QuizAction',
     'QuestionType',
     'DifficultyLevel',
+    # Question Bank Agent
+    'QuestionBankAgent',
+    'create_question_bank_agent',
+    # Slide Explorer Agent
+    'SlideExplorerAgent',
+    'create_slide_explorer_agent',
     # ReAct
     'ReActAgent',
     'create_react_agent',

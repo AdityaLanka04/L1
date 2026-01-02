@@ -140,6 +140,9 @@ _orchestrator: Optional[IntelligentOrchestrator] = None
 _chat_agent: Optional[ChatAgent] = None
 _flashcard_agent: Optional[FlashcardAgent] = None
 _note_agent: Optional[NoteAgent] = None
+_quiz_agent: Optional[Any] = None
+_question_bank_agent: Optional[Any] = None
+_slide_explorer_agent: Optional[Any] = None
 _knowledge_graph = None
 _db_session_factory = None
 _memory_manager = None
@@ -173,6 +176,27 @@ def get_note_agent() -> NoteAgent:
     return _note_agent
 
 
+def get_quiz_agent():
+    """Get the quiz agent instance"""
+    if _quiz_agent is None:
+        raise HTTPException(status_code=503, detail="Quiz agent not initialized")
+    return _quiz_agent
+
+
+def get_question_bank_agent():
+    """Get the question bank agent instance"""
+    if _question_bank_agent is None:
+        raise HTTPException(status_code=503, detail="Question bank agent not initialized")
+    return _question_bank_agent
+
+
+def get_slide_explorer_agent():
+    """Get the slide explorer agent instance"""
+    if _slide_explorer_agent is None:
+        raise HTTPException(status_code=503, detail="Slide explorer agent not initialized")
+    return _slide_explorer_agent
+
+
 def get_memory():
     """Get the memory manager instance"""
     from .memory import get_memory_manager
@@ -183,7 +207,7 @@ def get_memory():
 
 async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, db_session_factory: Any = None):
     """Initialize the intelligent agent system with unified memory"""
-    global _orchestrator, _chat_agent, _flashcard_agent, _note_agent, _quiz_agent, _knowledge_graph, _db_session_factory, _memory_manager
+    global _orchestrator, _chat_agent, _flashcard_agent, _note_agent, _quiz_agent, _question_bank_agent, _slide_explorer_agent, _knowledge_graph, _db_session_factory, _memory_manager
     
     
     
@@ -228,6 +252,22 @@ async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, d
         db_session_factory=db_session_factory
     )
     
+    # Initialize the Question Bank Agent
+    from .question_bank_agent import create_question_bank_agent
+    _question_bank_agent = create_question_bank_agent(
+        ai_client=ai_client,
+        memory_manager=_memory_manager,
+        db_session_factory=db_session_factory
+    )
+    
+    # Initialize the Slide Explorer Agent
+    from .slide_explorer_agent import create_slide_explorer_agent
+    _slide_explorer_agent = create_slide_explorer_agent(
+        ai_client=ai_client,
+        memory_manager=_memory_manager,
+        db_session_factory=db_session_factory
+    )
+    
     # Initialize orchestrator with memory manager
     _orchestrator = create_intelligent_orchestrator(
         ai_client=ai_client,
@@ -236,6 +276,8 @@ async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, d
         memory_manager=_memory_manager
     )
     
+    logger.info("✅ Question Bank Agent initialized")
+    logger.info("✅ Slide Explorer Agent initialized")
     logger.info("Agent system initialized")
     return _orchestrator
 
@@ -1635,3 +1677,567 @@ async def list_difficulties():
     }
 
 
+
+# ==================== QUESTION BANK AGENT ====================
+
+class QuestionBankGenerateRequest(BaseModel):
+    """Request to generate questions"""
+    user_id: str
+    action: str = "generate"
+    source_type: str
+    source_id: Optional[Any] = None
+    sources: Optional[List[Dict[str, Any]]] = None
+    content: Optional[str] = None
+    title: Optional[str] = None
+    question_count: int = 10
+    difficulty_mix: Optional[Dict[str, int]] = None
+    session_id: Optional[str] = None
+
+
+@router.post("/question-bank/generate")
+async def question_bank_generate(request: QuestionBankGenerateRequest):
+    """Generate questions using Question Bank Agent"""
+    logger.info(f"🚀 Question Bank Generate endpoint called: source_type={request.source_type}, question_count={request.question_count}")
+    
+    state = {
+        "user_id": request.user_id,
+        "action": request.action,
+        "source_type": request.source_type,
+        "source_id": request.source_id,
+        "sources": request.sources or [],
+        "content": request.content,
+        "title": request.title,
+        "question_count": request.question_count,
+        "difficulty_mix": request.difficulty_mix or {"easy": 3, "medium": 5, "hard": 2},
+        "session_id": request.session_id or f"qb_{request.user_id}_{datetime.utcnow().timestamp()}"
+    }
+    
+    try:
+        agent = get_question_bank_agent()
+        logger.info(f"✅ Got agent: {agent}")
+        
+        result = await agent.invoke(state)
+        logger.info(f"✅ Agent invoke result: {result}")
+        
+        # Convert AgentResponse to dict if needed
+        result_dict = result.to_dict() if hasattr(result, 'to_dict') else result
+        logger.info(f"✅ Result dict: {result_dict}")
+        
+        # Extract response_data from metadata
+        response_data = result_dict.get("metadata", {}).get("response_data", {})
+        questions = response_data.get("questions", [])
+        question_count_result = response_data.get("question_count", 0)
+        
+        logger.info(f"✅ Extracted response_data: {response_data}")
+        logger.info(f"✅ Extracted {question_count_result} questions from response")
+        logger.info(f"✅ Questions: {questions}")
+        
+        response_data_final = {
+            "success": True,
+            "action": "generate",
+            "questions": questions,
+            "question_count": question_count_result,
+            "metadata": result_dict.get("metadata", {})
+        }
+        
+        logger.info(f"✅ Returning response: {response_data_final}")
+        return response_data_final
+        
+    except Exception as e:
+        logger.error(f"Question bank generate error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/question-bank/search")
+async def question_bank_search(
+    user_id: str = Body(...),
+    search_query: str = Body(...),
+    filters: Dict[str, Any] = Body(None),
+    session_id: str = Body(None)
+):
+    """Search questions in the question bank"""
+    request = {
+        "user_id": user_id,
+        "action": "search",
+        "search_query": search_query,
+        "filters": filters or {},
+        "session_id": session_id or f"qb_{user_id}_{datetime.utcnow().timestamp()}"
+    }
+    
+    try:
+        agent = get_question_bank_agent()
+        result = await agent.invoke(request)
+        
+        # Convert AgentResponse to dict if needed
+        result_dict = result.to_dict() if hasattr(result, 'to_dict') else result
+        
+        return {
+            "success": result_dict.get("success", True),
+            "action": "search",
+            "search_results": result_dict.get("metadata", {}).get("response_data", {}).get("search_results"),
+            "metadata": result_dict.get("metadata", {})
+        }
+    except Exception as e:
+        logger.error(f"Question bank search error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/question-bank/organize")
+async def question_bank_organize(
+    user_id: str = Body(...),
+    questions: List[Dict[str, Any]] = Body(...),
+    session_id: str = Body(None)
+):
+    """Organize questions into logical groups"""
+    request = {
+        "user_id": user_id,
+        "action": "organize",
+        "questions": questions,
+        "session_id": session_id or f"qb_{user_id}_{datetime.utcnow().timestamp()}"
+    }
+    
+    try:
+        agent = get_question_bank_agent()
+        result = await agent.invoke(request)
+        
+        # Convert AgentResponse to dict if needed
+        result_dict = result.to_dict() if hasattr(result, 'to_dict') else result
+        
+        return {
+            "success": result_dict.get("success", True),
+            "action": "organize",
+            "organization_plan": result_dict.get("metadata", {}).get("response_data", {}).get("organization_plan"),
+            "metadata": result_dict.get("metadata", {})
+        }
+    except Exception as e:
+        logger.error(f"Question bank organize error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/question-bank/analyze")
+async def question_bank_analyze(
+    user_id: str = Body(...),
+    performance_data: Dict[str, Any] = Body(...),
+    session_id: str = Body(None)
+):
+    """Analyze performance on questions"""
+    request = {
+        "user_id": user_id,
+        "action": "analyze",
+        "performance_data": performance_data,
+        "session_id": session_id or f"qb_{user_id}_{datetime.utcnow().timestamp()}"
+    }
+    
+    try:
+        agent = get_question_bank_agent()
+        result = await agent.invoke(request)
+        
+        # Convert AgentResponse to dict if needed
+        result_dict = result.to_dict() if hasattr(result, 'to_dict') else result
+        
+        return {
+            "success": result_dict.get("success", True),
+            "action": "analyze",
+            "analysis": result_dict.get("metadata", {}).get("response_data", {}).get("analysis"),
+            "metadata": result_dict.get("metadata", {})
+        }
+    except Exception as e:
+        logger.error(f"Question bank analyze error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/question-bank/recommend")
+async def question_bank_recommend(
+    user_id: str = Body(...),
+    performance_data: Dict[str, Any] = Body(...),
+    session_id: str = Body(None)
+):
+    """Get recommendations for question review"""
+    request = {
+        "user_id": user_id,
+        "action": "recommend",
+        "performance_data": performance_data,
+        "session_id": session_id or f"qb_{user_id}_{datetime.utcnow().timestamp()}"
+    }
+    
+    try:
+        agent = get_question_bank_agent()
+        result = await agent.invoke(request)
+        
+        # Convert AgentResponse to dict if needed
+        result_dict = result.to_dict() if hasattr(result, 'to_dict') else result
+        
+        return {
+            "success": result_dict.get("success", True),
+            "action": "recommend",
+            "recommendations": result_dict.get("metadata", {}).get("response_data", {}).get("recommendations"),
+            "metadata": result_dict.get("metadata", {})
+        }
+    except Exception as e:
+        logger.error(f"Question bank recommend error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/question-bank/categorize")
+async def question_bank_categorize(
+    user_id: str = Body(...),
+    questions: List[Dict[str, Any]] = Body(...),
+    session_id: str = Body(None)
+):
+    """Categorize questions by topic and concept"""
+    request = {
+        "user_id": user_id,
+        "action": "categorize",
+        "questions": questions,
+        "session_id": session_id or f"qb_{user_id}_{datetime.utcnow().timestamp()}"
+    }
+    
+    try:
+        agent = get_question_bank_agent()
+        result = await agent.invoke(request)
+        
+        # Convert AgentResponse to dict if needed
+        result_dict = result.to_dict() if hasattr(result, 'to_dict') else result
+        
+        return {
+            "success": result_dict.get("success", True),
+            "action": "categorize",
+            "categories": result_dict.get("metadata", {}).get("response_data", {}).get("categories"),
+            "metadata": result_dict.get("metadata", {})
+        }
+    except Exception as e:
+        logger.error(f"Question bank categorize error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/question-bank/assess")
+async def question_bank_assess(
+    user_id: str = Body(...),
+    questions: List[Dict[str, Any]] = Body(...),
+    session_id: str = Body(None)
+):
+    """Assess and validate question difficulty levels"""
+    request = {
+        "user_id": user_id,
+        "action": "assess",
+        "questions": questions,
+        "session_id": session_id or f"qb_{user_id}_{datetime.utcnow().timestamp()}"
+    }
+    
+    try:
+        agent = get_question_bank_agent()
+        result = await agent.invoke(request)
+        
+        # Convert AgentResponse to dict if needed
+        result_dict = result.to_dict() if hasattr(result, 'to_dict') else result
+        
+        return {
+            "success": result_dict.get("success", True),
+            "action": "assess",
+            "difficulty_assessment": result_dict.get("metadata", {}).get("response_data", {}).get("difficulty_assessment"),
+            "metadata": result_dict.get("metadata", {})
+        }
+    except Exception as e:
+        logger.error(f"Question bank assess error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== SLIDE EXPLORER AGENT ====================
+
+@router.post("/slide-explorer/extract")
+async def slide_explorer_extract(
+    user_id: str = Body(...),
+    slide_content: str = Body(...),
+    extraction_type: str = Body("full"),
+    session_id: str = Body(None)
+):
+    """Extract structured content from slides"""
+    request = {
+        "user_id": user_id,
+        "action": "extract",
+        "slide_content": slide_content,
+        "extraction_type": extraction_type,
+        "session_id": session_id or f"se_{user_id}_{datetime.utcnow().timestamp()}"
+    }
+    
+    try:
+        agent = get_slide_explorer_agent()
+        result = await agent.invoke(request)
+        
+        # Convert AgentResponse to dict if needed
+        result_dict = result.to_dict() if hasattr(result, 'to_dict') else result
+        
+        return {
+            "success": result_dict.get("success", True),
+            "action": "extract",
+            "extracted_data": result_dict.get("metadata", {}).get("response_data", {}).get("extracted_data"),
+            "metadata": result_dict.get("metadata", {})
+        }
+    except Exception as e:
+        logger.error(f"Slide explorer extract error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/slide-explorer/summarize")
+async def slide_explorer_summarize(
+    user_id: str = Body(...),
+    slide_content: str = Body(...),
+    session_id: str = Body(None)
+):
+    """Summarize slide content"""
+    request = {
+        "user_id": user_id,
+        "action": "summarize",
+        "slide_content": slide_content,
+        "session_id": session_id or f"se_{user_id}_{datetime.utcnow().timestamp()}"
+    }
+    
+    try:
+        agent = get_slide_explorer_agent()
+        result = await agent.invoke(request)
+        
+        # Convert AgentResponse to dict if needed
+        result_dict = result.to_dict() if hasattr(result, 'to_dict') else result
+        
+        return {
+            "success": result_dict.get("success", True),
+            "action": "summarize",
+            "summary": result_dict.get("metadata", {}).get("response_data", {}).get("summary"),
+            "metadata": result_dict.get("metadata", {})
+        }
+    except Exception as e:
+        logger.error(f"Slide explorer summarize error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/slide-explorer/key-points")
+async def slide_explorer_key_points(
+    user_id: str = Body(...),
+    slide_content: str = Body(...),
+    session_id: str = Body(None)
+):
+    """Extract key points from slides"""
+    request = {
+        "user_id": user_id,
+        "action": "key_points",
+        "slide_content": slide_content,
+        "session_id": session_id or f"se_{user_id}_{datetime.utcnow().timestamp()}"
+    }
+    
+    try:
+        agent = get_slide_explorer_agent()
+        result = await agent.invoke(request)
+        
+        # Convert AgentResponse to dict if needed
+        result_dict = result.to_dict() if hasattr(result, 'to_dict') else result
+        
+        return {
+            "success": result_dict.get("success", True),
+            "action": "key_points",
+            "key_points": result_dict.get("metadata", {}).get("response_data", {}).get("key_points"),
+            "metadata": result_dict.get("metadata", {})
+        }
+    except Exception as e:
+        logger.error(f"Slide explorer key points error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/slide-explorer/questions")
+async def slide_explorer_questions(
+    user_id: str = Body(...),
+    slide_content: str = Body(...),
+    session_id: str = Body(None)
+):
+    """Generate questions from slide content"""
+    request = {
+        "user_id": user_id,
+        "action": "questions",
+        "slide_content": slide_content,
+        "session_id": session_id or f"se_{user_id}_{datetime.utcnow().timestamp()}"
+    }
+    
+    try:
+        agent = get_slide_explorer_agent()
+        result = await agent.invoke(request)
+        
+        # Convert AgentResponse to dict if needed
+        result_dict = result.to_dict() if hasattr(result, 'to_dict') else result
+        
+        return {
+            "success": result_dict.get("success", True),
+            "action": "questions",
+            "questions": result_dict.get("metadata", {}).get("response_data", {}).get("questions"),
+            "count": len(result_dict.get("metadata", {}).get("response_data", {}).get("questions", [])),
+            "metadata": result_dict.get("metadata", {})
+        }
+    except Exception as e:
+        logger.error(f"Slide explorer questions error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/slide-explorer/concepts")
+async def slide_explorer_concepts(
+    user_id: str = Body(...),
+    slide_content: str = Body(...),
+    session_id: str = Body(None)
+):
+    """Extract and map concepts from slides"""
+    request = {
+        "user_id": user_id,
+        "action": "concepts",
+        "slide_content": slide_content,
+        "session_id": session_id or f"se_{user_id}_{datetime.utcnow().timestamp()}"
+    }
+    
+    try:
+        agent = get_slide_explorer_agent()
+        result = await agent.invoke(request)
+        
+        # Convert AgentResponse to dict if needed
+        result_dict = result.to_dict() if hasattr(result, 'to_dict') else result
+        
+        return {
+            "success": result_dict.get("success", True),
+            "action": "concepts",
+            "concepts": result_dict.get("metadata", {}).get("response_data", {}).get("concepts"),
+            "metadata": result_dict.get("metadata", {})
+        }
+    except Exception as e:
+        logger.error(f"Slide explorer concepts error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/slide-explorer/analyze")
+async def slide_explorer_analyze(
+    user_id: str = Body(...),
+    slide_content: str = Body(...),
+    analysis_depth: str = Body("standard"),
+    session_id: str = Body(None)
+):
+    """Deep analysis of slide content"""
+    logger.info(f"🔍 Slide Explorer /analyze endpoint called: user_id={user_id}, depth={analysis_depth}")
+    
+    request = {
+        "user_id": user_id,
+        "action": "analyze",
+        "slide_content": slide_content,
+        "analysis_depth": analysis_depth,
+        "session_id": session_id or f"se_{user_id}_{datetime.utcnow().timestamp()}"
+    }
+    
+    try:
+        agent = get_slide_explorer_agent()
+        logger.info(f"✅ Got slide explorer agent: {agent}")
+        result = await agent.invoke(request)
+        logger.info(f"✅ Agent invoke result: {result}")
+        
+        # Convert AgentResponse to dict if needed
+        result_dict = result.to_dict() if hasattr(result, 'to_dict') else result
+        
+        return {
+            "success": result_dict.get("success", True),
+            "action": "analyze",
+            "analysis": result_dict.get("metadata", {}).get("response_data", {}).get("analysis"),
+            "depth": analysis_depth,
+            "metadata": result_dict.get("metadata", {})
+        }
+    except Exception as e:
+        logger.error(f"Slide explorer analyze error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/slide-explorer/link")
+async def slide_explorer_link(
+    user_id: str = Body(...),
+    slide_content: str = Body(...),
+    session_id: str = Body(None)
+):
+    """Link slide content to other learning materials"""
+    request = {
+        "user_id": user_id,
+        "action": "link",
+        "slide_content": slide_content,
+        "session_id": session_id or f"se_{user_id}_{datetime.utcnow().timestamp()}"
+    }
+    
+    try:
+        agent = get_slide_explorer_agent()
+        result = await agent.invoke(request)
+        
+        # Convert AgentResponse to dict if needed
+        result_dict = result.to_dict() if hasattr(result, 'to_dict') else result
+        
+        return {
+            "success": result_dict.get("success", True),
+            "action": "link",
+            "linking_suggestions": result_dict.get("metadata", {}).get("response_data", {}).get("linking_suggestions"),
+            "metadata": result_dict.get("metadata", {})
+        }
+    except Exception as e:
+        logger.error(f"Slide explorer link error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== TEST ENDPOINTS ====================
+
+@router.get("/test/question-bank")
+async def test_question_bank():
+    """Test Question Bank Agent"""
+    try:
+        agent = get_question_bank_agent()
+        logger.info(f"✅ Question Bank Agent exists: {agent}")
+        
+        state = {
+            "user_id": "test_user",
+            "action": "search",
+            "search_query": "test",
+            "filters": {},
+            "session_id": "test_session"
+        }
+        
+        result = await agent.invoke(state)
+        logger.info(f"✅ Question Bank Agent invoke result: {result}")
+        
+        return {
+            "success": True,
+            "message": "Question Bank Agent is working",
+            "agent": str(agent),
+            "result": result
+        }
+    except Exception as e:
+        logger.error(f"❌ Question Bank Agent test failed: {e}", exc_info=True)
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+@router.get("/test/slide-explorer")
+async def test_slide_explorer():
+    """Test Slide Explorer Agent"""
+    try:
+        agent = get_slide_explorer_agent()
+        logger.info(f"✅ Slide Explorer Agent exists: {agent}")
+        
+        state = {
+            "user_id": "test_user",
+            "action": "summarize",
+            "slide_content": "This is a test slide about machine learning",
+            "session_id": "test_session"
+        }
+        
+        result = await agent.invoke(state)
+        logger.info(f"✅ Slide Explorer Agent invoke result: {result}")
+        
+        return {
+            "success": True,
+            "message": "Slide Explorer Agent is working",
+            "agent": str(agent),
+            "result": result
+        }
+    except Exception as e:
+        logger.error(f"❌ Slide Explorer Agent test failed: {e}", exc_info=True)
+        return {
+            "success": False,
+            "error": str(e)
+        }

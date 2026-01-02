@@ -907,12 +907,16 @@ def register_question_bank_api(app, unified_ai, get_db_func):
         try:
             import models
             
+            logger.info(f"📚 get_question_set_detail called: set_id={set_id}, user_id={user_id}")
+            
             user = db.query(models.User).filter(
                 (models.User.username == user_id) | (models.User.email == user_id)
             ).first()
             
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
+            
+            logger.info(f"📚 Found user: {user.id}")
             
             question_set = db.query(models.QuestionSet).filter(
                 models.QuestionSet.id == set_id,
@@ -922,11 +926,20 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not question_set:
                 raise HTTPException(status_code=404, detail="Question set not found")
             
+            logger.info(f"📚 Found question set: {question_set.id}, title={question_set.title}")
+            
             questions = db.query(models.Question).filter(
                 models.Question.question_set_id == set_id
             ).order_by(models.Question.order_index).all()
             
-            return {
+            logger.info(f"📚 Found {len(questions)} questions for set {set_id}")
+            
+            # Also check with raw SQL to debug
+            from sqlalchemy import text
+            raw_count = db.execute(text("SELECT COUNT(*) FROM questions WHERE question_set_id = :set_id"), {"set_id": set_id}).scalar()
+            logger.info(f"📚 Raw SQL count: {raw_count} questions for set {set_id}")
+            
+            result = {
                 "id": question_set.id,
                 "title": question_set.title,
                 "description": question_set.description,
@@ -950,6 +963,12 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                     for q in questions
                 ]
             }
+            
+            logger.info(f"📚 Returning question set {set_id} with {len(questions)} questions")
+            if questions:
+                logger.info(f"📚 First question options raw: {questions[0].options}")
+                
+            return result
             
         except Exception as e:
             logger.error(f"Error fetching question set: {e}")

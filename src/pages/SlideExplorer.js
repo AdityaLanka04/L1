@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Upload, Loader, FileText, Trash2, Eye, Sparkles, ChevronLeft, ChevronRight, BookOpen, Tag, Lightbulb, X, UploadCloud, Presentation } from 'lucide-react';
 import './SlideExplorer.css';
 import { API_URL } from '../config';
+import slideExplorerAgentService from '../services/slideExplorerAgentService';
 
 const SlideExplorer = () => {
   const navigate = useNavigate();
@@ -106,33 +107,6 @@ const SlideExplorer = () => {
     }
   };
 
-  const viewSlide = (slideId) => {
-    const slide = uploadedSlides.find(s => s.id === slideId);
-    if (!slide) {
-      alert('Slide not found');
-      return;
-    }
-    
-    setSelectedSlide(slide);
-    setImageErrors({});
-    setShowUpload(false); // Hide upload when viewing
-    setActiveTab('viewer'); // Switch to viewer tab
-    
-    const basicSlides = [];
-    for (let i = 1; i <= (slide.page_count || 1); i++) {
-      basicSlides.push({
-        slide_number: i,
-        title: `Slide ${i}`,
-        content: '',
-        explanation: '',
-        key_points: [],
-        keywords: []
-      });
-    }
-    setAnalyzedSlides(basicSlides);
-    setCurrentSlideIndex(0);
-  };
-
   const analyzeSlide = async (slideId) => {
     try {
       setAnalyzing(true);
@@ -149,6 +123,26 @@ const SlideExplorer = () => {
       setShowUpload(false);
       setActiveTab('viewer');
 
+      // First try the agent for enhanced analysis
+      console.log('🚀 Calling Slide Explorer Agent with:', { userId, slideContent: slide.extracted_text || slide.title });
+      try {
+        const agentResponse = await slideExplorerAgentService.analyzeSlide({
+          userId,
+          slideContent: slide.extracted_text || slide.title,
+          analysisDepth: 'standard',
+          sessionId: `slide_analysis_${userId}_${Date.now()}`
+        });
+        
+        console.log('✅ Agent response:', agentResponse);
+        if (agentResponse.success) {
+          console.log('✅ Slide Explorer Agent analysis:', agentResponse.analysis);
+        }
+      } catch (agentError) {
+        console.error('❌ Agent analysis error:', agentError);
+        // Continue with standard analysis even if agent fails
+      }
+
+      // Then get the standard analysis from the API
       const response = await fetch(`${API_URL}/analyze_slide/${slideId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -166,11 +160,12 @@ const SlideExplorer = () => {
         alert(`Failed to analyze: ${errorData.detail || 'Unknown error'}`);
       }
     } catch (error) {
-            alert('Error analyzing slides. Please try again.');
+      console.error('Error analyzing slides:', error);
+      alert('Error analyzing slides. Please try again.');
     } finally {
       setAnalyzing(false);
     }
-  };
+  };;
 
   const deleteSlide = async (slideId) => {
     if (!window.confirm('Delete this slide presentation?')) return;
@@ -200,10 +195,6 @@ const SlideExplorer = () => {
     if (index >= 0 && index < analyzedSlides.length) {
       setCurrentSlideIndex(index);
     }
-  };
-
-  const handleImageError = (slideNumber) => {
-    setImageErrors(prev => ({ ...prev, [slideNumber]: true }));
   };
 
   const handleUploadNew = () => {

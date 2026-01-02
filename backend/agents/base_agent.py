@@ -29,6 +29,8 @@ class AgentType(str, Enum):
     MEDIA = "media"
     STUDY_PLAN = "study_plan"
     GAMIFICATION = "gamification"
+    QUESTION_BANK = "question_bank"
+    SLIDE_EXPLORER = "slide_explorer"
 
 
 class AgentState(TypedDict, total=False):
@@ -267,8 +269,12 @@ class BaseAgent(ABC):
             
             # Include response_data in metadata for downstream use
             metadata = result.get("response_metadata", {})
+            
+            # Ensure response_data is in metadata
             if result.get("response_data"):
                 metadata["response_data"] = result.get("response_data")
+            
+            logger.debug(f"Agent {self.agent_type.value} result metadata: {metadata}")
             
             return AgentResponse(
                 success=not result.get("errors"),

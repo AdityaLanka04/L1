@@ -9,6 +9,7 @@ import './Questionbankdashboard.css';
 import './QuestionbankConvert.css';
 import { API_URL } from '../config';
 import ImportExportModal from '../components/ImportExportModal';
+import questionBankAgentService from '../services/questionBankAgentService';
 const QuestionBankDashboard = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
@@ -57,15 +58,21 @@ const QuestionBankDashboard = () => {
   const fetchQuestionSets = async () => {
     try {
       setLoading(true);
+      console.log('📡 Fetching question sets for user:', userId);
       const response = await fetch(`${API_URL}/qb/get_question_sets?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      console.log('📡 Response status:', response.status);
       if (response.ok) {
         const data = await response.json();
+        console.log('📡 Question sets data:', data);
         setQuestionSets(data.question_sets || []);
+      } else {
+        console.error('📡 Failed to fetch question sets:', response.statusText);
       }
     } catch (error) {
-          } finally {
+      console.error('📡 Error fetching question sets:', error);
+    } finally {
       setLoading(false);
     }
   };
@@ -161,41 +168,32 @@ const QuestionBankDashboard = () => {
       return;
     }
 
-    if (questionTypes.length === 0) {
-      alert('Please select at least one question type');
-      return;
-    }
-
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/qb/generate_from_pdf`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          user_id: userId,
-          source_type: 'pdf',
-          source_id: selectedDocument,
-          question_count: questionCount,
-          difficulty_mix: difficultyMix,
-          question_types: questionTypes
-        })
+      console.log('🚀 Calling Question Bank Agent - Generate from PDF:', { userId, selectedDocument, questionCount, difficultyMix });
+      
+      const response = await questionBankAgentService.generateFromPDF({
+        userId,
+        sourceId: selectedDocument,
+        questionCount,
+        difficultyMix,
+        sessionId: `qb_pdf_${userId}_${Date.now()}`
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        alert(`Successfully generated ${data.question_count} questions!`);
+      console.log('✅ Agent response:', response);
+      
+      if (response.success) {
+        alert(`Successfully generated ${response.questions?.length || questionCount} questions!`);
         setShowUploadModal(false);
         setSelectedDocument(null);
         await fetchQuestionSets();
         setActiveView('question-sets');
       } else {
-        alert('Failed to generate questions');
+        alert('Failed to generate questions: ' + (response.error || 'Unknown error'));
       }
     } catch (error) {
-            alert('Error generating questions');
+      console.error('❌ Error:', error);
+      alert('Error generating questions: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -207,45 +205,32 @@ const QuestionBankDashboard = () => {
       return;
     }
 
-    if (questionTypes.length === 0) {
-      alert('Please select at least one question type');
-      return;
-    }
-
     try {
       setLoading(true);
-      const promises = selectedSources.map(source => {
-        return fetch(`${API_URL}/qb/generate_from_chat_slides`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            user_id: userId,
-            source_type: source.type,
-            source_id: source.id,
-            question_count: Math.floor(questionCount / selectedSources.length),
-            difficulty_mix: difficultyMix,
-            question_types: questionTypes
-          })
-        });
+      console.log('🚀 Calling Question Bank Agent - Generate from sources:', { userId, selectedSources, questionCount });
+      
+      const response = await questionBankAgentService.generateFromSources({
+        userId,
+        sources: selectedSources,
+        questionCount,
+        difficultyMix,
+        sessionId: `qb_sources_${userId}_${Date.now()}`
       });
 
-      const responses = await Promise.all(promises);
-      const allSuccess = responses.every(r => r.ok);
-
-      if (allSuccess) {
+      console.log('✅ Agent response:', response);
+      
+      if (response.success) {
         alert(`Successfully generated questions from ${selectedSources.length} sources!`);
         setShowGenerateModal(false);
         setSelectedSources([]);
         await fetchQuestionSets();
         setActiveView('question-sets');
       } else {
-        alert('Some questions failed to generate');
+        alert('Failed to generate questions: ' + (response.error || 'Unknown error'));
       }
     } catch (error) {
-            alert('Error generating questions');
+      console.error('❌ Error:', error);
+      alert('Error generating questions: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -257,43 +242,37 @@ const QuestionBankDashboard = () => {
       return;
     }
 
-    if (questionTypes.length === 0) {
-      alert('Please select at least one question type');
-      return;
-    }
-
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/qb/generate_from_pdf`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          user_id: userId,
-          source_type: 'custom',
-          content: customContent,
-          title: customTitle || 'Custom Question Set',
-          question_count: questionCount,
-          difficulty_mix: difficultyMix,
-          question_types: questionTypes
-        })
+      console.log('🚀 Calling Question Bank Agent - Generate from custom content:', { userId, contentLength: customContent.length });
+      
+      const response = await questionBankAgentService.generateFromCustom({
+        userId,
+        content: customContent,
+        title: customTitle || 'Custom Question Set',
+        questionCount,
+        difficultyMix,
+        sessionId: `qb_custom_${userId}_${Date.now()}`
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        alert(`Successfully generated ${data.question_count} questions!`);
+      console.log('✅ Agent response:', response);
+      console.log('✅ Response success:', response.success);
+      console.log('✅ Questions count:', response.questions?.length);
+      console.log('✅ Full response:', JSON.stringify(response, null, 2));
+      
+      if (response.success) {
+        alert(`Successfully generated ${response.questions?.length || response.question_count || questionCount} questions!`);
         setShowCustomModal(false);
         setCustomContent('');
         setCustomTitle('');
         await fetchQuestionSets();
         setActiveView('question-sets');
       } else {
-        alert('Failed to generate questions');
+        alert('Failed to generate questions: ' + (response.error || 'Unknown error'));
       }
     } catch (error) {
-            alert('Error generating questions');
+      console.error('❌ Error:', error);
+      alert('Error generating questions: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -302,12 +281,25 @@ const QuestionBankDashboard = () => {
   const startStudySession = async (setId) => {
     try {
       setLoading(true);
+      console.log('📚 Starting study session for set:', setId);
       const response = await fetch(`${API_URL}/qb/get_question_set/${setId}?user_id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
+      console.log('📚 Response status:', response.status);
       if (response.ok) {
         const data = await response.json();
+        console.log('📚 Question set data:', data);
+        console.log('📚 Questions array:', data.questions);
+        console.log('📚 Questions count:', data.questions?.length);
+        if (data.questions && data.questions.length > 0) {
+          console.log('📚 First question:', JSON.stringify(data.questions[0], null, 2));
+          console.log('📚 First question options:', data.questions[0].options);
+          console.log('📚 First question options type:', typeof data.questions[0].options);
+          console.log('📚 First question options isArray:', Array.isArray(data.questions[0].options));
+        } else {
+          console.log('📚 No questions in response!');
+        }
         setSelectedQuestionSet(data);
         setCurrentQuestion(0);
         setUserAnswers({});
@@ -315,9 +307,14 @@ const QuestionBankDashboard = () => {
         setResults(null);
         setSessionStartTime(Date.now());
         setShowStudyModal(true);
+      } else {
+        const errorText = await response.text();
+        console.error('📚 Failed to load question set:', response.statusText, errorText);
+        alert('Failed to load questions');
       }
     } catch (error) {
-            alert('Error loading questions');
+      console.error('📚 Error:', error);
+      alert('Error loading questions');
     } finally {
       setLoading(false);
     }
@@ -566,7 +563,7 @@ const QuestionBankDashboard = () => {
                     min="1"
                     max="50"
                     value={questionCount}
-                    onChange={(e) => setQuestionCount(parseInt(e.target.value))}
+                    onChange={(e) => setQuestionCount(parseInt(e.target.value) || 10)}
                     className="qbd-input"
                   />
                 </div>
@@ -731,7 +728,7 @@ const QuestionBankDashboard = () => {
                 min="1"
                 max="50"
                 value={questionCount}
-                onChange={(e) => setQuestionCount(parseInt(e.target.value))}
+                onChange={(e) => setQuestionCount(parseInt(e.target.value) || 10)}
                 className="qbd-input"
               />
             </div>
@@ -829,7 +826,7 @@ const QuestionBankDashboard = () => {
               min="1"
               max="50"
               value={questionCount}
-              onChange={(e) => setQuestionCount(parseInt(e.target.value))}
+              onChange={(e) => setQuestionCount(parseInt(e.target.value) || 10)}
               className="qbd-input"
             />
           </div>
@@ -905,7 +902,9 @@ const QuestionBankDashboard = () => {
     </div>
   );
 
-  const renderQuestionSets = () => (
+  const renderQuestionSets = () => {
+    console.log('🎨 Rendering question sets view, questionSets:', questionSets, 'loading:', loading);
+    return (
     <div className="qbd-view">
       <div className="qbd-view-header">
         <div className="qbd-view-title-group">
@@ -989,6 +988,7 @@ const QuestionBankDashboard = () => {
       )}
     </div>
   );
+  };
 
   const renderAnalytics = () => (
     <div className="qbd-view">
@@ -1153,6 +1153,27 @@ const QuestionBankDashboard = () => {
   const renderStudyModal = () => {
     if (!showStudyModal || !selectedQuestionSet) return null;
 
+    // Guard against missing or empty questions
+    const questions = selectedQuestionSet.questions || [];
+    console.log('📚 renderStudyModal - questions:', questions);
+    console.log('📚 renderStudyModal - questions length:', questions.length);
+
+    if (questions.length === 0) {
+      return (
+        <div className="qbd-modal-overlay">
+          <div className="qbd-modal" onClick={e => e.stopPropagation()}>
+            <div className="qbd-modal-header">
+              <h3>{selectedQuestionSet.title}</h3>
+              <button className="qbd-modal-close" onClick={() => setShowStudyModal(false)}>×</button>
+            </div>
+            <div className="qbd-modal-content">
+              <p style={{ textAlign: 'center', padding: '40px' }}>No questions found in this set.</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="qbd-modal-overlay">
         <div className="qbd-modal" onClick={e => e.stopPropagation()}>
@@ -1166,17 +1187,17 @@ const QuestionBankDashboard = () => {
               <>
                 <div className="qbd-progress-bar-container">
                   <span className="qbd-progress-text">
-                    Question {currentQuestion + 1} of {selectedQuestionSet.questions.length}
+                    Question {currentQuestion + 1} of {questions.length}
                   </span>
                   <div className="qbd-progress-bar">
                     <div 
                       className="qbd-progress-fill"
-                      style={{ width: `${((currentQuestion + 1) / selectedQuestionSet.questions.length) * 100}%` }}
+                      style={{ width: `${((currentQuestion + 1) / questions.length) * 100}%` }}
                     />
                   </div>
                 </div>
 
-                {selectedQuestionSet.questions.map((q, idx) => (
+                {questions.map((q, idx) => (
                   <div 
                     key={q.id}
                     style={{ display: idx === currentQuestion ? 'block' : 'none' }}
@@ -1190,7 +1211,7 @@ const QuestionBankDashboard = () => {
 
                     {q.question_type === 'multiple_choice' && (
                       <div className="qbd-options">
-                        {q.options.map((option, optIdx) => (
+                        {(Array.isArray(q.options) ? q.options : []).map((option, optIdx) => (
                           <label key={optIdx} className="qbd-option">
                             <input
                               type="radio"
@@ -1250,7 +1271,7 @@ const QuestionBankDashboard = () => {
                   >
                     Previous
                   </button>
-                  {currentQuestion < selectedQuestionSet.questions.length - 1 ? (
+                  {currentQuestion < questions.length - 1 ? (
                     <button 
                       className="qbd-btn-primary"
                       onClick={() => setCurrentQuestion(currentQuestion + 1)}
