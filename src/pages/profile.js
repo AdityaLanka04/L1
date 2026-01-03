@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, BookOpen, Target, Brain, Award, TrendingUp } from 'lucide-react';
+import { User, BookOpen, Target, Brain, Award, TrendingUp, ChevronRight } from 'lucide-react';
 import './profile.css';
 import { API_URL } from '../config';
 const Profile = () => {
@@ -350,20 +350,21 @@ const Profile = () => {
     <div className="profile-page">
       <div className="profile-container">
         <header className="profile-header">
-          <div className="profile-header-content">
-            <div className="profile-header-left">
-              <h1 className="profile-page-title">profile <span className="profile-page-subtitle">customize your ai learning experience</span></h1>
-            </div>
-            <div className="profile-header-right">
-              {autoSaving && <span className="profile-save-status saving">Saving...</span>}
-              {lastSaved && !autoSaving && (
-                <span className="profile-save-status saved">Saved at {lastSaved}</span>
-              )}
-              <button className="profile-back-btn" onClick={goBack}>
-                ◄ back to dashboard
-              </button>
-            </div>
+          <div className="profile-header-left">
+            <h1 className="profile-logo" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+            <div className="profile-header-divider"></div>
+            <span className="profile-subtitle">Profile</span>
           </div>
+          <nav className="profile-header-right">
+            {autoSaving && <span className="profile-save-status saving">Saving...</span>}
+            {lastSaved && !autoSaving && (
+              <span className="profile-save-status saved">Saved at {lastSaved}</span>
+            )}
+            <button className="profile-nav-btn profile-nav-btn-ghost" onClick={goBack}>
+              <span>Dashboard</span>
+              <ChevronRight size={14} />
+            </button>
+          </nav>
         </header>
 
         <div className="profile-grid">

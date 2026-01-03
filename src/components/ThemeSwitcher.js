@@ -34,8 +34,7 @@ const ThemeSwitcher = () => {
         className="dashboard-theme-selector-btn"
         onClick={() => setShowThemeSelector(!showThemeSelector)}
       >
-        <Palette size={16} />
-        Theme
+        <Palette size={20} />
       </button>
       {showThemeSelector && (
         <div className="dashboard-theme-selector-dropdown">

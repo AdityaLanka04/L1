@@ -4,7 +4,7 @@ import { formatToLocalTime, getRelativeTime } from '../utils/dateUtils';
 import { HelpTour, HelpButton } from './HelpTour';
 import {
   CheckCircle, XCircle, Clock, Plus, Users, Bell, Calendar as CalendarIcon, BookOpen, Zap,
-  MessageSquare, HelpCircle, FileText, Network, ChevronRight, Search
+  MessageSquare, HelpCircle, FileText, Network, ChevronRight, Search, User
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { rgbaFromHex } from '../utils/ThemeManager';
@@ -1259,12 +1259,6 @@ const Dashboard = () => {
           <div className="stats-overview-widget">
             <div className="widget-header">
               <h3 className="widget-title">weekly activity</h3>
-              <div className="widget-header-right">
-                <button className="analytics-btn" onClick={() => !isCustomizing && navigate('/analytics')} disabled={isCustomizing}>
-                  <span>Analytics</span>
-                  <ChevronRight size={16} />
-                </button>
-              </div>
             </div>
             <div className="stats-line-container">
               <div className="stats-graph-section">
@@ -1356,6 +1350,12 @@ const Dashboard = () => {
                   <span className="stat-label">notes</span>
                 </div>
               </div>
+            </div>
+            <div className="widget-footer">
+              <button className="analytics-btn" onClick={() => !isCustomizing && navigate('/analytics')} disabled={isCustomizing}>
+                <span>Analytics</span>
+                <ChevronRight size={16} />
+              </button>
             </div>
           </div>
         );
@@ -1682,6 +1682,19 @@ const Dashboard = () => {
       <header className="dashboard-header">
         <div className="header-content">
           <div className="header-left">
+            <div className="dashboard-user-info">
+              {userProfile?.picture && (
+                <img
+                  src={userProfile.picture}
+                  alt="Profile"
+                  className="dashboard-profile-picture"
+                  referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
+                />
+              )}
+              <span className="dashboard-user-name">{displayName}</span>
+            </div>
+            
             <div className="dashboard-notifications-wrapper">
               <button className="dashboard-notif-bell-btn" onClick={() => setShowNotifications(!showNotifications)}>
                 <Bell size={20} />
@@ -1721,18 +1734,9 @@ const Dashboard = () => {
             
             <ThemeSwitcher />
             
-            <div className="dashboard-user-info">
-              {userProfile?.picture && (
-  <img
-    src={userProfile.picture}
-    alt="Profile"
-    className="dashboard-profile-picture"
-    referrerPolicy="no-referrer"
-    crossOrigin="anonymous"
-  />
-)}
-              <span className="dashboard-user-name">{displayName}</span>
-            </div>
+            <button className="dashboard-profile-icon-btn" onClick={openProfile} title="Profile">
+              <User size={20} />
+            </button>
           </div>
           
           <h1 className="dashboard-title">cerbyl</h1>
@@ -1743,7 +1747,7 @@ const Dashboard = () => {
               onClick={() => navigate('/search-hub')}
               title="Go to Search Hub"
             >
-              <Search size={16} />
+              <Search size={14} />
               SEARCH HUB
             </button>
             {isCustomizing && (
@@ -1795,7 +1799,6 @@ const Dashboard = () => {
             >
               {isCustomizing ? 'DONE' : 'CUSTOMIZE'}
             </button>
-            <button className="dashboard-profile-btn" onClick={openProfile}>PROFILE</button>
             <button className="dashboard-logout-btn" onClick={handleLogout}>LOGOUT</button>
           </div>
         </div>

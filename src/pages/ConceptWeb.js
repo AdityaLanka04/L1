@@ -4,7 +4,7 @@ import {
   Sparkles, Plus, Trash2, ArrowLeft, Loader, Link as LinkIcon, 
   BookOpen, FileText, Brain, Filter, Search, TrendingUp, Download, 
   Eye, EyeOff, Grid, Network, BarChart3, CheckSquare, Square, 
-  Maximize2, Minimize2, RefreshCw, Zap, Target, Move, Info 
+  Maximize2, Minimize2, RefreshCw, Zap, Target, Move, Info, ChevronRight 
 } from 'lucide-react';
 import './ConceptWeb.css';
 import { API_URL } from '../config';
@@ -758,21 +758,40 @@ const ConceptWeb = () => {
 
   return (
     <div className={`concept-web-page ${isFullscreen ? 'fullscreen' : ''}`}>
-      <div className="cw-layout">
-        {/* Sidebar */}
-        <aside className={`cw-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
-          <div className="cw-sidebar-header">
-            <div className="cw-logo" onClick={() => navigate('/dashboard')}>
-              <div className="cw-logo-icon">
-                <Brain size={22} />
+      {/* Header spanning full width */}
+      <header className="cw-header">
+        <div className="cw-header-left">
+          <h1 className="cw-logo" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <div className="cw-header-divider"></div>
+          <span className="cw-subtitle">Concept Web</span>
+        </div>
+        <nav className="cw-header-right">
+          {concepts.length > 0 && (
+            <div className="cw-stats-bar">
+              <div className="cw-stat-mini">
+                <span className="cw-stat-value">{getStats().totalConcepts}</span>
+                <span className="cw-stat-label">Concepts</span>
               </div>
-              <span className="cw-logo-text">cerbyl</span>
+              <div className="cw-stat-mini">
+                <span className="cw-stat-value">{getStats().totalConnections}</span>
+                <span className="cw-stat-label">Links</span>
+              </div>
+              <div className="cw-stat-mini">
+                <span className="cw-stat-value">{getStats().avgMastery}%</span>
+                <span className="cw-stat-label">Mastery</span>
+              </div>
             </div>
-            <button className="cw-collapse-btn" onClick={() => setSidebarCollapsed(!sidebarCollapsed)}>
-              {sidebarCollapsed ? '›' : '‹'}
-            </button>
-          </div>
+          )}
+          <button className="cw-nav-btn cw-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            <span>Dashboard</span>
+            <ChevronRight size={14} />
+          </button>
+        </nav>
+      </header>
 
+      <div className="cw-layout">
+        {/* Sidebar without header */}
+        <aside className={`cw-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
           <nav className="cw-sidebar-nav">
             <button className={`cw-nav-item ${viewMode === 'network' ? 'active' : ''}`} onClick={() => setViewMode('network')}>
               <span className="cw-nav-icon">{Icons.network}</span>
@@ -789,17 +808,9 @@ const ConceptWeb = () => {
           </nav>
 
           <div className="cw-sidebar-footer">
-            <button className="cw-nav-item" onClick={() => navigate('/dashboard')}>
-              <span className="cw-nav-icon">{Icons.home}</span>
-              <span className="cw-nav-text">Dashboard</span>
-            </button>
-            <button className="cw-nav-item" onClick={() => navigate('/ai-chat')}>
+            <button className="cw-nav-item cw-nav-item-accent" onClick={() => navigate('/ai-chat')}>
               <span className="cw-nav-icon">{Icons.chat}</span>
               <span className="cw-nav-text">AI Chat</span>
-            </button>
-            <button className="cw-nav-item" onClick={() => { localStorage.clear(); navigate('/login'); }}>
-              <span className="cw-nav-icon">{Icons.logout}</span>
-              <span className="cw-nav-text">Logout</span>
             </button>
           </div>
         </aside>
@@ -815,70 +826,6 @@ const ConceptWeb = () => {
 
         {/* Main Content */}
         <main className="cw-main">
-          <header className="cw-header">
-            <div className="cw-header-left">
-              <h1 className="cw-header-title">Concept Web</h1>
-              <p className="cw-header-subtitle">Your Knowledge Universe</p>
-            </div>
-            <div className="cw-header-actions">
-              {concepts.length > 0 && (
-                <div className="cw-stats-bar">
-                  <div className="cw-stat-mini">
-                    <span className="cw-stat-value">{getStats().totalConcepts}</span>
-                    <span className="cw-stat-label">Concepts</span>
-                  </div>
-                  <div className="cw-stat-mini">
-                    <span className="cw-stat-value">{getStats().totalConnections}</span>
-                    <span className="cw-stat-label">Links</span>
-                  </div>
-                  <div className="cw-stat-mini">
-                    <span className="cw-stat-value">{getStats().avgMastery}%</span>
-                    <span className="cw-stat-label">Mastery</span>
-                  </div>
-                </div>
-              )}
-              {viewMode === 'network' && concepts.length > 0 && (
-                <>
-                  <button className="cw-icon-btn" onClick={resetPositions} title="Reset Layout">
-                    <Move size={18} />
-                  </button>
-                  <button className="cw-icon-btn" onClick={toggleFullscreen} title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}>
-                    {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-                  </button>
-                </>
-              )}
-              <button className="cw-icon-btn" onClick={exportData} title="Export">
-                <Download size={18} />
-              </button>
-              <button 
-                className="cw-icon-btn" 
-                onClick={async () => {
-                  if (!window.confirm('Regenerate concept web from your latest content?')) return;
-                  setGenerating(true);
-                  const token = localStorage.getItem('token');
-                  try {
-                    await fetch(`${API_URL}/generate_concept_web`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                      body: JSON.stringify({ user_id: userName })
-                    });
-                    await loadConceptWeb(userName, false);
-                  } finally {
-                    setGenerating(false);
-                  }
-                }}
-                title="Regenerate"
-                disabled={generating}
-              >
-                {generating ? <Loader size={18} className="cw-spinner" /> : <RefreshCw size={18} />}
-              </button>
-              <button className="cw-btn cw-btn-primary" onClick={() => setShowAddModal(true)}>
-                <Plus size={16} />
-                <span>Add Concept</span>
-              </button>
-            </div>
-          </header>
-
           <div className="cw-content" ref={containerRef}>
             {loading && initialLoad ? (
               <div className="cw-loading">

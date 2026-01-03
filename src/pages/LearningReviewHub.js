@@ -90,9 +90,6 @@ const LearningReviewHub = () => {
             <span>Dashboard</span>
             <ChevronRight size={14} />
           </button>
-          <button className="lrh-nav-btn lrh-nav-btn-outline" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>
-            Logout
-          </button>
         </nav>
       </header>
 
