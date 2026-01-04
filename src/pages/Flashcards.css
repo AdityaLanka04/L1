@@ -24,8 +24,8 @@
   --fc-accent-dark: color-mix(in srgb, var(--accent) 85%, black);
   --fc-accent-glow: color-mix(in srgb, var(--accent) 15%, transparent);
   --fc-success: #22c55e;
-  --fc-warning: #f59e0b;
-  --fc-danger: #ef4444;
+  --fc-warning: var(--warning);
+  --fc-danger: var(--danger);
   --fc-sidebar-width: 260px;
   --fc-sidebar-collapsed: 70px;
   --fc-header-height: 70px;
@@ -1612,7 +1612,6 @@
   word-break: break-word;
   white-space: pre-wrap;
   display: -webkit-box;
-  -webkit-line-clamp: 8;
   -webkit-box-orient: vertical;
   overflow: hidden !important;
   text-align: center;
@@ -1676,7 +1675,7 @@
 }
 
 .fc-response-btn.incorrect {
-  background: rgba(239, 68, 68, 0.15);
+  background: color-mix(in srgb, var(--fc-danger) 15%, transparent);
   color: var(--fc-danger);
 }
 
@@ -1846,7 +1845,7 @@
 }
 
 .fc-result-stat.incorrect .fc-result-stat-icon {
-  background: rgba(239, 68, 68, 0.15);
+  background: color-mix(in srgb, var(--fc-danger) 15%, transparent);
   color: var(--fc-danger);
 }
 
@@ -2905,7 +2904,7 @@
 
 /* Incorrect Answer State */
 .fc-mcq-option.incorrect {
-  background: rgba(239, 68, 68, 0.1) !important;
+  background: color-mix(in srgb, var(--fc-danger) 10%, transparent) !important;
   border-color: var(--fc-danger) !important;
   border-width: 2px !important;
 }
@@ -4339,7 +4338,6 @@
   text-align: center;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 7;
   -webkit-box-orient: vertical;
   line-height: 1.5;
   font-size: 17px;
@@ -4354,7 +4352,6 @@
   max-height: 100px;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
 
@@ -4365,7 +4362,6 @@
   max-height: 220px;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 8;
   -webkit-box-orient: vertical;
 }
 
@@ -4482,7 +4478,7 @@
   .fc-card-text {
     font-size: 15px;
     max-height: 200px;
-    -webkit-line-clamp: 5;
+    
   }
   
   .fc-card-question {
@@ -4493,7 +4489,6 @@
   .fc-card-answer {
     font-size: 15px;
     max-height: 180px;
-    -webkit-line-clamp: 5;
   }
 }
 
