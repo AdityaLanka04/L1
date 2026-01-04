@@ -18,7 +18,7 @@ body {
   width: 100%;
   background: 
     radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.08) 1.5px, transparent 0),
-    linear-gradient(135deg, var(--bg-primary) 0%, color-mix(in srgb, var(--bg-primary) 85%, var(--accent)) 50%, var(--bg-primary) 100%);
+    linear-gradient(135deg, var(--bg-primary) 0%, color-mix(in srgb, var(--bg-primary) 75%, var(--accent)) 50%, var(--bg-primary) 100%);
   background-size: 30px 30px, 100% 100%;
   background-position: 0 0, 0 0;
   padding: 0;
@@ -59,6 +59,7 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
+  margin-right: auto;
 }
 
 .ds-header-right {
@@ -360,7 +361,7 @@ body {
 .ds-notif-panel {
   position: absolute;
   top: calc(100% + 12px);
-  right: 0;
+  left: 0;
   width: 360px;
   background: var(--bg-secondary);
   border: 2px solid var(--accent);
@@ -518,11 +519,11 @@ body {
   margin: 0 auto;
   display: grid;
   grid-template-columns: 360px 1fr 1fr 380px;
-  grid-template-rows: 140px 140px 140px 140px 140px;
+  grid-template-rows: 145px 145px 145px 145px 145px 145px 145px 145px;
   gap: 14px;
   position: relative;
   z-index: 1;
-  padding: 16px 20px;
+  padding: 16px 20px 20px 20px;
 }
 
 .ds-card {
@@ -663,7 +664,7 @@ body {
   overflow: hidden;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  min-height: 420px;
+  min-height: 435px;
   padding: 0;
 }
 
@@ -690,6 +691,10 @@ body {
   filter: brightness(0) saturate(100%) invert(6%) sepia(8%) saturate(1234%) hue-rotate(169deg) brightness(96%) contrast(96%);
   animation: ds-logo-float 6s ease-in-out infinite;
   margin-right: -60px;
+}
+
+.ds-page[data-theme-mode="light"] .ds-hero-logo {
+  filter: brightness(0) saturate(100%) invert(100%);
 }
 
 .ds-hero-text-group {
@@ -764,8 +769,8 @@ body {
 }
 
 .ds-stats-prompts {
-  grid-column: 4;
-  grid-row: 7;
+  grid-column: 2;
+  grid-row: 6;
   padding: 32px 28px;
   display: flex;
   align-items: center;
@@ -806,7 +811,7 @@ body {
   grid-column: 1;
   grid-row: 4 / 6;
   padding: 20px;
-  min-height: 280px;
+  min-height: 290px;
 }
 
 .ds-streak-content {
@@ -873,8 +878,15 @@ body {
 .ds-analytics-btn:hover {
   background: var(--accent);
   color: var(--bg-primary);
+  border-color: var(--accent);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 0 0 20px var(--glow);
+}
+
+.ds-analytics-btn:hover span,
+.ds-analytics-btn:hover svg {
+  color: var(--bg-primary);
+  stroke: var(--bg-primary);
 }
 
 .ds-feature {
@@ -1433,4 +1445,607 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   opacity: 1;
+}
+
+/* ============================================
+   HEATMAP WIDGET
+============================================ */
+.ds-heatmap {
+  grid-column: 1 / 5;
+  grid-row: 7 / 9;
+  padding: 0;
+  min-height: 200px;
+}
+
+.ds-activity-heatmap {
+  display: flex; 
+  flex-direction: column; 
+  height: 100%; 
+  padding: 20px 25px;
+  justify-content: space-between;
+  overflow: visible;
+}
+
+.ds-heatmap-header { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  width: 100%; 
+  max-width: 1000px; 
+  margin: 0 auto 20px auto; 
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--accent);
+}
+
+.ds-heatmap-container {
+  position: relative; 
+  margin-bottom: 15px; 
+  min-height: 140px; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  flex: 1;
+  padding: 10px 0; 
+  width: 100%; 
+  max-width: 1000px; 
+  margin-left: auto; 
+  margin-right: auto;
+  overflow: visible;
+}
+
+.ds-heatmap-content { 
+  flex: 1; 
+  min-width: 0; 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center;
+  overflow: visible;
+}
+
+.ds-heatmap-grid {
+  overflow: visible;
+  display: flex; 
+  gap: 2px; 
+  overflow-x: auto; 
+  padding: 2px 0; 
+  min-height: 134px; 
+  align-items: flex-start;
+}
+
+.ds-heatmap-week {
+  overflow: visible;
+  display: flex; 
+  flex-direction: column; 
+  gap: 2px; 
+  flex-shrink: 0;
+}
+
+.ds-heatmap-day {
+  position: relative;
+  overflow: visible;
+  width: 16px; 
+  height: 16px; 
+  border-radius: 2px; 
+  cursor: pointer; 
+  border: none;
+  transition: all .2s cubic-bezier(0.4, 0, 0.2, 1); 
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+.ds-heatmap-day:hover {
+  border: none;
+  transform: scale(1.1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 0 20px var(--glow);
+  z-index: 10;
+}
+
+.ds-heatmap-legend { 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  margin-top: 15px; 
+  width: 100%; 
+  font-size: 14px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.ds-legend-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: capitalize;
+  letter-spacing: 0.5px;
+}
+
+.ds-legend-scale {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.ds-legend-box {
+  width: 16px;
+  height: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+}
+
+.ds-legend-box:hover {
+  transform: scale(1.2);
+  border-color: var(--accent);
+}
+
+.ds-heatmap-title { 
+  font-size: 18px; 
+  font-weight: 700; 
+  color: var(--accent); 
+  letter-spacing: 0.3px; 
+  text-transform: lowercase; 
+  margin: 0; 
+}
+
+.ds-heatmap-stats, 
+.ds-total-questions { 
+  font-size: 18px; 
+  color: color-mix(in srgb, var(--text-secondary) 90%, var(--text-primary)); 
+  font-weight: 700; 
+}
+
+.ds-heatmap-days { 
+  width: 40px; 
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 20px;
+  flex-shrink: 0; 
+  text-align: right; 
+  margin-right: 15px; 
+}
+
+.ds-heatmap-container::-webkit-scrollbar { 
+  display: none; 
+}
+
+.ds-heatmap-container { 
+  -ms-overflow-style: none; 
+  scrollbar-width: none; 
+  overflow: visible !important; 
+}
+
+.ds-day-label { 
+  font-size: 9px; 
+  color: var(--text-secondary); 
+  font-weight: 500; 
+  text-transform: lowercase; 
+  text-align: right; 
+  padding-right: 8px; 
+  height: 16px; 
+  line-height: 16px; 
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.ds-month-labels { 
+  position: relative; 
+  height: 20px; 
+  margin-bottom: 5px; 
+  width: 100%; 
+}
+
+.ds-month-label { 
+  position: absolute; 
+  font-size: 11px; 
+  color: var(--text-secondary); 
+  font-weight: 500; 
+  text-transform: lowercase; 
+}
+
+.ds-heatmap-loading { 
+  text-align: center; 
+  padding: 60px; 
+  color: var(--text-secondary); 
+  font-size: 14px; 
+  flex: 1; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  font-weight: 500;
+}
+
+/* ============================================
+   CUSTOMIZATION MODE
+============================================ */
+.ds-customize-btn.active {
+  background: var(--accent);
+  color: var(--bg-primary);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 0 20px var(--glow);
+}
+
+.ds-customize-overlay {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  width: 400px;
+  max-height: calc(100vh - 100px);
+  background: var(--bg-secondary);
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  z-index: 200;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.ds-customize-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.ds-customize-header {
+  padding: 20px;
+  border-bottom: 2px solid var(--accent);
+  background: var(--bg-primary);
+}
+
+.ds-customize-header h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.ds-customize-header p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.ds-customize-header strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.ds-customize-actions {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ds-customize-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 90%, black) 100%);
+  border: none;
+  border-radius: 6px;
+  color: var(--bg-primary);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.ds-customize-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 20px var(--glow);
+}
+
+.ds-saved-layouts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ds-saved-layouts h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ds-layout-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ds-layout-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.ds-layout-item:hover {
+  border-color: var(--accent);
+  transform: translateX(4px);
+}
+
+.ds-layout-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.ds-layout-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ds-layout-load-btn {
+  padding: 6px 12px;
+  background: var(--accent);
+  border: none;
+  border-radius: 4px;
+  color: var(--bg-primary);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ds-layout-load-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.ds-layout-delete-btn {
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.ds-layout-delete-btn:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: white;
+  transform: scale(1.1);
+}
+
+.ds-customize-info {
+  padding: 16px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-primary));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ds-customize-info p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.ds-customize-info strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Modal Styles */
+.ds-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.ds-modal-content {
+  width: 90%;
+  max-width: 500px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ds-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 2px solid var(--accent);
+  background: var(--bg-primary);
+}
+
+.ds-modal-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.ds-modal-close {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 28px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  border-radius: 4px;
+}
+
+.ds-modal-close:hover {
+  background: color-mix(in srgb, var(--danger) 20%, transparent);
+  color: var(--danger);
+  transform: scale(1.1);
+}
+
+.ds-modal-body {
+  padding: 24px;
+}
+
+.ds-modal-body label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ds-layout-name-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg-primary);
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s ease;
+}
+
+.ds-layout-name-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.ds-layout-name-input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.ds-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-primary);
+}
+
+.ds-modal-cancel,
+.ds-modal-save {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ds-modal-cancel {
+  background: transparent;
+  border: 2px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.ds-modal-cancel:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.ds-modal-save {
+  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 90%, black) 100%);
+  color: var(--bg-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.ds-modal-save:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 0 20px var(--glow);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ds-customize-overlay {
+    width: calc(100% - 40px);
+    right: 20px;
+    left: 20px;
+  }
 }

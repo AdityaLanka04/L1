@@ -41,6 +41,7 @@ import SharedItemViewer from './pages/SharedItemViewer';
 import NotesRedesign from './pages/NotesRedesign';
 import NotesDashboard from './pages/NotesDashboard';
 import ActivityTimeline from './pages/ActivityTimeline';
+import CustomizeDashboard from './pages/CustomizeDashboard';
 import Games from './pages/Games';
 import PlaylistDetailPage from './pages/PlaylistDetailPage';
 import PlaylistsPage from './pages/PlaylistsPage';
@@ -117,6 +118,7 @@ function App() {
             <Route path="/notes/my-notes" element={<ProtectedRoute><MyNotes /></ProtectedRoute>} />
             <Route path="/notes/editor/:noteId" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
             <Route path="/activity-timeline" element={<ProtectedRoute><ActivityTimeline /></ProtectedRoute>} />
+            <Route path="/customize-dashboard" element={<ProtectedRoute><CustomizeDashboard /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/home" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />

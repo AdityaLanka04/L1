@@ -498,6 +498,96 @@ const Dashboard = () => {
     return num.toString();
   };
 
+  // Heatmap helper functions
+  const getActivityColor = (level) => {
+    const accent = selectedTheme?.tokens?.['--accent'] || '#D7B38C';
+    switch (level) {
+      case 0: return rgbaFromHex(accent, 0.08);
+      case 1: return rgbaFromHex(accent, 0.25);
+      case 2: return rgbaFromHex(accent, 0.45);
+      case 3: return rgbaFromHex(accent, 0.65);
+      case 4: return rgbaFromHex(accent, 0.85);
+      case 5: return accent;
+      default: return rgbaFromHex(accent, 0.08);
+    }
+  };
+
+  const getTooltipText = (count, date) => {
+    const dateObj = new Date(date);
+    const dateStr = dateObj.toLocaleDateString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+    });
+    if (count === 0) return `No questions on ${dateStr}`;
+    if (count === 1) return `1 question on ${dateStr}`;
+    return `${count} questions on ${dateStr}`;
+  };
+
+  const getMonthName = (monthIndex) => {
+    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    return months[monthIndex];
+  };
+
+  const organizeDataByWeeks = () => {
+    if (!heatmapData.length) return [];
+    const startDate = new Date(heatmapData[0].date);
+    const endDate = new Date(heatmapData[heatmapData.length - 1].date);
+
+    const firstSunday = new Date(startDate);
+    firstSunday.setDate(startDate.getDate() - startDate.getDay());
+
+    const lastSaturday = new Date(endDate);
+    lastSaturday.setDate(endDate.getDate() + (6 - endDate.getDay()));
+
+    const weeks = [];
+    const dataMap = new Map();
+    heatmapData.forEach(day => dataMap.set(day.date, day));
+
+    const currentDate = new Date(firstSunday);
+    while (currentDate <= lastSaturday) {
+      const week = [];
+      for (let i = 0; i < 7; i++) {
+        const dateStr = currentDate.toISOString().split('T')[0];
+        const dayData = dataMap.get(dateStr);
+        if (dayData) {
+          week.push(dayData);
+        } else if (currentDate >= startDate && currentDate <= endDate) {
+          week.push({ date: dateStr, count: 0, level: 0 });
+        } else {
+          week.push(null);
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      weeks.push(week);
+    }
+    return weeks;
+  };
+
+  const getMonthLabels = () => {
+    if (!heatmapData.length) return [];
+    const labels = [];
+    const weeks = organizeDataByWeeks();
+    let currentMonth = -1;
+    let isFirstMonth = true;
+    
+    weeks.forEach((week, weekIndex) => {
+      const firstValidDay = week.find(day => day !== null);
+      if (firstValidDay) {
+        const date = new Date(firstValidDay.date);
+        const month = date.getMonth();
+        
+        if (month !== currentMonth) {
+          if (!isFirstMonth) {
+            labels.push({ month: getMonthName(month), position: weekIndex * 18 });
+          }
+          currentMonth = month;
+          isFirstMonth = false;
+        }
+      }
+    });
+    
+    return labels;
+  };
+
   const navigateToAI = () => navigate('/ai-chat');
   const navigateToFlashcards = () => navigate('/flashcards');
   const navigateToQuiz = () => navigate('/quiz');
@@ -509,6 +599,7 @@ const Dashboard = () => {
   const navigateToActivityTimeline = () => navigate('/activity-timeline');
   const navigateToAnalytics = () => navigate('/analytics');
   const openProfile = () => navigate('/profile');
+  const navigateToCustomize = () => navigate('/customize-dashboard');
 
   const handleLogout = async () => {
     await endDashboardSession();
@@ -553,10 +644,6 @@ const Dashboard = () => {
       <header className="ds-header">
         <div className="ds-header-content">
           <div className="ds-header-left">
-            <div className="ds-header-logo" onClick={() => navigate('/dashboard')}>
-              <img src={logo} alt="Cerbyl" className="ds-header-logo-img" />
-            </div>
-            
             <div className="ds-user-info">
               {userProfile?.picture && (
                 <img
@@ -609,11 +696,11 @@ const Dashboard = () => {
             
             <ThemeSwitcher />
             
-            <button className="ds-profile-icon-btn" onClick={openProfile} title="Profile">
+            <button className="ds-profile-icon-btn" onClick={openProfile}>
               <User size={20} />
             </button>
             
-            <button className="ds-logout-icon-btn" onClick={handleLogout} title="Logout">
+            <button className="ds-logout-icon-btn" onClick={handleLogout}>
               <LogOut size={20} />
             </button>
           </div>
@@ -622,7 +709,6 @@ const Dashboard = () => {
             <button
               className="ds-search-hub-btn"
               onClick={() => navigate('/search-hub')}
-              title="Go to Search Hub"
             >
               <Search size={14} />
               SEARCH HUB
@@ -630,8 +716,7 @@ const Dashboard = () => {
             
             <button
               className="ds-customize-btn"
-              onClick={() => navigate('/profile')}
-              title="Customize Dashboard"
+              onClick={navigateToCustomize}
             >
               <Settings size={14} />
               CUSTOMIZE
@@ -847,6 +932,83 @@ const Dashboard = () => {
               Track your learning journey over time.
             </p>
             <div className="ds-feature-stat">{stats.minutes || 0} mins</div>
+          </div>
+        </div>
+
+        <div className="ds-card ds-heatmap">
+          <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(accent, 0.1)} 0%, transparent 70%)` }}></div>
+          <div className="ds-activity-heatmap">
+            <div className="ds-heatmap-header">
+              <h3 className="ds-heatmap-title">last 12 months</h3>
+              <div className="ds-heatmap-stats">
+                <span className="ds-total-questions">{totalQuestions} questions</span>
+              </div>
+            </div>
+
+            {heatmapLoading ? (
+              <div style={{ padding: '40px', textAlign: 'center', color: textSecondary }}>
+                Loading activity data...
+              </div>
+            ) : (
+              <>
+                <div className="ds-heatmap-container">
+                  <div className="ds-heatmap-days">
+                    <div className="ds-day-label">sun</div>
+                    <div className="ds-day-label">mon</div>
+                    <div className="ds-day-label">tue</div>
+                    <div className="ds-day-label">wed</div>
+                    <div className="ds-day-label">thu</div>
+                    <div className="ds-day-label">fri</div>
+                    <div className="ds-day-label">sat</div>
+                  </div>
+
+                  <div className="ds-heatmap-content">
+                    <div className="ds-month-labels">
+                      {getMonthLabels().map((label, index) => (
+                        <div
+                          key={index}
+                          className="ds-month-label"
+                          style={{ left: `${label.position}px` }}
+                        >
+                          {label.month}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="ds-heatmap-grid">
+                      {organizeDataByWeeks().map((week, weekIndex) => (
+                        <div key={weekIndex} className="ds-heatmap-week">
+                          {week.map((day, dayIndex) => (
+                            <div
+                              key={dayIndex}
+                              className="ds-heatmap-day"
+                              style={{
+                                backgroundColor: day ? getActivityColor(day.level) : 'transparent',
+                                opacity: day === null ? 0 : 1
+                              }}
+                              title={day ? getTooltipText(day.count, day.date) : ''}
+                            />
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="ds-heatmap-legend">
+                  <span className="ds-legend-label">Less</span>
+                  <div className="ds-legend-scale">
+                    {[0, 1, 2, 3, 4].map(level => (
+                      <div
+                        key={level}
+                        className="ds-legend-box"
+                        style={{ backgroundColor: getActivityColor(level) }}
+                      />
+                    ))}
+                  </div>
+                  <span className="ds-legend-label">More</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
