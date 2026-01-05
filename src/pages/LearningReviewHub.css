@@ -6,7 +6,7 @@
   display: flex;
   flex-direction: column;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--bg-primary, #0a0a0b);
+  background: var(--bg-primary, var(--bg-primary));
   color: var(--text-primary, #ffffff);
   position: relative;
   overflow-x: hidden;
@@ -79,7 +79,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px 40px;
-  background: color-mix(in srgb, var(--bg-primary, #0a0a0b) 80%, transparent);
+  background: color-mix(in srgb, var(--bg-primary, var(--bg-primary)) 80%, transparent);
   backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
 }
@@ -160,7 +160,7 @@
 .lrh-nav-btn-outline:hover {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--bg-primary, #0a0a0b);
+  color: var(--bg-primary, var(--bg-primary));
 }
 
 /* ==================== MAIN CONTENT ==================== */
@@ -267,12 +267,12 @@
   display: flex;
   flex-direction: column;
   padding: 24px;
-  background: color-mix(in srgb, var(--bg-primary, #0a0a0b) 90%, var(--accent));
+  background: color-mix(in srgb, var(--bg-primary, var(--bg-primary)) 90%, var(--accent));
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .lrh-card:hover .lrh-card-inner {
-  background: color-mix(in srgb, var(--bg-primary, #0a0a0b) 85%, var(--accent));
+  background: color-mix(in srgb, var(--bg-primary, var(--bg-primary)) 85%, var(--accent));
   transform: translateY(-4px);
 }
 
@@ -402,7 +402,7 @@
 .lrh-card:hover .lrh-card-cta {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--bg-primary, #0a0a0b);
+  color: var(--bg-primary, var(--bg-primary));
 }
 
 .lrh-card:hover .lrh-card-cta-icon {
@@ -415,7 +415,7 @@
 }
 
 .lrh-card-featured .lrh-card-inner {
-  background: color-mix(in srgb, var(--bg-primary, #0a0a0b) 85%, var(--accent));
+  background: color-mix(in srgb, var(--bg-primary, var(--bg-primary)) 85%, var(--accent));
 }
 
 
@@ -652,3 +652,5 @@
 .lrh::-webkit-scrollbar-thumb:hover {
   background: color-mix(in srgb, var(--accent) 50%, transparent);
 }
+
+

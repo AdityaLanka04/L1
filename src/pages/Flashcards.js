@@ -58,6 +58,8 @@ const Flashcards = () => {
   const [editingSetId, setEditingSetId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [showImportExport, setShowImportExport] = useState(false);
+  const [isRearranging, setIsRearranging] = useState(false);
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   
   // Needs Review state
   const [reviewCards, setReviewCards] = useState({ total_cards: 0, sets: [] });
@@ -497,6 +499,18 @@ const Flashcards = () => {
       }
     }
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (sortDropdownOpen && !event.target.closest('.fc-custom-select-wrapper')) {
+        setSortDropdownOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [sortDropdownOpen]);
 
 
   // Helper functions
@@ -1293,16 +1307,125 @@ const Flashcards = () => {
   return (
     <div className="flashcards-page">
       <div className="fc-layout">
-        {/* Sidebar */}
-        <aside className={`fc-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
-          <div className="fc-sidebar-header">
-            <div className="fc-logo" onClick={() => navigate('/dashboard')}>
-              <span className="fc-logo-text">cerbyl</span>
-            </div>
-            <button className="fc-collapse-btn" onClick={() => setSidebarCollapsed(!sidebarCollapsed)}>
-              {sidebarCollapsed ? '›' : '‹'}
+        {/* Header - Full Width - Always Visible */}
+        <header className="fc-header">
+          {sidebarCollapsed && (
+            <button 
+              className="fc-show-sidebar-btn" 
+              onClick={() => setSidebarCollapsed(false)}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </button>
+          )}
+          <div className="fc-header-left">
+            <h1 className="fc-header-title" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+            <div className="fc-header-divider"></div>
+            <p className="fc-header-subtitle">FLASHCARDS</p>
+          </div>
+          <div className="fc-header-actions">
+            {activePanel === 'cards' && (
+              <>
+                <div className="fc-search">
+                  <span className="fc-search-icon">{Icons.search}</span>
+                  <input 
+                    type="text"
+                    placeholder="Search sets..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <div className="fc-custom-select-wrapper">
+                  <button 
+                    className="fc-custom-select" 
+                    onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+                  >
+                    <span className="fc-custom-select-text">
+                      {sortBy === 'recent' && 'MOST RECENT'}
+                      {sortBy === 'alphabetical' && 'A-Z'}
+                      {sortBy === 'cards' && 'MOST CARDS'}
+                      {sortBy === 'accuracy' && 'HIGHEST ACCURACY'}
+                    </span>
+                    <span className="fc-custom-select-arrow">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </span>
+                  </button>
+                  {sortDropdownOpen && (
+                    <div className="fc-custom-dropdown">
+                      <button 
+                        className={`fc-custom-option ${sortBy === 'recent' ? 'active' : ''}`}
+                        onClick={() => {
+                          setIsRearranging(true);
+                          setSortBy('recent');
+                          setSortDropdownOpen(false);
+                          setTimeout(() => setIsRearranging(false), 500);
+                        }}
+                      >
+                        MOST RECENT
+                      </button>
+                      <button 
+                        className={`fc-custom-option ${sortBy === 'alphabetical' ? 'active' : ''}`}
+                        onClick={() => {
+                          setIsRearranging(true);
+                          setSortBy('alphabetical');
+                          setSortDropdownOpen(false);
+                          setTimeout(() => setIsRearranging(false), 500);
+                        }}
+                      >
+                        A-Z
+                      </button>
+                      <button 
+                        className={`fc-custom-option ${sortBy === 'cards' ? 'active' : ''}`}
+                        onClick={() => {
+                          setIsRearranging(true);
+                          setSortBy('cards');
+                          setSortDropdownOpen(false);
+                          setTimeout(() => setIsRearranging(false), 500);
+                        }}
+                      >
+                        MOST CARDS
+                      </button>
+                      <button 
+                        className={`fc-custom-option ${sortBy === 'accuracy' ? 'active' : ''}`}
+                        onClick={() => {
+                          setIsRearranging(true);
+                          setSortBy('accuracy');
+                          setSortDropdownOpen(false);
+                          setTimeout(() => setIsRearranging(false), 500);
+                        }}
+                      >
+                        HIGHEST ACCURACY
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <button className="fc-btn fc-btn-secondary" onClick={() => { loadFlashcardHistory(); loadFlashcardStats(); }}>
+                  {Icons.refresh}
+                </button>
+              </>
+            )}
+            <button className="fc-btn fc-btn-primary" onClick={() => setActivePanel('generator')}>
+              + CREATE NEW
             </button>
           </div>
+        </header>
+
+        <div className="fc-layout-body">
+          {/* Sidebar */}
+          <aside className={`fc-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+            <div className="fc-sidebar-header">
+              <div className="fc-logo" onClick={() => navigate('/dashboard')}>
+                <span className="fc-logo-text">cerbyl</span>
+              </div>
+              <button className="fc-collapse-btn" onClick={() => setSidebarCollapsed(!sidebarCollapsed)}>
+                {sidebarCollapsed ? '›' : '‹'}
+              </button>
+            </div>
 
           <nav className="fc-sidebar-nav">
             <button className={`fc-nav-item ${activePanel === 'cards' ? 'active' : ''}`} onClick={() => setActivePanel('cards')}>
@@ -1351,55 +1474,12 @@ const Flashcards = () => {
           {/* My Flashcards Panel */}
           {activePanel === 'cards' && (
             <>
-              <header className="fc-header">
-                {sidebarCollapsed && (
-                  <button 
-                    className="fc-show-sidebar-btn" 
-                    onClick={() => setSidebarCollapsed(false)}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-                      <line x1="3" y1="12" x2="21" y2="12"/>
-                      <line x1="3" y1="6" x2="21" y2="6"/>
-                      <line x1="3" y1="18" x2="21" y2="18"/>
-                    </svg>
-                  </button>
-                )}
-                <div className="fc-header-left">
-                  <h1 className="fc-header-title">My Flashcards</h1>
-                  <p className="fc-header-subtitle">View and manage your flashcard sets</p>
-                </div>
-                <div className="fc-header-actions">
-                  <div className="fc-search">
-                    <span className="fc-search-icon">{Icons.search}</span>
-                    <input 
-                      type="text"
-                      placeholder="Search sets..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  <select className="fc-select" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                    <option value="recent">Most Recent</option>
-                    <option value="alphabetical">A-Z</option>
-                    <option value="cards">Most Cards</option>
-                    <option value="accuracy">Highest Accuracy</option>
-                  </select>
-                  <button className="fc-btn fc-btn-secondary" onClick={() => { loadFlashcardHistory(); loadFlashcardStats(); }}>
-                    {Icons.refresh}
-                  </button>
-                  <button className="fc-btn fc-btn-primary" onClick={() => setActivePanel('generator')}>
-                    + Create New
-                  </button>
-                </div>
-              </header>
-
-              <div className="fc-stats-bar">
-                <p className="fc-stats-text">
-                  {flashcardHistory.length} {flashcardHistory.length === 1 ? 'set' : 'sets'} • {flashcardStats?.total_cards || 0} cards total
-                </p>
-              </div>
-
               <div className="fc-content fc-cards-panel">
+                <div className="fc-section-header-text">
+                  <h2>MY FLASHCARDS</h2>
+                  <p>{flashcardHistory.length} {flashcardHistory.length === 1 ? 'SET' : 'SETS'} • {flashcardStats?.total_cards || 0} CARDS TOTAL</p>
+                </div>
+                
                 {loadingHistory ? (
                   <div className="fc-loading">
                     <div className="fc-spinner">
@@ -1419,7 +1499,7 @@ const Flashcards = () => {
                     </button>
                   </div>
                 ) : (
-                  <div className="fc-grid">
+                  <div className={`fc-grid ${isRearranging ? 'fc-grid-rearranging' : ''}`}>
                     {getFilteredAndSortedSets().map((set, index) => {
                       const mastery = getMasteryLevel(set.accuracy_percentage || 0);
                       // Generate different colors for each set
@@ -1445,7 +1525,7 @@ const Flashcards = () => {
                                   autoFocus
                                 />
                               ) : (
-                                <h2 className="fc-thumbnail-title">{set.title.replace(/^Flashcards:\s*/i, '')}</h2>
+                                <h2 className="fc-thumbnail-title">{set.title.replace(/^(AI Generated:\s*|Flashcards:\s*)/i, '')}</h2>
                               )}
                             </div>
                             <button 
@@ -1516,14 +1596,12 @@ const Flashcards = () => {
           {/* Generator Panel */}
           {activePanel === 'generator' && (
             <>
-              <header className="fc-header">
-                <div className="fc-header-left">
-                  <h1 className="fc-header-title">Generate Flashcards</h1>
-                  <p className="fc-header-subtitle">Create AI-powered flashcards from topics or chat history</p>
-                </div>
-              </header>
-
               <div className="fc-content">
+                <div className="fc-section-header-text">
+                  <h2>GENERATE FLASHCARDS</h2>
+                  <p>CREATE AI-POWERED FLASHCARDS FROM TOPICS OR CHAT HISTORY</p>
+                </div>
+                
                 <div className="fc-generator">
                   <div className="fc-mode-selector">
                     <button 
@@ -1531,7 +1609,7 @@ const Flashcards = () => {
                       onClick={() => setGenerationMode('topic')}
                     >
                       <div className="fc-mode-icon">{Icons.edit}</div>
-                      <span className="fc-mode-label">By Topic</span>
+                      <span className="fc-mode-label">BY TOPIC</span>
                       <span className="fc-mode-desc">Enter any topic to generate cards</span>
                     </button>
                     <button 
@@ -1539,7 +1617,7 @@ const Flashcards = () => {
                       onClick={() => setGenerationMode('chat_history')}
                     >
                       <div className="fc-mode-icon">{Icons.chat}</div>
-                      <span className="fc-mode-label">From Chat History</span>
+                      <span className="fc-mode-label">FROM CHAT HISTORY</span>
                       <span className="fc-mode-desc">Convert AI conversations to cards</span>
                     </button>
                   </div>
@@ -1701,19 +1779,12 @@ const Flashcards = () => {
           {/* Needs Review Panel */}
           {activePanel === 'review' && (
             <>
-              <header className="fc-header">
-                <div className="fc-header-left">
-                  <h1 className="fc-header-title">Needs Review</h1>
-                  <p className="fc-header-subtitle">Cards you marked as "I don't know this"</p>
-                </div>
-                <div className="fc-header-actions">
-                  <button className="fc-btn fc-btn-secondary" onClick={loadReviewCards}>
-                    {Icons.refresh}
-                  </button>
-                </div>
-              </header>
-
               <div className="fc-content">
+                <div className="fc-section-header-text">
+                  <h2>NEEDS REVIEW</h2>
+                  <p>CARDS YOU MARKED AS "I DON'T KNOW THIS"</p>
+                </div>
+                
                 {loadingReviewCards ? (
                   <div className="fc-loading">
                     <div className="fc-spinner">
@@ -1802,31 +1873,29 @@ const Flashcards = () => {
           {/* Statistics Panel */}
           {activePanel === 'statistics' && (
             <>
-              <header className="fc-header">
-                <div className="fc-header-left">
-                  <h1 className="fc-header-title">Statistics & Analytics</h1>
-                  <p className="fc-header-subtitle">Track your learning progress</p>
-                </div>
-              </header>
-
               <div className="fc-content">
+                <div className="fc-section-header-text">
+                  <h2>STATISTICS & ANALYTICS</h2>
+                  <p>TRACK YOUR LEARNING PROGRESS</p>
+                </div>
+                
                 {flashcardStats ? (
                   <>
                     <div className="fc-stats-grid">
                       <div className="fc-stat-card">
                         <div className="fc-stat-icon">{Icons.book}</div>
                         <div className="fc-stat-value">{flashcardStats.total_sets}</div>
-                        <div className="fc-stat-label">Total Sets</div>
+                        <div className="fc-stat-label">TOTAL SETS</div>
                       </div>
                       <div className="fc-stat-card">
                         <div className="fc-stat-icon">{Icons.cards}</div>
                         <div className="fc-stat-value">{flashcardStats.total_cards}</div>
-                        <div className="fc-stat-label">Total Cards</div>
+                        <div className="fc-stat-label">TOTAL CARDS</div>
                       </div>
                       <div className="fc-stat-card">
                         <div className="fc-stat-icon">{Icons.target}</div>
                         <div className="fc-stat-value">{flashcardStats.overall_accuracy}%</div>
-                        <div className="fc-stat-label">Accuracy</div>
+                        <div className="fc-stat-label">ACCURACY</div>
                       </div>
                       <div className="fc-stat-card">
                         <div className="fc-stat-icon">{Icons.fire}</div>
@@ -1849,6 +1918,7 @@ const Flashcards = () => {
             </>
           )}
         </main>
+        </div>
       </div>
 
       <CustomPopup
@@ -1873,3 +1943,6 @@ const Flashcards = () => {
 };
 
 export default Flashcards;
+
+
+

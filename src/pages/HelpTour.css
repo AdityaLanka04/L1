@@ -42,7 +42,7 @@
 /* Tooltip */
 .help-tour-tooltip {
   position: fixed;
-  background: var(--panel, #16181d);
+  background: var(--panel, var(--bg-secondary));
   border: 2px solid var(--accent, #E7B768);
   width: 360px;
   max-width: calc(100vw - 40px);
@@ -158,7 +158,7 @@
 
 .help-tour-prev {
   background: transparent;
-  border: 1px solid var(--border, #2a2f37);
+  border: 1px solid var(--border, var(--border));
   color: var(--text-secondary, #B8C0CC);
 }
 
@@ -175,7 +175,7 @@
 .help-tour-next {
   background: var(--accent, #E7B768);
   border: none;
-  color: var(--bg-top, #0b0b0c);
+  color: var(--bg-top, var(--bg-primary));
 }
 
 .help-tour-next:hover {
@@ -193,7 +193,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--border, #2a2f37);
+  background: var(--border, var(--border));
   transition: all 0.2s;
 }
 
@@ -218,7 +218,7 @@
   background: var(--accent, #E7B768);
   border: none;
   border-radius: 0;
-  color: var(--bg-top, #0b0b0c);
+  color: var(--bg-top, var(--bg-primary));
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -260,3 +260,4 @@
     right: 16px;
   }
 }
+

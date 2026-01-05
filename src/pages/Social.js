@@ -298,9 +298,9 @@ const Social = () => {
       id: 'welcome',
       size: 'large-square',
       icon: null,
-      title: 'CERBYL',
+      title: 'cerbyl',
       subtitle: 'SOCIAL HUB',
-      description: `Welcome back, ${userName}`,
+      description: '',
       onClick: null,
       className: 'welcome-card'
     },
@@ -444,6 +444,8 @@ const Social = () => {
       <header className="hub-header">
         <div className="hub-header-left">
           <h1 className="hub-logo">cerbyl</h1>
+          <div className="hub-header-divider"></div>
+          <p className="hub-header-subtitle">SOCIAL HUB</p>
         </div>
         <div className="hub-header-right">
           <button className="hub-nav-btn" onClick={() => navigate('/dashboard')}>DASHBOARD</button>

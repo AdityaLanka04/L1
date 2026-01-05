@@ -1,10 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
-  --bg-top: #0b0b0c;
-  --bg-bottom: #0f1012;
-  --panel: #16181d;
-  --border: #2a2f37;
+  --bg-top: var(--bg-primary);
+  --bg-bottom: var(--bg-secondary);
+  --panel: var(--bg-secondary);
+  --border: var(--border);
   --text-primary: #EAECEF;
   --text-secondary: #B8C0CC;
   --accent: #D7B38C;

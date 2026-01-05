@@ -29,8 +29,8 @@
   top: 50% !important;
   left: 50% !important;
   transform: translate(-50%, -50%) !important;
-  background: #16181d !important;
-  border: 2px solid #2a2f37 !important;
+  background: var(--bg-secondary) !important;
+  border: 2px solid var(--border) !important;
   width: 90% !important;
   max-width: 600px !important;
   max-height: 85vh !important;
@@ -47,8 +47,8 @@
   align-items: center !important;
   justify-content: space-between !important;
   padding: 20px 24px !important;
-  border-bottom: 2px solid #2a2f37 !important;
-  background: #0f1012 !important;
+  border-bottom: 2px solid var(--border) !important;
+  background: var(--bg-secondary) !important;
 }
 
 .notes-redesign .chat-import-modal-new .modal-header-new h2 {
@@ -63,8 +63,8 @@
 .notes-redesign .chat-import-modal-new .modal-close-btn {
   width: 36px !important;
   height: 36px !important;
-  background: #0f1012 !important;
-  border: 2px solid #2a2f37 !important;
+  background: var(--bg-secondary) !important;
+  border: 2px solid var(--border) !important;
   color: #D7B38C !important;
   cursor: pointer !important;
   display: flex !important;
@@ -76,7 +76,7 @@
 .notes-redesign .chat-import-modal-new .modal-close-btn:hover {
   background: #D7B38C !important;
   border-color: #D7B38C !important;
-  color: #0f1012 !important;
+  color: var(--bg-secondary) !important;
 }
 
 /* Modal Content */
@@ -84,7 +84,7 @@
   padding: 24px !important;
   overflow-y: auto !important;
   flex: 1 !important;
-  background: #16181d !important;
+  background: var(--bg-secondary) !important;
 }
 
 /* Import Mode Section */
@@ -112,8 +112,8 @@
   align-items: flex-start !important;
   gap: 14px !important;
   padding: 16px 18px !important;
-  background: #0f1012 !important;
-  border: 2px solid #2a2f37 !important;
+  background: var(--bg-secondary) !important;
+  border: 2px solid var(--border) !important;
   cursor: pointer !important;
   transition: all 0.2s !important;
 }
@@ -182,8 +182,8 @@
 .notes-redesign .chat-import-modal-new .select-all-btn-new,
 .notes-redesign .chat-import-modal-new .clear-all-btn-new {
   padding: 8px 14px !important;
-  background: #0f1012 !important;
-  border: 2px solid #2a2f37 !important;
+  background: var(--bg-secondary) !important;
+  border: 2px solid var(--border) !important;
   color: #B8C0CC !important;
   font-size: 11px !important;
   font-weight: 600 !important;
@@ -203,8 +203,8 @@
 .notes-redesign .chat-import-modal-new .sessions-list-new {
   max-height: 280px !important;
   overflow-y: auto !important;
-  border: 2px solid #2a2f37 !important;
-  background: #0f1012 !important;
+  border: 2px solid var(--border) !important;
+  background: var(--bg-secondary) !important;
 }
 
 .notes-redesign .chat-import-modal-new .sessions-list-new::-webkit-scrollbar {
@@ -212,7 +212,7 @@
 }
 
 .notes-redesign .chat-import-modal-new .sessions-list-new::-webkit-scrollbar-track {
-  background: #0f1012 !important;
+  background: var(--bg-secondary) !important;
 }
 
 .notes-redesign .chat-import-modal-new .sessions-list-new::-webkit-scrollbar-thumb {
@@ -224,7 +224,7 @@
   align-items: center !important;
   gap: 14px !important;
   padding: 14px 18px !important;
-  border-bottom: 1px solid #2a2f37 !important;
+  border-bottom: 1px solid var(--border) !important;
   cursor: pointer !important;
   transition: background 0.2s !important;
 }
@@ -280,14 +280,14 @@
   justify-content: flex-end !important;
   gap: 12px !important;
   padding: 20px 24px !important;
-  border-top: 2px solid #2a2f37 !important;
-  background: #0f1012 !important;
+  border-top: 2px solid var(--border) !important;
+  background: var(--bg-secondary) !important;
 }
 
 .notes-redesign .chat-import-modal-new .cancel-btn-new {
   padding: 12px 24px !important;
-  background: #0f1012 !important;
-  border: 2px solid #2a2f37 !important;
+  background: var(--bg-secondary) !important;
+  border: 2px solid var(--border) !important;
   color: #EAECEF !important;
   font-size: 13px !important;
   font-weight: 600 !important;
@@ -304,7 +304,7 @@
   padding: 12px 24px !important;
   background: #D7B38C !important;
   border: 2px solid #D7B38C !important;
-  color: #0f1012 !important;
+  color: var(--bg-secondary) !important;
   font-size: 13px !important;
   font-weight: 700 !important;
   cursor: pointer !important;
@@ -338,3 +338,4 @@
 @keyframes nr-chat-spin {
   to { transform: rotate(360deg); }
 }
+

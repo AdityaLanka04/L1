@@ -10,11 +10,11 @@
 
 /* Base CSS Variables - Required for theme support */
 :root {
-  --bg-top: #0b0b0c;
-  --bg-bottom: #0f1012;
-  --bg: #0f1012;
-  --panel: #16181d;
-  --border: #2a2f37;
+  --bg-top: var(--bg-primary);
+  --bg-bottom: var(--bg-secondary);
+  --bg: var(--bg-secondary);
+  --panel: var(--bg-secondary);
+  --border: var(--border);
   --text-primary: #EAECEF;
   --text-secondary: #B8C0CC;
   --accent: #D7B38C;
@@ -52,7 +52,7 @@
   --nr-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
   --nr-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
   --editor-bg: #ffffff;
-  --editor-text: #000000;
+  --editor-text: var(--bg-primary);
   --editor-placeholder: #666666;
   --scrollbar-track: rgba(255, 255, 255, 0.05);
   --scrollbar-thumb: rgba(0, 0, 0, 0.3);
@@ -499,7 +499,7 @@
   overflow-x: hidden;
   padding: 24px 32px;
   background: #ffffff !important;
-  color: #000000 !important;
+  color: var(--bg-primary) !important;
 }
 
 /* Light mode - ensure white background everywhere */
@@ -611,7 +611,7 @@
 
 /* Light mode - dark button */
 .floating-expand-btn.light {
-  background: #000000;
+  background: var(--bg-primary);
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
@@ -625,7 +625,7 @@
 /* Dark mode - white button */
 .floating-expand-btn.dark {
   background: #ffffff;
-  color: #000000;
+  color: var(--bg-primary);
   box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
 }
 
@@ -675,7 +675,7 @@
 
 .format-btn:hover {
   background: rgba(0, 0, 0, 0.05);
-  color: #000000;
+  color: var(--bg-primary);
 }
 
 .format-select {
@@ -683,7 +683,7 @@
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.15);
   border-radius: 6px;
-  color: #000000;
+  color: var(--bg-primary);
   font-size: 13px;
   cursor: pointer;
   height: 32px;
@@ -691,7 +691,7 @@
 
 .format-select option {
   background: #ffffff;
-  color: #000000;
+  color: var(--bg-primary);
 }
 
 /* Dark mode formatting toolbar */
@@ -756,7 +756,7 @@
   overflow-y: auto;
   padding: 24px 40px 24px 120px;
   background: #ffffff !important;
-  color: #000000 !important;
+  color: var(--bg-primary) !important;
   border-radius: 12px;
   min-height: 500px;
 }
@@ -770,7 +770,7 @@
   min-height: 300px;
   width: 100%;
   background: #ffffff !important;
-  color: #000000 !important;
+  color: var(--bg-primary) !important;
 }
 
 .block-editor-container.dark-mode .block-editor {
@@ -819,7 +819,7 @@
   min-height: 1.5em;
   outline: none;
   cursor: text;
-  color: #000000 !important;
+  color: var(--bg-primary) !important;
   background: transparent !important;
 }
 
@@ -849,7 +849,7 @@
 .block-editor-container:not(.dark-mode) .block-content.block-heading1,
 .block-editor-container:not(.dark-mode) .block-content.block-heading2,
 .block-editor-container:not(.dark-mode) .block-content.block-heading3 {
-  color: #000000 !important;
+  color: var(--bg-primary) !important;
 }
 
 /* Headings in dark mode */
@@ -890,7 +890,7 @@
 
 /* Light mode - black background, white text */
 .ai-assist-btn.light {
-  background: #000000;
+  background: var(--bg-primary);
   color: #ffffff;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
@@ -904,7 +904,7 @@
 /* Dark mode - white background, black text */
 .ai-assist-btn.dark {
   background: #ffffff;
-  color: #000000;
+  color: var(--bg-primary);
   box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2);
 }
 
@@ -1890,28 +1890,28 @@
 /* Editor Light Mode - Override global dark theme when editor is in light mode */
 .block-editor-container:not(.dark-mode) {
   background: #ffffff !important;
-  color: #000000 !important;
+  color: var(--bg-primary) !important;
 }
 
 .editor-content:not(.dark-mode) .block-editor-container:not(.dark-mode) {
   background: #ffffff !important;
-  color: #000000 !important;
+  color: var(--bg-primary) !important;
 }
 
 /* Force light mode even when global theme is dark */
 [data-theme-mode="dark"] .block-editor-container:not(.dark-mode) {
   background: #ffffff !important;
-  color: #000000 !important;
+  color: var(--bg-primary) !important;
 }
 
 [data-theme-mode="dark"] .editor-content:not(.dark-mode) {
   background: #ffffff !important;
-  color: #000000 !important;
+  color: var(--bg-primary) !important;
 }
 
 [data-theme-mode="dark"] .editor-content:not(.dark-mode) .block-editor {
   background: #ffffff !important;
-  color: #000000 !important;
+  color: var(--bg-primary) !important;
 }
 
 [data-theme-mode="dark"] .editor-content:not(.dark-mode) .block-wrapper {
@@ -1919,7 +1919,7 @@
 }
 
 [data-theme-mode="dark"] .editor-content:not(.dark-mode) .block-content {
-  color: #000000 !important;
+  color: var(--bg-primary) !important;
 }
 
 /* Formatting toolbar - Force light mode when global theme is dark but editor is light */
@@ -1931,13 +1931,13 @@
 
 [data-theme-mode="dark"] .editor-content:not(.dark-mode) .format-btn:hover {
   background: rgba(0, 0, 0, 0.05) !important;
-  color: #000000 !important;
+  color: var(--bg-primary) !important;
 }
 
 [data-theme-mode="dark"] .editor-content:not(.dark-mode) .format-select {
   background: #ffffff !important;
   border-color: rgba(0, 0, 0, 0.15) !important;
-  color: #000000 !important;
+  color: var(--bg-primary) !important;
 }
 
 [data-theme-mode="dark"] .editor-content:not(.dark-mode) .formatting-toolbar-wrapper {
@@ -1947,11 +1947,11 @@
 
 /* Title input - Light mode (black text) */
 .editor-content:not(.dark-mode) .title-input-new {
-  color: #000000 !important;
+  color: var(--bg-primary) !important;
 }
 
 [data-theme-mode="dark"] .editor-content:not(.dark-mode) .title-input-new {
-  color: #000000 !important;
+  color: var(--bg-primary) !important;
 }
 
 /* Title input - Dark mode (white text) */
@@ -1987,7 +1987,7 @@
 }
 
 .editor-content:not(.dark-mode) .block-control-btn:hover {
-  color: #000000 !important;
+  color: var(--bg-primary) !important;
   background: rgba(0, 0, 0, 0.05) !important;
 }
 
@@ -2001,7 +2001,7 @@
 }
 
 [data-theme-mode="dark"] .editor-content:not(.dark-mode) .block-control-btn:hover {
-  color: #000000 !important;
+  color: var(--bg-primary) !important;
   background: rgba(0, 0, 0, 0.05) !important;
 }
 
@@ -2027,7 +2027,7 @@
 .editor-content:not(.dark-mode) h1,
 .editor-content:not(.dark-mode) h2,
 .editor-content:not(.dark-mode) h3 {
-  color: #000000 !important;
+  color: var(--bg-primary) !important;
 }
 
 [data-theme-mode="dark"] .editor-content:not(.dark-mode) .block-content.block-heading1,
@@ -2036,7 +2036,7 @@
 [data-theme-mode="dark"] .editor-content:not(.dark-mode) h1,
 [data-theme-mode="dark"] .editor-content:not(.dark-mode) h2,
 [data-theme-mode="dark"] .editor-content:not(.dark-mode) h3 {
-  color: #000000 !important;
+  color: var(--bg-primary) !important;
 }
 
 /* Headings - Dark mode */
@@ -3312,7 +3312,7 @@
 }
 
 .sbe-dropdown-menu::-webkit-scrollbar-thumb:hover {
-  background: #000000 !important;
+  background: var(--bg-primary) !important;
 }
 
 /* Scrollbar - dark mode (white) */
@@ -3375,5 +3375,6 @@
 }
 
 .sbe-slash-menu::-webkit-scrollbar-thumb:hover {
-  background: #000000 !important;
+  background: var(--bg-primary) !important;
 }
+

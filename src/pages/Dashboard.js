@@ -889,19 +889,43 @@ const Dashboard = () => {
                   const maxRounded = Math.ceil(maxValue / 10) * 10;
                   const streakColor = getWidgetColor('streak');
                   
+                  // Generate day labels based on current timezone
+                  const getDayLabels = () => {
+                    const today = new Date();
+                    const dayLabels = [];
+                    for (let i = 6; i >= 0; i--) {
+                      const date = new Date(today);
+                      date.setDate(today.getDate() - i);
+                      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+                      // Use 'Th' for Thursday, first letter for others
+                      if (dayName === 'Thu') {
+                        dayLabels.push('Th');
+                      } else {
+                        dayLabels.push(dayName[0]);
+                      }
+                    }
+                    return dayLabels;
+                  };
+                  
+                  const dayLabels = getDayLabels();
+                  
+                  // Center the graph by adjusting starting position
+                  const startX = 30;
+                  const spacing = 37;
+                  
                   return (
                     <>
                       <path
-                        d={`M 40 80 ${validWeeklyProgress.map((val, i) => {
-                          const x = 40 + (i * 41.67);
+                        d={`M ${startX} 80 ${validWeeklyProgress.map((val, i) => {
+                          const x = startX + (i * spacing);
                           const y = 80 - (val / maxRounded) * 60;
                           return `L ${x} ${y}`;
-                        }).join(' ')} L ${40 + 6 * 41.67} 80 Z`}
+                        }).join(' ')} L ${startX + 6 * spacing} 80 Z`}
                         fill={`url(#areaGradient)`}
                       />
                       <path
                         d={`M ${validWeeklyProgress.map((val, i) => {
-                          const x = 40 + (i * 41.67);
+                          const x = startX + (i * spacing);
                           const y = 80 - (val / maxRounded) * 60;
                           return `${i === 0 ? '' : 'L '}${x} ${y}`;
                         }).join(' ')}`}
@@ -910,14 +934,14 @@ const Dashboard = () => {
                         strokeWidth="2"
                       />
                       {validWeeklyProgress.map((val, i) => {
-                        const x = 40 + (i * 41.67);
+                        const x = startX + (i * spacing);
                         const y = 80 - (val / maxRounded) * 60;
                         return (
                           <circle key={i} cx={x} cy={y} r="3" fill={streakColor} stroke={bgPrimary} strokeWidth="2" />
                         );
                       })}
-                      {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => {
-                        const x = 40 + (i * 41.67);
+                      {dayLabels.map((day, i) => {
+                        const x = startX + (i * spacing);
                         return (
                           <text key={i} x={x} y="95" fontSize="10" fill={textSecondary} textAnchor="middle">{day}</text>
                         );

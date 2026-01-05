@@ -281,33 +281,41 @@ function buildCustomThemeTokens(customTheme) {
   const accentColor = customTheme.accent || '#D7B38C';
   const accentHover = customTheme.accentHover || lightenColor(accentColor, 15);
   
+  // Calculate luminance to determine if background is light or dark
+  const luminance = getRelativeLuminance(primaryColor);
+  const isLightBackground = luminance > 0.5;
+  
   // Generate derived colors from primary
-  const bgSecondary = customTheme.mode === 'dark' 
-    ? lightenColor(primaryColor, 6) 
-    : darkenColor(primaryColor, 2);
-  const borderColor = customTheme.mode === 'dark'
-    ? lightenColor(primaryColor, 12)
-    : darkenColor(primaryColor, 10);
+  const bgSecondary = isLightBackground
+    ? darkenColor(primaryColor, 3) 
+    : lightenColor(primaryColor, 8);
+  const borderColor = isLightBackground
+    ? darkenColor(primaryColor, 15)
+    : lightenColor(primaryColor, 20);
+  
+  // Smart text colors based on background
+  const textPrimary = isLightBackground ? '#1a1a1a' : '#EAECEF';
+  const textSecondary = isLightBackground ? '#666666' : '#B8C0CC';
   
   const tokens = {
     '--bg-primary': primaryColor,
     '--bg-secondary': bgSecondary,
     '--bg-top': primaryColor,
-    '--bg-bottom': customTheme.mode === 'dark' ? lightenColor(primaryColor, 3) : darkenColor(primaryColor, 1),
+    '--bg-bottom': isLightBackground ? darkenColor(primaryColor, 2) : lightenColor(primaryColor, 4),
     '--panel': bgSecondary,
     '--primary': bgSecondary,
-    '--primary-contrast': customTheme.mode === 'dark' ? '#EAECEF' : '#1a1a1a',
-    '--text-primary': customTheme.mode === 'dark' ? '#EAECEF' : '#1a1a1a',
-    '--text-secondary': customTheme.mode === 'dark' ? '#B8C0CC' : '#666666',
+    '--primary-contrast': textPrimary,
+    '--text-primary': textPrimary,
+    '--text-secondary': textSecondary,
     '--border': borderColor,
     '--accent': accentColor,
     '--accent-2': accentHover,
     '--accent-hover': accentHover,
     '--hero-bg': bgSecondary,
-    '--hero-text': customTheme.mode === 'dark' ? '#EAECEF' : '#1a1a1a',
-    '--success': customTheme.mode === 'dark' ? '#10B981' : '#16A34A',
-    '--warning': customTheme.mode === 'dark' ? '#F59E0B' : '#D97706',
-    '--danger': customTheme.mode === 'dark' ? '#EF4444' : '#DC2626',
+    '--hero-text': textPrimary,
+    '--success': isLightBackground ? '#16A34A' : '#10B981',
+    '--warning': isLightBackground ? '#D97706' : '#F59E0B',
+    '--danger': isLightBackground ? '#DC2626' : '#EF4444',
     '--glow': `rgba(${hexToRgb(accentColor).r}, ${hexToRgb(accentColor).g}, ${hexToRgb(accentColor).b}, 0.35)`,
     // Dashboard-specific variables
     '--dashboard-accent': accentColor,
@@ -320,8 +328,19 @@ function buildCustomThemeTokens(customTheme) {
     accent: accentColor,
     accentHover,
     tokens,
-    family: customTheme.mode === 'dark' ? 'Dark' : 'Light'
+    family: isLightBackground ? 'Light' : 'Dark',
+    mode: isLightBackground ? 'light' : 'dark'
   };
+}
+
+// Calculate relative luminance for WCAG contrast
+function getRelativeLuminance(hex) {
+  const { r, g, b } = hexToRgb(hex);
+  const [rs, gs, bs] = [r, g, b].map(c => {
+    c = c / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
 }
 
 export function applyCustomTheme(customTheme) {
@@ -337,7 +356,9 @@ export function applyCustomTheme(customTheme) {
     });
   }
 
-  root.setAttribute('data-theme-mode', customTheme.mode);
+  // Set mode based on background luminance
+  const mode = themeWithTokens.mode || customTheme.mode || 'dark';
+  root.setAttribute('data-theme-mode', mode);
   root.setAttribute('data-theme-id', 'custom');
 }
 

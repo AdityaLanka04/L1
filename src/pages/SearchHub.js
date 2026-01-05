@@ -798,7 +798,13 @@ const SearchHub = () => {
   };
 
   const handleAutocomplete = async (query) => {
-    if (!query || query.length < 2) {
+    // If empty query, show all recommendations
+    if (!query || query.trim() === '') {
+      showAllRecommendations();
+      return;
+    }
+    
+    if (query.length < 2) {
       setShowAutocomplete(false);
       setAutocompleteResults([]);
       return;
@@ -853,6 +859,24 @@ const SearchHub = () => {
         setShowAutocomplete(false);
       }
     }, 300);
+  };
+
+  const showAllRecommendations = () => {
+    // Show recent searches and personalized prompts
+    const recentItems = recentSearches
+      .slice(0, 5)
+      .map(text => ({ text, type: 'recent' }));
+    
+    const promptItems = personalizedPrompts
+      .slice(0, 5)
+      .map(prompt => ({ text: prompt.text, type: 'suggestion' }));
+
+    const combined = [...recentItems, ...promptItems].slice(0, 10);
+    
+    if (combined.length > 0) {
+      setAutocompleteResults(combined);
+      setShowAutocomplete(true);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -1286,7 +1310,7 @@ const SearchHub = () => {
                 <div className="giant-logo">
                   <span className="logo-text">cerbyl</span>
                   <div className="search-box-wrapper">
-                    <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className="search-box-cutout">
+                    <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className={`search-box-cutout ${showAutocomplete && autocompleteResults.length > 0 ? 'dropdown-open' : ''}`}>
                       <input
                         ref={searchInputRef}
                         id="search-input"
@@ -1295,6 +1319,14 @@ const SearchHub = () => {
                         onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
                         onFocus={() => {
+                          // Always show suggestions when clicking on search bar
+                          if (!searchQuery || searchQuery.trim() === '') {
+                            showAllRecommendations();
+                          } else {
+                            // Re-trigger autocomplete for current query
+                            handleAutocomplete(searchQuery);
+                          }
+                          
                           // Scroll down when clicking on search bar
                           if (showAutocomplete && autocompleteResults.length > 0) {
                             setTimeout(() => {
