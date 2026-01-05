@@ -16717,274 +16717,160 @@ async def autocomplete(
         # 1. Command suggestions - COMPREHENSIVE LIST
         commands = [
             # Creation commands
-            {"text": "create flashcards on", "subtext": "Generate flashcards on a topic", "type": "command", "category": "create"},
-            {"text": "create a quiz on", "subtext": "Test your knowledge", "type": "command", "category": "create"},
-            {"text": "create a note on", "subtext": "Start taking notes", "type": "command", "category": "create"},
-            {"text": "create study plan for", "subtext": "Plan your learning", "type": "command", "category": "create"},
-            {"text": "create mind map for", "subtext": "Visual organization", "type": "command", "category": "create"},
-            {"text": "generate practice problems on", "subtext": "Practice exercises", "type": "command", "category": "create"},
+            {"text": "create flashcards on", "subtext": "Generate AI flashcards on any topic", "type": "command", "category": "create", "needs_topic": True},
+            {"text": "create a quiz on", "subtext": "Test your knowledge on any topic", "type": "command", "category": "create", "needs_topic": True},
+            {"text": "create a note on", "subtext": "AI writes comprehensive notes", "type": "command", "category": "create", "needs_topic": True},
+            {"text": "create questions on", "subtext": "Generate practice questions", "type": "command", "category": "create", "needs_topic": True},
+            {"text": "create study plan for", "subtext": "Plan your learning journey", "type": "command", "category": "create", "needs_topic": True},
             
             # Learning & Explanation
-            {"text": "explain", "subtext": "Get AI explanation", "type": "command", "category": "learn"},
-            {"text": "explain like I'm 5", "subtext": "Simple explanation", "type": "command", "category": "learn"},
-            {"text": "explain step by step", "subtext": "Detailed walkthrough", "type": "command", "category": "learn"},
-            {"text": "teach me about", "subtext": "Learn a new topic", "type": "command", "category": "learn"},
-            {"text": "what is", "subtext": "Get definition", "type": "command", "category": "learn"},
-            {"text": "define", "subtext": "Get definition", "type": "command", "category": "learn"},
-            {"text": "how does", "subtext": "Understand mechanism", "type": "command", "category": "learn"},
-            {"text": "why does", "subtext": "Understand reasoning", "type": "command", "category": "learn"},
-            {"text": "when did", "subtext": "Historical context", "type": "command", "category": "learn"},
-            {"text": "who invented", "subtext": "Historical context", "type": "command", "category": "learn"},
-            {"text": "give examples of", "subtext": "See examples", "type": "command", "category": "learn"},
-            {"text": "show examples of", "subtext": "See examples", "type": "command", "category": "learn"},
+            {"text": "explain", "subtext": "Get AI explanation on any topic", "type": "command", "category": "learn", "needs_topic": True},
+            {"text": "teach me about", "subtext": "Learn a new topic", "type": "command", "category": "learn", "needs_topic": True},
+            {"text": "what is", "subtext": "Get definition", "type": "command", "category": "learn", "needs_topic": True},
+            {"text": "how does", "subtext": "Understand how something works", "type": "command", "category": "learn", "needs_topic": True},
+            {"text": "summarize", "subtext": "Get a quick summary", "type": "command", "category": "learn", "needs_topic": True},
             
             # Testing & Practice
-            {"text": "test me on", "subtext": "Quick quiz", "type": "command", "category": "test"},
-            {"text": "quiz me on", "subtext": "Quick quiz", "type": "command", "category": "test"},
-            {"text": "practice", "subtext": "Practice exercises", "type": "command", "category": "test"},
-            {"text": "challenge me on", "subtext": "Harder questions", "type": "command", "category": "test"},
-            {"text": "random flashcard", "subtext": "Surprise me", "type": "command", "category": "test"},
-            {"text": "daily review", "subtext": "Start daily practice", "type": "command", "category": "test"},
-            {"text": "start study session", "subtext": "Begin studying", "type": "command", "category": "test"},
+            {"text": "quiz me on", "subtext": "Quick quiz on any topic", "type": "command", "category": "test", "needs_topic": True},
+            {"text": "test me on", "subtext": "Test your knowledge", "type": "command", "category": "test", "needs_topic": True},
             
-            # Analysis & Comparison
-            {"text": "compare", "subtext": "Compare topics", "type": "command", "category": "analyze"},
-            {"text": "difference between", "subtext": "Compare two things", "type": "command", "category": "analyze"},
-            {"text": "pros and cons of", "subtext": "Analyze benefits/drawbacks", "type": "command", "category": "analyze"},
-            {"text": "advantages of", "subtext": "List benefits", "type": "command", "category": "analyze"},
-            {"text": "disadvantages of", "subtext": "List drawbacks", "type": "command", "category": "analyze"},
-            {"text": "summarize", "subtext": "Get summary", "type": "command", "category": "analyze"},
-            {"text": "tldr", "subtext": "Quick summary", "type": "command", "category": "analyze"},
-            {"text": "key points of", "subtext": "Main takeaways", "type": "command", "category": "analyze"},
+            # Progress & Analytics (no topic needed)
+            {"text": "show my progress", "subtext": "View your learning statistics", "type": "command", "category": "progress", "needs_topic": False},
+            {"text": "show my weak areas", "subtext": "Find knowledge gaps", "type": "command", "category": "progress", "needs_topic": False},
+            {"text": "what is my learning style", "subtext": "AI analyzes your learning patterns", "type": "command", "category": "progress", "needs_topic": False},
+            {"text": "show my achievements", "subtext": "View your badges and rewards", "type": "command", "category": "progress", "needs_topic": False},
+            {"text": "show knowledge gaps", "subtext": "Find your blind spots", "type": "command", "category": "progress", "needs_topic": False},
             
-            # Progress & Analytics
-            {"text": "what is my learning style", "subtext": "AI analysis", "type": "command", "category": "progress"},
-            {"text": "show my weak areas", "subtext": "Find knowledge gaps", "type": "command", "category": "progress"},
-            {"text": "what am I weak at", "subtext": "Find knowledge gaps", "type": "command", "category": "progress"},
-            {"text": "show my progress", "subtext": "View statistics", "type": "command", "category": "progress"},
-            {"text": "how am I doing", "subtext": "Performance overview", "type": "command", "category": "progress"},
-            {"text": "my statistics", "subtext": "View analytics", "type": "command", "category": "progress"},
-            {"text": "my achievements", "subtext": "View badges", "type": "command", "category": "progress"},
-            {"text": "show knowledge gaps", "subtext": "Find blind spots", "type": "command", "category": "progress"},
+            # Scheduling & Planning (no topic needed)
+            {"text": "what should I study next", "subtext": "Get AI recommendations", "type": "command", "category": "schedule", "needs_topic": False},
+            {"text": "predict what I'll forget", "subtext": "Forgetting curve analysis", "type": "command", "category": "schedule", "needs_topic": False},
+            {"text": "optimize my retention", "subtext": "Spaced repetition schedule", "type": "command", "category": "schedule", "needs_topic": False},
             
-            # Scheduling & Planning
-            {"text": "what's due today", "subtext": "Review schedule", "type": "command", "category": "schedule"},
-            {"text": "what should I study", "subtext": "Get recommendations", "type": "command", "category": "schedule"},
-            {"text": "what to review", "subtext": "Spaced repetition", "type": "command", "category": "schedule"},
-            {"text": "optimize my retention", "subtext": "Spaced repetition", "type": "command", "category": "schedule"},
-            {"text": "predict what I'll forget", "subtext": "Forgetting curve", "type": "command", "category": "schedule"},
-            {"text": "suggest break times", "subtext": "Rest schedule", "type": "command", "category": "schedule"},
-            {"text": "am I burning out", "subtext": "Burnout detection", "type": "command", "category": "schedule"},
-            {"text": "when should I study", "subtext": "Optimal times", "type": "command", "category": "schedule"},
+            # Quick Actions (no topic needed)
+            {"text": "review flashcards", "subtext": "Start flashcard review", "type": "command", "category": "quick", "needs_topic": False},
+            {"text": "review weak flashcards", "subtext": "Focus on difficult cards", "type": "command", "category": "quick", "needs_topic": False},
             
-            # Search & Find
-            {"text": "find my flashcards on", "subtext": "Search flashcards", "type": "command", "category": "search"},
-            {"text": "find my notes on", "subtext": "Search notes", "type": "command", "category": "search"},
-            {"text": "search for", "subtext": "Search content", "type": "command", "category": "search"},
-            {"text": "show me my", "subtext": "View content", "type": "command", "category": "search"},
-            {"text": "get my", "subtext": "Retrieve content", "type": "command", "category": "search"},
-            
-            # How-to & Instructions
-            {"text": "how to", "subtext": "Step-by-step guide", "type": "command", "category": "howto"},
-            {"text": "steps to", "subtext": "Instructions", "type": "command", "category": "howto"},
-            {"text": "guide for", "subtext": "Tutorial", "type": "command", "category": "howto"},
-            {"text": "tutorial on", "subtext": "Learn how", "type": "command", "category": "howto"},
-            
-            # History & Timeline
-            {"text": "timeline of", "subtext": "Historical events", "type": "command", "category": "history"},
-            {"text": "history of", "subtext": "Background info", "type": "command", "category": "history"},
-            {"text": "evolution of", "subtext": "How it developed", "type": "command", "category": "history"},
-            
-            # Prerequisites & Resources
-            {"text": "prerequisites for", "subtext": "What to learn first", "type": "command", "category": "resources"},
-            {"text": "what do I need to know before", "subtext": "Prerequisites", "type": "command", "category": "resources"},
-            {"text": "resources for", "subtext": "Learning materials", "type": "command", "category": "resources"},
-            {"text": "books about", "subtext": "Reading recommendations", "type": "command", "category": "resources"},
-            {"text": "videos about", "subtext": "Video recommendations", "type": "command", "category": "resources"},
-            
-            # Social & Collaboration
-            {"text": "find study buddy", "subtext": "Find partners", "type": "command", "category": "social"},
-            {"text": "challenge a friend", "subtext": "Quiz battle", "type": "command", "category": "social"},
-            {"text": "find my study twin", "subtext": "Similar learners", "type": "command", "category": "social"},
-            
-            # Difficulty & Adaptation
-            {"text": "adapt difficulty", "subtext": "Adjust to my level", "type": "command", "category": "adapt"},
-            {"text": "make it easier", "subtext": "Simplify content", "type": "command", "category": "adapt"},
-            {"text": "make it harder", "subtext": "More challenge", "type": "command", "category": "adapt"},
-            {"text": "simplify", "subtext": "Easier explanation", "type": "command", "category": "adapt"},
-            
-            # Quick Actions
-            {"text": "review flashcards", "subtext": "Start review", "type": "command", "category": "quick"},
-            {"text": "continue studying", "subtext": "Resume session", "type": "command", "category": "quick"},
-            {"text": "take a break", "subtext": "Rest reminder", "type": "command", "category": "quick"},
-            {"text": "export my", "subtext": "Download content", "type": "command", "category": "quick"},
-            {"text": "remind me to study", "subtext": "Set reminder", "type": "command", "category": "quick"},
+            # Search
+            {"text": "search for", "subtext": "Search your content", "type": "command", "category": "search", "needs_topic": True},
         ]
         
-        # Get user's topics for personalized suggestions
-        user_topics = []
+        # Check if user is typing a command
+        is_typing_command = False
+        matched_command = None
+        remaining_topic = ""
         
-        # Get topics from flashcard sets (most recent)
-        flashcard_topics = db.query(models.FlashcardSet.title).filter(
-            models.FlashcardSet.user_id == user.id
-        ).order_by(models.FlashcardSet.updated_at.desc()).limit(10).all()
-        user_topics.extend([t[0] for t in flashcard_topics if t[0]])
-        
-        # Get topics from notes
-        note_topics = db.query(models.Note.title).filter(
-            models.Note.user_id == user.id,
-            models.Note.is_deleted == False
-        ).order_by(models.Note.updated_at.desc()).limit(5).all()
-        user_topics.extend([t[0] for t in note_topics if t[0]])
-        
-        # Get topics from chat sessions
-        chat_topics = db.query(models.ChatSession.title).filter(
-            models.ChatSession.user_id == user.id,
-            models.ChatSession.title != "New Chat",
-            models.ChatSession.title != None
-        ).order_by(models.ChatSession.updated_at.desc()).limit(5).all()
-        user_topics.extend([t[0] for t in chat_topics if t[0]])
-        
-        # Deduplicate and clean topics
-        seen_topics = set()
-        unique_topics = []
-        for topic in user_topics:
-            topic_lower = topic.lower().strip()
-            if topic_lower not in seen_topics and len(topic) > 2:
-                seen_topics.add(topic_lower)
-                unique_topics.append(topic)
-        user_topics = unique_topics[:8]  # Keep top 8 unique topics
-        
-        # Commands that need topic suggestions (end with prepositions)
-        topic_commands = [
-            "create flashcards on", "create a quiz on", "create a note on", 
-            "create study plan for", "create mind map for", "generate practice problems on",
-            "explain", "teach me about", "what is", "define", "how does", "why does",
-            "give examples of", "show examples of", "test me on", "quiz me on",
-            "challenge me on", "compare", "difference between", "pros and cons of",
-            "summarize", "key points of", "find my flashcards on", "find my notes on",
-            "search for", "how to", "steps to", "guide for", "tutorial on",
-            "timeline of", "history of", "evolution of", "prerequisites for",
-            "resources for", "books about", "videos about", "simplify", "mind map for"
-        ]
-        
-        # Match commands - prioritize exact prefix matches
-        matched_commands = []
         for cmd in commands:
-            cmd_lower = cmd["text"].lower()
-            # Exact prefix match (highest priority)
-            if cmd_lower.startswith(query_lower):
-                cmd["priority"] = 1
-                matched_commands.append(cmd)
-            # Contains match
-            elif query_lower in cmd_lower:
-                cmd["priority"] = 2
-                matched_commands.append(cmd)
-            # First word match
-            elif query_lower.split()[0] in cmd_lower.split()[0] if query_lower else False:
-                cmd["priority"] = 3
-                matched_commands.append(cmd)
+            cmd_text = cmd["text"].lower()
+            if query_lower.startswith(cmd_text):
+                is_typing_command = True
+                matched_command = cmd
+                remaining_topic = query_lower[len(cmd_text):].strip()
+                break
+            elif cmd_text.startswith(query_lower):
+                is_typing_command = True
+                matched_command = cmd
+                break
         
-        # Sort by priority and take top matches
-        matched_commands.sort(key=lambda x: x.get("priority", 99))
-        
-        for cmd in matched_commands[:4]:  # Limit to 4 command suggestions
-            cmd_text = cmd["text"]
-            
-            # If query has more words after the command prefix, append topic
-            if " " in query:
-                words = query.split()
-                cmd_words = cmd_text.split()
-                if len(words) > len(cmd_words):
-                    topic = " ".join(words[len(cmd_words):])
-                    if topic.strip():
-                        suggestions.append({
-                            "text": f"{cmd_text} {topic}",
-                            "subtext": cmd["subtext"],
-                            "type": "command",
-                            "category": cmd.get("category", "")
-                        })
-                        continue
-            
-            # Check if this command should have topic suggestions
-            is_topic_command = any(cmd_text.lower().startswith(tc.lower()) for tc in topic_commands)
-            
-            if is_topic_command and user_topics:
-                # Add command with first matching/relevant topic
-                for topic in user_topics[:2]:  # Add up to 2 topic variations
+        # If user is typing a command that needs a topic
+        if is_typing_command and matched_command:
+            if matched_command.get("needs_topic"):
+                if remaining_topic:
+                    # User has started typing a topic - show the command with their topic
                     suggestions.append({
-                        "text": f"{cmd_text} {topic}",
-                        "subtext": f"{cmd['subtext']} • Based on your content",
+                        "text": f"{matched_command['text']} {remaining_topic}",
+                        "subtext": matched_command["subtext"],
+                        "type": "command",
+                        "category": matched_command.get("category", "")
+                    })
+                else:
+                    # User just typed the command - show it as-is, waiting for topic
+                    suggestions.append({
+                        "text": matched_command["text"],
+                        "subtext": f"{matched_command['subtext']} (type a topic)",
+                        "type": "command",
+                        "category": matched_command.get("category", "")
+                    })
+            else:
+                # Command doesn't need a topic - show it directly
+                suggestions.append({
+                    "text": matched_command["text"],
+                    "subtext": matched_command["subtext"],
+                    "type": "command",
+                    "category": matched_command.get("category", "")
+                })
+        
+        # Add other matching commands (prefix match)
+        if not is_typing_command or len(suggestions) < 3:
+            for cmd in commands:
+                cmd_lower = cmd["text"].lower()
+                if cmd_lower.startswith(query_lower) and cmd != matched_command:
+                    suggestions.append({
+                        "text": cmd["text"],
+                        "subtext": cmd["subtext"],
                         "type": "command",
                         "category": cmd.get("category", "")
                     })
-            else:
-                # Add command without topic
+                    if len(suggestions) >= 4:
+                        break
+        
+        # 2. Search user's content ONLY if not typing a command
+        if not is_typing_command and len(query_lower) >= 2:
+            search_term = f"%{query_lower}%"
+            
+            # Flashcard sets
+            flashcard_sets = db.query(models.FlashcardSet).filter(
+                models.FlashcardSet.user_id == user.id,
+                func.lower(models.FlashcardSet.title).like(search_term)
+            ).order_by(models.FlashcardSet.updated_at.desc()).limit(3).all()
+            
+            for fset in flashcard_sets:
+                card_count = db.query(models.Flashcard).filter(models.Flashcard.set_id == fset.id).count()
                 suggestions.append({
-                    "text": cmd_text,
-                    "subtext": cmd["subtext"],
-                    "type": "command",
-                    "category": cmd.get("category", "")
-                })
-        
-        # 2. Matching content titles
-        search_term = f"%{query_lower}%"
-        
-        # Flashcard sets
-        flashcard_sets = db.query(models.FlashcardSet).filter(
-            models.FlashcardSet.user_id == user.id,
-            func.lower(models.FlashcardSet.title).like(search_term)
-        ).order_by(models.FlashcardSet.updated_at.desc()).limit(3).all()
-        
-        for fset in flashcard_sets:
-            card_count = db.query(models.Flashcard).filter(models.Flashcard.set_id == fset.id).count()
-            suggestions.append({
-                "text": fset.title,
-                "subtext": f"Flashcard Set • {card_count} cards",
-                "type": "content",
-                "contentType": "flashcard_set",
-                "id": fset.id
-            })
-        
-        # Notes
-        notes = db.query(models.Note).filter(
-            models.Note.user_id == user.id,
-            models.Note.is_deleted == False,
-            func.lower(models.Note.title).like(search_term)
-        ).order_by(models.Note.updated_at.desc()).limit(3).all()
-        
-        for note in notes:
-            suggestions.append({
-                "text": note.title,
-                "subtext": "Note",
-                "type": "content",
-                "contentType": "note",
-                "id": note.id
-            })
-        
-        # Chat sessions
-        chats = db.query(models.ChatSession).filter(
-            models.ChatSession.user_id == user.id,
-            func.lower(models.ChatSession.title).like(search_term)
-        ).order_by(models.ChatSession.updated_at.desc()).limit(2).all()
-        
-        for chat in chats:
-            if chat.title and chat.title != "New Chat":
-                suggestions.append({
-                    "text": chat.title,
-                    "subtext": "Chat Session",
+                    "text": fset.title,
+                    "subtext": f"Flashcard Set • {card_count} cards",
                     "type": "content",
-                    "contentType": "chat",
-                    "id": chat.id
+                    "contentType": "flashcard_set",
+                    "id": fset.id
                 })
+            
+            # Notes
+            notes = db.query(models.Note).filter(
+                models.Note.user_id == user.id,
+                models.Note.is_deleted == False,
+                func.lower(models.Note.title).like(search_term)
+            ).order_by(models.Note.updated_at.desc()).limit(3).all()
+            
+            for note in notes:
+                suggestions.append({
+                    "text": note.title,
+                    "subtext": "Note",
+                    "type": "content",
+                    "contentType": "note",
+                    "id": note.id
+                })
+            
+            # Chat sessions
+            chats = db.query(models.ChatSession).filter(
+                models.ChatSession.user_id == user.id,
+                func.lower(models.ChatSession.title).like(search_term)
+            ).order_by(models.ChatSession.updated_at.desc()).limit(2).all()
+            
+            for chat in chats:
+                if chat.title and chat.title != "New Chat":
+                    suggestions.append({
+                        "text": chat.title,
+                        "subtext": "Chat Session",
+                        "type": "content",
+                        "contentType": "chat",
+                        "id": chat.id
+                    })
         
-        # 4. AI-powered suggestions for partial queries
-        if len(suggestions) < 5 and len(query) >= 3:
-            # Add search suggestion
+        # 3. If very few suggestions, add a generic search option
+        if len(suggestions) < 3 and len(query) >= 2:
             suggestions.append({
                 "text": query,
                 "subtext": f"Search for '{query}'",
-                "type": "suggestion"
+                "type": "search"
             })
         
         # Deduplicate and limit
@@ -16996,7 +16882,7 @@ async def autocomplete(
                 seen.add(key)
                 unique_suggestions.append(s)
         
-        return {"suggestions": unique_suggestions[:12]}
+        return {"suggestions": unique_suggestions[:10]}
         
     except Exception as e:
         logger.error(f"Autocomplete error: {str(e)}")

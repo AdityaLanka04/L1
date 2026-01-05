@@ -218,15 +218,39 @@ const SearchHub = () => {
 
     const commands = [
       { pattern: 'create', suggestions: [
-        { text: 'create a note on {topic}', icon: '📝', action: 'create_note' },
-        { text: 'create flashcards on {topic}', icon: '🃏', action: 'create_flashcards' },
-        { text: 'create a quiz on {topic}', icon: '❓', action: 'create_quiz' },
-        { text: 'create a personalized curriculum for {topic}', icon: '📚', action: 'create_curriculum' },
+        { text: 'create a note on {topic}', icon: '📝', action: 'create_note', description: 'AI writes comprehensive notes' },
+        { text: 'create 10 flashcards on {topic}', icon: '🃏', action: 'create_flashcards', description: 'AI generates study cards' },
+        { text: 'create 15 flashcards on {topic}', icon: '🃏', action: 'create_flashcards', description: 'More cards for deeper study' },
+        { text: 'create questions on {topic}', icon: '❓', action: 'create_questions', description: 'AI creates practice questions' },
+        { text: 'create a quiz on {topic}', icon: '🎯', action: 'create_quiz', description: 'Start quiz immediately' },
       ]},
       { pattern: 'make', suggestions: [
-        { text: 'make a note about {topic}', icon: '📝', action: 'create_note' },
-        { text: 'make flashcards for {topic}', icon: '🃏', action: 'create_flashcards' },
-        { text: 'make a quiz about {topic}', icon: '❓', action: 'create_quiz' },
+        { text: 'make a note about {topic}', icon: '📝', action: 'create_note', description: 'AI writes comprehensive notes' },
+        { text: 'make flashcards for {topic}', icon: '🃏', action: 'create_flashcards', description: 'AI generates study cards' },
+        { text: 'make a quiz about {topic}', icon: '❓', action: 'create_quiz', description: 'Start quiz immediately' },
+        { text: 'make questions about {topic}', icon: '📋', action: 'create_questions', description: 'AI creates practice questions' },
+      ]},
+      { pattern: 'generate', suggestions: [
+        { text: 'generate flashcards on {topic}', icon: '🃏', action: 'create_flashcards', description: 'AI generates study cards' },
+        { text: 'generate questions on {topic}', icon: '❓', action: 'create_questions', description: 'AI creates practice questions' },
+        { text: 'generate a study guide for {topic}', icon: '📚', action: 'create_note', description: 'Comprehensive study guide' },
+      ]},
+      { pattern: 'write', suggestions: [
+        { text: 'write a note on {topic}', icon: '📝', action: 'create_note', description: 'AI writes comprehensive notes' },
+        { text: 'write about {topic}', icon: '📝', action: 'create_note', description: 'AI writes comprehensive notes' },
+      ]},
+      { pattern: 'learn', suggestions: [
+        { text: 'learn about {topic}', icon: '🎓', action: 'explain', description: 'Get AI explanation' },
+        { text: 'learn {topic} from scratch', icon: '🌱', action: 'explain', description: 'Beginner-friendly explanation' },
+      ]},
+      { pattern: 'teach', suggestions: [
+        { text: 'teach me {topic}', icon: '👨‍🏫', action: 'explain', description: 'Interactive AI tutoring' },
+        { text: 'teach me about {topic}', icon: '👨‍🏫', action: 'explain', description: 'Interactive AI tutoring' },
+      ]},
+      { pattern: 'study', suggestions: [
+        { text: 'study {topic}', icon: '📖', action: 'create_flashcards', description: 'Create flashcards to study' },
+        { text: 'study my flashcards', icon: '🃏', action: 'review_flashcards', description: 'Review your cards' },
+        { text: 'study weak areas', icon: '💪', action: 'show_weak_areas', description: 'Focus on improvements' },
       ]},
       { pattern: 'adapt', suggestions: [
         { text: 'adapt difficulty to my level', icon: '🎯', action: 'adapt_difficulty' },
@@ -234,29 +258,36 @@ const SearchHub = () => {
       ]},
       { pattern: 'review', suggestions: [
         { text: 'review flashcards', icon: '📚', action: 'review_flashcards' },
-        { text: 'review weak flashcards', icon: '', action: 'review_flashcards' },
+        { text: 'review weak flashcards', icon: '💪', action: 'review_flashcards' },
         { text: 'review what I\'ll forget next', icon: '🔮', action: 'predict_forgetting' },
       ]},
       { pattern: 'show', suggestions: [
         { text: 'show my progress', icon: '📊', action: 'show_progress' },
-        { text: 'show weak areas', icon: '', action: 'show_weak_areas' },
+        { text: 'show weak areas', icon: '💪', action: 'show_weak_areas' },
         { text: 'show my achievements', icon: '🏆', action: 'show_achievements' },
         { text: 'show my learning style', icon: '🧠', action: 'show_learning_style' },
         { text: 'show knowledge gaps', icon: '🕳️', action: 'show_knowledge_gaps' },
       ]},
       { pattern: 'find', suggestions: [
-        { text: 'find my knowledge blind spots', icon: '', action: 'show_knowledge_gaps' },
+        { text: 'find my knowledge blind spots', icon: '🔍', action: 'show_knowledge_gaps' },
         { text: 'find my study twin', icon: '👥', action: 'find_study_twin' },
         { text: 'find complementary learners', icon: '🤝', action: 'find_complementary' },
       ]},
       { pattern: 'what', suggestions: [
-        { text: 'what am I weak in', icon: '', action: 'show_weak_areas' },
+        { text: 'what is {topic}', icon: '❓', action: 'explain', description: 'Get AI explanation' },
+        { text: 'what am I weak in', icon: '💪', action: 'show_weak_areas' },
         { text: 'what is my learning style', icon: '🧠', action: 'show_learning_style' },
         { text: 'what will I forget next', icon: '🔮', action: 'predict_forgetting' },
         { text: 'what are my knowledge gaps', icon: '🕳️', action: 'show_knowledge_gaps' },
         { text: 'what should I study next', icon: '🎯', action: 'suggest_next_topic' },
       ]},
+      { pattern: 'how', suggestions: [
+        { text: 'how does {topic} work', icon: '⚙️', action: 'explain', description: 'Detailed explanation' },
+        { text: 'how to {topic}', icon: '📋', action: 'explain', description: 'Step-by-step guide' },
+        { text: 'how am I doing', icon: '📊', action: 'show_progress', description: 'View your progress' },
+      ]},
       { pattern: 'explain', suggestions: [
+        { text: 'explain {topic}', icon: '📖', action: 'explain', description: 'Clear AI explanation' },
         { text: 'explain {topic} step-by-step', icon: '📖', action: 'explain' },
         { text: 'explain like I\'m 5', icon: '👶', action: 'eli5' },
         { text: 'explain with examples', icon: '💡', action: 'explain_examples' },
@@ -266,8 +297,12 @@ const SearchHub = () => {
         { text: 'summarize my notes on {topic}', icon: '📝', action: 'summarize_notes' },
       ]},
       { pattern: 'quiz', suggestions: [
-        { text: 'quiz me on {topic}', icon: '❓', action: 'quiz' },
-        { text: 'quiz me on weak areas', icon: '', action: 'quiz_weak' },
+        { text: 'quiz me on {topic}', icon: '❓', action: 'create_quiz', description: 'Start quiz immediately' },
+        { text: 'quiz me on weak areas', icon: '💪', action: 'quiz_weak' },
+      ]},
+      { pattern: 'test', suggestions: [
+        { text: 'test me on {topic}', icon: '📝', action: 'create_quiz', description: 'Start quiz immediately' },
+        { text: 'test my knowledge of {topic}', icon: '🎯', action: 'create_quiz' },
       ]},
       { pattern: 'optimize', suggestions: [
         { text: 'optimize my retention', icon: '🧠', action: 'optimize_retention' },
@@ -280,6 +315,18 @@ const SearchHub = () => {
       { pattern: 'detect', suggestions: [
         { text: 'detect my burnout risk', icon: '😰', action: 'detect_burnout' },
         { text: 'detect knowledge gaps', icon: '🕳️', action: 'show_knowledge_gaps' },
+      ]},
+      { pattern: 'chat', suggestions: [
+        { text: 'chat about {topic}', icon: '💬', action: 'start_chat', description: 'Start AI conversation' },
+        { text: 'chat with AI about {topic}', icon: '🤖', action: 'start_chat' },
+      ]},
+      { pattern: 'talk', suggestions: [
+        { text: 'talk about {topic}', icon: '💬', action: 'start_chat', description: 'Start AI conversation' },
+      ]},
+      { pattern: 'search', suggestions: [
+        { text: 'search for {topic}', icon: '🔍', action: 'search', description: 'Search your content' },
+        { text: 'search notes about {topic}', icon: '📝', action: 'search_notes' },
+        { text: 'search flashcards about {topic}', icon: '🃏', action: 'search_flashcards' },
       ]},
     ];
 
@@ -310,12 +357,12 @@ const SearchHub = () => {
   };
 
   const handleSearch = async (query = searchQuery) => {
-        if (!query || !query.trim()) {
-            return;
+    if (!query || !query.trim()) {
+      return;
     }
 
     const finalQuery = query.trim();
-        setIsSearching(true);
+    setIsSearching(true);
     setShowSuggestions(false);
     setShowAutocomplete(false);
     saveRecentSearch(finalQuery);
@@ -325,9 +372,95 @@ const SearchHub = () => {
 
     try {
       const token = localStorage.getItem('token');
-                  
+      
+      // Use the new SearchHub Agent - one endpoint does it all!
+      const response = await fetch(`${API_URL}/agents/searchhub`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_id: userName || 'guest',
+          query: finalQuery,
+          session_id: `searchhub_${Date.now()}`
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('SearchHub response:', data);
+        
+        // Handle navigation actions (content was created or action requires navigation)
+        if (data.navigate_to) {
+          setIsCreating(true);
+          setCreatingMessage(data.message || 'Processing...');
+          
+          // Short delay to show the message, then navigate
+          setTimeout(() => {
+            setIsCreating(false);
+            
+            // Navigate with any params
+            if (data.navigate_params && Object.keys(data.navigate_params).length > 0) {
+              navigate(data.navigate_to, { state: data.navigate_params });
+            } else {
+              navigate(data.navigate_to);
+            }
+          }, 800);
+          return;
+        }
+        
+        // Handle search results
+        if (data.search_results && data.search_results.length > 0) {
+          setSearchResults({
+            results: data.search_results,
+            total_results: data.search_results.length,
+            query: finalQuery
+          });
+          setAiSuggestion(data.ai_response ? {
+            description: data.ai_response,
+            suggestions: data.suggestions || []
+          } : null);
+        }
+        // Handle AI exploration (no search results but has explanation)
+        else if (data.ai_response) {
+          setAiSuggestion({
+            description: data.ai_response,
+            suggestions: data.suggestions || [],
+            action_buttons: data.action_buttons || []
+          });
+          setSearchResults({
+            results: [],
+            total_results: 0,
+            query: finalQuery,
+            has_ai_description: true
+          });
+        }
+        // Fallback
+        else {
+          await getAiDescription(finalQuery);
+        }
+      } else {
+        // Fallback to old method if agent fails
+        console.warn('SearchHub agent failed, falling back to legacy search');
+        await legacySearch(finalQuery);
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      // Fallback to AI description on error
+      await getAiDescription(finalQuery);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Legacy search fallback
+  const legacySearch = async (finalQuery) => {
+    try {
+      const token = localStorage.getItem('token');
+      
       // First, detect intent using AI
-            const intentFormData = new FormData();
+      const intentFormData = new FormData();
       intentFormData.append('user_id', userName || 'guest');
       intentFormData.append('query', finalQuery);
       
@@ -337,19 +470,18 @@ const SearchHub = () => {
         body: intentFormData
       });
       
-            
       if (intentResponse.ok) {
         const intentData = await intentResponse.json();
-                
+        
         // Execute action based on intent
         if (intentData.intent === 'action') {
-                    await executeAction(intentData);
+          await executeAction(intentData);
           return;
         }
       }
       
       // If no action intent, perform regular search
-            const formData = new FormData();
+      const formData = new FormData();
       formData.append('user_id', userName || 'guest');
       formData.append('query', finalQuery);
       formData.append('content_types', filters.content_types);
@@ -363,15 +495,14 @@ const SearchHub = () => {
         body: formData
       });
 
-      
       if (response.ok) {
         const data = await response.json();
-                setSearchResults(data);
+        setSearchResults(data);
         setDidYouMean(data.did_you_mean || null);
         setRelatedSearches(data.related_searches || []);
         
         if (data.total_results === 0 || !data.results || data.results.length === 0) {
-                    await getAiDescription(finalQuery);
+          await getAiDescription(finalQuery);
         } else {
           setAiSuggestion(data.ai_suggestion || null);
         }
@@ -379,10 +510,7 @@ const SearchHub = () => {
         throw new Error('Search failed');
       }
     } catch (error) {
-            // Even on error, try to get AI description
       await getAiDescription(finalQuery);
-    } finally {
-            setIsSearching(false);
     }
   };
 
@@ -465,20 +593,91 @@ const SearchHub = () => {
   };
 
   const executeAction = async (intentData) => {
-        const { action, parameters } = intentData;
+    const { action, parameters } = intentData;
+    
+    // Check if user is logged in for creation actions
+    if (!userName && ['create_note', 'create_flashcards', 'create_questions', 'create_quiz'].includes(action)) {
+      setShowLoginModal(true);
+      setIsSearching(false);
+      return;
+    }
     
     try {
-            switch (action) {
+      const token = localStorage.getItem('token');
+      
+      switch (action) {
         case 'create_note':
-                    setIsCreating(true);
-          setCreatingMessage('Creating note...');
-          navigate('/notes');
+          setIsCreating(true);
+          setCreatingMessage(`Creating comprehensive note on ${parameters.topic || 'your topic'}...`);
+          
+          // Use SearchHub agent to create note with full content
+          const noteResponse = await fetch(`${API_URL}/agents/searchhub/create-note`, {
+            method: 'POST',
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              user_id: userName,
+              topic: parameters.topic || searchQuery
+            })
+          });
+          
+          if (noteResponse.ok) {
+            const noteData = await noteResponse.json();
+            if (noteData.success && noteData.navigate_to) {
+              setCreatingMessage(`Created "${noteData.content_title}"! Opening...`);
+              setTimeout(() => {
+                setIsCreating(false);
+                navigate(noteData.navigate_to);
+              }, 500);
+            } else {
+              setIsCreating(false);
+              navigate('/notes');
+            }
+          } else {
+            setIsCreating(false);
+            navigate('/notes');
+          }
           break;
           
         case 'create_flashcards':
-                    setIsCreating(true);
-          setCreatingMessage(`Creating flashcards on ${parameters.topic}...`);
-          setTimeout(() => {
+          setIsCreating(true);
+          setCreatingMessage(`Creating ${parameters.count || 10} flashcards on ${parameters.topic}...`);
+          
+          // Use SearchHub agent to create flashcards with full content
+          const fcResponse = await fetch(`${API_URL}/agents/searchhub/create-flashcards`, {
+            method: 'POST',
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              user_id: userName,
+              topic: parameters.topic || searchQuery,
+              count: parameters.count || 10
+            })
+          });
+          
+          if (fcResponse.ok) {
+            const fcData = await fcResponse.json();
+            if (fcData.success && fcData.navigate_to) {
+              setCreatingMessage(`Created "${fcData.content_title}"! Opening...`);
+              setTimeout(() => {
+                setIsCreating(false);
+                navigate(fcData.navigate_to);
+              }, 500);
+            } else {
+              setIsCreating(false);
+              navigate('/flashcards', { 
+                state: { 
+                  autoCreate: true,
+                  topic: parameters.topic,
+                  count: parameters.count || 10
+                } 
+              });
+            }
+          } else {
             setIsCreating(false);
             navigate('/flashcards', { 
               state: { 
@@ -487,20 +686,83 @@ const SearchHub = () => {
                 count: parameters.count || 10
               } 
             });
-          }, 500);
+          }
+          break;
+          
+        case 'create_questions':
+          setIsCreating(true);
+          setCreatingMessage(`Creating ${parameters.count || 10} questions on ${parameters.topic}...`);
+          
+          // Use SearchHub agent to create questions with full content
+          const qResponse = await fetch(`${API_URL}/agents/searchhub/create-questions`, {
+            method: 'POST',
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              user_id: userName,
+              topic: parameters.topic || searchQuery,
+              count: parameters.count || 10
+            })
+          });
+          
+          if (qResponse.ok) {
+            const qData = await qResponse.json();
+            if (qData.success && qData.navigate_to) {
+              setCreatingMessage(`Created "${qData.content_title}"! Opening...`);
+              setTimeout(() => {
+                setIsCreating(false);
+                navigate(qData.navigate_to);
+              }, 500);
+            } else {
+              setIsCreating(false);
+              navigate('/question-bank');
+            }
+          } else {
+            setIsCreating(false);
+            navigate('/question-bank');
+          }
           break;
           
         case 'create_quiz':
-                    setIsCreating(true);
-          setCreatingMessage('Preparing quiz...');
-          setTimeout(() => {
+          setIsCreating(true);
+          setCreatingMessage(`Creating quiz on ${parameters.topic}...`);
+          
+          // Create questions first, then navigate to quiz
+          const quizResponse = await fetch(`${API_URL}/agents/searchhub/create-questions`, {
+            method: 'POST',
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              user_id: userName,
+              topic: parameters.topic || searchQuery,
+              count: parameters.count || 10
+            })
+          });
+          
+          if (quizResponse.ok) {
+            const quizData = await quizResponse.json();
+            if (quizData.success && quizData.content_id) {
+              setCreatingMessage('Quiz ready! Starting...');
+              setTimeout(() => {
+                setIsCreating(false);
+                navigate(`/solo-quiz?set_id=${quizData.content_id}`);
+              }, 500);
+            } else {
+              setIsCreating(false);
+              navigate('/solo-quiz');
+            }
+          } else {
             setIsCreating(false);
             navigate('/solo-quiz');
-          }, 500);
+          }
           break;
           
         case 'start_chat':
-                    navigate('/ai-chat', { 
+          navigate('/ai-chat', { 
             state: { 
               initialMessage: parameters.message || parameters.topic
             } 
@@ -512,16 +774,25 @@ const SearchHub = () => {
           break;
           
         case 'show_achievements':
-          navigate('/study-insights');
+          navigate('/study-insights?tab=achievements');
+          break;
+          
+        case 'show_weak_areas':
+          navigate('/study-insights?tab=weak');
+          break;
+          
+        case 'review_flashcards':
+          navigate('/flashcards');
           break;
           
         default:
-                    // Fall back to regular search
+          // Fall back to regular search
           setIsSearching(false);
           break;
       }
     } catch (error) {
-            setIsCreating(false);
+      console.error('Action execution error:', error);
+      setIsCreating(false);
       setIsSearching(false);
     }
   };
@@ -619,14 +890,23 @@ const SearchHub = () => {
   };
 
   const handleResultClick = (result) => {
-    if (result.type === 'flashcards' || result.type === 'flashcard_deck') {
-      navigate(`/flashcards/${result.id}`);
+    // Use navigate_to if provided by the agent
+    if (result.navigate_to) {
+      navigate(result.navigate_to);
+      return;
+    }
+    
+    // Fallback to type-based navigation with correct paths
+    if (result.type === 'flashcards' || result.type === 'flashcard_deck' || result.type === 'flashcard_set') {
+      navigate(`/flashcards?set_id=${result.id}`);
     } else if (result.type === 'notes' || result.type === 'note') {
-      navigate(`/notes/${result.id}`);
+      navigate(`/notes/editor/${result.id}`);
+    } else if (result.type === 'questions' || result.type === 'question_set') {
+      navigate(`/question-bank?set_id=${result.id}`);
     } else if (result.type === 'chats' || result.type === 'chat') {
-      navigate(`/chat/${result.id}`);
+      navigate(`/ai-chat?session_id=${result.id}`);
     } else if (result.type === 'roadmap') {
-      navigate(`/roadmap/${result.id}`);
+      navigate(`/knowledge-roadmap?id=${result.id}`);
     }
   };
 
@@ -663,40 +943,112 @@ const SearchHub = () => {
     }
     
     setIsCreating(true);
+    const topic = searchQuery || 'your topic';
     
     const messages = {
-      flashcards: 'Creating flashcards...',
-      notes: 'Opening notes editor...',
+      flashcards: `Creating flashcards on ${topic}...`,
+      notes: `Creating comprehensive note on ${topic}...`,
+      questions: `Creating practice questions on ${topic}...`,
       'ai-chat': 'Starting AI chat...'
     };
     
     setCreatingMessage(messages[type] || 'Creating content...');
 
     try {
+      const token = localStorage.getItem('token');
+      
       if (type === 'flashcards') {
-        const token = localStorage.getItem('token');
-        const formData = new FormData();
-        formData.append('user_id', userName);
-        formData.append('deck_name', searchQuery);
-        formData.append('subject', searchQuery);
-
-        const response = await fetch(`${API_URL}/flashcards/create_deck`, {
+        // Use SearchHub agent to create flashcards with AI content
+        const response = await fetch(`${API_URL}/agents/searchhub/create-flashcards`, {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: formData
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            user_id: userName,
+            topic: topic,
+            count: 10
+          })
         });
 
         if (response.ok) {
           const data = await response.json();
-          navigate(`/flashcards/${data.deck_id}`);
+          if (data.success && data.navigate_to) {
+            setCreatingMessage(`Created "${data.content_title}"! Opening...`);
+            setTimeout(() => {
+              setIsCreating(false);
+              navigate(data.navigate_to);
+            }, 500);
+            return;
+          }
         }
+        // Fallback
+        navigate('/flashcards');
+        
       } else if (type === 'notes') {
-        navigate(`/notes/new?topic=${encodeURIComponent(searchQuery)}`);
+        // Use SearchHub agent to create note with AI content
+        const response = await fetch(`${API_URL}/agents/searchhub/create-note`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            user_id: userName,
+            topic: topic
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.navigate_to) {
+            setCreatingMessage(`Created "${data.content_title}"! Opening...`);
+            setTimeout(() => {
+              setIsCreating(false);
+              navigate(data.navigate_to);
+            }, 500);
+            return;
+          }
+        }
+        // Fallback
+        navigate(`/notes/new?topic=${encodeURIComponent(topic)}`);
+        
+      } else if (type === 'questions') {
+        // Use SearchHub agent to create questions with AI content
+        const response = await fetch(`${API_URL}/agents/searchhub/create-questions`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            user_id: userName,
+            topic: topic,
+            count: 10
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.navigate_to) {
+            setCreatingMessage(`Created "${data.content_title}"! Opening...`);
+            setTimeout(() => {
+              setIsCreating(false);
+              navigate(data.navigate_to);
+            }, 500);
+            return;
+          }
+        }
+        // Fallback
+        navigate('/question-bank');
+        
       } else if (type === 'ai-chat') {
-        navigate(`/chat/new?query=${encodeURIComponent(searchQuery)}`);
+        navigate('/ai-chat', { state: { initialMessage: topic } });
       }
     } catch (error) {
-          } finally {
+      console.error('Create content error:', error);
+    } finally {
       setIsCreating(false);
     }
   };

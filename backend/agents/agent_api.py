@@ -143,6 +143,7 @@ _note_agent: Optional[NoteAgent] = None
 _quiz_agent: Optional[Any] = None
 _question_bank_agent: Optional[Any] = None
 _slide_explorer_agent: Optional[Any] = None
+_search_hub_agent: Optional[Any] = None
 _knowledge_graph = None
 _db_session_factory = None
 _memory_manager = None
@@ -197,6 +198,13 @@ def get_slide_explorer_agent():
     return _slide_explorer_agent
 
 
+def get_search_hub_agent():
+    """Get the search hub agent instance"""
+    if _search_hub_agent is None:
+        raise HTTPException(status_code=503, detail="Search hub agent not initialized")
+    return _search_hub_agent
+
+
 def get_memory():
     """Get the memory manager instance"""
     from .memory import get_memory_manager
@@ -207,7 +215,7 @@ def get_memory():
 
 async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, db_session_factory: Any = None):
     """Initialize the intelligent agent system with unified memory"""
-    global _orchestrator, _chat_agent, _flashcard_agent, _note_agent, _quiz_agent, _question_bank_agent, _slide_explorer_agent, _knowledge_graph, _db_session_factory, _memory_manager
+    global _orchestrator, _chat_agent, _flashcard_agent, _note_agent, _quiz_agent, _question_bank_agent, _slide_explorer_agent, _conversion_agent, _search_hub_agent, _knowledge_graph, _db_session_factory, _memory_manager
     
     
     
@@ -268,6 +276,24 @@ async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, d
         db_session_factory=db_session_factory
     )
     
+    # Initialize the Conversion Agent
+    from .conversion_agent import create_conversion_agent
+    _conversion_agent = create_conversion_agent(
+        ai_client=ai_client,
+        knowledge_graph=knowledge_graph,
+        memory_manager=_memory_manager,
+        db_session_factory=db_session_factory
+    )
+    
+    # Initialize the SearchHub Agent
+    from .search_hub_agent import create_search_hub_agent
+    _search_hub_agent = create_search_hub_agent(
+        ai_client=ai_client,
+        knowledge_graph=knowledge_graph,
+        memory_manager=_memory_manager,
+        db_session_factory=db_session_factory
+    )
+    
     # Initialize orchestrator with memory manager
     _orchestrator = create_intelligent_orchestrator(
         ai_client=ai_client,
@@ -278,6 +304,8 @@ async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, d
     
     logger.info("✅ Question Bank Agent initialized")
     logger.info("✅ Slide Explorer Agent initialized")
+    logger.info("✅ Conversion Agent initialized")
+    logger.info("✅ SearchHub Agent initialized")
     logger.info("Agent system initialized")
     return _orchestrator
 
@@ -379,7 +407,8 @@ async def get_agent_status():
             "chat": _chat_agent is not None,
             "flashcard": _flashcard_agent is not None,
             "note": _note_agent is not None,
-            "quiz": _quiz_agent is not None
+            "quiz": _quiz_agent is not None,
+            "conversion": _conversion_agent is not None
         },
         "capabilities": [
             "react_reasoning",
@@ -388,7 +417,8 @@ async def get_agent_status():
             "task_decomposition",
             "knowledge_graph_integration",
             "quiz_generation",
-            "adaptive_testing"
+            "adaptive_testing",
+            "content_conversion"
         ],
         "tools_available": len(_orchestrator.all_tools) if _orchestrator else 0,
         "knowledge_graph_connected": _knowledge_graph is not None,
@@ -411,6 +441,8 @@ async def list_intents():
         {"name": "quiz_grade", "description": "Grade quiz answers"},
         {"name": "quiz_analyze", "description": "Analyze quiz performance"},
         {"name": "quiz_adaptive", "description": "Generate adaptive quiz"},
+        {"name": "convert_content", "description": "Convert content between formats"},
+        {"name": "export_content", "description": "Export content to CSV/PDF"},
         {"name": "search_content", "description": "Search user content"},
         {"name": "general", "description": "General assistance"}
     ]
@@ -2237,6 +2269,570 @@ async def test_slide_explorer():
         }
     except Exception as e:
         logger.error(f"❌ Slide Explorer Agent test failed: {e}", exc_info=True)
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+# ==================== Conversion Agent API Endpoints ====================
+
+# Global conversion agent instance
+_conversion_agent: Optional[Any] = None
+
+
+def get_conversion_agent():
+    """Get the conversion agent instance"""
+    if _conversion_agent is None:
+        raise HTTPException(status_code=503, detail="Conversion agent not initialized")
+    return _conversion_agent
+
+
+class ConversionAgentRequest(BaseModel):
+    """Request for the conversion agent"""
+    user_id: str
+    source_type: str  # notes, flashcards, questions, media, playlist, chat
+    source_ids: List[int]
+    destination_type: str  # flashcards, questions, notes, csv, pdf
+    card_count: int = 10
+    question_count: int = 10
+    difficulty: str = "medium"
+    format_style: str = "structured"
+    depth_level: str = "standard"
+    session_id: Optional[str] = None
+
+
+class ConversionAgentResponse(BaseModel):
+    """Response from the conversion agent"""
+    success: bool
+    action: str
+    response: str
+    source_type: str
+    destination_type: str
+    result: Optional[Dict[str, Any]] = None
+    execution_time_ms: float = 0.0
+    metadata: Dict[str, Any] = {}
+
+
+@router.post("/convert", response_model=ConversionAgentResponse)
+async def convert_content(request: ConversionAgentRequest):
+    """
+    Main endpoint for the conversion agent.
+    Converts content between different formats:
+    - Notes ↔ Flashcards ↔ Questions
+    - Media → Questions
+    - Playlist → Notes/Flashcards
+    - Chat → Notes
+    - Export to CSV/PDF
+    """
+    import time
+    start_time = time.time()
+    
+    conversion_agent = get_conversion_agent()
+    
+    # Build initial state
+    state = {
+        "user_id": request.user_id,
+        "session_id": request.session_id or f"convert_{request.user_id}_{datetime.utcnow().timestamp()}",
+        "timestamp": datetime.utcnow().isoformat(),
+        "action_params": {
+            "source_type": request.source_type,
+            "source_ids": request.source_ids,
+            "destination_type": request.destination_type,
+            "card_count": request.card_count,
+            "question_count": request.question_count,
+            "difficulty": request.difficulty,
+            "format_style": request.format_style,
+            "depth_level": request.depth_level
+        }
+    }
+    
+    try:
+        # Invoke the conversion agent
+        result = await conversion_agent.invoke(state)
+        
+        execution_time = (time.time() - start_time) * 1000
+        
+        # Extract response data
+        response_data = result.metadata.get("response_data", {})
+        
+        return ConversionAgentResponse(
+            success=result.success,
+            action=result.metadata.get("action", "convert"),
+            response=result.response,
+            source_type=request.source_type,
+            destination_type=request.destination_type,
+            result=response_data,
+            execution_time_ms=execution_time,
+            metadata=result.metadata
+        )
+        
+    except Exception as e:
+        logger.error(f"Conversion agent error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/convert/notes-to-flashcards")
+async def convert_notes_to_flashcards(
+    user_id: str = Body(...),
+    note_ids: List[int] = Body(...),
+    card_count: int = Body(10),
+    difficulty: str = Body("medium"),
+    depth_level: str = Body("standard"),
+    session_id: str = Body(None)
+):
+    """Convert notes to flashcards"""
+    request = ConversionAgentRequest(
+        user_id=user_id,
+        source_type="notes",
+        source_ids=note_ids,
+        destination_type="flashcards",
+        card_count=card_count,
+        difficulty=difficulty,
+        depth_level=depth_level,
+        session_id=session_id
+    )
+    return await convert_content(request)
+
+
+@router.post("/convert/notes-to-questions")
+async def convert_notes_to_questions(
+    user_id: str = Body(...),
+    note_ids: List[int] = Body(...),
+    question_count: int = Body(10),
+    difficulty: str = Body("medium"),
+    session_id: str = Body(None)
+):
+    """Convert notes to questions"""
+    request = ConversionAgentRequest(
+        user_id=user_id,
+        source_type="notes",
+        source_ids=note_ids,
+        destination_type="questions",
+        question_count=question_count,
+        difficulty=difficulty,
+        session_id=session_id
+    )
+    return await convert_content(request)
+
+
+@router.post("/convert/flashcards-to-notes")
+async def convert_flashcards_to_notes(
+    user_id: str = Body(...),
+    set_ids: List[int] = Body(...),
+    format_style: str = Body("structured"),
+    session_id: str = Body(None)
+):
+    """Convert flashcards to notes"""
+    request = ConversionAgentRequest(
+        user_id=user_id,
+        source_type="flashcards",
+        source_ids=set_ids,
+        destination_type="notes",
+        format_style=format_style,
+        session_id=session_id
+    )
+    return await convert_content(request)
+
+
+@router.post("/convert/flashcards-to-questions")
+async def convert_flashcards_to_questions(
+    user_id: str = Body(...),
+    set_ids: List[int] = Body(...),
+    session_id: str = Body(None)
+):
+    """Convert flashcards to questions"""
+    request = ConversionAgentRequest(
+        user_id=user_id,
+        source_type="flashcards",
+        source_ids=set_ids,
+        destination_type="questions",
+        session_id=session_id
+    )
+    return await convert_content(request)
+
+
+@router.post("/convert/questions-to-flashcards")
+async def convert_questions_to_flashcards(
+    user_id: str = Body(...),
+    set_ids: List[int] = Body(...),
+    session_id: str = Body(None)
+):
+    """Convert questions to flashcards"""
+    request = ConversionAgentRequest(
+        user_id=user_id,
+        source_type="questions",
+        source_ids=set_ids,
+        destination_type="flashcards",
+        session_id=session_id
+    )
+    return await convert_content(request)
+
+
+@router.post("/convert/questions-to-notes")
+async def convert_questions_to_notes(
+    user_id: str = Body(...),
+    set_ids: List[int] = Body(...),
+    format_style: str = Body("structured"),
+    session_id: str = Body(None)
+):
+    """Convert questions to notes"""
+    request = ConversionAgentRequest(
+        user_id=user_id,
+        source_type="questions",
+        source_ids=set_ids,
+        destination_type="notes",
+        format_style=format_style,
+        session_id=session_id
+    )
+    return await convert_content(request)
+
+
+@router.post("/convert/media-to-questions")
+async def convert_media_to_questions(
+    user_id: str = Body(...),
+    media_ids: List[int] = Body(...),
+    question_count: int = Body(10),
+    session_id: str = Body(None)
+):
+    """Convert media transcripts to questions"""
+    request = ConversionAgentRequest(
+        user_id=user_id,
+        source_type="media",
+        source_ids=media_ids,
+        destination_type="questions",
+        question_count=question_count,
+        session_id=session_id
+    )
+    return await convert_content(request)
+
+
+@router.post("/convert/playlist-to-notes")
+async def convert_playlist_to_notes(
+    user_id: str = Body(...),
+    playlist_id: int = Body(...),
+    format_style: str = Body("structured"),
+    depth_level: str = Body("standard"),
+    session_id: str = Body(None)
+):
+    """Convert playlist to notes"""
+    request = ConversionAgentRequest(
+        user_id=user_id,
+        source_type="playlist",
+        source_ids=[playlist_id],
+        destination_type="notes",
+        format_style=format_style,
+        depth_level=depth_level,
+        session_id=session_id
+    )
+    return await convert_content(request)
+
+
+@router.post("/convert/playlist-to-flashcards")
+async def convert_playlist_to_flashcards(
+    user_id: str = Body(...),
+    playlist_id: int = Body(...),
+    card_count: int = Body(15),
+    session_id: str = Body(None)
+):
+    """Convert playlist to flashcards"""
+    request = ConversionAgentRequest(
+        user_id=user_id,
+        source_type="playlist",
+        source_ids=[playlist_id],
+        destination_type="flashcards",
+        card_count=card_count,
+        session_id=session_id
+    )
+    return await convert_content(request)
+
+
+@router.post("/convert/chat-to-notes")
+async def convert_chat_to_notes(
+    user_id: str = Body(...),
+    session_ids: List[int] = Body(...),
+    format_style: str = Body("structured"),
+    session_id: str = Body(None)
+):
+    """Convert chat sessions to notes"""
+    request = ConversionAgentRequest(
+        user_id=user_id,
+        source_type="chat",
+        source_ids=session_ids,
+        destination_type="notes",
+        format_style=format_style,
+        session_id=session_id
+    )
+    return await convert_content(request)
+
+
+@router.post("/convert/export-flashcards-csv")
+async def export_flashcards_csv(
+    user_id: str = Body(...),
+    set_ids: List[int] = Body(...),
+    session_id: str = Body(None)
+):
+    """Export flashcards to CSV"""
+    request = ConversionAgentRequest(
+        user_id=user_id,
+        source_type="flashcards",
+        source_ids=set_ids,
+        destination_type="csv",
+        session_id=session_id
+    )
+    return await convert_content(request)
+
+
+@router.post("/convert/export-questions-pdf")
+async def export_questions_pdf(
+    user_id: str = Body(...),
+    set_ids: List[int] = Body(...),
+    session_id: str = Body(None)
+):
+    """Export questions to PDF"""
+    request = ConversionAgentRequest(
+        user_id=user_id,
+        source_type="questions",
+        source_ids=set_ids,
+        destination_type="pdf",
+        session_id=session_id
+    )
+    return await convert_content(request)
+
+
+@router.get("/convert/options")
+async def list_conversion_options():
+    """List all available conversion options"""
+    return {
+        "conversions": [
+            {"source": "notes", "destinations": ["flashcards", "questions"]},
+            {"source": "flashcards", "destinations": ["notes", "questions", "csv"]},
+            {"source": "questions", "destinations": ["flashcards", "notes", "pdf"]},
+            {"source": "media", "destinations": ["questions"]},
+            {"source": "playlist", "destinations": ["notes", "flashcards"]},
+            {"source": "chat", "destinations": ["notes"]}
+        ],
+        "options": {
+            "difficulty": ["easy", "medium", "hard"],
+            "format_style": ["structured", "qa", "summary"],
+            "depth_level": ["surface", "standard", "deep"]
+        }
+    }
+
+
+@router.get("/test/conversion")
+async def test_conversion_agent():
+    """Test Conversion Agent"""
+    try:
+        agent = get_conversion_agent()
+        logger.info(f"✅ Conversion Agent exists: {agent}")
+        
+        return {
+            "success": True,
+            "message": "Conversion Agent is working",
+            "agent": str(agent)
+        }
+    except Exception as e:
+        logger.error(f"❌ Conversion Agent test failed: {e}", exc_info=True)
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+# ==================== SearchHub Agent API Endpoints ====================
+
+class SearchHubRequest(BaseModel):
+    """Request for the SearchHub agent"""
+    user_id: str
+    query: str
+    session_id: Optional[str] = None
+    context: Optional[Dict[str, Any]] = {}
+
+
+class SearchHubResponse(BaseModel):
+    """Response from the SearchHub agent"""
+    success: bool
+    action: str
+    message: str
+    navigate_to: Optional[str] = None
+    navigate_params: Optional[Dict[str, Any]] = None
+    content_id: Optional[int] = None
+    content_type: Optional[str] = None
+    content_title: Optional[str] = None
+    search_results: Optional[List[Dict[str, Any]]] = None
+    ai_response: Optional[str] = None
+    suggestions: Optional[List[str]] = None
+    action_buttons: Optional[List[Dict[str, Any]]] = None
+    execution_time_ms: float = 0.0
+    metadata: Dict[str, Any] = {}
+
+
+@router.post("/searchhub", response_model=SearchHubResponse)
+async def searchhub_invoke(request: SearchHubRequest):
+    """
+    Main SearchHub endpoint - One sentence does it all!
+    
+    Examples:
+    - "create a note on quantum physics" -> Creates note with full content, returns note ID
+    - "create 10 flashcards on machine learning" -> Creates flashcard set, returns set ID
+    - "create questions about calculus" -> Creates question set, returns set ID
+    - "explain photosynthesis" -> Returns AI explanation with action buttons
+    - "search for biology notes" -> Returns search results
+    - "show my progress" -> Returns navigation to progress page
+    - "quiz me on history" -> Creates quiz and navigates to it
+    """
+    import time
+    start_time = time.time()
+    
+    search_hub_agent = get_search_hub_agent()
+    
+    # Build initial state
+    state = {
+        "user_id": request.user_id,
+        "user_input": request.query,
+        "session_id": request.session_id or f"searchhub_{request.user_id}_{datetime.utcnow().timestamp()}",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    
+    try:
+        # Invoke the SearchHub agent
+        result = await search_hub_agent.invoke(state)
+        
+        execution_time = (time.time() - start_time) * 1000
+        
+        # Extract response data
+        metadata = result.metadata or {}
+        response_data = metadata.get("response_data", {})
+        
+        return SearchHubResponse(
+            success=result.success,
+            action=metadata.get("action", "unknown"),
+            message=result.response,
+            navigate_to=metadata.get("navigate_to"),
+            navigate_params=metadata.get("navigate_params", {}),
+            content_id=metadata.get("content_id"),
+            content_type=metadata.get("content_type"),
+            content_title=response_data.get("title"),
+            search_results=response_data.get("results"),
+            ai_response=response_data.get("explanation"),
+            suggestions=response_data.get("suggestions", []),
+            action_buttons=response_data.get("action_buttons", []),
+            execution_time_ms=execution_time,
+            metadata=metadata
+        )
+        
+    except Exception as e:
+        logger.error(f"SearchHub agent error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/searchhub/create-note")
+async def searchhub_create_note(
+    user_id: str = Body(...),
+    topic: str = Body(...),
+    session_id: str = Body(None)
+):
+    """Quick endpoint to create a note with AI content"""
+    request = SearchHubRequest(
+        user_id=user_id,
+        query=f"create a note on {topic}",
+        session_id=session_id
+    )
+    return await searchhub_invoke(request)
+
+
+@router.post("/searchhub/create-flashcards")
+async def searchhub_create_flashcards(
+    user_id: str = Body(...),
+    topic: str = Body(...),
+    count: int = Body(10),
+    session_id: str = Body(None)
+):
+    """Quick endpoint to create flashcards with AI content"""
+    request = SearchHubRequest(
+        user_id=user_id,
+        query=f"create {count} flashcards on {topic}",
+        session_id=session_id
+    )
+    return await searchhub_invoke(request)
+
+
+@router.post("/searchhub/create-questions")
+async def searchhub_create_questions(
+    user_id: str = Body(...),
+    topic: str = Body(...),
+    count: int = Body(10),
+    session_id: str = Body(None)
+):
+    """Quick endpoint to create questions with AI content"""
+    request = SearchHubRequest(
+        user_id=user_id,
+        query=f"create {count} questions on {topic}",
+        session_id=session_id
+    )
+    return await searchhub_invoke(request)
+
+
+@router.post("/searchhub/explain")
+async def searchhub_explain(
+    user_id: str = Body(...),
+    topic: str = Body(...),
+    session_id: str = Body(None)
+):
+    """Quick endpoint to get AI explanation of a topic"""
+    request = SearchHubRequest(
+        user_id=user_id,
+        query=f"explain {topic}",
+        session_id=session_id
+    )
+    return await searchhub_invoke(request)
+
+
+@router.get("/searchhub/actions")
+async def list_searchhub_actions():
+    """List all available SearchHub actions"""
+    return {
+        "creation_actions": [
+            {"action": "create_note", "example": "create a note on [topic]", "description": "Creates a note with AI-generated content"},
+            {"action": "create_flashcards", "example": "create 10 flashcards on [topic]", "description": "Creates flashcard set with AI cards"},
+            {"action": "create_questions", "example": "create questions about [topic]", "description": "Creates question set with AI questions"},
+            {"action": "create_quiz", "example": "quiz me on [topic]", "description": "Creates and starts a quiz"}
+        ],
+        "exploration_actions": [
+            {"action": "explain_topic", "example": "explain [topic]", "description": "Get AI explanation of any topic"},
+            {"action": "summarize_topic", "example": "summarize [topic]", "description": "Get brief summary of a topic"},
+            {"action": "search_all", "example": "search for [query]", "description": "Search all content types"}
+        ],
+        "learning_actions": [
+            {"action": "review_flashcards", "example": "review my flashcards", "description": "Go to flashcard review"},
+            {"action": "show_progress", "example": "show my progress", "description": "View learning progress"},
+            {"action": "show_weak_areas", "example": "what am I weak in", "description": "See areas needing improvement"},
+            {"action": "show_knowledge_gaps", "example": "show knowledge gaps", "description": "Identify missing knowledge"},
+            {"action": "predict_forgetting", "example": "what will I forget", "description": "See forgetting predictions"},
+            {"action": "suggest_next_topic", "example": "what should I study next", "description": "Get topic recommendations"}
+        ],
+        "chat_actions": [
+            {"action": "start_chat", "example": "chat about [topic]", "description": "Start AI chat session"},
+            {"action": "ask_ai", "example": "ask AI [question]", "description": "Quick AI question"}
+        ]
+    }
+
+
+@router.get("/test/searchhub")
+async def test_searchhub_agent():
+    """Test SearchHub Agent"""
+    try:
+        agent = get_search_hub_agent()
+        logger.info(f"✅ SearchHub Agent exists: {agent}")
+        
+        return {
+            "success": True,
+            "message": "SearchHub Agent is working",
+            "agent": str(agent)
+        }
+    except Exception as e:
+        logger.error(f"❌ SearchHub Agent test failed: {e}", exc_info=True)
         return {
             "success": False,
             "error": str(e)

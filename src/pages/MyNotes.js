@@ -170,44 +170,25 @@ const MyNotes = () => {
     
     setImporting(true);
     try {
-      const token = localStorage.getItem('token');
+      // Use the conversion agent service for chat-to-notes conversion
+      const conversionAgentService = (await import('../services/conversionAgentService')).default;
       
-      for (const sessionId of selectedSessions) {
-        const response = await fetch(`${API_URL}/convert_chat_to_note_content/`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            user_id: userName,
-            chat_session_id: sessionId,
-            format_style: 'comprehensive'
-          })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          await fetch(`${API_URL}/create_note`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              user_id: userName,
-              title: data.title || 'Study Notes',
-              content: data.content
-            })
-          });
-        }
+      const result = await conversionAgentService.chatToNotes(
+        userName,
+        selectedSessions,
+        { formatStyle: 'structured' }
+      );
+      
+      if (result.success) {
+        await loadNotes();
+        setShowChatImport(false);
+        setSelectedSessions([]);
+      } else {
+        throw new Error(result.response || 'Conversion failed');
       }
-      
-      await loadNotes();
-      setShowChatImport(false);
-      setSelectedSessions([]);
     } catch (error) {
-          } finally {
+      console.error('Chat to note conversion error:', error);
+    } finally {
       setImporting(false);
     }
   };

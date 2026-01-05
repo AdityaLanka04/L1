@@ -1988,85 +1988,37 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setImporting(true);
     try {
       const token = localStorage.getItem("token");
-      const allMessages = [];
       
-            for (const sid of selectedSessions) {
-                const r = await fetch(`${API_URL}/get_chat_history/${sid}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (r.ok) {
-          const data = await r.json();
-                    const s = chatSessions.find((x) => x.id === sid);
-          allMessages.push({ sessionTitle: s?.title || "Chat Session", messages: data.messages });
-        } else {
-                  }
-      }
+      // Use the conversion agent service for chat-to-notes conversion
+      const conversionAgentService = (await import('../services/conversionAgentService')).default;
       
+      const result = await conversionAgentService.chatToNotes(
+        userName,
+        selectedSessions,
+        { formatStyle: importMode === 'summary' ? 'summary' : 'structured' }
+      );
       
-      const conversationData = allMessages
-        .map((s) => s.messages.map((m) => `Q: ${m.user_message}\nA: ${m.ai_response}`).join("\n\n"))
-        .join("\n\n--- New Session ---\n\n");
-
-      const summaryRes = await fetch(`${API_URL}/generate_note_summary/`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: (() => {
-          const fd = new FormData();
-          fd.append("user_id", userName);
-          fd.append("conversation_data", conversationData);
-          fd.append("session_titles", JSON.stringify(allMessages.map((s) => s.sessionTitle)));
-          fd.append("import_mode", importMode);
-          return fd;
-        })(),
-      });
-
-      let title = "Generated Note from Chat";
-      let content = "";
-      
-      if (summaryRes.ok) {
-        const d = await summaryRes.json();
-        title = d.title;
-        content = d.content;
-        content = convertMarkdownToHTML(content);
-      } else {
-        content = allMessages
-          .map(
-            (s, i) =>
-              `<h2>${s.sessionTitle}</h2>` +
-              s.messages.map((m, j) => `<b>Q${j + 1}:</b> ${m.user_message}<br/><b>A:</b> ${m.ai_response}`).join("<br/><br/>")
-          )
-          .join("<hr/>");
-      }
-
-      const createRes = await fetch(`${API_URL}/create_note`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ user_id: userName, title, content }),
-      });
-      
-      if (createRes.ok) {
-        const newNote = await createRes.json();
-        setNotes(prev => [newNote, ...prev]);
+      if (result.success && result.result) {
+        const noteResult = result.result;
+        
+        // Refresh notes list
+        await loadNotes();
+        
         setShowChatImport(false);
         setSelectedSessions([]);
         
-        // Always navigate to the newly created note
-        navigate(`/notes/editor/${newNote.id}`);
+        // Navigate to the newly created note if we have the ID
+        if (noteResult.note_id) {
+          navigate(`/notes/editor/${noteResult.note_id}`);
+        }
         
-        // Select the note after navigation
-        setTimeout(() => {
-          selectNote(newNote);
-        }, 100);
-        
-        showPopup("Conversion Successful", `"${title}" created successfully.`);
+        showPopup("Conversion Successful", `"${noteResult.note_title || 'Note'}" created successfully via AI Agent.`);
       } else {
-        throw new Error(`Failed to create note: ${createRes.status}`);
+        throw new Error(result.response || 'Conversion failed');
       }
     } catch (err) {
-            showPopup("Conversion Failed", "Unable to convert chat to note.");
+      console.error('Chat to note conversion error:', err);
+      showPopup("Conversion Failed", "Unable to convert chat to note.");
     }
     setImporting(false);
   };

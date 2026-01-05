@@ -4,6 +4,7 @@ import {
   Zap, CheckCircle, Loader, ArrowRight 
 } from 'lucide-react';
 import { API_URL } from '../config';
+import conversionAgentService from '../services/conversionAgentService';
 import './ImportExportModal.css';
 
 const ImportExportModal = ({ 
@@ -24,7 +25,8 @@ const ImportExportModal = ({
     cardCount: 10,
     questionCount: 10,
     difficulty: 'medium',
-    formatStyle: 'structured'
+    formatStyle: 'structured',
+    depthLevel: 'standard'
   });
 
   const userName = localStorage.getItem('username');
@@ -32,7 +34,7 @@ const ImportExportModal = ({
 
   const conversionOptions = {
     notes: [
-      { value: 'flashcards', label: 'Flashcards', icon: <HelpCircle size={24} />, description: 'Convert to study flashcards' },
+      { value: 'flashcards', label: 'Flashcards', icon: <Zap size={24} />, description: 'Convert to study flashcards' },
       { value: 'questions', label: 'Questions', icon: <HelpCircle size={24} />, description: 'Generate practice questions' }
     ],
     flashcards: [
@@ -53,6 +55,7 @@ const ImportExportModal = ({
       { value: 'flashcards', label: 'Flashcards', icon: <Zap size={24} />, description: 'Generate flashcards' }
     ]
   };
+
 
   useEffect(() => {
     if (isOpen && step === 1) {
@@ -108,7 +111,8 @@ const ImportExportModal = ({
         setAvailableItems(items);
       }
     } catch (error) {
-          }
+      console.error('Error loading items:', error);
+    }
     setLoading(false);
   };
 
@@ -133,102 +137,53 @@ const ImportExportModal = ({
     
     setProcessing(true);
     try {
-      let endpoint = '';
-      let payload = {};
-
-      if (sourceType === 'notes' && destinationType === 'flashcards') {
-        endpoint = `${API_URL}/import_export/notes_to_flashcards`;
-        payload = {
-          note_ids: selectedItems,
-          card_count: options.cardCount,
-          difficulty: options.difficulty
-        };
-      } else if (sourceType === 'notes' && destinationType === 'questions') {
-        endpoint = `${API_URL}/import_export/notes_to_questions`;
-        payload = {
-          note_ids: selectedItems,
-          question_count: options.questionCount,
-          difficulty: options.difficulty
-        };
-      } else if (sourceType === 'flashcards' && destinationType === 'notes') {
-        endpoint = `${API_URL}/import_export/flashcards_to_notes`;
-        payload = {
-          set_ids: selectedItems,
-          format_style: options.formatStyle
-        };
-      } else if (sourceType === 'flashcards' && destinationType === 'questions') {
-        endpoint = `${API_URL}/import_export/flashcards_to_questions`;
-        payload = { set_ids: selectedItems };
-      } else if (sourceType === 'flashcards' && destinationType === 'csv') {
-        endpoint = `${API_URL}/import_export/export_flashcards_csv`;
-        payload = { set_ids: selectedItems };
-      } else if (sourceType === 'questions' && destinationType === 'flashcards') {
-        endpoint = `${API_URL}/import_export/questions_to_flashcards`;
-        payload = { set_ids: selectedItems };
-      } else if (sourceType === 'questions' && destinationType === 'notes') {
-        endpoint = `${API_URL}/import_export/questions_to_notes`;
-        payload = { set_ids: selectedItems };
-      } else if (sourceType === 'questions' && destinationType === 'pdf') {
-        endpoint = `${API_URL}/import_export/export_questions_pdf`;
-        payload = { set_ids: selectedItems };
-      } else if (sourceType === 'media' && destinationType === 'questions') {
-        endpoint = `${API_URL}/import_export/media_to_questions`;
-        payload = {
-          media_ids: selectedItems,
-          question_count: options.questionCount
-        };
-      } else if (sourceType === 'playlist' && destinationType === 'notes') {
-        endpoint = `${API_URL}/import_export/playlist_to_notes`;
-        payload = { playlist_id: selectedItems[0] };
-      } else if (sourceType === 'playlist' && destinationType === 'flashcards') {
-        endpoint = `${API_URL}/import_export/playlist_to_flashcards`;
-        payload = {
-          playlist_id: selectedItems[0],
-          card_count: options.cardCount
-        };
-      }
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
+      let result;
+      
+      // Use the conversion agent service for all conversions
+      const conversionResult = await conversionAgentService.convert({
+        userId: userName,
+        sourceType: sourceType,
+        sourceIds: selectedItems,
+        destinationType: destinationType,
+        cardCount: options.cardCount,
+        questionCount: options.questionCount,
+        difficulty: options.difficulty,
+        formatStyle: options.formatStyle,
+        depthLevel: options.depthLevel
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.success) {
-          if (destinationType === 'csv' || destinationType === 'pdf') {
-            downloadFile(data.content, data.filename);
-            setResult({
-              success: true,
-              message: `Successfully exported to ${destinationType.toUpperCase()}`,
-              type: 'export'
-            });
-          } else {
-            setResult({
-              success: true,
-              message: `Successfully converted to ${destinationType}!`,
-              details: data,
-              type: 'import'
-            });
+      if (conversionResult.success) {
+        // Handle export types (CSV/PDF)
+        if (destinationType === 'csv' || destinationType === 'pdf') {
+          const exportResult = conversionResult.result;
+          if (exportResult && exportResult.content) {
+            conversionAgentService.downloadFile(exportResult.content, exportResult.filename);
           }
-          setStep(3);
-          
-          if (onSuccess) {
-            onSuccess(data);
-          }
+          setResult({
+            success: true,
+            message: `Successfully exported to ${destinationType.toUpperCase()}`,
+            type: 'export'
+          });
         } else {
-          throw new Error(data.error || 'Conversion failed');
+          // Handle conversion types
+          setResult({
+            success: true,
+            message: `Successfully converted to ${destinationType}!`,
+            details: conversionResult.result,
+            type: 'import'
+          });
+        }
+        setStep(3);
+        
+        if (onSuccess) {
+          onSuccess(conversionResult.result);
         }
       } else {
-        throw new Error('Failed to convert');
+        throw new Error(conversionResult.response || 'Conversion failed');
       }
     } catch (error) {
-            setResult({
+      console.error('Conversion error:', error);
+      setResult({
         success: false,
         message: error.message || 'Conversion failed',
         type: 'error'
@@ -236,20 +191,6 @@ const ImportExportModal = ({
       setStep(3);
     }
     setProcessing(false);
-  };
-
-  const downloadFile = (content, filename) => {
-    const blob = new Blob([content], { 
-      type: filename.endsWith('.csv') ? 'text/csv' : 'text/html' 
-    });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
   };
 
   const resetModal = () => {
@@ -261,7 +202,8 @@ const ImportExportModal = ({
       cardCount: 10,
       questionCount: 10,
       difficulty: 'medium',
-      formatStyle: 'structured'
+      formatStyle: 'structured',
+      depthLevel: 'standard'
     });
   };
 
@@ -283,6 +225,7 @@ const ImportExportModal = ({
     return '';
   };
 
+
   return (
     <div className="iem-overlay" onClick={handleClose}>
       <div className="iem-modal" onClick={(e) => e.stopPropagation()}>
@@ -294,7 +237,7 @@ const ImportExportModal = ({
                 {mode === 'import' ? 'Convert' : 'Export'} {sourceType}
               </h2>
               <p className="iem-header-subtitle">
-                Step {step} of 3
+                Step {step} of 3 • Powered by AI Agent
               </p>
             </div>
           </div>
@@ -387,21 +330,64 @@ const ImportExportModal = ({
                 <div className="iem-settings">
                   <h4>Settings</h4>
                   
-                  {(destinationType === 'flashcards' || destinationType === 'questions') && (
+                  {destinationType === 'flashcards' && (
                     <>
                       <div className="iem-setting-group">
-                        <label>
-                          {destinationType === 'flashcards' ? 'Number of Cards' : 'Number of Questions'}
-                        </label>
+                        <label>Number of Cards</label>
                         <input
                           type="number"
                           className="iem-input"
                           min="5"
                           max="50"
-                          value={destinationType === 'flashcards' ? options.cardCount : options.questionCount}
+                          value={options.cardCount || ''}
                           onChange={(e) => setOptions(prev => ({
                             ...prev,
-                            [destinationType === 'flashcards' ? 'cardCount' : 'questionCount']: parseInt(e.target.value)
+                            cardCount: parseInt(e.target.value) || 10
+                          }))}
+                        />
+                      </div>
+                      
+                      <div className="iem-setting-group">
+                        <label>Difficulty</label>
+                        <select
+                          className="iem-select"
+                          value={options.difficulty}
+                          onChange={(e) => setOptions(prev => ({ ...prev, difficulty: e.target.value }))}
+                        >
+                          <option value="easy">Easy</option>
+                          <option value="medium">Medium</option>
+                          <option value="hard">Hard</option>
+                        </select>
+                      </div>
+
+                      <div className="iem-setting-group">
+                        <label>Depth Level</label>
+                        <select
+                          className="iem-select"
+                          value={options.depthLevel}
+                          onChange={(e) => setOptions(prev => ({ ...prev, depthLevel: e.target.value }))}
+                        >
+                          <option value="surface">Surface (Basic recall)</option>
+                          <option value="standard">Standard (Balanced)</option>
+                          <option value="deep">Deep (Advanced)</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+
+                  {destinationType === 'questions' && (
+                    <>
+                      <div className="iem-setting-group">
+                        <label>Number of Questions</label>
+                        <input
+                          type="number"
+                          className="iem-input"
+                          min="5"
+                          max="50"
+                          value={options.questionCount || ''}
+                          onChange={(e) => setOptions(prev => ({
+                            ...prev,
+                            questionCount: parseInt(e.target.value) || 10
                           }))}
                         />
                       </div>
@@ -421,7 +407,7 @@ const ImportExportModal = ({
                     </>
                   )}
 
-                  {destinationType === 'notes' && sourceType === 'flashcards' && (
+                  {destinationType === 'notes' && (
                     <div className="iem-setting-group">
                       <label>Format Style</label>
                       <select

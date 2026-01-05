@@ -11,6 +11,8 @@ from .question_bank_agent import QuestionBankAgent, create_question_bank_agent
 from .slide_explorer_agent import SlideExplorerAgent, create_slide_explorer_agent
 from .intelligent_orchestrator import IntelligentOrchestrator, create_intelligent_orchestrator
 from .react_agent import ReActAgent, create_react_agent
+from .conversion_agent import ConversionAgent, create_conversion_agent, ConversionAction
+from .search_hub_agent import SearchHubAgent, create_search_hub_agent, SearchHubAction
 from .memory import MemoryManager, get_memory_manager, initialize_memory_manager
 
 __all__ = [
@@ -52,6 +54,14 @@ __all__ = [
     # Slide Explorer Agent
     'SlideExplorerAgent',
     'create_slide_explorer_agent',
+    # Conversion Agent
+    'ConversionAgent',
+    'create_conversion_agent',
+    'ConversionAction',
+    # SearchHub Agent
+    'SearchHubAgent',
+    'create_search_hub_agent',
+    'SearchHubAction',
     # ReAct
     'ReActAgent',
     'create_react_agent',
