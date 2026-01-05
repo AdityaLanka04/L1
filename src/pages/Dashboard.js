@@ -17,6 +17,20 @@ import './Dashboard.css';
 import { API_URL } from '../config';
 import logo from '../assets/logo.svg';
 
+// Default layout configuration (same as CustomizeDashboard)
+const DEFAULT_LAYOUT_WIDGETS = [
+  { id: 'ai-tutor', col: 1, row: 1, cols: 1, rows: 3, color: null, size: 'M' },
+  { id: 'hero', col: 2, row: 1, cols: 2, rows: 3, color: null, size: 'M' },
+  { id: 'social-hub', col: 4, row: 1, cols: 1, rows: 2, color: null, size: 'M' },
+  { id: 'streak', col: 1, row: 4, cols: 1, rows: 2, color: null, size: 'M' },
+  { id: 'notes', col: 2, row: 4, cols: 1, rows: 2, color: null, size: 'M' },
+  { id: 'flashcards', col: 3, row: 4, cols: 1, rows: 2, color: null, size: 'M' },
+  { id: 'learning-hub', col: 4, row: 3, cols: 1, rows: 3, color: null, size: 'L' },
+  { id: 'activity', col: 1, row: 6, cols: 1, rows: 1, color: null, size: 'S' },
+  { id: 'concept-web', col: 2, row: 6, cols: 1, rows: 1, color: null, size: 'S' },
+  { id: 'heatmap', col: 1, row: 7, cols: 4, rows: 2, color: null, size: 'L' }
+];
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { selectedTheme } = useTheme();
@@ -31,6 +45,9 @@ const Dashboard = () => {
     totalNotes: 0,
     totalChatSessions: 0
   });
+
+  // Layout state - load from localStorage
+  const [dashboardLayout, setDashboardLayout] = useState(DEFAULT_LAYOUT_WIDGETS);
 
   const [heatmapData, setHeatmapData] = useState([]);
   const [totalQuestions, setTotalQuestions] = useState(0);
@@ -97,6 +114,26 @@ const Dashboard = () => {
       try {
         setUserProfile(JSON.parse(profile));
       } catch (error) {}
+    }
+
+    // Load saved dashboard layout from localStorage
+    try {
+      const layoutName = localStorage.getItem('currentLayoutName') || 'Default';
+      
+      // For Default layout, always use the hardcoded DEFAULT_LAYOUT_WIDGETS
+      if (layoutName === 'Default') {
+        setDashboardLayout(DEFAULT_LAYOUT_WIDGETS);
+      } else {
+        const savedLayout = localStorage.getItem('currentDashboardLayout');
+        if (savedLayout) {
+          const layout = JSON.parse(savedLayout);
+          if (layout.widgets && Array.isArray(layout.widgets)) {
+            setDashboardLayout(layout.widgets);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading dashboard layout:', error);
     }
 
     setTimeout(() => setIsLoaded(true), 100);
@@ -499,16 +536,16 @@ const Dashboard = () => {
   };
 
   // Heatmap helper functions
-  const getActivityColor = (level) => {
-    const accent = selectedTheme?.tokens?.['--accent'] || '#D7B38C';
+  const getActivityColor = (level, customColor = null) => {
+    const colorToUse = customColor || selectedTheme?.tokens?.['--accent'] || '#D7B38C';
     switch (level) {
-      case 0: return rgbaFromHex(accent, 0.08);
-      case 1: return rgbaFromHex(accent, 0.25);
-      case 2: return rgbaFromHex(accent, 0.45);
-      case 3: return rgbaFromHex(accent, 0.65);
-      case 4: return rgbaFromHex(accent, 0.85);
-      case 5: return accent;
-      default: return rgbaFromHex(accent, 0.08);
+      case 0: return rgbaFromHex(colorToUse, 0.08);
+      case 1: return rgbaFromHex(colorToUse, 0.25);
+      case 2: return rgbaFromHex(colorToUse, 0.45);
+      case 3: return rgbaFromHex(colorToUse, 0.65);
+      case 4: return rgbaFromHex(colorToUse, 0.85);
+      case 5: return colorToUse;
+      default: return rgbaFromHex(colorToUse, 0.08);
     }
   };
 
@@ -600,6 +637,33 @@ const Dashboard = () => {
   const navigateToAnalytics = () => navigate('/analytics');
   const openProfile = () => navigate('/profile');
   const navigateToCustomize = () => navigate('/customize-dashboard');
+
+  // Helper to get widget config from layout
+  const getWidgetConfig = (widgetId) => {
+    return dashboardLayout.find(w => w.id === widgetId) || null;
+  };
+
+  // Helper to get widget style
+  const getWidgetStyle = (widgetId) => {
+    const config = getWidgetConfig(widgetId);
+    if (!config) return {};
+    return {
+      gridColumn: `${config.col} / span ${config.cols}`,
+      gridRow: `${config.row} / span ${config.rows}`
+    };
+  };
+
+  // Helper to get widget color
+  const getWidgetColor = (widgetId) => {
+    const config = getWidgetConfig(widgetId);
+    return config?.color || accent;
+  };
+
+  // Helper to check if widget is small (1 row)
+  const isWidgetSmall = (widgetId) => {
+    const config = getWidgetConfig(widgetId);
+    return config?.rows === 1;
+  };
 
   const handleLogout = async () => {
     await endDashboardSession();
@@ -732,8 +796,9 @@ const Dashboard = () => {
       
       <div className="ds-grid-container">
         
-        <div className="ds-card ds-tagline" onClick={navigateToAI}>
-          <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(accent, 0.1)} 0%, transparent 70%)` }}></div>
+        {getWidgetConfig('ai-tutor') && (
+        <div className="ds-card ds-tagline" onClick={navigateToAI} style={getWidgetStyle('ai-tutor')}>
+          <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('ai-tutor'), 0.1)} 0%, transparent 70%)` }}></div>
           <div className="ds-ai-assistant-card">
             <div className="ds-ai-visual-section">
               <div className="ds-ai-icon-display">
@@ -750,7 +815,7 @@ const Dashboard = () => {
                 <span className="ds-ai-stat-label">sessions</span>
               </div>
             </div>
-            <button className="ds-ai-chat-btn" style={{ background: `linear-gradient(135deg, ${accent} 0%, ${accentHover} 100%)` }}>
+            <button className="ds-ai-chat-btn" style={{ background: `linear-gradient(135deg, ${getWidgetColor('ai-tutor')} 0%, ${getWidgetColor('ai-tutor')} 100%)` }}>
               START AI SESSION
             </button>
             <p className="ds-ai-description">
@@ -758,10 +823,13 @@ const Dashboard = () => {
             </p>
           </div>
         </div>
+        )}
 
+        {getWidgetConfig('hero') && (
         <div className="ds-hero" style={{ 
-          '--dashboard-accent': accent,
-          '--dashboard-accent-hover': accentHover,
+          ...getWidgetStyle('hero'),
+          '--dashboard-accent': getWidgetColor('hero'),
+          '--dashboard-accent-hover': getWidgetColor('hero'),
           '--dashboard-bg-primary': bgPrimary
         }}>
           <div className="ds-hero-content">
@@ -772,22 +840,26 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+        )}
 
-        <div className="ds-card ds-icon-top" onClick={navigateToSocial}>
-          <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(accent, 0.1)} 0%, transparent 70%)` }}></div>
+        {getWidgetConfig('social-hub') && (
+        <div className="ds-card ds-icon-top" onClick={navigateToSocial} style={getWidgetStyle('social-hub')}>
+          <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('social-hub'), 0.1)} 0%, transparent 70%)` }}></div>
           <div className="ds-social-widget">
             <div className="ds-social-icon-container">
-              <Users size={48} strokeWidth={1.5} />
+              <Users size={48} strokeWidth={1.5} style={{ color: getWidgetColor('social-hub') }} />
             </div>
             <h3 className="ds-social-title">Social Hub</h3>
             <p className="ds-social-description">Connect with learners</p>
           </div>
         </div>
+        )}
 
-        <div className="ds-card ds-stats-prompts" onClick={navigateToConcepts}>
-          <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(accent, 0.1)} 0%, transparent 70%)` }}></div>
+        {getWidgetConfig('concept-web') && (
+        <div className="ds-card ds-stats-prompts" onClick={navigateToConcepts} style={getWidgetStyle('concept-web')}>
+          <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('concept-web'), 0.1)} 0%, transparent 70%)` }}></div>
           <div className="ds-feature-content">
-            <div className="ds-feature-icon" style={{ background: `linear-gradient(135deg, ${accent} 0%, ${accentHover} 100%)`, boxShadow: `0 6px 20px ${rgbaFromHex(accent, 0.3)}` }}>
+            <div className="ds-feature-icon" style={{ background: `linear-gradient(135deg, ${getWidgetColor('concept-web')} 0%, ${getWidgetColor('concept-web')} 100%)`, boxShadow: `0 6px 20px ${rgbaFromHex(getWidgetColor('concept-web'), 0.3)}` }}>
               <Network size={18} />
             </div>
             <h3 className="ds-feature-title">Concept Web</h3>
@@ -796,12 +868,14 @@ const Dashboard = () => {
             </p>
           </div>
         </div>
+        )}
 
-        <div className="ds-card ds-users">
-          <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(accent, 0.1)} 0%, transparent 70%)` }}></div>
+        {getWidgetConfig('streak') && (
+        <div className="ds-card ds-users" style={getWidgetStyle('streak')}>
+          <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('streak'), 0.1)} 0%, transparent 70%)` }}></div>
           <div className="ds-streak-content">
             <div className="ds-streak-header">
-              <Flame size={24} style={{ color: accent }} />
+              <Flame size={24} style={{ color: getWidgetColor('streak') }} />
               <div className="ds-streak-info">
                 <div className="ds-streak-number">{stats.streak || 0}</div>
                 <div className="ds-streak-label">day streak</div>
@@ -813,6 +887,7 @@ const Dashboard = () => {
                   const validWeeklyProgress = weeklyProgress && weeklyProgress.length === 7 ? weeklyProgress : [0, 0, 0, 0, 0, 0, 0];
                   const maxValue = Math.max(...validWeeklyProgress, 1);
                   const maxRounded = Math.ceil(maxValue / 10) * 10;
+                  const streakColor = getWidgetColor('streak');
                   
                   return (
                     <>
@@ -831,14 +906,14 @@ const Dashboard = () => {
                           return `${i === 0 ? '' : 'L '}${x} ${y}`;
                         }).join(' ')}`}
                         fill="none"
-                        stroke={accent}
+                        stroke={streakColor}
                         strokeWidth="2"
                       />
                       {validWeeklyProgress.map((val, i) => {
                         const x = 40 + (i * 41.67);
                         const y = 80 - (val / maxRounded) * 60;
                         return (
-                          <circle key={i} cx={x} cy={y} r="3" fill={accent} stroke={bgPrimary} strokeWidth="2" />
+                          <circle key={i} cx={x} cy={y} r="3" fill={streakColor} stroke={bgPrimary} strokeWidth="2" />
                         );
                       })}
                       {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => {
@@ -849,8 +924,8 @@ const Dashboard = () => {
                       })}
                       <defs>
                         <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={accent} stopOpacity="0.3" />
-                          <stop offset="100%" stopColor={accent} stopOpacity="0.05" />
+                          <stop offset="0%" stopColor={streakColor} stopOpacity="0.3" />
+                          <stop offset="100%" stopColor={streakColor} stopOpacity="0.05" />
                         </linearGradient>
                       </defs>
                     </>
@@ -858,17 +933,19 @@ const Dashboard = () => {
                 })()}
               </svg>
             </div>
-            <button className="ds-analytics-btn" onClick={() => navigate('/analytics')} style={{ borderColor: accent, color: accent }}>
+            <button className="ds-analytics-btn" onClick={() => navigate('/analytics')} style={{ borderColor: getWidgetColor('streak'), color: getWidgetColor('streak') }}>
               <TrendingUp size={16} />
               <span>VIEW ANALYTICS</span>
             </button>
           </div>
         </div>
+        )}
 
-        <div className="ds-card ds-feature ds-notes" onClick={navigateToNotes}>
-          <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(accent, 0.1)} 0%, transparent 70%)` }}></div>
+        {getWidgetConfig('notes') && (
+        <div className={`ds-card ds-feature ds-notes ${isWidgetSmall('notes') ? 'ds-widget-small' : ''}`} onClick={navigateToNotes} style={getWidgetStyle('notes')}>
+          <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('notes'), 0.1)} 0%, transparent 70%)` }}></div>
           <div className="ds-feature-content">
-            <div className="ds-feature-icon" style={{ background: `linear-gradient(135deg, ${accent} 0%, ${accentHover} 100%)`, boxShadow: `0 6px 20px ${rgbaFromHex(accent, 0.3)}` }}>
+            <div className="ds-feature-icon" style={{ background: `linear-gradient(135deg, ${getWidgetColor('notes')} 0%, ${getWidgetColor('notes')} 100%)`, boxShadow: `0 6px 20px ${rgbaFromHex(getWidgetColor('notes'), 0.3)}` }}>
               <FileText size={18} />
             </div>
             <h3 className="ds-feature-title">Notes</h3>
@@ -878,11 +955,13 @@ const Dashboard = () => {
             <div className="ds-feature-stat">{stats.totalNotes || 0} notes</div>
           </div>
         </div>
+        )}
 
-        <div className="ds-card ds-feature ds-flashcards" onClick={navigateToFlashcards}>
-          <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(accent, 0.1)} 0%, transparent 70%)` }}></div>
+        {getWidgetConfig('flashcards') && (
+        <div className={`ds-card ds-feature ds-flashcards ${isWidgetSmall('flashcards') ? 'ds-widget-small' : ''}`} onClick={navigateToFlashcards} style={getWidgetStyle('flashcards')}>
+          <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('flashcards'), 0.1)} 0%, transparent 70%)` }}></div>
           <div className="ds-feature-content">
-            <div className="ds-feature-icon" style={{ background: `linear-gradient(135deg, ${accent} 0%, ${accentHover} 100%)`, boxShadow: `0 6px 20px ${rgbaFromHex(accent, 0.3)}` }}>
+            <div className="ds-feature-icon" style={{ background: `linear-gradient(135deg, ${getWidgetColor('flashcards')} 0%, ${getWidgetColor('flashcards')} 100%)`, boxShadow: `0 6px 20px ${rgbaFromHex(getWidgetColor('flashcards'), 0.3)}` }}>
               <Layers size={18} />
             </div>
             <h3 className="ds-feature-title">Flashcards</h3>
@@ -892,11 +971,13 @@ const Dashboard = () => {
             <div className="ds-feature-stat">{stats.totalFlashcards || 0} cards</div>
           </div>
         </div>
+        )}
 
-        <div className="ds-card ds-templates" onClick={navigateToLearningReview}>
-          <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(accent, 0.1)} 0%, transparent 70%)` }}></div>
+        {getWidgetConfig('learning-hub') && (
+        <div className="ds-card ds-templates" onClick={navigateToLearningReview} style={getWidgetStyle('learning-hub')}>
+          <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('learning-hub'), 0.1)} 0%, transparent 70%)` }}></div>
           <div className="ds-templates-content">
-            <h3 className="ds-templates-title">Learning Hub</h3>
+            <h3 className="ds-templates-title" style={{ color: getWidgetColor('learning-hub') }}>Learning Hub</h3>
             <p className="ds-templates-description">
               Comprehensive tools to accelerate your learning journey.
             </p>
@@ -920,11 +1001,13 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+        )}
 
-        <div className="ds-card ds-feature ds-activity" onClick={navigateToActivityTimeline}>
-          <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(accent, 0.1)} 0%, transparent 70%)` }}></div>
+        {getWidgetConfig('activity') && (
+        <div className="ds-card ds-feature ds-activity" onClick={navigateToActivityTimeline} style={getWidgetStyle('activity')}>
+          <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('activity'), 0.1)} 0%, transparent 70%)` }}></div>
           <div className="ds-feature-content">
-            <div className="ds-feature-icon" style={{ background: `linear-gradient(135deg, ${accent} 0%, ${accentHover} 100%)`, boxShadow: `0 6px 20px ${rgbaFromHex(accent, 0.3)}` }}>
+            <div className="ds-feature-icon" style={{ background: `linear-gradient(135deg, ${getWidgetColor('activity')} 0%, ${getWidgetColor('activity')} 100%)`, boxShadow: `0 6px 20px ${rgbaFromHex(getWidgetColor('activity'), 0.3)}` }}>
               <Clock size={18} />
             </div>
             <h3 className="ds-feature-title">Activity</h3>
@@ -934,9 +1017,11 @@ const Dashboard = () => {
             <div className="ds-feature-stat">{stats.minutes || 0} mins</div>
           </div>
         </div>
+        )}
 
-        <div className="ds-card ds-heatmap">
-          <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(accent, 0.1)} 0%, transparent 70%)` }}></div>
+        {getWidgetConfig('heatmap') && (
+        <div className="ds-card ds-heatmap" style={getWidgetStyle('heatmap')}>
+          <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('heatmap'), 0.1)} 0%, transparent 70%)` }}></div>
           <div className="ds-activity-heatmap">
             <div className="ds-heatmap-header">
               <h3 className="ds-heatmap-title">last 12 months</h3>
@@ -982,7 +1067,7 @@ const Dashboard = () => {
                               key={dayIndex}
                               className="ds-heatmap-day"
                               style={{
-                                backgroundColor: day ? getActivityColor(day.level) : 'transparent',
+                                backgroundColor: day ? getActivityColor(day.level, getWidgetConfig('heatmap')?.color) : 'transparent',
                                 opacity: day === null ? 0 : 1
                               }}
                               title={day ? getTooltipText(day.count, day.date) : ''}
@@ -1001,7 +1086,7 @@ const Dashboard = () => {
                       <div
                         key={level}
                         className="ds-legend-box"
-                        style={{ backgroundColor: getActivityColor(level) }}
+                        style={{ backgroundColor: getActivityColor(level, getWidgetConfig('heatmap')?.color) }}
                       />
                     ))}
                   </div>
@@ -1011,6 +1096,7 @@ const Dashboard = () => {
             )}
           </div>
         </div>
+        )}
 
         {!hasSeenTour && (
           <HelpButton onClick={startTour} />

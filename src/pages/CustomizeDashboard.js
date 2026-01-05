@@ -1,12 +1,27 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Save, RotateCcw, Trash2, Plus, Palette,
-  GripVertical, X, Check, Layout, Layers,
-  MessageSquare, FileText, Users, Clock, Flame, Network,
-  BookOpen, Calendar, ChevronLeft, ChevronDown
+  Save,
+  RotateCcw,
+  Trash2,
+  Plus,
+  Palette,
+  GripVertical,
+  X,
+  Check,
+  Layout,
+  Layers,
+  MessageSquare,
+  FileText,
+  Users,
+  Clock,
+  Flame,
+  Network,
+  BookOpen,
+  Calendar,
+  ChevronLeft,
+  Lock
 } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
 import './CustomizeDashboard.css';
 
 // Widget definitions with default configurations
@@ -44,9 +59,10 @@ const WIDGET_DEFINITIONS = {
     title: 'Streak & Analytics',
     icon: Flame,
     description: 'Track your progress',
-    sizes: { S: { cols: 1, rows: 1 }, M: { cols: 1, rows: 2 }, L: { cols: 2, rows: 2 } },
+    sizes: { S: { cols: 1, rows: 1, disabled: true }, M: { cols: 1, rows: 2 }, L: { cols: 2, rows: 2 } },
     defaultSize: 'M',
-    mandatory: true
+    mandatory: true,
+    minSize: 'M'
   },
   'notes': {
     id: 'notes',
@@ -71,10 +87,9 @@ const WIDGET_DEFINITIONS = {
     title: 'Learning Hub',
     icon: BookOpen,
     description: 'Learning tools & resources',
-    sizes: { S: { cols: 1, rows: 2 }, M: { cols: 1, rows: 3 }, L: { cols: 1, rows: 4 } },
-    defaultSize: 'M',
-    mandatory: false,
-    fixedSize: true
+    sizes: { S: { cols: 1, rows: 2 }, M: { cols: 2, rows: 2 }, L: { cols: 1, rows: 3 } },
+    defaultSize: 'L',
+    mandatory: false
   },
   'activity': {
     id: 'activity',
@@ -115,7 +130,7 @@ const DEFAULT_LAYOUT = {
     { id: 'streak', col: 1, row: 4, cols: 1, rows: 2, color: null, size: 'M' },
     { id: 'notes', col: 2, row: 4, cols: 1, rows: 2, color: null, size: 'M' },
     { id: 'flashcards', col: 3, row: 4, cols: 1, rows: 2, color: null, size: 'M' },
-    { id: 'learning-hub', col: 4, row: 3, cols: 1, rows: 3, color: null, size: 'M' },
+    { id: 'learning-hub', col: 4, row: 3, cols: 1, rows: 3, color: null, size: 'L' },
     { id: 'activity', col: 1, row: 6, cols: 1, rows: 1, color: null, size: 'S' },
     { id: 'concept-web', col: 2, row: 6, cols: 1, rows: 1, color: null, size: 'S' },
     { id: 'heatmap', col: 1, row: 7, cols: 4, rows: 2, color: null, size: 'L' }
@@ -135,12 +150,19 @@ const COLOR_PRESETS = [
   { name: 'Pink', value: '#E91E63' }
 ];
 
+// Blank layout for new layouts (only Hero widget)
+const BLANK_LAYOUT = {
+  name: 'New Layout',
+  widgets: [
+    { id: 'hero', col: 2, row: 1, cols: 2, rows: 3, color: null, size: 'M' }
+  ]
+};
+
 const GRID_COLS = 4;
 const GRID_ROWS = 8;
 
 const CustomizeDashboard = () => {
   const navigate = useNavigate();
-  const { selectedTheme } = useTheme();
   
   // Layout state
   const [placedWidgets, setPlacedWidgets] = useState([]);
@@ -158,15 +180,21 @@ const CustomizeDashboard = () => {
   const [selectedWidget, setSelectedWidget] = useState(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [newLayoutName, setNewLayoutName] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+  const [shakeWidget, setShakeWidget] = useState(null);
+  
+  // Check if layout is locked (Default layout)
+  const isLayoutLocked = currentLayoutName === 'Default';
   
   // Custom alert/confirm modals
   const [alertModal, setAlertModal] = useState({ show: false, message: '' });
-  const [confirmModal, setConfirmModal] = useState({ show: false, message: '', onConfirm: null });
-  
-  // Custom dropdown state
-  const [layoutDropdownOpen, setLayoutDropdownOpen] = useState(false);
+  const [confirmModal, setConfirmModal] = useState({
+    show: false,
+    message: '',
+    onConfirm: null
+  });
 
   // Load saved layouts on mount
   useEffect(() => {
@@ -174,34 +202,35 @@ const CustomizeDashboard = () => {
     loadCurrentLayout();
   }, []);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (layoutDropdownOpen && !e.target.closest('.cd-custom-dropdown')) {
-        setLayoutDropdownOpen(false);
-      }
-    };
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [layoutDropdownOpen]);
-
   const loadSavedLayouts = () => {
     try {
       const saved = localStorage.getItem('dashboardLayouts');
-      if (saved) {
-        setSavedLayouts(JSON.parse(saved));
-      }
+      let layouts = saved ? JSON.parse(saved) : [];
+      
+      // Remove any saved "Default" layout - we always use the hardcoded one
+      layouts = layouts.filter((l) => l.name !== 'Default');
+      
+      // Always add the hardcoded Default layout first
+      layouts = [DEFAULT_LAYOUT, ...layouts];
+      
+      setSavedLayouts(layouts);
     } catch (error) {
       console.error('Error loading layouts:', error);
+      setSavedLayouts([DEFAULT_LAYOUT]);
     }
   };
 
   const loadCurrentLayout = () => {
     try {
-      const savedLayout = localStorage.getItem('currentDashboardLayout');
       const layoutName = localStorage.getItem('currentLayoutName') || 'Default';
       
+      // For Default layout, always use the hardcoded DEFAULT_LAYOUT
+      if (layoutName === 'Default') {
+        applyLayout(DEFAULT_LAYOUT, 'Default');
+        return;
+      }
+      
+      const savedLayout = localStorage.getItem('currentDashboardLayout');
       if (savedLayout) {
         const layout = JSON.parse(savedLayout);
         applyLayout(layout, layoutName);
@@ -228,7 +257,18 @@ const CustomizeDashboard = () => {
   };
 
   // Drag handlers
+  const triggerShake = (widgetId) => {
+    setShakeWidget(widgetId);
+    setTimeout(() => setShakeWidget(null), 500);
+  };
+
   const handleDragStart = (e, widget, source) => {
+    // Block dragging if layout is locked
+    if (isLayoutLocked) {
+      e.preventDefault();
+      triggerShake(widget.id);
+      return;
+    }
     setDraggedWidget(widget);
     setDragSource(source);
     e.dataTransfer.effectAllowed = 'move';
@@ -260,6 +300,12 @@ const CustomizeDashboard = () => {
   const handleDrop = (e, col, row) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Block dropping if layout is locked
+    if (isLayoutLocked) {
+      resetDragState();
+      return;
+    }
     
     if (!draggedWidget || !dropTarget?.valid) {
       resetDragState();
@@ -329,6 +375,12 @@ const CustomizeDashboard = () => {
 
   // Widget manipulation
   const removeWidget = (widgetId) => {
+    // Block if layout is locked
+    if (isLayoutLocked) {
+      triggerShake(widgetId);
+      return;
+    }
+    
     const widget = placedWidgets.find(w => w.id === widgetId);
     if (!widget) return;
     
@@ -345,6 +397,12 @@ const CustomizeDashboard = () => {
   };
 
   const setWidgetSize = (widgetId, size) => {
+    // Block if layout is locked
+    if (isLayoutLocked) {
+      triggerShake(widgetId);
+      return;
+    }
+    
     const widget = placedWidgets.find(w => w.id === widgetId);
     if (!widget) return;
     
@@ -383,6 +441,12 @@ const CustomizeDashboard = () => {
   };
 
   const setWidgetColor = (widgetId, color) => {
+    // Block if layout is locked
+    if (isLayoutLocked) {
+      triggerShake(widgetId);
+      return;
+    }
+    
     setPlacedWidgets(prev => prev.map(w => 
       w.id === widgetId ? { ...w, color } : w
     ));
@@ -392,6 +456,12 @@ const CustomizeDashboard = () => {
 
   // Layout management
   const saveLayout = (name = currentLayoutName) => {
+    // Prevent saving over Default layout
+    if (name === 'Default') {
+      setAlertModal({ show: true, message: 'Cannot modify the Default layout. Use "Save As" to create a new layout.' });
+      return false;
+    }
+    
     const layout = {
       name,
       widgets: placedWidgets,
@@ -428,8 +498,62 @@ const CustomizeDashboard = () => {
     }
   };
 
+  // Create new layout with blank slate
+  const createNewLayout = (name) => {
+    if (!name.trim()) return;
+    
+    // Check if name already exists
+    if (savedLayouts.some(l => l.name === name)) {
+      setAlertModal({ show: true, message: 'A layout with this name already exists.' });
+      return;
+    }
+    
+    // Prevent using "Default" as name
+    if (name === 'Default') {
+      setAlertModal({ show: true, message: 'Cannot use "Default" as layout name.' });
+      return;
+    }
+    
+    const newLayout = {
+      name,
+      widgets: [...BLANK_LAYOUT.widgets],
+      timestamp: Date.now()
+    };
+    
+    try {
+      // Save as current layout
+      localStorage.setItem('currentDashboardLayout', JSON.stringify(newLayout));
+      localStorage.setItem('currentLayoutName', name);
+      
+      // Add to saved layouts
+      const layouts = [...savedLayouts, newLayout];
+      localStorage.setItem('dashboardLayouts', JSON.stringify(layouts));
+      setSavedLayouts(layouts);
+      
+      // Apply the new layout
+      applyLayout(newLayout, name);
+      
+      setShowCreateModal(false);
+      setNewLayoutName('');
+    } catch (error) {
+      console.error('Error creating layout:', error);
+      setAlertModal({ show: true, message: 'Failed to create layout' });
+    }
+  };
+
   const loadLayout = (layout) => {
-    applyLayout(layout, layout.name);
+    // For Default layout, always use the hardcoded DEFAULT_LAYOUT
+    if (layout.name === 'Default') {
+      applyLayout(DEFAULT_LAYOUT, 'Default');
+      // Save to localStorage so Dashboard reads it
+      localStorage.setItem('currentDashboardLayout', JSON.stringify(DEFAULT_LAYOUT));
+      localStorage.setItem('currentLayoutName', 'Default');
+    } else {
+      applyLayout(layout, layout.name);
+      // Save to localStorage so Dashboard reads it
+      localStorage.setItem('currentDashboardLayout', JSON.stringify(layout));
+      localStorage.setItem('currentLayoutName', layout.name);
+    }
   };
 
   const deleteLayout = (layoutName) => {
@@ -517,57 +641,76 @@ const CustomizeDashboard = () => {
       
       const Icon = def.icon;
       const isSelected = selectedWidget === widget.id;
+      const isShaking = shakeWidget === widget.id;
+      
+      const handleWidgetClick = () => {
+        if (isLayoutLocked) {
+          triggerShake(widget.id);
+          return;
+        }
+        setSelectedWidget(isSelected ? null : widget.id);
+      };
       
       return (
         <div
           key={widget.id}
-          className={`cd-placed-widget ${isSelected ? 'cd-selected' : ''}`}
+          className={`cd-placed-widget ${isSelected ? 'cd-selected' : ''} ${isShaking ? 'cd-shake' : ''} ${isLayoutLocked ? 'cd-locked' : ''}`}
           style={{
             gridColumn: `${widget.col} / span ${widget.cols}`,
             gridRow: `${widget.row} / span ${widget.rows}`,
             '--widget-color': widget.color || 'var(--accent)'
           }}
-          draggable
+          draggable={!isLayoutLocked}
           onDragStart={(e) => handleDragStart(e, widget, 'grid')}
-          onClick={() => setSelectedWidget(isSelected ? null : widget.id)}
+          onClick={handleWidgetClick}
         >
           <div className="cd-widget-drag-handle">
-            <GripVertical size={16} />
+            {isLayoutLocked ? <Lock size={16} /> : <GripVertical size={16} />}
           </div>
           
           <div className="cd-widget-content">
             <Icon size={24} />
             <span className="cd-widget-title">{def.title}</span>
-            <span className="cd-widget-size">{widget.cols}×{widget.rows}</span>
           </div>
           
           {isSelected && (
             <div className="cd-widget-controls">
-              {!def.fixedSize && (
-                <div className="cd-size-controls">
-                  <span className="cd-size-label">Size:</span>
-                  <button 
-                    className={`cd-size-btn ${getWidgetSizeLabel(widget) === 'S' ? 'active' : ''}`}
-                    onClick={(e) => { e.stopPropagation(); setWidgetSize(widget.id, 'S'); }}
-                  >
-                    S
-                  </button>
-                  <button 
-                    className={`cd-size-btn ${getWidgetSizeLabel(widget) === 'M' ? 'active' : ''}`}
-                    onClick={(e) => { e.stopPropagation(); setWidgetSize(widget.id, 'M'); }}
-                  >
-                    M
-                  </button>
-                  <button 
-                    className={`cd-size-btn ${getWidgetSizeLabel(widget) === 'L' ? 'active' : ''}`}
-                    onClick={(e) => { e.stopPropagation(); setWidgetSize(widget.id, 'L'); }}
-                  >
-                    L
-                  </button>
-                </div>
-              )}
-              
-              <div className="cd-action-controls">
+              <div className="cd-controls-row">
+                {!def.fixedSize && (
+                  <>
+                    <button 
+                      className={`cd-size-btn ${getWidgetSizeLabel(widget) === 'S' ? 'active' : ''} ${def.minSize === 'M' || def.minSize === 'L' ? 'disabled' : ''}`}
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        if (def.minSize !== 'M' && def.minSize !== 'L') {
+                          setWidgetSize(widget.id, 'S'); 
+                        }
+                      }}
+                      disabled={def.minSize === 'M' || def.minSize === 'L'}
+                    >
+                      S
+                    </button>
+                    <button 
+                      className={`cd-size-btn ${getWidgetSizeLabel(widget) === 'M' ? 'active' : ''} ${def.minSize === 'L' ? 'disabled' : ''}`}
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        if (def.minSize !== 'L') {
+                          setWidgetSize(widget.id, 'M'); 
+                        }
+                      }}
+                      disabled={def.minSize === 'L'}
+                    >
+                      M
+                    </button>
+                    <button 
+                      className={`cd-size-btn ${getWidgetSizeLabel(widget) === 'L' ? 'active' : ''}`}
+                      onClick={(e) => { e.stopPropagation(); setWidgetSize(widget.id, 'L'); }}
+                    >
+                      L
+                    </button>
+                    <div className="cd-controls-divider"></div>
+                  </>
+                )}
                 <button 
                   className="cd-color-btn"
                   onClick={(e) => { e.stopPropagation(); setShowColorPicker(widget.id); }}
@@ -625,14 +768,12 @@ const CustomizeDashboard = () => {
             <RotateCcw size={16} />
             Reset
           </button>
-          <button className="cd-nav-btn cd-nav-btn-primary" onClick={() => saveLayout()}>
-            <Save size={16} />
-            Save
-          </button>
-          <button className="cd-nav-btn cd-nav-btn-primary" onClick={() => setShowSaveModal(true)}>
-            <Plus size={16} />
-            Save As
-          </button>
+          {currentLayoutName !== 'Default' && (
+            <button className="cd-nav-btn cd-nav-btn-primary" onClick={() => saveLayout()}>
+              <Save size={16} />
+              Save
+            </button>
+          )}
         </div>
       </header>
 
@@ -676,57 +817,46 @@ const CustomizeDashboard = () => {
           </div>
           
           <div className="cd-sidebar-section">
-            <h3>Saved Layouts</h3>
-            
-            {/* Custom Dropdown for Layout Selection */}
-            <div className="cd-custom-dropdown">
+            <div className="cd-sidebar-section-header">
+              <h3>Saved Layouts</h3>
               <button 
-                className="cd-dropdown-trigger"
-                onClick={() => setLayoutDropdownOpen(!layoutDropdownOpen)}
+                className="cd-add-layout-btn"
+                onClick={() => setShowCreateModal(true)}
               >
-                <span className="cd-dropdown-value">{currentLayoutName}</span>
-                <ChevronDown 
-                  size={16} 
-                  className={`cd-dropdown-arrow ${layoutDropdownOpen ? 'open' : ''}`} 
-                />
+                <Plus size={16} />
               </button>
-              
-              {layoutDropdownOpen && (
-                <div className="cd-dropdown-menu">
-                  {savedLayouts.length > 0 ? (
-                    savedLayouts.map(layout => (
-                      <div 
-                        key={layout.name} 
-                        className={`cd-dropdown-item ${currentLayoutName === layout.name ? 'active' : ''}`}
-                      >
-                        <button 
-                          className="cd-dropdown-item-btn"
-                          onClick={() => {
-                            loadLayout(layout);
-                            setLayoutDropdownOpen(false);
-                          }}
-                        >
-                          {layout.name}
-                          {currentLayoutName === layout.name && <Check size={14} />}
-                        </button>
-                        {layout.name !== 'Default' && (
-                          <button 
-                            className="cd-dropdown-delete"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowDeleteConfirm(layout.name);
-                              setLayoutDropdownOpen(false);
-                            }}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="cd-dropdown-empty">No saved layouts</div>
+            </div>
+            
+            <div className="cd-layouts-list">
+              {savedLayouts.map((layout) => (
+                <div
+                  key={layout.name}
+                  className={`cd-layout-item ${currentLayoutName === layout.name ? 'cd-active' : ''} ${layout.name === 'Default' ? 'cd-default-layout' : ''}`}
+                >
+                  <button
+                    className="cd-layout-item-btn"
+                    onClick={() => loadLayout(layout)}
+                  >
+                    {layout.name === 'Default' && <Lock size={12} className="cd-lock-icon" />}
+                    {layout.name}
+                    {currentLayoutName === layout.name && <Check size={14} />}
+                  </button>
+                  {layout.name !== 'Default' && (
+                    <button
+                      className="cd-layout-delete-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDeleteConfirm(layout.name);
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   )}
                 </div>
+              ))}
+              
+              {savedLayouts.length === 0 && (
+                <div className="cd-empty-layouts">No saved layouts</div>
               )}
             </div>
           </div>
@@ -871,6 +1001,46 @@ const CustomizeDashboard = () => {
                 onClick={confirmModal.onConfirm}
               >
                 Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create New Layout Modal */}
+      {showCreateModal && (
+        <div className="cd-modal-overlay" onClick={() => setShowCreateModal(false)}>
+          <div className="cd-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="cd-modal-header">
+              <h3>Create New Layout</h3>
+              <button onClick={() => setShowCreateModal(false)}><X size={20} /></button>
+            </div>
+            <div className="cd-modal-body">
+              <label>Layout Name</label>
+              <input
+                type="text"
+                value={newLayoutName}
+                onChange={(e) => setNewLayoutName(e.target.value)}
+                placeholder="Enter layout name..."
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newLayoutName.trim()) {
+                    createNewLayout(newLayoutName.trim());
+                  }
+                }}
+              />
+              <p className="cd-modal-hint">New layouts start with a blank slate (only Hero widget)</p>
+            </div>
+            <div className="cd-modal-footer">
+              <button className="cd-modal-cancel" onClick={() => setShowCreateModal(false)}>
+                Cancel
+              </button>
+              <button 
+                className="cd-modal-save" 
+                onClick={() => newLayoutName.trim() && createNewLayout(newLayoutName.trim())}
+                disabled={!newLayoutName.trim()}
+              >
+                Create Layout
               </button>
             </div>
           </div>
