@@ -170,7 +170,7 @@ function Login() {
       dots.push(
         <div
           key={i}
-          className={`pattern-dot ${speed}`}
+          className={`lg-pattern-dot ${speed}`}
           style={{
             left: `${50 + (x / radius) * 50}%`,
             top: `${50 + (y / radius) * 50}%`,
@@ -187,7 +187,7 @@ function Login() {
       dots.push(
         <div
           key={i}
-          className={`pattern-dot ${speed}`}
+          className={`lg-pattern-dot ${speed}`}
           style={{
             left: `${(i / (count - 1)) * 100}%`,
             top: '50%',
@@ -204,10 +204,10 @@ function Login() {
     
     for (let i = 0; i < perSide; i++) {
       const progress = i / (perSide - 1);
-      dots.push(<div key={`top-${i}`} className={`pattern-dot ${speed}`} style={{ left: `${progress * 100}%`, top: '0%' }} />);
-      dots.push(<div key={`right-${i}`} className={`pattern-dot ${speed}`} style={{ left: '100%', top: `${progress * 100}%` }} />);
-      dots.push(<div key={`bottom-${i}`} className={`pattern-dot ${speed}`} style={{ left: `${(1 - progress) * 100}%`, top: '100%' }} />);
-      dots.push(<div key={`left-${i}`} className={`pattern-dot ${speed}`} style={{ left: '0%', top: `${(1 - progress) * 100}%` }} />);
+      dots.push(<div key={`top-${i}`} className={`lg-pattern-dot ${speed}`} style={{ left: `${progress * 100}%`, top: '0%' }} />);
+      dots.push(<div key={`right-${i}`} className={`lg-pattern-dot ${speed}`} style={{ left: '100%', top: `${progress * 100}%` }} />);
+      dots.push(<div key={`bottom-${i}`} className={`lg-pattern-dot ${speed}`} style={{ left: `${(1 - progress) * 100}%`, top: '100%' }} />);
+      dots.push(<div key={`left-${i}`} className={`lg-pattern-dot ${speed}`} style={{ left: '0%', top: `${(1 - progress) * 100}%` }} />);
     }
     
     return dots;
@@ -219,9 +219,9 @@ function Login() {
     
     for (let i = 0; i < perSide; i++) {
       const progress = i / (perSide - 1);
-      dots.push(<div key={`side1-${i}`} className={`pattern-dot ${speed}`} style={{ left: `${50 + progress * 50}%`, top: `${100 - progress * 100}%` }} />);
-      dots.push(<div key={`side2-${i}`} className={`pattern-dot ${speed}`} style={{ left: `${50 - progress * 50}%`, top: `${100 - progress * 100}%` }} />);
-      dots.push(<div key={`base-${i}`} className={`pattern-dot ${speed}`} style={{ left: `${progress * 100}%`, top: '100%' }} />);
+      dots.push(<div key={`side1-${i}`} className={`lg-pattern-dot ${speed}`} style={{ left: `${50 + progress * 50}%`, top: `${100 - progress * 100}%` }} />);
+      dots.push(<div key={`side2-${i}`} className={`lg-pattern-dot ${speed}`} style={{ left: `${50 - progress * 50}%`, top: `${100 - progress * 100}%` }} />);
+      dots.push(<div key={`base-${i}`} className={`lg-pattern-dot ${speed}`} style={{ left: `${progress * 100}%`, top: '100%' }} />);
     }
     
     return dots;
@@ -236,7 +236,7 @@ function Login() {
       dots.push(
         <div
           key={i}
-          className={`pattern-dot ${speed}`}
+          className={`lg-pattern-dot ${speed}`}
           style={{
             left: `${x}%`,
             top: `${y}%`,
@@ -250,96 +250,96 @@ function Login() {
   return (
     <>
       {(loading || googleLoading) && <LoadingSpinner />}
-      <div className="login-page">
-        <div className="geometric-dots">
-          <div className="dot-pattern circle-1">
+      <div className="lg-page">
+        <div className="lg-geometric-dots">
+          <div className="lg-dot-pattern lg-circle-1">
             {renderCircleDots(14, 100, 'slow')}
           </div>
-          <div className="dot-pattern circle-2">
+          <div className="lg-dot-pattern lg-circle-2">
             {renderCircleDots(12, 90, 'fast')}
           </div>
-          <div className="dot-pattern circle-3">
+          <div className="lg-dot-pattern lg-circle-3">
             {renderCircleDots(10, 75, 'medium')}
           </div>
-          <div className="dot-pattern circle-4">
+          <div className="lg-dot-pattern lg-circle-4">
             {renderCircleDots(13, 95, 'slow')}
           </div>
-          <div className="dot-pattern circle-5">
+          <div className="lg-dot-pattern lg-circle-5">
             {renderCircleDots(9, 65, 'fast')}
           </div>
-          <div className="dot-pattern circle-6">
+          <div className="lg-dot-pattern lg-circle-6">
             {renderCircleDots(8, 50, 'medium')}
           </div>
-          <div className="dot-pattern line-1">
+          <div className="lg-dot-pattern lg-line-1">
             {renderLineDots(9, 'slow')}
           </div>
-          <div className="dot-pattern line-2">
+          <div className="lg-dot-pattern lg-line-2">
             {renderLineDots(7, 'fast')}
           </div>
-          <div className="dot-pattern line-3">
+          <div className="lg-dot-pattern lg-line-3">
             {renderLineDots(6, 'medium')}
           </div>
-          <div className="dot-pattern square-1">
+          <div className="lg-dot-pattern lg-square-1">
             {renderSquareDots(12, 'medium')}
           </div>
-          <div className="dot-pattern square-2">
+          <div className="lg-dot-pattern lg-square-2">
             {renderSquareDots(10, 'fast')}
           </div>
-          <div className="dot-pattern triangle-1">
+          <div className="lg-dot-pattern lg-triangle-1">
             {renderTriangleDots(12, 'slow')}
           </div>
-          <div className="dot-pattern arc-1">
+          <div className="lg-dot-pattern lg-arc-1">
             {renderArcDots(11, 'fast')}
           </div>
         </div>
 
-        <div className="login-left">
-          <div className="glow-orb-1"></div>
-          <div className="glow-orb-2"></div>
+        <div className="lg-left">
+          <div className="lg-glow-orb-1"></div>
+          <div className="lg-glow-orb-2"></div>
           
-          <div className="brand-graphic">
-            <div className="concentric-ring-1"></div>
-            <div className="concentric-ring-2"></div>
-            <div className="concentric-ring-3"></div>
-            <div className="brand-bar-top"></div>
-            <div className="brand-circle"></div>
-            <div className="brand-bar-bottom"></div>
-            <div className="brand-text-overlay">
-              <div className="brand-name">cerbyl</div>
-              <div className="brand-tagline">Learning, Unified</div>
+          <div className="lg-brand-graphic">
+            <div className="lg-concentric-ring-1"></div>
+            <div className="lg-concentric-ring-2"></div>
+            <div className="lg-concentric-ring-3"></div>
+            <div className="lg-brand-bar-top"></div>
+            <div className="lg-brand-circle"></div>
+            <div className="lg-brand-bar-bottom"></div>
+            <div className="lg-brand-text-overlay">
+              <div className="lg-brand-name">cerbyl</div>
+              <div className="lg-brand-tagline">Learning, Unified</div>
             </div>
           </div>
 
-          <div className="brand-description">
-            <div className="description-label">Our Philosophy</div>
-            <div className="description-text">
+          <div className="lg-brand-description">
+            <div className="lg-description-label">Our Philosophy</div>
+            <div className="lg-description-text">
               Cerbyl merges AI with learning science. Education adapts to you through 
               personalized pathways and intelligent tutoring.
             </div>
           </div>
         </div>
 
-        <div className="login-right">
-          <div className="login-container">
-            <div className="login-header">
-              <h1 className="login-subtitle">Sign in to continue</h1>
+        <div className="lg-right">
+          <div className="lg-container">
+            <div className="lg-header">
+              <h1 className="lg-subtitle">SIGN IN TO CONTINUE</h1>
             </div>
 
-            <div className="google-signin-container">
+            <div className="lg-google-signin-container">
               <button
                 onClick={handleGoogleSignIn}
                 disabled={googleLoading || loading}
-                className="google-signin-button"
+                className="lg-google-signin-button"
               >
                 {googleLoading ? (
                   <>
-                    <div className="google-spinner"></div>
+                    <div className="lg-google-spinner"></div>
                     <span>Signing in...</span>
                   </>
                 ) : (
                   <>
                     <svg
-                      className="google-icon"
+                      className="lg-google-icon"
                       viewBox="0 0 24 24"
                     >
                       <path
@@ -365,56 +365,56 @@ function Login() {
               </button>
             </div>
 
-            <div className="divider">
+            <div className="lg-divider">
               <span>Or</span>
             </div>
 
-            <form onSubmit={handleSubmit} className="login-form">
-              <div className="input-group">
+            <form onSubmit={handleSubmit} className="lg-form">
+              <div className="lg-input-group">
                 <input
                   type="text"
                   value={username}
                   onChange={e => setUsername(e.target.value)}
-                  className="login-input"
+                  className="lg-input"
                   placeholder=" "
                   required
                   disabled={loading || googleLoading}
                 />
-                <label className="input-label">Username</label>
+                <label className="lg-input-label">Username</label>
               </div>
 
-              <div className="input-group">
+              <div className="lg-input-group">
                 <input
                   type="password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="login-input"
+                  className="lg-input"
                   placeholder=" "
                   required
                   disabled={loading || googleLoading}
                 />
-                <label className="input-label">Password</label>
+                <label className="lg-input-label">Password</label>
               </div>
 
               <button
                 type="submit"
-                className="login-button"
+                className="lg-button"
                 disabled={loading || googleLoading}
               >
-                <span className="button-text">
-                  {loading ? "Signing In..." : "Sign In"}
+                <span className="lg-button-text">
+                  {loading ? "SIGNING IN..." : "SIGN IN"}
                 </span>
               </button>
             </form>
 
-            <div className="login-footer">
-              <div className="login-switch">
+            <div className="lg-footer">
+              <div className="lg-switch">
                 Don't have an account?
                 <span
-                  className="login-switch-link"
+                  className="lg-switch-link"
                   onClick={() => navigate('/register')}
                 >
-                  Create one
+                  CREATE One
                 </span>
               </div>
             </div>
