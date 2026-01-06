@@ -4070,15 +4070,6 @@
   margin-top: 0;
   line-height: 1.4;
   position: relative;
-  padding-left: 16px;
-}
-
-.fc-header-subtitle::before {
-  content: '•';
-  position: absolute;
-  left: 0;
-  color: var(--fc-accent);
-  opacity: 0.5;
 }
 
 /* Stat Card Enhanced Backgrounds */

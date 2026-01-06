@@ -156,6 +156,7 @@ export function applyThemeToRoot(themeId) {
 
   root.style.setProperty('--accent', theme.accent);
   root.style.setProperty('--accent-hover', theme.accentHover);
+  root.style.setProperty('--accent-2', theme.accentHover); // For Social page gradients
   
   // Dashboard-specific variables
   root.style.setProperty('--dashboard-accent', theme.accent);
@@ -354,6 +355,11 @@ export function applyCustomTheme(customTheme) {
     Object.entries(themeWithTokens.tokens).forEach(([key, value]) => {
       root.style.setProperty(key, value);
     });
+    
+    // Ensure accent-2 is set for Social page gradients
+    if (themeWithTokens.accentHover) {
+      root.style.setProperty('--accent-2', themeWithTokens.accentHover);
+    }
   }
 
   // Set mode based on background luminance

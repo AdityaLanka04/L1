@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, UserMinus, FileText, Eye, Edit3, Trash2, Clock, Plus, Gamepad2, Activity, BookOpen } from 'lucide-react';
+import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, UserMinus, FileText, Eye, Edit3, Trash2, Clock, Plus, Gamepad2, Activity, BookOpen, ChevronRight } from 'lucide-react';
 import ShareModal from './SharedModal';
 import './Social.css';
 import { API_URL } from '../config';
@@ -448,8 +448,10 @@ const Social = () => {
           <p className="hub-header-subtitle">SOCIAL HUB</p>
         </div>
         <div className="hub-header-right">
-          <button className="hub-nav-btn" onClick={() => navigate('/dashboard')}>DASHBOARD</button>
-          <button className="hub-nav-btn logout" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>LOGOUT</button>
+          <button className="hub-nav-btn hub-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            <span>Dashboard</span>
+            <ChevronRight size={14} />
+          </button>
         </div>
       </header>
 

@@ -151,7 +151,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -162,15 +162,17 @@
   border-color: var(--accent);
 }
 
-.hub-nav-btn.logout {
-  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black));
-  color: var(--bg-primary);
+.hub-nav-btn-ghost {
+  background: transparent;
   border: none;
+  color: var(--text-primary);
+  opacity: 0.7;
 }
 
-.hub-nav-btn.logout:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
+.hub-nav-btn-ghost:hover {
+  opacity: 1;
+  color: var(--accent);
+  transform: translateX(-2px);
 }
 
 /* ==================== BENTO GRID - PREMIUM LAYOUT ==================== */
@@ -1534,17 +1536,14 @@
 }
 
 /* Light mode nav buttons */
-[data-theme-mode="light"] .hub-nav-btn {
-  background: var(--sh-bg-secondary);
-  border-color: var(--sh-border-subtle);
+[data-theme-mode="light"] .hub-nav-btn-ghost {
   color: var(--sh-text-primary);
-  box-shadow: var(--sh-shadow-sm);
+  opacity: 0.7;
 }
 
-[data-theme-mode="light"] .hub-nav-btn:not(.logout) {
-  background: linear-gradient(135deg, var(--sh-accent) 0%, var(--sh-accent-2) 100%);
-  border-color: var(--sh-accent);
-  color: white;
+[data-theme-mode="light"] .hub-nav-btn-ghost:hover {
+  opacity: 1;
+  color: var(--sh-accent);
 }
 
 [data-theme-mode="light"] .hub-nav-btn:hover {

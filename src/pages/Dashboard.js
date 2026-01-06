@@ -762,7 +762,7 @@ const Dashboard = () => {
   const navigateToNotes = () => navigate('/notes');
   const navigateToGames = () => navigate('/games');
   const navigateToSocial = () => navigate('/social');
-  const navigateToConcepts = () => navigate('/concepts');
+  const navigateToConcepts = () => navigate('/concept-web');
   const navigateToLearningReview = () => navigate('/learning-review');
   const navigateToActivityTimeline = () => navigate('/activity-timeline');
   const navigateToAnalytics = () => navigate('/analytics');
