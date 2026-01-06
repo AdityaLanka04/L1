@@ -573,19 +573,89 @@ const CustomizeDashboard = () => {
     setShowDeleteConfirm(null);
   };
 
+  const resetLayoutToDefault = (layoutName) => {
+    if (layoutName === 'Default') {
+      return;
+    }
+
+    setConfirmModal({
+      show: true,
+      message: `Reset "${layoutName}" to default layout configuration?`,
+      onConfirm: () => {
+        const layouts = savedLayouts.map(l => {
+          if (l.name === layoutName) {
+            return {
+              ...DEFAULT_LAYOUT,
+              name: layoutName
+            };
+          }
+          return l;
+        });
+        
+        localStorage.setItem('dashboardLayouts', JSON.stringify(layouts));
+        setSavedLayouts(layouts);
+        
+        if (currentLayoutName === layoutName) {
+          applyLayout({ ...DEFAULT_LAYOUT, name: layoutName }, layoutName);
+          localStorage.setItem('currentDashboardLayout', JSON.stringify({ ...DEFAULT_LAYOUT, name: layoutName }));
+          setHasUnsavedChanges(false);
+        }
+        
+        setConfirmModal({ show: false, message: '', onConfirm: null });
+      }
+    });
+  };
+
   const resetToDefault = () => {
+    // If already on Default layout, do nothing
+    if (currentLayoutName === 'Default') {
+      return;
+    }
+
+    const resetCurrentLayout = () => {
+      // Reset the current layout to default configuration but keep the name
+      const resetLayout = {
+        ...DEFAULT_LAYOUT,
+        name: currentLayoutName
+      };
+      
+      // Update in saved layouts
+      const layouts = savedLayouts.map(l => {
+        if (l.name === currentLayoutName) {
+          return resetLayout;
+        }
+        return l;
+      });
+      
+      localStorage.setItem('dashboardLayouts', JSON.stringify(layouts));
+      setSavedLayouts(layouts);
+      
+      // Apply the reset layout
+      applyLayout(resetLayout, currentLayoutName);
+      localStorage.setItem('currentDashboardLayout', JSON.stringify(resetLayout));
+      setHasUnsavedChanges(false);
+    };
+
     if (hasUnsavedChanges) {
       setConfirmModal({
         show: true,
-        message: 'You have unsaved changes. Reset anyway?',
+        message: `Reset "${currentLayoutName}" to default configuration?`,
         onConfirm: () => {
-          applyLayout(DEFAULT_LAYOUT, 'Default');
+          resetCurrentLayout();
           setConfirmModal({ show: false, message: '', onConfirm: null });
         }
       });
       return;
     }
-    applyLayout(DEFAULT_LAYOUT, 'Default');
+    
+    setConfirmModal({
+      show: true,
+      message: `Reset "${currentLayoutName}" to default configuration?`,
+      onConfirm: () => {
+        resetCurrentLayout();
+        setConfirmModal({ show: false, message: '', onConfirm: null });
+      }
+    });
   };
 
   const goBack = () => {
@@ -842,15 +912,28 @@ const CustomizeDashboard = () => {
                     {currentLayoutName === layout.name && <Check size={14} />}
                   </button>
                   {layout.name !== 'Default' && (
-                    <button
-                      className="cd-layout-delete-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowDeleteConfirm(layout.name);
-                      }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <div className="cd-layout-actions">
+                      <button
+                        className="cd-layout-reset-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          resetLayoutToDefault(layout.name);
+                        }}
+                        title="Reset to default"
+                      >
+                        <RotateCcw size={14} />
+                      </button>
+                      <button
+                        className="cd-layout-delete-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowDeleteConfirm(layout.name);
+                        }}
+                        title="Delete layout"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}

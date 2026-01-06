@@ -582,19 +582,14 @@ const AIChat = ({ sharedMode = false }) => {
       formData.append('question', messageText || 'Please analyze the uploaded files.');
       formData.append('chat_id', currentChatId.toString());
 
-      // Add chat mode if set
-      if (conversationMode) {
-        formData.append('chat_mode', conversationMode);
-      }
-
       selectedFiles.forEach(file => {
         formData.append('files', file);
       });
 
-      // Use the enhanced agent endpoint for text-only messages, files endpoint for attachments
+      // Use ask_simple for proper LaTeX formatting, files endpoint for attachments
       const endpoint = selectedFiles.length > 0 ? 
         `${API_URL}/ask_with_files/` : 
-        `${API_URL}/ask_agent/`;
+        `${API_URL}/ask_simple/`;
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -609,27 +604,23 @@ const AIChat = ({ sharedMode = false }) => {
 
       const data = await response.json();
       
-                  
+      console.log(`✅ AI response received. Chat ID: ${data.chat_id || currentChatId}`);
+      
       if (!data.answer) {
         throw new Error('No answer received from AI');
       }
       
-      // Store agent insights from the enhanced response
-      if (data.emotional_state || data.suggested_questions) {
-        setAgentInsights(prev => ({
-          ...prev,
-          emotionalState: data.emotional_state,
-          suggestedQuestions: data.suggested_questions || [],
-          learningActions: data.learning_actions || [],
-          chatMode: data.chat_mode,
-          qualityScore: data.quality_score
-        }));
+      // Get agent analysis AFTER receiving the real AI response (don't replace the response)
+      if (messageText && !selectedFiles.length) {
+        sendMessageWithAgent(messageText, currentChatId).catch(err => {
+          console.log('Agent analysis failed (non-critical):', err);
+        });
       }
       
       const aiMessage = {
         id: `ai_${Date.now()}`,
         type: 'ai',
-        content: data.answer,
+        content: data.answer,  // Use the real AI response, not agent response
         timestamp: new Date().toISOString(),
         ...(data.ai_confidence !== null && data.ai_confidence !== undefined && {
           aiConfidence: data.ai_confidence,
@@ -640,13 +631,7 @@ const AIChat = ({ sharedMode = false }) => {
         filesProcessed: data.files_processed || 0,
         fileSummaries: data.file_summaries || [],
         hasFileContext: data.has_file_context || false,
-        // Enhanced agent metadata
-        chatMode: data.chat_mode,
-        emotionalState: data.emotional_state,
-        suggestedQuestions: data.suggested_questions || [],
-        learningActions: data.learning_actions || [],
-        qualityScore: data.quality_score,
-        executionTimeMs: data.execution_time_ms
+        agentAnalysis: agentAnalysis
       };
 
       setMessages(prev => [...prev, aiMessage]);
@@ -655,7 +640,8 @@ const AIChat = ({ sharedMode = false }) => {
       // Check if the backend used a different chat_id (in case of validation issues)
       const actualChatId = data.chat_id;
       if (actualChatId && actualChatId !== currentChatId) {
-                setActiveChatId(actualChatId);
+        console.log(`Chat ID changed from ${currentChatId} to ${actualChatId}`);
+        setActiveChatId(actualChatId);
         navigate(`/ai-chat/${actualChatId}`, { replace: true });
         currentChatId = actualChatId;
       }
@@ -674,7 +660,8 @@ const AIChat = ({ sharedMode = false }) => {
       // Points are now awarded by backend when saving message
 
     } catch (error) {
-            const errorMessage = {
+      console.error('Error in sendMessage:', error);
+      const errorMessage = {
         id: `error_${Date.now()}`,
         type: 'ai',
         content: `Sorry, I encountered an error: ${error.message}. Please try again.`,
@@ -1613,21 +1600,24 @@ const AIChat = ({ sharedMode = false }) => {
 
   return (
     <div className="ai-chat-page">
+      {/* Header */}
+      <header className="ac-header">
+        <div className="ac-header-left">
+          <h1 className="ac-logo" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <div className="ac-header-divider"></div>
+          <span className="ac-subtitle">AI Chat</span>
+        </div>
+        <nav className="ac-header-right">
+          <button className="ac-nav-btn ac-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            <span>Dashboard</span>
+            {Icons.chevronRight}
+          </button>
+        </nav>
+      </header>
+
       <div className="ac-layout">
         {/* Sidebar - Matching Flashcards */}
-        <aside className={`ac-sidebar ${!sidebarOpen ? 'collapsed' : ''}`}>
-          <div className="ac-sidebar-header">
-            <div className="ac-logo" onClick={handleLogoClick}>
-              <span className="ac-logo-text">cerbyl</span>
-            </div>
-            <button 
-              className="ac-collapse-btn"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? Icons.chevronLeft : Icons.chevronRight}
-            </button>
-          </div>
-
+        <aside className="ac-sidebar">
           {/* New Chat Button */}
           <button 
             className="ac-new-chat-btn" 
@@ -1782,48 +1772,10 @@ const AIChat = ({ sharedMode = false }) => {
               </div>
             </div>
           </nav>
-
-          <div className="ac-sidebar-footer">
-            <button className="ac-nav-item ac-nav-item-accent" onClick={goToDashboard}>
-              <span className="ac-nav-icon">{Icons.home}</span>
-              <span className="ac-nav-text">Dashboard</span>
-            </button>
-            <button className="ac-nav-item ac-nav-item-accent" onClick={handleLogout}>
-              <span className="ac-nav-icon">{Icons.logout}</span>
-              <span className="ac-nav-text">Logout</span>
-            </button>
-          </div>
         </aside>
 
         {/* Main Content */}
-        <main className="ac-main">
-          {/* Header */}
-          <header className="ac-header">
-            {/* Show Sidebar Button - appears when sidebar is collapsed */}
-            {!sidebarOpen && (
-              <button 
-                className="ac-show-sidebar-btn" 
-                onClick={() => setSidebarOpen(true)}
-                title="Show Sidebar"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
-                  <line x1="3" y1="12" x2="21" y2="12"/>
-                  <line x1="3" y1="6" x2="21" y2="6"/>
-                  <line x1="3" y1="18" x2="21" y2="18"/>
-                </svg>
-              </button>
-            )}
-            <div className="ac-header-actions">
-              {userProfile?.profilePicture && (
-                <img 
-                  src={userProfile.profilePicture} 
-                  alt="Profile" 
-                  className="ac-profile-picture" 
-                />
-              )}
-            </div>
-          </header>
-
+        <main className={`ac-main ${messages.length === 0 ? 'empty-state' : ''}`}>
           {/* Chat Content */}
           <div 
             className="ac-content"
@@ -1831,9 +1783,64 @@ const AIChat = ({ sharedMode = false }) => {
             onScroll={handleScroll}
           >
             {messages.length === 0 ? (
-              <div className="ac-welcome">
-                <h2>{greeting}</h2>
-                <p>I'm your personal AI tutor. Ask me anything about any subject, and I'll help you learn with detailed explanations and examples.</p>
+              <div className="ac-empty-center">
+                <div className="ac-welcome">
+                  <h2>{greeting}</h2>
+                </div>
+                {/* Input Area - Centered with greeting when empty */}
+                <div className="ac-input-area ac-input-centered">
+                  <div className="ac-input-container">
+                    <div 
+                      className={`ac-input-wrapper ${dragActive ? 'drag-active' : ''}`}
+                      onDrop={handleDrop}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept=".pdf,image/*"
+                        onChange={handleFileInputChange}
+                        style={{ display: 'none' }}
+                      />
+                      
+                      <button
+                        className="ac-input-btn"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={loading}
+                        title="Attach files"
+                      >
+                        {Icons.attach}
+                      </button>
+                      
+                      <textarea
+                        value={inputMessage}
+                        onChange={handleInputChange}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Type your message or drag files here..."
+                        className="ac-textarea"
+                        disabled={loading}
+                        rows="1"
+                        style={{
+                          height: '24px',
+                          minHeight: '24px',
+                          maxHeight: '24px',
+                          overflow: 'hidden',
+                          resize: 'none'
+                        }}
+                      />
+                      
+                      <button
+                        onClick={sendMessage}
+                        disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}
+                        className="ac-send-btn"
+                      >
+                        {Icons.send}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="ac-messages">
@@ -2000,53 +2007,62 @@ const AIChat = ({ sharedMode = false }) => {
             </div>
           )}
 
-          {/* Input Area */}
-          <div className="ac-input-area">
-            <div className="ac-input-container">
-              <div 
-                className={`ac-input-wrapper ${dragActive ? 'drag-active' : ''}`}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept=".pdf,image/*"
-                  onChange={handleFileInputChange}
-                  style={{ display: 'none' }}
-                />
-                
-                <button
-                  className="ac-input-btn"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={loading}
-                  title="Attach files"
+          {/* Input Area - Only show at bottom when there are messages */}
+          {messages.length > 0 && (
+            <div className="ac-input-area">
+              <div className="ac-input-container">
+                <div 
+                  className={`ac-input-wrapper ${dragActive ? 'drag-active' : ''}`}
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
                 >
-                  {Icons.attach}
-                </button>
-                
-                <textarea
-                  value={inputMessage}
-                  onChange={handleInputChange}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Type your message or drag files here..."
-                  className="ac-textarea"
-                  disabled={loading}
-                  rows="1"
-                />
-                
-                <button
-                  onClick={sendMessage}
-                  disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}
-                  className="ac-send-btn"
-                >
-                  {Icons.send}
-                </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept=".pdf,image/*"
+                    onChange={handleFileInputChange}
+                    style={{ display: 'none' }}
+                  />
+                  
+                  <button
+                    className="ac-input-btn"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={loading}
+                    title="Attach files"
+                  >
+                    {Icons.attach}
+                  </button>
+                  
+                  <textarea
+                    value={inputMessage}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type your message or drag files here..."
+                    className="ac-textarea"
+                    disabled={loading}
+                    rows="1"
+                    style={{
+                      height: '24px',
+                      minHeight: '24px',
+                      maxHeight: '24px',
+                      overflow: 'hidden',
+                      resize: 'none'
+                    }}
+                  />
+                  
+                  <button
+                    onClick={sendMessage}
+                    disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}
+                    className="ac-send-btn"
+                  >
+                    {Icons.send}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </main>
       </div>
       
@@ -2111,4 +2127,4 @@ const AIChat = ({ sharedMode = false }) => {
   );
 };
 
-export default AIChat;  
+export default AIChat;

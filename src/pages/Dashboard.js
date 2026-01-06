@@ -169,9 +169,69 @@ const Dashboard = () => {
       const lastLoginDate = localStorage.getItem(`lastLoginDate_${userName}`);
       const isFirstLoginToday = lastLoginDate !== today;
       
+      // Check if study insights is enabled in user profile
+      const profile = localStorage.getItem('userProfile');
+      let showStudyInsights = true;
+      if (profile) {
+        try {
+          const parsed = JSON.parse(profile);
+          showStudyInsights = parsed.showStudyInsights !== false;
+        } catch (e) {}
+      }
+      
       if (justLoggedIn && isFirstLoginToday) {
         localStorage.setItem(`lastLoginDate_${userName}`, today);
         sessionStorage.removeItem('justLoggedIn');
+        
+        // Check if user just completed onboarding
+        const isFirstTimeUser = sessionStorage.getItem('isFirstTimeUser') === 'true';
+        sessionStorage.removeItem('isFirstTimeUser');
+        
+        // Get display name
+        const welcomeName = userProfile?.firstName || userProfile?.first_name || userName.split('@')[0];
+        
+        // For returning users, fetch personalized welcome notification
+        if (!isFirstTimeUser && showStudyInsights) {
+          fetchPersonalizedWelcome(welcomeName);
+        } else if (!isFirstTimeUser && !showStudyInsights) {
+          // Show simple welcome without study insights
+          const welcomeNotif = {
+            id: `welcome-${Date.now()}`,
+            title: 'Welcome Back!',
+            message: `Ready to continue learning, ${welcomeName}?`,
+            type: 'welcome',
+            notification_type: 'welcome',
+            created_at: new Date().toISOString()
+          };
+          
+          setTimeout(() => {
+            setSlideNotifQueue(prev => {
+              if (!prev.some(n => n.type === 'welcome')) {
+                return [...prev, welcomeNotif];
+              }
+              return prev;
+            });
+          }, 1500);
+        } else {
+          // For first-time users, show simple welcome
+          const welcomeNotif = {
+            id: `welcome-${Date.now()}`,
+            title: 'Welcome!',
+            message: `Let's get started with your learning journey, ${welcomeName}!`,
+            type: 'welcome',
+            notification_type: 'welcome',
+            created_at: new Date().toISOString()
+          };
+          
+          setTimeout(() => {
+            setSlideNotifQueue(prev => {
+              if (!prev.some(n => n.type === 'welcome')) {
+                return [...prev, welcomeNotif];
+              }
+              return prev;
+            });
+          }, 3000);
+        }
       }
     }
     
@@ -181,6 +241,77 @@ const Dashboard = () => {
       if (sessionUpdateRef.current) clearInterval(sessionUpdateRef.current);
     };
   }, [userName]);
+
+  const fetchPersonalizedWelcome = async (displayName) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/study_insights/welcome_notification?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const notifData = data.notification;
+        
+        const welcomeNotif = {
+          id: `welcome-${Date.now()}`,
+          title: notifData.title || 'Welcome Back!',
+          message: notifData.message || `Ready to continue learning, ${displayName}?`,
+          type: 'welcome',
+          notification_type: notifData.has_insights ? 'study_insights' : 'welcome',
+          has_insights: notifData.has_insights,
+          created_at: new Date().toISOString()
+        };
+        
+        setTimeout(() => {
+          setSlideNotifQueue(prev => {
+            if (!prev.some(n => n.type === 'welcome')) {
+              return [...prev, welcomeNotif];
+            }
+            return prev;
+          });
+        }, 1500);
+      } else {
+        // Fallback to simple welcome
+        const welcomeNotif = {
+          id: `welcome-${Date.now()}`,
+          title: 'Welcome Back!',
+          message: `Ready to continue learning, ${displayName}?`,
+          type: 'welcome',
+          notification_type: 'welcome',
+          created_at: new Date().toISOString()
+        };
+        
+        setTimeout(() => {
+          setSlideNotifQueue(prev => {
+            if (!prev.some(n => n.type === 'welcome')) {
+              return [...prev, welcomeNotif];
+            }
+            return prev;
+          });
+        }, 1500);
+      }
+    } catch (error) {
+      // Fallback to simple welcome on error
+      const welcomeNotif = {
+        id: `welcome-${Date.now()}`,
+        title: 'Welcome Back!',
+        message: `Ready to continue learning, ${displayName}?`,
+        type: 'welcome',
+        notification_type: 'welcome',
+        created_at: new Date().toISOString()
+      };
+      
+      setTimeout(() => {
+        setSlideNotifQueue(prev => {
+          if (!prev.some(n => n.type === 'welcome')) {
+            return [...prev, welcomeNotif];
+          }
+          return prev;
+        });
+      }, 1500);
+    }
+  };
 
   const loadUserStats = async () => {
     try {
@@ -697,7 +828,7 @@ const Dashboard = () => {
       {slideNotifQueue.length > 0 && (
         <SlideNotification
           notification={slideNotifQueue[0]}
-          onDismiss={() => removeSlideNotification(slideNotifQueue[0].id)}
+          onClose={() => removeSlideNotification(slideNotifQueue[0].id)}
         />
       )}
       

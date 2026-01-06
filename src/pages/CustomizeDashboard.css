@@ -355,6 +355,29 @@
   color: var(--accent);
 }
 
+.cd-layout-actions {
+  display: flex;
+  align-items: center;
+}
+
+.cd-layout-reset-btn {
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cd-layout-reset-btn:hover {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
 .cd-layout-delete-btn {
   padding: 8px 12px;
   background: transparent;
