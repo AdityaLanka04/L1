@@ -13,6 +13,7 @@ from .intelligent_orchestrator import IntelligentOrchestrator, create_intelligen
 from .react_agent import ReActAgent, create_react_agent
 from .conversion_agent import ConversionAgent, create_conversion_agent, ConversionAction
 from .search_hub_agent import SearchHubAgent, create_search_hub_agent, SearchHubAction
+from .master_agent import MasterAgent, create_master_agent, MasterAction
 from .memory import MemoryManager, get_memory_manager, initialize_memory_manager
 
 __all__ = [
@@ -62,6 +63,10 @@ __all__ = [
     'SearchHubAgent',
     'create_search_hub_agent',
     'SearchHubAction',
+    # Master Agent
+    'MasterAgent',
+    'create_master_agent',
+    'MasterAction',
     # ReAct
     'ReActAgent',
     'create_react_agent',

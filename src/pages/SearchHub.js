@@ -132,7 +132,9 @@ const SearchHub = () => {
   useEffect(() => {
     // Close autocomplete when clicking outside
     const handleClickOutside = (e) => {
-      if (searchInputRef.current && !searchInputRef.current.closest('form').contains(e.target)) {
+      // Check if click is inside the search-box-wrapper (which contains both form and dropdown)
+      const searchWrapper = searchInputRef.current?.closest('.search-box-wrapper');
+      if (searchWrapper && !searchWrapper.contains(e.target)) {
         setShowAutocomplete(false);
         setShowSuggestions(false);
         // Scroll back to top when clicking away

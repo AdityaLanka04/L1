@@ -424,6 +424,11 @@ Provide a helpful, educational response:"""
         """Build context section of prompt"""
         sections = []
         
+        # Session history summary (cross-session memory)
+        session_summary = context.get("session_history_summary", "")
+        if session_summary:
+            sections.append(f"Memory from previous sessions: {session_summary}")
+        
         # Recent conversation
         history = context.get("conversation_history", [])[-3:]
         if history:
@@ -532,7 +537,7 @@ class ChatAgent(BaseAgent):
     # ==================== Graph Nodes ====================
     
     async def _load_memory_context(self, state: ChatAgentState) -> ChatAgentState:
-        """Load context from unified memory system"""
+        """Load context from unified memory system including cross-session history"""
         user_id = state.get("user_id")
         session_id = state.get("session_id", "default")
         query = state.get("user_input", "")
@@ -541,6 +546,8 @@ class ChatAgent(BaseAgent):
         
         if self.memory_manager:
             try:
+                logger.info(f"🧠 Loading memory context for user {user_id}, session {session_id}")
+                
                 context = await self.memory_manager.get_context_for_agent(
                     user_id=user_id,
                     agent_type="chat",
@@ -554,12 +561,22 @@ class ChatAgent(BaseAgent):
                 state["related_concepts"] = context.get("topics_of_interest", [])
                 state["knowledge_gaps"] = context.get("struggled_concepts", [])
                 
-                logger.debug(f"Loaded memory context for user {user_id}")
+                # Store session history summary for cross-session context
+                state["_session_history_summary"] = context.get("session_history_summary", "")
+                state["_has_previous_sessions"] = context.get("has_previous_sessions", False)
+                
+                logger.info(f"✅ Memory loaded: {len(state['conversation_history'])} conversations")
+                logger.info(f"   Session history: {state['_session_history_summary'][:100] if state['_session_history_summary'] else 'None'}")
+                logger.info(f"   Has previous sessions: {state['_has_previous_sessions']}")
                 
             except Exception as e:
-                logger.error(f"Memory load failed: {e}")
+                logger.error(f"❌ Memory load failed: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
                 state["memory_context"] = {}
                 state["errors"] = state.get("errors", []) + [f"Memory load: {str(e)}"]
+        else:
+            logger.warning("⚠️ No memory manager available")
         
         return state
     
@@ -692,7 +709,9 @@ class ChatAgent(BaseAgent):
             "conversation_history": state.get("conversation_history", []),
             "user_preferences": state.get("user_preferences", {}),
             "topics_of_interest": state.get("related_concepts", []),
-            "struggled_concepts": state.get("knowledge_gaps", [])
+            "struggled_concepts": state.get("knowledge_gaps", []),
+            "session_history_summary": state.get("_session_history_summary", ""),
+            "has_previous_sessions": state.get("_has_previous_sessions", False)
         }
         
         response = self.generator.generate(
@@ -915,6 +934,8 @@ Return ONLY a JSON array of strings, nothing else:
             "learning_actions": state.get("learning_actions", []),
             "reflection_improved": state.get("_reflection_improved", False),
             "execution_path": state.get("execution_path", []),
+            "has_previous_sessions": state.get("_has_previous_sessions", False),
+            "session_history_summary": state.get("_session_history_summary", ""),
             "timestamp": datetime.utcnow().isoformat()
         }
         

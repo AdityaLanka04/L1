@@ -1129,7 +1129,7 @@ const Dashboard = () => {
         )}
 
         {getWidgetConfig('learning-hub') && (
-        <div className="ds-card ds-templates" onClick={navigateToLearningReview} style={getWidgetStyle('learning-hub')}>
+        <div className="ds-card ds-templates" style={getWidgetStyle('learning-hub')}>
           <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('learning-hub'), 0.1)} 0%, transparent 70%)` }}></div>
           <div className="ds-templates-content">
             <h3 className="ds-templates-title" style={{ color: getWidgetColor('learning-hub') }}>Learning Hub</h3>
@@ -1137,19 +1137,19 @@ const Dashboard = () => {
               Comprehensive tools to accelerate your learning journey.
             </p>
             <div className="ds-learning-hub-list">
-              <div className="ds-learning-hub-item">
+              <div className="ds-learning-hub-item" onClick={() => navigate('/knowledge-roadmap')} style={{ cursor: 'pointer' }}>
                 <span className="ds-learning-hub-name">Knowledge Roadmap</span>
                 <span className="ds-learning-hub-desc">Build interactive concept maps</span>
               </div>
-              <div className="ds-learning-hub-item">
+              <div className="ds-learning-hub-item" onClick={() => navigate('/question-bank')} style={{ cursor: 'pointer' }}>
                 <span className="ds-learning-hub-name">Question Bank</span>
                 <span className="ds-learning-hub-desc">Generate custom practice questions</span>
               </div>
-              <div className="ds-learning-hub-item">
+              <div className="ds-learning-hub-item" onClick={() => navigate('/slide-explorer')} style={{ cursor: 'pointer' }}>
                 <span className="ds-learning-hub-name">Slide Explorer</span>
                 <span className="ds-learning-hub-desc">AI-powered slide analysis</span>
               </div>
-              <div className="ds-learning-hub-item">
+              <div className="ds-learning-hub-item" onClick={() => navigate('/study-insights')} style={{ cursor: 'pointer' }}>
                 <span className="ds-learning-hub-name">Statistics</span>
                 <span className="ds-learning-hub-desc">Track learning progress metrics</span>
               </div>

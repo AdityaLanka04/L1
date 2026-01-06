@@ -396,27 +396,57 @@ class UnifiedMemory:
             "topics_of_interest": [],
             "struggled_concepts": [],
             "strong_concepts": [],
-            "suggested_focus": []
+            "suggested_focus": [],
+            
+            # Cross-session memory summary
+            "session_history_summary": ""
         }
+        
+        # 0. Load memories from persistent storage if not already loaded
+        # This ensures new sessions have access to old session memories
+        if user_id not in self._short_term or len(self._short_term.get(user_id, [])) == 0:
+            await self.load_from_graph(user_id)
         
         # 1. Get working context (current session)
         if session_id:
             context["working_context"] = self.get_working_context(session_id) or {}
         
-        # 2. Get recent conversations
+        # 2. Get recent conversations (including from previous sessions)
         recent_convos = await self.recall(
             user_id=user_id,
             memory_types=[MemoryType.CONVERSATION],
-            limit=5
+            limit=10  # Increased to get more cross-session context
         )
         context["recent_conversations"] = [
             {
                 "user": m.metadata.get("user_message", ""),
                 "assistant": m.metadata.get("ai_response", ""),
-                "topics": m.metadata.get("topics", [])
+                "topics": m.metadata.get("topics", []),
+                "session_id": m.metadata.get("session_id", ""),
+                "timestamp": m.created_at.isoformat() if hasattr(m, 'created_at') else ""
             }
             for m in recent_convos
         ]
+        
+        # 3. Build session history summary for cross-session context
+        if recent_convos:
+            session_topics = set()
+            recent_questions = []
+            for m in recent_convos:
+                session_topics.update(m.metadata.get("topics", []))
+                user_msg = m.metadata.get("user_message", "")
+                if user_msg and len(recent_questions) < 5:
+                    recent_questions.append(user_msg[:100])
+            
+            summary_parts = []
+            if recent_questions:
+                summary_parts.append(f"Recent questions you asked: {'; '.join(recent_questions[:3])}")
+            if session_topics:
+                summary_parts.append(f"Topics discussed: {', '.join(list(session_topics)[:10])}")
+            
+            context["session_history_summary"] = " | ".join(summary_parts) if summary_parts else ""
+            
+            logger.info(f"📝 Built session history summary with {len(recent_convos)} conversations, {len(session_topics)} topics")
         
         # 3. Get relevant memories based on query
         relevant = await self.recall(
@@ -528,45 +558,134 @@ class UnifiedMemory:
             logger.error(f"Failed to persist memory to graph: {e}")
     
     async def load_from_graph(self, user_id: str, limit: int = 100):
-        """Load memories from knowledge graph into short-term memory"""
-        if not self.knowledge_graph:
-            return
+        """Load memories from knowledge graph and database into short-term memory"""
+        logger.info(f"🧠 Loading memories for user {user_id} from persistent storage...")
         
-        try:
-            query = """
-            MATCH (u:User {user_id: $user_id})-[:HAS_MEMORY]->(m:Memory)
-            OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
-            RETURN m, collect(t.name) as tags
-            ORDER BY m.created_at DESC
-            LIMIT $limit
-            """
-            
-            async with self.knowledge_graph.session() as session:
-                result = await session.run(query, {
-                    "user_id": int(user_id) if user_id.isdigit() else 0,
-                    "limit": limit
-                })
+        # First try to load from knowledge graph
+        if self.knowledge_graph:
+            try:
+                query = """
+                MATCH (u:User {user_id: $user_id})-[:HAS_MEMORY]->(m:Memory)
+                OPTIONAL MATCH (m)-[:TAGGED_WITH]->(t:Tag)
+                RETURN m, collect(t.name) as tags
+                ORDER BY m.created_at DESC
+                LIMIT $limit
+                """
                 
-                records = await result.data()
+                async with self.knowledge_graph.session() as session:
+                    result = await session.run(query, {
+                        "user_id": int(user_id) if user_id.isdigit() else 0,
+                        "limit": limit
+                    })
+                    
+                    records = await result.data()
+                    
+                    for record in records:
+                        m = record["m"]
+                        entry = MemoryEntry(
+                            id=m["id"],
+                            user_id=user_id,
+                            memory_type=MemoryType(m["type"]),
+                            content=m["content"],
+                            importance=m["importance"],
+                            source_agent=m.get("source_agent", ""),
+                            tags=record["tags"],
+                            created_at=datetime.fromisoformat(str(m["created_at"]).replace("Z", ""))
+                        )
+                        self._short_term[user_id].append(entry)
+                    
+                    logger.info(f"✅ Loaded {len(records)} memories from graph for user {user_id}")
+                    
+            except Exception as e:
+                logger.error(f"❌ Failed to load memories from graph: {e}")
+        
+        # Also load from database ConversationMemory table
+        if self.db_session_factory:
+            try:
+                from models import ConversationMemory, ChatMessage, ChatSession
                 
-                for record in records:
-                    m = record["m"]
-                    entry = MemoryEntry(
-                        id=m["id"],
-                        user_id=user_id,
-                        memory_type=MemoryType(m["type"]),
-                        content=m["content"],
-                        importance=m["importance"],
-                        source_agent=m.get("source_agent", ""),
-                        tags=record["tags"],
-                        created_at=datetime.fromisoformat(str(m["created_at"]).replace("Z", ""))
-                    )
-                    self._short_term[user_id].append(entry)
-                
-                logger.info(f"Loaded {len(records)} memories for user {user_id}")
-                
-        except Exception as e:
-            logger.error(f"Failed to load memories from graph: {e}")
+                db = self.db_session_factory()
+                try:
+                    user_id_int = int(user_id) if user_id.isdigit() else 0
+                    
+                    # Load from ConversationMemory table
+                    memories = db.query(ConversationMemory).filter(
+                        ConversationMemory.user_id == user_id_int
+                    ).order_by(ConversationMemory.created_at.desc()).limit(limit).all()
+                    
+                    logger.info(f"📚 Found {len(memories)} ConversationMemory records for user {user_id}")
+                    
+                    for mem in memories:
+                        # Handle topic_tags which might be double-encoded as JSON string
+                        topics = mem.topic_tags
+                        if isinstance(topics, str):
+                            try:
+                                topics = json.loads(topics)
+                            except:
+                                topics = []
+                        elif topics is None:
+                            topics = []
+                        
+                        entry = MemoryEntry(
+                            id=f"db_conv_{mem.id}",
+                            user_id=user_id,
+                            memory_type=MemoryType.CONVERSATION,
+                            content=f"User: {mem.question}\nAssistant: {mem.answer}",
+                            metadata={
+                                "user_message": mem.question,
+                                "ai_response": mem.answer,
+                                "session_id": str(mem.session_id) if mem.session_id else "",
+                                "topics": topics if isinstance(topics, list) else [],
+                                "question_type": mem.question_type,
+                                "emotional_context": mem.emotional_context
+                            },
+                            importance=0.5,
+                            source_agent="chat",
+                            tags=topics if isinstance(topics, list) else [],
+                            created_at=mem.created_at or datetime.utcnow()
+                        )
+                        # Avoid duplicates
+                        if not any(e.id == entry.id for e in self._short_term[user_id]):
+                            self._short_term[user_id].append(entry)
+                    
+                    # Also load recent ChatMessages for more context
+                    chat_messages = db.query(ChatMessage).filter(
+                        ChatMessage.user_id == user_id_int
+                    ).order_by(ChatMessage.timestamp.desc()).limit(limit).all()
+                    
+                    logger.info(f"💬 Found {len(chat_messages)} ChatMessage records for user {user_id}")
+                    
+                    for msg in chat_messages:
+                        entry = MemoryEntry(
+                            id=f"db_chat_{msg.id}",
+                            user_id=user_id,
+                            memory_type=MemoryType.CONVERSATION,
+                            content=f"User: {msg.user_message}\nAssistant: {msg.ai_response}",
+                            metadata={
+                                "user_message": msg.user_message,
+                                "ai_response": msg.ai_response,
+                                "session_id": str(msg.chat_session_id) if msg.chat_session_id else "",
+                                "topics": []
+                            },
+                            importance=0.5,
+                            source_agent="chat",
+                            tags=[],
+                            created_at=msg.timestamp or datetime.utcnow()
+                        )
+                        # Avoid duplicates
+                        if not any(e.id == entry.id for e in self._short_term[user_id]):
+                            self._short_term[user_id].append(entry)
+                    
+                    total_loaded = len(self._short_term[user_id])
+                    logger.info(f"✅ Total memories loaded for user {user_id}: {total_loaded}")
+                    
+                finally:
+                    db.close()
+                    
+            except Exception as e:
+                logger.error(f"❌ Failed to load memories from database: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
     
     # ==================== Memory Maintenance ====================
     

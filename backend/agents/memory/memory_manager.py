@@ -51,7 +51,14 @@ class MemoryManager:
         """
         Get context tailored for a specific agent type.
         This is the main method agents should use.
+        
+        Ensures cross-session memory persistence by loading from
+        persistent storage if needed.
         """
+        # Ensure user memories are loaded from persistent storage
+        # This is critical for new sessions to have memory of old sessions
+        await self.load_user_memories(user_id)
+        
         # Build base context
         base_context = await self.memory.build_context(
             user_id=user_id,
@@ -68,7 +75,8 @@ class MemoryManager:
         context = {
             **base_context,
             "agent_type": agent_type,
-            "agent_context": agent_context
+            "agent_context": agent_context,
+            "has_previous_sessions": len(base_context.get("recent_conversations", [])) > 0
         }
         
         return context
@@ -180,7 +188,8 @@ class MemoryManager:
         agent_type: str = "chat",
         topics: List[str] = None
     ):
-        """Store a conversation exchange"""
+        """Store a conversation exchange in memory and database"""
+        # Store in unified memory (in-memory + knowledge graph)
         await self.memory.store_conversation(
             user_id=user_id,
             user_message=user_message,
@@ -188,6 +197,36 @@ class MemoryManager:
             session_id=session_id,
             topics=topics
         )
+        
+        # Also persist to database ConversationMemory table for cross-session retrieval
+        if self.memory.db_session_factory:
+            try:
+                from models import ConversationMemory
+                
+                db = self.memory.db_session_factory()
+                try:
+                    user_id_int = int(user_id) if user_id.isdigit() else 0
+                    session_id_int = int(session_id.split('_')[-1]) if session_id and '_' in session_id else None
+                    
+                    conv_memory = ConversationMemory(
+                        user_id=user_id_int,
+                        session_id=session_id_int,
+                        question=user_message,
+                        answer=ai_response,
+                        topic_tags=topics or [],
+                        question_type="general",
+                        emotional_context=None
+                    )
+                    db.add(conv_memory)
+                    db.commit()
+                    logger.debug(f"Persisted conversation to database for user {user_id}")
+                except Exception as e:
+                    db.rollback()
+                    logger.error(f"Failed to persist conversation to database: {e}")
+                finally:
+                    db.close()
+            except Exception as e:
+                logger.error(f"Database persistence error: {e}")
         
         # Update working context
         self.memory.set_working_context(session_id, "last_exchange", {
@@ -409,6 +448,64 @@ class MemoryManager:
             "memory_stats": self.get_memory_stats(user_id)
         }
     
+    async def get_cross_session_summary(self, user_id: str, limit: int = 20) -> Dict[str, Any]:
+        """
+        Get a summary of previous sessions for cross-session context.
+        This is used to give new sessions memory of old sessions.
+        """
+        # Ensure memories are loaded
+        await self.load_user_memories(user_id)
+        
+        # Get recent conversations across all sessions
+        conversations = await self.memory.recall(
+            user_id=user_id,
+            memory_types=[MemoryType.CONVERSATION],
+            limit=limit
+        )
+        
+        # Extract unique topics discussed
+        all_topics = set()
+        session_ids = set()
+        recent_questions = []
+        
+        for conv in conversations:
+            topics = conv.metadata.get("topics", [])
+            all_topics.update(topics)
+            
+            session_id = conv.metadata.get("session_id", "")
+            if session_id:
+                session_ids.add(session_id)
+            
+            user_msg = conv.metadata.get("user_message", "")
+            if user_msg and len(recent_questions) < 5:
+                recent_questions.append(user_msg[:100])
+        
+        # Get struggled concepts
+        struggled = await self.memory.recall(
+            user_id=user_id,
+            memory_types=[MemoryType.CONCEPT_STRUGGLED],
+            limit=10
+        )
+        struggled_concepts = [m.metadata.get("concept", "") for m in struggled if m.metadata.get("concept")]
+        
+        # Get learned concepts
+        learned = await self.memory.recall(
+            user_id=user_id,
+            memory_types=[MemoryType.CONCEPT_LEARNED],
+            limit=10
+        )
+        learned_concepts = [m.metadata.get("concept", "") for m in learned if m.metadata.get("concept")]
+        
+        return {
+            "total_conversations": len(conversations),
+            "unique_sessions": len(session_ids),
+            "topics_discussed": list(all_topics)[:15],
+            "recent_questions": recent_questions,
+            "struggled_concepts": struggled_concepts[:5],
+            "learned_concepts": learned_concepts[:5],
+            "has_history": len(conversations) > 0
+        }
+    
     # ==================== Maintenance ====================
     
     async def consolidate_memories(self, user_id: str):
@@ -416,8 +513,15 @@ class MemoryManager:
         await self.memory.consolidate(user_id)
     
     async def load_user_memories(self, user_id: str):
-        """Load user memories from persistent storage"""
+        """Load user memories from persistent storage (graph + database)"""
+        # Check if memories are already loaded for this user
+        existing_count = len(self.memory._short_term.get(user_id, []))
+        if existing_count > 0:
+            logger.debug(f"User {user_id} already has {existing_count} memories loaded")
+            return
+        
         await self.memory.load_from_graph(user_id)
+        logger.info(f"Loaded memories for user {user_id} from persistent storage")
 
 
 # ==================== Singleton Access ====================

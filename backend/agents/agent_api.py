@@ -144,6 +144,7 @@ _quiz_agent: Optional[Any] = None
 _question_bank_agent: Optional[Any] = None
 _slide_explorer_agent: Optional[Any] = None
 _search_hub_agent: Optional[Any] = None
+_master_agent: Optional[Any] = None
 _knowledge_graph = None
 _db_session_factory = None
 _memory_manager = None
@@ -205,22 +206,40 @@ def get_search_hub_agent():
     return _search_hub_agent
 
 
+def get_master_agent():
+    """Get the master agent instance"""
+    if _master_agent is None:
+        raise HTTPException(status_code=503, detail="Master agent not initialized")
+    return _master_agent
+
+
 def get_memory():
     """Get the memory manager instance"""
     from .memory import get_memory_manager
     return get_memory_manager()
 
 
+def get_user_kg():
+    """Get the user knowledge graph instance"""
+    return _user_knowledge_graph
+
+
 # ==================== Initialization ====================
 
-async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, db_session_factory: Any = None):
+_user_knowledge_graph = None
+
+async def initialize_agent_system(
+    ai_client: Any, 
+    knowledge_graph: Any = None, 
+    db_session_factory: Any = None,
+    user_knowledge_graph: Any = None
+):
     """Initialize the intelligent agent system with unified memory"""
-    global _orchestrator, _chat_agent, _flashcard_agent, _note_agent, _quiz_agent, _question_bank_agent, _slide_explorer_agent, _conversion_agent, _search_hub_agent, _knowledge_graph, _db_session_factory, _memory_manager
-    
-    
+    global _orchestrator, _chat_agent, _flashcard_agent, _note_agent, _quiz_agent, _question_bank_agent, _slide_explorer_agent, _conversion_agent, _search_hub_agent, _master_agent, _knowledge_graph, _db_session_factory, _memory_manager, _user_knowledge_graph
     
     _knowledge_graph = knowledge_graph
     _db_session_factory = db_session_factory
+    _user_knowledge_graph = user_knowledge_graph
     
     # Initialize Memory Manager first (the brain above all agents)
     from .memory import initialize_memory_manager
@@ -285,13 +304,26 @@ async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, d
         db_session_factory=db_session_factory
     )
     
-    # Initialize the SearchHub Agent
+    # Initialize the Master Agent (Central Intelligence Hub) FIRST
+    # (SearchHub needs it for knowledge graph integration)
+    from .master_agent import create_master_agent
+    _master_agent = create_master_agent(
+        ai_client=ai_client,
+        knowledge_graph=knowledge_graph,
+        memory_manager=_memory_manager,
+        db_session_factory=db_session_factory,
+        user_knowledge_graph=user_knowledge_graph
+    )
+    
+    # Initialize the SearchHub Agent (with KG and Master Agent integration)
     from .search_hub_agent import create_search_hub_agent
     _search_hub_agent = create_search_hub_agent(
         ai_client=ai_client,
         knowledge_graph=knowledge_graph,
         memory_manager=_memory_manager,
-        db_session_factory=db_session_factory
+        db_session_factory=db_session_factory,
+        user_knowledge_graph=user_knowledge_graph,
+        master_agent=_master_agent
     )
     
     # Initialize orchestrator with memory manager
@@ -305,7 +337,8 @@ async def initialize_agent_system(ai_client: Any, knowledge_graph: Any = None, d
     logger.info("✅ Question Bank Agent initialized")
     logger.info("✅ Slide Explorer Agent initialized")
     logger.info("✅ Conversion Agent initialized")
-    logger.info("✅ SearchHub Agent initialized")
+    logger.info("✅ Master Agent initialized")
+    logger.info("✅ SearchHub Agent initialized (with KG integration)")
     logger.info("Agent system initialized")
     return _orchestrator
 
@@ -408,7 +441,8 @@ async def get_agent_status():
             "flashcard": _flashcard_agent is not None,
             "note": _note_agent is not None,
             "quiz": _quiz_agent is not None,
-            "conversion": _conversion_agent is not None
+            "conversion": _conversion_agent is not None,
+            "master": _master_agent is not None
         },
         "capabilities": [
             "react_reasoning",
@@ -418,10 +452,17 @@ async def get_agent_status():
             "knowledge_graph_integration",
             "quiz_generation",
             "adaptive_testing",
-            "content_conversion"
+            "content_conversion",
+            "user_context_aggregation",
+            "learning_insights",
+            "weakness_detection",
+            "personalized_recommendations",
+            "concept_mastery_tracking",
+            "learning_path_generation"
         ],
         "tools_available": len(_orchestrator.all_tools) if _orchestrator else 0,
         "knowledge_graph_connected": _knowledge_graph is not None,
+        "user_knowledge_graph_available": _user_knowledge_graph is not None,
         "timestamp": datetime.utcnow().isoformat()
     }
 
@@ -578,6 +619,554 @@ async def analyze_message(
         "requires_clarification": analysis.requires_clarification,
         "suggested_mode": analysis.suggested_mode.value
     }
+
+
+# ==================== Master Agent API Endpoints ====================
+
+class MasterAgentRequest(BaseModel):
+    """Request for the master agent"""
+    user_id: str
+    action: Optional[str] = None  # get_user_profile, get_weak_topics, get_strong_topics, get_learning_insights, get_recommendations, get_full_context
+    session_id: Optional[str] = None
+
+
+class MasterAgentResponse(BaseModel):
+    """Response from the master agent"""
+    success: bool
+    action: str
+    response: str
+    data: Optional[Dict[str, Any]] = None
+    weak_topics: Optional[List[str]] = None
+    strong_topics: Optional[List[str]] = None
+    recommendations: Optional[List[Dict[str, Any]]] = None
+    execution_time_ms: float = 0.0
+    metadata: Dict[str, Any] = {}
+
+
+@router.post("/master", response_model=MasterAgentResponse)
+async def invoke_master_agent(request: MasterAgentRequest):
+    """
+    Main endpoint for the Master Agent.
+    Aggregates context from all agents and provides comprehensive user insights.
+    """
+    import time
+    start_time = time.time()
+    
+    master_agent = get_master_agent()
+    
+    # Build initial state
+    state = {
+        "user_id": request.user_id,
+        "action": request.action,
+        "session_id": request.session_id or f"master_{request.user_id}_{datetime.utcnow().timestamp()}",
+        "user_input": request.action or "get_full_context",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    
+    try:
+        result = await master_agent.invoke(state)
+        execution_time = (time.time() - start_time) * 1000
+        
+        response_data = result.metadata.get("response_data", {})
+        
+        return MasterAgentResponse(
+            success=result.success,
+            action=response_data.get("action", request.action or "get_full_context"),
+            response=result.response,
+            data=response_data,
+            weak_topics=response_data.get("weak_topics") or response_data.get("analysis", {}).get("weak_topics"),
+            strong_topics=response_data.get("strong_topics") or response_data.get("analysis", {}).get("strong_topics"),
+            recommendations=response_data.get("recommendations"),
+            execution_time_ms=execution_time,
+            metadata=result.metadata
+        )
+        
+    except Exception as e:
+        logger.error(f"Master agent error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/master/profile/{user_id}")
+async def get_user_learning_profile(user_id: str):
+    """Get comprehensive user learning profile"""
+    import time
+    start_time = time.time()
+    
+    master_agent = get_master_agent()
+    
+    state = {
+        "user_id": user_id,
+        "action": "get_user_profile",
+        "user_input": "get my profile",
+        "session_id": f"profile_{user_id}_{datetime.utcnow().timestamp()}",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    
+    try:
+        result = await master_agent.invoke(state)
+        execution_time = (time.time() - start_time) * 1000
+        
+        return {
+            "success": result.success,
+            "profile": result.metadata.get("response_data", {}).get("profile", {}),
+            "response": result.response,
+            "execution_time_ms": execution_time
+        }
+    except Exception as e:
+        logger.error(f"Profile fetch error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/master/weak-topics/{user_id}")
+async def get_user_weak_topics(user_id: str):
+    """Get user's weak topics that need attention"""
+    import time
+    start_time = time.time()
+    
+    master_agent = get_master_agent()
+    
+    state = {
+        "user_id": user_id,
+        "action": "get_weak_topics",
+        "user_input": "what are my weak topics",
+        "session_id": f"weak_{user_id}_{datetime.utcnow().timestamp()}",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    
+    try:
+        result = await master_agent.invoke(state)
+        execution_time = (time.time() - start_time) * 1000
+        
+        response_data = result.metadata.get("response_data", {})
+        
+        return {
+            "success": result.success,
+            "weak_topics": response_data.get("analysis", {}).get("weak_topics", []),
+            "priority_topics": response_data.get("analysis", {}).get("priority_topics", []),
+            "suggested_actions": response_data.get("analysis", {}).get("suggested_actions", []),
+            "response": result.response,
+            "execution_time_ms": execution_time
+        }
+    except Exception as e:
+        logger.error(f"Weak topics fetch error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/master/strong-topics/{user_id}")
+async def get_user_strong_topics(user_id: str):
+    """Get user's strong topics"""
+    import time
+    start_time = time.time()
+    
+    master_agent = get_master_agent()
+    
+    state = {
+        "user_id": user_id,
+        "action": "get_strong_topics",
+        "user_input": "what are my strengths",
+        "session_id": f"strong_{user_id}_{datetime.utcnow().timestamp()}",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    
+    try:
+        result = await master_agent.invoke(state)
+        execution_time = (time.time() - start_time) * 1000
+        
+        response_data = result.metadata.get("response_data", {})
+        
+        return {
+            "success": result.success,
+            "strong_topics": response_data.get("analysis", {}).get("strong_topics", []),
+            "mastery_levels": response_data.get("analysis", {}).get("mastery_levels", {}),
+            "response": result.response,
+            "execution_time_ms": execution_time
+        }
+    except Exception as e:
+        logger.error(f"Strong topics fetch error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/master/insights/{user_id}")
+async def get_user_learning_insights(user_id: str):
+    """Get personalized learning insights"""
+    import time
+    start_time = time.time()
+    
+    master_agent = get_master_agent()
+    
+    state = {
+        "user_id": user_id,
+        "action": "get_learning_insights",
+        "user_input": "give me learning insights",
+        "session_id": f"insights_{user_id}_{datetime.utcnow().timestamp()}",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    
+    try:
+        result = await master_agent.invoke(state)
+        execution_time = (time.time() - start_time) * 1000
+        
+        response_data = result.metadata.get("response_data", {})
+        
+        return {
+            "success": result.success,
+            "insights": response_data.get("insights", []),
+            "ai_insights": response_data.get("ai_insights", ""),
+            "performance_summary": response_data.get("performance_summary", {}),
+            "response": result.response,
+            "execution_time_ms": execution_time
+        }
+    except Exception as e:
+        logger.error(f"Insights fetch error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/master/recommendations/{user_id}")
+async def get_user_recommendations(user_id: str):
+    """Get personalized study recommendations"""
+    import time
+    start_time = time.time()
+    
+    master_agent = get_master_agent()
+    
+    state = {
+        "user_id": user_id,
+        "action": "get_recommendations",
+        "user_input": "what should I study",
+        "session_id": f"rec_{user_id}_{datetime.utcnow().timestamp()}",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    
+    try:
+        result = await master_agent.invoke(state)
+        execution_time = (time.time() - start_time) * 1000
+        
+        response_data = result.metadata.get("response_data", {})
+        
+        return {
+            "success": result.success,
+            "recommendations": response_data.get("recommendations", []),
+            "priority_actions": response_data.get("priority_actions", []),
+            "response": result.response,
+            "execution_time_ms": execution_time
+        }
+    except Exception as e:
+        logger.error(f"Recommendations fetch error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/master/dashboard/{user_id}")
+async def get_user_dashboard(user_id: str):
+    """Get full learning dashboard data"""
+    import time
+    start_time = time.time()
+    
+    master_agent = get_master_agent()
+    
+    state = {
+        "user_id": user_id,
+        "action": "get_full_context",
+        "user_input": "show my dashboard",
+        "session_id": f"dashboard_{user_id}_{datetime.utcnow().timestamp()}",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    
+    try:
+        result = await master_agent.invoke(state)
+        execution_time = (time.time() - start_time) * 1000
+        
+        response_data = result.metadata.get("response_data", {})
+        
+        return {
+            "success": result.success,
+            "user_profile": response_data.get("user_profile", {}),
+            "learning_state": response_data.get("learning_state", {}),
+            "agent_contexts": response_data.get("agent_contexts", {}),
+            "performance": response_data.get("performance", {}),
+            "weak_topics": response_data.get("weak_topics", []),
+            "strong_topics": response_data.get("strong_topics", []),
+            "recommendations": response_data.get("recommendations", []),
+            "response": result.response,
+            "execution_time_ms": execution_time
+        }
+    except Exception as e:
+        logger.error(f"Dashboard fetch error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== Knowledge Graph API Endpoints ====================
+
+@router.get("/knowledge-graph/status")
+async def get_knowledge_graph_status():
+    """Get knowledge graph connection status"""
+    user_kg = get_user_kg()
+    return {
+        "connected": user_kg is not None and user_kg.neo4j is not None,
+        "neo4j_available": _knowledge_graph is not None
+    }
+
+
+@router.post("/knowledge-graph/user/{user_id}/initialize")
+async def initialize_user_in_kg(user_id: str, user_data: Dict[str, Any] = Body(None)):
+    """Initialize a user in the knowledge graph"""
+    user_kg = get_user_kg()
+    if not user_kg:
+        raise HTTPException(status_code=503, detail="Knowledge graph not available")
+    
+    try:
+        success = await user_kg.initialize_user(int(user_id), user_data)
+        return {"success": success, "user_id": user_id}
+    except Exception as e:
+        logger.error(f"User initialization error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/knowledge-graph/user/{user_id}/concept-interaction")
+async def record_concept_interaction(
+    user_id: str,
+    concept: str = Body(...),
+    correct: bool = Body(...),
+    source: str = Body("flashcard"),
+    difficulty: float = Body(0.5),
+    response_time_ms: int = Body(None)
+):
+    """Record a user's interaction with a concept"""
+    user_kg = get_user_kg()
+    if not user_kg:
+        raise HTTPException(status_code=503, detail="Knowledge graph not available")
+    
+    try:
+        mastery = await user_kg.record_concept_interaction(
+            user_id=int(user_id),
+            concept=concept,
+            correct=correct,
+            source=source,
+            difficulty=difficulty,
+            response_time_ms=response_time_ms
+        )
+        return mastery.to_dict()
+    except Exception as e:
+        logger.error(f"Concept interaction error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/knowledge-graph/user/{user_id}/mastery")
+async def get_user_concept_mastery(user_id: str, limit: int = Query(50)):
+    """Get all concept mastery data for a user"""
+    user_kg = get_user_kg()
+    if not user_kg:
+        raise HTTPException(status_code=503, detail="Knowledge graph not available")
+    
+    try:
+        masteries = await user_kg.get_all_concept_mastery(int(user_id), limit)
+        return {
+            "user_id": user_id,
+            "concepts": [m.to_dict() for m in masteries],
+            "total": len(masteries)
+        }
+    except Exception as e:
+        logger.error(f"Mastery fetch error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/knowledge-graph/user/{user_id}/weak-concepts")
+async def get_user_weak_concepts(
+    user_id: str, 
+    threshold: float = Query(0.5),
+    limit: int = Query(10)
+):
+    """Get concepts where user needs improvement"""
+    user_kg = get_user_kg()
+    if not user_kg:
+        raise HTTPException(status_code=503, detail="Knowledge graph not available")
+    
+    try:
+        weak = await user_kg.get_weak_concepts(int(user_id), threshold, limit)
+        return {
+            "user_id": user_id,
+            "weak_concepts": [m.to_dict() for m in weak],
+            "threshold": threshold
+        }
+    except Exception as e:
+        logger.error(f"Weak concepts fetch error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/knowledge-graph/user/{user_id}/strong-concepts")
+async def get_user_strong_concepts(
+    user_id: str, 
+    threshold: float = Query(0.7),
+    limit: int = Query(10)
+):
+    """Get concepts where user excels"""
+    user_kg = get_user_kg()
+    if not user_kg:
+        raise HTTPException(status_code=503, detail="Knowledge graph not available")
+    
+    try:
+        strong = await user_kg.get_strong_concepts(int(user_id), threshold, limit)
+        return {
+            "user_id": user_id,
+            "strong_concepts": [m.to_dict() for m in strong],
+            "threshold": threshold
+        }
+    except Exception as e:
+        logger.error(f"Strong concepts fetch error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/knowledge-graph/user/{user_id}/domain-mastery")
+async def get_user_domain_mastery(user_id: str):
+    """Get mastery breakdown by domain/subject"""
+    user_kg = get_user_kg()
+    if not user_kg:
+        raise HTTPException(status_code=503, detail="Knowledge graph not available")
+    
+    try:
+        domains = await user_kg.get_domain_mastery(int(user_id))
+        return {
+            "user_id": user_id,
+            "domains": domains
+        }
+    except Exception as e:
+        logger.error(f"Domain mastery fetch error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/knowledge-graph/user/{user_id}/learning-path/{topic}")
+async def get_user_learning_path(user_id: str, topic: str, max_concepts: int = Query(10)):
+    """Get personalized learning path for a topic"""
+    user_kg = get_user_kg()
+    if not user_kg:
+        raise HTTPException(status_code=503, detail="Knowledge graph not available")
+    
+    try:
+        path = await user_kg.get_learning_path(int(user_id), topic, max_concepts)
+        return {
+            "user_id": user_id,
+            "topic": path.topic,
+            "concepts": path.concepts,
+            "estimated_time_hours": path.estimated_time_hours,
+            "difficulty": path.difficulty,
+            "prerequisites_met": path.prerequisites_met,
+            "missing_prerequisites": path.missing_prerequisites
+        }
+    except Exception as e:
+        logger.error(f"Learning path fetch error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/knowledge-graph/user/{user_id}/knowledge-gaps")
+async def get_user_knowledge_gaps(user_id: str, limit: int = Query(10)):
+    """Find concepts user should learn based on current knowledge"""
+    user_kg = get_user_kg()
+    if not user_kg:
+        raise HTTPException(status_code=503, detail="Knowledge graph not available")
+    
+    try:
+        gaps = await user_kg.find_knowledge_gaps(int(user_id), limit)
+        return {
+            "user_id": user_id,
+            "knowledge_gaps": gaps
+        }
+    except Exception as e:
+        logger.error(f"Knowledge gaps fetch error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/knowledge-graph/user/{user_id}/analytics")
+async def get_user_learning_analytics(user_id: str, days: int = Query(30)):
+    """Get comprehensive learning analytics"""
+    user_kg = get_user_kg()
+    if not user_kg:
+        raise HTTPException(status_code=503, detail="Knowledge graph not available")
+    
+    try:
+        analytics = await user_kg.get_learning_analytics(int(user_id), days)
+        return {
+            "user_id": user_id,
+            "analytics": analytics
+        }
+    except Exception as e:
+        logger.error(f"Analytics fetch error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/knowledge-graph/user/{user_id}/recommended-topics")
+async def get_user_recommended_topics(user_id: str, limit: int = Query(5)):
+    """Get recommended topics based on learning progress"""
+    user_kg = get_user_kg()
+    if not user_kg:
+        raise HTTPException(status_code=503, detail="Knowledge graph not available")
+    
+    try:
+        topics = await user_kg.get_recommended_topics(int(user_id), limit)
+        return {
+            "user_id": user_id,
+            "recommended_topics": topics
+        }
+    except Exception as e:
+        logger.error(f"Recommended topics fetch error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/knowledge-graph/concept")
+async def add_concept(
+    concept: str = Body(...),
+    domain: str = Body(None),
+    description: str = Body(None),
+    difficulty: float = Body(0.5),
+    keywords: List[str] = Body(None),
+    prerequisites: List[str] = Body(None),
+    related_concepts: List[str] = Body(None),
+    topic: str = Body(None)
+):
+    """Add a concept with relationships to the knowledge graph"""
+    user_kg = get_user_kg()
+    if not user_kg:
+        raise HTTPException(status_code=503, detail="Knowledge graph not available")
+    
+    try:
+        success = await user_kg.add_concept_with_relationships(
+            concept=concept,
+            domain=domain,
+            description=description,
+            difficulty=difficulty,
+            keywords=keywords,
+            prerequisites=prerequisites,
+            related_concepts=related_concepts,
+            topic=topic
+        )
+        return {"success": success, "concept": concept}
+    except Exception as e:
+        logger.error(f"Add concept error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/knowledge-graph/concept/{concept}/related")
+async def get_related_concepts(
+    concept: str, 
+    user_id: str = Query(None),
+    limit: int = Query(10)
+):
+    """Get concepts related to a given concept"""
+    user_kg = get_user_kg()
+    if not user_kg:
+        raise HTTPException(status_code=503, detail="Knowledge graph not available")
+    
+    try:
+        related = await user_kg.get_related_concepts(
+            concept, 
+            int(user_id) if user_id else None,
+            limit
+        )
+        return {
+            "concept": concept,
+            "related_concepts": related
+        }
+    except Exception as e:
+        logger.error(f"Related concepts fetch error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ==================== Memory API Endpoints ====================
@@ -2715,7 +3304,7 @@ async def searchhub_invoke(request: SearchHubRequest):
             content_type=metadata.get("content_type"),
             content_title=response_data.get("title"),
             search_results=response_data.get("results"),
-            ai_response=response_data.get("explanation"),
+            ai_response=response_data.get("ai_response") or response_data.get("explanation"),
             suggestions=response_data.get("suggestions", []),
             action_buttons=response_data.get("action_buttons", []),
             execution_time_ms=execution_time,

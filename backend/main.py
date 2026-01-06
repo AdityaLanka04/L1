@@ -1216,6 +1216,8 @@ async def ask_ai_enhanced(
     db: Session = Depends(get_db)
 ):
     logger.info(f"🤖 Processing AI query for user {user_id}")
+    logger.info(f"   Question: {question[:50]}...")
+    logger.info(f"   Chat ID: {chat_id}")
     
     try:
         chat_id_int = int(chat_id) if chat_id else None
@@ -1295,93 +1297,165 @@ async def ask_ai_enhanced(
         
         logger.info(f"📊 Profile: {user_profile['primary_archetype']} | {user_profile['field_of_study']}")
         
-        conversation_history = []
-        if chat_id_int:
-            recent_messages = db.query(models.ChatMessage).filter(
-                models.ChatMessage.chat_session_id == chat_id_int
+        # ============================================================
+        # USE CHAT AGENT WITH CROSS-SESSION MEMORY
+        # ============================================================
+        response = None
+        metadata = {}
+        use_agent = True
+        
+        try:
+            from agents.agent_api import get_chat_agent
+            chat_agent = get_chat_agent()
+            
+            logger.info(f"🤖 Using Chat Agent for user {user.id}")
+            logger.info(f"   Memory manager available: {chat_agent.memory_manager is not None}")
+            
+            # Build session ID for memory tracking
+            session_id = f"chat_{user.id}_{chat_id_int or 'default'}"
+            
+            # Build state for the agent with user profile
+            state = {
+                "user_id": str(user.id),
+                "user_input": question,
+                "session_id": session_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "user_preferences": {
+                    "learning_style": user.learning_style or "mixed",
+                    "difficulty_level": user_profile.get("difficulty_level", "intermediate"),
+                    "field_of_study": user.field_of_study or "general",
+                    "first_name": user_profile.get("first_name", "Student"),
+                    "primary_archetype": user_profile.get("primary_archetype", ""),
+                    "brainwave_goal": user_profile.get("brainwave_goal", "")
+                }
+            }
+            
+            # Invoke the chat agent (this loads cross-session memory automatically)
+            result = await chat_agent.invoke(state)
+            
+            response = result.response
+            metadata = result.metadata
+            
+            logger.info(f"✅ Chat agent response generated")
+            logger.info(f"   Has previous sessions: {metadata.get('has_previous_sessions', False)}")
+            logger.info(f"   Session history: {metadata.get('session_history_summary', 'None')[:50] if metadata.get('session_history_summary') else 'None'}")
+            
+        except Exception as agent_error:
+            logger.warning(f"⚠️ Chat agent failed, falling back to legacy system: {agent_error}")
+            import traceback
+            logger.warning(traceback.format_exc())
+            use_agent = False
+        
+        # ============================================================
+        # FALLBACK TO LEGACY SYSTEM IF AGENT FAILS
+        # ============================================================
+        if not use_agent or response is None:
+            conversation_history = []
+            if chat_id_int:
+                recent_messages = db.query(models.ChatMessage).filter(
+                    models.ChatMessage.chat_session_id == chat_id_int
+                ).order_by(models.ChatMessage.timestamp.desc()).limit(10).all()
+                
+                for msg in reversed(recent_messages):
+                    conversation_history.append({
+                        'user_message': msg.user_message,
+                        'ai_response': msg.ai_response,
+                        'timestamp': msg.timestamp
+                    })
+            
+            # Also load messages from OTHER sessions for cross-session context
+            other_session_messages = db.query(models.ChatMessage).filter(
+                models.ChatMessage.user_id == user.id,
+                models.ChatMessage.chat_session_id != chat_id_int if chat_id_int else True
             ).order_by(models.ChatMessage.timestamp.desc()).limit(10).all()
             
-            for msg in reversed(recent_messages):
-                conversation_history.append({
+            cross_session_context = []
+            for msg in other_session_messages:
+                cross_session_context.append({
                     'user_message': msg.user_message,
                     'ai_response': msg.ai_response,
                     'timestamp': msg.timestamp
                 })
+            
+            learning_context = advanced_prompting.get_user_learning_context(db, user.id)
+            
+            topic_keywords = " ".join(advanced_prompting.extract_topic_keywords(question))
+            relevant_past_chats = advanced_prompting.get_relevant_past_conversations(
+                db, user.id, topic_keywords, limit=3
+            )
+            
+            rl_agent = get_rl_agent(db, user.id)
+            
+            context = {
+                'message_length': len(question),
+                'question_complexity': ConversationContextAnalyzer.calculate_complexity(question),
+                'archetype': user_profile.get('primary_archetype', ''),
+                'time_of_day': datetime.now(timezone.utc).hour,
+                'session_length': len(conversation_history),
+                'previous_ratings': [
+                    msg.get('userRating', 3) for msg in conversation_history
+                    if isinstance(msg, dict) and msg.get('userRating')
+                ],
+                'topic_keywords': advanced_prompting.extract_topic_keywords(question),
+                'sentiment': ConversationContextAnalyzer.analyze_sentiment(question),
+                'formality_level': 0.5
+            }
+            
+            state = rl_agent.encode_state(context)
+            response_adjustments = rl_agent.get_response_adjustment()
+            
+            logger.info(f"🧠 Neural adjustments: {response_adjustments}")
+            
+            # Add cross-session context to conversation history
+            if cross_session_context:
+                conversation_history = cross_session_context[:5] + conversation_history
+            
+            response = await advanced_prompting.generate_enhanced_ai_response(
+                question,
+                user_profile,
+                learning_context,
+                conversation_history,
+                relevant_past_chats,
+                db,
+                call_ai,
+                GROQ_MODEL
+            )
+            
+            known_mistake = rl_agent.check_for_known_mistakes(response)
+            if known_mistake:
+                logger.info(f" Correcting known mistake")
+                response = known_mistake
+            
+            action = rl_agent.network.predict(state)
+            next_state = rl_agent.encode_state({**context, 'session_length': len(conversation_history) + 1})
+            rl_agent.remember(state, action, 0.0, next_state)
         
-        learning_context = advanced_prompting.get_user_learning_context(db, user.id)
-        
-        topic_keywords = " ".join(advanced_prompting.extract_topic_keywords(question))
-        relevant_past_chats = advanced_prompting.get_relevant_past_conversations(
-            db, user.id, topic_keywords, limit=3
-        )
-        
-        rl_agent = get_rl_agent(db, user.id)
-        
-        context = {
-            'message_length': len(question),
-            'question_complexity': ConversationContextAnalyzer.calculate_complexity(question),
-            'archetype': user_profile.get('primary_archetype', ''),
-            'time_of_day': datetime.now(timezone.utc).hour,
-            'session_length': len(conversation_history),
-            'previous_ratings': [
-                msg.get('userRating', 3) for msg in conversation_history
-                if isinstance(msg, dict) and msg.get('userRating')
-            ],
-            'topic_keywords': advanced_prompting.extract_topic_keywords(question),
-            'sentiment': ConversationContextAnalyzer.analyze_sentiment(question),
-            'formality_level': 0.5
-        }
-        
-        state = rl_agent.encode_state(context)
-        response_adjustments = rl_agent.get_response_adjustment()
-        
-        logger.info(f"🧠 Neural adjustments: {response_adjustments}")
-        
-        # Use unified call_ai function (Gemini primary, Groq fallback)
-        response = await advanced_prompting.generate_enhanced_ai_response(
-            question,
-            user_profile,
-            learning_context,
-            conversation_history,
-            relevant_past_chats,
-            db,
-            call_ai,  # Pass the unified AI function
-            GROQ_MODEL
-        )
-        
-        known_mistake = rl_agent.check_for_known_mistakes(response)
-        if known_mistake:
-            logger.info(f" Correcting known mistake")
-            response = known_mistake
-        
-        # All tracking (messages, activities, metrics, points) is handled by save_chat_message endpoint
-        # This endpoint ONLY generates the AI response
+        # Save conversation memory
+        topic_keywords = advanced_prompting.extract_topic_keywords(question)
+        advanced_prompting.save_conversation_memory(db, user.id, question, response, topic_keywords)
         
         topic = advanced_prompting.get_topic_from_question(question)
         
         db.commit()
-        
-        action = rl_agent.network.predict(state)
-        next_state = rl_agent.encode_state({**context, 'session_length': len(conversation_history) + 1})
-        rl_agent.remember(state, action, 0.0, next_state)
-        
-        advanced_prompting.save_conversation_memory(db, user.id, question, response, context['topic_keywords'])
         
         return {
             "answer": response,
             "ai_confidence": 0.92,
             "misconception_detected": False,
             "should_request_feedback": False,
-            "topics_discussed": [topic],
+            "topics_discussed": metadata.get("concepts_discussed", [topic]) if metadata else [topic],
             "query_type": "conversational_learning",
             "model_used": GROQ_MODEL,
             "ai_provider": "Groq",
             "archetype_used": user_profile.get('primary_archetype', 'None'),
             "questions_today": daily_metric.questions_answered,
-            "learning_context_used": bool(learning_context),
-            "relevant_past_chats": len(relevant_past_chats),
+            "learning_context_used": True,
+            "relevant_past_chats": len(metadata.get("suggested_questions", [])) if metadata else 0,
             "neural_network_active": True,
-            "response_adjustments": response_adjustments
+            "used_agent": use_agent,
+            "has_memory_context": metadata.get("has_previous_sessions", False) if metadata else False,
+            "chat_mode": metadata.get("chat_mode", "tutoring") if metadata else "tutoring",
+            "emotional_state": metadata.get("emotional_state", "neutral") if metadata else "neutral"
         }
         
     except HTTPException:
@@ -1406,7 +1480,7 @@ async def ask_ai_enhanced(
             "query_type": "error",
             "model_used": "error_handler",
             "ai_provider": "Groq",
-            "error_debug": str(e)  # Add error for debugging
+            "error_debug": str(e)
         }
     
 @app.post("/api/test_ai_simple")
@@ -1476,7 +1550,7 @@ async def ask_simple(
                 if recent_messages:
                     # Reverse to get chronological order
                     recent_messages = list(reversed(recent_messages))
-                    chat_history = "\n\nPrevious conversation:\n"
+                    chat_history = "\n\nCurrent conversation:\n"
                     for msg in recent_messages:
                         # Each message has both user_message and ai_response
                         chat_history += f"Student: {msg.user_message}\n"
@@ -1484,6 +1558,23 @@ async def ask_simple(
                     print(f"📜 Loaded {len(recent_messages)} previous message pairs for context")
             except Exception as e:
                 print(f" Error loading chat history: {str(e)}")
+        
+        # ============================================================
+        # LOAD CROSS-SESSION MEMORY FROM OTHER CHAT SESSIONS
+        # ============================================================
+        try:
+            other_messages = db.query(models.ChatMessage).filter(
+                models.ChatMessage.user_id == user.id,
+                models.ChatMessage.chat_session_id != chat_id_int if chat_id_int else True
+            ).order_by(models.ChatMessage.timestamp.desc()).limit(15).all()
+            
+            if other_messages:
+                chat_history += "\n\nFrom your previous conversations (memory):\n"
+                for msg in other_messages[:7]:
+                    chat_history += f"- You previously asked: {msg.user_message[:100]}...\n"
+                print(f"📜 Loaded {len(other_messages)} messages from previous sessions for cross-session memory")
+        except Exception as e:
+            print(f" Error loading cross-session history: {str(e)}")
         
         # Build personalized prompt
         first_name = user.first_name or "there"

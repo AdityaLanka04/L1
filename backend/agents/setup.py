@@ -28,21 +28,33 @@ async def setup_agent_system(
     from agents.agent_api import initialize_agent_system
     
     knowledge_graph = None
+    user_knowledge_graph = None
     
     # Initialize knowledge graph if enabled
     if enable_knowledge_graph:
         try:
-            from knowledge_graph import get_knowledge_graph
+            from knowledge_graph import get_knowledge_graph, create_user_knowledge_graph
             knowledge_graph = await get_knowledge_graph()
             if knowledge_graph:
-                pass  # Knowledge graph connected
+                # Create enhanced user knowledge graph service
+                user_knowledge_graph = create_user_knowledge_graph(
+                    knowledge_graph, 
+                    db_session_factory
+                )
+                logger.info("✅ Knowledge Graph connected")
+                logger.info("✅ User Knowledge Graph service initialized")
             else:
                 logger.warning("Knowledge graph not available - running without it")
         except Exception as e:
             logger.warning(f" Knowledge graph initialization failed: {e}")
     
     # Initialize intelligent agent system
-    await initialize_agent_system(ai_client, knowledge_graph, db_session_factory)
+    await initialize_agent_system(
+        ai_client, 
+        knowledge_graph, 
+        db_session_factory,
+        user_knowledge_graph
+    )
     
     return True
 
