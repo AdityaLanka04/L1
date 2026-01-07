@@ -13,6 +13,8 @@ from .intelligent_orchestrator import IntelligentOrchestrator, create_intelligen
 from .react_agent import ReActAgent, create_react_agent
 from .conversion_agent import ConversionAgent, create_conversion_agent, ConversionAction
 from .search_hub_agent import SearchHubAgent, create_search_hub_agent, SearchHubAction
+from .search_hub_enhanced import EnhancedSearchHubAgent, create_enhanced_search_hub_agent
+from .nlp_engine import NLPEngine, get_nlp_engine, IntentMatch
 from .master_agent import MasterAgent, create_master_agent, MasterAction
 from .memory import MemoryManager, get_memory_manager, initialize_memory_manager
 
@@ -63,6 +65,13 @@ __all__ = [
     'SearchHubAgent',
     'create_search_hub_agent',
     'SearchHubAction',
+    # Enhanced SearchHub Agent (NLP-powered)
+    'EnhancedSearchHubAgent',
+    'create_enhanced_search_hub_agent',
+    # NLP Engine
+    'NLPEngine',
+    'get_nlp_engine',
+    'IntentMatch',
     # Master Agent
     'MasterAgent',
     'create_master_agent',

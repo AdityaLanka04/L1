@@ -353,9 +353,9 @@ async def initialize_agent_system(
         user_knowledge_graph=user_knowledge_graph
     )
     
-    # Initialize the SearchHub Agent (with KG and Master Agent integration)
-    from .search_hub_agent import create_search_hub_agent
-    _search_hub_agent = create_search_hub_agent(
+    # Initialize the Enhanced SearchHub Agent (NLP-powered, with KG and Master Agent integration)
+    from .search_hub_enhanced import create_enhanced_search_hub_agent
+    _search_hub_agent = create_enhanced_search_hub_agent(
         ai_client=ai_client,
         knowledge_graph=knowledge_graph,
         memory_manager=_memory_manager,
@@ -376,7 +376,7 @@ async def initialize_agent_system(
     logger.info("✅ Slide Explorer Agent initialized")
     logger.info("✅ Conversion Agent initialized")
     logger.info("✅ Master Agent initialized")
-    logger.info("✅ SearchHub Agent initialized (with KG integration)")
+    logger.info("✅ Enhanced SearchHub Agent initialized (NLP-powered with KG integration)")
     logger.info("Agent system initialized")
     return _orchestrator
 
@@ -3425,6 +3425,9 @@ async def searchhub_invoke(request: SearchHubRequest):
         metadata = result.metadata or {}
         response_data = metadata.get("response_data", {})
         
+        # Debug logging
+        logger.info(f"SearchHub result - success: {result.success}, navigate_to: {metadata.get('navigate_to')}, content_id: {metadata.get('content_id')}")
+        
         return SearchHubResponse(
             success=result.success,
             action=metadata.get("action", "unknown"),
@@ -3537,6 +3540,74 @@ async def list_searchhub_actions():
             {"action": "ask_ai", "example": "ask AI [question]", "description": "Quick AI question"}
         ]
     }
+
+
+@router.get("/searchhub/suggestions")
+async def get_searchhub_suggestions(
+    query: str = Query("", description="Partial query for autocomplete"),
+    user_id: str = Query("default", description="User ID for context-aware suggestions")
+):
+    """
+    Get smart autocomplete suggestions based on partial query and user context.
+    
+    The NLP engine provides context-aware suggestions based on:
+    - User's recent topics and actions
+    - Partial query matching
+    - Common command patterns
+    """
+    try:
+        agent = get_search_hub_agent()
+        
+        # Get suggestions from the NLP-powered agent
+        if hasattr(agent, 'get_suggestions'):
+            suggestions = agent.get_suggestions(query, user_id)
+        else:
+            # Fallback for non-enhanced agent
+            suggestions = [
+                f"create flashcards on {query}" if query else "create flashcards on [topic]",
+                f"explain {query}" if query else "explain [topic]",
+                f"quiz me on {query}" if query else "quiz me on [topic]",
+                "show my progress",
+                "what are my weak areas",
+                "what should I study next"
+            ]
+        
+        return {
+            "success": True,
+            "suggestions": suggestions,
+            "query": query
+        }
+    except Exception as e:
+        logger.error(f"Failed to get suggestions: {e}")
+        return {
+            "success": False,
+            "suggestions": [],
+            "error": str(e)
+        }
+
+
+@router.post("/searchhub/clear-context")
+async def clear_searchhub_context(user_id: str = Body(..., embed=True)):
+    """
+    Clear conversation context for a user.
+    Useful when starting a fresh session or resetting the assistant's memory.
+    """
+    try:
+        agent = get_search_hub_agent()
+        
+        if hasattr(agent, 'clear_context'):
+            agent.clear_context(user_id)
+        
+        return {
+            "success": True,
+            "message": f"Conversation context cleared for user {user_id}"
+        }
+    except Exception as e:
+        logger.error(f"Failed to clear context: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 
 @router.get("/test/searchhub")

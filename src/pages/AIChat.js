@@ -108,6 +108,7 @@ const AIChat = ({ sharedMode = false }) => {
   const messagesContainerRef = useRef(null);
   const fileInputRef = useRef(null);
   const isLoadingRef = useRef(false);
+  const justSentMessageRef = useRef(false);  // Flag to prevent reload after sending
 
   const [showFolderCreation, setShowFolderCreation] = useState(false);
   const [folderName, setFolderName] = useState('');
@@ -548,10 +549,15 @@ const AIChat = ({ sharedMode = false }) => {
         return;
       }
       isNewChat = true;
+      // Set flag BEFORE changing activeChatId to prevent useEffect from reloading
+      justSentMessageRef.current = true;
       // Set activeChatId immediately to prevent useEffect from clearing messages
       setActiveChatId(currentChatId);
       // Navigate with replace to update URL without triggering full reload
       navigate(`/ai-chat/${currentChatId}`, { replace: true });
+    } else {
+      // Also set flag for existing chats
+      justSentMessageRef.current = true;
     }
 
     const userMessage = {
@@ -604,7 +610,7 @@ const AIChat = ({ sharedMode = false }) => {
 
       const data = await response.json();
       
-      console.log(`✅ AI response received. Chat ID: ${data.chat_id || currentChatId}`);
+      console.log(`AI response received. Chat ID: ${data.chat_id || currentChatId}`);
       
       if (!data.answer) {
         throw new Error('No answer received from AI');
@@ -631,8 +637,12 @@ const AIChat = ({ sharedMode = false }) => {
         filesProcessed: data.files_processed || 0,
         fileSummaries: data.file_summaries || [],
         hasFileContext: data.has_file_context || false,
-        agentAnalysis: agentAnalysis
+        agentAnalysis: agentAnalysis,
+        actionButtons: data.action_buttons || [],  // NEW: Action buttons for navigation
+        contentFound: data.content_found || null   // NEW: Content search results
       };
+
+      console.log('AI Message with buttons:', aiMessage.actionButtons);
 
       setMessages(prev => [...prev, aiMessage]);
       clearAllFiles();
@@ -1530,14 +1540,24 @@ const AIChat = ({ sharedMode = false }) => {
   useEffect(() => {
     const numericChatId = chatId ? parseInt(chatId) : null;
     
+    console.log('useEffect triggered:', { numericChatId, activeChatId, justSent: justSentMessageRef.current });
+    
     if (numericChatId && !isNaN(numericChatId)) {
       // Only load messages if this is a different chat than what we have active
       // This prevents clearing messages when we just created a new chat
       if (activeChatId !== numericChatId) {
         setActiveChatId(numericChatId);
+        // Skip reload if we just sent a message (to preserve action buttons)
+        if (justSentMessageRef.current) {
+          console.log('Skipping reload - just sent message');
+          justSentMessageRef.current = false;
+          isLoadingRef.current = false;
+          return;
+        }
         // Only clear and reload if we're switching to a different existing chat
         // Don't clear if messages are already being added (new chat scenario)
         if (!isLoadingRef.current) {
+          console.log('Loading messages for chat:', numericChatId);
           isLoadingRef.current = true;
           setMessages([]);
           loadChatMessages(numericChatId);
@@ -1878,6 +1898,134 @@ const AIChat = ({ sharedMode = false }) => {
                               </svg>
                               <span>{file.file_name}</span>
                             </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Action Buttons for Navigation */}
+                      {message.type === 'ai' && message.actionButtons && message.actionButtons.length > 0 && (
+                        <div className="ac-action-buttons">
+                          {message.actionButtons.map((btn, index) => (
+                            <button
+                              key={index}
+                              className={`ac-action-btn ac-action-btn-${btn.icon || 'default'}`}
+                              onClick={async () => {
+                                const token = localStorage.getItem('token');
+                                const topic = btn.navigate_params?.topic || 'General';
+                                
+                                if (btn.action === 'create' && btn.content_type === 'note') {
+                                  // Create a new note first, then navigate
+                                  try {
+                                    const response = await fetch(`${API_URL}/create_note`, {
+                                      method: 'POST',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${token}`
+                                      },
+                                      body: JSON.stringify({
+                                        user_id: userName,
+                                        title: `Notes: ${topic}`,
+                                        content: `<h2>${topic}</h2><p>Start writing your notes here...</p>`
+                                      })
+                                    });
+                                    if (response.ok) {
+                                      const newNote = await response.json();
+                                      navigate(`/notes/editor/${newNote.id}`);
+                                    }
+                                  } catch (error) {
+                                    console.error('Failed to create note:', error);
+                                    navigate('/notes/my-notes');
+                                  }
+                                } else if (btn.action === 'create' && btn.content_type === 'flashcard_set') {
+                                  // Create flashcards via SearchHub agent
+                                  try {
+                                    const response = await fetch(`${API_URL}/agents/searchhub`, {
+                                      method: 'POST',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${token}`
+                                      },
+                                      body: JSON.stringify({
+                                        user_id: userName,
+                                        query: `create flashcards on ${topic}`,
+                                        session_id: `chat_${Date.now()}`
+                                      })
+                                    });
+                                    if (response.ok) {
+                                      const result = await response.json();
+                                      if (result.navigate_to) {
+                                        navigate(result.navigate_to);
+                                      } else if (result.content_id) {
+                                        navigate(`/flashcards?set_id=${result.content_id}`);
+                                      } else {
+                                        navigate('/flashcards');
+                                      }
+                                    }
+                                  } catch (error) {
+                                    console.error('Failed to create flashcards:', error);
+                                    navigate('/flashcards');
+                                  }
+                                } else if (btn.content_type === 'quiz') {
+                                  // Navigate to quiz with auto-start params
+                                  navigate(`/solo-quiz?autoStart=true&topic=${encodeURIComponent(topic)}&questionCount=10`);
+                                } else if (btn.navigate_to) {
+                                  // Handle regular navigation
+                                  if (btn.navigate_params && Object.keys(btn.navigate_params).length > 0) {
+                                    const params = new URLSearchParams();
+                                    Object.entries(btn.navigate_params).forEach(([key, value]) => {
+                                      if (Array.isArray(value)) {
+                                        params.set(key, JSON.stringify(value));
+                                      } else {
+                                        params.set(key, String(value));
+                                      }
+                                    });
+                                    navigate(`${btn.navigate_to}?${params.toString()}`);
+                                  } else {
+                                    navigate(btn.navigate_to);
+                                  }
+                                }
+                              }}
+                            >
+                              {btn.icon === 'note' && (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                  <polyline points="14 2 14 8 20 8"/>
+                                  <line x1="16" y1="13" x2="8" y2="13"/>
+                                  <line x1="16" y1="17" x2="8" y2="17"/>
+                                </svg>
+                              )}
+                              {btn.icon === 'flashcard' && (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                                  <line x1="8" y1="21" x2="16" y2="21"/>
+                                  <line x1="12" y1="17" x2="12" y2="21"/>
+                                </svg>
+                              )}
+                              {btn.icon === 'quiz' && (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <circle cx="12" cy="12" r="10"/>
+                                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
+                              )}
+                              {btn.icon === 'plus' && (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <line x1="12" y1="5" x2="12" y2="19"/>
+                                  <line x1="5" y1="12" x2="19" y2="12"/>
+                                </svg>
+                              )}
+                              {btn.icon === 'play' && (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <polygon points="5 3 19 12 5 21 5 3"/>
+                                </svg>
+                              )}
+                              {!btn.icon && (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <polyline points="9 18 15 12 9 6"/>
+                                </svg>
+                              )}
+                              <span>{btn.label}</span>
+                            </button>
                           ))}
                         </div>
                       )}
