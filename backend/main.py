@@ -104,6 +104,7 @@ from question_bank_enhanced import register_question_bank_api
 from proactive_ai_system import get_proactive_ai_engine
 from adaptive_learning_api import register_adaptive_learning_api
 from math_processor import process_math_in_response, enhance_display_math
+from comprehensive_chat_context import build_comprehensive_chat_context, build_enhanced_chat_prompt
 
 # LangGraph Agent System
 from agents.setup import register_agent_routes
@@ -1578,30 +1579,18 @@ async def ask_simple(
         
         # Build personalized prompt
         first_name = user.first_name or "there"
-        field_of_study = user.field_of_study or "your studies"
         
-        prompt = f"""You are a helpful AI tutor assisting {first_name}, who is studying {field_of_study}.
-
-Be warm, encouraging, and personalized. Address them by name when appropriate.
-Provide clear, educational responses tailored to their level.
-
-CRITICAL - Mathematical Notation Rules:
-- ONLY use LaTeX for actual mathematical formulas and equations
-- Use $...$ for inline math: "The derivative $f'(x) = 2x$ shows..."
-- Use $$...$$ for display equations on their own line
-- Regular text should NOT be in LaTeX - only the math parts
-- Examples:
-  * CORRECT: "The function $f(x) = e^x$ is its own derivative"
-  * WRONG: "$The function f(x) = e^x is its own derivative$"
-  * CORRECT: "For the series $$\\sum_{{n=1}}^{{\\infty}} \\frac{{1}}{{n^2}} = \\frac{{\\pi^2}}{{6}}$$"
-  * CORRECT: "When $x^2 + y^2 = r^2$, we have a circle of radius $r$"
-
-{chat_history}
-
-Current Question: {question}"""
+        # ============================================================
+        # BUILD COMPREHENSIVE CONTEXT (Notes, Flashcards, Quizzes, Analytics)
+        # ============================================================
+        comprehensive_context = await build_comprehensive_chat_context(db, user, question)
+        print(f"📊 Comprehensive context built: {len(comprehensive_context.get('recent_topics', []))} topics")
         
-        # Generate response using simple AI call
-        print(f"🔥 Calling AI for {first_name}...")
+        # Build the enhanced personalized prompt with full context
+        prompt = build_enhanced_chat_prompt(user, comprehensive_context, chat_history, question)
+        
+        # Generate response using AI call
+        print(f"🔥 Calling AI with comprehensive context for {first_name}...")
         response = call_ai(prompt, max_tokens=2000, temperature=0.7)
         print(f"🔥 AI response received: {len(response)} chars")
         

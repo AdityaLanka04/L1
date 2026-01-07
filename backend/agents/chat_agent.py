@@ -375,7 +375,20 @@ Encourage unconventional approaches. Connect disparate concepts."""
         reasoning_chain: List[Dict] = None
     ) -> str:
         """Generate an adaptive response"""
-        system_prompt = self._build_system_prompt(mode, style, emotional_state, context)
+        # Check if we have an enhanced system prompt with comprehensive context
+        enhanced_prompt = context.get("enhanced_system_prompt")
+        
+        if enhanced_prompt:
+            # Use the comprehensive system prompt
+            system_prompt = enhanced_prompt
+            # Add mode and emotion adaptations
+            system_prompt += f"\n\n## CURRENT INTERACTION MODE\n{self.MODE_PROMPTS.get(mode, self.MODE_PROMPTS[ChatMode.TUTORING])}"
+            system_prompt += f"\n\n## RESPONSE STYLE\n{self.STYLE_INSTRUCTIONS.get(style, '')}"
+            system_prompt += f"\n\n## EMOTIONAL ADAPTATION\n{self.EMOTION_ADAPTATIONS.get(emotional_state, '')}"
+        else:
+            # Fall back to standard prompt building
+            system_prompt = self._build_system_prompt(mode, style, emotional_state, context)
+        
         user_context = self._build_user_context(context, reasoning_chain)
         
         full_prompt = f"""{system_prompt}
@@ -384,12 +397,12 @@ Encourage unconventional approaches. Connect disparate concepts."""
 
 Student's message: {user_input}
 
-Provide a helpful, educational response:"""
+Provide a helpful, educational response. Be interactive and engaging. Reference their specific learning materials when relevant. If they're asking about a topic they struggle with, provide extra support. If it's a strength, challenge them further."""
         
         try:
             response = self.ai_client.generate(
                 full_prompt, 
-                max_tokens=1200, 
+                max_tokens=1500, 
                 temperature=0.7
             )
             return response.strip()
@@ -447,6 +460,38 @@ Provide a helpful, educational response:"""
         struggled = context.get("struggled_concepts", [])[:3]
         if struggled:
             sections.append(f"Areas needing attention: {', '.join(struggled)}")
+        
+        # Add comprehensive context if available
+        user_strengths = context.get("user_strengths", [])
+        if user_strengths:
+            strength_list = [f"{s.get('topic', 'Unknown')} ({s.get('mastery', 0)}%)" for s in user_strengths[:3]]
+            sections.append(f"Student's strengths: {', '.join(strength_list)}")
+        
+        user_weaknesses = context.get("user_weaknesses", [])
+        if user_weaknesses:
+            weakness_list = [f"{w.get('topic', 'Unknown')} ({w.get('mastery', 0)}%)" for w in user_weaknesses[:3]]
+            sections.append(f"Areas to focus on: {', '.join(weakness_list)}")
+        
+        # Notes context
+        notes_ctx = context.get("notes_context", {})
+        if notes_ctx.get("relevant_notes"):
+            relevant = notes_ctx["relevant_notes"][:2]
+            notes_info = "\n".join([f"- {n.get('title', 'Note')}: {n.get('content_preview', '')[:150]}..." for n in relevant])
+            sections.append(f"Relevant notes the student has:\n{notes_info}")
+        
+        # Flashcard context
+        fc_ctx = context.get("flashcards_context", {})
+        if fc_ctx.get("struggling_cards"):
+            struggling = fc_ctx["struggling_cards"][:2]
+            fc_info = "\n".join([f"- {c.get('question', '')[:80]}... (accuracy: {c.get('accuracy', 0)}%)" for c in struggling])
+            sections.append(f"Flashcards they struggle with:\n{fc_info}")
+        
+        # Quiz context
+        quiz_ctx = context.get("quiz_context", {})
+        if quiz_ctx.get("weak_quiz_topics"):
+            weak_topics = quiz_ctx["weak_quiz_topics"][:3]
+            quiz_info = ", ".join([f"{t.get('topic', '')} ({t.get('avg_score', 0)}%)" for t in weak_topics])
+            sections.append(f"Quiz topics needing work: {quiz_info}")
         
         # Reasoning chain
         if reasoning:
@@ -705,14 +750,28 @@ class ChatAgent(BaseAgent):
         style = ResponseStyle(state.get("response_style", "conversational"))
         emotion = EmotionalState(state.get("emotional_state", "neutral"))
         
+        # Check if we have enhanced system prompt from comprehensive context
+        enhanced_prompt = state.get("enhanced_system_prompt")
+        
         context = {
             "conversation_history": state.get("conversation_history", []),
             "user_preferences": state.get("user_preferences", {}),
             "topics_of_interest": state.get("related_concepts", []),
             "struggled_concepts": state.get("knowledge_gaps", []),
             "session_history_summary": state.get("_session_history_summary", ""),
-            "has_previous_sessions": state.get("_has_previous_sessions", False)
+            "has_previous_sessions": state.get("_has_previous_sessions", False),
+            # Add comprehensive context data
+            "user_strengths": state.get("user_strengths", []),
+            "user_weaknesses": state.get("user_weaknesses", []),
+            "topics_needing_review": state.get("topics_needing_review", []),
+            "notes_context": state.get("notes_context", {}),
+            "flashcards_context": state.get("flashcards_context", {}),
+            "quiz_context": state.get("quiz_context", {}),
         }
+        
+        # Use enhanced prompt if available, otherwise use standard generation
+        if enhanced_prompt:
+            context["enhanced_system_prompt"] = enhanced_prompt
         
         response = self.generator.generate(
             user_input=user_input,

@@ -1150,8 +1150,8 @@ const Dashboard = () => {
                 <span className="ds-learning-hub-desc">AI-powered slide analysis</span>
               </div>
               <div className="ds-learning-hub-item" onClick={() => navigate('/study-insights')} style={{ cursor: 'pointer' }}>
-                <span className="ds-learning-hub-name">Statistics</span>
-                <span className="ds-learning-hub-desc">Track learning progress metrics</span>
+                <span className="ds-learning-hub-name">Insights</span>
+                <span className="ds-learning-hub-desc">AI insights into your learning patterns</span>
               </div>
             </div>
           </div>

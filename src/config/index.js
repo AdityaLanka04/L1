@@ -9,7 +9,7 @@
 export * from './api';
 
 // App constants
-export const APP_NAME = 'Brainwave';
+export const APP_NAME = 'Cerbyl';
 export const APP_VERSION = '1.0.0';
 
 // You can add more config files later and export them here
