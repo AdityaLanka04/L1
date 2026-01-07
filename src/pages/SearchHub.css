@@ -986,7 +986,6 @@
   width: 1.5rem;
   height: 1.5rem;
   color: var(--accent);
-  filter: drop-shadow(0 0 8px var(--accent));
 }
 
 .search-hub-page .section-title {
@@ -1494,7 +1493,6 @@
 
 .search-hub-page .ai-description-header svg {
   color: var(--accent);
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 40%, transparent));
   width: 20px;
   height: 20px;
 }
@@ -1584,7 +1582,6 @@
 
 .search-hub-page .login-modal-header svg {
   color: var(--accent);
-  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent) 50%, transparent));
 }
 
 .search-hub-page .login-modal-header h3 {
@@ -2105,7 +2102,6 @@
 
 .search-hub-page .create-option-card svg {
   color: var(--accent);
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
 }
 
 .search-hub-page .create-option-card h5 {

@@ -1075,7 +1075,6 @@
 /* Animated icon in archetype cards */
 [data-theme-mode="light"] .profile-archetype-card svg {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 30%, transparent));
 }
 
 [data-theme-mode="light"] .profile-archetype-card:hover svg {

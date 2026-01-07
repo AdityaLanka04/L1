@@ -588,7 +588,6 @@ body {
   font-size: 24px;
   font-weight: 800;
   color: var(--bg-primary);
-  box-shadow: 0 0 40px var(--glow), 0 0 80px color-mix(in srgb, var(--accent) 40%, transparent);
   transition: all 0.3s ease;
 }
 
@@ -641,7 +640,6 @@ body {
   letter-spacing: 1px;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   flex-shrink: 0;
 }
 
@@ -1669,8 +1667,7 @@ body {
   border-radius: 2px; 
   cursor: pointer; 
   border: none;
-  transition: all .2s cubic-bezier(0.4, 0, 0.2, 1); 
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .ds-heatmap-day:hover {

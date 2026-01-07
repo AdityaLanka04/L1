@@ -2126,7 +2126,6 @@
 
 .progress-ring-fill {
   stroke: var(--accent);
-  filter: drop-shadow(0 0 8px var(--accent));
 }
 
 .progress-value {

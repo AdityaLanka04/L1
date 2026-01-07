@@ -170,7 +170,6 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -58%);
-  filter: drop-shadow(0 4px 20px color-mix(in srgb, var(--accent) 30%, transparent));
 }
 
 .rg-brand-name {
