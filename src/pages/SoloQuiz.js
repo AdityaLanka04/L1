@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Target, Zap, TrendingUp, Play, Brain, Sparkles, Loader, AlertCircle, Lightbulb } from 'lucide-react';
+import { 
+  Play, Brain, Sparkles, Loader, AlertCircle, BarChart3,
+  BookOpen, Gauge, Cpu, Database, ArrowRight
+} from 'lucide-react';
 import './SoloQuiz.css';
 import quizAgentService from '../services/quizAgentService';
 
@@ -14,13 +17,10 @@ const SoloQuiz = () => {
   const [questionCount, setQuestionCount] = useState(10);
   const [questionTypes] = useState(['multiple_choice']);
   const [showCreateModal, setShowCreateModal] = useState(false);
-
   const [useAdaptive, setUseAdaptive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [recommendations, setRecommendations] = useState([]);
 
-  // Difficulty mix based on selected difficulty
   const getDifficultyMix = () => {
     switch (difficulty) {
       case 'easy': return { easy: 6, medium: 3, hard: 1 };
@@ -30,46 +30,27 @@ const SoloQuiz = () => {
     }
   };
 
-  // Load recommendations on mount
-  useEffect(() => {
-    const loadRecommendations = async () => {
-      if (username) {
-        try {
-          const response = await quizAgentService.getRecommendations(username);
-          setRecommendations(response.recommendations || []);
-        } catch (err) {
-                  }
-      }
-    };
-    loadRecommendations();
-  }, [username]);
-
-  // Handle autoStart from SearchHub
   useEffect(() => {
     const autoStartData = location.state;
-    
     if (autoStartData?.autoStart && autoStartData.topics?.length > 0) {
-            setSubject(autoStartData.topics[0]);
+      setSubject(autoStartData.topics[0]);
       setDifficulty(autoStartData.difficulty || 'medium');
       setQuestionCount(autoStartData.questionCount || 10);
-      
       setTimeout(() => {
         handleStartQuiz(null, autoStartData.topics[0], autoStartData.difficulty || 'medium', autoStartData.questionCount || 10);
       }, 500);
-      
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
 
   const handleStartQuiz = async (e, autoTopic = null, autoDifficulty = null, autoCount = null) => {
     if (e) e.preventDefault();
-    
     const topicToUse = autoTopic || subject;
     const difficultyToUse = autoDifficulty || difficulty;
     const countToUse = autoCount || questionCount;
     
     if (!topicToUse) {
-      setError('Please enter a subject');
+      setError('Please enter a subject to begin your quiz');
       return;
     }
 
@@ -78,7 +59,6 @@ const SoloQuiz = () => {
 
     try {
       let response;
-      
       if (useAdaptive) {
         response = await quizAgentService.generateAdaptiveQuiz({
           userId: username,
@@ -96,7 +76,6 @@ const SoloQuiz = () => {
       }
 
       if (response.success && response.questions?.length > 0) {
-        // Store quiz data in sessionStorage and navigate
         sessionStorage.setItem('quizData', JSON.stringify({
           questions: response.questions,
           topic: topicToUse,
@@ -105,10 +84,10 @@ const SoloQuiz = () => {
         }));
         navigate('/solo-quiz/session');
       } else {
-        setError('Failed to generate questions. Please try again.');
+        setError('Unable to generate questions. Please try a different topic.');
       }
     } catch (err) {
-            setError(err.message || 'Failed to create quiz');
+      setError(err.message || 'Failed to create quiz. Please try again.');
     } finally {
       setLoading(false);
       setShowCreateModal(false);
@@ -119,78 +98,42 @@ const SoloQuiz = () => {
     <div className="sq-page">
       <header className="sq-header">
         <div className="sq-header-left">
-          <h1 className="sq-logo">cerbyl</h1>
+          <h1 className="sq-logo" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <div className="sq-header-divider"></div>
           <span className="sq-subtitle">AI QUIZ</span>
         </div>
         <div className="sq-header-right">
-          <button className="sq-nav-btn" onClick={() => navigate('/quiz-hub')}>Quiz Hub</button>
-          <button className="sq-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
+          <button className="sq-nav-btn" onClick={() => navigate('/quiz-hub')}>
+            <BarChart3 size={16} />
+            Quiz Hub
+          </button>
+          <button className="sq-nav-btn" onClick={() => navigate('/dashboard')}>
+            Dashboard
+          </button>
         </div>
       </header>
 
       <div className="sq-content">
         <div className="sq-welcome">
           <div className="sq-welcome-inner">
-            <Brain size={48} className="sq-icon" />
-            <h2 className="sq-title">AI-Powered Quiz</h2>
+            <Brain size={56} className="sq-icon" />
+            <h2 className="sq-title">
+              <span className="sq-title-gradient">AI-Powered</span> Quiz
+            </h2>
             <p className="sq-desc">
-              Test your knowledge with intelligent quizzes generated by AI. Get personalized questions based on your learning progress.
+              Challenge yourself with intelligent quizzes generated by AI. 
+              Get personalized questions that adapt to your learning journey.
             </p>
           </div>
           <button className="sq-start-btn" onClick={() => setShowCreateModal(true)}>
-            <Sparkles size={20} />
+            <Sparkles size={22} />
             <span>Start New Quiz</span>
           </button>
         </div>
 
-        <div className="sq-features">
-          <div className="sq-feature-card">
-            <Brain size={32} />
-            <h3>AI Generated</h3>
-            <p>Questions crafted by advanced AI</p>
-          </div>
-          <div className="sq-feature-card">
-            <Target size={32} />
-            <h3>Adaptive</h3>
-            <p>Adjusts to your skill level</p>
-          </div>
-          <div className="sq-feature-card">
-            <Zap size={32} />
-            <h3>Instant Feedback</h3>
-            <p>See correct answers and explanations</p>
-          </div>
-          <div className="sq-feature-card">
-            <TrendingUp size={32} />
-            <h3>Track Progress</h3>
-            <p>Monitor your learning journey</p>
-          </div>
-        </div>
-
-        {/* Recommendations */}
-        {recommendations.length > 0 && (
-          <div className="sq-recommendations">
-            <h3><Lightbulb size={20} /> Recommended Topics</h3>
-            <div className="sq-rec-list">
-              {recommendations.slice(0, 3).map((rec, idx) => (
-                <div 
-                  key={idx} 
-                  className="sq-rec-item"
-                  onClick={() => {
-                    setSubject(rec.topic || rec.topics?.[0] || '');
-                    setShowCreateModal(true);
-                  }}
-                >
-                  <span className="sq-rec-topic">{rec.topic || rec.topics?.[0]}</span>
-                  <span className="sq-rec-reason">{rec.reason}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {error && (
           <div className="sq-error">
-            <AlertCircle size={20} />
+            <AlertCircle size={22} />
             <span>{error}</span>
             <button onClick={() => setError(null)}>×</button>
           </div>
@@ -201,13 +144,16 @@ const SoloQuiz = () => {
         <div className="sq-modal-overlay" onClick={() => setShowCreateModal(false)}>
           <div className="sq-modal" onClick={(e) => e.stopPropagation()}>
             <div className="sq-modal-header">
-              <h3><Brain size={20} /> Create AI Quiz</h3>
+              <h3><Brain size={22} /> Create AI Quiz</h3>
               <button className="sq-modal-close" onClick={() => setShowCreateModal(false)}>×</button>
             </div>
 
             <form onSubmit={handleStartQuiz} className="sq-form">
               <div className="sq-form-group">
-                <label>Subject / Topic</label>
+                <label>
+                  <BookOpen size={14} />
+                  Subject / Topic
+                </label>
                 <input
                   type="text"
                   value={subject}
@@ -219,7 +165,10 @@ const SoloQuiz = () => {
 
               <div className="sq-form-row">
                 <div className="sq-form-group">
-                  <label>Difficulty</label>
+                  <label>
+                    <Gauge size={14} />
+                    Difficulty
+                  </label>
                   <select value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
                     <option value="easy">Easy</option>
                     <option value="medium">Medium</option>
@@ -228,7 +177,10 @@ const SoloQuiz = () => {
                 </div>
 
                 <div className="sq-form-group">
-                  <label>Questions</label>
+                  <label>
+                    <Database size={14} />
+                    Questions
+                  </label>
                   <input
                     type="number"
                     value={questionCount}
@@ -247,26 +199,22 @@ const SoloQuiz = () => {
                     onChange={(e) => setUseAdaptive(e.target.checked)}
                   />
                   <span className="sq-toggle-text">
-                    <Sparkles size={16} />
+                    <Cpu size={18} />
                     Use Adaptive Mode
                   </span>
                 </label>
                 <p className="sq-toggle-desc">AI adjusts questions based on your past performance</p>
               </div>
 
-
-
-
-
               <button type="submit" className="sq-submit-btn" disabled={loading}>
                 {loading ? (
                   <>
-                    <Loader size={16} className="spinner" />
+                    <Loader size={18} className="spinner" />
                     <span>Generating...</span>
                   </>
                 ) : (
                   <>
-                    <Play size={16} />
+                    <Play size={18} />
                     <span>Start Quiz</span>
                   </>
                 )}
