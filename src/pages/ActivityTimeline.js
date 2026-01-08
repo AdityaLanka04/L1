@@ -33,7 +33,7 @@ const ActivityTimeline = () => {
   
   // Loading and UI states
   const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState('all');
+  const [selectedFilters, setSelectedFilters] = useState(['all', 'note', 'flashcard', 'quiz', 'chat']);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [currentWeekStart, setCurrentWeekStart] = useState(getWeekStart(new Date()));
   const [selectedDay, setSelectedDay] = useState(null);
@@ -717,8 +717,40 @@ const ActivityTimeline = () => {
   };
 
   const getFilteredActivities = () => {
-    if (filterType === 'all') return activities;
-    return activities.filter(a => a.type === filterType);
+    if (selectedFilters.includes('all')) return activities;
+    return activities.filter(a => selectedFilters.includes(a.type));
+  };
+
+  const toggleFilter = (filter) => {
+    if (filter === 'all') {
+      // If clicking "all", select everything
+      setSelectedFilters(['all', 'note', 'flashcard', 'quiz', 'chat']);
+    } else {
+      // Remove 'all' if it's there
+      let newFilters = selectedFilters.filter(f => f !== 'all');
+      
+      if (newFilters.includes(filter)) {
+        // Remove the filter
+        newFilters = newFilters.filter(f => f !== filter);
+        // If nothing left, select all
+        if (newFilters.length === 0) {
+          newFilters = ['all', 'note', 'flashcard', 'quiz', 'chat'];
+        }
+      } else {
+        // Add the filter
+        newFilters = [...newFilters, filter];
+        // If all types are selected, add 'all'
+        if (newFilters.length === 4 && 
+            newFilters.includes('note') && 
+            newFilters.includes('flashcard') && 
+            newFilters.includes('quiz') && 
+            newFilters.includes('chat')) {
+          newFilters = ['all', 'note', 'flashcard', 'quiz', 'chat'];
+        }
+      }
+      
+      setSelectedFilters(newFilters);
+    }
   };
 
   // Get activities and reminders for a specific day
@@ -857,11 +889,11 @@ const ActivityTimeline = () => {
     return (
       <div className="at-mini-calendar">
         <div className="at-mini-calendar-header">
-          <button className="at-mini-nav-btn" onClick={goToPreviousMonth} title="Previous month">
+          <button className="at-mini-nav-btn" onClick={goToPreviousMonth}>
             <ChevronLeft size={16} />
           </button>
           <h3>{currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h3>
-          <button className="at-mini-nav-btn" onClick={goToNextMonth} title="Next month">
+          <button className="at-mini-nav-btn" onClick={goToNextMonth}>
             <ChevronRight size={16} />
           </button>
         </div>
@@ -885,10 +917,8 @@ const ActivityTimeline = () => {
                   }
                   setCurrentMonth(day.fullDate);
                 }}
-                title={hasItems ? `${dayActivities.length + dayReminders.length} item(s)` : ''}
               >
                 <span className="at-mini-day-number">{day.date}</span>
-                {hasItems && <div className="at-mini-day-indicator"></div>}
               </button>
             );
           })}
@@ -908,7 +938,7 @@ const ActivityTimeline = () => {
       <div className="at-week-view-container">
         <div className="at-week-view-header">
           <div className="at-week-view-nav">
-            <button className="at-week-nav-btn" onClick={goToPreviousWeek} title="Previous week">
+            <button className="at-week-nav-btn" onClick={goToPreviousWeek}>
               <ChevronLeft size={18} />
             </button>
             <div className="at-week-date-range">
@@ -917,7 +947,7 @@ const ActivityTimeline = () => {
                 {weekDays[6].toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
               </h2>
             </div>
-            <button className="at-week-nav-btn" onClick={goToNextWeek} title="Next week">
+            <button className="at-week-nav-btn" onClick={goToNextWeek}>
               <ChevronRight size={18} />
             </button>
           </div>
@@ -1134,11 +1164,11 @@ const ActivityTimeline = () => {
       <div className="at-month-view-container" ref={monthScrollRef}>
         <div className="at-month-view-header">
           <div className="at-month-view-nav">
-            <button className="at-month-nav-btn" onClick={goToPreviousMonth} title="Previous month">
+            <button className="at-month-nav-btn" onClick={goToPreviousMonth}>
               <ChevronLeft size={18} />
             </button>
             <h2>{currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h2>
-            <button className="at-month-nav-btn" onClick={goToNextMonth} title="Next month">
+            <button className="at-month-nav-btn" onClick={goToNextMonth}>
               <ChevronRight size={18} />
             </button>
           </div>
@@ -1487,8 +1517,7 @@ const ActivityTimeline = () => {
               <h4 className="at-sidebar-section-title">My Lists</h4>
               <button 
                 className="at-sidebar-add-btn" 
-                onClick={() => setShowListModal(true)} 
-                title="Create new list"
+                onClick={() => setShowListModal(true)}
               >
                 <Plus size={14} />
               </button>
@@ -1522,7 +1551,6 @@ const ActivityTimeline = () => {
                           e.stopPropagation(); 
                           deleteReminderList(list.id); 
                         }}
-                        title="Delete list"
                       >
                         <Trash2 size={11} />
                       </button>
@@ -1714,7 +1742,6 @@ const ActivityTimeline = () => {
                     <button 
                       className={`at-reminder-action-btn flag ${reminder.is_flagged ? 'active' : ''}`}
                       onClick={() => toggleReminderFlag(reminder)}
-                      title={reminder.is_flagged ? 'Unflag' : 'Flag'}
                     >
                       <Flag size={14} />
                     </button>
@@ -1725,7 +1752,6 @@ const ActivityTimeline = () => {
                           deleteReminder(reminder.id);
                         }
                       }}
-                      title="Delete"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -1773,47 +1799,96 @@ const ActivityTimeline = () => {
 
       {/* Main Content Area */}
       <div className="at-main-content-area">
-        {viewMode === 'calendar' && preferences.showMiniCalendar && (
+        {preferences.showMiniCalendar && (
           <aside className="at-left-sidebar">
-            {renderMiniCalendar()}
-            
-            {/* Activity Filters Box */}
-            <div className="at-sidebar-filters">
+            {/* View Mode Buttons */}
+            <div className="at-sidebar-view-modes">
               <button 
-                className={`at-sidebar-filter-btn ${filterType === 'all' ? 'active' : ''}`}
-                onClick={() => setFilterType('all')}
+                className={`at-sidebar-view-btn ${viewMode === 'calendar' ? 'active' : ''}`}
+                onClick={() => setViewMode('calendar')}
               >
-                All Activities
+                <CalendarIcon size={14} />
+                <span>Calendar</span>
               </button>
               <button 
-                className={`at-sidebar-filter-btn ${filterType === 'note' ? 'active' : ''}`}
-                onClick={() => setFilterType('note')}
+                className={`at-sidebar-view-btn ${viewMode === 'timeline' ? 'active' : ''}`}
+                onClick={() => setViewMode('timeline')}
               >
-                <FileText size={14} />
+                <Clock size={14} />
+                <span>Timeline</span>
+              </button>
+              <button 
+                className={`at-sidebar-view-btn ${viewMode === 'reminders' ? 'active' : ''}`}
+                onClick={() => setViewMode('reminders')}
+              >
+                <Bell size={14} />
+                <span>Reminders</span>
+                {smartListCounts.all > 0 && (
+                  <span className="at-sidebar-badge">{smartListCounts.all}</span>
+                )}
+              </button>
+            </div>
+            
+            {viewMode === 'calendar' && renderMiniCalendar()}
+            
+            {/* Activity Filters Box */}
+            {viewMode !== 'reminders' && (
+              <div className="at-sidebar-filters">
+                <button 
+                  className={`at-sidebar-filter-btn ${selectedFilters.includes('all') ? 'active' : ''}`}
+                  onClick={() => toggleFilter('all')}
+                >
+                  <span className="at-filter-checkbox">
+                  {selectedFilters.includes('all') && <span className="at-checkbox-dot"></span>}
+                </span>
+                <span>All Activities</span>
+              </button>
+              <button 
+                className={`at-sidebar-filter-btn ${selectedFilters.includes('note') ? 'active' : ''}`}
+                onClick={() => toggleFilter('note')}
+                data-color="#86efac"
+              >
+                <span className="at-filter-checkbox">
+                  {selectedFilters.includes('note') && <span className="at-checkbox-dot"></span>}
+                </span>
+                <span className="at-filter-bullet" style={{ backgroundColor: '#86efac' }}></span>
                 <span>Notes</span>
               </button>
               <button 
-                className={`at-sidebar-filter-btn ${filterType === 'flashcard' ? 'active' : ''}`}
-                onClick={() => setFilterType('flashcard')}
+                className={`at-sidebar-filter-btn ${selectedFilters.includes('flashcard') ? 'active' : ''}`}
+                onClick={() => toggleFilter('flashcard')}
+                data-color="#fcd34d"
               >
-                <BookOpen size={14} />
+                <span className="at-filter-checkbox">
+                  {selectedFilters.includes('flashcard') && <span className="at-checkbox-dot"></span>}
+                </span>
+                <span className="at-filter-bullet" style={{ backgroundColor: '#fcd34d' }}></span>
                 <span>Flashcards</span>
               </button>
               <button 
-                className={`at-sidebar-filter-btn ${filterType === 'quiz' ? 'active' : ''}`}
-                onClick={() => setFilterType('quiz')}
+                className={`at-sidebar-filter-btn ${selectedFilters.includes('quiz') ? 'active' : ''}`}
+                onClick={() => toggleFilter('quiz')}
+                data-color="#f9a8d4"
               >
-                <Award size={14} />
+                <span className="at-filter-checkbox">
+                  {selectedFilters.includes('quiz') && <span className="at-checkbox-dot"></span>}
+                </span>
+                <span className="at-filter-bullet" style={{ backgroundColor: '#f9a8d4' }}></span>
                 <span>Quizzes</span>
               </button>
               <button 
-                className={`at-sidebar-filter-btn ${filterType === 'chat' ? 'active' : ''}`}
-                onClick={() => setFilterType('chat')}
+                className={`at-sidebar-filter-btn ${selectedFilters.includes('chat') ? 'active' : ''}`}
+                onClick={() => toggleFilter('chat')}
+                data-color="#93c5fd"
               >
-                <MessageSquare size={14} />
+                <span className="at-filter-checkbox">
+                  {selectedFilters.includes('chat') && <span className="at-checkbox-dot"></span>}
+                </span>
+                <span className="at-filter-bullet" style={{ backgroundColor: '#93c5fd' }}></span>
                 <span>AI Chats</span>
               </button>
             </div>
+            )}
           </aside>
         )}
 
@@ -2092,7 +2167,6 @@ const ActivityTimeline = () => {
                           className={`at-color-option ${reminderForm.color === color.value ? 'selected' : ''}`}
                           style={{ background: color.value }}
                           onClick={() => setReminderForm({...reminderForm, color: color.value})}
-                          title={color.label}
                         />
                       ))}
                     </div>
@@ -2229,7 +2303,6 @@ const ActivityTimeline = () => {
                         className={`at-color-option ${listForm.color === color.value ? 'selected' : ''}`}
                         style={{ background: color.value }}
                         onClick={() => setListForm({...listForm, color: color.value})}
-                        title={color.label}
                       />
                     ))}
                   </div>
@@ -2248,7 +2321,6 @@ const ActivityTimeline = () => {
                           borderColor: listForm.icon === id ? listForm.color : 'transparent',
                           color: listForm.icon === id ? listForm.color : 'var(--text-secondary)'
                         }}
-                        title={label}
                       >
                         <Icon size={20} />
                       </button>
