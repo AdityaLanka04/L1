@@ -543,12 +543,17 @@ class ConversionAgent(BaseAgent):
                 logger.info(f"Found {len(sessions)} chat sessions")
                 for session in sessions:
                     messages = db.query(ChatMessage).filter(
-                        ChatMessage.session_id == session.id
-                    ).order_by(ChatMessage.created_at).all()
+                        ChatMessage.chat_session_id == session.id
+                    ).order_by(ChatMessage.timestamp).all()
+                    # Format messages as conversation pairs
+                    formatted_messages = []
+                    for m in messages:
+                        formatted_messages.append({"role": "user", "content": m.user_message})
+                        formatted_messages.append({"role": "assistant", "content": m.ai_response})
                     source_content.append({
                         "id": session.id,
                         "title": session.title or "Chat Session",
-                        "messages": [{"role": m.role, "content": m.content} for m in messages]
+                        "messages": formatted_messages
                     })
             
             db.close()

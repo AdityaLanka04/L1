@@ -104,6 +104,7 @@ from question_bank_enhanced import register_question_bank_api
 from proactive_ai_system import get_proactive_ai_engine
 from adaptive_learning_api import register_adaptive_learning_api
 from math_processor import process_math_in_response, enhance_display_math
+from comprehensive_chat_context import build_comprehensive_chat_context, build_enhanced_chat_prompt
 
 # LangGraph Agent System
 from agents.setup import register_agent_routes
@@ -1500,9 +1501,9 @@ async def ask_simple(
     chat_id: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
-    """Simplified /ask endpoint that bypasses all complex logic"""
-    print(f"\n🔥 ASK_SIMPLE CALLED 🔥")
-    print(f"🔥 User: {user_id}, Question: {question[:50]}...")
+    """Simplified /ask endpoint with enhanced content awareness and action buttons"""
+    print(f"\n ASK_SIMPLE CALLED")
+    print(f" User: {user_id}, Question: {question[:50]}...")
     
     try:
         # Get user
@@ -1518,7 +1519,8 @@ async def ask_simple(
                 "topics_discussed": ["error"],
                 "query_type": "error",
                 "model_used": "error",
-                "ai_provider": "Error"
+                "ai_provider": "Error",
+                "action_buttons": []
             }
         
         # Verify chat belongs to user if chat_id provided
@@ -1555,7 +1557,7 @@ async def ask_simple(
                         # Each message has both user_message and ai_response
                         chat_history += f"Student: {msg.user_message}\n"
                         chat_history += f"You: {msg.ai_response}\n"
-                    print(f"📜 Loaded {len(recent_messages)} previous message pairs for context")
+                    print(f" Loaded {len(recent_messages)} previous message pairs for context")
             except Exception as e:
                 print(f" Error loading chat history: {str(e)}")
         
@@ -1572,38 +1574,43 @@ async def ask_simple(
                 chat_history += "\n\nFrom your previous conversations (memory):\n"
                 for msg in other_messages[:7]:
                     chat_history += f"- You previously asked: {msg.user_message[:100]}...\n"
-                print(f"📜 Loaded {len(other_messages)} messages from previous sessions for cross-session memory")
+                print(f" Loaded {len(other_messages)} messages from previous sessions for cross-session memory")
         except Exception as e:
             print(f" Error loading cross-session history: {str(e)}")
         
         # Build personalized prompt
         first_name = user.first_name or "there"
-        field_of_study = user.field_of_study or "your studies"
         
-        prompt = f"""You are a helpful AI tutor assisting {first_name}, who is studying {field_of_study}.
-
-Be warm, encouraging, and personalized. Address them by name when appropriate.
-Provide clear, educational responses tailored to their level.
-
-CRITICAL - Mathematical Notation Rules:
-- ONLY use LaTeX for actual mathematical formulas and equations
-- Use $...$ for inline math: "The derivative $f'(x) = 2x$ shows..."
-- Use $$...$$ for display equations on their own line
-- Regular text should NOT be in LaTeX - only the math parts
-- Examples:
-  * CORRECT: "The function $f(x) = e^x$ is its own derivative"
-  * WRONG: "$The function f(x) = e^x is its own derivative$"
-  * CORRECT: "For the series $$\\sum_{{n=1}}^{{\\infty}} \\frac{{1}}{{n^2}} = \\frac{{\\pi^2}}{{6}}$$"
-  * CORRECT: "When $x^2 + y^2 = r^2$, we have a circle of radius $r$"
-
-{chat_history}
-
-Current Question: {question}"""
+        # ============================================================
+        # BUILD COMPREHENSIVE CONTEXT (Notes, Flashcards, Quizzes, Analytics)
+        # Now includes full content and action buttons!
+        # ============================================================
+        comprehensive_context = await build_comprehensive_chat_context(db, user, question)
+        print(f" Comprehensive context built: {len(comprehensive_context.get('recent_topics', []))} topics, "
+              f"content_query={comprehensive_context.get('content_query_detected', False)}, "
+              f"buttons={len(comprehensive_context.get('action_buttons', []))}")
         
-        # Generate response using simple AI call
-        print(f"🔥 Calling AI for {first_name}...")
+        # Build the enhanced personalized prompt with full context
+        prompt = build_enhanced_chat_prompt(user, comprehensive_context, chat_history, question)
+        
+        # Generate response using AI call
+        print(f" Calling AI with comprehensive context for {first_name}...")
         response = call_ai(prompt, max_tokens=2000, temperature=0.7)
-        print(f"🔥 AI response received: {len(response)} chars")
+        print(f" AI response received: {len(response)} chars")
+        
+        # Get action buttons from context
+        action_buttons = comprehensive_context.get("action_buttons", [])
+        
+        # If no specific content found but user asked about content, add general navigation buttons
+        if comprehensive_context.get("content_query_detected") and not action_buttons:
+            content_type = comprehensive_context.get("content_search_results", {})
+            if not any(content_type.values()):
+                # No content found - suggest creating
+                action_buttons = [
+                    {"label": "Create New Note", "action": "navigate", "navigate_to": "/notes/editor/new", "icon": "note"},
+                    {"label": "Create Flashcards", "action": "navigate", "navigate_to": "/flashcards", "icon": "flashcard"},
+                    {"label": "Take a Quiz", "action": "navigate", "navigate_to": "/solo-quiz", "icon": "quiz"}
+                ]
         
         # Save message to database and award points
         if chat_id_int:
@@ -1664,11 +1671,17 @@ Current Question: {question}"""
             "ai_confidence": 0.9,
             "misconception_detected": False,
             "should_request_feedback": False,
-            "topics_discussed": ["general"],
-            "query_type": "simple",
+            "topics_discussed": comprehensive_context.get("recent_topics", ["general"])[:5],
+            "query_type": "content_aware" if comprehensive_context.get("content_query_detected") else "simple",
             "model_used": "groq",
             "ai_provider": "Groq",
-            "chat_id": chat_id_int  # Return the actual chat_id used (in case it was created/changed)
+            "chat_id": chat_id_int,  # Return the actual chat_id used
+            "action_buttons": action_buttons,  # NEW: Dynamic navigation buttons
+            "content_found": {
+                "notes": len(comprehensive_context.get("content_search_results", {}).get("notes", [])),
+                "flashcards": len(comprehensive_context.get("content_search_results", {}).get("flashcards", [])),
+                "quizzes": len(comprehensive_context.get("content_search_results", {}).get("quizzes", []))
+            } if comprehensive_context.get("content_query_detected") else None
         }
         
     except HTTPException:
@@ -1686,7 +1699,8 @@ Current Question: {question}"""
             "topics_discussed": ["error"],
             "query_type": "error",
             "model_used": "error",
-            "ai_provider": "Error"
+            "ai_provider": "Error",
+            "action_buttons": []
         }
 
 @app.post("/api/ask_with_files/")

@@ -15,6 +15,7 @@ from .intelligent_orchestrator import IntelligentOrchestrator, create_intelligen
 from .chat_agent import ChatAgent, create_chat_agent, ChatMode, ResponseStyle
 from .flashcard_agent import FlashcardAgent, create_flashcard_agent, FlashcardAction
 from .note_agent import NoteAgent, create_note_agent, NoteAction, WritingTone, ContentDepth
+from .enhanced_chat_context import EnhancedChatContextProvider, build_comprehensive_system_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -224,9 +225,41 @@ def get_user_kg():
     return _user_knowledge_graph
 
 
+def get_user_id_from_identifier(user_identifier: str) -> Optional[int]:
+    """
+    Get user ID from username, email, or direct ID.
+    Returns None if user not found.
+    """
+    if not _db_session_factory:
+        return None
+    
+    # Try to parse as integer first
+    try:
+        return int(user_identifier)
+    except ValueError:
+        pass
+    
+    # Look up by username or email
+    try:
+        import models
+        db = _db_session_factory()
+        try:
+            user = db.query(models.User).filter(
+                (models.User.username == user_identifier) | 
+                (models.User.email == user_identifier)
+            ).first()
+            return user.id if user else None
+        finally:
+            db.close()
+    except Exception as e:
+        logger.warning(f"Could not look up user {user_identifier}: {e}")
+        return None
+
+
 # ==================== Initialization ====================
 
 _user_knowledge_graph = None
+_enhanced_context_provider = None
 
 async def initialize_agent_system(
     ai_client: Any, 
@@ -235,11 +268,16 @@ async def initialize_agent_system(
     user_knowledge_graph: Any = None
 ):
     """Initialize the intelligent agent system with unified memory"""
-    global _orchestrator, _chat_agent, _flashcard_agent, _note_agent, _quiz_agent, _question_bank_agent, _slide_explorer_agent, _conversion_agent, _search_hub_agent, _master_agent, _knowledge_graph, _db_session_factory, _memory_manager, _user_knowledge_graph
+    global _orchestrator, _chat_agent, _flashcard_agent, _note_agent, _quiz_agent, _question_bank_agent, _slide_explorer_agent, _conversion_agent, _search_hub_agent, _master_agent, _knowledge_graph, _db_session_factory, _memory_manager, _user_knowledge_graph, _enhanced_context_provider
     
     _knowledge_graph = knowledge_graph
     _db_session_factory = db_session_factory
     _user_knowledge_graph = user_knowledge_graph
+    
+    # Initialize Enhanced Context Provider for comprehensive chat context
+    if db_session_factory:
+        _enhanced_context_provider = EnhancedChatContextProvider(db_session_factory)
+        logger.info("✅ Enhanced Chat Context Provider initialized")
     
     # Initialize Memory Manager first (the brain above all agents)
     from .memory import initialize_memory_manager
@@ -315,9 +353,9 @@ async def initialize_agent_system(
         user_knowledge_graph=user_knowledge_graph
     )
     
-    # Initialize the SearchHub Agent (with KG and Master Agent integration)
-    from .search_hub_agent import create_search_hub_agent
-    _search_hub_agent = create_search_hub_agent(
+    # Initialize the Enhanced SearchHub Agent (NLP-powered, with KG and Master Agent integration)
+    from .search_hub_enhanced import create_enhanced_search_hub_agent
+    _search_hub_agent = create_enhanced_search_hub_agent(
         ai_client=ai_client,
         knowledge_graph=knowledge_graph,
         memory_manager=_memory_manager,
@@ -338,7 +376,7 @@ async def initialize_agent_system(
     logger.info("✅ Slide Explorer Agent initialized")
     logger.info("✅ Conversion Agent initialized")
     logger.info("✅ Master Agent initialized")
-    logger.info("✅ SearchHub Agent initialized (with KG integration)")
+    logger.info("✅ Enhanced SearchHub Agent initialized (NLP-powered with KG integration)")
     logger.info("Agent system initialized")
     return _orchestrator
 
@@ -511,15 +549,59 @@ async def chat_with_agent(request: ChatAgentRequest):
     """
     Main endpoint for the advanced AI chat agent.
     Provides intelligent tutoring with:
+    - COMPREHENSIVE CONTEXT: Full awareness of notes, flashcards, quizzes, analytics
     - Emotional intelligence
     - Adaptive response styles
     - Memory-aware context
     - Self-reflection and improvement
+    - Personalized to user's strengths and weaknesses
     """
     import time
     start_time = time.time()
     
     chat_agent = get_chat_agent()
+    
+    # Get user ID as integer for database queries
+    user_id_int = get_user_id_from_identifier(request.user_id)
+    
+    # Build comprehensive context if available
+    comprehensive_context = {}
+    enhanced_system_prompt = None
+    
+    if _enhanced_context_provider and user_id_int:
+        try:
+            # Extract topic from user message for relevant context
+            current_topic = None
+            message_lower = request.message.lower()
+            # Simple topic extraction - can be enhanced
+            topic_indicators = ["about", "explain", "what is", "how does", "help with", "understand"]
+            for indicator in topic_indicators:
+                if indicator in message_lower:
+                    idx = message_lower.find(indicator) + len(indicator)
+                    current_topic = request.message[idx:idx+50].strip().split("?")[0].strip()
+                    break
+            
+            # Get comprehensive context
+            comprehensive_context = await _enhanced_context_provider.get_comprehensive_context(
+                user_id=user_id_int,
+                current_topic=current_topic,
+                include_notes=True,
+                include_flashcards=True,
+                include_quizzes=True,
+                include_analytics=True
+            )
+            
+            # Build enhanced system prompt
+            if "error" not in comprehensive_context:
+                enhanced_system_prompt = build_comprehensive_system_prompt(
+                    comprehensive_context, 
+                    request.message
+                )
+                logger.info(f"✅ Built comprehensive context for user {user_id_int}")
+            
+        except Exception as e:
+            logger.warning(f"Could not build comprehensive context: {e}")
+            comprehensive_context = {}
     
     # Build initial state
     state = {
@@ -535,15 +617,62 @@ async def chat_with_agent(request: ChatAgentRequest):
     if request.response_style:
         state["response_style"] = request.response_style
     
-    # Add any additional context
+    # Add comprehensive context to state
+    if comprehensive_context and "error" not in comprehensive_context:
+        state["comprehensive_context"] = comprehensive_context
+        state["enhanced_system_prompt"] = enhanced_system_prompt
+        
+        # Extract key preferences for the agent
+        user_profile = comprehensive_context.get("user_profile", {})
+        learning_prefs = comprehensive_context.get("learning_preferences", {})
+        
+        state["user_preferences"] = {
+            "name": user_profile.get("first_name", "Student"),
+            "learning_style": user_profile.get("learning_style", "Mixed"),
+            "difficulty_level": user_profile.get("difficulty_level", "intermediate"),
+            "learning_pace": user_profile.get("learning_pace", "moderate"),
+            "field_of_study": user_profile.get("field_of_study", "General"),
+            "major": user_profile.get("major", ""),
+            "likes_step_by_step": learning_prefs.get("likes_step_by_step", True),
+            "prefers_examples": learning_prefs.get("prefers_real_examples", True),
+            "wants_encouragement": learning_prefs.get("wants_encouragement", True),
+            "weak_areas": user_profile.get("weak_areas", []),
+            "strong_areas": user_profile.get("strong_areas", []),
+        }
+        
+        # Add strengths/weaknesses for targeted responses
+        sw = comprehensive_context.get("strengths_weaknesses", {})
+        state["user_strengths"] = sw.get("strengths", [])
+        state["user_weaknesses"] = sw.get("weaknesses", [])
+        state["topics_needing_review"] = sw.get("topics_needing_review", [])
+        
+        # Add study materials context
+        state["notes_context"] = comprehensive_context.get("notes_context", {})
+        state["flashcards_context"] = comprehensive_context.get("flashcards_context", {})
+        state["quiz_context"] = comprehensive_context.get("quiz_context", {})
+    
+    # Add any additional context from request
     if request.context:
-        state["user_preferences"] = request.context.get("user_preferences", {})
+        existing_prefs = state.get("user_preferences", {})
+        existing_prefs.update(request.context.get("user_preferences", {}))
+        state["user_preferences"] = existing_prefs
     
     try:
         # Invoke the chat agent
         result = await chat_agent.invoke(state)
         
         execution_time = (time.time() - start_time) * 1000
+        
+        # Add comprehensive context info to metadata
+        result_metadata = result.metadata.copy()
+        result_metadata["has_comprehensive_context"] = bool(comprehensive_context and "error" not in comprehensive_context)
+        if comprehensive_context and "error" not in comprehensive_context:
+            result_metadata["context_summary"] = {
+                "notes_count": comprehensive_context.get("notes_context", {}).get("total_notes", 0),
+                "flashcard_sets": comprehensive_context.get("flashcards_context", {}).get("total_sets", 0),
+                "quiz_accuracy": comprehensive_context.get("quiz_context", {}).get("overall_accuracy", 0),
+                "day_streak": comprehensive_context.get("analytics", {}).get("day_streak", 0),
+            }
         
         return ChatAgentResponse(
             success=result.success,
@@ -556,11 +685,13 @@ async def chat_with_agent(request: ChatAgentRequest):
             suggested_questions=result.metadata.get("suggested_questions", []),
             learning_actions=result.metadata.get("learning_actions", []),
             execution_time_ms=execution_time,
-            metadata=result.metadata
+            metadata=result_metadata
         )
         
     except Exception as e:
         logger.error(f"Chat agent error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -3294,6 +3425,9 @@ async def searchhub_invoke(request: SearchHubRequest):
         metadata = result.metadata or {}
         response_data = metadata.get("response_data", {})
         
+        # Debug logging
+        logger.info(f"SearchHub result - success: {result.success}, navigate_to: {metadata.get('navigate_to')}, content_id: {metadata.get('content_id')}")
+        
         return SearchHubResponse(
             success=result.success,
             action=metadata.get("action", "unknown"),
@@ -3406,6 +3540,74 @@ async def list_searchhub_actions():
             {"action": "ask_ai", "example": "ask AI [question]", "description": "Quick AI question"}
         ]
     }
+
+
+@router.get("/searchhub/suggestions")
+async def get_searchhub_suggestions(
+    query: str = Query("", description="Partial query for autocomplete"),
+    user_id: str = Query("default", description="User ID for context-aware suggestions")
+):
+    """
+    Get smart autocomplete suggestions based on partial query and user context.
+    
+    The NLP engine provides context-aware suggestions based on:
+    - User's recent topics and actions
+    - Partial query matching
+    - Common command patterns
+    """
+    try:
+        agent = get_search_hub_agent()
+        
+        # Get suggestions from the NLP-powered agent
+        if hasattr(agent, 'get_suggestions'):
+            suggestions = agent.get_suggestions(query, user_id)
+        else:
+            # Fallback for non-enhanced agent
+            suggestions = [
+                f"create flashcards on {query}" if query else "create flashcards on [topic]",
+                f"explain {query}" if query else "explain [topic]",
+                f"quiz me on {query}" if query else "quiz me on [topic]",
+                "show my progress",
+                "what are my weak areas",
+                "what should I study next"
+            ]
+        
+        return {
+            "success": True,
+            "suggestions": suggestions,
+            "query": query
+        }
+    except Exception as e:
+        logger.error(f"Failed to get suggestions: {e}")
+        return {
+            "success": False,
+            "suggestions": [],
+            "error": str(e)
+        }
+
+
+@router.post("/searchhub/clear-context")
+async def clear_searchhub_context(user_id: str = Body(..., embed=True)):
+    """
+    Clear conversation context for a user.
+    Useful when starting a fresh session or resetting the assistant's memory.
+    """
+    try:
+        agent = get_search_hub_agent()
+        
+        if hasattr(agent, 'clear_context'):
+            agent.clear_context(user_id)
+        
+        return {
+            "success": True,
+            "message": f"Conversation context cleared for user {user_id}"
+        }
+    except Exception as e:
+        logger.error(f"Failed to clear context: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 
 @router.get("/test/searchhub")

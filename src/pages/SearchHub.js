@@ -40,13 +40,15 @@ const SearchHub = () => {
   const [relatedSearches, setRelatedSearches] = useState([]);
   
   const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);  // Track if user clicked on search
   const [autocompleteResults, setAutocompleteResults] = useState([]);
   const [selectedAutocompleteIndex, setSelectedAutocompleteIndex] = useState(-1);
   const autocompleteDebounceRef = useRef(null);
   const [showLoginMessage, setShowLoginMessage] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-
-  useEffect(() => {
+  
+  // NLP-powered session ID for context tracking
+  const [sessionId] = useState(() => `searchhub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);  useEffect(() => {
     const username = localStorage.getItem('username');
     const token = localStorage.getItem('token');
 
@@ -218,115 +220,115 @@ const SearchHub = () => {
 
     const commands = [
       { pattern: 'create', suggestions: [
-        { text: 'create a note on {topic}', icon: '📝', action: 'create_note', description: 'AI writes comprehensive notes' },
-        { text: 'create 10 flashcards on {topic}', icon: '🃏', action: 'create_flashcards', description: 'AI generates study cards' },
-        { text: 'create 15 flashcards on {topic}', icon: '🃏', action: 'create_flashcards', description: 'More cards for deeper study' },
-        { text: 'create questions on {topic}', icon: '❓', action: 'create_questions', description: 'AI creates practice questions' },
-        { text: 'create a quiz on {topic}', icon: '🎯', action: 'create_quiz', description: 'Start quiz immediately' },
+        { text: 'create a note on {topic}', icon: '', action: 'create_note', description: 'AI writes comprehensive notes' },
+        { text: 'create 10 flashcards on {topic}', icon: '', action: 'create_flashcards', description: 'AI generates study cards' },
+        { text: 'create 15 flashcards on {topic}', icon: '', action: 'create_flashcards', description: 'More cards for deeper study' },
+        { text: 'create questions on {topic}', icon: '', action: 'create_questions', description: 'AI creates practice questions' },
+        { text: 'create a quiz on {topic}', icon: '', action: 'create_quiz', description: 'Start quiz immediately' },
       ]},
       { pattern: 'make', suggestions: [
-        { text: 'make a note about {topic}', icon: '📝', action: 'create_note', description: 'AI writes comprehensive notes' },
-        { text: 'make flashcards for {topic}', icon: '🃏', action: 'create_flashcards', description: 'AI generates study cards' },
-        { text: 'make a quiz about {topic}', icon: '❓', action: 'create_quiz', description: 'Start quiz immediately' },
-        { text: 'make questions about {topic}', icon: '📋', action: 'create_questions', description: 'AI creates practice questions' },
+        { text: 'make a note about {topic}', icon: '', action: 'create_note', description: 'AI writes comprehensive notes' },
+        { text: 'make flashcards for {topic}', icon: '', action: 'create_flashcards', description: 'AI generates study cards' },
+        { text: 'make a quiz about {topic}', icon: '', action: 'create_quiz', description: 'Start quiz immediately' },
+        { text: 'make questions about {topic}', icon: '', action: 'create_questions', description: 'AI creates practice questions' },
       ]},
       { pattern: 'generate', suggestions: [
-        { text: 'generate flashcards on {topic}', icon: '🃏', action: 'create_flashcards', description: 'AI generates study cards' },
-        { text: 'generate questions on {topic}', icon: '❓', action: 'create_questions', description: 'AI creates practice questions' },
-        { text: 'generate a study guide for {topic}', icon: '📚', action: 'create_note', description: 'Comprehensive study guide' },
+        { text: 'generate flashcards on {topic}', icon: '', action: 'create_flashcards', description: 'AI generates study cards' },
+        { text: 'generate questions on {topic}', icon: '', action: 'create_questions', description: 'AI creates practice questions' },
+        { text: 'generate a study guide for {topic}', icon: '', action: 'create_note', description: 'Comprehensive study guide' },
       ]},
       { pattern: 'write', suggestions: [
-        { text: 'write a note on {topic}', icon: '📝', action: 'create_note', description: 'AI writes comprehensive notes' },
-        { text: 'write about {topic}', icon: '📝', action: 'create_note', description: 'AI writes comprehensive notes' },
+        { text: 'write a note on {topic}', icon: '', action: 'create_note', description: 'AI writes comprehensive notes' },
+        { text: 'write about {topic}', icon: '', action: 'create_note', description: 'AI writes comprehensive notes' },
       ]},
       { pattern: 'learn', suggestions: [
-        { text: 'learn about {topic}', icon: '🎓', action: 'explain', description: 'Get AI explanation' },
-        { text: 'learn {topic} from scratch', icon: '🌱', action: 'explain', description: 'Beginner-friendly explanation' },
+        { text: 'learn about {topic}', icon: '', action: 'explain', description: 'Get AI explanation' },
+        { text: 'learn {topic} from scratch', icon: '', action: 'explain', description: 'Beginner-friendly explanation' },
       ]},
       { pattern: 'teach', suggestions: [
-        { text: 'teach me {topic}', icon: '👨‍🏫', action: 'explain', description: 'Interactive AI tutoring' },
-        { text: 'teach me about {topic}', icon: '👨‍🏫', action: 'explain', description: 'Interactive AI tutoring' },
+        { text: 'teach me {topic}', icon: '', action: 'explain', description: 'Interactive AI tutoring' },
+        { text: 'teach me about {topic}', icon: '', action: 'explain', description: 'Interactive AI tutoring' },
       ]},
       { pattern: 'study', suggestions: [
-        { text: 'study {topic}', icon: '📖', action: 'create_flashcards', description: 'Create flashcards to study' },
-        { text: 'study my flashcards', icon: '🃏', action: 'review_flashcards', description: 'Review your cards' },
-        { text: 'study weak areas', icon: '💪', action: 'show_weak_areas', description: 'Focus on improvements' },
+        { text: 'study {topic}', icon: '', action: 'create_flashcards', description: 'Create flashcards to study' },
+        { text: 'study my flashcards', icon: '', action: 'review_flashcards', description: 'Review your cards' },
+        { text: 'study weak areas', icon: '', action: 'show_weak_areas', description: 'Focus on improvements' },
       ]},
       { pattern: 'adapt', suggestions: [
-        { text: 'adapt difficulty to my level', icon: '🎯', action: 'adapt_difficulty' },
-        { text: 'adapt content for me', icon: '✨', action: 'adapt_content' },
+        { text: 'adapt difficulty to my level', icon: '', action: 'adapt_difficulty' },
+        { text: 'adapt content for me', icon: '', action: 'adapt_content' },
       ]},
       { pattern: 'review', suggestions: [
-        { text: 'review flashcards', icon: '📚', action: 'review_flashcards' },
-        { text: 'review weak flashcards', icon: '💪', action: 'review_flashcards' },
-        { text: 'review what I\'ll forget next', icon: '🔮', action: 'predict_forgetting' },
+        { text: 'review flashcards', icon: '', action: 'review_flashcards' },
+        { text: 'review weak flashcards', icon: '', action: 'review_flashcards' },
+        { text: 'review what I\'ll forget next', icon: '', action: 'predict_forgetting' },
       ]},
       { pattern: 'show', suggestions: [
-        { text: 'show my progress', icon: '📊', action: 'show_progress' },
-        { text: 'show weak areas', icon: '💪', action: 'show_weak_areas' },
-        { text: 'show my achievements', icon: '🏆', action: 'show_achievements' },
-        { text: 'show my learning style', icon: '🧠', action: 'show_learning_style' },
-        { text: 'show knowledge gaps', icon: '🕳️', action: 'show_knowledge_gaps' },
+        { text: 'show my progress', icon: '', action: 'show_progress' },
+        { text: 'show weak areas', icon: '', action: 'show_weak_areas' },
+        { text: 'show my achievements', icon: '', action: 'show_achievements' },
+        { text: 'show my learning style', icon: '', action: 'show_learning_style' },
+        { text: 'show knowledge gaps', icon: '', action: 'show_knowledge_gaps' },
       ]},
       { pattern: 'find', suggestions: [
-        { text: 'find my knowledge blind spots', icon: '🔍', action: 'show_knowledge_gaps' },
-        { text: 'find my study twin', icon: '👥', action: 'find_study_twin' },
-        { text: 'find complementary learners', icon: '🤝', action: 'find_complementary' },
+        { text: 'find my knowledge blind spots', icon: '', action: 'show_knowledge_gaps' },
+        { text: 'find my study twin', icon: '', action: 'find_study_twin' },
+        { text: 'find complementary learners', icon: '', action: 'find_complementary' },
       ]},
       { pattern: 'what', suggestions: [
-        { text: 'what is {topic}', icon: '❓', action: 'explain', description: 'Get AI explanation' },
-        { text: 'what am I weak in', icon: '💪', action: 'show_weak_areas' },
-        { text: 'what is my learning style', icon: '🧠', action: 'show_learning_style' },
-        { text: 'what will I forget next', icon: '🔮', action: 'predict_forgetting' },
-        { text: 'what are my knowledge gaps', icon: '🕳️', action: 'show_knowledge_gaps' },
-        { text: 'what should I study next', icon: '🎯', action: 'suggest_next_topic' },
+        { text: 'what is {topic}', icon: '', action: 'explain', description: 'Get AI explanation' },
+        { text: 'what am I weak in', icon: '', action: 'show_weak_areas' },
+        { text: 'what is my learning style', icon: '', action: 'show_learning_style' },
+        { text: 'what will I forget next', icon: '', action: 'predict_forgetting' },
+        { text: 'what are my knowledge gaps', icon: '', action: 'show_knowledge_gaps' },
+        { text: 'what should I study next', icon: '', action: 'suggest_next_topic' },
       ]},
       { pattern: 'how', suggestions: [
-        { text: 'how does {topic} work', icon: '⚙️', action: 'explain', description: 'Detailed explanation' },
-        { text: 'how to {topic}', icon: '📋', action: 'explain', description: 'Step-by-step guide' },
-        { text: 'how am I doing', icon: '📊', action: 'show_progress', description: 'View your progress' },
+        { text: 'how does {topic} work', icon: '', action: 'explain', description: 'Detailed explanation' },
+        { text: 'how to {topic}', icon: '', action: 'explain', description: 'Step-by-step guide' },
+        { text: 'how am I doing', icon: '', action: 'show_progress', description: 'View your progress' },
       ]},
       { pattern: 'explain', suggestions: [
-        { text: 'explain {topic}', icon: '📖', action: 'explain', description: 'Clear AI explanation' },
-        { text: 'explain {topic} step-by-step', icon: '📖', action: 'explain' },
-        { text: 'explain like I\'m 5', icon: '👶', action: 'eli5' },
-        { text: 'explain with examples', icon: '💡', action: 'explain_examples' },
+        { text: 'explain {topic}', icon: '', action: 'explain', description: 'Clear AI explanation' },
+        { text: 'explain {topic} step-by-step', icon: '', action: 'explain' },
+        { text: 'explain like I\'m 5', icon: '', action: 'eli5' },
+        { text: 'explain with examples', icon: '', action: 'explain_examples' },
       ]},
       { pattern: 'summarize', suggestions: [
-        { text: 'summarize {topic}', icon: '📋', action: 'summarize' },
-        { text: 'summarize my notes on {topic}', icon: '📝', action: 'summarize_notes' },
+        { text: 'summarize {topic}', icon: '', action: 'summarize' },
+        { text: 'summarize my notes on {topic}', icon: '', action: 'summarize_notes' },
       ]},
       { pattern: 'quiz', suggestions: [
-        { text: 'quiz me on {topic}', icon: '❓', action: 'create_quiz', description: 'Start quiz immediately' },
-        { text: 'quiz me on weak areas', icon: '💪', action: 'quiz_weak' },
+        { text: 'quiz me on {topic}', icon: '', action: 'create_quiz', description: 'Start quiz immediately' },
+        { text: 'quiz me on weak areas', icon: '', action: 'quiz_weak' },
       ]},
       { pattern: 'test', suggestions: [
-        { text: 'test me on {topic}', icon: '📝', action: 'create_quiz', description: 'Start quiz immediately' },
-        { text: 'test my knowledge of {topic}', icon: '🎯', action: 'create_quiz' },
+        { text: 'test me on {topic}', icon: '', action: 'create_quiz', description: 'Start quiz immediately' },
+        { text: 'test my knowledge of {topic}', icon: '', action: 'create_quiz' },
       ]},
       { pattern: 'optimize', suggestions: [
-        { text: 'optimize my retention', icon: '🧠', action: 'optimize_retention' },
-        { text: 'optimize my study schedule', icon: '📅', action: 'optimize_schedule' },
+        { text: 'optimize my retention', icon: '', action: 'optimize_retention' },
+        { text: 'optimize my study schedule', icon: '', action: 'optimize_schedule' },
       ]},
       { pattern: 'predict', suggestions: [
-        { text: 'predict what I\'ll forget next', icon: '🔮', action: 'predict_forgetting' },
-        { text: 'predict my performance', icon: '📊', action: 'predict_performance' },
+        { text: 'predict what I\'ll forget next', icon: '', action: 'predict_forgetting' },
+        { text: 'predict my performance', icon: '', action: 'predict_performance' },
       ]},
       { pattern: 'detect', suggestions: [
-        { text: 'detect my burnout risk', icon: '😰', action: 'detect_burnout' },
-        { text: 'detect knowledge gaps', icon: '🕳️', action: 'show_knowledge_gaps' },
+        { text: 'detect my burnout risk', icon: '', action: 'detect_burnout' },
+        { text: 'detect knowledge gaps', icon: '', action: 'show_knowledge_gaps' },
       ]},
       { pattern: 'chat', suggestions: [
-        { text: 'chat about {topic}', icon: '💬', action: 'start_chat', description: 'Start AI conversation' },
-        { text: 'chat with AI about {topic}', icon: '🤖', action: 'start_chat' },
+        { text: 'chat about {topic}', icon: '', action: 'start_chat', description: 'Start AI conversation' },
+        { text: 'chat with AI about {topic}', icon: '', action: 'start_chat' },
       ]},
       { pattern: 'talk', suggestions: [
-        { text: 'talk about {topic}', icon: '💬', action: 'start_chat', description: 'Start AI conversation' },
+        { text: 'talk about {topic}', icon: '', action: 'start_chat', description: 'Start AI conversation' },
       ]},
       { pattern: 'search', suggestions: [
-        { text: 'search for {topic}', icon: '🔍', action: 'search', description: 'Search your content' },
-        { text: 'search notes about {topic}', icon: '📝', action: 'search_notes' },
-        { text: 'search flashcards about {topic}', icon: '🃏', action: 'search_flashcards' },
+        { text: 'search for {topic}', icon: '', action: 'search', description: 'Search your content' },
+        { text: 'search notes about {topic}', icon: '', action: 'search_notes' },
+        { text: 'search flashcards about {topic}', icon: '', action: 'search_flashcards' },
       ]},
     ];
 
@@ -383,18 +385,39 @@ const SearchHub = () => {
         body: JSON.stringify({
           user_id: userName || 'guest',
           query: finalQuery,
-          session_id: `searchhub_${Date.now()}`
+          session_id: sessionId // Use persistent session ID for context tracking
         })
       });
       
       if (response.ok) {
         const data = await response.json();
-        console.log('SearchHub response:', data);
+        console.log('SearchHub NLP response:', data);
+        console.log('navigate_to value:', data.navigate_to);
+        console.log('search_results:', data.search_results);
+        console.log('ai_response:', data.ai_response);
+        
+        // Log NLP understanding details
+        if (data.metadata) {
+          console.log('NLP Understanding:', {
+            action: data.metadata.action,
+            confidence: data.metadata.confidence,
+            topic: data.metadata.topic,
+            contextUsed: data.metadata.context_used,
+            language: data.metadata.language
+          });
+        }
         
         // Handle navigation actions (content was created or action requires navigation)
         if (data.navigate_to) {
           setIsCreating(true);
-          setCreatingMessage(data.message || 'Processing...');
+          
+          // Show confidence-aware message
+          const confidenceLevel = data.metadata?.confidence || 0;
+          let message = data.message || 'Processing...';
+          if (confidenceLevel > 0.8) {
+            message = message;
+          }
+          setCreatingMessage(message);
           
           // Short delay to show the message, then navigate
           setTimeout(() => {
@@ -415,11 +438,14 @@ const SearchHub = () => {
           setSearchResults({
             results: data.search_results,
             total_results: data.search_results.length,
-            query: finalQuery
+            query: finalQuery,
+            nlp_action: data.metadata?.action,
+            nlp_confidence: data.metadata?.confidence
           });
           setAiSuggestion(data.ai_response ? {
             description: data.ai_response,
-            suggestions: data.suggestions || []
+            suggestions: data.suggestions || [],
+            nlp_metadata: data.metadata
           } : null);
         }
         // Handle AI exploration (no search results but has explanation)
@@ -427,13 +453,16 @@ const SearchHub = () => {
           setAiSuggestion({
             description: data.ai_response,
             suggestions: data.suggestions || [],
-            action_buttons: data.action_buttons || []
+            action_buttons: data.action_buttons || [],
+            nlp_metadata: data.metadata
           });
           setSearchResults({
             results: [],
             total_results: 0,
             query: finalQuery,
-            has_ai_description: true
+            has_ai_description: true,
+            nlp_action: data.metadata?.action,
+            nlp_confidence: data.metadata?.confidence
           });
         }
         // Fallback
@@ -817,18 +846,71 @@ const SearchHub = () => {
     autocompleteDebounceRef.current = setTimeout(async () => {
       try {
         const token = localStorage.getItem('token');
+        
+        // Use the new NLP-powered suggestions endpoint
+        const response = await fetch(`${API_URL}/agents/searchhub/suggestions?query=${encodeURIComponent(query)}&user_id=${encodeURIComponent(userName || 'guest')}`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.suggestions && data.suggestions.length > 0) {
+            // Format NLP suggestions based on detected intent
+            const formattedSuggestions = data.suggestions.map(suggestion => {
+              const suggestionLower = suggestion.toLowerCase();
+              let icon = '';
+              let type = 'nlp_suggestion';
+              
+              // Detect intent from suggestion text
+              if (suggestionLower.includes('flashcard') || suggestionLower.includes('card')) {
+                icon = '';
+                type = 'create_flashcards';
+              } else if (suggestionLower.includes('note') || suggestionLower.includes('write')) {
+                icon = '';
+                type = 'create_note';
+              } else if (suggestionLower.includes('quiz') || suggestionLower.includes('test')) {
+                icon = '';
+                type = 'create_quiz';
+              } else if (suggestionLower.includes('explain') || suggestionLower.includes('what is')) {
+                icon = '';
+                type = 'explain';
+              } else if (suggestionLower.includes('progress') || suggestionLower.includes('stats')) {
+                icon = '';
+                type = 'show_progress';
+              } else if (suggestionLower.includes('weak') || suggestionLower.includes('struggle')) {
+                icon = '';
+                type = 'show_weak_areas';
+              } else if (suggestionLower.includes('review') || suggestionLower.includes('study')) {
+                icon = '';
+                type = 'review';
+              } else if (suggestionLower.includes('chat') || suggestionLower.includes('talk')) {
+                icon = '';
+                type = 'chat';
+              }
+              
+              return { text: suggestion, type, icon, source: 'nlp' };
+            });
+            
+            setAutocompleteResults(formattedSuggestions.slice(0, 8));
+            setShowAutocomplete(true);
+            return;
+          }
+        }
+        
+        // Fallback to legacy autocomplete
         const formData = new FormData();
         formData.append('query', query);
         formData.append('user_id', userName || 'guest');
 
-        const response = await fetch(`${API_URL}/autocomplete`, {
+        const legacyResponse = await fetch(`${API_URL}/autocomplete`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
           body: formData
         });
 
-        if (response.ok) {
-          const data = await response.json();
+        if (legacyResponse.ok) {
+          const data = await legacyResponse.json();
           if (data.suggestions && data.suggestions.length > 0) {
             setAutocompleteResults(data.suggestions.slice(0, 10));
             setShowAutocomplete(true);
@@ -836,19 +918,20 @@ const SearchHub = () => {
           }
         }
       } catch (error) {
-              }
+        console.log('Autocomplete error:', error);
+      }
 
       // Fallback: Show filtered recent searches and personalized prompts
       const queryLower = query.toLowerCase();
       const filteredRecent = recentSearches
         .filter(search => search.toLowerCase().includes(queryLower))
         .slice(0, 5)
-        .map(text => ({ text, type: 'recent' }));
+        .map(text => ({ text, type: 'recent', icon: '' }));
       
       const filteredPrompts = personalizedPrompts
         .filter(prompt => prompt.text.toLowerCase().includes(queryLower))
         .slice(0, 5)
-        .map(prompt => ({ text: prompt.text, type: 'suggestion' }));
+        .map(prompt => ({ text: prompt.text, type: 'suggestion', icon: '' }));
 
       const combined = [...filteredRecent, ...filteredPrompts].slice(0, 10);
       
@@ -858,18 +941,48 @@ const SearchHub = () => {
       } else {
         setShowAutocomplete(false);
       }
-    }, 300);
+    }, 200); // Reduced debounce for faster response
   };
 
-  const showAllRecommendations = () => {
-    // Show recent searches and personalized prompts
+  const showAllRecommendations = async () => {
+    // Try to get NLP-powered suggestions first
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/agents/searchhub/suggestions?query=&user_id=${encodeURIComponent(userName || 'guest')}`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.suggestions && data.suggestions.length > 0) {
+          const nlpSuggestions = data.suggestions.map(suggestion => {
+            return { text: suggestion, type: 'nlp_suggestion', icon: '', source: 'nlp' };
+          });
+          
+          // Combine with recent searches
+          const recentItems = recentSearches
+            .slice(0, 3)
+            .map(text => ({ text, type: 'recent', icon: '' }));
+          
+          const combined = [...recentItems, ...nlpSuggestions].slice(0, 10);
+          setAutocompleteResults(combined);
+          setShowAutocomplete(true);
+          return;
+        }
+      }
+    } catch (error) {
+      console.log('NLP suggestions error:', error);
+    }
+    
+    // Fallback: Show recent searches and personalized prompts
     const recentItems = recentSearches
       .slice(0, 5)
-      .map(text => ({ text, type: 'recent' }));
+      .map(text => ({ text, type: 'recent', icon: '' }));
     
     const promptItems = personalizedPrompts
       .slice(0, 5)
-      .map(prompt => ({ text: prompt.text, type: 'suggestion' }));
+      .map(prompt => ({ text: prompt.text, type: 'suggestion', icon: '' }));
 
     const combined = [...recentItems, ...promptItems].slice(0, 10);
     
@@ -1239,13 +1352,24 @@ const SearchHub = () => {
                         value={searchQuery}
                         onChange={handleInputChange}
                         onKeyDown={handleKeyDown}
-                        onFocus={() => {
-                          // Always show suggestions when clicking on search bar
+                        onClick={() => {
+                          // Mark that user has interacted
+                          setHasUserInteracted(true);
+                          // Show suggestions when clicking on search bar
                           if (!searchQuery || searchQuery.trim() === '') {
                             showAllRecommendations();
                           } else {
-                            // Re-trigger autocomplete for current query
                             handleAutocomplete(searchQuery);
+                          }
+                        }}
+                        onFocus={() => {
+                          // Only show suggestions if user has already interacted (clicked)
+                          if (hasUserInteracted) {
+                            if (!searchQuery || searchQuery.trim() === '') {
+                              showAllRecommendations();
+                            } else {
+                              handleAutocomplete(searchQuery);
+                            }
                           }
                           
                           // Scroll down when clicking on search bar
@@ -1266,7 +1390,7 @@ const SearchHub = () => {
                             }, 200);
                           }
                         }}
-                        placeholder="Search for anything..."
+                        placeholder="Ask me anything... try 'create flashcards on physics'"
                         className="hero-search-input"
                         autoComplete="off"
                       />
@@ -1280,23 +1404,34 @@ const SearchHub = () => {
                           <button
                             key={index}
                             type="button"
-                            className={`autocomplete-item ${index === selectedAutocompleteIndex ? 'selected' : ''}`}
+                            className={`autocomplete-item ${index === selectedAutocompleteIndex ? 'selected' : ''} ${suggestion.source === 'nlp' ? 'nlp-suggestion' : ''}`}
                             onClick={() => {
                               setSearchQuery(suggestion.text);
                               handleSearch(suggestion.text);
                               setShowAutocomplete(false);
                             }}
                           >
-                            <Search size={16} />
-                            <span>{suggestion.text}</span>
-                            {suggestion.type && <span className="suggestion-type">{suggestion.type}</span>}
+                            {suggestion.icon && <span className="suggestion-icon">{suggestion.icon}</span>}
+                            <span className="suggestion-text">{suggestion.text}</span>
+                            {suggestion.type && suggestion.type !== 'nlp_suggestion' && (
+                              <span className={`suggestion-type ${suggestion.type}`}>
+                                {suggestion.type === 'recent' ? 'Recent' : 
+                                 suggestion.type === 'create_flashcards' ? 'Create' :
+                                 suggestion.type === 'create_note' ? 'Create' :
+                                 suggestion.type === 'create_quiz' ? 'Quiz' :
+                                 suggestion.type === 'explain' ? 'Learn' :
+                                 suggestion.type === 'show_progress' ? 'Analytics' :
+                                 suggestion.type === 'show_weak_areas' ? 'Analytics' :
+                                 suggestion.type}
+                              </span>
+                            )}
                           </button>
                         ))}
                       </div>
                     )}
                   </div>
                   <p className="search-helper-text">
-                    EXPLORE ANY TOPIC OF INTEREST, FROM SCIENCE TO HISTORY
+                    JUST ASK NATURALLY — "CREATE FLASHCARDS ON BIOLOGY" OR "WHAT ARE MY WEAK AREAS"
                   </p>
                 </div>
               </div>
