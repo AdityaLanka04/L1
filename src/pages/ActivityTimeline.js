@@ -357,10 +357,10 @@ const ActivityTimeline = () => {
             color: '#93c5fd',
             data: chat
           });
-        });
+      });
       }
 
-      allActivities.sort((a, b) => b.timestamp - a.timestamp);
+      allActivities.sort((a, b) => a.timestamp - b.timestamp);
       setActivities(allActivities);
     } catch (error) {
       console.error('Error loading activities:', error);
@@ -1771,79 +1771,49 @@ const ActivityTimeline = () => {
         </nav>
       </header>
 
-      {/* View Mode Tabs */}
-      <div className="at-view-mode-tabs">
-        <button 
-          className={`at-view-tab ${viewMode === 'timeline' ? 'active' : ''}`}
-          onClick={() => setViewMode('timeline')}
-        >
-          <Clock size={16} />
-          <span>Timeline</span>
-        </button>
-        <button 
-          className={`at-view-tab ${viewMode === 'calendar' ? 'active' : ''}`}
-          onClick={() => setViewMode('calendar')}
-        >
-          <CalendarIcon size={16} />
-          <span>Calendar</span>
-        </button>
-        <button 
-          className={`at-view-tab ${viewMode === 'reminders' ? 'active' : ''}`}
-          onClick={() => setViewMode('reminders')}
-        >
-          <Bell size={16} />
-          <span>Reminders</span>
-          {smartListCounts.all > 0 && (
-            <span className="at-tab-notification-badge">{smartListCounts.all}</span>
-          )}
-        </button>
-      </div>
-
-      {/* Activity Filters (for timeline/calendar views) */}
-      {viewMode !== 'reminders' && (
-        <div className="at-activity-filters">
-          <button 
-            className={`at-filter-btn ${filterType === 'all' ? 'active' : ''}`}
-            onClick={() => setFilterType('all')}
-          >
-            All Activities
-          </button>
-          <button 
-            className={`at-filter-btn ${filterType === 'note' ? 'active' : ''}`}
-            onClick={() => setFilterType('note')}
-          >
-            <FileText size={14} />
-            <span>Notes</span>
-          </button>
-          <button 
-            className={`at-filter-btn ${filterType === 'flashcard' ? 'active' : ''}`}
-            onClick={() => setFilterType('flashcard')}
-          >
-            <BookOpen size={14} />
-            <span>Flashcards</span>
-          </button>
-          <button 
-            className={`at-filter-btn ${filterType === 'quiz' ? 'active' : ''}`}
-            onClick={() => setFilterType('quiz')}
-          >
-            <Award size={14} />
-            <span>Quizzes</span>
-          </button>
-          <button 
-            className={`at-filter-btn ${filterType === 'chat' ? 'active' : ''}`}
-            onClick={() => setFilterType('chat')}
-          >
-            <MessageSquare size={14} />
-            <span>AI Chats</span>
-          </button>
-        </div>
-      )}
-
       {/* Main Content Area */}
       <div className="at-main-content-area">
         {viewMode === 'calendar' && preferences.showMiniCalendar && (
           <aside className="at-left-sidebar">
             {renderMiniCalendar()}
+            
+            {/* Activity Filters Box */}
+            <div className="at-sidebar-filters">
+              <button 
+                className={`at-sidebar-filter-btn ${filterType === 'all' ? 'active' : ''}`}
+                onClick={() => setFilterType('all')}
+              >
+                All Activities
+              </button>
+              <button 
+                className={`at-sidebar-filter-btn ${filterType === 'note' ? 'active' : ''}`}
+                onClick={() => setFilterType('note')}
+              >
+                <FileText size={14} />
+                <span>Notes</span>
+              </button>
+              <button 
+                className={`at-sidebar-filter-btn ${filterType === 'flashcard' ? 'active' : ''}`}
+                onClick={() => setFilterType('flashcard')}
+              >
+                <BookOpen size={14} />
+                <span>Flashcards</span>
+              </button>
+              <button 
+                className={`at-sidebar-filter-btn ${filterType === 'quiz' ? 'active' : ''}`}
+                onClick={() => setFilterType('quiz')}
+              >
+                <Award size={14} />
+                <span>Quizzes</span>
+              </button>
+              <button 
+                className={`at-sidebar-filter-btn ${filterType === 'chat' ? 'active' : ''}`}
+                onClick={() => setFilterType('chat')}
+              >
+                <MessageSquare size={14} />
+                <span>AI Chats</span>
+              </button>
+            </div>
           </aside>
         )}
 

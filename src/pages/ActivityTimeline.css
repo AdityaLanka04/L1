@@ -460,6 +460,64 @@
 }
 
 /* ============================================
+   SIDEBAR FILTERS BOX
+   ============================================ */
+.at-sidebar-filters {
+  width: 100%;
+  background: var(--bg-secondary);
+  border: 2px solid var(--accent-primary);
+  border-radius: 16px;
+  padding: 16px;
+  margin-top: 16px;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-primary) 10%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.at-sidebar-filter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  background: transparent;
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  text-align: left;
+}
+
+.at-sidebar-filter-btn:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+  transform: translateX(4px);
+}
+
+.at-sidebar-filter-btn.active {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-primary) 30%, transparent);
+}
+
+.at-sidebar-filter-btn.active:hover {
+  background: var(--accent-primary-hover);
+  transform: translateX(4px) scale(1.02);
+}
+
+.at-sidebar-filter-btn svg {
+  flex-shrink: 0;
+}
+
+/* ============================================
    CALENDAR VIEW TOGGLE
    ============================================ */
 .at-calendar-view-toggle {

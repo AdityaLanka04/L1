@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRight, X, Filter, Calendar, Play, HelpCircle, RefreshCw, Edit, MessageCircle, Target, Palette, Brain, TrendingUp, Zap, BarChart3, LogIn, UserPlus } from 'lucide-react';
+import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRight, X, Filter, Calendar, Play, HelpCircle, RefreshCw, Edit, MessageCircle, Target, Brain, TrendingUp, Zap, BarChart3, LogIn, UserPlus } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import './SearchHub.css';
 import { API_URL } from '../config/api';
-import { THEMES } from '../utils/ThemeManager';
 
 const SearchHub = () => {
   const navigate = useNavigate();
@@ -17,7 +16,6 @@ const SearchHub = () => {
   const [aiSuggestion, setAiSuggestion] = useState(null);
   const [recentSearches, setRecentSearches] = useState([]);
   const [userName, setUserName] = useState('');
-  const [showThemeSelector, setShowThemeSelector] = useState(false);
   
   const [isCreating, setIsCreating] = useState(false);
   const [creatingMessage, setCreatingMessage] = useState('');
@@ -1121,13 +1119,6 @@ const SearchHub = () => {
       <header className="search-hub-header">
         <div className="header-content">
           <div className="header-buttons">
-            <button 
-              className="theme-btn"
-              onClick={() => setShowThemeSelector(!showThemeSelector)}
-            >
-              <Palette size={18} />
-            </button>
-
             {!userName && (
               <>
                 <button 
@@ -1143,78 +1134,6 @@ const SearchHub = () => {
                   Sign Up
                 </button>
               </>
-            )}
-            
-            {showThemeSelector && (
-              <div className="theme-selector-dropdown">
-                <div className="theme-section">
-                  <h4>Dark Themes</h4>
-                  <div className="theme-grid">
-                    {Object.entries(THEMES)
-                      .filter(([_, theme]) => !theme.isLight)
-                      .map(([key, theme]) => (
-                        <button
-                          key={key}
-                          className={`theme-option theme-option-dark ${selectedTheme === key ? 'active' : ''}`}
-                          onClick={() => {
-                            changeTheme(key);
-                            setShowThemeSelector(false);
-                          }}
-                          style={{
-                            '--theme-primary': theme.primary,
-                            '--theme-accent': theme.accent
-                          }}
-                        >
-                          {theme.name}
-                          <div className="theme-colors">
-                            <span 
-                              className="theme-color-dot" 
-                              style={{ background: theme.primary }}
-                            />
-                            <span 
-                              className="theme-color-dot" 
-                              style={{ background: theme.accent }}
-                            />
-                          </div>
-                        </button>
-                      ))}
-                  </div>
-                </div>
-                
-                <div className="theme-section">
-                  <h4>Light Themes</h4>
-                  <div className="theme-grid">
-                    {Object.entries(THEMES)
-                      .filter(([_, theme]) => theme.isLight)
-                      .map(([key, theme]) => (
-                        <button
-                          key={key}
-                          className={`theme-option theme-option-light ${selectedTheme === key ? 'active' : ''}`}
-                          onClick={() => {
-                            changeTheme(key);
-                            setShowThemeSelector(false);
-                          }}
-                          style={{
-                            '--theme-primary': theme.primary,
-                            '--theme-accent': theme.accent
-                          }}
-                        >
-                          {theme.name}
-                          <div className="theme-colors">
-                            <span 
-                              className="theme-color-dot" 
-                              style={{ background: theme.primary }}
-                            />
-                            <span 
-                              className="theme-color-dot" 
-                              style={{ background: theme.accent }}
-                            />
-                          </div>
-                        </button>
-                      ))}
-                  </div>
-                </div>
-              </div>
             )}
             
             {userName ? (

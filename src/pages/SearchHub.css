@@ -34,7 +34,6 @@
 
 .search-hub-page * {
   box-sizing: border-box;
-  border-radius: 0 !important;
 }
 
 .search-hub-page input,
@@ -42,12 +41,12 @@
 .search-hub-page button,
 .search-hub-page div,
 .search-hub-page datalist {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .search-hub-page *::before,
 .search-hub-page *::after {
-  border-radius: 0 !important;
+  border-radius: 0;
 }
 
 .search-hub-page .search-hub-header {
@@ -726,12 +725,12 @@
   border: 3px solid var(--accent);
   background: var(--bg-primary);
   overflow: visible;
-  border-radius: 8px !important;
+  border-radius: 8px;
 }
 
 .search-hub-page .search-box-cutout.dropdown-open {
-  border-bottom-left-radius: 0 !important;
-  border-bottom-right-radius: 0 !important;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
   border-bottom: none;
 }
 
@@ -747,6 +746,7 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  border-radius: 5px 0 0 5px;
 }
 
 .search-hub-page .hero-search-input::placeholder {
@@ -771,7 +771,7 @@
   transition: all 0.3s ease;
   color: var(--accent);
   flex-shrink: 0;
-  border-radius: 0 !important;
+  border-radius: 0 5px 5px 0;
   margin: 0;
   padding: 0;
 }
@@ -871,7 +871,7 @@
   overflow-x: hidden;
   box-shadow: none;
   z-index: 10000;
-  border-radius: 0 0 8px 8px !important;
+  border-radius: 0 0 8px 8px;
 }
 
 .search-hub-page .autocomplete-dropdown::-webkit-scrollbar {
