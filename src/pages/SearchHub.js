@@ -403,7 +403,9 @@ const SearchHub = () => {
             confidence: data.metadata.confidence,
             topic: data.metadata.topic,
             contextUsed: data.metadata.context_used,
-            language: data.metadata.language
+            language: data.metadata.language,
+            responseType: data.metadata.response_type,
+            chatbotMessage: data.metadata.chatbot_message
           });
         }
         
@@ -411,11 +413,13 @@ const SearchHub = () => {
         if (data.navigate_to) {
           setIsCreating(true);
           
-          // Show confidence-aware message
+          // Show chatbot-like message based on confidence
           const confidenceLevel = data.metadata?.confidence || 0;
-          let message = data.message || 'Processing...';
-          if (confidenceLevel > 0.8) {
-            message = message;
+          let message = data.metadata?.chatbot_message || data.message || 'Processing...';
+          
+          // Add confidence indicator for low confidence
+          if (confidenceLevel < 0.6 && confidenceLevel > 0) {
+            message = `I think you want to: ${message}`;
           }
           setCreatingMessage(message);
           
@@ -433,6 +437,27 @@ const SearchHub = () => {
           return;
         }
         
+        // Handle greeting/help responses (no navigation, just show response)
+        if (data.metadata?.response_type === 'chat' || data.metadata?.action === 'greeting' || data.metadata?.action === 'show_help') {
+          setAiSuggestion({
+            description: data.ai_response || data.message,
+            suggestions: data.suggestions || data.metadata?.suggestions || [],
+            action_buttons: [],
+            nlp_metadata: data.metadata,
+            isGreeting: data.metadata?.action === 'greeting'
+          });
+          setSearchResults({
+            results: [],
+            total_results: 0,
+            query: finalQuery,
+            has_ai_description: true,
+            nlp_action: data.metadata?.action,
+            nlp_confidence: data.metadata?.confidence,
+            isConversational: true
+          });
+          return;
+        }
+        
         // Handle search results
         if (data.search_results && data.search_results.length > 0) {
           setSearchResults({
@@ -444,7 +469,7 @@ const SearchHub = () => {
           });
           setAiSuggestion(data.ai_response ? {
             description: data.ai_response,
-            suggestions: data.suggestions || [],
+            suggestions: data.suggestions || data.metadata?.suggestions || [],
             nlp_metadata: data.metadata
           } : null);
         }
@@ -452,7 +477,7 @@ const SearchHub = () => {
         else if (data.ai_response) {
           setAiSuggestion({
             description: data.ai_response,
-            suggestions: data.suggestions || [],
+            suggestions: data.suggestions || data.metadata?.suggestions || [],
             action_buttons: data.action_buttons || [],
             nlp_metadata: data.metadata
           });

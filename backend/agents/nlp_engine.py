@@ -1,15 +1,17 @@
 """
 NLP Engine for SearchHub Agent
-Advanced Natural Language Processing for understanding user intent like a smart assistant.
+Advanced Natural Language Processing for understanding user intent like a smart chatbot.
 
 Features:
 - Semantic understanding with sentence embeddings
-- Fuzzy intent matching
+- Fuzzy intent matching with conversational patterns
 - Context-aware entity extraction
-- Conversational memory
+- Conversational memory with follow-up handling
 - Multi-language support
 - Synonym expansion
 - Contextual disambiguation
+- Navigation decision making
+- Chatbot-like response generation
 """
 
 import logging
@@ -53,6 +55,9 @@ class IntentMatch:
     original_query: str = ""
     normalized_query: str = ""
     language: str = "en"
+    navigation_target: Optional[str] = None
+    navigation_params: Dict[str, Any] = field(default_factory=dict)
+    response_type: str = "action"  # action, navigate, explain, search, chat
 
 
 @dataclass
@@ -64,6 +69,8 @@ class ConversationContext:
     conversation_history: List[Dict[str, Any]] = field(default_factory=list)
     user_preferences: Dict[str, Any] = field(default_factory=dict)
     session_start: datetime = field(default_factory=datetime.utcnow)
+    pending_clarification: Optional[str] = None
+    last_navigation: Optional[str] = None
 
 
 # ==================== Intent Definitions ====================
@@ -78,137 +85,178 @@ class IntentCategory(str, Enum):
     NAVIGATE = "navigate"
     CHAT = "chat"
     HELP = "help"
+    GREETING = "greeting"
+    FOLLOWUP = "followup"
+
+
+# Navigation targets for each intent
+INTENT_NAVIGATION = {
+    "create_note": "/notes/editor/{id}",
+    "create_flashcards": "/flashcards?set_id={id}",
+    "create_questions": "/question-bank?set_id={id}",
+    "create_quiz": "/solo-quiz",
+    "review_flashcards": "/flashcards",
+    "show_weak_areas": "/study-insights?tab=weak",
+    "show_strong_areas": "/study-insights?tab=strong",
+    "show_progress": "/study-insights",
+    "show_learning_analytics": "/study-insights",
+    "show_knowledge_gaps": "/study-insights?tab=gaps",
+    "show_concepts_to_review": "/flashcards",
+    "show_recommended_topics": "/study-insights?tab=recommendations",
+    "get_learning_path": "/study-insights?tab=path",
+    "detect_learning_style": "/study-insights?tab=style",
+    "start_chat": "/ai-chat",
+    "search_all": None,
+    "explain_topic": None,
+    "summarize_topic": None,
+    "show_help": None,
+}
 
 
 # Intent definitions with semantic examples and synonyms
 INTENT_DEFINITIONS = {
+    # ============ GREETING INTENTS ============
+    "greeting": {
+        "category": IntentCategory.GREETING,
+        "examples": [
+            "hi", "hello", "hey", "hi there", "hello there",
+            "good morning", "good afternoon", "good evening",
+            "what's up", "sup", "yo", "howdy", "hey there",
+        ],
+        "keywords": ["hi", "hello", "hey", "morning", "afternoon", "evening"],
+        "verbs": [],
+        "requires_topic": False,
+        "response_type": "chat",
+    },
+    
     # ============ CREATION INTENTS ============
     "create_note": {
         "category": IntentCategory.CREATE,
         "examples": [
-            # Standard commands
             "create a note about machine learning",
             "make notes on python programming",
             "write a note about calculus",
             "new note on biology",
-            # Conversational / Natural language
             "i want to create notes about physics",
             "can you make a note for me about chemistry",
             "help me write notes on history",
             "start a new note about economics",
             "draft a note covering data structures",
-            # Casual / Informal
             "yo make me a note on algebra",
             "need notes on organic chemistry",
             "gimme a note about world history",
             "let's write about machine learning",
-            # Questions as commands
             "could you create a note on databases",
             "would you mind making notes about networking",
+            "i need to take notes on quantum physics",
+            "help me document my learning about AI",
+            "write something about neural networks",
         ],
         "keywords": ["note", "notes", "write", "draft", "document"],
-        "verbs": ["create", "make", "write", "start", "draft", "new"],
+        "verbs": ["create", "make", "write", "start", "draft", "new", "take"],
         "requires_topic": True,
+        "response_type": "action",
     },
     "create_flashcards": {
         "category": IntentCategory.CREATE,
         "examples": [
-            # Standard commands
             "create flashcards about photosynthesis",
             "make 10 flashcards on spanish vocabulary",
             "generate flashcards for my exam",
-            # Conversational
             "i need flashcards about world war 2",
             "can you create some cards about anatomy",
             "help me make study cards for chemistry",
             "flashcards on programming concepts",
             "create revision cards about math formulas",
-            # Casual
             "gimme some flashcards on biology",
             "need cards for my physics test",
             "make me some cards about history",
-            # With counts
             "5 flashcards on calculus",
             "twenty cards about python",
             "a few flashcards on economics",
+            "i want to memorize vocabulary",
+            "help me study for my test",
+            "prepare study materials on chemistry",
         ],
-        "keywords": ["flashcard", "flashcards", "cards", "study cards", "revision cards"],
+        "keywords": ["flashcard", "flashcards", "cards", "study cards", "revision cards", "memorize"],
         "verbs": ["create", "make", "generate", "build", "prepare"],
         "requires_topic": True,
+        "response_type": "action",
     },
     "create_questions": {
         "category": IntentCategory.CREATE,
         "examples": [
-            # Standard
             "create practice questions about algebra",
             "make questions on cell biology",
             "generate quiz questions about history",
-            # Conversational
             "i need practice problems for physics",
             "create test questions about programming",
             "help me with practice questions on chemistry",
             "make some questions to test my knowledge",
-            # Casual
             "gimme some questions on math",
             "need practice problems for my exam",
             "questions about data structures please",
+            "i want to practice algebra",
+            "help me prepare for my test",
         ],
-        "keywords": ["question", "questions", "problems", "practice", "test"],
+        "keywords": ["question", "questions", "problems", "practice", "test", "exercise"],
         "verbs": ["create", "make", "generate", "prepare"],
         "requires_topic": True,
+        "response_type": "action",
     },
     "create_quiz": {
         "category": IntentCategory.CREATE,
         "examples": [
-            # Standard
             "quiz me on machine learning",
             "test me about python",
             "create a quiz about biology",
-            # Conversational
             "i want to take a quiz on history",
             "start a quiz about chemistry",
             "give me a test on physics",
             "can you quiz me about math",
-            # Casual
             "let's do a quiz on programming",
             "test my knowledge on databases",
             "challenge me on algorithms",
             "ready to be quizzed on calculus",
+            "i want to test myself",
+            "check my understanding of physics",
+            "see how much i know about biology",
         ],
-        "keywords": ["quiz", "test", "exam", "assessment", "challenge"],
+        "keywords": ["quiz", "test", "exam", "assessment", "challenge", "check"],
         "verbs": ["quiz", "test", "assess", "examine", "create", "start", "take", "challenge"],
         "requires_topic": True,
+        "response_type": "action",
     },
     
     # ============ LEARNING INTENTS ============
     "explain_topic": {
         "category": IntentCategory.LEARN,
         "examples": [
-            # Standard
             "explain machine learning to me",
             "what is quantum computing",
             "tell me about neural networks",
             "how does photosynthesis work",
-            # Conversational
             "explain the concept of recursion",
             "what are design patterns",
             "teach me about databases",
             "i want to understand blockchain",
             "can you explain calculus",
             "help me understand algorithms",
-            # Casual / Curious
             "what's the deal with machine learning",
             "break down neural networks for me",
             "eli5 quantum physics",
             "dumb it down for me - what is AI",
-            # Questions
             "how do databases work",
             "why is recursion important",
             "what makes python popular",
+            "i don't understand derivatives",
+            "confused about pointers",
+            "struggling with recursion",
         ],
-        "keywords": ["explain", "what", "how", "tell", "teach", "understand", "learn", "why"],
+        "keywords": ["explain", "what", "how", "tell", "teach", "understand", "learn", "why", "confused", "struggling"],
         "verbs": ["explain", "tell", "teach", "describe", "clarify", "break down"],
         "requires_topic": True,
+        "response_type": "explain",
     },
     "summarize_topic": {
         "category": IntentCategory.LEARN,
@@ -220,71 +268,72 @@ INTENT_DEFINITIONS = {
             "tldr on neural networks",
             "in a nutshell what is blockchain",
             "short version of quantum computing",
+            "give me the gist of economics",
+            "key points of data structures",
         ],
-        "keywords": ["summary", "summarize", "brief", "overview", "tldr", "quick", "short", "nutshell"],
+        "keywords": ["summary", "summarize", "brief", "overview", "tldr", "quick", "short", "nutshell", "gist", "key points"],
         "verbs": ["summarize", "brief", "overview"],
         "requires_topic": True,
+        "response_type": "explain",
     },
     
     # ============ REVIEW INTENTS ============
     "review_flashcards": {
         "category": IntentCategory.REVIEW,
         "examples": [
-            # Standard
             "review my flashcards",
             "study my cards",
             "practice flashcards",
-            # Conversational
             "i want to review",
             "let me study my flashcards",
             "time to review",
             "start a review session",
-            # Casual
             "let's study",
             "ready to practice",
             "drill me on my cards",
+            "i need to study",
+            "time to memorize",
+            "practice time",
         ],
-        "keywords": ["review", "study", "practice", "revise", "drill"],
+        "keywords": ["review", "study", "practice", "revise", "drill", "memorize"],
         "verbs": ["review", "study", "practice", "revise"],
         "requires_topic": False,
+        "response_type": "navigate",
     },
     
     # ============ ANALYSIS INTENTS ============
     "show_weak_areas": {
         "category": IntentCategory.ANALYZE,
         "examples": [
-            # Standard
             "what are my weak areas",
             "show me where i struggle",
             "what do i need to improve",
             "my weaknesses",
-            # Conversational
             "where am i struggling",
             "what topics am i weak in",
             "show my weak points",
             "areas i need to work on",
-            # Casual
             "where do i suck",
             "what am i bad at",
             "help me find my weak spots",
             "what's holding me back",
+            "which subjects need work",
+            "what should i focus on improving",
         ],
-        "keywords": ["weak", "struggle", "improve", "weakness", "difficult", "hard", "bad"],
-        "verbs": ["show", "find", "identify", "tell"],
+        "keywords": ["weak", "struggle", "improve", "weakness", "difficult", "hard", "bad", "focus"],
+        "verbs": ["show", "find", "identify", "tell", "what"],
         "requires_topic": False,
+        "response_type": "navigate",
     },
     "show_strong_areas": {
         "category": IntentCategory.ANALYZE,
         "examples": [
-            # Standard
             "what are my strengths",
             "show me what i'm good at",
             "my strong areas",
-            # Conversational
             "where do i excel",
             "what topics am i strong in",
             "show my strong points",
-            # Casual
             "what am i crushing it at",
             "where am i doing well",
             "my best subjects",
@@ -292,62 +341,61 @@ INTENT_DEFINITIONS = {
         "keywords": ["strong", "strength", "good", "excel", "best", "crushing"],
         "verbs": ["show", "find", "identify", "tell"],
         "requires_topic": False,
+        "response_type": "navigate",
     },
     "show_progress": {
         "category": IntentCategory.ANALYZE,
         "examples": [
-            # Standard
             "show my progress",
             "how am i doing",
             "my learning progress",
-            # Conversational
             "show my stats",
             "my statistics",
             "how have i been doing",
             "my performance",
-            # Casual
             "how's my learning going",
             "am i making progress",
             "give me an update on my learning",
+            "what's my status",
+            "how far have i come",
         ],
-        "keywords": ["progress", "stats", "statistics", "performance", "doing", "update"],
-        "verbs": ["show", "display", "tell"],
+        "keywords": ["progress", "stats", "statistics", "performance", "doing", "update", "status"],
+        "verbs": ["show", "display", "tell", "how"],
         "requires_topic": False,
+        "response_type": "navigate",
     },
     "show_learning_analytics": {
         "category": IntentCategory.ANALYZE,
         "examples": [
-            # Standard
             "show my learning analytics",
             "my study analytics",
             "learning insights",
-            # Conversational
             "detailed stats",
             "my learning data",
             "analytics dashboard",
-            # Casual
             "deep dive into my learning",
             "break down my performance",
         ],
-        "keywords": ["analytics", "insights", "data", "detailed", "breakdown"],
+        "keywords": ["analytics", "insights", "data", "detailed", "breakdown", "dashboard"],
         "verbs": ["show", "display", "get"],
         "requires_topic": False,
+        "response_type": "navigate",
     },
     "show_knowledge_gaps": {
         "category": IntentCategory.ANALYZE,
         "examples": [
-            # Standard
             "show my knowledge gaps",
             "what am i missing",
             "gaps in my knowledge",
-            # Conversational
             "what should i learn next",
             "blind spots",
             "missing knowledge",
+            "what don't i know",
         ],
-        "keywords": ["gap", "gaps", "missing", "blind spot", "lack"],
+        "keywords": ["gap", "gaps", "missing", "blind spot", "lack", "don't know"],
         "verbs": ["show", "find", "identify"],
         "requires_topic": False,
+        "response_type": "navigate",
     },
     "show_concepts_to_review": {
         "category": IntentCategory.ANALYZE,
@@ -358,10 +406,12 @@ INTENT_DEFINITIONS = {
             "overdue reviews",
             "what do i need to review",
             "review schedule",
+            "what's next to study",
         ],
-        "keywords": ["review", "due", "overdue", "schedule"],
-        "verbs": ["show", "tell", "list"],
+        "keywords": ["review", "due", "overdue", "schedule", "next"],
+        "verbs": ["show", "tell", "list", "what"],
         "requires_topic": False,
+        "response_type": "navigate",
     },
     "show_recommended_topics": {
         "category": IntentCategory.ANALYZE,
@@ -371,10 +421,12 @@ INTENT_DEFINITIONS = {
             "suggested topics",
             "topic recommendations",
             "what to learn next",
+            "suggest something to study",
         ],
-        "keywords": ["recommend", "suggest", "next", "should study"],
+        "keywords": ["recommend", "suggest", "next", "should study", "suggestion"],
         "verbs": ["recommend", "suggest", "show"],
         "requires_topic": False,
+        "response_type": "navigate",
     },
     "get_learning_path": {
         "category": IntentCategory.ANALYZE,
@@ -384,10 +436,13 @@ INTENT_DEFINITIONS = {
             "roadmap for data science",
             "study plan for calculus",
             "path to learn programming",
+            "guide me through learning AI",
+            "step by step plan for web development",
         ],
-        "keywords": ["path", "roadmap", "plan", "journey", "route"],
+        "keywords": ["path", "roadmap", "plan", "journey", "route", "guide", "step by step"],
         "verbs": ["get", "show", "create", "make"],
         "requires_topic": True,
+        "response_type": "navigate",
     },
     "detect_learning_style": {
         "category": IntentCategory.ANALYZE,
@@ -397,10 +452,13 @@ INTENT_DEFINITIONS = {
             "my learning preference",
             "detect my learning style",
             "what kind of learner am i",
+            "analyze how i learn",
+            "what type of learner am i",
         ],
-        "keywords": ["learning style", "learner", "preference", "how i learn"],
-        "verbs": ["detect", "find", "identify", "show"],
+        "keywords": ["learning style", "learner", "preference", "how i learn", "type of learner"],
+        "verbs": ["detect", "find", "identify", "show", "what", "analyze"],
         "requires_topic": False,
+        "response_type": "navigate",
     },
     
     # ============ SEARCH INTENTS ============
@@ -412,10 +470,13 @@ INTENT_DEFINITIONS = {
             "look for biology content",
             "search my content",
             "find something about chemistry",
+            "look up calculus",
+            "search flashcards on physics",
         ],
-        "keywords": ["search", "find", "look", "locate"],
+        "keywords": ["search", "find", "look", "locate", "look up"],
         "verbs": ["search", "find", "look", "locate"],
         "requires_topic": True,
+        "response_type": "search",
     },
     
     # ============ CHAT INTENTS ============
@@ -427,10 +488,13 @@ INTENT_DEFINITIONS = {
             "discuss machine learning",
             "i want to chat about programming",
             "can we talk about math",
+            "have a conversation about AI",
+            "let's discuss databases",
         ],
-        "keywords": ["chat", "talk", "discuss", "conversation"],
+        "keywords": ["chat", "talk", "discuss", "conversation", "converse"],
         "verbs": ["chat", "talk", "discuss", "converse"],
         "requires_topic": True,
+        "response_type": "navigate",
     },
     
     # ============ HELP INTENTS ============
@@ -443,10 +507,50 @@ INTENT_DEFINITIONS = {
             "how do i use this",
             "commands",
             "features",
+            "what are your capabilities",
+            "how does this work",
         ],
-        "keywords": ["help", "commands", "features", "how to", "what can"],
+        "keywords": ["help", "commands", "features", "how to", "what can", "capabilities"],
         "verbs": ["help", "show", "tell"],
         "requires_topic": False,
+        "response_type": "chat",
+    },
+    
+    # ============ FOLLOW-UP INTENTS ============
+    "followup_more": {
+        "category": IntentCategory.FOLLOWUP,
+        "examples": [
+            "more", "tell me more", "go on", "continue",
+            "what else", "anything else", "more details",
+            "elaborate", "expand on that",
+        ],
+        "keywords": ["more", "else", "continue", "elaborate", "expand", "details"],
+        "verbs": ["tell", "go", "continue"],
+        "requires_topic": False,
+        "response_type": "followup",
+    },
+    "followup_yes": {
+        "category": IntentCategory.FOLLOWUP,
+        "examples": [
+            "yes", "yeah", "yep", "sure", "ok", "okay",
+            "yes please", "do it", "go ahead", "sounds good",
+            "that's right", "correct", "exactly",
+        ],
+        "keywords": ["yes", "yeah", "yep", "sure", "ok", "okay", "correct", "right"],
+        "verbs": [],
+        "requires_topic": False,
+        "response_type": "followup",
+    },
+    "followup_no": {
+        "category": IntentCategory.FOLLOWUP,
+        "examples": [
+            "no", "nope", "nah", "not really", "never mind",
+            "cancel", "stop", "forget it", "that's not what i meant",
+        ],
+        "keywords": ["no", "nope", "nah", "cancel", "stop", "forget", "never mind"],
+        "verbs": [],
+        "requires_topic": False,
+        "response_type": "followup",
     },
 }
 
@@ -456,8 +560,8 @@ INTENT_DEFINITIONS = {
 SYNONYMS = {
     # Action synonyms
     "create": ["make", "generate", "build", "produce", "craft", "prepare", "write", "draft"],
-    "show": ["display", "reveal", "present", "give", "tell", "list"],
-    "explain": ["describe", "clarify", "elaborate", "teach", "tell about"],
+    "show": ["display", "reveal", "present", "give", "tell", "list", "view"],
+    "explain": ["describe", "clarify", "elaborate", "teach", "tell about", "break down"],
     "review": ["study", "practice", "revise", "go over", "revisit"],
     "search": ["find", "look for", "locate", "discover", "seek"],
     
@@ -489,12 +593,35 @@ FILLER_WORDS = {
 }
 
 
+# ==================== Conversational Patterns ====================
+
+CONVERSATIONAL_PATTERNS = {
+    # Polite requests
+    r"(?:can|could|would)\s+you\s+(?:please\s+)?(.+)": "polite_request",
+    r"(?:i\s+)?(?:want|need|would\s+like)\s+(?:to\s+)?(.+)": "desire_statement",
+    r"(?:help\s+me\s+)?(?:with\s+)?(.+)": "help_request",
+    
+    # Questions
+    r"(?:what|how|why|when|where|who)\s+(.+)\??": "question",
+    r"(?:is|are|can|does|do)\s+(.+)\??": "yes_no_question",
+    
+    # Commands
+    r"(?:please\s+)?(?:show|tell|give|display)\s+(?:me\s+)?(.+)": "show_command",
+    r"(?:let's|lets)\s+(.+)": "collaborative_command",
+    
+    # Confirmations
+    r"^(?:yes|yeah|yep|sure|ok|okay|correct|right)$": "confirmation",
+    r"^(?:no|nope|nah|cancel|stop)$": "negation",
+}
+
+
 # ==================== NLP Engine ====================
 
 class NLPEngine:
     """
     Advanced NLP Engine for understanding natural language commands.
-    Works like a smart assistant - understands context, synonyms, and natural speech.
+    Works like a smart chatbot - understands context, synonyms, and natural speech.
+    Makes intelligent navigation decisions based on user intent.
     """
     
     def __init__(self, ai_client=None, model_name: str = "all-MiniLM-L6-v2"):
@@ -539,16 +666,18 @@ class NLPEngine:
             self._conversation_contexts[user_id] = ConversationContext()
         return self._conversation_contexts[user_id]
     
-    def _update_context(self, user_id: str, intent: str, entities: Dict[str, Any], query: str):
+    def _update_context(self, user_id: str, intent: str, entities: Dict[str, Any], query: str, navigation: Optional[str] = None):
         """Update conversation context after processing"""
         context = self._get_context(user_id)
         context.last_action = intent
         context.last_topic = entities.get("topic")
         context.last_entities = entities
+        context.last_navigation = navigation
         context.conversation_history.append({
             "query": query,
             "intent": intent,
             "entities": entities,
+            "navigation": navigation,
             "timestamp": datetime.utcnow().isoformat()
         })
         # Keep only last 10 interactions
@@ -644,6 +773,18 @@ class NLPEngine:
         
         return None
     
+    def _detect_conversational_pattern(self, query: str) -> Tuple[Optional[str], Optional[str]]:
+        """Detect conversational patterns in the query"""
+        normalized = self._normalize_query(query)
+        
+        for pattern, pattern_type in CONVERSATIONAL_PATTERNS.items():
+            match = re.match(pattern, normalized)
+            if match:
+                extracted = match.group(1) if match.groups() else normalized
+                return pattern_type, extracted
+        
+        return None, normalized
+    
     def _semantic_match(self, query: str) -> Tuple[str, float]:
         """Use semantic similarity to match intent"""
         if not self._model or not self._intent_embeddings:
@@ -698,10 +839,22 @@ class NLPEngine:
             (r'how\s+do\s+i\s+learn\s+best', 'detect_learning_style', 0.95),
             (r'(?:what|show).*\bmy\s+(?:weak|weakness)', 'show_weak_areas', 0.95),
             (r'(?:what|where)\s+(?:am\s+i|do\s+i)\s+(?:weak|struggling|bad)', 'show_weak_areas', 0.95),
+            (r'(?:what|where).*\bweak\s+area', 'show_weak_areas', 0.95),
+            (r'\bmy\s+weak(?:ness|areas?)?', 'show_weak_areas', 0.9),
             (r'(?:what|show).*\bmy\s+(?:strong|strength)', 'show_strong_areas', 0.95),
             (r'(?:what|show).*\bmy\s+progress', 'show_progress', 0.95),
             (r'how\s+am\s+i\s+doing', 'show_progress', 0.9),
             (r'(?:what|show).*\bmy\s+(?:knowledge\s+)?gap', 'show_knowledge_gaps', 0.95),
+            # Greeting patterns
+            (r'^(?:hi|hello|hey|yo|sup|howdy)(?:\s|$)', 'greeting', 0.95),
+            (r'^good\s+(?:morning|afternoon|evening)', 'greeting', 0.95),
+            # Help patterns
+            (r'^help$', 'show_help', 0.95),
+            (r'what\s+can\s+you\s+do', 'show_help', 0.9),
+            # Follow-up patterns
+            (r'^(?:yes|yeah|yep|sure|ok|okay)$', 'followup_yes', 0.95),
+            (r'^(?:no|nope|nah|cancel|stop)$', 'followup_no', 0.95),
+            (r'^(?:more|tell\s+me\s+more|continue|go\s+on)$', 'followup_more', 0.95),
         ]
         
         for pattern, intent, score in create_patterns:
@@ -755,6 +908,31 @@ class NLPEngine:
         
         return None
     
+    def _handle_followup(self, intent: str, user_id: str) -> Optional[Dict[str, Any]]:
+        """Handle follow-up intents based on conversation context"""
+        context = self._get_context(user_id)
+        
+        if intent == "followup_yes" and context.pending_clarification:
+            # User confirmed a pending action
+            return {
+                "action": context.pending_clarification,
+                "topic": context.last_topic,
+                "confirmed": True
+            }
+        elif intent == "followup_no":
+            # User cancelled
+            context.pending_clarification = None
+            return {"cancelled": True}
+        elif intent == "followup_more" and context.last_topic:
+            # User wants more info on last topic
+            return {
+                "action": "explain_topic",
+                "topic": context.last_topic,
+                "expand": True
+            }
+        
+        return None
+    
     def _detect_language(self, query: str) -> str:
         """Detect query language"""
         if not HAS_LANGDETECT:
@@ -765,13 +943,39 @@ class NLPEngine:
         except:
             return "en"
     
+    def _get_navigation_target(self, intent: str, entities: Dict[str, Any]) -> Tuple[Optional[str], Dict[str, Any]]:
+        """Determine navigation target based on intent"""
+        nav_template = INTENT_NAVIGATION.get(intent)
+        nav_params = {}
+        
+        if nav_template:
+            # Replace placeholders with actual values
+            if "{id}" in nav_template:
+                content_id = entities.get("content_id")
+                if content_id:
+                    nav_template = nav_template.replace("{id}", str(content_id))
+                else:
+                    # Will be filled after content creation
+                    nav_template = nav_template.replace("{id}", "")
+            
+            if entities.get("topic"):
+                nav_params["topic"] = entities["topic"]
+            if entities.get("count"):
+                nav_params["count"] = entities["count"]
+        
+        return nav_template, nav_params
+    
     async def understand(self, query: str, user_id: str = "default") -> IntentMatch:
         """
         Main method to understand user intent from natural language.
         Combines semantic matching, keyword matching, and context awareness.
+        Works like a chatbot - understands conversational patterns and makes navigation decisions.
         """
         normalized = self._normalize_query(query)
         language = self._detect_language(query)
+        
+        # Detect conversational pattern
+        pattern_type, extracted_query = self._detect_conversational_pattern(query)
         
         # Try context resolution first
         context_info = self._use_context(query, user_id)
@@ -801,6 +1005,25 @@ class NLPEngine:
             best_intent = "explain_topic"
             confidence = 0.4
         
+        # Handle follow-up intents
+        if best_intent in ["followup_yes", "followup_no", "followup_more"]:
+            followup_result = self._handle_followup(best_intent, user_id)
+            if followup_result:
+                if followup_result.get("cancelled"):
+                    return IntentMatch(
+                        intent="cancelled",
+                        confidence=1.0,
+                        entities={},
+                        context_used=True,
+                        original_query=query,
+                        normalized_query=normalized,
+                        language=language,
+                        response_type="chat"
+                    )
+                elif followup_result.get("action"):
+                    best_intent = followup_result["action"]
+                    context_info = followup_result
+        
         # Extract entities
         intent_data = INTENT_DEFINITIONS.get(best_intent, {})
         entities = {}
@@ -826,8 +1049,14 @@ class NLPEngine:
                 confidence = 0.6
             entities["context_used"] = True
         
+        # Get navigation target
+        nav_target, nav_params = self._get_navigation_target(best_intent, entities)
+        
+        # Get response type
+        response_type = intent_data.get("response_type", "action")
+        
         # Update context
-        self._update_context(user_id, best_intent, entities, query)
+        self._update_context(user_id, best_intent, entities, query, nav_target)
         
         return IntentMatch(
             intent=best_intent,
@@ -836,7 +1065,10 @@ class NLPEngine:
             context_used=bool(context_info),
             original_query=query,
             normalized_query=normalized,
-            language=language
+            language=language,
+            navigation_target=nav_target,
+            navigation_params=nav_params,
+            response_type=response_type
         )
     
     async def understand_with_ai(self, query: str, user_id: str = "default") -> IntentMatch:
@@ -852,6 +1084,13 @@ class NLPEngine:
             try:
                 ai_result = await self._ai_classify(query)
                 if ai_result and ai_result.get("confidence", 0) > result.confidence:
+                    # Get intent data for response type
+                    intent_data = INTENT_DEFINITIONS.get(ai_result["intent"], {})
+                    nav_target, nav_params = self._get_navigation_target(
+                        ai_result["intent"], 
+                        ai_result.get("entities", {})
+                    )
+                    
                     return IntentMatch(
                         intent=ai_result["intent"],
                         confidence=ai_result["confidence"],
@@ -859,7 +1098,10 @@ class NLPEngine:
                         context_used=False,
                         original_query=query,
                         normalized_query=self._normalize_query(query),
-                        language=result.language
+                        language=result.language,
+                        navigation_target=nav_target,
+                        navigation_params=nav_params,
+                        response_type=intent_data.get("response_type", "action")
                     )
             except Exception as e:
                 logger.error(f"AI classification failed: {e}")
@@ -874,12 +1116,17 @@ class NLPEngine:
         intent_list = "\n".join([f"- {name}: {data.get('examples', [''])[0]}" 
                                   for name, data in INTENT_DEFINITIONS.items()])
         
-        prompt = f"""Classify this user request and extract the topic.
+        prompt = f"""You are a smart assistant that understands user requests. Classify this user request and extract the topic.
 
 User query: "{query}"
 
 Available intents:
 {intent_list}
+
+Analyze the query carefully:
+1. What is the user trying to do?
+2. What topic are they asking about (if any)?
+3. How confident are you in this classification?
 
 Return JSON only:
 {{"intent": "intent_name", "topic": "extracted topic or null", "confidence": 0.0-1.0}}"""
@@ -908,35 +1155,102 @@ Return JSON only:
         return None
     
     def get_suggestions(self, partial_query: str, user_id: str = "default") -> List[str]:
-        """Get autocomplete suggestions based on partial query"""
+        """Get autocomplete suggestions based on partial query and user context"""
         context = self._get_context(user_id)
         suggestions = []
         
         partial_lower = partial_query.lower().strip()
         
-        # Add context-aware suggestions
+        # Add context-aware suggestions based on last topic
         if context.last_topic:
             suggestions.extend([
                 f"create flashcards on {context.last_topic}",
                 f"quiz me on {context.last_topic}",
                 f"explain {context.last_topic}",
+                f"create a note on {context.last_topic}",
             ])
         
-        # Add intent-based suggestions
-        for intent_name, intent_data in INTENT_DEFINITIONS.items():
-            for example in intent_data["examples"][:2]:
-                if partial_lower in example.lower() or example.lower().startswith(partial_lower):
-                    suggestions.append(example)
+        # Add suggestions based on partial query
+        if partial_lower:
+            # Match against intent examples
+            for intent_name, intent_data in INTENT_DEFINITIONS.items():
+                for example in intent_data["examples"][:3]:
+                    if partial_lower in example.lower() or example.lower().startswith(partial_lower):
+                        suggestions.append(example)
+            
+            # Add topic-based suggestions if partial looks like a topic
+            if len(partial_lower) > 3 and not any(kw in partial_lower for kw in ["create", "make", "show", "what", "how"]):
+                suggestions.extend([
+                    f"explain {partial_lower}",
+                    f"create flashcards on {partial_lower}",
+                    f"quiz me on {partial_lower}",
+                    f"create a note on {partial_lower}",
+                ])
+        else:
+            # Default suggestions when no query
+            suggestions.extend([
+                "what are my weak areas",
+                "show my progress",
+                "what should I study next",
+                "create flashcards on [topic]",
+                "explain [topic]",
+                "quiz me on [topic]",
+            ])
         
         # Deduplicate and limit
         seen = set()
         unique_suggestions = []
         for s in suggestions:
-            if s.lower() not in seen:
-                seen.add(s.lower())
+            s_lower = s.lower()
+            if s_lower not in seen:
+                seen.add(s_lower)
                 unique_suggestions.append(s)
         
         return unique_suggestions[:8]
+    
+    def get_chatbot_response(self, intent: str, entities: Dict[str, Any], user_id: str = "default") -> str:
+        """Generate a chatbot-like response based on intent"""
+        context = self._get_context(user_id)
+        topic = entities.get("topic", "")
+        
+        responses = {
+            "greeting": [
+                "Hey! How can I help you learn today?",
+                "Hi there! Ready to study something?",
+                "Hello! What would you like to learn about?",
+            ],
+            "show_help": [
+                "I can help you with:\n• Creating flashcards, notes, and quizzes\n• Explaining topics\n• Tracking your progress\n• Finding your weak areas\n\nJust ask naturally!",
+            ],
+            "create_note": [
+                f"Creating a comprehensive note on {topic}...",
+                f"Let me write up some notes on {topic} for you...",
+            ],
+            "create_flashcards": [
+                f"Generating flashcards on {topic}...",
+                f"Creating study cards for {topic}...",
+            ],
+            "create_quiz": [
+                f"Starting a quiz on {topic}...",
+                f"Let's test your knowledge of {topic}!",
+            ],
+            "explain_topic": [
+                f"Let me explain {topic} for you...",
+                f"Here's what you need to know about {topic}...",
+            ],
+            "show_weak_areas": [
+                "Let me check your learning analytics...",
+                "Looking at your study data...",
+            ],
+            "show_progress": [
+                "Here's how you've been doing...",
+                "Let me show you your progress...",
+            ],
+        }
+        
+        import random
+        intent_responses = responses.get(intent, [f"Processing your request..."])
+        return random.choice(intent_responses)
     
     def clear_context(self, user_id: str):
         """Clear conversation context for user"""

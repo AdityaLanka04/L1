@@ -904,21 +904,25 @@ class EnhancedSearchHubAgent(BaseAgent):
     # ==================== Graph Nodes ====================
     
     async def _understand_intent(self, state: EnhancedSearchHubState) -> EnhancedSearchHubState:
-        """Use NLP engine to understand user intent"""
+        """Use NLP engine to understand user intent like a chatbot"""
         user_input = state.get("user_input", "")
         user_id = state.get("user_id", "default")
         
         state["execution_path"] = ["searchhub:understand_intent"]
         
-        # Use NLP engine for understanding
+        # Use NLP engine for understanding with AI fallback
         intent_match = await self.nlp_engine.understand_with_ai(user_input, user_id)
         
+        # Store comprehensive intent match data
         state["intent_match"] = {
             "intent": intent_match.intent,
             "confidence": intent_match.confidence,
             "entities": intent_match.entities,
             "context_used": intent_match.context_used,
-            "language": intent_match.language
+            "language": intent_match.language,
+            "navigation_target": intent_match.navigation_target,
+            "navigation_params": intent_match.navigation_params,
+            "response_type": intent_match.response_type
         }
         state["detected_intent"] = intent_match.intent
         state["confidence"] = intent_match.confidence
@@ -926,8 +930,22 @@ class EnhancedSearchHubAgent(BaseAgent):
         state["language"] = intent_match.language
         state["context_used"] = intent_match.context_used
         
+        # Store navigation info from NLP engine
+        if intent_match.navigation_target:
+            state["navigate_to"] = intent_match.navigation_target
+            state["navigate_params"] = intent_match.navigation_params
+        
+        # Generate chatbot-like response message
+        chatbot_response = self.nlp_engine.get_chatbot_response(
+            intent_match.intent, 
+            intent_match.entities, 
+            user_id
+        )
+        state["chatbot_message"] = chatbot_response
+        
         logger.info(f"NLP Understanding: intent={intent_match.intent}, confidence={intent_match.confidence:.2f}, "
-                   f"entities={intent_match.entities}, context_used={intent_match.context_used}")
+                   f"entities={intent_match.entities}, context_used={intent_match.context_used}, "
+                   f"response_type={intent_match.response_type}, nav_target={intent_match.navigation_target}")
         
         return state
     
@@ -989,8 +1007,15 @@ class EnhancedSearchHubAgent(BaseAgent):
             # Chat
             "start_chat": "chat",
             
-            # Help
+            # Help & Greeting
             "show_help": "help",
+            "greeting": "help",
+            
+            # Follow-up intents
+            "followup_yes": "help",
+            "followup_no": "help",
+            "followup_more": "explore",
+            "cancelled": "help",
         }
         
         return intent_routes.get(intent, "explore")
@@ -1529,54 +1554,112 @@ After a few study sessions, I'll be able to give you personalized insights!"""
         return state
     
     async def _help_action(self, state: EnhancedSearchHubState) -> EnhancedSearchHubState:
-        """Show help and available commands"""
-        state["execution_path"].append("searchhub:help")
+        """Show help, handle greetings, and follow-up intents"""
+        intent = state.get("detected_intent", "")
+        state["execution_path"].append(f"searchhub:help:{intent}")
         
-        help_text = """Here's what I can help you with:
+        # Handle different help-related intents
+        if intent == "greeting":
+            greeting_responses = [
+                "Hey there! 👋 How can I help you learn today?",
+                "Hi! Ready to study something? Just tell me what you need!",
+                "Hello! I'm here to help you learn. What would you like to do?",
+                "Hey! What would you like to learn about today?",
+            ]
+            import random
+            greeting = random.choice(greeting_responses)
+            
+            state["ai_response"] = greeting
+            state["response_data"] = {
+                "success": True,
+                "action": "greeting",
+                "message": greeting,
+                "ai_response": greeting,
+                "suggestions": [
+                    "create flashcards on [topic]",
+                    "explain [topic]",
+                    "show my progress",
+                    "what are my weak areas",
+                    "quiz me on [topic]"
+                ]
+            }
+            return state
+        
+        elif intent == "cancelled":
+            state["ai_response"] = "No problem! Let me know if you need anything else."
+            state["response_data"] = {
+                "success": True,
+                "action": "cancelled",
+                "message": "No problem! Let me know if you need anything else.",
+                "ai_response": "No problem! Let me know if you need anything else."
+            }
+            return state
+        
+        elif intent in ["followup_yes", "followup_no"]:
+            # These should have been handled by context, but provide fallback
+            state["ai_response"] = "I'm not sure what you're referring to. Could you tell me more specifically what you'd like to do?"
+            state["response_data"] = {
+                "success": True,
+                "action": intent,
+                "message": "I'm not sure what you're referring to. Could you tell me more specifically what you'd like to do?",
+                "ai_response": "I'm not sure what you're referring to. Could you tell me more specifically what you'd like to do?"
+            }
+            return state
+        
+        # Default help text
+        help_text = """Hey! Here's what I can help you with:
 
-CREATE CONTENT
+📝 CREATE CONTENT
   • "Create flashcards on [topic]"
   • "Make a note about [topic]"
   • "Generate questions on [topic]"
   • "Quiz me on [topic]"
 
-SEARCH & EXPLORE
+🔍 SEARCH & EXPLORE
   • "Search for [topic]"
   • "Explain [topic]"
   • "What is [topic]?"
 
-LEARNING ANALYTICS
+📊 LEARNING ANALYTICS
   • "Show my progress"
   • "What are my weak areas?"
   • "What should I review?"
   • "Show my learning analytics"
 
-SMART FEATURES
+🎯 SMART FEATURES
   • "What should I study next?"
   • "Learning path for [topic]"
   • "What's my learning style?"
 
-Just type naturally - I understand conversational language!"""
+Just type naturally - I understand conversational language! Try something like "help me learn about machine learning" or "I need to study for my physics exam"."""
         
         state["ai_response"] = help_text
         state["response_data"] = {
             "success": True,
             "action": "show_help",
             "message": "Here's what I can do",
-            "ai_response": help_text
+            "ai_response": help_text,
+            "suggestions": [
+                "create flashcards on machine learning",
+                "explain quantum physics",
+                "show my progress",
+                "what are my weak areas"
+            ]
         }
         
         return state
     
     async def _format_response(self, state: EnhancedSearchHubState) -> EnhancedSearchHubState:
-        """Format the final response"""
+        """Format the final response with chatbot-like messaging"""
         intent = state.get("detected_intent")
         entities = state.get("extracted_entities", {})
         topic = entities.get("topic", "")
+        intent_match = state.get("intent_match", {})
         
         state["execution_path"].append("searchhub:format_response")
         
         response_data = state.get("response_data", {})
+        chatbot_message = state.get("chatbot_message", "")
         
         logger.info(f"Format response - intent: {intent}, navigate_to in state: {state.get('navigate_to')}, response_data: {response_data.get('success')}")
         
@@ -1593,7 +1676,11 @@ Just type naturally - I understand conversational language!"""
                 ]
             }
         else:
-            state["final_response"] = response_data.get("message", f"Completed {intent}")
+            # Use chatbot message if available, otherwise use response data message
+            message = chatbot_message or response_data.get("message", f"Completed {intent}")
+            state["final_response"] = message
+            
+            # Build comprehensive metadata
             state["response_metadata"] = {
                 "success": True,
                 "action": intent,
@@ -1605,20 +1692,32 @@ Just type naturally - I understand conversational language!"""
                 "navigate_params": state.get("navigate_params", {}),
                 "content_id": state.get("content_id"),
                 "content_type": state.get("content_type"),
-                "response_data": response_data
+                "response_type": intent_match.get("response_type", "action"),
+                "chatbot_message": chatbot_message,
+                "response_data": response_data,
+                "suggestions": response_data.get("suggestions", self.nlp_engine.get_suggestions("", state.get("user_id", "default")))
             }
         
         return state
     
     async def _handle_error(self, state: EnhancedSearchHubState) -> EnhancedSearchHubState:
-        """Handle errors gracefully"""
+        """Handle errors gracefully with helpful suggestions"""
         errors = state.get("errors", ["Unknown error"])
+        user_id = state.get("user_id", "default")
         
-        state["final_response"] = f"I couldn't complete that request: {errors[0]}. Try rephrasing or being more specific."
+        # Provide helpful error message
+        error_responses = [
+            f"Hmm, I ran into a problem: {errors[0]}. Could you try rephrasing that?",
+            f"I couldn't quite do that: {errors[0]}. Let me know if you'd like to try something else!",
+            f"Oops! {errors[0]}. Try being more specific or ask me what I can do.",
+        ]
+        import random
+        
+        state["final_response"] = random.choice(error_responses)
         state["response_metadata"] = {
             "success": False,
             "errors": errors,
-            "suggestions": self.nlp_engine.get_suggestions("", state.get("user_id", "default"))
+            "suggestions": self.nlp_engine.get_suggestions("", user_id)
         }
         
         return state
