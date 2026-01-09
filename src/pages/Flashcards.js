@@ -1462,10 +1462,6 @@ const Flashcards = () => {
               <span className="fc-nav-icon">{Icons.chat}</span>
               <span className="fc-nav-text">AI Chat</span>
             </button>
-            <button className="fc-nav-item" onClick={() => { localStorage.clear(); navigate('/login'); }}>
-              <span className="fc-nav-icon">{Icons.logout}</span>
-              <span className="fc-nav-text">Logout</span>
-            </button>
           </div>
         </aside>
 

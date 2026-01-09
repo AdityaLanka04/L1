@@ -327,31 +327,28 @@ const MyNotes = () => {
 
   return (
     <div className="my-notes-page-full">
-      <div className="nt-layout">
+      {/* Header - Full Width */}
+      <header className="mn-header">
+        <div className="mn-header-left">
+          <h1 className="mn-header-title" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <div className="mn-header-divider"></div>
+          <p className="mn-header-subtitle">MY NOTES</p>
+        </div>
+      </header>
+
+      {/* Body - Sidebar + Content */}
+      <div className="mn-body">
         {/* Sidebar */}
         <aside className={`nt-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
-          <div className="nt-sidebar-header">
-            <div className="nt-logo" onClick={() => navigate('/dashboard')}>
-              <div className="nt-logo-icon">{Icons.notes}</div>
-              <span className="nt-logo-text">My Notes</span>
-            </div>
-            <button 
-              className="nt-collapse-btn"
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            >
-              {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-            </button>
-          </div>
-
           <button className="nt-new-note-btn" onClick={createNewNote}>
             <Plus size={18} />
-            <span>New Note</span>
+            <span className="nt-nav-text">New Note</span>
           </button>
 
           <nav className="nt-sidebar-nav">
             {/* Quick Actions */}
             <div className="nt-nav-section">
-              <div className="nt-nav-section-title">Quick Actions</div>
+              <div className="nt-nav-section-title">QUICK ACTIONS</div>
               <button className="nt-nav-item" onClick={() => setShowTemplates(true)}>
                 <span className="nt-nav-icon"><Layout size={18} /></span>
                 <span className="nt-nav-text">Templates</span>
@@ -372,7 +369,7 @@ const MyNotes = () => {
 
             {/* Filters */}
             <div className="nt-nav-section">
-              <div className="nt-nav-section-title">Library</div>
+              <div className="nt-nav-section-title">LIBRARY</div>
               <button 
                 className={`nt-nav-item ${!showFavorites && !showTrash && !selectedFolder ? 'active' : ''}`}
                 onClick={() => { setShowFavorites(false); setShowTrash(false); setSelectedFolder(null); }}
@@ -401,7 +398,7 @@ const MyNotes = () => {
             {/* Folders */}
             <div className="nt-nav-section">
               <div className="nt-nav-section-title">
-                Folders
+                FOLDERS
                 <button className="nt-add-folder-btn" onClick={() => setShowFolderModal(true)}>
                   <FolderPlus size={14} />
                 </button>
@@ -422,12 +419,12 @@ const MyNotes = () => {
 
           <div className="nt-sidebar-footer">
             <button className="nt-nav-item" onClick={() => navigate('/dashboard')}>
-              <span className="nt-nav-icon">{Icons.home}</span>
+              <span className="nt-nav-icon"><ChevronLeft size={18} /></span>
               <span className="nt-nav-text">Dashboard</span>
             </button>
-            <button className="nt-nav-item" onClick={handleLogout}>
-              <span className="nt-nav-icon">{Icons.logout}</span>
-              <span className="nt-nav-text">Logout</span>
+            <button className="nt-nav-item" onClick={() => navigate('/learning-review')}>
+              <span className="nt-nav-icon"><Home size={18} /></span>
+              <span className="nt-nav-text">Learning Hub</span>
             </button>
           </div>
         </aside>
@@ -531,7 +528,7 @@ const MyNotes = () => {
             )}
           </div>
         </main>
-      </div>
+      </div> {/* Close mn-body */}
 
       {/* Create Folder Modal */}
       {showFolderModal && (

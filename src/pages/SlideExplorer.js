@@ -208,21 +208,12 @@ const SlideExplorer = () => {
 
   return (
     <div className="se-page">
-      {/* Header */}
+      {/* Header - Full Width */}
       <header className="se-header">
         <div className="se-header-left">
-          <div className="se-header-title-group">
-            <h1 className="se-logo">cerbyl</h1>
-            <span className="se-subtitle">SLIDE EXPLORER</span>
-          </div>
-        </div>
-        <div className="se-header-right">
-          <button className="se-back-btn" onClick={() => navigate('/learning-review')}>
-            <ChevronLeft size={18} />
-            <span>Back</span>
-          </button>
-          <button className="se-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
-          <button className="se-nav-btn logout" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>Logout</button>
+          <h1 className="se-header-title" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <div className="se-header-divider"></div>
+          <p className="se-header-subtitle">SLIDE EXPLORER</p>
         </div>
       </header>
 
@@ -230,20 +221,33 @@ const SlideExplorer = () => {
       <div className="se-main-layout">
         {/* Sidebar */}
         <aside className="se-sidebar">
-          <button 
-            className={`se-tab-btn ${activeTab === 'viewer' ? 'active' : ''}`}
-            onClick={() => setActiveTab('viewer')}
-          >
-            <Eye size={20} />
-            <span>View/Upload</span>
-          </button>
-          <button 
-            className={`se-tab-btn ${activeTab === 'myslides' ? 'active' : ''}`}
-            onClick={() => setActiveTab('myslides')}
-          >
-            <Presentation size={20} />
-            <span>My Slides</span>
-          </button>
+          <nav className="se-sidebar-nav">
+            <button 
+              className={`se-tab-btn ${activeTab === 'viewer' ? 'active' : ''}`}
+              onClick={() => setActiveTab('viewer')}
+            >
+              <Eye size={20} />
+              <span className="se-nav-text">View/Upload</span>
+            </button>
+            <button 
+              className={`se-tab-btn ${activeTab === 'myslides' ? 'active' : ''}`}
+              onClick={() => setActiveTab('myslides')}
+            >
+              <Presentation size={20} />
+              <span className="se-nav-text">My Slides</span>
+            </button>
+          </nav>
+
+          <div className="se-sidebar-footer">
+            <button className="se-tab-btn" onClick={() => navigate('/dashboard')}>
+              <ChevronLeft size={20} />
+              <span className="se-nav-text">Dashboard</span>
+            </button>
+            <button className="se-tab-btn" onClick={() => navigate('/learning-review')}>
+              <BookOpen size={20} />
+              <span className="se-nav-text">Learning Hub</span>
+            </button>
+          </div>
         </aside>
 
         {/* Main Content */}

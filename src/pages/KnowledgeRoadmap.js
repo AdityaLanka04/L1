@@ -10,7 +10,7 @@ import ReactFlow, {
   Position,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Plus, Loader, MapPin, Book, Sparkles, Trash2, FileDown, Info } from 'lucide-react';
+import { Plus, Loader, MapPin, Book, Sparkles, Trash2, FileDown, Info, ChevronRight } from 'lucide-react';
 import './KnowledgeRoadmap.css';
 import { API_URL } from '../config';
 const CustomNode = ({ data }) => {
@@ -1151,17 +1151,15 @@ User question: ${messageText}`);
     <div className="kr-page">
       <header className="kr-header">
         <div className="kr-header-left">
-          <button className="kr-back-btn" onClick={() => navigate('/learning-review')}>
-            ← Back
-          </button>
-          <div className="kr-header-title-group">
-            <h1 className="kr-logo">Knowledge Roadmap</h1>
-            <span className="kr-subtitle">Build interactive learning maps</span>
-          </div>
+          <span className="kr-brand">cerbyl</span>
+          <div className="kr-header-divider"></div>
+          <span className="kr-page-title">KNOWLEDGE ROADMAP</span>
         </div>
         <div className="kr-header-right">
-          <button className="kr-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
-          <button className="kr-nav-btn logout" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>Logout</button>
+          <button className="kr-nav-btn" onClick={() => navigate('/dashboard')}>
+            DASHBOARD
+            <ChevronRight size={14} />
+          </button>
         </div>
       </header>
 

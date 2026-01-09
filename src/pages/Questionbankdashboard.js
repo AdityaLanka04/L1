@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Upload, MessageSquare, Sparkles, FileText, BarChart3, 
   Plus, Play, Trash2, TrendingUp, Target, Brain, Zap, Award, 
-  CheckCircle, XCircle, Loader, Clock, FileUp, BookOpen, PieChart
+  CheckCircle, XCircle, Loader, Clock, FileUp, BookOpen, PieChart, ChevronLeft
 } from 'lucide-react';
 import './Questionbankdashboard.css';
 import './QuestionbankConvert.css';
@@ -422,18 +422,13 @@ const QuestionBankDashboard = () => {
 
   const renderSidebar = () => (
     <div className="qbd-sidebar">
-      <div className="qbd-sidebar-header">
-        <Brain className="qbd-sidebar-logo-icon" size={28} />
-        <div className="qbd-sidebar-title">Question Bank</div>
-      </div>
-
       <nav className="qbd-sidebar-nav">
         <button 
           className={`qbd-sidebar-item ${activeView === 'upload-pdf' ? 'active' : ''}`}
           onClick={() => setActiveView('upload-pdf')}
         >
           <Upload size={20} />
-          <span>Upload PDF</span>
+          <span className="qbd-nav-text">Upload PDF</span>
         </button>
 
         <button 
@@ -441,7 +436,7 @@ const QuestionBankDashboard = () => {
           onClick={() => setActiveView('chat-slides')}
         >
           <MessageSquare size={20} />
-          <span>AI Chat & Slides</span>
+          <span className="qbd-nav-text">AI Chat & Slides</span>
         </button>
 
         <button 
@@ -449,7 +444,7 @@ const QuestionBankDashboard = () => {
           onClick={() => setActiveView('custom')}
         >
           <Sparkles size={20} />
-          <span>Generate Custom</span>
+          <span className="qbd-nav-text">Generate Custom</span>
         </button>
 
         <button 
@@ -457,7 +452,7 @@ const QuestionBankDashboard = () => {
           onClick={() => setActiveView('question-sets')}
         >
           <FileText size={20} />
-          <span>All Question Sets</span>
+          <span className="qbd-nav-text">All Question Sets</span>
         </button>
 
         <button 
@@ -465,7 +460,7 @@ const QuestionBankDashboard = () => {
           onClick={() => setActiveView('analytics')}
         >
           <BarChart3 size={20} />
-          <span>Analytics</span>
+          <span className="qbd-nav-text">Analytics</span>
         </button>
         
         <button 
@@ -473,14 +468,20 @@ const QuestionBankDashboard = () => {
           onClick={() => setShowImportExport(true)}
         >
           <Zap size={20} />
-          <span>Convert</span>
+          <span className="qbd-nav-text">Convert</span>
         </button>
       </nav>
 
-      <button className="qbd-sidebar-back" onClick={() => navigate('/dashboard')}>
-        <ArrowLeft size={18} />
-        <span>Back to Dashboard</span>
-      </button>
+      <div className="qbd-sidebar-footer">
+        <button className="qbd-sidebar-item" onClick={() => navigate('/dashboard')}>
+          <ChevronLeft size={20} />
+          <span className="qbd-nav-text">Dashboard</span>
+        </button>
+        <button className="qbd-sidebar-item" onClick={() => navigate('/ai-chat')}>
+          <MessageSquare size={20} />
+          <span className="qbd-nav-text">AI Chat</span>
+        </button>
+      </div>
     </div>
   );
 
@@ -906,16 +907,6 @@ const QuestionBankDashboard = () => {
     console.log('🎨 Rendering question sets view, questionSets:', questionSets, 'loading:', loading);
     return (
     <div className="qbd-view">
-      <div className="qbd-view-header">
-        <div className="qbd-view-title-group">
-          <FileText className="qbd-view-icon" size={32} />
-          <div>
-            <h2 className="qbd-view-title">All Question Sets</h2>
-            <p className="qbd-view-subtitle">Your generated question collections ready for practice</p>
-          </div>
-        </div>
-      </div>
-
       {loading ? (
         <div className="qbd-loading">
           <Loader className="qbd-spin" size={48} />
@@ -1378,13 +1369,28 @@ const QuestionBankDashboard = () => {
 
   return (
     <div className="qbd-container">
-      {renderSidebar()}
-      <div className="qbd-main">
-        {activeView === 'upload-pdf' && renderUploadPDF()}
-        {activeView === 'chat-slides' && renderChatSlides()}
-        {activeView === 'custom' && renderCustom()}
-        {activeView === 'question-sets' && renderQuestionSets()}
-        {activeView === 'analytics' && renderAnalytics()}
+      {/* Header - Full Width */}
+      <header className="qbd-header">
+        <div className="qbd-header-left">
+          <h1 className="qbd-header-title" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <div className="qbd-header-divider"></div>
+          <p className="qbd-header-subtitle">QUESTION BANK</p>
+        </div>
+      </header>
+
+      {/* Sidebar and Content */}
+      <div className="qbd-body">
+        {renderSidebar()}
+        <div className="qbd-main">
+          {/* Content */}
+          <div className="qbd-content">
+            {activeView === 'upload-pdf' && renderUploadPDF()}
+            {activeView === 'chat-slides' && renderChatSlides()}
+            {activeView === 'custom' && renderCustom()}
+            {activeView === 'question-sets' && renderQuestionSets()}
+            {activeView === 'analytics' && renderAnalytics()}
+          </div>
+        </div>
       </div>
       {renderStudyModal()}
       {/* Import/Export Modal */}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Upload, Youtube, FileText, Mic, BookOpen, Edit3, FolderOpen, Zap, ChevronRight, Play
+  Mic, BookOpen, Zap, ChevronRight
 } from 'lucide-react';
 import './NotesHub.css';
 import './NotesHubConvert.css';
@@ -77,15 +77,15 @@ const NotesHub = () => {
               
               <div className="nh-features">
                 <div className="nh-feature">
-                  <Upload size={14} />
+                  <ChevronRight size={14} />
                   <span>Audio & Video Files</span>
                 </div>
                 <div className="nh-feature">
-                  <Youtube size={14} />
+                  <ChevronRight size={14} />
                   <span>YouTube Transcripts</span>
                 </div>
                 <div className="nh-feature">
-                  <FileText size={14} />
+                  <ChevronRight size={14} />
                   <span>AI-Generated Notes</span>
                 </div>
               </div>
@@ -93,7 +93,6 @@ const NotesHub = () => {
 
             <button className="nh-section-cta">
               <span>Start Generating</span>
-              <Play size={12} fill="currentColor" />
             </button>
           </div>
           <div className="nh-section-line"></div>
@@ -123,15 +122,15 @@ const NotesHub = () => {
               
               <div className="nh-features">
                 <div className="nh-feature">
-                  <Edit3 size={14} />
+                  <ChevronRight size={14} />
                   <span>Rich Text Editor</span>
                 </div>
                 <div className="nh-feature">
-                  <FileText size={14} />
+                  <ChevronRight size={14} />
                   <span>Organize Notes</span>
                 </div>
                 <div className="nh-feature">
-                  <FolderOpen size={14} />
+                  <ChevronRight size={14} />
                   <span>Personal Library</span>
                 </div>
               </div>
@@ -139,7 +138,6 @@ const NotesHub = () => {
 
             <button className="nh-section-cta">
               <span>View My Notes</span>
-              <Play size={12} fill="currentColor" />
             </button>
           </div>
           <div className="nh-section-line"></div>

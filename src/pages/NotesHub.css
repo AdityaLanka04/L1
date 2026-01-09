@@ -18,7 +18,6 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  border-radius: 0 !important;
 }
 
 /* ==================== AMBIENT BACKGROUND ==================== */
@@ -138,6 +137,7 @@
   font-family: inherit;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  border-radius: 8px;
 }
 
 .nh-nav-btn-ghost {
@@ -237,6 +237,7 @@
   justify-content: center;
   margin-bottom: 24px;
   transition: all 0.3s ease;
+  border-radius: 8px;
 }
 
 .nh-section-ai .nh-section-icon {
@@ -293,28 +294,33 @@
 .nh-features {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
+  padding-left: 0;
+  list-style: none;
 }
 
 .nh-feature {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  font-size: 13px;
-  font-weight: 500;
+  gap: 12px;
+  padding-left: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   transition: all 0.2s ease;
 }
 
+.nh-feature svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
 .nh-section-ai .nh-feature {
-  background: rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(0, 0, 0, 0.12);
   color: var(--bg-primary, var(--bg-primary));
 }
 
 .nh-section-manual .nh-feature {
-  background: color-mix(in srgb, var(--accent) 5%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 10%, transparent);
   color: var(--text-primary, #fff);
 }
 
@@ -322,12 +328,8 @@
   transform: translateX(4px);
 }
 
-.nh-section-ai .nh-feature:hover {
-  background: rgba(0, 0, 0, 0.12);
-}
-
-.nh-section-manual .nh-feature:hover {
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+.nh-feature:hover svg {
+  opacity: 1;
 }
 
 .nh-section-cta {
@@ -343,6 +345,7 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   border: none;
+  border-radius: 8px;
 }
 
 .nh-section-ai .nh-section-cta {
@@ -450,13 +453,7 @@
 }
 
 [data-theme-mode="light"] .nh-section-manual .nh-feature {
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-  border-color: color-mix(in srgb, var(--accent) 15%, transparent);
   color: var(--text-primary, #1a1a2e);
-}
-
-[data-theme-mode="light"] .nh-section-manual .nh-feature:hover {
-  background: color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 [data-theme-mode="light"] .nh-divider {
