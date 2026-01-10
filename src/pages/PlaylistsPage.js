@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Search, BookOpen, Users, Clock, Star, TrendingUp,
-  Globe, Lock, Home, Heart, Library, MoreHorizontal, Filter, X, Zap
+  Globe, Lock, Home, Heart, Library, MoreHorizontal, Filter, X, Zap, ChevronRight
 } from 'lucide-react';
 import './PlaylistsPage.css';
 import './PlaylistsConvert.css';
@@ -99,35 +99,19 @@ const PlaylistsPage = () => {
   return (
     <div className="playlists-container">
       {/* Top Navigation Bar */}
-      <div className="playlists-topbar">
-        <div className="topbar-left">
-          <button className="nav-back-btn" onClick={() => navigate('/social')}>
-            <Home size={18} />
-            <span>Back to Social</span>
+      <header className="hub-header">
+        <div className="hub-header-left">
+          <h1 className="hub-logo">cerbyl</h1>
+          <div className="hub-header-divider"></div>
+          <p className="hub-header-subtitle">LEARNING PLAYLISTS</p>
+        </div>
+        <div className="hub-header-right">
+          <button className="hub-nav-btn hub-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            <span>Dashboard</span>
+            <ChevronRight size={14} />
           </button>
-          <div className="topbar-divider"></div>
-          <h1 className="page-title">learning playlists</h1>
         </div>
-
-        <div className="topbar-right">
-          <div className="search-input">
-            <Search size={18} />
-            <input
-              type="text"
-              placeholder="Search playlists..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          
-          {view === 'my-playlists' && (
-            <button className="create-btn" onClick={() => setShowCreateModal(true)}>
-              <Plus size={18} />
-              <span>New</span>
-            </button>
-          )}
-        </div>
-      </div>
+      </header>
 
       {/* Main Content Area */}
       <div className="playlists-body">

@@ -334,6 +334,12 @@ const MyNotes = () => {
           <div className="mn-header-divider"></div>
           <p className="mn-header-subtitle">MY NOTES</p>
         </div>
+        <nav className="mn-header-right">
+          <button className="mn-nav-btn mn-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            <span>Dashboard</span>
+            <ChevronRight size={14} />
+          </button>
+        </nav>
       </header>
 
       {/* Body - Sidebar + Content */}

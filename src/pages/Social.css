@@ -54,7 +54,11 @@
   bottom: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  background: linear-gradient(135deg, var(--sh-bg-primary) 0%, var(--sh-bg-tertiary) 100%) !important;
+  background: 
+    radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.08) 1.5px, transparent 0),
+    linear-gradient(135deg, var(--sh-bg-primary) 0%, color-mix(in srgb, var(--sh-bg-primary) 55%, var(--accent)) 50%, var(--sh-bg-primary) 100%) !important;
+  background-size: 30px 30px, 100% 100%;
+  background-position: 5px 5px, 0 0;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--sh-text-primary);
   overflow: hidden !important;
@@ -172,7 +176,7 @@
 .hub-nav-btn-ghost:hover {
   opacity: 1;
   color: var(--accent);
-  transform: translateX(-2px);
+  background: transparent;
 }
 
 /* ==================== BENTO GRID - PREMIUM LAYOUT ==================== */
@@ -204,6 +208,23 @@
   overflow: hidden;
   border-radius: 8px;
   border: 1px solid var(--border);
+}
+
+/* Click indicator arrow */
+.bento-card-arrow {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  opacity: 0.4;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  z-index: 10;
+  color: var(--accent);
+}
+
+.bento-card:hover .bento-card-arrow {
+  opacity: 1;
+  transform: translateX(4px);
 }
 
 /* Card hover glow effect */
@@ -495,48 +516,29 @@
 .hub-tab {
   padding: 12px 24px;
   background: transparent;
-  border: 1px solid transparent;
+  border: none;
   border-radius: 8px;
-  color: var(--sh-text-secondary);
-  font-size: 13px;
+  color: var(--text-primary);
+  opacity: 0.7;
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: var(--sh-transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  overflow: hidden;
-}
-
-.hub-tab::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, var(--sh-accent) 0%, var(--sh-accent-2) 100%);
-  opacity: 0;
-  transition: var(--sh-transition);
 }
 
 .hub-tab:hover {
-  background: var(--sh-bg-tertiary);
-  color: var(--sh-text-primary);
-  border-color: var(--sh-border-subtle);
+  opacity: 1;
+  color: var(--accent);
+  background: transparent;
 }
 
 .hub-tab.active {
-  background: var(--sh-accent-glow);
-  border-color: var(--sh-accent);
-  color: var(--sh-accent);
-  box-shadow: 0 0 20px var(--sh-accent-glow);
-}
-
-.hub-tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 20%;
-  right: 20%;
-  height: 2px;
-  background: var(--sh-accent);
-  border-radius: 2px 2px 0 0;
+  opacity: 1;
+  color: var(--accent);
+  background: transparent;
 }
 
 /* ==================== FRIEND SECTION - CONTENT AREA ==================== */
@@ -1503,7 +1505,11 @@
 }
 
 [data-theme-mode="light"] .hub-page {
-  background: linear-gradient(135deg, var(--sh-bg-tertiary) 0%, var(--sh-bg-primary) 100%) !important;
+  background: 
+    radial-gradient(circle at 2px 2px, rgba(0, 0, 0, 0.06) 1.5px, transparent 0),
+    linear-gradient(135deg, var(--sh-bg-tertiary) 0%, color-mix(in srgb, var(--sh-bg-primary) 55%, var(--accent)) 50%, var(--sh-bg-primary) 100%) !important;
+  background-size: 30px 30px, 100% 100%;
+  background-position: 5px 5px, 0 0;
 }
 
 [data-theme-mode="light"] .hub-page::before {
@@ -1600,17 +1606,20 @@
 }
 
 [data-theme-mode="light"] .hub-tab {
-  color: var(--sh-text-secondary);
+  color: var(--text-primary);
+  opacity: 0.7;
 }
 
 [data-theme-mode="light"] .hub-tab:hover {
-  background: var(--sh-bg-primary);
-  color: var(--sh-text-primary);
+  background: transparent;
+  opacity: 1;
+  color: var(--accent);
 }
 
 [data-theme-mode="light"] .hub-tab.active {
-  background: var(--sh-accent-glow);
-  color: var(--sh-accent);
+  background: transparent;
+  opacity: 1;
+  color: var(--accent);
 }
 
 /* Light mode friend section */
@@ -2930,3 +2939,6 @@
   border-radius: 0 !important;
 }
 
+
+
+/* Light mode adjustments for dotted background */

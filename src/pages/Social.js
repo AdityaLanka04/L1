@@ -300,7 +300,6 @@ const Social = () => {
       icon: null,
       title: 'cerbyl',
       subtitle: 'SOCIAL HUB',
-      description: '',
       onClick: null,
       className: 'welcome-card'
     },
@@ -310,7 +309,6 @@ const Social = () => {
       icon: Users,
       title: 'FRIENDS & REQUESTS',
       subtitle: 'MANAGE CONNECTIONS',
-      description: `${friends.length} friends · ${friendRequests.received.length} pending`,
       onClick: () => navigate('/friends'),
       className: 'friends-card'
     },
@@ -320,7 +318,6 @@ const Social = () => {
       icon: Activity,
       title: 'ACTIVITY FEED',
       subtitle: 'FRIEND UPDATES',
-      description: 'See what friends are learning',
       onClick: () => navigate('/activity-feed'),
       className: 'activity-card'
     },
@@ -330,7 +327,6 @@ const Social = () => {
       icon: BookOpen,
       title: 'LEARNING PLAYLISTS',
       subtitle: 'CURATED PATHS',
-      description: 'Follow & create learning journeys',
       onClick: () => navigate('/playlists'),
       className: 'playlists-card'
     },
@@ -340,7 +336,6 @@ const Social = () => {
       icon: Gamepad2,
       title: 'GAMES',
       subtitle: 'PLAY & COMPETE',
-      description: 'Interactive learning',
       onClick: () => navigate('/games'),
       className: 'games-card'
     },
@@ -350,7 +345,6 @@ const Social = () => {
       icon: MessageSquare,
       title: 'QUIZ',
       subtitle: 'SOLO & 1V1',
-      description: 'Practice or compete',
       onClick: () => navigate('/quiz-hub'),
       className: 'quiz-card'
     },
@@ -360,7 +354,6 @@ const Social = () => {
       icon: Share2,
       title: 'SHARED',
       subtitle: 'LEARNING CONTENT',
-      description: `${sharedItems.length} shared items`,
       onClick: () => setActiveTab('shared'),
       className: 'shared-card'
     },
@@ -370,7 +363,6 @@ const Social = () => {
       icon: TrendingUp,
       title: 'GLOBAL LEADERBOARDS',
       subtitle: 'TOP PERFORMERS',
-      description: 'See where you rank globally',
       onClick: () => navigate('/leaderboards'),
       className: 'leaderboards-card'
     }
@@ -466,6 +458,7 @@ const Social = () => {
                 onClick={card.onClick}
                 style={{ cursor: card.onClick ? 'pointer' : 'default' }}
               >
+                {card.onClick && <ChevronRight className="bento-card-arrow" size={20} />}
                 <div className="bento-card-content">
                   {IconComponent && (
                     <div className="bento-card-icon">
@@ -475,9 +468,6 @@ const Social = () => {
                   <div className="bento-card-text">
                     <h2 className="bento-card-title">{card.title}</h2>
                     <p className="bento-card-subtitle">{card.subtitle}</p>
-                    {card.description && (
-                      <p className="bento-card-description">{card.description}</p>
-                    )}
                   </div>
                 </div>
               </div>

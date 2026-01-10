@@ -763,7 +763,7 @@ const ConceptWeb = () => {
         <div className="cw-header-left">
           <h1 className="cw-logo" onClick={() => navigate('/dashboard')}>cerbyl</h1>
           <div className="cw-header-divider"></div>
-          <span className="cw-subtitle">Concept Web</span>
+          <span className="cw-subtitle">CONCEPT WEB</span>
         </div>
         <nav className="cw-header-right">
           {concepts.length > 0 && (

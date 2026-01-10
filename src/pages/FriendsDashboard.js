@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Search, UserPlus, Check, X, UserMinus, ArrowLeft, Clock, Activity, Award } from 'lucide-react';
+import { Users, Search, UserPlus, Check, X, UserMinus, ArrowLeft, Clock, Activity, Award, ChevronRight } from 'lucide-react';
 import './FriendsDashboard.css';
 import { API_URL } from '../config';
 
@@ -211,13 +211,24 @@ const FriendsDashboard = () => {
 
   return (
     <div className="fd-container">
+      {/* Standardized Header */}
+      <header className="hub-header">
+        <div className="hub-header-left">
+          <h1 className="hub-logo">cerbyl</h1>
+          <div className="hub-header-divider"></div>
+          <p className="hub-header-subtitle">FRIENDS</p>
+        </div>
+        <div className="hub-header-right">
+          <button className="hub-nav-btn hub-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            <span>Dashboard</span>
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      </header>
+
       <div className="fd-layout">
         {/* Sidebar */}
         <div className="fd-sidebar">
-          <div className="fd-sidebar-header">
-            <div className="fd-sidebar-logo-icon"><Users size={22} /></div>
-            <span className="fd-sidebar-title">Friends</span>
-          </div>
           <nav className="fd-sidebar-nav">
             <button className={`fd-sidebar-item ${activeView === 'my-friends' ? 'active' : ''}`} onClick={() => setActiveView('my-friends')}>
               <span className="fd-nav-icon"><Users size={20} /></span>
@@ -243,25 +254,15 @@ const FriendsDashboard = () => {
 
         {/* Main Content */}
         <div className="fd-main">
-          <header className="fd-header">
-            <div className="fd-header-left">
-              <h1 className="fd-header-title">
-                {activeView === 'my-friends' ? 'My Friends' : activeView === 'find-friends' ? 'Find Friends' : 'Friend Requests'}
-              </h1>
-              <span className="fd-header-subtitle">
-                {activeView === 'my-friends' ? 'Manage your connections' : activeView === 'find-friends' ? 'Connect with other learners' : 'Manage requests'}
-              </span>
-            </div>
-            {activeView === 'find-friends' && (
-              <div className="fd-header-actions">
-                <div className="fd-search">
-                  <span className="fd-search-icon"><Search size={16} /></span>
-                  <input type="text" className="fd-search-input" placeholder="Search by username or email..."
-                    value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); searchUsers(e.target.value); }} />
-                </div>
+          {activeView === 'find-friends' && (
+            <div className="fd-header-actions">
+              <div className="fd-search">
+                <span className="fd-search-icon"><Search size={16} /></span>
+                <input type="text" className="fd-search-input" placeholder="Search by username or email..."
+                  value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); searchUsers(e.target.value); }} />
               </div>
-            )}
-          </header>
+            </div>
+          )}
 
           <div className="fd-content">
             {/* My Friends View */}

@@ -36,7 +36,7 @@ const NotesHub = () => {
         <div className="nh-header-left">
           <h1 className="nh-logo" onClick={() => navigate('/dashboard')}>cerbyl</h1>
           <div className="nh-header-divider"></div>
-          <span className="nh-subtitle">Study Notes</span>
+          <span className="nh-subtitle">STUDY NOTES</span>
         </div>
         <nav className="nh-header-right">
           <button 

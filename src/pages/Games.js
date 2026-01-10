@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import './Games.css';
 import { API_URL } from '../config';
 
@@ -305,17 +306,19 @@ const Games = () => {
 
   return (
     <div className="games-page">
-      <div className="games-header">
-        <button className="back-btn-corner" onClick={() => navigate('/social')}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
-          </svg>
-        </button>
-        <div className="header-content-center">
-          <h1>games & challenges</h1>
-          <p>track your learning progress</p>
+      <header className="hub-header">
+        <div className="hub-header-left">
+          <h1 className="hub-logo">cerbyl</h1>
+          <div className="hub-header-divider"></div>
+          <p className="hub-header-subtitle">GAMES & CHALLENGES</p>
         </div>
-      </div>
+        <div className="hub-header-right">
+          <button className="hub-nav-btn hub-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            <span>Dashboard</span>
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      </header>
 
       <div className="games-container">
         <div className="stats-cards">

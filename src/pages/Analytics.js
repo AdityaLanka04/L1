@@ -1,22 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ChevronLeft, TrendingUp, Download,
+  ChevronLeft, TrendingUp, Download, ChevronRight,
   BarChart3, Activity, Zap, BookOpen, MessageSquare,
   Trophy, Target, Flame, Clock, Brain, Swords, Calendar
 } from 'lucide-react';
 import './Analytics.css';
 import { API_URL } from '../config';
+import { useTheme } from '../contexts/ThemeContext';
 
 const Analytics = () => {
   const navigate = useNavigate();
+  const { selectedTheme } = useTheme();
   const token = localStorage.getItem('token');
   const userName = localStorage.getItem('username');
   
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('week');
   const [chartType, setChartType] = useState('bar');
-  const [selectedMetrics, setSelectedMetrics] = useState(['points', 'ai_chats', 'quizzes', 'flashcards']);
+  const [selectedMetrics, setSelectedMetrics] = useState(['points', 'ai_chats', 'notes', 'flashcards', 'quizzes']);
   
   const [weeklyData, setWeeklyData] = useState([]);
   const [dailyBreakdown, setDailyBreakdown] = useState([]);
@@ -25,15 +27,16 @@ const Analytics = () => {
   const [historicalData, setHistoricalData] = useState([]);
   const [periodStats, setPeriodStats] = useState({ totalPoints: 0, totalActivities: 0 });
 
+  const tokens = selectedTheme?.tokens || {};
+  const accent = tokens['--accent'] || '#D7B38C';
+
   const metricConfig = {
-    points: { label: 'Points', color: '#8b5cf6', icon: Zap },
+    points: { label: 'Points', color: accent, icon: Zap },
     ai_chats: { label: 'AI Chats', color: '#3b82f6', icon: MessageSquare },
     notes: { label: 'Notes', color: '#10b981', icon: BookOpen },
     flashcards: { label: 'Flashcards', color: '#f59e0b', icon: Brain },
     quizzes: { label: 'Quizzes', color: '#ef4444', icon: Target },
-    solo_quizzes: { label: 'Solo Quizzes', color: '#ec4899', icon: Trophy },
-    battles: { label: 'Battles', color: '#06b6d4', icon: Swords },
-    study_minutes: { label: 'Study Time', color: '#84cc16', icon: Clock }
+    study_minutes: { label: 'Study Time', color: accent, icon: Clock }
   };
 
   useEffect(() => {
@@ -53,11 +56,10 @@ const Analytics = () => {
         loadHistoricalData()
       ]);
     } catch (error) {
-          } finally {
+    } finally {
       setLoading(false);
     }
   };
-
 
   const loadWeeklyProgress = async () => {
     try {
@@ -71,7 +73,7 @@ const Analytics = () => {
         setWeeklyStats(data.weekly_stats || {});
       }
     } catch (error) {
-          }
+    }
   };
 
   const loadGamificationStats = async () => {
@@ -84,7 +86,7 @@ const Analytics = () => {
         setGamificationStats(data);
       }
     } catch (error) {
-          }
+    }
   };
 
   const loadHistoricalData = async () => {
@@ -102,7 +104,7 @@ const Analytics = () => {
         });
       }
     } catch (error) {
-          }
+    }
   };
 
   const toggleMetric = (metric) => {
@@ -151,12 +153,8 @@ const Analytics = () => {
   if (loading) {
     return (
       <div className="analytics-page">
-        <div className="loading-container">
-          <div className="pulse-loader">
-            <div className="pulse-square pulse-1"></div>
-            <div className="pulse-square pulse-2"></div>
-            <div className="pulse-square pulse-3"></div>
-          </div>
+        <div className="analytics-loading">
+          <div className="loading-spinner"></div>
           <p>Loading analytics...</p>
         </div>
       </div>
@@ -177,105 +175,110 @@ const Analytics = () => {
     }
   };
 
-
   return (
     <div className="analytics-page">
+      {/* Standardized Header - Exact copy from Profile */}
       <header className="analytics-header">
-        <div className="analytics-header-inner">
-          <div className="header-left">
-            <div className="header-title">
-              <h1>analytics dashboard</h1>
-              <p>track your learning progress</p>
-            </div>
-          </div>
-          <div className="header-right">
-            <button className="back-btn" onClick={() => navigate('/dashboard')} title="Back to Dashboard">
-              <ChevronLeft size={20} />
-            </button>
-            <button className="export-btn" onClick={exportData}>
-              <Download size={16} />
-              Export
-            </button>
-          </div>
+        <div className="analytics-header-left">
+          <h1 className="analytics-logo" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <div className="analytics-header-divider"></div>
+          <span className="analytics-subtitle">Analytics</span>
         </div>
+        <nav className="analytics-header-right">
+          <button className="analytics-nav-btn analytics-nav-btn-accent" onClick={exportData}>
+            <Download size={16} />
+            <span>Export</span>
+          </button>
+          <button className="analytics-nav-btn analytics-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            <span>Dashboard</span>
+            <ChevronRight size={14} />
+          </button>
+        </nav>
       </header>
 
       <div className="analytics-container">
-        <div className="summary-cards">
-          <div className="summary-card accent">
-            <div className="card-icon"><Zap size={28} /></div>
-            <div className="card-content">
-              <span className="card-value">{totalPoints}</span>
-              <span className="card-label">{getPeriodLabel()} Points</span>
+        {/* Summary Cards */}
+        <div className="analytics-summary-cards">
+          <div className="analytics-card analytics-card-accent">
+            <div className="analytics-card-icon">
+              <Zap size={24} />
+            </div>
+            <div className="analytics-card-content">
+              <span className="analytics-card-value">{totalPoints}</span>
+              <span className="analytics-card-label">{getPeriodLabel()} Points</span>
             </div>
           </div>
-          <div className="summary-card">
-            <div className="card-icon"><TrendingUp size={28} /></div>
-            <div className="card-content">
-              <span className="card-value">{avgPoints.toFixed(1)}</span>
-              <span className="card-label">Avg/{periodStats.groupBy === 'month' ? 'Month' : periodStats.groupBy === 'week' ? 'Week' : 'Day'}</span>
+          <div className="analytics-card">
+            <div className="analytics-card-icon">
+              <TrendingUp size={24} />
+            </div>
+            <div className="analytics-card-content">
+              <span className="analytics-card-value">{avgPoints.toFixed(1)}</span>
+              <span className="analytics-card-label">Avg/{periodStats.groupBy === 'month' ? 'Month' : periodStats.groupBy === 'week' ? 'Week' : 'Day'}</span>
             </div>
           </div>
-          <div className="summary-card">
-            <div className="card-icon"><Flame size={28} /></div>
-            <div className="card-content">
-              <span className="card-value">{gamificationStats.current_streak || 0}</span>
-              <span className="card-label">Day Streak</span>
+          <div className="analytics-card">
+            <div className="analytics-card-icon">
+              <Flame size={24} />
+            </div>
+            <div className="analytics-card-content">
+              <span className="analytics-card-value">{gamificationStats.current_streak || 0}</span>
+              <span className="analytics-card-label">Day Streak</span>
             </div>
           </div>
-          <div className="summary-card">
-            <div className="card-icon"><Trophy size={28} /></div>
-            <div className="card-content">
-              <span className="card-value">#{gamificationStats.global_rank || '-'}</span>
-              <span className="card-label">Global Rank</span>
+          <div className="analytics-card">
+            <div className="analytics-card-icon">
+              <Trophy size={24} />
+            </div>
+            <div className="analytics-card-content">
+              <span className="analytics-card-value">#{gamificationStats.global_rank || '-'}</span>
+              <span className="analytics-card-label">Global Rank</span>
             </div>
           </div>
         </div>
 
-        <div className="filters-section">
-          <div className="filter-group">
+        {/* Filters */}
+        <div className="analytics-filters">
+          <div className="analytics-filter-group">
             <label>Time Range</label>
-            <div className="filter-buttons">
-              <button className={`filter-btn ${timeRange === 'week' ? 'active' : ''}`} onClick={() => setTimeRange('week')}>
+            <div className="analytics-filter-buttons">
+              <button className={`analytics-filter-btn ${timeRange === 'week' ? 'active' : ''}`} onClick={() => setTimeRange('week')}>
                 <Clock size={14} /> week
               </button>
-              <button className={`filter-btn ${timeRange === 'month' ? 'active' : ''}`} onClick={() => setTimeRange('month')}>
+              <button className={`analytics-filter-btn ${timeRange === 'month' ? 'active' : ''}`} onClick={() => setTimeRange('month')}>
                 <Calendar size={14} /> month
               </button>
-              <button className={`filter-btn ${timeRange === 'year' ? 'active' : ''}`} onClick={() => setTimeRange('year')}>
+              <button className={`analytics-filter-btn ${timeRange === 'year' ? 'active' : ''}`} onClick={() => setTimeRange('year')}>
                 <Calendar size={14} /> year
               </button>
-              <button className={`filter-btn ${timeRange === 'all' ? 'active' : ''}`} onClick={() => setTimeRange('all')}>
+              <button className={`analytics-filter-btn ${timeRange === 'all' ? 'active' : ''}`} onClick={() => setTimeRange('all')}>
                 <Activity size={14} /> all
               </button>
             </div>
           </div>
           
-          <div className="filter-group">
+          <div className="analytics-filter-group">
             <label>Chart Type</label>
-            <div className="filter-buttons">
-              <button className={`filter-btn ${chartType === 'bar' ? 'active' : ''}`} onClick={() => setChartType('bar')}>
+            <div className="analytics-filter-buttons">
+              <button className={`analytics-filter-btn ${chartType === 'bar' ? 'active' : ''}`} onClick={() => setChartType('bar')}>
                 <BarChart3 size={14} /> bar
               </button>
-              <button className={`filter-btn ${chartType === 'line' ? 'active' : ''}`} onClick={() => setChartType('line')}>
+              <button className={`analytics-filter-btn ${chartType === 'line' ? 'active' : ''}`} onClick={() => setChartType('line')}>
                 <Activity size={14} /> line
               </button>
             </div>
           </div>
         </div>
 
-        <div className="metrics-toggles">
+        {/* Metrics Toggles */}
+        <div className="analytics-metrics">
           <label>Show Metrics:</label>
-          <div className="metric-chips">
+          <div className="analytics-metric-chips">
             {Object.entries(metricConfig).map(([key, config]) => (
               <button
                 key={key}
-                className={`metric-chip ${selectedMetrics.includes(key) ? 'active' : ''}`}
+                className={`analytics-metric-chip ${selectedMetrics.includes(key) ? 'active' : ''}`}
                 onClick={() => toggleMetric(key)}
-                style={{
-                  '--chip-color': config.color,
-                  '--chip-color-rgb': config.color.replace('#', '').match(/.{2}/g).map(x => parseInt(x, 16)).join(',')
-                }}
               >
                 {React.createElement(config.icon, { size: 14 })}
                 {config.label}
@@ -284,90 +287,69 @@ const Analytics = () => {
           </div>
         </div>
 
-        <div className="main-chart-section">
-          <div className="chart-header">
-            <div className="chart-title-section">
-              <h2>activity overview</h2>
-              <span className="chart-subtitle">{chartData.length} {periodStats.groupBy === 'month' ? 'months' : periodStats.groupBy === 'week' ? 'weeks' : 'days'} of data</span>
+        {/* Main Chart */}
+        <div className="analytics-chart-section">
+          <div className="analytics-chart-header">
+            <div>
+              <h2>Activity Overview</h2>
+              <span className="analytics-chart-subtitle">{chartData.length} {periodStats.groupBy === 'month' ? 'months' : periodStats.groupBy === 'week' ? 'weeks' : 'days'} of data</span>
             </div>
-            <div className="chart-legend">
+            <div className="analytics-chart-legend">
               {selectedMetrics.map(metric => (
-                <div key={metric} className="legend-item">
-                  <span className="legend-dot" style={{ backgroundColor: metricConfig[metric].color }}></span>
+                <div key={metric} className="analytics-legend-item">
+                  <span className="analytics-legend-dot" style={{ backgroundColor: metricConfig[metric].color }}></span>
                   <span>{metricConfig[metric].label}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="chart-area">
+          <div className="analytics-chart-area">
             {chartData.length === 0 ? (
-              <div className="chart-empty">
-                <BarChart3 size={48} style={{ opacity: 0.3 }} />
-                No activity data yet. Start learning to see your progress!
+              <div className="analytics-chart-empty">
+                <BarChart3 size={48} />
+                <p>No activity data yet. Start learning to see your progress!</p>
               </div>
             ) : chartType === 'bar' ? (
-              <div className="bar-chart">
-                <div className="y-axis">
+              <div className="analytics-bar-chart">
+                <div className="analytics-y-axis">
                   {[...Array(6)].map((_, i) => {
                     const value = Math.round((maxValue * (5 - i)) / 5 / 10) * 10;
-                    return (
-                      <span key={i} className="y-label">
-                        {value}
-                      </span>
-                    );
+                    return <span key={i} className="analytics-y-label">{value}</span>;
                   })}
                 </div>
-                <div className="bars-container">
+                <div className="analytics-bars-container">
                   {chartData.map((day, idx) => (
-                    <div key={idx} className="bar-group">
-                      <div className="bars">
+                    <div key={idx} className="analytics-bar-group">
+                      <div className="analytics-bars">
                         {selectedMetrics.map(metric => {
                           const value = day[metric] || 0;
                           const height = maxValue > 0 ? (value / maxValue) * 100 : 0;
                           return (
                             <div
                               key={metric}
-                              className="bar"
-                              style={{
-                                height: `${height}%`,
-                                backgroundColor: metricConfig[metric].color
-                              }}
+                              className="analytics-bar"
+                              style={{ height: `${height}%`, backgroundColor: metricConfig[metric].color }}
                               title={`${day.label || day.day}: ${metricConfig[metric].label}: ${value}`}
                             />
                           );
                         })}
                       </div>
-                      <span className="x-label">{day.label || day.day}</span>
+                      <span className="analytics-x-label">{day.label || day.day}</span>
                     </div>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="line-chart">
+              <div className="analytics-line-chart">
                 <svg viewBox={`0 0 ${Math.max(900, chartData.length * 22 + 60)} 420`} preserveAspectRatio="xMidYMid meet">
-                  <defs>
-                    <linearGradient id="grid-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="rgba(255,255,255,0.05)" />
-                      <stop offset="100%" stopColor="rgba(255,255,255,0.01)" />
-                    </linearGradient>
-                  </defs>
-                  {/* Y-axis labels and grid lines */}
                   {[...Array(6)].map((_, i) => {
                     const value = Math.round((maxValue * (5 - i)) / 5 / 10) * 10;
                     const y = 30 + (i * 340) / 5;
                     return (
                       <g key={i}>
-                        <text x="5" y={y + 4} fontSize="12" fill="rgba(255,255,255,0.6)" fontWeight="500">{value}</text>
-                        <line
-                          x1="50"
-                          y1={y}
-                          x2={Math.max(890, chartData.length * 22 + 50)}
-                          y2={y}
-                          stroke="rgba(255,255,255,0.08)"
-                          strokeWidth="1"
-                          strokeDasharray={i === 5 ? "0" : "4,4"}
-                        />
+                        <text x="5" y={y + 4} fontSize="12" fill="var(--text-secondary)" fontWeight="500">{value}</text>
+                        <line x1="50" y1={y} x2={Math.max(890, chartData.length * 22 + 50)} y2={y} stroke="var(--border)" strokeWidth="1" strokeDasharray={i === 5 ? "0" : "4,4"} />
                       </g>
                     );
                   })}
@@ -381,24 +363,13 @@ const Analytics = () => {
 
                     return (
                       <g key={metric}>
-                        <polyline
-                          fill="none"
-                          stroke={metricConfig[metric].color}
-                          strokeWidth="3"
-                          points={points}
-                        />
+                        <polyline fill="none" stroke={metricConfig[metric].color} strokeWidth="3" points={points} />
                         {chartData.length <= 50 && chartData.map((day, idx) => {
                           const x = (idx / Math.max(chartData.length - 1, 1)) * (Math.max(830, chartData.length * 22)) + 60;
                           const value = day[metric] || 0;
                           const y = 370 - (maxValue > 0 ? (value / maxValue) * 340 : 0);
                           return (
-                            <circle
-                              key={idx}
-                              cx={x}
-                              cy={y}
-                              r={chartData.length > 30 ? 5 : 6}
-                              fill={metricConfig[metric].color}
-                            >
+                            <circle key={idx} cx={x} cy={y} r={chartData.length > 30 ? 5 : 6} fill={metricConfig[metric].color}>
                               <title>{`${day.label || day.day}: ${metricConfig[metric].label}: ${value}`}</title>
                             </circle>
                           );
@@ -406,28 +377,11 @@ const Analytics = () => {
                       </g>
                     );
                   })}
-                  {/* X-axis day labels directly in SVG */}
                   {chartData.map((day, idx) => {
-                    const showLabel = chartData.length <= 15 || 
-                      idx === 0 || 
-                      idx === chartData.length - 1 || 
-                      (chartData.length <= 30 && idx % 3 === 0) ||
-                      (chartData.length > 30 && idx % 7 === 0);
+                    const showLabel = chartData.length <= 15 || idx === 0 || idx === chartData.length - 1 || (chartData.length <= 30 && idx % 3 === 0) || (chartData.length > 30 && idx % 7 === 0);
                     if (!showLabel) return null;
                     const x = (idx / Math.max(chartData.length - 1, 1)) * (Math.max(830, chartData.length * 22)) + 60;
-                    return (
-                      <text 
-                        key={idx} 
-                        x={x} 
-                        y="395" 
-                        fontSize={chartData.length > 20 ? "11" : "12"} 
-                        fill="rgba(255,255,255,0.6)" 
-                        textAnchor="middle"
-                        fontWeight="600"
-                      >
-                        {(day.label || day.day).toUpperCase()}
-                      </text>
-                    );
+                    return <text key={idx} x={x} y="395" fontSize={chartData.length > 20 ? "11" : "12"} fill="var(--text-secondary)" textAnchor="middle" fontWeight="600">{(day.label || day.day).toUpperCase()}</text>;
                   })}
                 </svg>
               </div>
@@ -435,159 +389,126 @@ const Analytics = () => {
           </div>
         </div>
 
-
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-header">
-              <MessageSquare size={20} style={{ color: metricConfig.ai_chats.color }} />
+        {/* Stats Grid */}
+        <div className="analytics-stats-grid">
+          <div className="analytics-stat-card">
+            <div className="analytics-stat-header">
+              <MessageSquare size={18} />
               <span>AI Chats</span>
             </div>
-            <div className="stat-values">
-              <div className="stat-row">
+            <div className="analytics-stat-values">
+              <div className="analytics-stat-row">
                 <span>This Week</span>
-                <span className="value">{weeklyStats.ai_chats || 0}</span>
+                <span className="analytics-stat-value">{weeklyStats.ai_chats || 0}</span>
               </div>
-              <div className="stat-row">
+              <div className="analytics-stat-row">
                 <span>All Time</span>
-                <span className="value">{gamificationStats.total_ai_chats || 0}</span>
+                <span className="analytics-stat-value">{gamificationStats.total_ai_chats || 0}</span>
               </div>
             </div>
           </div>
 
-          <div className="stat-card">
-            <div className="stat-header">
-              <BookOpen size={20} style={{ color: metricConfig.notes.color }} />
+          <div className="analytics-stat-card">
+            <div className="analytics-stat-header">
+              <BookOpen size={18} />
               <span>Notes Created</span>
             </div>
-            <div className="stat-values">
-              <div className="stat-row">
+            <div className="analytics-stat-values">
+              <div className="analytics-stat-row">
                 <span>This Week</span>
-                <span className="value">{weeklyStats.notes_created || 0}</span>
+                <span className="analytics-stat-value">{weeklyStats.notes_created || 0}</span>
               </div>
-              <div className="stat-row">
+              <div className="analytics-stat-row">
                 <span>All Time</span>
-                <span className="value">{gamificationStats.total_notes_created || 0}</span>
+                <span className="analytics-stat-value">{gamificationStats.total_notes_created || 0}</span>
               </div>
             </div>
           </div>
 
-          <div className="stat-card">
-            <div className="stat-header">
-              <Brain size={20} style={{ color: metricConfig.flashcards.color }} />
+          <div className="analytics-stat-card">
+            <div className="analytics-stat-header">
+              <Brain size={18} />
               <span>Flashcards</span>
             </div>
-            <div className="stat-values">
-              <div className="stat-row">
+            <div className="analytics-stat-values">
+              <div className="analytics-stat-row">
                 <span>This Week</span>
-                <span className="value">{weeklyStats.flashcards_created || 0}</span>
+                <span className="analytics-stat-value">{weeklyStats.flashcards_created || 0}</span>
               </div>
-              <div className="stat-row">
+              <div className="analytics-stat-row">
                 <span>All Time</span>
-                <span className="value">{gamificationStats.total_flashcards_created || 0}</span>
+                <span className="analytics-stat-value">{gamificationStats.total_flashcards_created || 0}</span>
               </div>
             </div>
           </div>
 
-          <div className="stat-card">
-            <div className="stat-header">
-              <Target size={20} style={{ color: metricConfig.quizzes.color }} />
+          <div className="analytics-stat-card">
+            <div className="analytics-stat-header">
+              <Target size={18} />
               <span>Quizzes</span>
             </div>
-            <div className="stat-values">
-              <div className="stat-row">
+            <div className="analytics-stat-values">
+              <div className="analytics-stat-row">
                 <span>This Week</span>
-                <span className="value">{weeklyStats.quizzes_completed || 0}</span>
+                <span className="analytics-stat-value">{weeklyStats.quizzes_completed || 0}</span>
               </div>
-              <div className="stat-row">
+              <div className="analytics-stat-row">
                 <span>All Time</span>
-                <span className="value">{gamificationStats.total_quizzes_completed || 0}</span>
+                <span className="analytics-stat-value">{gamificationStats.total_quizzes_completed || 0}</span>
               </div>
             </div>
           </div>
 
-          <div className="stat-card">
-            <div className="stat-header">
-              <Trophy size={20} style={{ color: metricConfig.solo_quizzes.color }} />
-              <span>Solo Quizzes</span>
-            </div>
-            <div className="stat-values">
-              <div className="stat-row">
-                <span>This Week</span>
-                <span className="value">{weeklyStats.solo_quizzes || 0}</span>
-              </div>
-              <div className="stat-row">
-                <span>All Time</span>
-                <span className="value">{gamificationStats.total_solo_quizzes || 0}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-header">
-              <Swords size={20} style={{ color: metricConfig.battles.color }} />
-              <span>Battles Won</span>
-            </div>
-            <div className="stat-values">
-              <div className="stat-row">
-                <span>This Week</span>
-                <span className="value">{weeklyStats.battles_won || 0}</span>
-              </div>
-              <div className="stat-row">
-                <span>All Time</span>
-                <span className="value">{gamificationStats.total_battles_won || 0}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-header">
-              <Clock size={20} style={{ color: metricConfig.study_minutes.color }} />
+          <div className="analytics-stat-card">
+            <div className="analytics-stat-header">
+              <Clock size={18} />
               <span>Study Time</span>
             </div>
-            <div className="stat-values">
-              <div className="stat-row">
+            <div className="analytics-stat-values">
+              <div className="analytics-stat-row">
                 <span>This Week</span>
-                <span className="value">{Math.floor((weeklyStats.study_minutes || 0) / 60)}h {(weeklyStats.study_minutes || 0) % 60}m</span>
+                <span className="analytics-stat-value">{Math.floor((weeklyStats.study_minutes || 0) / 60)}h {(weeklyStats.study_minutes || 0) % 60}m</span>
               </div>
-              <div className="stat-row">
+              <div className="analytics-stat-row">
                 <span>All Time</span>
-                <span className="value">{Math.floor((gamificationStats.total_study_minutes || 0) / 60)}h</span>
+                <span className="analytics-stat-value">{Math.floor((gamificationStats.total_study_minutes || 0) / 60)}h</span>
               </div>
             </div>
           </div>
 
-          <div className="stat-card accent-card">
-            <div className="stat-header">
-              <Zap size={20} />
+          <div className="analytics-stat-card analytics-stat-card-accent">
+            <div className="analytics-stat-header">
+              <Zap size={18} />
               <span>Total Points</span>
             </div>
-            <div className="stat-values">
-              <div className="stat-row">
+            <div className="analytics-stat-values">
+              <div className="analytics-stat-row">
                 <span>This Week</span>
-                <span className="value">{gamificationStats.weekly_points || 0}</span>
+                <span className="analytics-stat-value">{gamificationStats.weekly_points || 0}</span>
               </div>
-              <div className="stat-row">
+              <div className="analytics-stat-row">
                 <span>All Time</span>
-                <span className="value highlight">{gamificationStats.total_points || 0}</span>
+                <span className="analytics-stat-value analytics-stat-highlight">{gamificationStats.total_points || 0}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="points-reference">
-          <h3>point system</h3>
-          <div className="points-grid">
-            <div className="point-item"><span>AI Chat</span><span>+1</span></div>
-            <div className="point-item"><span>Answer Question</span><span>+2</span></div>
-            <div className="point-item"><span>Battle Loss</span><span>+2</span></div>
-            <div className="point-item"><span>Battle Draw</span><span>+5</span></div>
-            <div className="point-item"><span>Flashcard Set</span><span>+10</span></div>
-            <div className="point-item"><span>Battle Win</span><span>+10</span></div>
-            <div className="point-item"><span>Complete Quiz</span><span>+15</span></div>
-            <div className="point-item"><span>Create Note</span><span>+20</span></div>
-            <div className="point-item"><span>Quiz 80%+</span><span>+30</span></div>
-            <div className="point-item highlight"><span>Solo Quiz (max)</span><span>+40</span></div>
-            <div className="point-item"><span>Study 1 Hour</span><span>+50</span></div>
+        {/* Points Reference */}
+        <div className="analytics-points-reference">
+          <h3>Point System</h3>
+          <div className="analytics-points-grid">
+            <div className="analytics-point-item"><span>AI Chat</span><span>+1</span></div>
+            <div className="analytics-point-item"><span>Answer Question</span><span>+2</span></div>
+            <div className="analytics-point-item"><span>Battle Loss</span><span>+2</span></div>
+            <div className="analytics-point-item"><span>Battle Draw</span><span>+5</span></div>
+            <div className="analytics-point-item"><span>Flashcard Set</span><span>+10</span></div>
+            <div className="analytics-point-item"><span>Battle Win</span><span>+10</span></div>
+            <div className="analytics-point-item"><span>Complete Quiz</span><span>+15</span></div>
+            <div className="analytics-point-item"><span>Create Note</span><span>+20</span></div>
+            <div className="analytics-point-item"><span>Quiz 80%+</span><span>+30</span></div>
+            <div className="analytics-point-item analytics-point-highlight"><span>Solo Quiz (max)</span><span>+40</span></div>
+            <div className="analytics-point-item"><span>Study 1 Hour</span><span>+50</span></div>
           </div>
         </div>
       </div>

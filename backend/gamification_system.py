@@ -346,8 +346,9 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
         else:
             last_date = stats.last_activity_date
         if last_date == today:
-            pass  # Same day
+            pass  # Same day, no change
         elif last_date == today - timedelta(days=1):
+            # Consecutive day - increment streak
             stats.current_streak += 1
             if stats.current_streak > stats.longest_streak:
                 stats.longest_streak = stats.current_streak
@@ -355,7 +356,7 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
             if stats.current_streak in [7, 14, 30, 60, 100]:
                 streak_milestone_reached = True
         else:
-            # Streak broken
+            # Streak broken - more than 1 day gap
             if old_streak >= 7:
                 # Notify about broken streak
                 notification = models.Notification(
@@ -365,8 +366,9 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
                     notification_type="streak_broken"
                 )
                 db.add(notification)
-            stats.current_streak = 1
+            stats.current_streak = 1  # Start new streak
     else:
+        # First activity ever
         stats.current_streak = 1
     
     stats.last_activity_date = datetime.now(timezone.utc)
@@ -403,6 +405,20 @@ def get_user_stats(db: Session, user_id: int):
     """Get user's gamification stats"""
     stats = get_or_create_stats(db, user_id)
     check_and_reset_weekly_stats(stats)
+    
+    # Check if streak should be reset (day was skipped)
+    today = datetime.now(timezone.utc).date()
+    if stats.last_activity_date:
+        # Handle both datetime and date objects
+        if hasattr(stats.last_activity_date, 'date'):
+            last_date = stats.last_activity_date.date()
+        else:
+            last_date = stats.last_activity_date
+        
+        # If last activity was more than 1 day ago, reset streak
+        if last_date < today - timedelta(days=1):
+            stats.current_streak = 0
+    
     db.commit()  # Commit any resets
     
     # Calculate XP to next level

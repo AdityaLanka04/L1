@@ -930,6 +930,7 @@ const Dashboard = () => {
         {getWidgetConfig('ai-tutor') && (
         <div className="ds-card ds-tagline" onClick={navigateToAI} style={getWidgetStyle('ai-tutor')}>
           <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('ai-tutor'), 0.1)} 0%, transparent 70%)` }}></div>
+          <ChevronRight className="ds-card-click-indicator" size={20} style={{ color: getWidgetColor('ai-tutor') }} />
           <div className="ds-ai-assistant-card">
             <div className="ds-ai-visual-section">
               <div className="ds-ai-icon-display">
@@ -947,7 +948,8 @@ const Dashboard = () => {
               </div>
             </div>
             <button className="ds-ai-chat-btn" style={{ background: `linear-gradient(135deg, ${getWidgetColor('ai-tutor')} 0%, ${getWidgetColor('ai-tutor')} 100%)` }}>
-              START AI SESSION
+              <span>START AI SESSION</span>
+              <ChevronRight size={16} />
             </button>
             <p className="ds-ai-description">
               Get instant help with any topic, generate practice questions, and receive personalized learning guidance.
@@ -976,12 +978,13 @@ const Dashboard = () => {
         {getWidgetConfig('social-hub') && (
         <div className="ds-card ds-icon-top" onClick={navigateToSocial} style={getWidgetStyle('social-hub')}>
           <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('social-hub'), 0.1)} 0%, transparent 70%)` }}></div>
+          <ChevronRight className="ds-card-click-indicator" size={20} style={{ color: getWidgetColor('social-hub') }} />
           <div className="ds-social-widget">
             <div className="ds-social-icon-container">
               <Users size={48} strokeWidth={1.5} style={{ color: getWidgetColor('social-hub') }} />
             </div>
             <h3 className="ds-social-title">Social Hub</h3>
-            <p className="ds-social-description">Connect with learners</p>
+            <p className="ds-social-description">CONNECT WITH LEARNERS</p>
           </div>
         </div>
         )}
@@ -989,6 +992,7 @@ const Dashboard = () => {
         {getWidgetConfig('concept-web') && (
         <div className="ds-card ds-stats-prompts" onClick={navigateToConcepts} style={getWidgetStyle('concept-web')}>
           <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('concept-web'), 0.1)} 0%, transparent 70%)` }}></div>
+          <ChevronRight className="ds-card-click-indicator" size={20} style={{ color: getWidgetColor('concept-web') }} />
           <div className="ds-feature-content">
             <div className="ds-feature-icon" style={{ background: `linear-gradient(135deg, ${getWidgetColor('concept-web')} 0%, ${getWidgetColor('concept-web')} 100%)`, boxShadow: `0 6px 20px ${rgbaFromHex(getWidgetColor('concept-web'), 0.3)}` }}>
               <Network size={18} />
@@ -1099,15 +1103,15 @@ const Dashboard = () => {
         {getWidgetConfig('notes') && (
         <div className={`ds-card ds-feature ds-notes ${isWidgetSmall('notes') ? 'ds-widget-small' : ''}`} onClick={navigateToNotes} style={getWidgetStyle('notes')}>
           <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('notes'), 0.1)} 0%, transparent 70%)` }}></div>
+          <ChevronRight className="ds-card-click-indicator" size={20} style={{ color: getWidgetColor('notes') }} />
           <div className="ds-feature-content">
             <div className="ds-feature-icon" style={{ background: `linear-gradient(135deg, ${getWidgetColor('notes')} 0%, ${getWidgetColor('notes')} 100%)`, boxShadow: `0 6px 20px ${rgbaFromHex(getWidgetColor('notes'), 0.3)}` }}>
               <FileText size={18} />
             </div>
             <h3 className="ds-feature-title">Notes</h3>
             <p className="ds-feature-description">
-              Create and organize your study notes with AI assistance.
+              AI-POWERED STUDY NOTES
             </p>
-            <div className="ds-feature-stat">{stats.totalNotes || 0} notes</div>
           </div>
         </div>
         )}
@@ -1115,15 +1119,15 @@ const Dashboard = () => {
         {getWidgetConfig('flashcards') && (
         <div className={`ds-card ds-feature ds-flashcards ${isWidgetSmall('flashcards') ? 'ds-widget-small' : ''}`} onClick={navigateToFlashcards} style={getWidgetStyle('flashcards')}>
           <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('flashcards'), 0.1)} 0%, transparent 70%)` }}></div>
+          <ChevronRight className="ds-card-click-indicator" size={20} style={{ color: getWidgetColor('flashcards') }} />
           <div className="ds-feature-content">
             <div className="ds-feature-icon" style={{ background: `linear-gradient(135deg, ${getWidgetColor('flashcards')} 0%, ${getWidgetColor('flashcards')} 100%)`, boxShadow: `0 6px 20px ${rgbaFromHex(getWidgetColor('flashcards'), 0.3)}` }}>
               <Layers size={18} />
             </div>
             <h3 className="ds-feature-title">Flashcards</h3>
             <p className="ds-feature-description">
-              Master concepts with spaced repetition flashcards.
+              MASTER KEY CONCEPTS
             </p>
-            <div className="ds-feature-stat">{stats.totalFlashcards || 0} cards</div>
           </div>
         </div>
         )}
@@ -1132,28 +1136,51 @@ const Dashboard = () => {
         <div className="ds-card ds-templates" style={getWidgetStyle('learning-hub')}>
           <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('learning-hub'), 0.1)} 0%, transparent 70%)` }}></div>
           <div className="ds-templates-content">
-            <h3 className="ds-templates-title" style={{ color: getWidgetColor('learning-hub') }}>Learning Hub</h3>
+            <h3 className="ds-templates-title">Learning Hub</h3>
             <p className="ds-templates-description">
-              Comprehensive tools to accelerate your learning journey.
+              ACCELERATE YOUR LEARNING
             </p>
             <div className="ds-learning-hub-list">
-              <div className="ds-learning-hub-item" onClick={() => navigate('/knowledge-roadmap')} style={{ cursor: 'pointer' }}>
-                <span className="ds-learning-hub-name">Knowledge Roadmap</span>
-                <span className="ds-learning-hub-desc">Build interactive concept maps</span>
+              <div className="ds-learning-hub-item" style={{ color: getWidgetColor('learning-hub') }}>
+                <ChevronRight size={14} />
+                <div className="ds-learning-hub-item-text">
+                  <span className="ds-learning-hub-name">Knowledge Roadmap</span>
+                  <span className="ds-learning-hub-desc">Build interactive concept maps</span>
+                </div>
               </div>
-              <div className="ds-learning-hub-item" onClick={() => navigate('/question-bank')} style={{ cursor: 'pointer' }}>
-                <span className="ds-learning-hub-name">Question Bank</span>
-                <span className="ds-learning-hub-desc">Generate custom practice questions</span>
+              <div className="ds-learning-hub-item" style={{ color: getWidgetColor('learning-hub') }}>
+                <ChevronRight size={14} />
+                <div className="ds-learning-hub-item-text">
+                  <span className="ds-learning-hub-name">Question Bank</span>
+                  <span className="ds-learning-hub-desc">Generate custom practice questions</span>
+                </div>
               </div>
-              <div className="ds-learning-hub-item" onClick={() => navigate('/slide-explorer')} style={{ cursor: 'pointer' }}>
-                <span className="ds-learning-hub-name">Slide Explorer</span>
-                <span className="ds-learning-hub-desc">AI-powered slide analysis</span>
+              <div className="ds-learning-hub-item" style={{ color: getWidgetColor('learning-hub') }}>
+                <ChevronRight size={14} />
+                <div className="ds-learning-hub-item-text">
+                  <span className="ds-learning-hub-name">Slide Explorer</span>
+                  <span className="ds-learning-hub-desc">AI-powered slide analysis</span>
+                </div>
               </div>
-              <div className="ds-learning-hub-item" onClick={() => navigate('/study-insights')} style={{ cursor: 'pointer' }}>
-                <span className="ds-learning-hub-name">Insights</span>
-                <span className="ds-learning-hub-desc">AI insights into your learning patterns</span>
+              <div className="ds-learning-hub-item" style={{ color: getWidgetColor('learning-hub') }}>
+                <ChevronRight size={14} />
+                <div className="ds-learning-hub-item-text">
+                  <span className="ds-learning-hub-name">Insights</span>
+                  <span className="ds-learning-hub-desc">AI insights into your learning patterns</span>
+                </div>
               </div>
             </div>
+            <button 
+              className="ds-learning-hub-button" 
+              onClick={() => navigate('/learning-review')}
+              style={{ 
+                background: `linear-gradient(135deg, ${getWidgetColor('learning-hub')} 0%, ${rgbaFromHex(getWidgetColor('learning-hub'), 0.8)} 100%)`,
+                boxShadow: `0 4px 12px ${rgbaFromHex(getWidgetColor('learning-hub'), 0.3)}`
+              }}
+            >
+              <span>Go to Learning Hub</span>
+              <ChevronRight size={16} />
+            </button>
           </div>
         </div>
         )}
@@ -1161,6 +1188,7 @@ const Dashboard = () => {
         {getWidgetConfig('activity') && (
         <div className="ds-card ds-feature ds-activity" onClick={navigateToActivityTimeline} style={getWidgetStyle('activity')}>
           <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('activity'), 0.1)} 0%, transparent 70%)` }}></div>
+          <ChevronRight className="ds-card-click-indicator" size={20} style={{ color: getWidgetColor('activity') }} />
           <div className="ds-feature-content">
             <div className="ds-feature-icon" style={{ background: `linear-gradient(135deg, ${getWidgetColor('activity')} 0%, ${getWidgetColor('activity')} 100%)`, boxShadow: `0 6px 20px ${rgbaFromHex(getWidgetColor('activity'), 0.3)}` }}>
               <Clock size={18} />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Target, Flame, TrendingUp, Heart, Award, Zap, Star } from 'lucide-react';
+import { Trophy, Target, Flame, TrendingUp, Heart, Award, Zap, Star, ChevronRight } from 'lucide-react';
 import './ActivityFeed.css';
 import { API_URL } from '../config';
 
@@ -80,14 +80,17 @@ const ActivityFeed = () => {
 
   return (
     <div className="feed-page">
-      <header className="feed-header">
-        <div className="feed-header-left">
-          <h1 className="feed-logo">cerbyl</h1>
-          <span className="feed-subtitle">ACTIVITY FEED</span>
+      <header className="hub-header">
+        <div className="hub-header-left">
+          <h1 className="hub-logo">cerbyl</h1>
+          <div className="hub-header-divider"></div>
+          <p className="hub-header-subtitle">ACTIVITY FEED</p>
         </div>
-        <div className="feed-header-right">
-          <button className="feed-nav-btn" onClick={() => navigate('/social')}>Back to Social</button>
-          <button className="feed-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
+        <div className="hub-header-right">
+          <button className="hub-nav-btn hub-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            <span>Dashboard</span>
+            <ChevronRight size={14} />
+          </button>
         </div>
       </header>
 
