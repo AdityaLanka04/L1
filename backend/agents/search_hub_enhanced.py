@@ -1508,20 +1508,9 @@ After a few study sessions, I'll be able to give you personalized insights!"""
         
         state["ai_response"] = ai_response
         
-        # Set navigation for analytics actions
-        analytics_navigation = {
-            "show_weak_areas": "/study-insights",
-            "show_strong_areas": "/study-insights",
-            "show_progress": "/study-insights",
-            "show_learning_analytics": "/study-insights",
-            "show_knowledge_gaps": "/study-insights",
-            "show_concepts_to_review": "/flashcards",
-            "show_recommended_topics": "/study-insights",
-            "detect_learning_style": "/study-insights",
-        }
-        
-        if intent in analytics_navigation:
-            state["navigate_to"] = analytics_navigation[intent]
+        # Analytics actions should NOT navigate - show results in SearchHub UI
+        # Remove navigation so the AI response is displayed in the UI
+        # state["navigate_to"] = None  # Explicitly don't navigate
         
         state["response_data"] = {
             "success": result.get("success", False) or bool(ai_response),

@@ -90,26 +90,37 @@ class IntentCategory(str, Enum):
 
 
 # Navigation targets for each intent
+# None = show response in SearchHub UI (no navigation)
 INTENT_NAVIGATION = {
+    # Content creation - navigate after creating
     "create_note": "/notes/editor/{id}",
     "create_flashcards": "/flashcards?set_id={id}",
     "create_questions": "/question-bank?set_id={id}",
     "create_quiz": "/solo-quiz",
+    
+    # Review - navigate to flashcards
     "review_flashcards": "/flashcards",
-    "show_weak_areas": "/study-insights?tab=weak",
-    "show_strong_areas": "/study-insights?tab=strong",
-    "show_progress": "/study-insights",
-    "show_learning_analytics": "/study-insights",
-    "show_knowledge_gaps": "/study-insights?tab=gaps",
-    "show_concepts_to_review": "/flashcards",
-    "show_recommended_topics": "/study-insights?tab=recommendations",
-    "get_learning_path": "/study-insights?tab=path",
-    "detect_learning_style": "/study-insights?tab=style",
+    
+    # Analytics - show in UI, don't navigate
+    "show_weak_areas": None,
+    "show_strong_areas": None,
+    "show_progress": None,
+    "show_learning_analytics": None,
+    "show_knowledge_gaps": None,
+    "show_concepts_to_review": None,
+    "show_recommended_topics": None,
+    "get_learning_path": None,
+    "detect_learning_style": None,
+    
+    # Chat - navigate to AI chat
     "start_chat": "/ai-chat",
+    
+    # Search/Explore - show in UI
     "search_all": None,
     "explain_topic": None,
     "summarize_topic": None,
     "show_help": None,
+    "greeting": None,
 }
 
 
@@ -323,7 +334,7 @@ INTENT_DEFINITIONS = {
         "keywords": ["weak", "struggle", "improve", "weakness", "difficult", "hard", "bad", "focus"],
         "verbs": ["show", "find", "identify", "tell", "what"],
         "requires_topic": False,
-        "response_type": "navigate",
+        "response_type": "explain",
     },
     "show_strong_areas": {
         "category": IntentCategory.ANALYZE,
@@ -341,7 +352,7 @@ INTENT_DEFINITIONS = {
         "keywords": ["strong", "strength", "good", "excel", "best", "crushing"],
         "verbs": ["show", "find", "identify", "tell"],
         "requires_topic": False,
-        "response_type": "navigate",
+        "response_type": "explain",
     },
     "show_progress": {
         "category": IntentCategory.ANALYZE,
@@ -362,7 +373,7 @@ INTENT_DEFINITIONS = {
         "keywords": ["progress", "stats", "statistics", "performance", "doing", "update", "status"],
         "verbs": ["show", "display", "tell", "how"],
         "requires_topic": False,
-        "response_type": "navigate",
+        "response_type": "explain",
     },
     "show_learning_analytics": {
         "category": IntentCategory.ANALYZE,
@@ -379,7 +390,7 @@ INTENT_DEFINITIONS = {
         "keywords": ["analytics", "insights", "data", "detailed", "breakdown", "dashboard"],
         "verbs": ["show", "display", "get"],
         "requires_topic": False,
-        "response_type": "navigate",
+        "response_type": "explain",
     },
     "show_knowledge_gaps": {
         "category": IntentCategory.ANALYZE,
@@ -395,7 +406,7 @@ INTENT_DEFINITIONS = {
         "keywords": ["gap", "gaps", "missing", "blind spot", "lack", "don't know"],
         "verbs": ["show", "find", "identify"],
         "requires_topic": False,
-        "response_type": "navigate",
+        "response_type": "explain",
     },
     "show_concepts_to_review": {
         "category": IntentCategory.ANALYZE,
@@ -411,7 +422,7 @@ INTENT_DEFINITIONS = {
         "keywords": ["review", "due", "overdue", "schedule", "next"],
         "verbs": ["show", "tell", "list", "what"],
         "requires_topic": False,
-        "response_type": "navigate",
+        "response_type": "explain",
     },
     "show_recommended_topics": {
         "category": IntentCategory.ANALYZE,
@@ -426,7 +437,7 @@ INTENT_DEFINITIONS = {
         "keywords": ["recommend", "suggest", "next", "should study", "suggestion"],
         "verbs": ["recommend", "suggest", "show"],
         "requires_topic": False,
-        "response_type": "navigate",
+        "response_type": "explain",
     },
     "get_learning_path": {
         "category": IntentCategory.ANALYZE,
@@ -442,7 +453,7 @@ INTENT_DEFINITIONS = {
         "keywords": ["path", "roadmap", "plan", "journey", "route", "guide", "step by step"],
         "verbs": ["get", "show", "create", "make"],
         "requires_topic": True,
-        "response_type": "navigate",
+        "response_type": "explain",
     },
     "detect_learning_style": {
         "category": IntentCategory.ANALYZE,
@@ -458,7 +469,7 @@ INTENT_DEFINITIONS = {
         "keywords": ["learning style", "learner", "preference", "how i learn", "type of learner"],
         "verbs": ["detect", "find", "identify", "show", "what", "analyze"],
         "requires_topic": False,
-        "response_type": "navigate",
+        "response_type": "explain",
     },
     
     # ============ SEARCH INTENTS ============
