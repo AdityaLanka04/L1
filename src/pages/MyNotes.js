@@ -424,14 +424,6 @@ const MyNotes = () => {
           </nav>
 
           <div className="nt-sidebar-footer">
-            <button className="nt-nav-item" onClick={() => navigate('/dashboard')}>
-              <span className="nt-nav-icon"><ChevronLeft size={18} /></span>
-              <span className="nt-nav-text">Dashboard</span>
-            </button>
-            <button className="nt-nav-item" onClick={() => navigate('/learning-review')}>
-              <span className="nt-nav-icon"><Home size={18} /></span>
-              <span className="nt-nav-text">Learning Hub</span>
-            </button>
           </div>
         </aside>
 
@@ -448,12 +440,9 @@ const MyNotes = () => {
 
         {/* Main Content */}
         <main className="nt-main">
-          <header className="nt-header">
-            <div className="nt-header-left">
-              <h1 className="nt-header-title">{currentTitle}</h1>
-              <p className="nt-header-subtitle">{filteredNotes.length} notes</p>
-            </div>
-            <div className="nt-header-actions">
+          <div className="nt-content">
+            {/* Search and View Controls */}
+            <div className="nt-content-controls">
               <div className="nt-search">
                 <Search size={16} />
                 <input
@@ -478,9 +467,7 @@ const MyNotes = () => {
                 </button>
               </div>
             </div>
-          </header>
 
-          <div className="nt-content">
             {loading ? (
               <div className="nt-loading">
                 <div className="nt-spinner"></div>
@@ -489,11 +476,8 @@ const MyNotes = () => {
             ) : filteredNotes.length === 0 ? (
               <div className="nt-empty-state">
                 <div className="nt-empty-icon"><Folder size={40} /></div>
-                <h2>No notes here</h2>
-                <p>Create your first note to get started</p>
-                <button className="nt-btn nt-btn-primary" onClick={createNewNote}>
-                  <Plus size={16} /> Create Note
-                </button>
+                <h2>NO NOTES HERE</h2>
+                <p>CREATE YOUR FIRST NOTE TO GET STARTED</p>
               </div>
             ) : (
               <div className={viewMode === 'grid' ? 'nt-notes-grid' : 'nt-notes-list'}>
