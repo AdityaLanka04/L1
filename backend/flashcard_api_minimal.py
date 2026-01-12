@@ -505,6 +505,233 @@ async def toggle_flashcard_set_visibility(
     }
 
 
+# ============================================================================
+# PUBLIC FLASHCARDS ENDPOINTS
+# ============================================================================
+
+@router.get("/public")
+async def get_public_flashcards(
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db)
+):
+    """Get all public flashcard sets"""
+    
+    try:
+        sets = db.query(models.FlashcardSet).filter(
+            models.FlashcardSet.is_public == True
+        ).order_by(models.FlashcardSet.created_at.desc()).offset(offset).limit(limit).all()
+        
+        result = []
+        for s in sets:
+            # Get creator username
+            user = db.query(models.User).filter(models.User.id == s.user_id).first()
+            creator = user.username if user else 'Anonymous'
+            
+            # Count cards
+            card_count = db.query(models.Flashcard).filter(
+                models.Flashcard.set_id == s.id
+            ).count()
+            
+            result.append({
+                "id": s.id,
+                "share_code": s.share_code,
+                "title": s.title,
+                "description": s.description,
+                "card_count": card_count,
+                "creator": creator,
+                "created_at": s.created_at.isoformat() if s.created_at else None
+            })
+        
+        return {
+            "success": True,
+            "sets": result,
+            "total": len(result)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error fetching public flashcards: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/public/search")
+async def search_public_flashcards(
+    query: str = Query(""),
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db)
+):
+    """Search public flashcard sets by title or description"""
+    
+    try:
+        from sqlalchemy import or_, func
+        
+        search_term = f"%{query.lower()}%"
+        
+        sets = db.query(models.FlashcardSet).filter(
+            models.FlashcardSet.is_public == True,
+            or_(
+                func.lower(models.FlashcardSet.title).like(search_term),
+                func.lower(models.FlashcardSet.description).like(search_term)
+            )
+        ).order_by(models.FlashcardSet.created_at.desc()).limit(limit).all()
+        
+        result = []
+        for s in sets:
+            # Get creator username
+            user = db.query(models.User).filter(models.User.id == s.user_id).first()
+            creator = user.username if user else 'Anonymous'
+            
+            # Count cards
+            card_count = db.query(models.Flashcard).filter(
+                models.Flashcard.set_id == s.id
+            ).count()
+            
+            result.append({
+                "id": s.id,
+                "share_code": s.share_code,
+                "title": s.title,
+                "description": s.description,
+                "card_count": card_count,
+                "creator": creator,
+                "created_at": s.created_at.isoformat() if s.created_at else None
+            })
+        
+        return {
+            "success": True,
+            "sets": result,
+            "total": len(result)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error searching public flashcards: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class CopySetRequest(BaseModel):
+    user_id: str
+    source_set_id: int
+
+
+@router.post("/public/copy")
+async def copy_public_flashcard_set(
+    payload: CopySetRequest,
+    db: Session = Depends(get_db)
+):
+    """Copy a public flashcard set to user's own collection"""
+    
+    try:
+        user = get_user(db, payload.user_id)
+        
+        # Get source set
+        source_set = db.query(models.FlashcardSet).filter(
+            models.FlashcardSet.id == payload.source_set_id,
+            models.FlashcardSet.is_public == True
+        ).first()
+        
+        if not source_set:
+            raise HTTPException(status_code=404, detail="Public flashcard set not found")
+        
+        # Get source cards
+        source_cards = db.query(models.Flashcard).filter(
+            models.Flashcard.set_id == source_set.id
+        ).all()
+        
+        # Create new set for user
+        new_share_code = get_unique_share_code(db)
+        new_set = models.FlashcardSet(
+            user_id=user.id,
+            title=f"{source_set.title} (Copy)",
+            description=source_set.description,
+            source_type="copied",
+            share_code=new_share_code,
+            is_public=False  # Copied sets are private by default
+        )
+        db.add(new_set)
+        db.commit()
+        db.refresh(new_set)
+        
+        # Copy all cards
+        for card in source_cards:
+            new_card = models.Flashcard(
+                set_id=new_set.id,
+                question=card.question,
+                answer=card.answer,
+                difficulty=card.difficulty,
+                category=card.category
+            )
+            db.add(new_card)
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "set_id": new_set.id,
+            "share_code": new_share_code,
+            "title": new_set.title,
+            "card_count": len(source_cards)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error copying flashcard set: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# CARD CRUD OPERATIONS
+# ============================================================================
+
+class CardUpdate(BaseModel):
+    question: str
+    answer: str
+    difficulty: Optional[str] = "medium"
+
+
+@router.put("/cards/{card_id}")
+async def update_card(card_id: int, payload: CardUpdate, db: Session = Depends(get_db)):
+    """Update an existing flashcard"""
+    
+    card = db.query(models.Flashcard).filter(
+        models.Flashcard.id == card_id
+    ).first()
+    
+    if not card:
+        raise HTTPException(status_code=404, detail="Card not found")
+    
+    card.question = payload.question
+    card.answer = payload.answer
+    card.difficulty = payload.difficulty
+    card.updated_at = datetime.utcnow()
+    
+    db.commit()
+    
+    return {
+        "success": True,
+        "card_id": card.id
+    }
+
+
+@router.delete("/cards/{card_id}")
+async def delete_card(card_id: int, db: Session = Depends(get_db)):
+    """Delete a flashcard"""
+    
+    card = db.query(models.Flashcard).filter(
+        models.Flashcard.id == card_id
+    ).first()
+    
+    if not card:
+        raise HTTPException(status_code=404, detail="Card not found")
+    
+    db.delete(card)
+    db.commit()
+    
+    return {
+        "success": True,
+        "message": "Card deleted"
+    }
+
+
 def register_flashcard_api_minimal(app):
     """Register streamlined flashcard routes"""
     app.include_router(router)

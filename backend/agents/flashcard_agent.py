@@ -241,11 +241,12 @@ RULES:
 3. Cover key concepts progressively
 4. Avoid redundancy
 5. For {depth} depth: {depth_specific_rule}
+6. Include 3 plausible but incorrect answers (wrong_options) for MCQ study mode
 
 Return ONLY valid JSON:
 {{
   "flashcards": [
-    {{"question": "...", "answer": "...", "difficulty": "{difficulty}", "concept": "main concept"}},
+    {{"question": "...", "answer": "...", "difficulty": "{difficulty}", "concept": "main concept", "wrong_options": ["wrong1", "wrong2", "wrong3"]}},
     ...
   ]
 }}"""
@@ -268,11 +269,12 @@ RULES:
 2. Match the depth level requirements exactly
 3. Answers must be accurate to the source
 4. For {depth} depth: {depth_specific_rule}
+5. Include 3 plausible but incorrect answers (wrong_options) for MCQ study mode
 
 Return ONLY valid JSON:
 {{
   "flashcards": [
-    {{"question": "...", "answer": "...", "difficulty": "{difficulty}", "concept": "main concept"}},
+    {{"question": "...", "answer": "...", "difficulty": "{difficulty}", "concept": "main concept", "wrong_options": ["wrong1", "wrong2", "wrong3"]}},
     ...
   ]
 }}"""
@@ -389,11 +391,17 @@ Return improved version as JSON:
                     if len(answer) > 400:
                         answer = answer[:400] + "..."
                     
+                    # Get wrong options if provided by AI
+                    wrong_options = card.get("wrong_options", [])
+                    # Ensure we have at most 3 wrong options, trim if too long
+                    wrong_options = [opt[:400] + "..." if len(opt) > 400 else opt for opt in wrong_options[:3]]
+                    
                     valid_cards.append({
                         "question": card["question"].strip(),
                         "answer": answer.strip(),
                         "difficulty": card.get("difficulty", "medium"),
-                        "concept": card.get("concept", "")
+                        "concept": card.get("concept", ""),
+                        "wrong_options": wrong_options
                     })
             
             return valid_cards

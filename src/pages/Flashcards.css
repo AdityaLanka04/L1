@@ -578,6 +578,7 @@
 .fc-custom-select-wrapper {
   position: relative;
   display: inline-block;
+  width: 100%;
 }
 
 .fc-custom-select {
@@ -588,7 +589,7 @@
   padding: 0 12px;
   background: var(--fc-bg-tertiary);
   border: 1px solid var(--fc-border-subtle);
-  border-radius: 8px;
+  border-radius: 8px !important;
   color: var(--fc-accent);
   font-size: 11px;
   font-weight: 600;
@@ -597,7 +598,8 @@
   letter-spacing: 0.5px;
   cursor: pointer;
   height: 38px;
-  min-width: 180px;
+  width: 100%;
+  min-width: 120px;
   transition: all 0.2s;
 }
 
@@ -1171,9 +1173,14 @@
 }
 
 .fc-form-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  justify-content: flex-end;
   gap: 16px;
+}
+
+.fc-form-row .fc-form-group {
+  flex: 0 0 auto;
+  min-width: 140px;
 }
 
 .fc-number-input {
@@ -1181,32 +1188,38 @@
   align-items: center;
   background: var(--fc-bg-tertiary);
   border: 1px solid var(--fc-border-subtle);
-  border-radius: 8px;
+  border-radius: 8px !important;
   overflow: hidden;
-  height: 42px;
+  height: 38px;
 }
 
 .fc-number-btn {
-  width: 36px;
+  width: 40px;
   height: 100%;
   background: transparent;
   border: none;
-  color: var(--fc-text-muted);
+  color: var(--fc-accent);
   cursor: pointer;
-  font-size: 18px;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.2s;
 }
 
 .fc-number-btn:hover {
-  background: var(--fc-bg-elevated);
-  color: var(--fc-text-primary);
+  background: var(--fc-accent-glow);
+  color: var(--fc-accent);
 }
 
 .fc-number-input input {
   flex: 1;
   background: transparent;
   border: none;
-  color: var(--fc-text-primary);
-  font-size: 14px;
+  color: var(--fc-accent);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   text-align: center;
   outline: none;
   width: 50px;
@@ -3724,8 +3737,24 @@
 
 /* Enhanced Select Dropdown */
 .fc-select {
-  position: relative;
-  transition: all 0.3s;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--fc-bg-tertiary);
+  border: 1px solid var(--fc-border-subtle);
+  border-radius: 8px !important;
+  color: var(--fc-text-primary);
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+  transition: all 0.2s;
 }
 
 .fc-select:hover {
@@ -3734,7 +3763,14 @@
 }
 
 .fc-select:focus {
+  border-color: var(--fc-accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.fc-select option {
+  background: var(--fc-bg-primary);
+  color: var(--fc-text-primary);
+  padding: 12px;
 }
 
 /* Glowing Accent for Convert Button */
@@ -4106,21 +4142,15 @@
 
 /* Generator Panel Special Gradient */
 [data-theme-mode="dark"] .fc-generator {
-  background: radial-gradient(ellipse 100% 80% at 50% 20%, 
-    color-mix(in srgb, var(--accent) 6%, transparent) 0%,
-    transparent 60%
-  );
-  padding: 40px;
-  border-radius: 16px;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
 }
 
 [data-theme-mode="light"] .fc-generator {
-  background: radial-gradient(ellipse 100% 80% at 50% 20%, 
-    color-mix(in srgb, var(--accent) 10%, transparent) 0%,
-    transparent 60%
-  );
-  padding: 40px;
-  border-radius: 16px;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
 }
 
 /* Mode Selector Enhanced */
@@ -4229,17 +4259,17 @@
 
 /* Enhanced Select Dropdown */
 [data-theme-mode="dark"] .fc-select {
-  background: linear-gradient(135deg, 
-    color-mix(in srgb, var(--accent) 4%, var(--hover-bg)) 0%,
-    var(--hover-bg) 100%
-  ) !important;
+  background-color: var(--fc-bg-tertiary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
 }
 
 [data-theme-mode="light"] .fc-select {
-  background: linear-gradient(135deg, 
-    color-mix(in srgb, var(--accent) 6%, var(--hover-bg)) 0%,
-    var(--hover-bg) 100%
-  ) !important;
+  background-color: var(--fc-bg-tertiary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23555' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
 }
 
 
@@ -4773,4 +4803,697 @@
   background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+
+/* ==================== NEW FEATURES STYLES ==================== */
+
+/* 3-column mode selector for generator */
+.fc-mode-selector-3 {
+  grid-template-columns: repeat(3, 1fr) !important;
+}
+
+@media (max-width: 768px) {
+  .fc-mode-selector-3 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Custom flashcard creation styles */
+.fc-custom-cards-container {
+  margin-bottom: 24px;
+}
+
+.fc-custom-cards-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.fc-custom-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.fc-custom-card-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--fc-bg-tertiary);
+  border: 1px solid var(--fc-border-subtle);
+  border-radius: 8px !important;
+  transition: all 0.2s;
+}
+
+.fc-custom-card-item:hover {
+  border-color: var(--fc-accent);
+}
+
+.fc-custom-card-item.fc-card-deleted {
+  opacity: 0.5;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--fc-danger);
+}
+
+.fc-custom-card-item.fc-card-new {
+  border-color: var(--fc-success);
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.fc-custom-card-number {
+  width: 32px;
+  height: 32px;
+  background: var(--fc-accent-glow);
+  border-radius: 50% !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fc-accent);
+  flex-shrink: 0;
+}
+
+.fc-custom-card-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fc-custom-card-fields .fc-input {
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+.fc-custom-card-remove {
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid var(--fc-border-subtle);
+  border-radius: 8px !important;
+  color: var(--fc-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.fc-custom-card-remove:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--fc-danger);
+  color: var(--fc-danger);
+}
+
+.fc-custom-card-remove.fc-restore:hover {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: var(--fc-success);
+  color: var(--fc-success);
+}
+
+.fc-custom-card-remove:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.fc-custom-card-remove svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Edit mode actions */
+.fc-edit-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.fc-edit-actions .fc-btn-secondary {
+  flex: 1;
+}
+
+.fc-edit-actions .fc-generate-btn {
+  flex: 2;
+  margin-top: 0;
+}
+
+/* Edit button in card actions */
+.fc-action-btn-new.fc-action-edit {
+  background: var(--fc-bg-tertiary);
+  border: 1px solid var(--fc-border-subtle);
+  color: var(--fc-text-primary);
+}
+
+.fc-action-btn-new.fc-action-edit:hover {
+  background: var(--fc-accent-glow);
+  border-color: var(--fc-accent);
+  color: var(--fc-accent);
+}
+
+/* Public flashcards search bar */
+.fc-public-search-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  align-items: center;
+}
+
+.fc-search-large {
+  flex: 1;
+  min-width: 300px;
+  height: 44px;
+}
+
+.fc-search-large input {
+  font-size: 14px !important;
+  text-transform: none !important;
+}
+
+/* Public flashcard card badge */
+.fc-public-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  border-radius: 4px !important;
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.fc-public-card .fc-set-thumbnail {
+  position: relative;
+}
+
+/* Copy button style */
+.fc-action-btn-new.fc-action-copy {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  border: none;
+  color: white;
+}
+
+.fc-action-btn-new.fc-action-copy:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+/* Section header text */
+.fc-section-header-text {
+  margin-bottom: 24px;
+}
+
+.fc-section-header-text h2 {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--fc-accent);
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+}
+
+.fc-section-header-text p {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fc-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Small button variant */
+.fc-btn-small {
+  height: 32px !important;
+  padding: 0 12px !important;
+  font-size: 10px !important;
+}
+
+/* Visibility toggle */
+.fc-visibility-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.fc-visibility-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--fc-bg-tertiary);
+  border: 1px solid var(--fc-border-subtle);
+  border-radius: 8px !important;
+  color: var(--fc-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.fc-visibility-btn:hover {
+  border-color: var(--fc-accent);
+}
+
+.fc-visibility-btn.active {
+  background: var(--fc-accent-glow);
+  border-color: var(--fc-accent);
+  color: var(--fc-accent);
+}
+
+.fc-visibility-hint {
+  font-size: 12px;
+  color: var(--fc-text-muted);
+  margin-top: 8px;
+}
+
+/* Nav badge for review count */
+.fc-nav-badge {
+  background: var(--fc-danger);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px !important;
+  margin-left: auto;
+}
+
+/* Set card new design - 3 action buttons */
+.fc-set-actions-new {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--fc-border-subtle);
+}
+
+.fc-action-btn-new {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 8px;
+  border-radius: 8px !important;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.fc-action-btn-new svg {
+  width: 14px;
+  height: 14px;
+}
+
+.fc-action-btn-new.fc-action-preview {
+  background: var(--fc-bg-tertiary);
+  border: 1px solid var(--fc-border-subtle);
+  color: var(--fc-text-primary);
+}
+
+.fc-action-btn-new.fc-action-preview:hover {
+  background: var(--fc-bg-elevated);
+  border-color: var(--fc-accent);
+}
+
+.fc-action-btn-new.fc-action-study {
+  background: linear-gradient(135deg, var(--fc-accent), var(--fc-accent-dark));
+  color: var(--fc-bg-primary);
+}
+
+[data-theme-mode="light"] .fc-action-btn-new.fc-action-study {
+  color: white;
+}
+
+.fc-action-btn-new.fc-action-study:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--fc-accent) 40%, transparent);
+}
+
+/* Responsive adjustments for 3 buttons */
+@media (max-width: 400px) {
+  .fc-set-actions-new {
+    grid-template-columns: 1fr;
+  }
+  
+  .fc-action-btn-new span {
+    display: none;
+  }
+}
+
+
+/* ==================== FULLSCREEN EDIT MODE STYLES ==================== */
+
+.fc-edit-mode {
+  background: var(--fc-bg-primary);
+}
+
+.fc-edit-title-input {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--fc-text-primary);
+  font-size: 20px;
+  font-weight: 700;
+  padding: 4px 8px;
+  outline: none;
+  transition: all 0.2s;
+  max-width: 400px;
+}
+
+.fc-edit-title-input:hover,
+.fc-edit-title-input:focus {
+  border-bottom-color: var(--fc-accent);
+  background: var(--fc-bg-tertiary);
+  border-radius: 4px 4px 0 0 !important;
+}
+
+/* Create mode header styling */
+.fc-create-header {
+  background: transparent !important;
+  border-bottom: none !important;
+}
+
+.fc-exit-styled {
+  background: transparent !important;
+  border: none !important;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--fc-text-secondary);
+  padding: 8px 0;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.fc-exit-styled:hover {
+  color: var(--fc-text-primary);
+}
+
+.fc-create-title-area {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.fc-create-title-input {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: none !important;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  text-align: center;
+  color: color-mix(in srgb, var(--fc-accent) 70%, var(--fc-text-primary));
+  max-width: 400px;
+}
+
+.fc-create-title-input::placeholder {
+  color: var(--fc-text-muted);
+  text-transform: uppercase;
+}
+
+.fc-create-title-input:hover,
+.fc-create-title-input:focus {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: none !important;
+}
+
+.fc-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.fc-header-left {
+  justify-content: flex-start;
+}
+
+.fc-header-btn {
+  height: 32px !important;
+  padding: 0 14px !important;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fc-done-btn {
+  background: var(--fc-accent) !important;
+  border: none !important;
+  color: #000 !important;
+}
+
+.fc-done-btn:hover:not(:disabled) {
+  background: var(--fc-accent-hover) !important;
+}
+
+.fc-save-btn-small {
+  background: var(--fc-bg-tertiary) !important;
+  border: 1px solid var(--fc-border-subtle) !important;
+  color: var(--fc-text-primary) !important;
+}
+
+.fc-save-btn-small:hover:not(:disabled) {
+  background: var(--fc-bg-secondary) !important;
+  border-color: var(--fc-accent) !important;
+}
+
+.fc-autosave-btn {
+  background: transparent !important;
+  border: 1px solid var(--fc-border-subtle) !important;
+  color: var(--fc-text-muted) !important;
+}
+
+.fc-autosave-btn:hover:not(:disabled) {
+  border-color: var(--fc-accent) !important;
+  color: var(--fc-accent) !important;
+}
+
+.fc-header-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fc-save-btn {
+  height: 40px !important;
+  padding: 0 20px !important;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.fc-edit-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 24px;
+}
+
+.fc-edit-card-container {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  max-width: 800px;
+}
+
+.fc-edit-card {
+  flex: 1;
+  background: var(--fc-bg-card);
+  border: 1px solid var(--fc-border-subtle);
+  border-radius: 16px !important;
+  padding: 24px;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.fc-edit-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--fc-border-subtle);
+}
+
+.fc-edit-card-number {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fc-accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.fc-edit-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fc-edit-badge {
+  padding: 4px 10px;
+  border-radius: 4px !important;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fc-badge-new {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--fc-success);
+}
+
+.fc-edit-delete-btn {
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid var(--fc-border-subtle);
+  border-radius: 8px !important;
+  color: var(--fc-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.fc-edit-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--fc-danger);
+  color: var(--fc-danger);
+}
+
+.fc-edit-delete-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.fc-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.fc-edit-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fc-accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.fc-edit-textarea {
+  flex: 1;
+  min-height: 100px;
+  padding: 16px;
+  background: var(--fc-bg-tertiary);
+  border: 1px solid var(--fc-border-subtle);
+  border-radius: 8px !important;
+  color: var(--fc-text-primary);
+  font-size: 16px;
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+
+.fc-edit-textarea:focus {
+  border-color: var(--fc-accent);
+}
+
+.fc-edit-textarea::placeholder {
+  color: var(--fc-text-muted);
+}
+
+.fc-edit-bottom-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.fc-add-card-btn {
+  padding: 12px 24px !important;
+  height: auto !important;
+}
+
+.fc-edit-card-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  max-width: 600px;
+}
+
+.fc-edit-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50% !important;
+  background: var(--fc-bg-tertiary);
+  border: 2px solid var(--fc-border-subtle);
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.fc-edit-dot:hover {
+  border-color: var(--fc-accent);
+  transform: scale(1.2);
+}
+
+.fc-edit-dot.active {
+  background: var(--fc-accent);
+  border-color: var(--fc-accent);
+}
+
+/* Responsive adjustments for edit mode */
+@media (max-width: 768px) {
+  .fc-edit-card-container {
+    flex-direction: column;
+  }
+  
+  .fc-edit-card-container .fc-arrow-btn {
+    display: none;
+  }
+  
+  .fc-edit-card {
+    width: 100%;
+  }
+  
+  .fc-edit-title-input {
+    max-width: 200px;
+    font-size: 16px;
+  }
 }

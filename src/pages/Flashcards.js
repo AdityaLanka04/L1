@@ -39,6 +39,21 @@ const Flashcards = () => {
   const [autoSave, setAutoSave] = useState(true);
   const [isPublic, setIsPublic] = useState(false);
   
+  // Custom flashcard creation
+  const [customCards, setCustomCards] = useState([{ question: '', answer: '' }]);
+  const [customSetTitle, setCustomSetTitle] = useState('');
+  const [customCreateMode, setCustomCreateMode] = useState(false);
+  
+  // Edit mode for existing sets
+  const [editMode, setEditMode] = useState(false);
+  const [editingCards, setEditingCards] = useState([]);
+  const [editingSetTitle, setEditingSetTitle] = useState('');
+  
+  // Public flashcards search
+  const [publicSearchQuery, setPublicSearchQuery] = useState('');
+  const [publicFlashcards, setPublicFlashcards] = useState([]);
+  const [loadingPublic, setLoadingPublic] = useState(false);
+  
   // Chat sessions
   const [chatSessions, setChatSessions] = useState([]);
   const [selectedSessions, setSelectedSessions] = useState([]);
@@ -60,6 +75,8 @@ const Flashcards = () => {
   const [showImportExport, setShowImportExport] = useState(false);
   const [isRearranging, setIsRearranging] = useState(false);
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const [difficultyDropdownOpen, setDifficultyDropdownOpen] = useState(false);
+  const [depthDropdownOpen, setDepthDropdownOpen] = useState(false);
   
   // Needs Review state
   const [reviewCards, setReviewCards] = useState({ total_cards: 0, sets: [] });
@@ -402,6 +419,312 @@ const Flashcards = () => {
           }
   };
 
+  // Custom flashcard creation functions
+  const addCustomCard = () => {
+    setCustomCards([...customCards, { question: '', answer: '' }]);
+  };
+
+  const removeCustomCard = (index) => {
+    if (customCards.length > 1) {
+      setCustomCards(customCards.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateCustomCard = (index, field, value) => {
+    const updated = [...customCards];
+    updated[index][field] = value;
+    setCustomCards(updated);
+  };
+
+  // Enter custom create mode (fullscreen editor for new flashcards)
+  const enterCustomCreateMode = () => {
+    setCustomCards([{ question: '', answer: '', isNew: true }]);
+    setCustomSetTitle('');
+    setCurrentCard(0);
+    setCustomCreateMode(true);
+  };
+
+  const exitCustomCreateMode = () => {
+    setCustomCreateMode(false);
+    setCustomCards([{ question: '', answer: '' }]);
+    setCustomSetTitle('');
+    setCurrentCard(0);
+  };
+
+  const addCustomCardInEditor = () => {
+    setCustomCards([...customCards, { question: '', answer: '', isNew: true }]);
+  };
+
+  const updateCustomCardInEditor = (index, field, value) => {
+    const updated = [...customCards];
+    updated[index][field] = value;
+    setCustomCards(updated);
+  };
+
+  const removeCustomCardInEditor = (index) => {
+    if (customCards.length > 1) {
+      const newCards = customCards.filter((_, i) => i !== index);
+      setCustomCards(newCards);
+      if (currentCard >= newCards.length) {
+        setCurrentCard(Math.max(0, newCards.length - 1));
+      }
+    }
+  };
+
+  const saveCustomFlashcards = async () => {
+    const validCards = customCards.filter(c => c.question.trim() && c.answer.trim());
+    if (validCards.length === 0) {
+      showPopup('Error', 'Please add at least one card with both question and answer');
+      return;
+    }
+    if (!customSetTitle.trim()) {
+      showPopup('Error', 'Please enter a title for your flashcard set');
+      return;
+    }
+
+    setGenerating(true);
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Create the set first
+      const setResponse = await fetch(`${API_URL}/flashcards/sets/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          title: customSetTitle,
+          description: `Custom set with ${validCards.length} cards`,
+          is_public: isPublic
+        })
+      });
+
+      if (!setResponse.ok) throw new Error('Failed to create set');
+      const setData = await setResponse.json();
+
+      // Add cards to the set
+      for (const card of validCards) {
+        await fetch(`${API_URL}/flashcards/cards/create`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            set_id: setData.set_id,
+            question: card.question,
+            answer: card.answer,
+            difficulty: 'medium'
+          })
+        });
+      }
+
+      showPopup('Success', `Created "${customSetTitle}" with ${validCards.length} cards!`);
+      setCustomCreateMode(false);
+      setCustomCards([{ question: '', answer: '' }]);
+      setCustomSetTitle('');
+      setCurrentCard(0);
+      loadFlashcardHistory();
+      loadFlashcardStats();
+    } catch (error) {
+      showPopup('Error', 'Failed to save flashcards');
+    }
+    setGenerating(false);
+  };
+
+  // Edit existing flashcard set functions
+  const enterEditMode = async (setId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/get_flashcards_in_set?set_id=${setId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setEditingCards(data.flashcards.map(c => ({ ...c, isNew: false, isDeleted: false })));
+        setEditingSetTitle(data.set_title || 'Flashcard Set');
+        setCurrentSetInfo({
+          saved: true,
+          setId: setId,
+          shareCode: data.share_code,
+          setTitle: data.set_title,
+          cardCount: data.flashcards.length
+        });
+        setCurrentCard(0);
+        setEditMode(true);  // This will trigger the fullscreen edit overlay
+      }
+    } catch (error) {
+      showPopup('Error', 'Failed to load flashcard set for editing');
+    }
+  };
+
+  const addCardToEdit = () => {
+    setEditingCards([...editingCards, { question: '', answer: '', isNew: true, isDeleted: false }]);
+  };
+
+  const updateEditingCard = (index, field, value) => {
+    const updated = [...editingCards];
+    updated[index][field] = value;
+    setEditingCards(updated);
+  };
+
+  const markCardForDeletion = (index) => {
+    const updated = [...editingCards];
+    if (updated[index].isNew) {
+      // Remove new cards immediately
+      setEditingCards(editingCards.filter((_, i) => i !== index));
+    } else {
+      // Mark existing cards for deletion
+      updated[index].isDeleted = !updated[index].isDeleted;
+      setEditingCards(updated);
+    }
+  };
+
+  const saveEditedFlashcards = async () => {
+    if (!currentSetInfo?.setId) return;
+    
+    setGenerating(true);
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Update set title if changed
+      if (editingSetTitle !== currentSetInfo.setTitle) {
+        await fetch(`${API_URL}/update_flashcard_set`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ 
+            set_id: currentSetInfo.setId, 
+            title: editingSetTitle.trim(),
+            description: ''
+          })
+        });
+      }
+
+      // Process cards
+      for (const card of editingCards) {
+        if (card.isDeleted && card.id) {
+          // Delete existing card
+          await fetch(`${API_URL}/flashcards/cards/${card.id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+        } else if (card.isNew && card.question.trim() && card.answer.trim()) {
+          // Create new card
+          await fetch(`${API_URL}/flashcards/cards/create`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              set_id: currentSetInfo.setId,
+              question: card.question,
+              answer: card.answer,
+              difficulty: card.difficulty || 'medium'
+            })
+          });
+        } else if (!card.isNew && !card.isDeleted && card.id) {
+          // Update existing card
+          await fetch(`${API_URL}/flashcards/cards/${card.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              question: card.question,
+              answer: card.answer,
+              difficulty: card.difficulty || 'medium'
+            })
+          });
+        }
+      }
+
+      showPopup('Success', 'Flashcard set updated successfully!');
+      setEditMode(false);
+      setEditingCards([]);
+      setCurrentCard(0);
+      loadFlashcardHistory();
+    } catch (error) {
+      showPopup('Error', 'Failed to save changes');
+    }
+    setGenerating(false);
+  };
+
+  const cancelEditMode = () => {
+    setEditMode(false);
+    setEditingCards([]);
+    setCurrentCard(0);
+    setCurrentSetInfo(null);
+    // Clear URL parameters
+    window.history.replaceState({}, '', '/flashcards');
+  };
+
+  // Public flashcards search functions
+  const searchPublicFlashcards = async (query = '') => {
+    setLoadingPublic(true);
+    try {
+      const token = localStorage.getItem('token');
+      const searchTerm = query || publicSearchQuery;
+      const response = await fetch(`${API_URL}/flashcards/public/search?query=${encodeURIComponent(searchTerm)}&limit=50`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setPublicFlashcards(data.sets || []);
+      }
+    } catch (error) {
+      setPublicFlashcards([]);
+    }
+    setLoadingPublic(false);
+  };
+
+  const loadAllPublicFlashcards = async () => {
+    setLoadingPublic(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/flashcards/public?limit=100`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setPublicFlashcards(data.sets || []);
+      }
+    } catch (error) {
+      setPublicFlashcards([]);
+    }
+    setLoadingPublic(false);
+  };
+
+  const copyPublicSet = async (setId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/flashcards/public/copy`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          source_set_id: setId
+        })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        showPopup('Success', `Copied "${data.title}" to your flashcards!`);
+        loadFlashcardHistory();
+      }
+    } catch (error) {
+      showPopup('Error', 'Failed to copy flashcard set');
+    }
+  };
+
   // Effects
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -503,14 +826,16 @@ const Flashcards = () => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (sortDropdownOpen && !event.target.closest('.fc-custom-select-wrapper')) {
+      if (!event.target.closest('.fc-custom-select-wrapper')) {
         setSortDropdownOpen(false);
+        setDifficultyDropdownOpen(false);
+        setDepthDropdownOpen(false);
       }
     };
     
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [sortDropdownOpen]);
+  }, []);
 
 
   // Helper functions
@@ -903,14 +1228,21 @@ const Flashcards = () => {
     const currentCardData = cards[cardIndex];
     const correctAnswer = currentCardData.answer;
     
-    // Get 3 random wrong answers from other cards
-    const otherCards = cards.filter((_, idx) => idx !== cardIndex);
-    const shuffledOthers = [...otherCards].sort(() => Math.random() - 0.5);
-    const wrongAnswers = shuffledOthers.slice(0, 3).map(card => card.answer);
-    
-    // Combine and shuffle all options
-    const allOptions = [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5);
-    setMcqOptions(allOptions);
+    // Check if AI-generated wrong options are available
+    if (currentCardData.wrong_options && currentCardData.wrong_options.length >= 3) {
+      // Use AI-generated wrong options
+      const allOptions = [correctAnswer, ...currentCardData.wrong_options.slice(0, 3)].sort(() => Math.random() - 0.5);
+      setMcqOptions(allOptions);
+    } else {
+      // Fallback: Get 3 random wrong answers from other cards
+      const otherCards = cards.filter((_, idx) => idx !== cardIndex);
+      const shuffledOthers = [...otherCards].sort(() => Math.random() - 0.5);
+      const wrongAnswers = shuffledOthers.slice(0, 3).map(card => card.answer);
+      
+      // Combine and shuffle all options
+      const allOptions = [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5);
+      setMcqOptions(allOptions);
+    }
     setSelectedOption(null);
     setShowAnswer(false);
   };
@@ -1020,6 +1352,361 @@ const Flashcards = () => {
   };
 
   const currentStudyCards = studySettings.shuffle ? shuffledCards : flashcards;
+
+
+  // Custom Create Mode UI (Fullscreen Editor for New Flashcards)
+  if (customCreateMode) {
+    const currentCustomCard = customCards[currentCard] || customCards[0];
+    
+    // Auto-save function
+    const autoSaveCustomCards = async () => {
+      const validCards = customCards.filter(c => c.question.trim() && c.answer.trim());
+      if (validCards.length === 0 || !customSetTitle.trim()) return;
+      
+      try {
+        const token = localStorage.getItem('token');
+        
+        // Create the set first
+        const setResponse = await fetch(`${API_URL}/flashcards/sets/create`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            user_id: userName,
+            title: customSetTitle,
+            description: `Custom set with ${validCards.length} cards`,
+            is_public: isPublic
+          })
+        });
+
+        if (!setResponse.ok) return;
+        const setData = await setResponse.json();
+
+        // Add cards to the set
+        for (const card of validCards) {
+          await fetch(`${API_URL}/flashcards/cards/create`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              set_id: setData.set_id,
+              question: card.question,
+              answer: card.answer,
+              difficulty: 'medium'
+            })
+          });
+        }
+
+        loadFlashcardHistory();
+        loadFlashcardStats();
+      } catch (error) {
+        // Silent fail for auto-save
+      }
+    };
+    
+    // Check if we have at least one valid card (both question and answer filled)
+    const hasValidCard = customCards.some(c => c.question.trim() && c.answer.trim());
+    const canSave = !generating && customSetTitle.trim() && hasValidCard;
+    
+    return (
+      <div className="flashcards-page">
+        <div className="fc-study-mode fc-edit-mode">
+          <div className="fc-study-header fc-create-header">
+            <div className="fc-header-actions fc-header-left">
+              <button 
+                className="fc-header-btn fc-done-btn"
+                onClick={async () => {
+                  await saveCustomFlashcards();
+                  setActivePanel('cards');
+                }}
+                disabled={!canSave}
+              >
+                DONE
+              </button>
+              <button 
+                className="fc-header-btn fc-save-btn-small"
+                onClick={saveCustomFlashcards}
+                disabled={!canSave}
+              >
+                {generating ? 'SAVING...' : 'SAVE'}
+              </button>
+              <button 
+                className="fc-header-btn fc-autosave-btn"
+                onClick={autoSaveCustomCards}
+                disabled={!canSave}
+              >
+                AUTO SAVE
+              </button>
+            </div>
+            <div className="fc-create-title-area">
+              <input
+                type="text"
+                className="fc-edit-title-input fc-create-title-input"
+                value={customSetTitle}
+                onChange={(e) => setCustomSetTitle(e.target.value)}
+                placeholder="Enter set title..."
+              />
+            </div>
+            <button className="fc-exit-btn fc-exit-styled" onClick={exitCustomCreateMode}>
+              EXIT ▶
+            </button>
+          </div>
+
+          <div className="fc-study-progress">
+            <div 
+              className="fc-study-progress-fill" 
+              style={{ width: `${((currentCard + 1) / customCards.length) * 100}%` }}
+            />
+          </div>
+
+          <div className="fc-study-content fc-edit-content">
+            <div className="fc-edit-card-container">
+              <button 
+                className="fc-arrow-btn fc-arrow-left"
+                onClick={() => {
+                  if (currentCard > 0) {
+                    setCurrentCard(currentCard - 1);
+                  }
+                }}
+                disabled={currentCard === 0}
+              >
+                ◀
+              </button>
+              
+              <div className="fc-edit-card">
+                <div className="fc-edit-card-header">
+                  <span className="fc-edit-card-number">Card {currentCard + 1}</span>
+                  <div className="fc-edit-card-actions">
+                    <span className="fc-edit-badge fc-badge-new">NEW</span>
+                    <button 
+                      className="fc-edit-delete-btn"
+                      onClick={() => removeCustomCardInEditor(currentCard)}
+                      disabled={customCards.length === 1}
+                      title="Delete this card"
+                    >
+                      {Icons.trash}
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="fc-edit-field">
+                  <label className="fc-edit-label">Question / Front</label>
+                  <textarea
+                    className="fc-edit-textarea"
+                    value={currentCustomCard?.question || ''}
+                    onChange={(e) => updateCustomCardInEditor(currentCard, 'question', e.target.value)}
+                    placeholder="Enter the question..."
+                    rows={4}
+                  />
+                </div>
+                
+                <div className="fc-edit-field">
+                  <label className="fc-edit-label">Answer / Back</label>
+                  <textarea
+                    className="fc-edit-textarea"
+                    value={currentCustomCard?.answer || ''}
+                    onChange={(e) => updateCustomCardInEditor(currentCard, 'answer', e.target.value)}
+                    placeholder="Enter the answer..."
+                    rows={4}
+                  />
+                </div>
+              </div>
+              
+              <button 
+                className="fc-arrow-btn fc-arrow-right"
+                onClick={() => {
+                  if (currentCard < customCards.length - 1) {
+                    setCurrentCard(currentCard + 1);
+                  }
+                }}
+                disabled={currentCard === customCards.length - 1}
+              >
+                ▶
+              </button>
+            </div>
+
+            <div className="fc-edit-bottom-actions">
+              <button 
+                className="fc-btn fc-btn-secondary fc-add-card-btn"
+                onClick={() => {
+                  addCustomCardInEditor();
+                  setTimeout(() => setCurrentCard(customCards.length), 50);
+                }}
+              >
+                + Add New Card
+              </button>
+            </div>
+
+            <div className="fc-edit-card-dots">
+              {customCards.map((_, idx) => (
+                <button
+                  key={idx}
+                  className={`fc-edit-dot ${idx === currentCard ? 'active' : ''}`}
+                  onClick={() => setCurrentCard(idx)}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+
+  // Edit Mode UI (Fullscreen Card Editor)
+  if (editMode && editingCards.length > 0) {
+    const activeCards = editingCards.filter(c => !c.isDeleted);
+    const currentEditCard = activeCards[currentCard] || activeCards[0];
+    const currentEditIndex = editingCards.findIndex(c => c === currentEditCard);
+    
+    return (
+      <div className="flashcards-page">
+        <div className="fc-study-mode fc-edit-mode">
+          <div className="fc-study-header">
+            <button className="fc-exit-btn" onClick={cancelEditMode}>
+              ◀ Exit
+            </button>
+            <div className="fc-study-title">
+              <input
+                type="text"
+                className="fc-edit-title-input"
+                value={editingSetTitle}
+                onChange={(e) => setEditingSetTitle(e.target.value)}
+                placeholder="Set Title..."
+              />
+              <span className="fc-card-counter">EDITING {activeCards.length} CARDS</span>
+            </div>
+            <button 
+              className="fc-btn fc-btn-primary fc-save-btn"
+              onClick={saveEditedFlashcards}
+              disabled={generating}
+            >
+              {generating ? 'Saving...' : <>{Icons.check} Save</>}
+            </button>
+          </div>
+
+          <div className="fc-study-progress">
+            <div 
+              className="fc-study-progress-fill" 
+              style={{ width: `${((currentCard + 1) / activeCards.length) * 100}%` }}
+            />
+          </div>
+
+          <div className="fc-study-content fc-edit-content">
+            <div className="fc-edit-card-container">
+              <button 
+                className="fc-arrow-btn fc-arrow-left"
+                onClick={() => {
+                  if (currentCard > 0) {
+                    setCurrentCard(currentCard - 1);
+                  }
+                }}
+                disabled={currentCard === 0}
+              >
+                ◀
+              </button>
+              
+              <div className="fc-edit-card">
+                <div className="fc-edit-card-header">
+                  <span className="fc-edit-card-number">Card {currentCard + 1}</span>
+                  <div className="fc-edit-card-actions">
+                    {currentEditCard?.isNew && (
+                      <span className="fc-edit-badge fc-badge-new">NEW</span>
+                    )}
+                    <button 
+                      className="fc-edit-delete-btn"
+                      onClick={() => {
+                        if (currentEditIndex >= 0) {
+                          markCardForDeletion(currentEditIndex);
+                          if (currentCard >= activeCards.length - 1 && currentCard > 0) {
+                            setCurrentCard(currentCard - 1);
+                          }
+                        }
+                      }}
+                      title="Delete this card"
+                    >
+                      {Icons.trash}
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="fc-edit-field">
+                  <label className="fc-edit-label">Question / Front</label>
+                  <textarea
+                    className="fc-edit-textarea"
+                    value={currentEditCard?.question || ''}
+                    onChange={(e) => {
+                      if (currentEditIndex >= 0) {
+                        updateEditingCard(currentEditIndex, 'question', e.target.value);
+                      }
+                    }}
+                    placeholder="Enter the question..."
+                    rows={4}
+                  />
+                </div>
+                
+                <div className="fc-edit-field">
+                  <label className="fc-edit-label">Answer / Back</label>
+                  <textarea
+                    className="fc-edit-textarea"
+                    value={currentEditCard?.answer || ''}
+                    onChange={(e) => {
+                      if (currentEditIndex >= 0) {
+                        updateEditingCard(currentEditIndex, 'answer', e.target.value);
+                      }
+                    }}
+                    placeholder="Enter the answer..."
+                    rows={4}
+                  />
+                </div>
+              </div>
+              
+              <button 
+                className="fc-arrow-btn fc-arrow-right"
+                onClick={() => {
+                  if (currentCard < activeCards.length - 1) {
+                    setCurrentCard(currentCard + 1);
+                  }
+                }}
+                disabled={currentCard === activeCards.length - 1}
+              >
+                ▶
+              </button>
+            </div>
+
+            <div className="fc-edit-bottom-actions">
+              <button 
+                className="fc-btn fc-btn-secondary fc-add-card-btn"
+                onClick={() => {
+                  addCardToEdit();
+                  // Navigate to the new card
+                  setTimeout(() => {
+                    setCurrentCard(editingCards.filter(c => !c.isDeleted).length);
+                  }, 50);
+                }}
+              >
+                + Add New Card
+              </button>
+            </div>
+
+            <div className="fc-edit-card-dots">
+              {activeCards.map((_, idx) => (
+                <button
+                  key={idx}
+                  className={`fc-edit-dot ${idx === currentCard ? 'active' : ''}`}
+                  onClick={() => setCurrentCard(idx)}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
 
   // Preview Mode UI (Flippable Cards)
@@ -1443,6 +2130,10 @@ const Flashcards = () => {
               <span className="fc-nav-icon">{Icons.sparkle}</span>
               <span className="fc-nav-text">Generator</span>
             </button>
+            <button className={`fc-nav-item ${activePanel === 'explore' ? 'active' : ''}`} onClick={() => { setActivePanel('explore'); loadAllPublicFlashcards(); }}>
+              <span className="fc-nav-icon">{Icons.search}</span>
+              <span className="fc-nav-text">Explore Public</span>
+            </button>
             <button className={`fc-nav-item ${activePanel === 'statistics' ? 'active' : ''}`} onClick={() => setActivePanel('statistics')}>
               <span className="fc-nav-icon">{Icons.chart}</span>
               <span className="fc-nav-text">Statistics</span>
@@ -1570,6 +2261,10 @@ const Flashcards = () => {
 
                           {/* Actions */}
                           <div className="fc-set-actions-new">
+                            <button className="fc-action-btn-new fc-action-edit" onClick={() => enterEditMode(set.id)}>
+                              {Icons.edit}
+                              <span>Edit</span>
+                            </button>
                             <button className="fc-action-btn-new fc-action-preview" onClick={() => loadFlashcardSet(set.id, 'preview')}>
                               {Icons.eye}
                               <span>Preview</span>
@@ -1594,27 +2289,35 @@ const Flashcards = () => {
             <>
               <div className="fc-content">
                 <div className="fc-section-header-text">
-                  <h2>GENERATE FLASHCARDS</h2>
-                  <p>CREATE AI-POWERED FLASHCARDS FROM TOPICS OR CHAT HISTORY</p>
+                  <h2>CREATE FLASHCARDS</h2>
+                  <p>AI-POWERED GENERATION OR CREATE YOUR OWN</p>
                 </div>
                 
                 <div className="fc-generator">
-                  <div className="fc-mode-selector">
+                  <div className="fc-mode-selector fc-mode-selector-3">
                     <button 
                       className={`fc-mode-btn ${generationMode === 'topic' ? 'active' : ''}`}
                       onClick={() => setGenerationMode('topic')}
                     >
-                      <div className="fc-mode-icon">{Icons.edit}</div>
-                      <span className="fc-mode-label">BY TOPIC</span>
-                      <span className="fc-mode-desc">Enter any topic to generate cards</span>
+                      <div className="fc-mode-icon">{Icons.sparkle}</div>
+                      <span className="fc-mode-label">AI BY TOPIC</span>
+                      <span className="fc-mode-desc">Generate cards from any topic</span>
                     </button>
                     <button 
                       className={`fc-mode-btn ${generationMode === 'chat_history' ? 'active' : ''}`}
                       onClick={() => setGenerationMode('chat_history')}
                     >
                       <div className="fc-mode-icon">{Icons.chat}</div>
-                      <span className="fc-mode-label">FROM CHAT HISTORY</span>
-                      <span className="fc-mode-desc">Convert AI conversations to cards</span>
+                      <span className="fc-mode-label">FROM CHAT</span>
+                      <span className="fc-mode-desc">Convert AI conversations</span>
+                    </button>
+                    <button 
+                      className="fc-mode-btn"
+                      onClick={enterCustomCreateMode}
+                    >
+                      <div className="fc-mode-icon">{Icons.edit}</div>
+                      <span className="fc-mode-label">CREATE CUSTOM</span>
+                      <span className="fc-mode-desc">Make your own flashcards</span>
                     </button>
                   </div>
 
@@ -1643,19 +2346,93 @@ const Flashcards = () => {
                         </div>
                         <div className="fc-form-group">
                           <label className="fc-label">Difficulty</label>
-                          <select className="fc-select" value={difficultyLevel} onChange={(e) => setDifficultyLevel(e.target.value)} style={{width: '100%'}}>
-                            <option value="easy">Easy</option>
-                            <option value="medium">Medium</option>
-                            <option value="hard">Hard</option>
-                          </select>
+                          <div className="fc-custom-select-wrapper">
+                            <button 
+                              className="fc-custom-select" 
+                              onClick={() => {
+                                setDifficultyDropdownOpen(!difficultyDropdownOpen);
+                                setDepthDropdownOpen(false);
+                              }}
+                            >
+                              <span className="fc-custom-select-text">
+                                {difficultyLevel === 'easy' && 'EASY'}
+                                {difficultyLevel === 'medium' && 'MEDIUM'}
+                                {difficultyLevel === 'hard' && 'HARD'}
+                              </span>
+                              <span className="fc-custom-select-arrow">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                              </span>
+                            </button>
+                            {difficultyDropdownOpen && (
+                              <div className="fc-custom-dropdown">
+                                <button 
+                                  className={`fc-custom-option ${difficultyLevel === 'easy' ? 'active' : ''}`}
+                                  onClick={() => { setDifficultyLevel('easy'); setDifficultyDropdownOpen(false); }}
+                                >
+                                  EASY
+                                </button>
+                                <button 
+                                  className={`fc-custom-option ${difficultyLevel === 'medium' ? 'active' : ''}`}
+                                  onClick={() => { setDifficultyLevel('medium'); setDifficultyDropdownOpen(false); }}
+                                >
+                                  MEDIUM
+                                </button>
+                                <button 
+                                  className={`fc-custom-option ${difficultyLevel === 'hard' ? 'active' : ''}`}
+                                  onClick={() => { setDifficultyLevel('hard'); setDifficultyDropdownOpen(false); }}
+                                >
+                                  HARD
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div className="fc-form-group">
                           <label className="fc-label">Depth</label>
-                          <select className="fc-select" value={depthLevel} onChange={(e) => setDepthLevel(e.target.value)} style={{width: '100%'}}>
-                            <option value="surface">Surface</option>
-                            <option value="standard">Standard</option>
-                            <option value="deep">Deep</option>
-                          </select>
+                          <div className="fc-custom-select-wrapper">
+                            <button 
+                              className="fc-custom-select" 
+                              onClick={() => {
+                                setDepthDropdownOpen(!depthDropdownOpen);
+                                setDifficultyDropdownOpen(false);
+                              }}
+                            >
+                              <span className="fc-custom-select-text">
+                                {depthLevel === 'surface' && 'SURFACE'}
+                                {depthLevel === 'standard' && 'STANDARD'}
+                                {depthLevel === 'deep' && 'DEEP'}
+                              </span>
+                              <span className="fc-custom-select-arrow">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                              </span>
+                            </button>
+                            {depthDropdownOpen && (
+                              <div className="fc-custom-dropdown">
+                                <button 
+                                  className={`fc-custom-option ${depthLevel === 'surface' ? 'active' : ''}`}
+                                  onClick={() => { setDepthLevel('surface'); setDepthDropdownOpen(false); }}
+                                >
+                                  SURFACE
+                                </button>
+                                <button 
+                                  className={`fc-custom-option ${depthLevel === 'standard' ? 'active' : ''}`}
+                                  onClick={() => { setDepthLevel('standard'); setDepthDropdownOpen(false); }}
+                                >
+                                  STANDARD
+                                </button>
+                                <button 
+                                  className={`fc-custom-option ${depthLevel === 'deep' ? 'active' : ''}`}
+                                  onClick={() => { setDepthLevel('deep'); setDepthDropdownOpen(false); }}
+                                >
+                                  DEEP
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -1742,19 +2519,93 @@ const Flashcards = () => {
                         </div>
                         <div className="fc-form-group">
                           <label className="fc-label">Difficulty</label>
-                          <select className="fc-select" value={difficultyLevel} onChange={(e) => setDifficultyLevel(e.target.value)} style={{width: '100%'}}>
-                            <option value="easy">Easy</option>
-                            <option value="medium">Medium</option>
-                            <option value="hard">Hard</option>
-                          </select>
+                          <div className="fc-custom-select-wrapper">
+                            <button 
+                              className="fc-custom-select" 
+                              onClick={() => {
+                                setDifficultyDropdownOpen(!difficultyDropdownOpen);
+                                setDepthDropdownOpen(false);
+                              }}
+                            >
+                              <span className="fc-custom-select-text">
+                                {difficultyLevel === 'easy' && 'EASY'}
+                                {difficultyLevel === 'medium' && 'MEDIUM'}
+                                {difficultyLevel === 'hard' && 'HARD'}
+                              </span>
+                              <span className="fc-custom-select-arrow">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                              </span>
+                            </button>
+                            {difficultyDropdownOpen && (
+                              <div className="fc-custom-dropdown">
+                                <button 
+                                  className={`fc-custom-option ${difficultyLevel === 'easy' ? 'active' : ''}`}
+                                  onClick={() => { setDifficultyLevel('easy'); setDifficultyDropdownOpen(false); }}
+                                >
+                                  EASY
+                                </button>
+                                <button 
+                                  className={`fc-custom-option ${difficultyLevel === 'medium' ? 'active' : ''}`}
+                                  onClick={() => { setDifficultyLevel('medium'); setDifficultyDropdownOpen(false); }}
+                                >
+                                  MEDIUM
+                                </button>
+                                <button 
+                                  className={`fc-custom-option ${difficultyLevel === 'hard' ? 'active' : ''}`}
+                                  onClick={() => { setDifficultyLevel('hard'); setDifficultyDropdownOpen(false); }}
+                                >
+                                  HARD
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div className="fc-form-group">
                           <label className="fc-label">Depth</label>
-                          <select className="fc-select" value={depthLevel} onChange={(e) => setDepthLevel(e.target.value)} style={{width: '100%'}}>
-                            <option value="surface">Surface</option>
-                            <option value="standard">Standard</option>
-                            <option value="deep">Deep</option>
-                          </select>
+                          <div className="fc-custom-select-wrapper">
+                            <button 
+                              className="fc-custom-select" 
+                              onClick={() => {
+                                setDepthDropdownOpen(!depthDropdownOpen);
+                                setDifficultyDropdownOpen(false);
+                              }}
+                            >
+                              <span className="fc-custom-select-text">
+                                {depthLevel === 'surface' && 'SURFACE'}
+                                {depthLevel === 'standard' && 'STANDARD'}
+                                {depthLevel === 'deep' && 'DEEP'}
+                              </span>
+                              <span className="fc-custom-select-arrow">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                              </span>
+                            </button>
+                            {depthDropdownOpen && (
+                              <div className="fc-custom-dropdown">
+                                <button 
+                                  className={`fc-custom-option ${depthLevel === 'surface' ? 'active' : ''}`}
+                                  onClick={() => { setDepthLevel('surface'); setDepthDropdownOpen(false); }}
+                                >
+                                  SURFACE
+                                </button>
+                                <button 
+                                  className={`fc-custom-option ${depthLevel === 'standard' ? 'active' : ''}`}
+                                  onClick={() => { setDepthLevel('standard'); setDepthDropdownOpen(false); }}
+                                >
+                                  STANDARD
+                                </button>
+                                <button 
+                                  className={`fc-custom-option ${depthLevel === 'deep' ? 'active' : ''}`}
+                                  onClick={() => { setDepthLevel('deep'); setDepthDropdownOpen(false); }}
+                                >
+                                  DEEP
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </>
@@ -1860,6 +2711,107 @@ const Flashcards = () => {
                         </button>
                       </div>
                     ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Explore Public Flashcards Panel */}
+          {activePanel === 'explore' && (
+            <>
+              <div className="fc-content fc-cards-panel">
+                <div className="fc-section-header-text">
+                  <h2>EXPLORE PUBLIC FLASHCARDS</h2>
+                  <p>DISCOVER AND COPY FLASHCARD SETS FROM THE COMMUNITY</p>
+                </div>
+                
+                <div className="fc-public-search-bar">
+                  <div className="fc-search fc-search-large">
+                    <span className="fc-search-icon">{Icons.search}</span>
+                    <input 
+                      type="text"
+                      placeholder="Search public flashcard sets..."
+                      value={publicSearchQuery}
+                      onChange={(e) => setPublicSearchQuery(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && searchPublicFlashcards()}
+                    />
+                  </div>
+                  <button className="fc-btn fc-btn-primary" onClick={() => searchPublicFlashcards()}>
+                    Search
+                  </button>
+                  <button className="fc-btn fc-btn-secondary" onClick={loadAllPublicFlashcards}>
+                    Show All
+                  </button>
+                </div>
+                
+                {loadingPublic ? (
+                  <div className="fc-loading">
+                    <div className="fc-spinner">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                    <p>Searching public flashcards...</p>
+                  </div>
+                ) : publicFlashcards.length === 0 ? (
+                  <div className="fc-empty">
+                    <div className="fc-empty-icon">{Icons.search}</div>
+                    <h3>No Public Flashcards Found</h3>
+                    <p>Try a different search term or browse all public sets.</p>
+                    <button className="fc-btn fc-btn-primary" onClick={loadAllPublicFlashcards}>
+                      Browse All Public Sets
+                    </button>
+                  </div>
+                ) : (
+                  <div className="fc-grid">
+                    {publicFlashcards.map((set, index) => {
+                      const colors = [
+                        '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+                        '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788'
+                      ];
+                      const cardColor = colors[index % colors.length];
+                      
+                      return (
+                        <div key={set.id} className="fc-set-card-new fc-public-card">
+                          <div className="fc-set-thumbnail" style={{ background: `linear-gradient(135deg, ${cardColor} 0%, ${cardColor}dd 100%)` }}>
+                            <div className="fc-set-thumbnail-content">
+                              <h2 className="fc-thumbnail-title">{set.title.replace(/^(AI Generated:\s*|Flashcards:\s*)/i, '')}</h2>
+                            </div>
+                            <div className="fc-public-badge">PUBLIC</div>
+                          </div>
+
+                          <div className="fc-set-content-new">
+                            <div className="fc-set-meta-new">
+                              <div className="fc-meta-item-new">
+                                <span className="fc-meta-label">Cards:</span>
+                                <span className="fc-meta-value">{set.card_count}</span>
+                              </div>
+                              <div className="fc-meta-item-new">
+                                <span className="fc-meta-label">By:</span>
+                                <span className="fc-meta-value">{set.creator || 'Anonymous'}</span>
+                              </div>
+                            </div>
+                            
+                            <p className="fc-set-date-new">Created: {formatDate(set.created_at)}</p>
+                          </div>
+
+                          <div className="fc-set-actions-new">
+                            <button className="fc-action-btn-new fc-action-preview" onClick={() => loadFlashcardSet(set.id, 'preview')}>
+                              {Icons.eye}
+                              <span>Preview</span>
+                            </button>
+                            <button className="fc-action-btn-new fc-action-copy" onClick={() => copyPublicSet(set.id)}>
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                              </svg>
+                              <span>Copy to My Sets</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

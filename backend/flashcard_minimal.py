@@ -44,7 +44,7 @@ CONTENT:
 FORMAT (JSON):
 {{
   "flashcards": [
-    {{"question": "...", "answer": "..."}},
+    {{"question": "...", "answer": "...", "wrong_options": ["wrong1", "wrong2", "wrong3"]}},
     ...
   ]
 }}
@@ -52,6 +52,7 @@ FORMAT (JSON):
 RULES:
 - Questions: Clear, specific, testable
 - Answers: Concise (2-4 sentences max), informative
+- wrong_options: 3 plausible but incorrect answers for MCQ study mode (similar length/style to correct answer)
 - No scrolling needed - keep answers brief
 - Focus on key concepts only
 - Avoid redundancy"""
@@ -67,7 +68,7 @@ Difficulty: {difficulty}
 FORMAT (JSON):
 {{
   "flashcards": [
-    {{"question": "...", "answer": "..."}},
+    {{"question": "...", "answer": "...", "wrong_options": ["wrong1", "wrong2", "wrong3"]}},
     ...
   ]
 }}
@@ -75,6 +76,7 @@ FORMAT (JSON):
 RULES:
 - Cover essential concepts only
 - Answers: 2-4 sentences maximum
+- wrong_options: 3 plausible but incorrect answers for MCQ study mode (similar length/style to correct answer)
 - Questions must be clear and specific
 - Progressive difficulty if mixed
 - No fluff or filler content"""
@@ -195,10 +197,16 @@ def generate_flashcards_minimal(
                     if len(answer) > 400:  # ~4 sentences max
                         answer = answer[:400] + "..."
                     
+                    # Get wrong options if provided by AI
+                    wrong_options = card.get("wrong_options", [])
+                    # Ensure we have exactly 3 wrong options, trim if too long
+                    wrong_options = [opt[:400] + "..." if len(opt) > 400 else opt for opt in wrong_options[:3]]
+                    
                     valid_cards.append({
                         "question": card["question"].strip(),
                         "answer": answer.strip(),
-                        "difficulty": difficulty
+                        "difficulty": difficulty,
+                        "wrong_options": wrong_options
                     })
             
             return valid_cards
