@@ -557,7 +557,6 @@
   display: flex;
   flex-direction: column;
   background: var(--kr-bg-primary);
-  padding-top: 70px;
   z-index: 10;
 }
 
@@ -1234,4 +1233,282 @@
     border-left: none;
     border-top: 1px solid var(--kr-border-subtle);
   }
+}
+
+/* ==================== NEW FEATURES STYLES ==================== */
+
+/* Selected node styling */
+.custom-kr-node.kr-selected {
+  box-shadow: 0 0 0 3px var(--kr-accent), 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Notes badge on node */
+.kr-notes-badge-flow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  background: color-mix(in srgb, var(--kr-warning) 20%, transparent);
+  border: 1px solid var(--kr-warning);
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--kr-warning);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 6px;
+}
+
+/* Add child button on node */
+.kr-node-btn-flow.kr-add-child-btn {
+  background: color-mix(in srgb, var(--kr-warning) 10%, transparent);
+  border-color: color-mix(in srgb, var(--kr-warning) 30%, transparent);
+}
+
+.kr-node-btn-flow.kr-add-child-btn:hover {
+  border-color: var(--kr-warning);
+  color: var(--kr-warning);
+}
+
+/* Viewer actions container */
+.kr-viewer-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Delete node button */
+.kr-delete-node-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, var(--kr-danger) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--kr-danger) 40%, transparent);
+  border-radius: 8px;
+  color: var(--kr-danger);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.kr-delete-node-btn:hover {
+  background: color-mix(in srgb, var(--kr-danger) 25%, transparent);
+  border-color: var(--kr-danger);
+  transform: translateY(-1px);
+}
+
+/* Manual Notes Section */
+.kr-manual-notes-section {
+  margin-top: 24px;
+  padding: 16px;
+  background: color-mix(in srgb, var(--kr-warning) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--kr-warning) 25%, transparent);
+  border-radius: 8px;
+}
+
+.kr-manual-notes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.kr-manual-notes-header h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--kr-warning);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.kr-edit-notes-btn,
+.kr-save-notes-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--kr-warning) 40%, transparent);
+  border-radius: 6px;
+  color: var(--kr-warning);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.kr-edit-notes-btn:hover,
+.kr-save-notes-btn:hover {
+  background: color-mix(in srgb, var(--kr-warning) 15%, transparent);
+  border-color: var(--kr-warning);
+}
+
+.kr-save-notes-btn {
+  background: var(--kr-warning);
+  color: var(--kr-bg-primary);
+  border-color: var(--kr-warning);
+}
+
+.kr-save-notes-btn:hover {
+  background: color-mix(in srgb, var(--kr-warning) 85%, white);
+}
+
+.kr-manual-notes-input {
+  width: 100%;
+  padding: 12px;
+  background: var(--kr-bg-secondary);
+  border: 1px solid var(--kr-border-subtle);
+  border-radius: 6px;
+  color: var(--kr-text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 100px;
+}
+
+.kr-manual-notes-input:focus {
+  outline: none;
+  border-color: var(--kr-warning);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--kr-warning) 15%, transparent);
+}
+
+.kr-manual-notes-input::placeholder {
+  color: var(--kr-text-secondary);
+}
+
+.kr-manual-notes-content {
+  padding: 8px 0;
+}
+
+.kr-manual-notes-content p {
+  color: var(--kr-text-primary);
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.kr-no-notes {
+  color: var(--kr-text-secondary) !important;
+  font-style: italic;
+}
+
+/* Textarea in modal */
+.kr-textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+
+/* ==================== EXPORT SUCCESS MODAL ==================== */
+.kr-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: krFadeIn 0.3s ease;
+}
+
+@keyframes krFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes krScaleIn {
+  from { 
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.kr-export-modal {
+  background: linear-gradient(135deg, var(--kr-bg-secondary) 0%, var(--kr-bg-primary) 100%);
+  border: 1px solid color-mix(in srgb, var(--kr-accent) 25%, transparent);
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  animation: krScaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.kr-export-modal-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 20px;
+  background: linear-gradient(135deg, var(--kr-accent) 0%, color-mix(in srgb, var(--kr-accent) 70%, white) 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--kr-bg-primary);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--kr-accent) 40%, transparent);
+}
+
+.kr-export-modal h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--kr-text-primary);
+  margin-bottom: 12px;
+}
+
+.kr-export-modal p {
+  font-size: 14px;
+  color: var(--kr-text-secondary);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.kr-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.kr-modal-btn {
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.kr-modal-btn.secondary {
+  background: var(--kr-bg-tertiary);
+  border: 1px solid var(--kr-border-subtle);
+  color: var(--kr-text-primary);
+}
+
+.kr-modal-btn.secondary:hover {
+  background: var(--kr-bg-secondary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.kr-modal-btn.primary {
+  background: linear-gradient(135deg, var(--kr-accent) 0%, color-mix(in srgb, var(--kr-accent) 80%, white) 100%);
+  color: var(--kr-bg-primary);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--kr-accent) 40%, transparent);
+}
+
+.kr-modal-btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--kr-accent) 50%, transparent);
 }

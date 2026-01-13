@@ -10,12 +10,12 @@ import ReactFlow, {
   Position,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Plus, Loader, MapPin, Book, Sparkles, Trash2, FileDown, Info, ChevronRight } from 'lucide-react';
+import { Plus, Loader, MapPin, Book, Sparkles, Trash2, FileDown, Info, ChevronRight, X, Edit3, Save, StickyNote } from 'lucide-react';
 import './KnowledgeRoadmap.css';
 import { API_URL } from '../config';
-const CustomNode = ({ data }) => {
+const CustomNode = ({ data, selected }) => {
   return (
-    <div className={`custom-kr-node ${data.isExplored ? 'kr-explored' : ''} ${data.expansionStatus === 'expanded' ? 'kr-expanded' : ''}`}>
+    <div className={`custom-kr-node ${data.isExplored ? 'kr-explored' : ''} ${data.expansionStatus === 'expanded' ? 'kr-expanded' : ''} ${selected ? 'kr-selected' : ''}`}>
       <Handle 
         type="target" 
         position={Position.Top}
@@ -32,6 +32,12 @@ const CustomNode = ({ data }) => {
             <span className="kr-explored-badge-flow">
               <Sparkles size={10} />
               Explored
+            </span>
+          )}
+          {data.hasManualNotes && (
+            <span className="kr-notes-badge-flow">
+              <StickyNote size={10} />
+              Notes
             </span>
           )}
         </div>
@@ -61,6 +67,17 @@ const CustomNode = ({ data }) => {
             {data.isExpanding ? '...' : 'Expand'}
           </button>
         )}
+        <button 
+          className="kr-node-btn-flow kr-add-child-btn nodrag nopan"
+          onClick={(e) => { 
+            e.stopPropagation(); 
+            data.onAddChild && data.onAddChild(data.nodeId); 
+          }}
+          title="Add custom child node"
+        >
+          <Plus size={12} />
+          Add
+        </button>
       </div>
       <Handle 
         type="source" 
@@ -93,17 +110,37 @@ const KnowledgeRoadmap = () => {
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
 
+  // Manual node states
+  const [showAddNodeModal, setShowAddNodeModal] = useState(false);
+  const [addNodeParentId, setAddNodeParentId] = useState(null);
+  const [newNodeTopic, setNewNodeTopic] = useState('');
+  const [newNodeDescription, setNewNodeDescription] = useState('');
+
+  // Node selection and deletion states
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
+
+  // Manual notes states
+  const [manualNotes, setManualNotes] = useState(new Map()); // nodeId -> notes string
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [tempNotes, setTempNotes] = useState('');
+
+  // Export success modal state
+  const [showExportSuccessModal, setShowExportSuccessModal] = useState(false);
+  const [exportedNodeCount, setExportedNodeCount] = useState(0);
+  const [exportedNoteId, setExportedNoteId] = useState(null);
+
   // Save the current UI state (which nodes are actually expanded in the current view)
   useEffect(() => {
     if (currentRoadmap && currentRoadmap.id && nodes.length > 0) {
       const roadmapState = {
         expandedNodes: Array.from(expandedNodes),
         exploredNodesCache: Array.from(exploredNodesCache.entries()),
+        manualNotes: Array.from(manualNotes.entries()),
         timestamp: Date.now()
       };
       localStorage.setItem(`roadmap_state_${currentRoadmap.id}`, JSON.stringify(roadmapState));
           }
-  }, [expandedNodes, exploredNodesCache, currentRoadmap, nodes]);
+  }, [expandedNodes, exploredNodesCache, manualNotes, currentRoadmap, nodes]);
   const [showChatSelectModal, setShowChatSelectModal] = useState(false);
 const [chatSessions, setChatSessions] = useState([]);
 const [selectedChatId, setSelectedChatId] = useState(null);
@@ -203,11 +240,14 @@ const createRoadmapFromChat = async () => {
     }
     setExpandedNodes(new Set());
     setExploredNodesCache(new Map());
+    setManualNotes(new Map());
+    setSelectedNodeId(null);
   }, []);
 
   // Create refs for callbacks to prevent stale closures
   const expandNodeRef = useRef(null);
   const exploreNodeRef = useRef(null);
+  const addChildNodeRef = useRef(null);
 
   // Layout constants
   const HORIZONTAL_SPACING = 280;
@@ -442,8 +482,10 @@ const createRoadmapFromChat = async () => {
                       isExplored: child.is_explored,
                       expansionStatus: child.expansion_status,
                       nodeId: child.id,
+                      hasManualNotes: false,
                       onExpand: (id) => expandNodeRef.current && expandNodeRef.current(id),
                       onExplore: (id) => exploreNodeRef.current && exploreNodeRef.current(id),
+                      onAddChild: (id) => addChildNodeRef.current && addChildNodeRef.current(id),
                     },
                   }));
 
@@ -600,8 +642,10 @@ const createRoadmapFromChat = async () => {
                 isExplored: child.is_explored,
                 expansionStatus: child.expansion_status,
                 nodeId: child.id,
+                hasManualNotes: false,
                 onExpand: (id) => expandNodeRef.current && expandNodeRef.current(id),
                 onExplore: (id) => exploreNodeRef.current && exploreNodeRef.current(id),
+                onAddChild: (id) => addChildNodeRef.current && addChildNodeRef.current(id),
               },
             }));
 
@@ -760,6 +804,244 @@ const createRoadmapFromChat = async () => {
   // Store exploreNode in ref immediately
   exploreNodeRef.current = exploreNode;
 
+  // Add child node handler - opens modal to add custom node
+  const handleAddChildNode = useCallback((parentNodeId) => {
+    setAddNodeParentId(parentNodeId);
+    setNewNodeTopic('');
+    setNewNodeDescription('');
+    setShowAddNodeModal(true);
+  }, []);
+
+  // Store addChildNode in ref
+  addChildNodeRef.current = handleAddChildNode;
+
+  // Create manual node
+  const createManualNode = async () => {
+    if (!newNodeTopic.trim() || !addNodeParentId || !currentRoadmap) return;
+
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/add_manual_node`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          roadmap_id: currentRoadmap.id,
+          parent_id: addNodeParentId,
+          topic_name: newNodeTopic.trim(),
+          description: newNodeDescription.trim() || `Custom node: ${newNodeTopic.trim()}`
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const newNode = data.node;
+
+        // Add the new node to the flow
+        setNodes((nds) => {
+          const parentNode = nds.find(n => n.data.nodeId === addNodeParentId);
+          if (!parentNode) return nds;
+
+          // Find existing children of this parent to position new node
+          const siblingNodes = nds.filter(n => {
+            const edge = edges.find(e => String(e.target) === String(n.id) && String(e.source) === String(addNodeParentId));
+            return edge !== undefined;
+          });
+
+          const horizontalSpacing = 280;
+          const baseVerticalSpacing = 250;
+          const parentDepth = parentNode.data.depth;
+          const verticalSpacing = parentDepth === 0 ? 350 : baseVerticalSpacing * Math.pow(1.2, parentDepth);
+
+          // Position to the right of existing siblings
+          const newX = siblingNodes.length > 0 
+            ? Math.max(...siblingNodes.map(n => n.position.x)) + horizontalSpacing
+            : parentNode.position.x;
+
+          const flowNode = {
+            id: String(newNode.id),
+            type: 'custom',
+            position: {
+              x: newX,
+              y: parentNode.position.y + verticalSpacing
+            },
+            data: {
+              label: newNode.topic_name,
+              description: newNode.description,
+              depth: newNode.depth_level,
+              isExplored: false,
+              expansionStatus: 'unexpanded',
+              nodeId: newNode.id,
+              isManual: true,
+              hasManualNotes: false,
+              onExpand: (id) => expandNodeRef.current && expandNodeRef.current(id),
+              onExplore: (id) => exploreNodeRef.current && exploreNodeRef.current(id),
+              onAddChild: (id) => addChildNodeRef.current && addChildNodeRef.current(id),
+            },
+          };
+
+          return [...nds, flowNode];
+        });
+
+        // Add edge from parent to new node
+        setEdges((eds) => [
+          ...eds,
+          {
+            id: `e${addNodeParentId}-${newNode.id}`,
+            source: String(addNodeParentId),
+            target: String(newNode.id),
+            type: 'smoothstep',
+            animated: true,
+            style: { stroke: '#D7B38C', strokeWidth: 3 },
+            markerEnd: {
+              type: 'arrow',
+              color: '#D7B38C',
+              width: 20,
+              height: 20,
+            },
+          }
+        ]);
+
+        // Mark parent as expanded
+        setExpandedNodes(prev => new Set(prev).add(addNodeParentId));
+        setNodes((nds) => nds.map(n => 
+          n.data.nodeId === addNodeParentId 
+            ? { ...n, data: { ...n.data, expansionStatus: 'expanded' } }
+            : n
+        ));
+
+        // Stop animation after 2 seconds
+        setTimeout(() => {
+          setEdges((eds) => eds.map(e => 
+            e.id === `e${addNodeParentId}-${newNode.id}` ? { ...e, animated: false } : e
+          ));
+        }, 2000);
+
+        setShowAddNodeModal(false);
+        setAddNodeParentId(null);
+        setNewNodeTopic('');
+        setNewNodeDescription('');
+      } else {
+        alert('Failed to add node');
+      }
+    } catch (error) {
+      console.error('Error adding manual node:', error);
+      alert('Error adding node');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete selected node
+  const deleteSelectedNode = async () => {
+    if (!selectedNodeId || !currentRoadmap) return;
+
+    // Don't allow deleting root node
+    const selectedNode = nodes.find(n => n.data.nodeId === selectedNodeId);
+    if (selectedNode && selectedNode.data.depth === 0) {
+      alert('Cannot delete the root node');
+      return;
+    }
+
+    if (!window.confirm('Delete this node and all its children?')) return;
+
+    try {
+      const response = await fetch(`${API_URL}/delete_roadmap_node/${selectedNodeId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        // Find all descendant nodes to remove
+        const nodesToRemove = new Set([String(selectedNodeId)]);
+        const queue = [String(selectedNodeId)];
+
+        while (queue.length > 0) {
+          const currentId = queue.shift();
+          edges.forEach(edge => {
+            if (String(edge.source) === currentId) {
+              nodesToRemove.add(String(edge.target));
+              queue.push(String(edge.target));
+            }
+          });
+        }
+
+        // Remove nodes
+        setNodes((nds) => nds.filter(n => !nodesToRemove.has(String(n.id))));
+
+        // Remove edges
+        setEdges((eds) => eds.filter(e => 
+          !nodesToRemove.has(String(e.source)) && !nodesToRemove.has(String(e.target))
+        ));
+
+        // Clear selection and explanation if viewing deleted node
+        setSelectedNodeId(null);
+        if (nodeExplanation && nodesToRemove.has(String(nodeExplanation.id))) {
+          setNodeExplanation(null);
+        }
+
+        // Remove from expanded nodes
+        setExpandedNodes(prev => {
+          const newSet = new Set(prev);
+          nodesToRemove.forEach(id => newSet.delete(parseInt(id)));
+          return newSet;
+        });
+
+        // Remove manual notes for deleted nodes
+        setManualNotes(prev => {
+          const newMap = new Map(prev);
+          nodesToRemove.forEach(id => newMap.delete(parseInt(id)));
+          return newMap;
+        });
+      } else {
+        alert('Failed to delete node');
+      }
+    } catch (error) {
+      console.error('Error deleting node:', error);
+      alert('Error deleting node');
+    }
+  };
+
+  // Handle node selection
+  const onNodeClick = useCallback((event, node) => {
+    setSelectedNodeId(node.data.nodeId);
+  }, []);
+
+  // Save manual notes for a node
+  const saveManualNotes = () => {
+    if (nodeExplanation) {
+      setManualNotes(prev => {
+        const newMap = new Map(prev);
+        if (tempNotes.trim()) {
+          newMap.set(nodeExplanation.id || nodeExplanation.nodeId, tempNotes);
+        } else {
+          newMap.delete(nodeExplanation.id || nodeExplanation.nodeId);
+        }
+        return newMap;
+      });
+
+      // Update node to show notes badge
+      const nodeId = nodeExplanation.id || nodeExplanation.nodeId;
+      setNodes((nds) => nds.map(n => 
+        n.data.nodeId === nodeId 
+          ? { ...n, data: { ...n.data, hasManualNotes: tempNotes.trim().length > 0 } }
+          : n
+      ));
+    }
+    setEditingNotes(false);
+  };
+
+  // Start editing notes
+  const startEditingNotes = () => {
+    const nodeId = nodeExplanation?.id || nodeExplanation?.nodeId;
+    setTempNotes(manualNotes.get(nodeId) || '');
+    setEditingNotes(true);
+  };
+
   // Chat functionality
   const sendChatMessage = async () => {
     if (!chatInput.trim() || chatLoading || !nodeExplanation) return;
@@ -858,6 +1140,11 @@ User question: ${messageText}`);
         if (savedState && savedState.exploredNodesCache) {
           setExploredNodesCache(new Map(savedState.exploredNodesCache));
         }
+
+        // Restore manual notes
+        if (savedState && savedState.manualNotes) {
+          setManualNotes(new Map(savedState.manualNotes));
+        }
         
         // Build parent-child map
         const childrenMap = new Map();
@@ -918,6 +1205,10 @@ User question: ${messageText}`);
           const totalWidth = (nodesAtThisDepth.length - 1) * horizontalSpacing;
           const startX = 400 - (totalWidth / 2);
 
+          // Check if node has manual notes from saved state
+          const savedManualNotes = savedState?.manualNotes ? new Map(savedState.manualNotes) : new Map();
+          const hasNotes = savedManualNotes.has(node.id);
+
           return {
             id: String(node.id),
             type: 'custom',
@@ -933,8 +1224,11 @@ User question: ${messageText}`);
               // Use saved state to determine expansion status
               expansionStatus: savedExpandedNodes.has(node.id) ? 'expanded' : 'unexpanded',
               nodeId: node.id,
+              isManual: node.is_manual || false,
+              hasManualNotes: hasNotes,
               onExpand: (id) => expandNodeRef.current && expandNodeRef.current(id),
               onExplore: (id) => exploreNodeRef.current && exploreNodeRef.current(id),
+              onAddChild: (id) => addChildNodeRef.current && addChildNodeRef.current(id),
             },
           };
         });
@@ -1083,8 +1377,17 @@ User question: ${messageText}`);
         // Learning Tips
         if (node.learning_tips) {
           content += `<div style="margin-left: ${indent}px; margin-bottom: 16px; padding: 12px; background: color-mix(in srgb, var(--success) 10%, transparent); border-radius: 4px; border: 1px solid var(--success);">`;
-          content += `<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--success); text-transform: uppercase; letter-spacing: 0.5px;">💡 Learning Tips</h4>`;
+          content += `<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--success); text-transform: uppercase; letter-spacing: 0.5px;">Learning Tips</h4>`;
           content += `<p style="color: var(--text-primary); line-height: 1.7; font-size: 14px;">${node.learning_tips}</p>`;
+          content += `</div>`;
+        }
+
+        // Manual Notes (user's personal notes)
+        const userNotes = manualNotes.get(node.id);
+        if (userNotes) {
+          content += `<div style="margin-left: ${indent}px; margin-bottom: 16px; padding: 12px; background: color-mix(in srgb, var(--warning) 10%, transparent); border-radius: 4px; border: 1px solid var(--warning);">`;
+          content += `<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--warning); text-transform: uppercase; letter-spacing: 0.5px;">My Notes</h4>`;
+          content += `<p style="color: var(--text-primary); line-height: 1.7; font-size: 14px; white-space: pre-wrap;">${userNotes}</p>`;
           content += `</div>`;
         }
 
@@ -1130,12 +1433,9 @@ User question: ${messageText}`);
 
       if (createNoteResponse.ok) {
         const newNote = await createNoteResponse.json();
-        alert(`Successfully exported ${exploredNodes.length} explored nodes to Notes!`);
-        
-        // Optionally navigate to notes
-        if (window.confirm('Would you like to view the exported note?')) {
-          navigate('/notes');
-        }
+        setExportedNodeCount(exploredNodes.length);
+        setExportedNoteId(newNote.id || newNote.note_id);
+        setShowExportSuccessModal(true);
       } else {
         throw new Error('Failed to create note');
       }
@@ -1265,24 +1565,36 @@ User question: ${messageText}`);
                   <span>Depth: {currentRoadmap.max_depth_reached || 0}</span>
                 </div>
               </div>
-              <button 
-                className="kr-export-btn" 
-                onClick={exportRoadmapToNotes}
-                disabled={exporting}
-                title="Export explored nodes to Notes"
-              >
-                {exporting ? (
-                  <>
-                    <Loader size={16} className="kr-spinner" />
-                    <span>Exporting...</span>
-                  </>
-                ) : (
-                  <>
-                    <FileDown size={16} />
-                    <span>Export to Notes</span>
-                  </>
+              <div className="kr-viewer-actions">
+                {selectedNodeId && (
+                  <button 
+                    className="kr-delete-node-btn" 
+                    onClick={deleteSelectedNode}
+                    title="Delete selected node"
+                  >
+                    <Trash2 size={16} />
+                    <span>Delete Node</span>
+                  </button>
                 )}
-              </button>
+                <button 
+                  className="kr-export-btn" 
+                  onClick={exportRoadmapToNotes}
+                  disabled={exporting}
+                  title="Export explored nodes to Notes"
+                >
+                  {exporting ? (
+                    <>
+                      <Loader size={16} className="kr-spinner" />
+                      <span>Exporting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FileDown size={16} />
+                      <span>Export to Notes</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             <div className="kr-flow-wrapper">
@@ -1298,6 +1610,7 @@ User question: ${messageText}`);
                     edges={edges}
                     onNodesChange={onNodesChange}
                     onEdgesChange={onEdgesChange}
+                    onNodeClick={onNodeClick}
                     nodeTypes={nodeTypes}
                     fitView
                     minZoom={0.1}
@@ -1374,6 +1687,51 @@ User question: ${messageText}`);
                         <p>{nodeExplanation.learning_tips}</p>
                       </div>
                     )}
+
+                    {/* Manual Notes Section */}
+                    <div className="kr-manual-notes-section">
+                      <div className="kr-manual-notes-header">
+                        <h4>
+                          <StickyNote size={14} />
+                          My Notes
+                        </h4>
+                        {!editingNotes ? (
+                          <button 
+                            className="kr-edit-notes-btn"
+                            onClick={startEditingNotes}
+                          >
+                            <Edit3 size={14} />
+                            {manualNotes.get(nodeExplanation.id || nodeExplanation.nodeId) ? 'Edit' : 'Add Notes'}
+                          </button>
+                        ) : (
+                          <button 
+                            className="kr-save-notes-btn"
+                            onClick={saveManualNotes}
+                          >
+                            <Save size={14} />
+                            Save
+                          </button>
+                        )}
+                      </div>
+                      {editingNotes ? (
+                        <textarea
+                          className="kr-manual-notes-input"
+                          value={tempNotes}
+                          onChange={(e) => setTempNotes(e.target.value)}
+                          placeholder="Add your own notes about this topic..."
+                          rows={5}
+                          autoFocus
+                        />
+                      ) : (
+                        <div className="kr-manual-notes-content">
+                          {manualNotes.get(nodeExplanation.id || nodeExplanation.nodeId) ? (
+                            <p>{manualNotes.get(nodeExplanation.id || nodeExplanation.nodeId)}</p>
+                          ) : (
+                            <p className="kr-no-notes">No personal notes yet. Click "Add Notes" to add your own thoughts.</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
 
                     {/* Chat Section */}
                     <div className="kr-chat-section">
@@ -1541,6 +1899,90 @@ User question: ${messageText}`);
           disabled={loading || !selectedChatId}
         >
           {loading ? 'Creating...' : 'Create Roadmap'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{/* ADD MANUAL NODE MODAL */}
+{showAddNodeModal && (
+  <div className="kr-modal-overlay" onClick={() => setShowAddNodeModal(false)}>
+    <div className="kr-modal" onClick={e => e.stopPropagation()}>
+      <div className="kr-modal-header">
+        <h3>Add Custom Node</h3>
+        <button className="kr-modal-close" onClick={() => setShowAddNodeModal(false)}>×</button>
+      </div>
+
+      <div className="kr-modal-content">
+        <div className="kr-form-group">
+          <label>Topic Name</label>
+          <input
+            type="text"
+            className="kr-input"
+            value={newNodeTopic}
+            onChange={e => setNewNodeTopic(e.target.value)}
+            placeholder="e.g., Key Algorithms, Important Dates"
+            onKeyPress={e => e.key === 'Enter' && createManualNode()}
+            autoFocus
+          />
+        </div>
+        <div className="kr-form-group">
+          <label>Description (optional)</label>
+          <textarea
+            className="kr-input kr-textarea"
+            value={newNodeDescription}
+            onChange={e => setNewNodeDescription(e.target.value)}
+            placeholder="Brief description of this topic..."
+            rows={3}
+          />
+        </div>
+        <p className="kr-input-hint">
+          Add your own custom subtopic. You can still use AI to explore or expand it later.
+        </p>
+      </div>
+
+      <div className="kr-modal-footer">
+        <button className="kr-btn-cancel" onClick={() => setShowAddNodeModal(false)}>Cancel</button>
+        <button 
+          className="kr-btn-create" 
+          onClick={createManualNode}
+          disabled={loading || !newNodeTopic.trim()}
+        >
+          {loading ? 'Adding...' : 'Add Node'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{/* EXPORT SUCCESS MODAL */}
+{showExportSuccessModal && (
+  <div className="kr-modal-overlay">
+    <div className="kr-modal kr-export-modal">
+      <div className="kr-export-modal-icon">
+        <FileDown size={32} />
+      </div>
+      <h3>Export Successful!</h3>
+      <p>
+        Successfully exported {exportedNodeCount} explored node{exportedNodeCount !== 1 ? 's' : ''} to Notes.
+        {manualNotes.size > 0 && ' Your personal notes were included.'}
+      </p>
+      <div className="kr-modal-actions">
+        <button
+          className="kr-modal-btn secondary"
+          onClick={() => setShowExportSuccessModal(false)}
+        >
+          Stay Here
+        </button>
+        <button
+          className="kr-modal-btn primary"
+          onClick={() => {
+            setShowExportSuccessModal(false);
+            navigate(`/notes/editor/${exportedNoteId}`);
+          }}
+        >
+          View Note
         </button>
       </div>
     </div>

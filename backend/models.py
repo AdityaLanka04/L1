@@ -113,6 +113,7 @@ class KnowledgeNode(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     parent_node_id = Column(Integer, ForeignKey("knowledge_nodes.id"), nullable=True)
+    roadmap_id = Column(Integer, ForeignKey("knowledge_roadmaps.id"), nullable=True)
     
     # Node content
     topic_name = Column(String(200), nullable=False)
@@ -132,6 +133,7 @@ class KnowledgeNode(Base):
     exploration_count = Column(Integer, default=0)
     time_spent_seconds = Column(Integer, default=0)
     user_notes = Column(Text, nullable=True)
+    is_manual = Column(Boolean, default=False)  # True if user-created node
     
     # Visual positioning (for frontend)
     position_x = Column(Float, nullable=True)

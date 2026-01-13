@@ -8041,6 +8041,10 @@ Generate 4-5 specific subtopics (more specific than parent, 2-5 words each).
             angle = (idx * (360 / len(subtopics))) * (3.14159 / 180)
             radius = 300 + (node.depth_level * 50)  # Increase radius with depth
             
+            # Handle null positions (for manually added nodes)
+            parent_x = node.position_x if node.position_x is not None else 0
+            parent_y = node.position_y if node.position_y is not None else 0
+            
             child_node = models.KnowledgeNode(
                 user_id=node.user_id,
                 parent_node_id=node.id,
@@ -8053,8 +8057,8 @@ Generate 4-5 specific subtopics (more specific than parent, 2-5 words each).
                 is_explored=False,
                 exploration_count=0,
                 expansion_status="unexpanded",
-                position_x=node.position_x + (radius * float(math.cos(angle))),
-                position_y=node.position_y + (radius * float(math.sin(angle)))
+                position_x=parent_x + (radius * float(math.cos(angle))),
+                position_y=parent_y + (radius * float(math.sin(angle)))
             )
             db.add(child_node)
             child_nodes.append(child_node)
@@ -8810,6 +8814,160 @@ async def delete_roadmap(
         logger.error(f"Error deleting roadmap: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/add_manual_node")
+async def add_manual_node(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Add a user-created manual node to a roadmap
+    """
+    try:
+        roadmap_id = payload.get("roadmap_id")
+        parent_id = payload.get("parent_id")
+        topic_name = payload.get("topic_name")
+        description = payload.get("description", "")
+        
+        if not all([roadmap_id, parent_id, topic_name]):
+            raise HTTPException(status_code=400, detail="Missing required fields")
+        
+        # Get parent node
+        parent_node = db.query(models.KnowledgeNode).filter(
+            models.KnowledgeNode.id == parent_id
+        ).first()
+        
+        if not parent_node:
+            raise HTTPException(status_code=404, detail="Parent node not found")
+        
+        # Get roadmap
+        roadmap = db.query(models.KnowledgeRoadmap).filter(
+            models.KnowledgeRoadmap.id == roadmap_id
+        ).first()
+        
+        if not roadmap:
+            raise HTTPException(status_code=404, detail="Roadmap not found")
+        
+        # Create new node
+        new_node = models.KnowledgeNode(
+            roadmap_id=roadmap_id,
+            parent_node_id=parent_id,
+            topic_name=topic_name,
+            description=description or f"Custom node: {topic_name}",
+            depth_level=parent_node.depth_level + 1,
+            is_explored=False,
+            expansion_status="unexpanded",
+            is_manual=True
+        )
+        
+        db.add(new_node)
+        
+        # Update parent expansion status
+        parent_node.expansion_status = "expanded"
+        
+        # Update roadmap stats
+        roadmap.total_nodes = (roadmap.total_nodes or 0) + 1
+        if new_node.depth_level > (roadmap.max_depth_reached or 0):
+            roadmap.max_depth_reached = new_node.depth_level
+        
+        db.commit()
+        db.refresh(new_node)
+        
+        return {
+            "status": "success",
+            "node": {
+                "id": new_node.id,
+                "topic_name": new_node.topic_name,
+                "description": new_node.description,
+                "depth_level": new_node.depth_level,
+                "parent_id": new_node.parent_node_id,
+                "is_explored": new_node.is_explored,
+                "expansion_status": new_node.expansion_status,
+                "is_manual": True
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error adding manual node: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/delete_roadmap_node/{node_id}")
+async def delete_roadmap_node(
+    node_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a specific node and all its children from a roadmap
+    """
+    try:
+        node = db.query(models.KnowledgeNode).filter(
+            models.KnowledgeNode.id == node_id
+        ).first()
+        
+        if not node:
+            raise HTTPException(status_code=404, detail="Node not found")
+        
+        # Don't allow deleting root node
+        if node.parent_node_id is None:
+            raise HTTPException(status_code=400, detail="Cannot delete root node")
+        
+        roadmap_id = node.roadmap_id
+        
+        # Count nodes to be deleted
+        deleted_count = 0
+        
+        # Delete all nodes recursively
+        def delete_node_tree(nid):
+            nonlocal deleted_count
+            children = db.query(models.KnowledgeNode).filter(
+                models.KnowledgeNode.parent_node_id == nid
+            ).all()
+            
+            for child in children:
+                delete_node_tree(child.id)
+            
+            # Delete exploration history
+            db.query(models.NodeExplorationHistory).filter(
+                models.NodeExplorationHistory.node_id == nid
+            ).delete()
+            
+            # Delete the node
+            db.query(models.KnowledgeNode).filter(
+                models.KnowledgeNode.id == nid
+            ).delete()
+            
+            deleted_count += 1
+        
+        delete_node_tree(node_id)
+        
+        # Update roadmap stats
+        roadmap = db.query(models.KnowledgeRoadmap).filter(
+            models.KnowledgeRoadmap.id == roadmap_id
+        ).first()
+        
+        if roadmap:
+            roadmap.total_nodes = max(0, (roadmap.total_nodes or 0) - deleted_count)
+        
+        db.commit()
+        
+        return {
+            "status": "success",
+            "message": f"Deleted {deleted_count} node(s)",
+            "deleted_count": deleted_count
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting node: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # ==================== HINTS ENDPOINT ====================
 

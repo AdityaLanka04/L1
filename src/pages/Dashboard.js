@@ -1141,28 +1141,28 @@ const Dashboard = () => {
               ACCELERATE YOUR LEARNING
             </p>
             <div className="ds-learning-hub-list">
-              <div className="ds-learning-hub-item" style={{ color: getWidgetColor('learning-hub') }}>
+              <div className="ds-learning-hub-item" style={{ color: getWidgetColor('learning-hub') }} onClick={() => navigate('/knowledge-roadmap')}>
                 <ChevronRight size={14} />
                 <div className="ds-learning-hub-item-text">
                   <span className="ds-learning-hub-name">Knowledge Roadmap</span>
                   <span className="ds-learning-hub-desc">Build interactive concept maps</span>
                 </div>
               </div>
-              <div className="ds-learning-hub-item" style={{ color: getWidgetColor('learning-hub') }}>
+              <div className="ds-learning-hub-item" style={{ color: getWidgetColor('learning-hub') }} onClick={() => navigate('/question-bank')}>
                 <ChevronRight size={14} />
                 <div className="ds-learning-hub-item-text">
                   <span className="ds-learning-hub-name">Question Bank</span>
                   <span className="ds-learning-hub-desc">Generate custom practice questions</span>
                 </div>
               </div>
-              <div className="ds-learning-hub-item" style={{ color: getWidgetColor('learning-hub') }}>
+              <div className="ds-learning-hub-item" style={{ color: getWidgetColor('learning-hub') }} onClick={() => navigate('/slide-explorer')}>
                 <ChevronRight size={14} />
                 <div className="ds-learning-hub-item-text">
                   <span className="ds-learning-hub-name">Slide Explorer</span>
                   <span className="ds-learning-hub-desc">AI-powered slide analysis</span>
                 </div>
               </div>
-              <div className="ds-learning-hub-item" style={{ color: getWidgetColor('learning-hub') }}>
+              <div className="ds-learning-hub-item" style={{ color: getWidgetColor('learning-hub') }} onClick={() => navigate('/study-insights')}>
                 <ChevronRight size={14} />
                 <div className="ds-learning-hub-item-text">
                   <span className="ds-learning-hub-name">Insights</span>
