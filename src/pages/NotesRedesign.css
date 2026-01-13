@@ -3378,3 +3378,329 @@
   background: var(--bg-primary) !important;
 }
 
+
+
+/* ==================== EXIT BUTTON ==================== */
+.nr-exit-btn {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-primary) !important;
+  margin-right: 12px;
+}
+
+.nr-exit-btn:hover {
+  background: var(--accent) !important;
+  color: var(--bg-primary) !important;
+  border-color: var(--accent) !important;
+}
+
+/* ==================== AI SUGGESTION MODAL ==================== */
+.ai-suggestion-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 650px;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  z-index: 10001;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.ai-suggestion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--bg-secondary)) 0%, var(--bg-secondary) 100%);
+}
+
+.ai-suggestion-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ai-suggestion-header h3 svg {
+  color: var(--accent);
+}
+
+.ai-suggestion-content {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.ai-suggestion-section {
+  margin-bottom: 20px;
+}
+
+.ai-suggestion-section:last-of-type {
+  margin-bottom: 0;
+}
+
+.ai-suggestion-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+}
+
+.ai-suggestion-label .label-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ai-suggestion-label .label-icon.remove {
+  background: color-mix(in srgb, #ef4444 20%, var(--bg-primary));
+  color: #ef4444;
+}
+
+.ai-suggestion-label .label-icon.add {
+  background: color-mix(in srgb, #22c55e 20%, var(--bg-primary));
+  color: #22c55e;
+}
+
+.ai-suggestion-label .label-icon.info {
+  background: color-mix(in srgb, var(--accent) 20%, var(--bg-primary));
+  color: var(--accent);
+}
+
+.ai-suggestion-text {
+  padding: 16px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ai-suggestion-text.original {
+  background: color-mix(in srgb, #ef4444 8%, var(--bg-primary));
+  border: 1px solid color-mix(in srgb, #ef4444 25%, transparent);
+  border-left: 4px solid #ef4444;
+}
+
+.ai-suggestion-text.suggested {
+  background: color-mix(in srgb, #22c55e 8%, var(--bg-primary));
+  border: 1px solid color-mix(in srgb, #22c55e 25%, transparent);
+  border-left: 4px solid #22c55e;
+}
+
+.ai-suggestion-text.explanation-only {
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg-primary));
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  border-left: 4px solid var(--accent);
+}
+
+/* Inline diff highlighting */
+.diff-removed {
+  background: color-mix(in srgb, #ef4444 20%, transparent);
+  color: #fca5a5;
+  text-decoration: line-through;
+  text-decoration-color: #ef4444;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.diff-added {
+  background: color-mix(in srgb, #22c55e 20%, transparent);
+  color: #86efac;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.ai-suggestion-hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-top: 20px;
+  padding: 14px 16px;
+  background: var(--bg-primary);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.ai-suggestion-hint .hint-removed {
+  color: #ef4444;
+  text-decoration: line-through;
+  font-weight: 500;
+}
+
+.ai-suggestion-hint .hint-added {
+  color: #22c55e;
+  font-weight: 500;
+}
+
+.ai-suggestion-actions {
+  display: flex;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-primary);
+}
+
+.ai-suggestion-btn {
+  flex: 1;
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.ai-suggestion-btn.reject {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.ai-suggestion-btn.reject:hover {
+  background: color-mix(in srgb, #ef4444 15%, var(--bg-secondary));
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.ai-suggestion-btn.apply {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border: none;
+  color: white;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.ai-suggestion-btn.apply:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+}
+
+/* Rendered HTML content in suggestion modal */
+.ai-suggestion-text.suggested h1,
+.ai-suggestion-text.suggested h2,
+.ai-suggestion-text.suggested h3,
+.ai-suggestion-text.suggested h4 {
+  color: var(--text-primary);
+  margin: 16px 0 8px 0;
+  font-weight: 600;
+}
+
+.ai-suggestion-text.suggested h1:first-child,
+.ai-suggestion-text.suggested h2:first-child,
+.ai-suggestion-text.suggested h3:first-child {
+  margin-top: 0;
+}
+
+.ai-suggestion-text.suggested h2 {
+  font-size: 18px;
+  border-bottom: 1px solid color-mix(in srgb, #22c55e 30%, transparent);
+  padding-bottom: 8px;
+}
+
+.ai-suggestion-text.suggested h3 {
+  font-size: 15px;
+  color: color-mix(in srgb, var(--text-primary) 90%, #22c55e);
+}
+
+.ai-suggestion-text.suggested p {
+  margin: 10px 0;
+  line-height: 1.7;
+}
+
+.ai-suggestion-text.suggested ul,
+.ai-suggestion-text.suggested ol {
+  margin: 10px 0;
+  padding-left: 24px;
+}
+
+.ai-suggestion-text.suggested li {
+  margin: 6px 0;
+  line-height: 1.6;
+}
+
+.ai-suggestion-text.suggested blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: 16px;
+  margin: 12px 0;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.ai-suggestion-text.suggested code {
+  background: var(--bg-primary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 13px;
+}
+
+.ai-suggestion-text.suggested pre {
+  background: var(--bg-primary);
+  padding: 12px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.ai-suggestion-text.suggested pre code {
+  background: none;
+  padding: 0;
+}
+
+.diff-added-content {
+  background: color-mix(in srgb, #22c55e 10%, transparent);
+  border-radius: 6px;
+  padding: 4px;
+}
+
+
+/* Explain Only Button */
+.ai-action-btn.explain-only {
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg-secondary));
+  border-color: var(--accent);
+}
+
+.ai-action-btn.explain-only:hover {
+  background: color-mix(in srgb, var(--accent) 25%, var(--bg-secondary));
+}
+
+.ai-action-btn.explain-only.active {
+  background: var(--accent);
+  color: var(--bg-primary);
+}

@@ -1376,3 +1376,31 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* Source Type Icons */
+.nt-source-flashcards {
+  color: #f59e0b !important;
+}
+
+.nt-source-quizzes {
+  color: #8b5cf6 !important;
+}
+
+.nt-source-roadmaps {
+  color: #22c55e !important;
+}
+
+.nt-nav-item:hover .nt-source-flashcards,
+.nt-nav-item.active .nt-source-flashcards {
+  color: #fbbf24 !important;
+}
+
+.nt-nav-item:hover .nt-source-quizzes,
+.nt-nav-item.active .nt-source-quizzes {
+  color: #a78bfa !important;
+}
+
+.nt-nav-item:hover .nt-source-roadmaps,
+.nt-nav-item.active .nt-source-roadmaps {
+  color: #4ade80 !important;
+}

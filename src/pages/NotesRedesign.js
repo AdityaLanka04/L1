@@ -313,6 +313,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [aiAssistTone, setAiAssistTone] = useState("professional");
   const [selectedText, setSelectedText] = useState("");
 
+  // AI Suggestion state (for approve/reject workflow)
+  const [aiSuggestion, setAiSuggestion] = useState(null); // { original, suggested, range, action }
+  const [showAISuggestionModal, setShowAISuggestionModal] = useState(false);
+
   // Folder state
   const [folders, setFolders] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState(null);
@@ -669,7 +673,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       return;
     }
 
-        setGeneratingAI(true);
+    setGeneratingAI(true);
 
     try {
       // Use the note agent service
@@ -683,29 +687,155 @@ const NotesRedesign = ({ sharedMode = false }) => {
       if (!result.success) throw new Error("AI processing failed");
 
       const resultContent = result.content || result.response;
-      const quill = quillRef.current?.getEditor();
 
-      if (quill && selectedRange) {
-        quill.deleteText(selectedRange.index, selectedRange.length);
-        quill.insertText(selectedRange.index, resultContent);
-        quill.setSelection(selectedRange.index + resultContent.length);
-      }
-
-      setNoteContent(quill.root.innerHTML);
-      showPopup("Success", `Text ${action} completed`);
+      // Show suggestion modal instead of directly applying
+      setAiSuggestion({
+        original: selectedText,
+        suggested: resultContent,
+        range: selectedRange,
+        action: action
+      });
+      setShowAISuggestionModal(true);
+      setShowAIAssistant(false);
+      
     } catch (error) {
-            showPopup("Error", "Failed to process text");
+      console.error("AI processing error:", error);
+      showPopup("Error", "Failed to process text");
     } finally {
       setGeneratingAI(false);
-      setSelectedText("");
-      setSelectedRange(null);
+    }
+  };
+
+  // Apply AI suggestion
+  const applyAISuggestion = () => {
+    if (!aiSuggestion) return;
+
+    // Handle block editor case
+    if (aiSuggestion.isBlockEditor) {
+      let updatedBlocks;
+      const blockIndex = noteBlocks.findIndex(b => String(b.id) === String(aiSuggestion.blockId));
+      
+      if (blockIndex !== -1 && aiSuggestion.blockId) {
+        if (aiSuggestion.action === 'continue') {
+          // Continue: append the result to the existing content
+          updatedBlocks = noteBlocks.map((block, idx) => {
+            if (idx === blockIndex) {
+              return {
+                ...block,
+                content: block.content + ' ' + aiSuggestion.suggested
+              };
+            }
+            return block;
+          });
+        } else if (aiSuggestion.action === 'generate') {
+          // Generate: add new block at the end
+          const newBlock = {
+            id: Date.now() + Math.random(),
+            type: 'paragraph',
+            content: aiSuggestion.suggested,
+            properties: {}
+          };
+          updatedBlocks = [...noteBlocks, newBlock];
+        } else {
+          // Improve, simplify, expand, summarize, fix_grammar, translate: replace the block content
+          updatedBlocks = noteBlocks.map((block, idx) => {
+            if (idx === blockIndex) {
+              return {
+                ...block,
+                content: aiSuggestion.suggested
+              };
+            }
+            return block;
+          });
+        }
+      } else {
+        // No selected block - add new block at the end
+        const newBlock = {
+          id: Date.now() + Math.random(),
+          type: 'paragraph',
+          content: aiSuggestion.suggested,
+          properties: {}
+        };
+        updatedBlocks = [...noteBlocks, newBlock];
+      }
+      
+      // Update state
+      setNoteBlocks(updatedBlocks);
+      
+      // Trigger save
+      setTimeout(() => {
+        handleBlocksChange(updatedBlocks);
+      }, 100);
+    } else {
+      // Handle Quill editor case
+      const quill = quillRef.current?.getEditor();
+      if (quill && aiSuggestion.range) {
+        quill.deleteText(aiSuggestion.range.index, aiSuggestion.range.length);
+        quill.insertText(aiSuggestion.range.index, aiSuggestion.suggested);
+        quill.setSelection(aiSuggestion.range.index + aiSuggestion.suggested.length);
+        setNoteContent(quill.root.innerHTML);
+      }
+    }
+
+    showPopup("Applied", "AI suggestion applied successfully");
+    setAiSuggestion(null);
+    setShowAISuggestionModal(false);
+    setSelectedText("");
+    setSelectedRange(null);
+    setSelectedBlockId(null);
+  };
+
+  // Reject AI suggestion
+  const rejectAISuggestion = () => {
+    setAiSuggestion(null);
+    setShowAISuggestionModal(false);
+    setSelectedText("");
+    setSelectedRange(null);
+    setSelectedBlockId(null);
+  };
+
+  // Explain text without modifying (new feature)
+  const explainTextOnly = async () => {
+    if (!selectedText || !selectedText.trim()) {
+      showPopup("No Text Selected", "Please select text first");
+      return;
+    }
+
+    setGeneratingAI(true);
+
+    try {
+      const result = await noteAgentService.invoke('explain', {
+        userId: userName,
+        content: selectedText,
+        context: noteContent
+      });
+
+      if (!result.success) throw new Error("AI explanation failed");
+
+      const explanation = result.content || result.response;
+      
+      // Show explanation in a popup without modifying the note
+      setAiSuggestion({
+        original: selectedText,
+        suggested: explanation,
+        range: null, // null range means explanation only, no replacement
+        action: 'explain'
+      });
+      setShowAISuggestionModal(true);
+      setShowAIAssistant(false);
+      
+    } catch (error) {
+      console.error("AI explanation error:", error);
+      showPopup("Error", "Failed to explain text");
+    } finally {
+      setGeneratingAI(false);
     }
   };
 
   const quickTextAction = async (actionType) => {
     if (isSharedContent && !canEdit) return;
     
-        setGeneratingAI(true);
+    setGeneratingAI(true);
 
     try {
       // Map old action types to new agent actions
@@ -1846,7 +1976,13 @@ const NotesRedesign = ({ sharedMode = false }) => {
   };
 
   const aiWritingAssist = async () => {
-    if (isSharedContent && !canEdit) return;
+    if (isSharedContent && !canEdit && aiAssistAction !== 'explain_only') return;
+    
+    // Handle explain_only action separately
+    if (aiAssistAction === 'explain_only') {
+      await explainTextOnly();
+      return;
+    }
     
     // Get text to process
     let textToProcess = selectedText;
@@ -1902,70 +2038,18 @@ const NotesRedesign = ({ sharedMode = false }) => {
         return;
       }
       
-      let updatedBlocks;
-      
-      // Find the selected block
-      const blockIndex = noteBlocks.findIndex(b => String(b.id) === String(selectedBlockId));
-      
-      if (blockIndex !== -1 && selectedBlockId) {
-        // We have a selected block - modify it based on action
-        const selectedBlock = noteBlocks[blockIndex];
-        
-        if (aiAssistAction === 'continue') {
-          // Continue: append the result to the existing content
-          updatedBlocks = noteBlocks.map((block, idx) => {
-            if (idx === blockIndex) {
-              return {
-                ...block,
-                content: block.content + ' ' + resultText.trim()
-              };
-            }
-            return block;
-          });
-        } else if (aiAssistAction === 'generate') {
-          // Generate: add new block at the end
-          const newBlock = {
-            id: Date.now() + Math.random(),
-            type: 'paragraph',
-            content: resultText.trim(),
-            properties: {}
-          };
-          updatedBlocks = [...noteBlocks, newBlock];
-        } else {
-          // Improve, simplify, expand, summarize, fix_grammar, translate: replace the block content
-          updatedBlocks = noteBlocks.map((block, idx) => {
-            if (idx === blockIndex) {
-              return {
-                ...block,
-                content: resultText.trim()
-              };
-            }
-            return block;
-          });
-        }
-      } else {
-        // No selected block - add new block at the end
-        const newBlock = {
-          id: Date.now() + Math.random(),
-          type: 'paragraph',
-          content: resultText.trim(),
-          properties: {}
-        };
-        updatedBlocks = [...noteBlocks, newBlock];
-      }
-      
-      // Update state
-      setNoteBlocks(updatedBlocks);
-      
-      // Trigger save
-      setTimeout(() => {
-        handleBlocksChange(updatedBlocks);
-      }, 100);
-      
+      // Show suggestion modal for user approval instead of directly applying
+      setAiSuggestion({
+        original: textToProcess || selectedText,
+        suggested: resultText.trim(),
+        range: selectedRange,
+        action: aiAssistAction,
+        blockId: selectedBlockId,
+        isBlockEditor: true
+      });
+      setShowAISuggestionModal(true);
       setShowAIAssistant(false);
-      setSelectedText("");
-      setSelectedBlockId(null);
-      showPopup("Success", `AI ${aiAssistAction} completed`);
+      
     } catch (error) {
             showPopup("Error", "Failed to process text");
     } finally {
@@ -2311,6 +2395,15 @@ const NotesRedesign = ({ sharedMode = false }) => {
       <div className="editor-area-new" style={{ width: '100%' }}>
         <div className={`top-nav-new ${titleSectionCollapsed ? 'hidden' : ''}`}>
           <div className="nav-left">
+            {!isSharedContent && (
+              <button
+                onClick={() => navigate('/notes/my-notes')}
+                className="toggle-sidebar nr-exit-btn"
+                title="Exit to My Notes"
+              >
+                <ArrowLeft size={18} />
+              </button>
+            )}
             {isSharedContent && (
               <button
                 onClick={() => navigate('/social')}
@@ -3152,6 +3245,14 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     <Code size={14} style={{ marginRight: '4px', display: 'inline' }} />
                     Code
                   </button>
+                  <button
+                    className={`ai-action-btn explain-only ${aiAssistAction === 'explain_only' ? 'active' : ''}`}
+                    onClick={() => setAiAssistAction('explain_only')}
+                    title="Get explanation without modifying text"
+                  >
+                    <Eye size={14} style={{ marginRight: '4px', display: 'inline' }} />
+                    Explain Only
+                  </button>
                 </div>
               </div>
 
@@ -3251,6 +3352,90 @@ const NotesRedesign = ({ sharedMode = false }) => {
                   )}
                 </button>
               </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* AI Suggestion Modal - Shows AI changes for approval with inline diff */}
+      {showAISuggestionModal && aiSuggestion && (
+        <>
+          <div className="ai-overlay" onClick={rejectAISuggestion} />
+          <div className="ai-suggestion-modal">
+            <div className="ai-suggestion-header">
+              <h3>
+                <Sparkles size={20} />
+                {aiSuggestion.action === 'explain' || aiSuggestion.action === 'explain_only' 
+                  ? 'AI Explanation' 
+                  : `AI ${aiSuggestion.action?.charAt(0).toUpperCase() + aiSuggestion.action?.slice(1) || 'Suggestion'}`}
+              </h3>
+              <button
+                className="modal-close-btn"
+                onClick={rejectAISuggestion}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="ai-suggestion-content">
+              {/* Show original text with strikethrough for non-explain actions */}
+              {aiSuggestion.action !== 'explain' && aiSuggestion.action !== 'explain_only' && aiSuggestion.action !== 'generate' && (
+                <div className="ai-suggestion-section">
+                  <label className="ai-suggestion-label">
+                    <span className="label-icon remove">−</span>
+                    Original Text
+                  </label>
+                  <div className="ai-suggestion-text original">
+                    <span className="diff-removed">{aiSuggestion.original}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Show suggested/new text with highlight - render HTML properly */}
+              <div className="ai-suggestion-section">
+                <label className="ai-suggestion-label">
+                  <span className={`label-icon ${aiSuggestion.action === 'explain' || aiSuggestion.action === 'explain_only' ? 'info' : 'add'}`}>
+                    {aiSuggestion.action === 'explain' || aiSuggestion.action === 'explain_only' ? 'i' : '+'}
+                  </span>
+                  {aiSuggestion.action === 'explain' || aiSuggestion.action === 'explain_only' 
+                    ? 'Explanation' 
+                    : aiSuggestion.action === 'generate' 
+                      ? 'Generated Content'
+                      : 'Suggested Change'}
+                </label>
+                <div 
+                  className={`ai-suggestion-text suggested ${aiSuggestion.action === 'explain' || aiSuggestion.action === 'explain_only' ? 'explanation-only' : ''}`}
+                  dangerouslySetInnerHTML={{ 
+                    __html: `<div class="${aiSuggestion.action === 'explain' || aiSuggestion.action === 'explain_only' ? '' : 'diff-added-content'}">${aiSuggestion.suggested}</div>` 
+                  }}
+                />
+              </div>
+
+              {/* Hint text */}
+              {aiSuggestion.action !== 'explain' && aiSuggestion.action !== 'explain_only' && (
+                <p className="ai-suggestion-hint">
+                  Review the changes above. The <span className="hint-removed">red text</span> will be replaced with the <span className="hint-added">green text</span>.
+                </p>
+              )}
+            </div>
+
+            <div className="ai-suggestion-actions">
+              <button
+                className="ai-suggestion-btn reject"
+                onClick={rejectAISuggestion}
+              >
+                <X size={16} />
+                {aiSuggestion.action === 'explain' || aiSuggestion.action === 'explain_only' ? 'Close' : 'Reject'}
+              </button>
+              {aiSuggestion.action !== 'explain' && aiSuggestion.action !== 'explain_only' && (
+                <button
+                  className="ai-suggestion-btn apply"
+                  onClick={applyAISuggestion}
+                >
+                  <Check size={16} />
+                  Accept
+                </button>
+              )}
             </div>
           </div>
         </>

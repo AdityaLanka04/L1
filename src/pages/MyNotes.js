@@ -292,7 +292,26 @@ const MyNotes = () => {
     );
     if (showFavorites) filtered = filtered.filter(n => n.is_favorite);
     if (selectedFolder && !showTrash && !showFavorites) {
-      filtered = filtered.filter(n => n.folder_id === selectedFolder);
+      // Handle source-based filtering
+      if (selectedFolder === 'source-flashcards') {
+        filtered = filtered.filter(n => 
+          n.source_type === 'flashcards' || 
+          n.title?.toLowerCase().includes('flashcard')
+        );
+      } else if (selectedFolder === 'source-quizzes') {
+        filtered = filtered.filter(n => 
+          n.source_type === 'quiz' || 
+          n.title?.toLowerCase().includes('quiz')
+        );
+      } else if (selectedFolder === 'source-roadmaps') {
+        filtered = filtered.filter(n => 
+          n.source_type === 'roadmap' || 
+          n.title?.toLowerCase().includes('roadmap')
+        );
+      } else {
+        // Regular folder filtering
+        filtered = filtered.filter(n => n.folder_id === selectedFolder);
+      }
     }
     return filtered;
   };
@@ -420,6 +439,35 @@ const MyNotes = () => {
                   <span className="nt-nav-count">{notes.filter(n => n.folder_id === folder.id).length}</span>
                 </button>
               ))}
+            </div>
+
+            {/* Generated Notes - By Source */}
+            <div className="nt-nav-section">
+              <div className="nt-nav-section-title">BY SOURCE</div>
+              <button 
+                className={`nt-nav-item ${selectedFolder === 'source-flashcards' ? 'active' : ''}`}
+                onClick={() => { setSelectedFolder('source-flashcards'); setShowFavorites(false); setShowTrash(false); }}
+              >
+                <span className="nt-nav-icon nt-source-flashcards"><FileText size={18} /></span>
+                <span className="nt-nav-text">From Flashcards</span>
+                <span className="nt-nav-count">{notes.filter(n => n.source_type === 'flashcards' || n.title?.toLowerCase().includes('flashcard')).length}</span>
+              </button>
+              <button 
+                className={`nt-nav-item ${selectedFolder === 'source-quizzes' ? 'active' : ''}`}
+                onClick={() => { setSelectedFolder('source-quizzes'); setShowFavorites(false); setShowTrash(false); }}
+              >
+                <span className="nt-nav-icon nt-source-quizzes"><FileText size={18} /></span>
+                <span className="nt-nav-text">From Quizzes</span>
+                <span className="nt-nav-count">{notes.filter(n => n.source_type === 'quiz' || n.title?.toLowerCase().includes('quiz')).length}</span>
+              </button>
+              <button 
+                className={`nt-nav-item ${selectedFolder === 'source-roadmaps' ? 'active' : ''}`}
+                onClick={() => { setSelectedFolder('source-roadmaps'); setShowFavorites(false); setShowTrash(false); }}
+              >
+                <span className="nt-nav-icon nt-source-roadmaps"><FileText size={18} /></span>
+                <span className="nt-nav-text">From Roadmaps</span>
+                <span className="nt-nav-count">{notes.filter(n => n.source_type === 'roadmap' || n.title?.toLowerCase().includes('roadmap')).length}</span>
+              </button>
             </div>
           </nav>
 
