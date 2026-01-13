@@ -69,6 +69,7 @@ class CardReview(BaseModel):
     user_id: str
     card_id: str
     was_correct: bool
+    mode: Optional[str] = "preview"  # "preview" or "study"
 
 
 # ============================================================================
@@ -189,7 +190,12 @@ async def generate_flashcards(payload: FlashcardGenerationRequest, db: Session =
 
 @router.post("/review")
 async def review_card(payload: CardReview, db: Session = Depends(get_db)):
-    """Track card review and update mastery in database"""
+    """Track card review and update mastery in database
+    
+    Mastery calculation:
+    - Preview mode: "I know this" = 5% per card (max 50% total)
+    - Study mode: Correct answer = 10% per card (max 100% total)
+    """
     
     try:
         # Update card in database
@@ -202,34 +208,57 @@ async def review_card(payload: CardReview, db: Session = Depends(get_db)):
             if payload.was_correct:
                 card.correct_count = (card.correct_count or 0) + 1
             card.last_reviewed = datetime.utcnow()
+            
+            # Mark card for review if answered wrong
+            if not payload.was_correct:
+                card.marked_for_review = True
+            elif payload.mode == "study" and payload.was_correct:
+                # Only unmark in study mode when answered correctly
+                card.marked_for_review = False
+            
             db.commit()
             
-            # Recalculate set accuracy
+            # Recalculate set mastery
             flashcard_set = db.query(models.FlashcardSet).filter(
                 models.FlashcardSet.id == card.set_id
             ).first()
             
+            set_mastery = 0.0
             if flashcard_set:
                 # Get all cards in the set
                 all_cards = db.query(models.Flashcard).filter(
                     models.Flashcard.set_id == flashcard_set.id
                 ).all()
                 
-                total_reviews = sum(c.times_reviewed or 0 for c in all_cards)
-                total_correct = sum(c.correct_count or 0 for c in all_cards)
-                
-                # Calculate accuracy percentage
-                if total_reviews > 0:
-                    accuracy = (total_correct / total_reviews) * 100
-                else:
-                    accuracy = 0.0
-                
-                # Store accuracy in set (we'll need to add this to the response)
-                set_accuracy = accuracy
-            else:
-                set_accuracy = 0.0
+                total_cards = len(all_cards)
+                if total_cards > 0:
+                    # Calculate mastery based on correct answers per card
+                    # Preview mode: 5% per card (max 50%)
+                    # Study mode: 10% per card (max 100%)
+                    preview_mastery = 0
+                    study_mastery = 0
+                    
+                    for c in all_cards:
+                        correct = c.correct_count or 0
+                        reviewed = c.times_reviewed or 0
+                        
+                        if correct > 0:
+                            # If card was answered correctly at least once
+                            if not c.marked_for_review:
+                                # Card mastered in study mode (not marked for review)
+                                study_mastery += 10
+                            else:
+                                # Card only known in preview mode
+                                preview_mastery += 5
+                    
+                    # Preview contributes max 50%, study can add up to 100%
+                    preview_mastery = min(preview_mastery, 50)
+                    study_mastery = min(study_mastery, 100)
+                    
+                    # Total mastery is the higher of the two
+                    set_mastery = max(preview_mastery, study_mastery)
         else:
-            set_accuracy = 0.0
+            set_mastery = 0.0
         
         # Also track in agent
         agent = get_agent(payload.user_id)
@@ -238,7 +267,7 @@ async def review_card(payload: CardReview, db: Session = Depends(get_db)):
         return {
             "success": True,
             "data": result,
-            "set_accuracy": set_accuracy
+            "set_mastery": set_mastery
         }
         
     except Exception as e:
@@ -417,14 +446,28 @@ async def get_set_by_code(share_code: str, db: Session = Depends(get_db)):
     if not flashcard_set:
         raise HTTPException(status_code=404, detail="Flashcard set not found")
     
-    # Calculate accuracy
+    # Get all cards
     cards = db.query(models.Flashcard).filter(
         models.Flashcard.set_id == flashcard_set.id
     ).all()
     
-    total_reviews = sum(c.times_reviewed or 0 for c in cards)
-    total_correct = sum(c.correct_count or 0 for c in cards)
-    accuracy = (total_correct / total_reviews * 100) if total_reviews > 0 else 0.0
+    # Calculate mastery based on individual card mastery
+    total_cards = len(cards)
+    if total_cards > 0:
+        mastered_cards = 0
+        for card in cards:
+            times_reviewed = card.times_reviewed or 0
+            correct_count = card.correct_count or 0
+            
+            if times_reviewed > 0:
+                card_accuracy = correct_count / times_reviewed
+                # Weight by how many times it's been reviewed (max contribution at 3+ reviews)
+                review_weight = min(times_reviewed / 3, 1.0)
+                mastered_cards += card_accuracy * review_weight
+        
+        mastery_percentage = (mastered_cards / total_cards) * 100
+    else:
+        mastery_percentage = 0.0
     
     return {
         "success": True,
@@ -433,8 +476,8 @@ async def get_set_by_code(share_code: str, db: Session = Depends(get_db)):
             "share_code": flashcard_set.share_code,
             "title": flashcard_set.title,
             "description": flashcard_set.description,
-            "card_count": len(cards),
-            "accuracy_percentage": round(accuracy, 1),
+            "card_count": total_cards,
+            "accuracy_percentage": round(mastery_percentage, 1),
             "created_at": flashcard_set.created_at.isoformat()
         },
         "flashcards": [
@@ -444,11 +487,34 @@ async def get_set_by_code(share_code: str, db: Session = Depends(get_db)):
                 "answer": c.answer,
                 "difficulty": c.difficulty,
                 "times_reviewed": c.times_reviewed or 0,
-                "correct_count": c.correct_count or 0
+                "correct_count": c.correct_count or 0,
+                "marked_for_review": c.marked_for_review or False
             }
             for c in cards
         ]
     }
+
+
+@router.post("/reset-mastery")
+async def reset_all_mastery(db: Session = Depends(get_db)):
+    """Reset mastery data for all flashcards"""
+    try:
+        # Reset all flashcard mastery data
+        db.query(models.Flashcard).update({
+            "times_reviewed": 0,
+            "correct_count": 0,
+            "marked_for_review": False,
+            "last_reviewed": None
+        })
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "All mastery data has been reset"
+        }
+    except Exception as e:
+        logger.error(f"Error resetting mastery: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.delete("/sets/{set_id}")
@@ -524,9 +590,17 @@ async def get_public_flashcards(
         
         result = []
         for s in sets:
-            # Get creator username
+            # Get creator name (prefer first_name + last_name, fallback to username)
             user = db.query(models.User).filter(models.User.id == s.user_id).first()
-            creator = user.username if user else 'Anonymous'
+            if user:
+                if user.first_name and user.last_name:
+                    creator = f"{user.first_name} {user.last_name}"
+                elif user.first_name:
+                    creator = user.first_name
+                else:
+                    creator = user.username
+            else:
+                creator = 'Anonymous'
             
             # Count cards
             card_count = db.query(models.Flashcard).filter(
@@ -577,9 +651,17 @@ async def search_public_flashcards(
         
         result = []
         for s in sets:
-            # Get creator username
+            # Get creator name (prefer first_name + last_name, fallback to username)
             user = db.query(models.User).filter(models.User.id == s.user_id).first()
-            creator = user.username if user else 'Anonymous'
+            if user:
+                if user.first_name and user.last_name:
+                    creator = f"{user.first_name} {user.last_name}"
+                elif user.first_name:
+                    creator = user.first_name
+                else:
+                    creator = user.username
+            else:
+                creator = 'Anonymous'
             
             # Count cards
             card_count = db.query(models.Flashcard).filter(

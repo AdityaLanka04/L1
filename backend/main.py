@@ -3255,7 +3255,13 @@ def get_flashcards_in_set(set_id: int = Query(...), db: Session = Depends(get_db
 @app.get("/get_flashcard_history")
 @app.get("/api/get_flashcard_history")
 def get_flashcard_history(user_id: str = Query(...), limit: int = Query(50), db: Session = Depends(get_db)):
-    """Get flashcard sets with mastery/accuracy for a user"""
+    """Get flashcard sets with mastery for a user
+    
+    Mastery calculation:
+    - Each card that was answered correctly (not marked_for_review) = 10%
+    - Each card that was only previewed (marked_for_review or never in study) = 5%
+    - Max mastery = 100%
+    """
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
@@ -3273,22 +3279,34 @@ def get_flashcard_history(user_id: str = Query(...), limit: int = Query(50), db:
                 models.Flashcard.set_id == fs.id
             ).all()
             
-            # Calculate accuracy percentage based on card reviews
-            total_reviews = sum(c.times_reviewed or 0 for c in cards)
-            total_correct = sum(c.correct_count or 0 for c in cards)
+            total_cards = len(cards)
             
-            if total_reviews > 0:
-                accuracy = (total_correct / total_reviews) * 100
+            if total_cards > 0:
+                # Calculate mastery based on card status
+                mastery_sum = 0
+                for card in cards:
+                    correct_count = card.correct_count or 0
+                    marked_for_review = card.marked_for_review or False
+                    
+                    if correct_count > 0:
+                        if not marked_for_review:
+                            # Card was mastered in study mode (correct and not marked)
+                            mastery_sum += 10
+                        else:
+                            # Card was only previewed correctly but marked for review
+                            mastery_sum += 5
+                
+                mastery_percentage = min(mastery_sum, 100)
             else:
-                accuracy = 0.0
+                mastery_percentage = 0.0
             
             result.append({
                 "id": fs.id,
                 "share_code": getattr(fs, 'share_code', None),
                 "title": fs.title,
                 "description": fs.description or "",
-                "card_count": len(cards),
-                "accuracy_percentage": round(accuracy, 1),
+                "card_count": total_cards,
+                "accuracy_percentage": round(mastery_percentage, 1),
                 "source_type": fs.source_type or "manual",
                 "is_public": fs.is_public if hasattr(fs, 'is_public') else False,
                 "created_at": fs.created_at.isoformat() + 'Z' if fs.created_at else None,

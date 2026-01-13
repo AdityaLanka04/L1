@@ -1,4 +1,4 @@
-// CustomPopup.js - Add this component to your project
+// CustomPopup.js - Styled popup component matching website theme
 import React, { useState, useEffect } from 'react';
 
 const CustomPopup = ({ isOpen, onClose, message, title = "Notification" }) => {
@@ -22,6 +22,17 @@ const CustomPopup = ({ isOpen, onClose, message, title = "Notification" }) => {
 
   if (!isVisible) return null;
 
+  // Determine if this is a success, error, or info popup based on title
+  const isSuccess = title.toLowerCase().includes('success') || 
+                    title.toLowerCase().includes('copied') || 
+                    title.toLowerCase().includes('created') ||
+                    title.toLowerCase().includes('deleted') ||
+                    title.toLowerCase().includes('renamed') ||
+                    title.toLowerCase().includes('updated') ||
+                    title.toLowerCase().includes('complete') ||
+                    title.toLowerCase().includes('converted');
+  const isError = title.toLowerCase().includes('error') || title.toLowerCase().includes('failed');
+
   return (
     <div 
       style={{
@@ -36,70 +47,70 @@ const CustomPopup = ({ isOpen, onClose, message, title = "Notification" }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontFamily: 'Quicksand, sans-serif'
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
       }}
       onClick={handleClose}
     >
       <div 
         style={{
-          background: 'rgba(0, 0, 0, 0.95)',
-          border: '2px solid rgba(76, 175, 80, 0.4)',
-          padding: '40px',
-          maxWidth: '500px',
+          background: 'var(--bg-secondary, #1a1a1a)',
+          border: '1px solid color-mix(in srgb, var(--accent, #D7B38C) 40%, transparent)',
+          borderRadius: '12px',
+          padding: '32px 40px',
+          maxWidth: '450px',
           width: '90%',
           textAlign: 'center',
           position: 'relative',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.5)',
-          backgroundColor: 'rgba(76, 175, 80, 0.1)'
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close button */}
-        <button
-          onClick={handleClose}
-          style={{
-            position: 'absolute',
-            top: '15px',
-            right: '15px',
-            background: 'none',
-            border: 'none',
-            color: 'rgba(215, 179, 140, 0.6)',
-            fontSize: '20px',
-            cursor: 'pointer',
-            padding: '5px'
-          }}
-        >
-          
-        </button>
-
-        {/* Success icon */}
+        {/* Icon */}
         <div style={{
-          fontSize: '48px',
-          color: 'rgba(76, 175, 80, 0.9)',
-          marginBottom: '20px',
-          fontWeight: 'bold'
+          width: '56px',
+          height: '56px',
+          borderRadius: '12px',
+          background: isError 
+            ? 'rgba(239, 68, 68, 0.15)' 
+            : 'color-mix(in srgb, var(--accent, #D7B38C) 15%, transparent)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 20px auto'
         }}>
-          
+          {isError ? (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="15" y1="9" x2="9" y2="15"/>
+              <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+          ) : (
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent, #D7B38C)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          )}
         </div>
 
         {/* Title */}
         <h3 style={{
-          color: '#D7B38C',
-          fontSize: '24px',
+          color: 'var(--accent, #D7B38C)',
+          fontSize: '11px',
           fontWeight: '600',
-          margin: '0 0 15px 0',
-          letterSpacing: '0.5px'
+          margin: '0 0 12px 0',
+          letterSpacing: '2px',
+          textTransform: 'uppercase',
+          fontFamily: "'Inter', sans-serif"
         }}>
-          {title}
+          {title.toUpperCase()}
         </h3>
 
         {/* Message */}
         <p style={{
-          color: 'rgba(215, 179, 140, 0.9)',
-          fontSize: '16px',
+          color: 'var(--text-secondary, rgba(215, 179, 140, 0.8))',
+          fontSize: '14px',
           lineHeight: '1.6',
-          margin: '0 0 25px 0',
-          letterSpacing: '0.3px'
+          margin: '0 0 24px 0',
+          fontFamily: "'Inter', sans-serif"
         }}>
           {message}
         </p>
@@ -108,19 +119,29 @@ const CustomPopup = ({ isOpen, onClose, message, title = "Notification" }) => {
         <button
           onClick={handleClose}
           style={{
-            background: 'rgba(215, 179, 140, 0.1)',
-            border: '1px solid rgba(215, 179, 140, 0.3)',
-            color: '#D7B38C',
-            padding: '12px 24px',
-            fontSize: '14px',
-            fontWeight: '500',
+            background: 'linear-gradient(135deg, var(--accent, #D7B38C), color-mix(in srgb, var(--accent, #D7B38C) 85%, black))',
+            border: 'none',
+            borderRadius: '8px',
+            color: 'var(--bg-primary, #0f0f0f)',
+            padding: '12px 32px',
+            fontSize: '11px',
+            fontWeight: '600',
             cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            fontFamily: 'Quicksand, sans-serif',
-            letterSpacing: '0.5px'
+            transition: 'all 0.2s ease',
+            fontFamily: "'Inter', sans-serif",
+            letterSpacing: '2px',
+            textTransform: 'uppercase'
+          }}
+          onMouseOver={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 4px 12px color-mix(in srgb, var(--accent, #D7B38C) 40%, transparent)';
+          }}
+          onMouseOut={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = 'none';
           }}
         >
-          Close
+          CLOSE
         </button>
       </div>
     </div>

@@ -1124,11 +1124,11 @@
 
 .fc-mode-label {
   display: block;
-  font-size: 15px;
+  font-size: 11px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   color: var(--fc-text-primary);
   margin-bottom: 4px;
 }
@@ -1146,9 +1146,12 @@
 
 .fc-label {
   display: block;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--fc-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-family: 'Inter', sans-serif;
   margin-bottom: 8px;
 }
 
@@ -1174,7 +1177,7 @@
 
 .fc-form-row {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 16px;
 }
 
@@ -1232,8 +1235,11 @@
   border: none;
   border-radius: 10px;
   color: var(--fc-bg-primary);
-  font-size: 15px;
+  font-size: 11px;
   font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1544,20 +1550,24 @@
 }
 
 .fc-study-title h2 {
-  font-size: 18px;
+  font-size: 11px;
   font-weight: 600;
-  color: var(--fc-text-primary);
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
   margin: 0;
 }
 
 .fc-card-counter {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
   color: var(--fc-accent);
-  background: var(--fc-accent-glow);
-  padding: 6px 16px;
+  background: transparent;
+  padding: 0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   margin: 0;
 }
 
@@ -1962,8 +1972,11 @@
   border: 2px solid var(--fc-accent);
   border-radius: 8px;
   color: var(--fc-accent);
-  font-size: 15px;
+  font-size: 11px;
   font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s;
   min-width: 200px;
@@ -1977,8 +1990,8 @@
 }
 
 .fc-knowledge-btn svg {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   stroke-width: 2.5;
 }
 
@@ -2490,7 +2503,7 @@
 /* Colored Thumbnail */
 .fc-set-thumbnail {
   width: 100%;
-  height: 140px;
+  height: 180px;
   position: relative;
   overflow: hidden;
   border-bottom: 1px solid var(--fc-border-default);
@@ -2509,11 +2522,14 @@
 }
 
 .fc-thumbnail-title {
-  font-size: 20px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 2px;
+  text-transform: uppercase;
   color: white !important;
   text-align: center;
-  line-height: 1.3;
+  line-height: 1.5;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   overflow: hidden;
   display: -webkit-box;
@@ -2654,10 +2670,13 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px;
+  padding: 10px 8px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
   cursor: pointer;
   transition: all 0.2s;
   border: none;
@@ -2670,13 +2689,17 @@
 
 .fc-action-preview {
   background: var(--fc-bg-tertiary);
-  color: var(--fc-text-primary);
+  color: var(--fc-accent);
   border: 1px solid var(--fc-border-default);
 }
 
 .fc-action-preview:hover {
   background: var(--fc-accent);
   border-color: var(--fc-accent);
+  color: var(--bg-primary);
+}
+
+[data-theme-mode="light"] .fc-action-preview:hover {
   color: white;
 }
 
@@ -2949,7 +2972,7 @@
   flex-direction: column;
   gap: 32px;
   align-items: center;
-  padding-bottom: 40px;
+  padding: 20px 0 40px 0;
 }
 
 /* Container for question card with navigation arrows */
@@ -2970,8 +2993,8 @@
   padding: 24px;
   text-align: center;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  min-height: 280px;
-  max-height: 320px;
+  min-height: 380px;
+  height: 380px;
   width: 100%;
   max-width: 700px;
   display: flex;
@@ -2982,6 +3005,7 @@
   cursor: default;
   transition: all 0.3s ease;
   margin: 0 auto;
+  flex-shrink: 0;
 }
 
 .fc-study-question-card:hover {
@@ -3059,7 +3083,9 @@
   font-size: 14px;
   color: var(--fc-text-primary);
   position: relative;
-  min-height: 100px;
+  min-height: 120px;
+  max-height: 180px;
+  overflow-y: auto;
 }
 
 .fc-mcq-option:hover:not(:disabled) {
@@ -4949,13 +4975,17 @@
 .fc-action-btn-new.fc-action-edit {
   background: var(--fc-bg-tertiary);
   border: 1px solid var(--fc-border-subtle);
-  color: var(--fc-text-primary);
+  color: var(--fc-accent);
 }
 
 .fc-action-btn-new.fc-action-edit:hover {
-  background: var(--fc-accent-glow);
+  background: var(--fc-accent);
   border-color: var(--fc-accent);
-  color: var(--fc-accent);
+  color: var(--bg-primary);
+}
+
+[data-theme-mode="light"] .fc-action-btn-new.fc-action-edit:hover {
+  color: white;
 }
 
 /* Public flashcards search bar */
@@ -4997,16 +5027,25 @@
   position: relative;
 }
 
+/* Public card actions - 2 columns */
+.fc-public-card .fc-set-actions-new {
+  grid-template-columns: repeat(2, 1fr);
+}
+
 /* Copy button style */
 .fc-action-btn-new.fc-action-copy {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  background: linear-gradient(135deg, var(--fc-accent), var(--fc-accent-dark));
   border: none;
+  color: var(--fc-bg-primary);
+}
+
+[data-theme-mode="light"] .fc-action-btn-new.fc-action-copy {
   color: white;
 }
 
 .fc-action-btn-new.fc-action-copy:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--fc-accent) 40%, transparent);
 }
 
 /* Section header text */
@@ -5186,18 +5225,30 @@
   border-bottom: none !important;
 }
 
+.fc-create-header .fc-study-title {
+  flex: 1;
+  justify-content: center;
+}
+
 .fc-exit-styled {
   background: transparent !important;
   border: none !important;
   font-family: 'Inter', sans-serif;
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.8px;
+  letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--fc-text-secondary);
   padding: 8px 0;
   gap: 6px;
   margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.fc-exit-styled svg {
+  width: 16px;
+  height: 16px;
 }
 
 .fc-exit-styled:hover {
