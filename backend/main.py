@@ -2854,6 +2854,115 @@ def clean_conversational_elements(text: str) -> str:
 
 # ==================== NOTES ENDPOINTS ====================
 
+@app.post("/api/ai_group_notes")
+async def ai_group_notes(request: Request, db: Session = Depends(get_db)):
+    """AI-powered automatic note grouping by content/topic"""
+    try:
+        data = await request.json()
+        user_id = data.get("user_id")
+        notes = data.get("notes", [])
+        
+        if not notes:
+            return {"groups": []}
+        
+        # Prepare content for AI analysis
+        notes_text = "\n".join([
+            f"Note {n['id']}: {n['title']} - {n['preview'][:100]}" 
+            for n in notes[:50]  # Limit to 50 notes for performance
+        ])
+        
+        prompt = f"""Analyze these notes and group them into logical categories based on their content and topics.
+Return a JSON object with a "groups" array. Each group should have:
+- "name": A short, descriptive category name (2-3 words max)
+- "note_ids": Array of note IDs that belong to this group
+
+Notes to analyze:
+{notes_text}
+
+Rules:
+- Create 3-8 groups maximum
+- Each note should only be in ONE group
+- Use clear, simple category names like "Study Notes", "Work Projects", "Personal", "Ideas", "Research", etc.
+- If a note doesn't fit any category, put it in "Other"
+
+Return ONLY valid JSON, no explanation:"""
+
+        try:
+            # Try using Groq API
+            import httpx
+            groq_api_key = os.getenv("GROQ_API_KEY")
+            
+            if groq_api_key:
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        "https://api.groq.com/openai/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {groq_api_key}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "model": "llama-3.1-8b-instant",
+                            "messages": [{"role": "user", "content": prompt}],
+                            "temperature": 0.3,
+                            "max_tokens": 1000
+                        },
+                        timeout=30.0
+                    )
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        content = result["choices"][0]["message"]["content"]
+                        
+                        # Parse JSON from response
+                        import json
+                        import re
+                        
+                        # Try to extract JSON from the response
+                        json_match = re.search(r'\{[\s\S]*\}', content)
+                        if json_match:
+                            groups_data = json.loads(json_match.group())
+                            return groups_data
+        except Exception as ai_error:
+            logger.warning(f"AI grouping failed: {ai_error}")
+        
+        # Fallback: keyword-based grouping
+        groups = {}
+        topic_patterns = {
+            'Study Notes': ['study', 'learn', 'exam', 'test', 'quiz', 'chapter', 'lecture', 'class'],
+            'Work': ['meeting', 'project', 'deadline', 'client', 'report', 'task', 'work'],
+            'Personal': ['diary', 'journal', 'personal', 'life', 'family', 'friend'],
+            'Ideas': ['idea', 'brainstorm', 'concept', 'thought', 'plan', 'goal'],
+            'Research': ['research', 'analysis', 'data', 'paper', 'article', 'source'],
+            'Technical': ['code', 'programming', 'software', 'api', 'database', 'bug']
+        }
+        
+        uncategorized = []
+        
+        for note in notes:
+            content = f"{note['title']} {note['preview']}".lower()
+            matched = False
+            
+            for category, keywords in topic_patterns.items():
+                if any(kw in content for kw in keywords):
+                    if category not in groups:
+                        groups[category] = []
+                    groups[category].append(note['id'])
+                    matched = True
+                    break
+            
+            if not matched:
+                uncategorized.append(note['id'])
+        
+        result_groups = [{"name": name, "note_ids": ids} for name, ids in groups.items() if ids]
+        if uncategorized:
+            result_groups.append({"name": "Other", "note_ids": uncategorized})
+        
+        return {"groups": result_groups}
+        
+    except Exception as e:
+        logger.error(f"Error in AI group notes: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/get_notes")
 def get_notes(user_id: str = Query(...), db: Session = Depends(get_db)):
     """Get all notes for a user (excluding deleted)"""

@@ -1,404 +1,203 @@
 import React, { useState, useEffect } from 'react';
-import { FolderPlus, Trash2, Check, X, Sparkles, Filter } from 'lucide-react';
+import { Folder, Loader, RefreshCw, X } from 'lucide-react';
 import './SmartFolders.css';
+import { API_URL } from '../config';
 
 const SmartFolders = ({ notes = [], onFolderSelect, onClose }) => {
   const [smartFolders, setSmartFolders] = useState([]);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newFolder, setNewFolder] = useState({
-    name: '',
-    rules: [{ type: 'tag', operator: 'contains', value: '' }]
-  });
-
-  const templates = [
-    {
-      name: 'Recent Notes',
-      rules: [{ type: 'date', operator: 'last', value: '7' }]
-    },
-    {
-      name: 'Favorites',
-      rules: [{ type: 'favorite', operator: 'is', value: 'true' }]
-    },
-    {
-      name: 'Long Notes',
-      rules: [{ type: 'wordCount', operator: 'greater', value: '500' }]
-    },
-    {
-      name: 'Untagged',
-      rules: [{ type: 'tag', operator: 'empty', value: '' }]
-    }
-  ];
+  const [loading, setLoading] = useState(true);
+  const [selectedFolder, setSelectedFolder] = useState(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem('smartFolders');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setSmartFolders(Array.isArray(parsed) ? parsed : []);
-      } catch (e) {
-                setSmartFolders([]);
-      }
+    if (notes.length > 0) {
+      autoGroupNotes();
+    } else {
+      setLoading(false);
     }
-  }, []);
+  }, [notes]);
 
-  const saveSmartFolders = (folders) => {
-    setSmartFolders(folders);
-    localStorage.setItem('smartFolders', JSON.stringify(folders));
+  const autoGroupNotes = async () => {
+    setLoading(true);
+    
+    try {
+      // Try AI-based grouping first
+      const grouped = await groupNotesWithAI(notes);
+      setSmartFolders(grouped);
+    } catch (error) {
+      console.error('AI grouping failed, using fallback:', error);
+      // Fallback to keyword-based grouping
+      const grouped = groupNotesByKeywords(notes);
+      setSmartFolders(grouped);
+    }
+    
+    setLoading(false);
   };
 
-  const createSmartFolder = () => {
-    if (!newFolder.name.trim()) {
-      alert('Please enter a folder name');
-      return;
-    }
+  const groupNotesWithAI = async (notesToGroup) => {
+    const token = localStorage.getItem('token');
+    const userName = localStorage.getItem('username');
+    
+    // Prepare note summaries for AI
+    const noteSummaries = notesToGroup.map(note => ({
+      id: note.id,
+      title: note.title || 'Untitled',
+      preview: (note.content || '').replace(/<[^>]+>/g, '').substring(0, 200)
+    }));
 
-    const hasValidRules = newFolder.rules.every(rule => {
-      if (rule.operator === 'empty') return true;
-      return rule.value && rule.value.trim() !== '';
+    const response = await fetch(`${API_URL}/ai_group_notes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        user_id: userName,
+        notes: noteSummaries
+      })
     });
 
-    if (!hasValidRules) {
-      alert('Please fill in all rule values');
-      return;
+    if (!response.ok) {
+      throw new Error('AI grouping failed');
     }
 
-    const folder = {
-      id: Date.now(),
-      name: newFolder.name,
-      rules: newFolder.rules,
-      createdAt: new Date().toISOString()
+    const data = await response.json();
+    
+    // Map AI groups back to full note objects
+    return data.groups.map(group => ({
+      name: group.name,
+      notes: group.note_ids.map(id => notesToGroup.find(n => n.id === id)).filter(Boolean)
+    })).filter(g => g.notes.length > 0);
+  };
+
+  const groupNotesByKeywords = (notesToGroup) => {
+    const groups = {};
+    const uncategorized = [];
+
+    // Common topic keywords
+    const topicPatterns = {
+      'Study Notes': ['study', 'learn', 'exam', 'test', 'quiz', 'chapter', 'lecture', 'class', 'course'],
+      'Work': ['meeting', 'project', 'deadline', 'client', 'report', 'task', 'work', 'office', 'team'],
+      'Personal': ['diary', 'journal', 'personal', 'life', 'family', 'friend', 'birthday', 'vacation'],
+      'Ideas': ['idea', 'brainstorm', 'concept', 'thought', 'plan', 'goal', 'dream', 'future'],
+      'Research': ['research', 'analysis', 'data', 'study', 'paper', 'article', 'source', 'reference'],
+      'Technical': ['code', 'programming', 'software', 'api', 'database', 'server', 'bug', 'feature'],
+      'Finance': ['budget', 'money', 'expense', 'income', 'investment', 'savings', 'cost', 'price'],
+      'Health': ['health', 'exercise', 'diet', 'workout', 'medical', 'doctor', 'fitness', 'wellness']
     };
 
-    saveSmartFolders([...smartFolders, folder]);
-    setNewFolder({ name: '', rules: [{ type: 'tag', operator: 'contains', value: '' }] });
-    setShowCreateModal(false);
-  };
+    notesToGroup.forEach(note => {
+      const content = `${note.title || ''} ${(note.content || '').replace(/<[^>]+>/g, '')}`.toLowerCase();
+      let matched = false;
 
-  const deleteSmartFolder = (id, e) => {
-    e.stopPropagation();
-    if (window.confirm('Delete this smart folder?')) {
-      saveSmartFolders(smartFolders.filter(f => f.id !== id));
-    }
-  };
-
-  const addRule = () => {
-    setNewFolder({
-      ...newFolder,
-      rules: [...newFolder.rules, { type: 'tag', operator: 'contains', value: '' }]
-    });
-  };
-
-  const updateRule = (index, field, value) => {
-    const updatedRules = [...newFolder.rules];
-    updatedRules[index] = { ...updatedRules[index], [field]: value };
-    
-    // Auto-adjust operator when type changes
-    if (field === 'type') {
-      if (value === 'tag') {
-        updatedRules[index].operator = 'contains';
-      } else if (value === 'title') {
-        updatedRules[index].operator = 'contains';
-      } else if (value === 'date') {
-        updatedRules[index].operator = 'last';
-      } else if (value === 'favorite') {
-        updatedRules[index].operator = 'is';
-      } else if (value === 'wordCount') {
-        updatedRules[index].operator = 'greater';
-      }
-    }
-    
-    setNewFolder({ ...newFolder, rules: updatedRules });
-  };
-
-  const removeRule = (index) => {
-    if (newFolder.rules.length === 1) return;
-    setNewFolder({
-      ...newFolder,
-      rules: newFolder.rules.filter((_, i) => i !== index)
-    });
-  };
-
-  const applyTemplate = (template) => {
-    setNewFolder({
-      name: template.name,
-      rules: JSON.parse(JSON.stringify(template.rules))
-    });
-    setShowCreateModal(true);
-  };
-
-  const extractTags = (content) => {
-    if (!content) return [];
-    const tagRegex = /#(\w+)/g;
-    const matches = content.match(tagRegex) || [];
-    return matches.map(tag => tag.substring(1));
-  };
-
-  const filterNotesByRules = (folder) => {
-    if (!notes || !Array.isArray(notes)) return [];
-    
-    return notes.filter(note => {
-      if (!note) return false;
-      
-      return folder.rules.every(rule => {
-        try {
-          switch (rule.type) {
-            case 'tag': {
-              const tags = extractTags(note.content || '');
-              if (rule.operator === 'contains') {
-                if (!rule.value) return true;
-                return tags.some(tag => 
-                  tag.toLowerCase().includes(rule.value.toLowerCase())
-                );
-              } else if (rule.operator === 'empty') {
-                return tags.length === 0;
-              }
-              return true;
-            }
-            
-            case 'date': {
-              const noteDate = new Date(note.updated_at || note.created_at);
-              if (isNaN(noteDate.getTime())) return false;
-              
-              const daysAgo = parseInt(rule.value) || 0;
-              const cutoffDate = new Date();
-              cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
-              
-              if (rule.operator === 'last') {
-                return noteDate >= cutoffDate;
-              }
-              return true;
-            }
-            
-            case 'favorite': {
-              if (rule.operator === 'is') {
-                return note.is_favorite === (rule.value === 'true');
-              }
-              return true;
-            }
-            
-            case 'wordCount': {
-              const text = (note.content || '').replace(/<[^>]+>/g, '').trim();
-              const words = text.split(/\s+/).filter(w => w.length > 0);
-              const count = words.length;
-              const threshold = parseInt(rule.value) || 0;
-              
-              if (rule.operator === 'greater') {
-                return count > threshold;
-              } else if (rule.operator === 'less') {
-                return count < threshold;
-              }
-              return true;
-            }
-            
-            case 'title': {
-              if (rule.operator === 'contains') {
-                if (!rule.value) return true;
-                return (note.title || '').toLowerCase().includes(rule.value.toLowerCase());
-              }
-              return true;
-            }
-            
-            default:
-              return true;
+      for (const [category, keywords] of Object.entries(topicPatterns)) {
+        if (keywords.some(keyword => content.includes(keyword))) {
+          if (!groups[category]) {
+            groups[category] = [];
           }
-        } catch (e) {
-                    return false;
+          groups[category].push(note);
+          matched = true;
+          break;
         }
-      });
+      }
+
+      if (!matched) {
+        uncategorized.push(note);
+      }
     });
+
+    // Convert to array format
+    const result = Object.entries(groups)
+      .map(([name, notes]) => ({ name, notes }))
+      .filter(g => g.notes.length > 0)
+      .sort((a, b) => b.notes.length - a.notes.length);
+
+    // Add uncategorized if any
+    if (uncategorized.length > 0) {
+      result.push({ name: 'Other', notes: uncategorized });
+    }
+
+    return result;
   };
 
   const handleFolderClick = (folder) => {
-    const filteredNotes = filterNotesByRules(folder);
+    setSelectedFolder(folder.name);
     if (onFolderSelect) {
-      onFolderSelect(filteredNotes, folder.name);
+      onFolderSelect(folder.notes, folder.name);
     }
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
+
+  if (loading) {
+    return (
+      <div className="smart-folders-panel">
+        <div className="sf-loading">
+          <Loader className="sf-spinner" size={24} />
+          <p>Analyzing and grouping your notes...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="smart-folders-panel">
-      <div className="smart-folders-header">
-        <div className="header-title">
-          <Sparkles size={18} />
-          <h3>Smart Folders</h3>
+      <div className="sf-header">
+        <h3>Smart Folders</h3>
+        <div className="sf-header-actions">
+          <button className="sf-refresh-btn" onClick={autoGroupNotes} title="Re-analyze">
+            <RefreshCw size={16} />
+          </button>
+          <button className="sf-close-btn" onClick={onClose}>
+            <X size={18} />
+          </button>
         </div>
-        <button className="close-btn" onClick={onClose}>
-          <X size={18} />
-        </button>
       </div>
 
-      <div className="smart-folders-content">
-        <div className="templates-section">
-          <h4>Quick Templates</h4>
-          <div className="templates-grid">
-            {templates.map((template, idx) => (
-              <button
+      <div className="sf-content">
+        {smartFolders.length === 0 ? (
+          <div className="sf-empty">
+            <Folder size={32} />
+            <p>No notes to organize</p>
+          </div>
+        ) : (
+          <div className="sf-folders-list">
+            {smartFolders.map((folder, idx) => (
+              <div 
                 key={idx}
-                className="template-card"
-                onClick={() => applyTemplate(template)}
+                className={`sf-folder-item ${selectedFolder === folder.name ? 'selected' : ''}`}
+                onClick={() => handleFolderClick(folder)}
               >
-                <span className="template-name">{template.name}</span>
-              </button>
+                <div className="sf-folder-icon">
+                  <Folder size={18} />
+                </div>
+                <div className="sf-folder-info">
+                  <span className="sf-folder-name">{folder.name}</span>
+                  <span className="sf-folder-count">{folder.notes.length} notes</span>
+                </div>
+              </div>
             ))}
           </div>
-        </div>
+        )}
 
-        <div className="folders-section">
-          <div className="section-header">
-            <h4>Your Smart Folders</h4>
-            <button
-              className="create-btn"
-              onClick={() => setShowCreateModal(true)}
-            >
-              <FolderPlus size={16} />
-              Create
-            </button>
+        {/* Show notes in selected folder */}
+        {selectedFolder && (
+          <div className="sf-notes-preview">
+            <h4>{selectedFolder}</h4>
+            <div className="sf-notes-list">
+              {smartFolders.find(f => f.name === selectedFolder)?.notes.map(note => (
+                <div key={note.id} className="sf-note-item">
+                  <span className="sf-note-title">{note.title || 'Untitled'}</span>
+                  <span className="sf-note-date">{formatDate(note.updated_at)}</span>
+                </div>
+              ))}
+            </div>
           </div>
-
-          <div className="folders-list">
-            {smartFolders.length === 0 ? (
-              <div className="empty-state">
-                <Filter size={32} style={{ opacity: 0.3, marginBottom: '12px' }} />
-                <p>No smart folders yet</p>
-                <p className="hint">Create one to auto-organize your notes</p>
-              </div>
-            ) : (
-              smartFolders.map(folder => {
-                const matchingNotes = filterNotesByRules(folder);
-                return (
-                  <div key={folder.id} className="smart-folder-item">
-                    <button
-                      className="folder-button"
-                      onClick={() => handleFolderClick(folder)}
-                    >
-                      <span className="folder-name">{folder.name}</span>
-                      <span className="folder-count">{matchingNotes.length}</span>
-                    </button>
-                    <button
-                      className="delete-btn"
-                      onClick={(e) => deleteSmartFolder(folder.id, e)}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
+        )}
       </div>
-
-      {showCreateModal && (
-        <div className="smart-folder-modal" onClick={(e) => {
-          if (e.target.className === 'smart-folder-modal') {
-            setShowCreateModal(false);
-          }
-        }}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Create Smart Folder</h3>
-              <button onClick={() => setShowCreateModal(false)}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="modal-body">
-              <div className="form-group">
-                <label>Folder Name</label>
-                <input
-                  type="text"
-                  value={newFolder.name}
-                  onChange={(e) => setNewFolder({ ...newFolder, name: e.target.value })}
-                  placeholder="e.g., Work Notes"
-                  autoFocus
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Rules (all must match)</label>
-                {newFolder.rules.map((rule, idx) => (
-                  <div key={idx} className="rule-row">
-                    <select
-                      value={rule.type}
-                      onChange={(e) => updateRule(idx, 'type', e.target.value)}
-                    >
-                      <option value="tag">Tag</option>
-                      <option value="title">Title</option>
-                      <option value="date">Date</option>
-                      <option value="favorite">Favorite</option>
-                      <option value="wordCount">Word Count</option>
-                    </select>
-
-                    <select
-                      value={rule.operator}
-                      onChange={(e) => updateRule(idx, 'operator', e.target.value)}
-                    >
-                      {rule.type === 'tag' && (
-                        <>
-                          <option value="contains">contains</option>
-                          <option value="empty">is empty</option>
-                        </>
-                      )}
-                      {rule.type === 'title' && (
-                        <option value="contains">contains</option>
-                      )}
-                      {rule.type === 'date' && (
-                        <option value="last">last</option>
-                      )}
-                      {rule.type === 'favorite' && (
-                        <option value="is">is</option>
-                      )}
-                      {rule.type === 'wordCount' && (
-                        <>
-                          <option value="greater">greater than</option>
-                          <option value="less">less than</option>
-                        </>
-                      )}
-                    </select>
-
-                    {rule.operator !== 'empty' && (
-                      <input
-                        type="text"
-                        value={rule.value}
-                        onChange={(e) => updateRule(idx, 'value', e.target.value)}
-                        placeholder={
-                          rule.type === 'date' ? 'days (e.g., 7)' :
-                          rule.type === 'wordCount' ? 'number (e.g., 500)' :
-                          rule.type === 'favorite' ? 'true or false' :
-                          'value'
-                        }
-                      />
-                    )}
-
-                    <button
-                      className="remove-rule-btn"
-                      onClick={() => removeRule(idx)}
-                      disabled={newFolder.rules.length === 1}
-                      title={newFolder.rules.length === 1 ? 'At least one rule required' : 'Remove rule'}
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
-
-                <button className="add-rule-btn" onClick={addRule}>
-                  + Add Rule
-                </button>
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button className="cancel-btn" onClick={() => setShowCreateModal(false)}>
-                Cancel
-              </button>
-              <button className="create-btn" onClick={createSmartFolder}>
-                <Check size={16} />
-                Create Folder
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

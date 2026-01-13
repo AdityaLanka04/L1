@@ -1,492 +1,251 @@
-/* NotesRedesign Smart Folders Styles */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* NotesRedesign Smart Folders - Auto-grouping Styles */
 
-/* Force all elements to be boxy */
-.notes-redesign .smart-folders-panel,
-.notes-redesign .smart-folders-panel *,
-.notes-redesign .smart-folders-panel *::before,
-.notes-redesign .smart-folders-panel *::after,
-.notes-redesign .smart-folder-modal,
-.notes-redesign .smart-folder-modal *,
-.notes-redesign .smart-folder-modal *::before,
-.notes-redesign .smart-folder-modal *::after {
-  border-radius: 0 !important;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-/* Main Panel */
+/* Override to use centered modal */
 .notes-redesign .smart-folders-panel {
   position: fixed !important;
-  top: 0 !important;
-  right: 0 !important;
+  top: 50% !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translate(-50%, -50%) !important;
   width: 400px !important;
-  height: 100vh !important;
-  background: var(--bg-secondary) !important;
-  border-left: 2px solid var(--border) !important;
+  max-width: 95vw !important;
+  max-height: 80vh !important;
+  height: auto !important;
+  background: #1a1a1a !important;
+  border: 1px solid #333 !important;
+  border-radius: 12px !important;
   display: flex !important;
   flex-direction: column !important;
-  z-index: 10001 !important;
-  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5) !important;
+  z-index: 10002 !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Loading State */
+.notes-redesign .smart-folders-panel .sf-loading {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 60px 20px !important;
+  gap: 16px !important;
+}
+
+.notes-redesign .smart-folders-panel .sf-loading p {
+  font-size: 13px !important;
+  color: #888 !important;
+  margin: 0 !important;
+}
+
+.notes-redesign .smart-folders-panel .sf-spinner {
+  animation: sfSpin 1s linear infinite !important;
+  color: #D7B38C !important;
 }
 
 /* Header */
-.notes-redesign .smart-folders-panel .smart-folders-header {
-  padding: 20px !important;
-  border-bottom: 2px solid var(--border) !important;
+.notes-redesign .smart-folders-panel .sf-header {
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
-  background: var(--bg-secondary) !important;
+  padding: 16px 20px !important;
+  border-bottom: 1px solid #333 !important;
+  background: #222 !important;
+  border-radius: 12px 12px 0 0 !important;
 }
 
-.notes-redesign .smart-folders-panel .header-title {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  color: #D7B38C !important;
-}
-
-.notes-redesign .smart-folders-panel .header-title h3 {
+.notes-redesign .smart-folders-panel .sf-header h3 {
   margin: 0 !important;
-  font-size: 16px !important;
-  font-weight: 700 !important;
-  text-transform: uppercase !important;
-  letter-spacing: 1px !important;
-  color: #D7B38C !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: #eee !important;
 }
 
-.notes-redesign .smart-folders-panel .header-title svg {
-  color: #D7B38C !important;
+.notes-redesign .smart-folders-panel .sf-header-actions {
+  display: flex !important;
+  gap: 8px !important;
 }
 
-.notes-redesign .smart-folders-panel .close-btn {
-  background: var(--bg-secondary) !important;
-  border: 2px solid var(--border) !important;
-  width: 36px !important;
-  height: 36px !important;
+.notes-redesign .smart-folders-panel .sf-refresh-btn,
+.notes-redesign .smart-folders-panel .sf-close-btn {
+  background: transparent !important;
+  border: 1px solid #444 !important;
+  border-radius: 6px !important;
+  width: 32px !important;
+  height: 32px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   cursor: pointer !important;
-  color: #D7B38C !important;
-  transition: all 0.2s ease !important;
+  color: #888 !important;
+  transition: all 0.2s !important;
 }
 
-.notes-redesign .smart-folders-panel .close-btn:hover {
-  background: #D7B38C !important;
+.notes-redesign .smart-folders-panel .sf-refresh-btn:hover,
+.notes-redesign .smart-folders-panel .sf-close-btn:hover {
+  background: #333 !important;
   border-color: #D7B38C !important;
-  color: var(--bg-secondary) !important;
+  color: #D7B38C !important;
 }
 
 /* Content */
-.notes-redesign .smart-folders-panel .smart-folders-content {
+.notes-redesign .smart-folders-panel .sf-content {
   flex: 1 !important;
   overflow-y: auto !important;
-  padding: 20px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 28px !important;
-  background: var(--bg-secondary) !important;
-}
-
-/* Scrollbar */
-.notes-redesign .smart-folders-panel .smart-folders-content::-webkit-scrollbar {
-  width: 8px !important;
-}
-
-.notes-redesign .smart-folders-panel .smart-folders-content::-webkit-scrollbar-track {
-  background: var(--bg-secondary) !important;
-}
-
-.notes-redesign .smart-folders-panel .smart-folders-content::-webkit-scrollbar-thumb {
-  background: #D7B38C !important;
-}
-
-/* Sections */
-.notes-redesign .smart-folders-panel .templates-section,
-.notes-redesign .smart-folders-panel .folders-section {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 14px !important;
-}
-
-.notes-redesign .smart-folders-panel .templates-section h4,
-.notes-redesign .smart-folders-panel .section-header h4 {
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  color: #B8C0CC !important;
-  text-transform: uppercase !important;
-  letter-spacing: 1px !important;
-  margin: 0 !important;
-}
-
-/* Templates Grid */
-.notes-redesign .smart-folders-panel .templates-grid {
-  display: grid !important;
-  grid-template-columns: repeat(2, 1fr) !important;
-  gap: 10px !important;
-}
-
-.notes-redesign .smart-folders-panel .template-card {
-  padding: 14px 18px !important;
-  background: var(--bg-secondary) !important;
-  border: 2px solid var(--border) !important;
-  cursor: pointer !important;
-  transition: all 0.2s ease !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
-}
-
-.notes-redesign .smart-folders-panel .template-card:hover {
-  background: rgba(215, 179, 140, 0.1) !important;
-  border-color: #D7B38C !important;
-  transform: translateY(-2px) !important;
-}
-
-.notes-redesign .smart-folders-panel .template-name {
-  font-size: 12px !important;
-  font-weight: 600 !important;
-  color: #EAECEF !important;
-}
-
-/* Section Header */
-.notes-redesign .smart-folders-panel .section-header {
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
-}
-
-/* Create Button */
-.notes-redesign .smart-folders-panel .create-btn {
-  padding: 8px 16px !important;
-  background: #D7B38C !important;
-  border: 2px solid #D7B38C !important;
-  color: var(--bg-secondary) !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  cursor: pointer !important;
-  transition: all 0.2s ease !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
-}
-
-.notes-redesign .smart-folders-panel .create-btn:hover {
-  background: #c9a67a !important;
-  transform: translateY(-1px) !important;
-}
-
-/* Folders List */
-.notes-redesign .smart-folders-panel .folders-list {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 8px !important;
+  padding: 16px !important;
 }
 
 /* Empty State */
-.notes-redesign .smart-folders-panel .empty-state {
-  text-align: center !important;
+.notes-redesign .smart-folders-panel .sf-empty {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
   padding: 40px 20px !important;
-  color: #B8C0CC !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
+  color: #666 !important;
 }
 
-.notes-redesign .smart-folders-panel .empty-state svg {
-  color: var(--border) !important;
-  margin-bottom: 16px !important;
-}
-
-.notes-redesign .smart-folders-panel .empty-state p {
-  margin: 0 0 8px 0 !important;
-  font-size: 14px !important;
-  font-weight: 600 !important;
-  color: #EAECEF !important;
-}
-
-.notes-redesign .smart-folders-panel .empty-state .hint {
-  font-size: 12px !important;
-  opacity: 0.7 !important;
-  font-weight: 400 !important;
-  color: #B8C0CC !important;
-}
-
-/* Smart Folder Item */
-.notes-redesign .smart-folders-panel .smart-folder-item {
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  background: var(--bg-secondary) !important;
-  border: 2px solid var(--border) !important;
-  padding: 6px !important;
-  transition: all 0.2s ease !important;
-}
-
-.notes-redesign .smart-folders-panel .smart-folder-item:hover {
-  border-color: #D7B38C !important;
-}
-
-.notes-redesign .smart-folders-panel .folder-button {
-  flex: 1 !important;
-  padding: 12px 14px !important;
-  background: transparent !important;
-  border: none !important;
-  cursor: pointer !important;
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
-  color: #EAECEF !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  text-align: left !important;
-  transition: all 0.2s ease !important;
-}
-
-.notes-redesign .smart-folders-panel .folder-button:hover {
-  color: #D7B38C !important;
-}
-
-.notes-redesign .smart-folders-panel .folder-name {
-  flex: 1 !important;
-}
-
-.notes-redesign .smart-folders-panel .folder-count {
-  padding: 4px 10px !important;
-  background: #D7B38C !important;
-  color: var(--bg-secondary) !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-}
-
-.notes-redesign .smart-folders-panel .delete-btn {
-  padding: 10px !important;
-  background: transparent !important;
-  border: none !important;
-  cursor: pointer !important;
-  color: #ef4444 !important;
-  transition: all 0.2s ease !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-.notes-redesign .smart-folders-panel .delete-btn:hover {
-  background: rgba(239, 68, 68, 0.15) !important;
-}
-
-
-/* ==================== SMART FOLDER MODAL ==================== */
-.notes-redesign .smart-folder-modal {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  background: rgba(0, 0, 0, 0.8) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  z-index: 10002 !important;
-  backdrop-filter: blur(8px) !important;
-}
-
-.notes-redesign .smart-folder-modal .modal-content {
-  width: 90% !important;
-  max-width: 520px !important;
-  background: var(--bg-secondary) !important;
-  border: 2px solid var(--border) !important;
-  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  max-height: 80vh !important;
-}
-
-.notes-redesign .smart-folder-modal .modal-header {
-  padding: 20px !important;
-  border-bottom: 2px solid var(--border) !important;
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: center !important;
-  background: var(--bg-secondary) !important;
-}
-
-.notes-redesign .smart-folder-modal .modal-header h3 {
-  margin: 0 !important;
-  font-size: 16px !important;
-  font-weight: 700 !important;
-  color: #D7B38C !important;
-  text-transform: uppercase !important;
-  letter-spacing: 1px !important;
-}
-
-.notes-redesign .smart-folder-modal .modal-header button {
-  background: transparent !important;
-  border: none !important;
-  cursor: pointer !important;
-  color: #D7B38C !important;
-  padding: 6px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  transition: all 0.2s ease !important;
-}
-
-.notes-redesign .smart-folder-modal .modal-header button:hover {
-  color: #ef4444 !important;
-}
-
-.notes-redesign .smart-folder-modal .modal-body {
-  flex: 1 !important;
-  overflow-y: auto !important;
-  padding: 20px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 20px !important;
-  background: var(--bg-secondary) !important;
-}
-
-.notes-redesign .smart-folder-modal .form-group {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 10px !important;
-}
-
-.notes-redesign .smart-folder-modal .form-group label {
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  color: #B8C0CC !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
-}
-
-.notes-redesign .smart-folder-modal .form-group input,
-.notes-redesign .smart-folder-modal .form-group select {
-  padding: 12px 14px !important;
-  background: var(--bg-secondary) !important;
-  border: 2px solid var(--border) !important;
-  color: #EAECEF !important;
-  font-size: 13px !important;
-  font-family: 'Inter', sans-serif !important;
-  transition: all 0.2s ease !important;
-}
-
-.notes-redesign .smart-folder-modal .form-group input:focus,
-.notes-redesign .smart-folder-modal .form-group select:focus {
-  outline: none !important;
-  border-color: #D7B38C !important;
-}
-
-.notes-redesign .smart-folder-modal .form-group input::placeholder {
-  color: #B8C0CC !important;
-  opacity: 0.6 !important;
-}
-
-.notes-redesign .smart-folder-modal .rule-row {
-  display: flex !important;
-  gap: 10px !important;
-  align-items: center !important;
-  padding: 12px !important;
-  background: var(--bg-secondary) !important;
-  border: 2px solid var(--border) !important;
-}
-
-.notes-redesign .smart-folder-modal .rule-row select,
-.notes-redesign .smart-folder-modal .rule-row input {
-  flex: 1 !important;
-  min-width: 0 !important;
-  padding: 10px 12px !important;
-}
-
-.notes-redesign .smart-folder-modal .remove-rule-btn {
-  padding: 8px !important;
-  background: transparent !important;
-  border: 2px solid var(--border) !important;
-  cursor: pointer !important;
-  color: #ef4444 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  transition: all 0.2s ease !important;
-}
-
-.notes-redesign .smart-folder-modal .remove-rule-btn:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.15) !important;
-  border-color: #ef4444 !important;
-}
-
-.notes-redesign .smart-folder-modal .remove-rule-btn:disabled {
+.notes-redesign .smart-folders-panel .sf-empty svg {
   opacity: 0.3 !important;
-  cursor: not-allowed !important;
+  margin-bottom: 12px !important;
 }
 
-.notes-redesign .smart-folder-modal .add-rule-btn {
-  padding: 10px 14px !important;
-  background: var(--bg-secondary) !important;
-  border: 2px solid var(--border) !important;
-  color: #D7B38C !important;
-  font-size: 12px !important;
-  font-weight: 600 !important;
-  cursor: pointer !important;
-  transition: all 0.2s ease !important;
-  text-align: center !important;
+.notes-redesign .smart-folders-panel .sf-empty p {
+  margin: 0 !important;
+  font-size: 13px !important;
 }
 
-.notes-redesign .smart-folder-modal .add-rule-btn:hover {
-  background: rgba(215, 179, 140, 0.1) !important;
-  border-color: #D7B38C !important;
-}
-
-.notes-redesign .smart-folder-modal .modal-footer {
-  padding: 20px !important;
-  border-top: 2px solid var(--border) !important;
+/* Folders List */
+.notes-redesign .smart-folders-panel .sf-folders-list {
   display: flex !important;
-  gap: 12px !important;
-  justify-content: flex-end !important;
-  background: var(--bg-secondary) !important;
+  flex-direction: column !important;
+  gap: 6px !important;
 }
 
-.notes-redesign .smart-folder-modal .cancel-btn {
-  padding: 10px 20px !important;
-  background: var(--bg-secondary) !important;
-  border: 2px solid var(--border) !important;
-  color: #EAECEF !important;
-  font-size: 12px !important;
-  font-weight: 600 !important;
-  cursor: pointer !important;
-  transition: all 0.2s ease !important;
-  text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
-}
-
-.notes-redesign .smart-folder-modal .cancel-btn:hover {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border-color: #D7B38C !important;
-}
-
-.notes-redesign .smart-folder-modal .modal-footer .create-btn {
-  padding: 10px 20px !important;
-  background: #D7B38C !important;
-  border: 2px solid #D7B38C !important;
-  color: var(--bg-secondary) !important;
-  font-size: 12px !important;
-  font-weight: 700 !important;
-  cursor: pointer !important;
-  transition: all 0.2s ease !important;
+.notes-redesign .smart-folders-panel .sf-folder-item {
   display: flex !important;
   align-items: center !important;
-  gap: 8px !important;
+  gap: 12px !important;
+  padding: 12px 14px !important;
+  background: #222 !important;
+  border: 1px solid #333 !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+}
+
+.notes-redesign .smart-folders-panel .sf-folder-item:hover {
+  background: #2a2a2a !important;
+  border-color: rgba(215, 179, 140, 0.4) !important;
+}
+
+.notes-redesign .smart-folders-panel .sf-folder-item.selected {
+  background: rgba(215, 179, 140, 0.15) !important;
+  border-color: #D7B38C !important;
+}
+
+.notes-redesign .smart-folders-panel .sf-folder-icon {
+  color: #D7B38C !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.notes-redesign .smart-folders-panel .sf-folder-info {
+  flex: 1 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+.notes-redesign .smart-folders-panel .sf-folder-name {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #eee !important;
+}
+
+.notes-redesign .smart-folders-panel .sf-folder-count {
+  font-size: 11px !important;
+  color: #888 !important;
+  background: #333 !important;
+  padding: 3px 8px !important;
+  border-radius: 10px !important;
+}
+
+/* Notes Preview */
+.notes-redesign .smart-folders-panel .sf-notes-preview {
+  margin-top: 16px !important;
+  padding-top: 16px !important;
+  border-top: 1px solid #333 !important;
+}
+
+.notes-redesign .smart-folders-panel .sf-notes-preview h4 {
+  margin: 0 0 12px 0 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #D7B38C !important;
   text-transform: uppercase !important;
   letter-spacing: 0.5px !important;
 }
 
-.notes-redesign .smart-folder-modal .modal-footer .create-btn:hover {
-  background: #c9a67a !important;
-  transform: translateY(-1px) !important;
+.notes-redesign .smart-folders-panel .sf-notes-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  max-height: 200px !important;
+  overflow-y: auto !important;
 }
 
+.notes-redesign .smart-folders-panel .sf-note-item {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 10px 12px !important;
+  background: #222 !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+}
+
+.notes-redesign .smart-folders-panel .sf-note-title {
+  color: #ddd !important;
+  flex: 1 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin-right: 12px !important;
+}
+
+.notes-redesign .smart-folders-panel .sf-note-date {
+  color: #666 !important;
+  font-size: 11px !important;
+  flex-shrink: 0 !important;
+}
+
+/* Light Mode */
+[data-theme-mode="light"] .notes-redesign .smart-folders-panel {
+  background: #fff !important;
+  border-color: #e0e0e0 !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .smart-folders-panel .sf-header {
+  background: #f5f5f5 !important;
+  border-color: #e0e0e0 !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .smart-folders-panel .sf-header h3 {
+  color: #333 !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .smart-folders-panel .sf-folder-item {
+  background: #f5f5f5 !important;
+  border-color: #e0e0e0 !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .smart-folders-panel .sf-folder-name {
+  color: #333 !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .smart-folders-panel .sf-note-item {
+  background: #f5f5f5 !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .smart-folders-panel .sf-note-title {
+  color: #333 !important;
+}
