@@ -12,11 +12,11 @@ import {
   Plus, FileText, Upload, Search, Star, Trash2, 
   FolderPlus, Folder, Download, FileDown, Printer, 
   Eye, Edit3, Maximize2, Minimize2, Menu, X, 
-  ChevronDown, Check, Sparkles, Mic, MicOff, 
+  ChevronDown, ChevronRight, Check, Sparkles, Mic, MicOff, 
   MoreVertical, Archive, RefreshCw, Save, Clock,
   AlignLeft, Bold, Italic, Underline, 
   List, ListOrdered, Link2, Image, Code,
-  ArrowLeft, Tag, Layout, Filter, Palette, Timer, Command, Zap
+  ArrowLeft, Tag, Layout, Filter, Palette, Command, Zap
 } from 'lucide-react';
 import { API_URL } from '../config';
 import gamificationService from '../services/gamificationService';
@@ -31,7 +31,6 @@ import TemplatePreview from '../components/TemplatePreview';
 import RecentlyViewed from '../components/RecentlyViewed';
 import PageProperties from '../components/PageProperties';
 import CanvasMode from '../components/CanvasMode';
-import PomodoroTimer from '../components/PomodoroTimer';
 import SmartFolders from '../components/SmartFolders';
 import KeyboardShortcuts from '../components/KeyboardShortcuts';
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
@@ -372,7 +371,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
   
   // New features state
   const [showCanvasMode, setShowCanvasMode] = useState(false);
-  const [showPomodoroTimer, setShowPomodoroTimer] = useState(false);
   const [showSmartFolders, setShowSmartFolders] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -1385,7 +1383,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
       setShowRecentlyViewed(false);
       setShowPageProperties(false);
       setShowCanvasMode(false);
-      setShowPomodoroTimer(false);
       setShowSmartFolders(false);
     },
     onPreviousNote: () => {
@@ -2390,99 +2387,72 @@ const NotesRedesign = ({ sharedMode = false }) => {
         onClose={() => setShowSlashMenu(false)}
       />
 
-      {/* LEFT SIDEBAR REMOVED - All functionality moved to main dashboard */}
-
-      <div className="editor-area-new" style={{ width: '100%' }}>
-        <div className={`top-nav-new ${titleSectionCollapsed ? 'hidden' : ''}`}>
-          <div className="nav-left">
-            {!isSharedContent && (
-              <button
-                onClick={() => navigate('/notes/my-notes')}
-                className="toggle-sidebar nr-exit-btn"
-                title="Exit to My Notes"
-              >
-                <ArrowLeft size={18} />
-              </button>
-            )}
-            {isSharedContent && (
-              <button
-                onClick={() => navigate('/social')}
-                className="toggle-sidebar"
-                title="Back to Social"
-              >
-                <ArrowLeft size={18} />
-              </button>
-            )}
-            <div 
-              className="nav-title" 
-              onClick={() => navigate("/dashboard")}
-              style={{ cursor: 'pointer' }}
-              title="Back to Dashboard"
+      {/* Header - Exact MyNotes mn-header Style */}
+      <header className={`top-nav-new ${titleSectionCollapsed ? 'hidden' : ''}`}>
+        <div className="nav-left">
+          {!isSharedContent && (
+            <button
+              onClick={() => navigate('/notes/my-notes')}
+              className="toggle-sidebar nr-exit-btn"
+              title="Exit to My Notes"
             >
-              <span style={{ fontSize: '32px', fontWeight: '800' }}>cerbyl</span>
-              <span style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-secondary)' }}>notes</span>
-              {isSharedContent && <span className="shared-badge">SHARED</span>}
-            </div>
-          </div>
-
-          {isSharedContent && sharedNoteData && (
-            <div className="nav-center">
-              <div className="shared-note-info">
-                <span className="shared-by">
-                  Shared by: {sharedNoteData.owner?.username}
-                </span>
-                <span className={`permission-badge ${sharedNoteData.permission}`}>
-                  {sharedNoteData.permission === 'view' ? 'View Only' : 'Can Edit'}
-                </span>
-              </div>
-            </div>
+              <ArrowLeft size={18} />
+            </button>
           )}
-
-          <div className="nav-actions-new">
-            {!isSharedContent && (
-              <>
-                <button 
-                  className="nav-btn" 
-                  onClick={() => setShowRecentlyViewed(!showRecentlyViewed)}
-                  title="Recently Viewed"
-                >
-                  <Clock size={16} style={{ marginRight: '6px', display: 'inline' }} />
-                  Recent
-                </button>
-                <button 
-                  className="nav-btn" 
-                  onClick={() => setShowCanvasMode(true)}
-                  title="Canvas Mode"
-                >
-                  <Palette size={16} style={{ marginRight: '6px', display: 'inline' }} />
-                  Canvas
-                </button>
-              </>
-            )}
-            <button className="nav-btn" onClick={() => navigate("/notes/dashboard")}>
-              <Layout size={16} style={{ marginRight: '6px', display: 'inline' }} />
-              Views
-            </button>
-            <button className="nav-btn" onClick={() => navigate("/dashboard")}>
-              Dashboard
-            </button>
-            <button className="nav-btn" onClick={() => navigate("/ai-chat")}>
-              AI Chat
-            </button>
-            <button 
-              className="nav-btn" 
-              onClick={() => setShowKeyboardShortcuts(true)}
-              title="Keyboard Shortcuts (Cmd+/)"
+          {isSharedContent && (
+            <button
+              onClick={() => navigate('/social')}
+              className="toggle-sidebar"
+              title="Back to Social"
             >
-              <Command size={16} style={{ marginRight: '6px', display: 'inline' }} />
-              Shortcuts
+              <ArrowLeft size={18} />
             </button>
-            <button className="logout-btn-new" onClick={handleLogout}>
-              Logout
-            </button>
-          </div>
+          )}
+          <h1 className="nr-header-title" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <div className="nr-header-divider"></div>
+          <p className="nr-header-subtitle">NOTES EDITOR</p>
+          {isSharedContent && <span className="shared-badge">SHARED</span>}
         </div>
 
+        {isSharedContent && sharedNoteData && (
+          <div className="nav-center">
+            <div className="shared-note-info">
+              <span className="shared-by">
+                Shared by: {sharedNoteData.owner?.username}
+              </span>
+              <span className={`permission-badge ${sharedNoteData.permission}`}>
+                {sharedNoteData.permission === 'view' ? 'View Only' : 'Can Edit'}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <nav className="nav-actions-new">
+          {!isSharedContent && (
+            <>
+              <button className="nr-nav-btn-ghost" onClick={() => setShowRecentlyViewed(!showRecentlyViewed)}>
+                <span>Recent</span>
+                <ChevronRight size={14} />
+              </button>
+              <button className="nr-nav-btn-ghost" onClick={() => setShowCanvasMode(true)}>
+                <span>Canvas</span>
+                <ChevronRight size={14} />
+              </button>
+            </>
+          )}
+          <button className="nr-nav-btn-ghost" onClick={() => navigate("/notes/my-notes")}>
+            <span>My Notes</span>
+            <ChevronRight size={14} />
+          </button>
+          <button className="nr-nav-btn-ghost" onClick={() => navigate("/dashboard")}>
+            <span>Dashboard</span>
+            <ChevronRight size={14} />
+          </button>
+        </nav>
+      </header>
+
+      {/* Body - Sidebar + Content */}
+      <div className="nr-body">
         {selectedNote ? (
           <div className="editor-with-sidepanel">
             {/* Floating Menu Button - shows when sidebar is closed */}
@@ -2497,9 +2467,9 @@ const NotesRedesign = ({ sharedMode = false }) => {
             )}
 
             {/* LEFT SIDE TOOLS PANEL */}
-            <div className={`tools-sidepanel ${sidebarOpen && !isSharedContent ? "open" : "closed"}`}>
+            <aside className={`tools-sidepanel ${sidebarOpen && !isSharedContent ? "open" : "closed"}`}>
               <div className="tools-panel-header">
-                <h3>Tools</h3>
+                <h3>TOOLS</h3>
                 <button
                   onClick={() => setSidebarOpen(false)}
                   className="close-panel-btn"
@@ -2512,7 +2482,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
               <div className="tools-panel-content">
                 {/* View Mode Section */}
                 <div className="tool-section">
-                  <label className="tool-section-label">View Mode</label>
+                  <label className="tool-section-label">VIEW MODE</label>
                   <div className="tool-buttons-group">
                     <button
                       className={`tool-panel-btn ${viewMode === "edit" ? "active" : ""}`}
@@ -2527,7 +2497,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
                 {/* Editor Theme Section */}
                 <div className="tool-section">
-                  <label className="tool-section-label">Editor Theme</label>
+                  <label className="tool-section-label">EDITOR THEME</label>
                   <div className="tool-buttons-group">
                     <button
                       className={`tool-panel-btn ${!editorDarkMode ? "active" : ""}`}
@@ -2550,7 +2520,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
                 {/* Export Section */}
                 <div className="tool-section">
-                  <label className="tool-section-label">Export</label>
+                  <label className="tool-section-label">EXPORT</label>
                   <div className="tool-buttons-group">
                     <button 
                       className="tool-panel-btn" 
@@ -2573,7 +2543,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
                 {/* AI Tools Section */}
                 <div className="tool-section">
-                  <label className="tool-section-label">AI Tools</label>
+                  <label className="tool-section-label">AI TOOLS</label>
                   <div className="tool-buttons-group">
                     <button
                       className="tool-panel-btn"
@@ -2606,7 +2576,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
                 {/* Search & Templates Section */}
                 <div className="tool-section">
-                  <label className="tool-section-label">Tools</label>
+                  <label className="tool-section-label">QUICK ACTIONS</label>
                   <div className="tool-buttons-group">
                     <button
                       className="tool-panel-btn"
@@ -2629,7 +2599,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
                 {/* Tags Section */}
                 <div className="tool-section">
-                  <label className="tool-section-label">Organization</label>
+                  <label className="tool-section-label">ORGANIZATION</label>
                   <div className="tool-buttons-group">
                     <button 
                       onClick={() => setShowTagsPanel(!showTagsPanel)}
@@ -2644,7 +2614,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
                 {/* Visual & Interactive Features */}
                 <div className="tool-section">
-                  <label className="tool-section-label">Visual Tools</label>
+                  <label className="tool-section-label">VISUAL TOOLS</label>
                   <div className="tool-buttons-group">
                     <button 
                       onClick={() => setShowCanvasMode(true)}
@@ -2656,33 +2626,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     </button>
                   </div>
                 </div>
-
-                {/* Pomodoro Timer */}
-                {showPomodoroTimer && (
-                  <div className="tool-section">
-                    <PomodoroTimer 
-                      noteId={selectedNote?.id}
-                      onTimeTracked={(noteId, minutes) => {
-                                              }}
-                    />
-                  </div>
-                )}
-                
-                <div className="tool-section">
-                  <label className="tool-section-label">Focus</label>
-                  <div className="tool-buttons-group">
-                    <button 
-                      onClick={() => navigate('/pomodoro')}
-                      className="tool-panel-btn"
-                      title="Pomodoro Timer"
-                    >
-                      <Timer size={16} />
-                      <span>Focus Timer</span>
-                    </button>
-                  </div>
-                </div>
               </div>
-            </div>
+            </aside>
 
             <div className={`editor-content ${editorDarkMode ? 'dark-mode' : ''} ${titleSectionCollapsed ? 'toolbar-hidden' : ''} ${!sidebarOpen ? 'sidebar-closed' : ''}`}>
               {isSharedContent && !canEdit && (
@@ -3064,7 +3009,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
             )}
           </div>
         )}
-      </div>
+      </div> {/* Close nr-body */}
 
       {showAIButton && (
         <div

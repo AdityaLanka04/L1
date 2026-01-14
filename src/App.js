@@ -25,7 +25,6 @@ import Statistics from './pages/Statistics';
 import Flashcards from './pages/Flashcards';
 import Notes from './pages/NotesRedesign';
 import NotesHub from './pages/NotesHub';
-import PomodoroPage from './pages/PomodoroPage';
 import AudioVideoNotes from './pages/AudioVideoNotes';
 import AIMediaNotes from './pages/AIMediaNotes';
 import MyNotes from './pages/MyNotes';
@@ -110,7 +109,6 @@ function App() {
             <Route path="/slide-explorer" element={<ProtectedRoute><SlideExplorer /></ProtectedRoute>} />
             <Route path="/statistics" element={<ProtectedRoute><Statistics /></ProtectedRoute>} />
             <Route path="/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
-            <Route path="/pomodoro" element={<ProtectedRoute><PomodoroPage /></ProtectedRoute>} />
             <Route path="/notes" element={<ProtectedRoute><NotesHub /></ProtectedRoute>} />
             <Route path="/notes/dashboard" element={<ProtectedRoute><NotesDashboard /></ProtectedRoute>} />
             <Route path="/notes/audio-video" element={<ProtectedRoute><AudioVideoNotes /></ProtectedRoute>} />

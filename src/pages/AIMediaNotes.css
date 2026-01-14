@@ -1,17 +1,17 @@
-/* AI Media Notes Page - Matching Flashcards Layout */
+/* AI Media Notes Page - Matching MyNotes Layout */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ==================== FORCE BOXY DESIGN ==================== */
+/* ==================== ALLOW ROUNDED CORNERS LIKE MYNOTES ==================== */
 .ai-media-notes-page *,
 .ai-media-notes-page *::before,
 .ai-media-notes-page *::after {
-  border-radius: 0 !important;
+  /* Allow natural border-radius */
 }
 
-/* CSS Variables */
+/* CSS Variables - Matching MyNotes Exactly */
 .ai-media-notes-page {
-  --mn-bg-primary: var(--bg);
-  --mn-bg-secondary: var(--panel);
+  --mn-bg-primary: var(--bg-primary);
+  --mn-bg-secondary: var(--bg-secondary);
   --mn-bg-tertiary: var(--hover-bg);
   --mn-bg-card: var(--panel);
   --mn-bg-elevated: var(--hover-bg);
@@ -40,13 +40,15 @@
   bottom: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  background: var(--mn-bg-primary) !important;
+  background: var(--bg-primary) !important;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   color: var(--mn-text-primary);
   overflow: hidden !important;
   z-index: 9999 !important;
   margin: 0 !important;
   padding: 0 !important;
+  display: flex;
+  flex-direction: column;
 }
 
 .ai-media-notes-page * {
@@ -57,21 +59,41 @@
 
 /* Main Layout */
 .mn-layout {
+  flex: 1;
   display: flex;
   width: 100%;
   height: 100%;
+  overflow: hidden;
 }
 
-/* Sidebar */
+/* Sidebar - Matching MyNotes */
 .mn-sidebar {
   width: var(--mn-sidebar-width);
   height: 100%;
-  background: var(--mn-bg-secondary);
+  background: var(--bg-secondary);
   border-right: 1px solid var(--mn-border-subtle);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   transition: width 0.3s ease;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Sidebar Text Colors - Exact MyNotes */
+[data-theme-mode="dark"] .mn-sidebar {
+  background: linear-gradient(180deg, 
+    color-mix(in srgb, var(--accent) 15%, #000000) 0%, 
+    color-mix(in srgb, var(--accent) 8%, #000000) 100%) !important;
+  color: color-mix(in srgb, var(--accent) 60%, #ffffff) !important;
+}
+
+[data-theme-mode="light"] .mn-sidebar {
+  background: linear-gradient(180deg, 
+    color-mix(in srgb, var(--accent) 15%, #ffffff) 0%, 
+    color-mix(in srgb, var(--accent) 25%, #ffffff) 50%, 
+    color-mix(in srgb, var(--accent) 18%, #ffffff) 100%) !important;
+  color: color-mix(in srgb, var(--accent) 80%, #000000) !important;
 }
 
 .mn-sidebar.collapsed {
@@ -164,7 +186,7 @@
   color: var(--mn-accent);
 }
 
-/* New Upload Button */
+/* New Upload Button - Matching MyNotes Primary Button */
 .mn-new-upload-btn {
   display: flex;
   align-items: center;
@@ -174,11 +196,22 @@
   background: linear-gradient(135deg, var(--mn-accent), var(--mn-accent-dark));
   border: none;
   border-radius: 8px;
-  color: var(--mn-bg-primary);
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+/* Dark mode - black text on accent button */
+[data-theme-mode="dark"] .mn-new-upload-btn {
+  color: #000000 !important;
+}
+
+/* Light mode - white text on accent button */
+[data-theme-mode="light"] .mn-new-upload-btn {
+  color: #ffffff !important;
 }
 
 .mn-new-upload-btn:hover {
@@ -213,11 +246,15 @@
 .mn-nav-section-title {
   font-size: 11px;
   font-weight: 600;
-  color: var(--mn-text-muted);
+  color: var(--mn-accent);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 8px 16px;
+  letter-spacing: 2px;
+  padding: 12px 16px 8px 16px;
   margin-bottom: 4px;
+  background: linear-gradient(135deg, var(--mn-accent), var(--mn-accent-dark));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .mn-nav-item {
@@ -233,6 +270,27 @@
   transition: all 0.2s;
   width: 100%;
   text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Enhanced Nav Items - Exact MyNotes */
+.mn-nav-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--mn-accent-glow), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.mn-nav-item:hover::before {
+  opacity: 1;
+}
+
+.mn-nav-item.active::before {
+  opacity: 1;
+  background: linear-gradient(90deg, var(--mn-accent-glow), transparent);
 }
 
 .mn-nav-item:hover {
@@ -255,8 +313,10 @@
 }
 
 .mn-nav-text {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2px;
   flex: 1;
 }
 
@@ -373,38 +433,85 @@
   background: var(--mn-bg-primary);
 }
 
-/* Header */
+/* Header - Matching MyNotes mn-header Exactly */
 .mn-header {
   height: var(--mn-header-height);
   min-height: var(--mn-header-height);
-  padding: 0 32px;
-  background: var(--mn-bg-primary);
-  border-bottom: 1px solid var(--mn-border-subtle);
+  padding: 20px 40px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+  width: 100%;
+}
+
+/* Enhanced Header - Exact MyNotes */
+[data-theme-mode="dark"] .mn-header {
+  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid rgba(215, 179, 140, 0.2);
+}
+
+[data-theme-mode="light"] .mn-header {
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
 }
 
 .mn-header-left {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 16px;
 }
 
+/* Header Title - Exact MyNotes Style */
 .mn-header-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--mn-text-primary);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: -1px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin: 0;
+}
+
+.mn-header-title:hover {
+  transform: translateY(-2px);
+  text-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+/* Header Divider - Exact MyNotes Style */
+.mn-header-divider {
+  width: 1px;
+  height: 20px;
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+/* Header Subtitle - Exact MyNotes Style */
+.mn-header-subtitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--accent) 70%, var(--mn-text-primary));
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0;
 }
 
 [data-theme-mode="dark"] .mn-header-title {
-  color: var(--mn-accent) !important;
+  color: var(--accent) !important;
 }
 
-.mn-header-subtitle {
-  font-size: 13px;
-  color: var(--mn-text-muted);
+[data-theme-mode="light"] .mn-header-title {
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="dark"] .mn-header-subtitle {
+  color: color-mix(in srgb, var(--accent) 70%, var(--mn-text-primary)) !important;
+}
+
+[data-theme-mode="light"] .mn-header-subtitle {
+  color: color-mix(in srgb, var(--accent) 70%, var(--mn-text-primary)) !important;
 }
 
 .mn-header-actions {
@@ -413,18 +520,69 @@
   gap: 12px;
 }
 
-/* Buttons */
+/* Ghost Nav Button - Exact MyNotes Style */
+.mn-nav-btn-ghost {
+  background: transparent;
+  border: none;
+  color: var(--mn-text-primary);
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mn-nav-btn-ghost:hover {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.mn-nav-btn-ghost svg {
+  width: 14px !important;
+  height: 14px !important;
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+/* Buttons - Matching MyNotes */
 .mn-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
+  padding: 10px 20px;
   border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
   border: none;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mn-btn-primary {
+  background: linear-gradient(135deg, var(--mn-accent), var(--mn-accent-dark));
+}
+
+/* Dark mode - black text on accent button */
+[data-theme-mode="dark"] .mn-btn-primary {
+  color: #000000 !important;
+}
+
+/* Light mode - white text on accent button */
+[data-theme-mode="light"] .mn-btn-primary {
+  color: #ffffff !important;
+}
+
+.mn-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.3);
 }
 
 .mn-btn-secondary {
@@ -1373,4 +1531,162 @@
   .mn-content {
     padding: 16px;
   }
+}
+
+/* ==================== ENHANCED UI IMPROVEMENTS - Exact MyNotes ==================== */
+
+/* Advanced Gradient Backgrounds */
+[data-theme-mode="dark"] .ai-media-notes-page {
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%) !important;
+}
+
+[data-theme-mode="light"] .ai-media-notes-page {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%) !important;
+}
+
+/* Ambient Background Effect - Exact MyNotes */
+.ai-media-notes-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: 
+    radial-gradient(circle at 20% 50%, rgba(215, 179, 140, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(215, 179, 140, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, rgba(215, 179, 140, 0.02) 0%, transparent 50%);
+  z-index: 0;
+}
+
+/* Ensure content is above ambient background */
+.mn-header,
+.mn-layout,
+.mn-sidebar,
+.mn-main {
+  position: relative;
+  z-index: 1;
+}
+
+/* Enhanced Main Content - Exact MyNotes */
+[data-theme-mode="dark"] .mn-main {
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%) !important;
+}
+
+[data-theme-mode="light"] .mn-main {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%) !important;
+}
+
+/* Enhanced Scrollbar - Exact MyNotes */
+.mn-sidebar::-webkit-scrollbar,
+.mn-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mn-sidebar::-webkit-scrollbar-track,
+.mn-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mn-sidebar::-webkit-scrollbar-thumb,
+.mn-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--mn-accent), var(--mn-accent-dark));
+  box-shadow: 0 0 10px var(--mn-accent);
+  border-radius: 4px;
+}
+
+/* Convert button style - Exact MyNotes */
+.convert-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, var(--mn-accent), var(--mn-accent-dark));
+  border: none;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+[data-theme-mode="dark"] .convert-btn {
+  color: #000000 !important;
+}
+
+[data-theme-mode="light"] .convert-btn {
+  color: #ffffff !important;
+}
+
+.convert-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.3);
+}
+
+/* Top Header Bar - New MyNotes Style Header */
+.mn-top-header {
+  height: var(--mn-header-height);
+  min-height: var(--mn-header-height);
+  padding: 20px 40px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  width: 100%;
+  z-index: 100;
+}
+
+[data-theme-mode="dark"] .mn-top-header {
+  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid rgba(215, 179, 140, 0.2);
+}
+
+[data-theme-mode="light"] .mn-top-header {
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+}
+
+.mn-top-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.mn-top-header-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: -1px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin: 0;
+}
+
+.mn-top-header-title:hover {
+  transform: translateY(-2px);
+  text-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.mn-top-header-divider {
+  width: 1px;
+  height: 20px;
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.mn-top-header-subtitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.mn-top-header-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }

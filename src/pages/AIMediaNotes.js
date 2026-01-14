@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Upload, Youtube, FileText, Save, Copy, Mic, Loader,
   Settings, Brain, Zap, Clock, Globe, ChevronLeft, ChevronRight,
-  BookOpen, CheckCircle, AlertCircle, Play, Trash2, Home, LogOut, Menu
+  BookOpen, CheckCircle, AlertCircle, Play, Trash2, Home, LogOut, Menu, ArrowLeft
 } from 'lucide-react';
 import './AIMediaNotes.css';
 import './AIMediaNotesConvert.css';
@@ -349,13 +349,45 @@ const AIMediaNotes = () => {
 
   return (
     <div className="ai-media-notes-page">
+      {/* Top Header - Exact MyNotes Style */}
+      <header className="mn-top-header">
+        <div className="mn-top-header-left">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="mn-nav-btn-ghost"
+            style={{ padding: '8px' }}
+            title="Back to Dashboard"
+          >
+            <ArrowLeft size={18} />
+          </button>
+          <h1 className="mn-top-header-title" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <div className="mn-top-header-divider"></div>
+          <p className="mn-top-header-subtitle">MEDIA NOTES</p>
+        </div>
+
+        <nav className="mn-top-header-nav">
+          <button className="mn-nav-btn-ghost" onClick={() => navigate("/notes/my-notes")}>
+            <span>My Notes</span>
+            <ChevronRight size={14} />
+          </button>
+          <button className="mn-nav-btn-ghost" onClick={() => navigate("/flashcards")}>
+            <span>Flashcards</span>
+            <ChevronRight size={14} />
+          </button>
+          <button className="mn-nav-btn-ghost" onClick={() => navigate("/dashboard")}>
+            <span>Dashboard</span>
+            <ChevronRight size={14} />
+          </button>
+        </nav>
+      </header>
+
       <div className="mn-layout">
         {/* Sidebar */}
         <aside className={`mn-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
           <div className="mn-sidebar-header">
             <div className="mn-logo" onClick={() => navigate('/dashboard')}>
               <div className="mn-logo-icon">{Icons.media}</div>
-              <span className="mn-logo-text">Media Notes</span>
+              <span className="mn-logo-text">MEDIA NOTES</span>
             </div>
             <button 
               className="mn-collapse-btn"
@@ -371,11 +403,11 @@ const AIMediaNotes = () => {
             setYoutubeUrl('');
           }}>
             <Upload size={18} />
-            <span>New Upload</span>
+            <span>NEW UPLOAD</span>
           </button>
 
           <nav className="mn-sidebar-nav">
-            <div className="mn-nav-section-title">History</div>
+            <div className="mn-nav-section-title">HISTORY</div>
             <div className="mn-history-list">
               {history.length > 0 ? (
                 history.slice(0, 10).map((item, idx) => (
@@ -412,15 +444,15 @@ const AIMediaNotes = () => {
           <div className="mn-sidebar-footer">
             <button className="mn-nav-item" onClick={() => navigate('/notes')}>
               <span className="mn-nav-icon">{Icons.notes}</span>
-              <span className="mn-nav-text">My Notes</span>
+              <span className="mn-nav-text">MY NOTES</span>
             </button>
             <button className="mn-nav-item" onClick={() => navigate('/dashboard')}>
               <span className="mn-nav-icon">{Icons.home}</span>
-              <span className="mn-nav-text">Dashboard</span>
+              <span className="mn-nav-text">DASHBOARD</span>
             </button>
             <button className="mn-nav-item" onClick={handleLogout}>
               <span className="mn-nav-icon">{Icons.logout}</span>
-              <span className="mn-nav-text">Logout</span>
+              <span className="mn-nav-text">LOGOUT</span>
             </button>
           </div>
         </aside>
@@ -440,12 +472,13 @@ const AIMediaNotes = () => {
         <main className="mn-main">
           <header className="mn-header">
             <div className="mn-header-left">
-              <h1 className="mn-header-title">AI Media Notes</h1>
-              <p className="mn-header-subtitle">Transform audio & video into smart study notes</p>
+              <h1 className="mn-header-title">cerbyl</h1>
+              <div className="mn-header-divider"></div>
+              <p className="mn-header-subtitle">MEDIA NOTES</p>
             </div>
             <div className="mn-header-actions">
               <button 
-                className="mn-btn mn-btn-secondary"
+                className="mn-nav-btn-ghost"
                 onClick={() => {
                   setResults(null);
                   setUploadedFile(null);
@@ -453,7 +486,11 @@ const AIMediaNotes = () => {
                 }}
               >
                 <Upload size={16} />
-                New Upload
+                <span>NEW UPLOAD</span>
+              </button>
+              <button className="mn-nav-btn-ghost" onClick={() => navigate("/notes/my-notes")}>
+                <span>My Notes</span>
+                <ChevronRight size={14} />
               </button>
             </div>
           </header>
