@@ -30,6 +30,7 @@ const QuestionBankDashboard = () => {
   const [showImportExport, setShowImportExport] = useState(false);
 
   const [selectedDocument, setSelectedDocument] = useState(null);
+  const [selectedPDFs, setSelectedPDFs] = useState([]);  // For multi-PDF selection
   const [selectedSources, setSelectedSources] = useState([]);
   const [customContent, setCustomContent] = useState('');
   const [customTitle, setCustomTitle] = useState('');
@@ -163,6 +164,12 @@ const QuestionBankDashboard = () => {
   };
 
   const handleGenerateFromPDF = async () => {
+    // Check if we have multiple PDFs selected
+    if (selectedPDFs.length > 0) {
+      await handleGenerateFromMultiplePDFs();
+      return;
+    }
+    
     if (!selectedDocument) {
       alert('Please select a PDF document');
       return;
@@ -197,6 +204,89 @@ const QuestionBankDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGenerateFromMultiplePDFs = async () => {
+    if (selectedPDFs.length === 0) {
+      alert('Please select at least one PDF document');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log('🚀 Generating from multiple PDFs:', { userId, selectedPDFs, questionCount, difficultyMix });
+      
+      const response = await questionBankAgentService.generateFromMultiplePDFs({
+        userId,
+        sourceIds: selectedPDFs.map(p => p.id),
+        questionCount,
+        difficultyMix,
+        title: selectedPDFs.length === 1 
+          ? `Questions from ${selectedPDFs[0].filename}`
+          : `Questions from ${selectedPDFs.length} documents`,
+        questionTypes
+      });
+
+      console.log('✅ Response:', response);
+      
+      if (response.status === 'success') {
+        alert(`Successfully generated ${response.question_count} questions from ${selectedPDFs.length} document(s)!`);
+        setSelectedPDFs([]);
+        setSelectedDocument(null);
+        await fetchQuestionSets();
+        setActiveView('question-sets');
+      } else {
+        alert('Failed to generate questions: ' + (response.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('❌ Error:', error);
+      alert('Error generating questions: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const togglePDFSelection = (doc) => {
+    const isSelected = selectedPDFs.some(p => p.id === doc.id);
+    if (isSelected) {
+      setSelectedPDFs(selectedPDFs.filter(p => p.id !== doc.id));
+    } else {
+      setSelectedPDFs([...selectedPDFs, doc]);
+    }
+    // Clear single selection when using multi-select
+    setSelectedDocument(null);
+  };
+
+  const handleDeleteDocument = async (docId, e) => {
+    e.stopPropagation(); // Prevent card selection
+    
+    if (!window.confirm('Are you sure you want to delete this PDF? This cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await questionBankAgentService.deleteDocument(userId, docId);
+      
+      // Remove from selected PDFs if it was selected
+      setSelectedPDFs(selectedPDFs.filter(p => p.id !== docId));
+      if (selectedDocument === docId) {
+        setSelectedDocument(null);
+      }
+      
+      await fetchUploadedDocuments();
+      alert('Document deleted successfully');
+    } catch (error) {
+      console.error('❌ Error deleting document:', error);
+      alert('Error deleting document: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearPDFSelection = () => {
+    setSelectedPDFs([]);
+    setSelectedDocument(null);
   };
 
   const handleGenerateFromChatSlides = async () => {
@@ -428,7 +518,7 @@ const QuestionBankDashboard = () => {
           onClick={() => setActiveView('upload-pdf')}
         >
           <Upload size={20} />
-          <span className="qbd-nav-text">Upload PDF</span>
+          <span className="qbd-nav-text">PDF Sources</span>
         </button>
 
         <button 
@@ -491,8 +581,8 @@ const QuestionBankDashboard = () => {
         <div className="qbd-view-title-group">
           <Upload className="qbd-view-icon" size={32} />
           <div>
-            <h2 className="qbd-view-title">Upload PDF Questions</h2>
-            <p className="qbd-view-subtitle">Upload any PDF with questions and generate similar ones</p>
+            <h2 className="qbd-view-title">PDF Sources</h2>
+            <p className="qbd-view-subtitle">Upload PDFs and select multiple sources to generate questions</p>
           </div>
         </div>
       </div>
@@ -501,8 +591,8 @@ const QuestionBankDashboard = () => {
         <div className="qbd-upload-section">
           <div className="qbd-upload-box">
             <FileUp size={48} />
-            <h3>Upload Your PDF</h3>
-            <p>Upload a PDF containing questions to analyze and generate similar ones</p>
+            <h3>Add PDF Source</h3>
+            <p>Upload PDFs to use as sources for question generation</p>
             <input
               type="file"
               accept=".pdf"
@@ -512,48 +602,93 @@ const QuestionBankDashboard = () => {
             />
             <label htmlFor="pdf-upload-input" className="qbd-btn-primary">
               {loading ? <Loader className="qbd-spin" size={18} /> : <Upload size={18} />}
-              <span>{loading ? 'Uploading...' : 'Choose PDF File'}</span>
+              <span>{loading ? 'Uploading...' : 'Add PDF'}</span>
             </label>
           </div>
         </div>
 
         {uploadedDocuments.length > 0 && (
           <div className="qbd-documents-section">
-            <h3 className="qbd-section-title">
-              <BookOpen size={20} />
-              Uploaded Documents ({uploadedDocuments.length})
-            </h3>
-            <div className="qbd-documents-grid">
-              {uploadedDocuments.map(doc => (
-                <div 
-                  key={doc.id} 
-                  className={`qbd-document-card ${selectedDocument === doc.id ? 'selected' : ''}`}
-                  onClick={() => setSelectedDocument(doc.id)}
-                >
-                  <div className="qbd-document-header">
-                    <FileText size={24} />
-                    <div className="qbd-document-info">
-                      <h4>{doc.filename}</h4>
-                      <p>{doc.document_type}</p>
-                    </div>
-                  </div>
-                  {doc.analysis && (
-                    <div className="qbd-document-topics">
-                      {doc.analysis.main_topics?.slice(0, 3).map((topic, idx) => (
-                        <span key={idx} className="qbd-topic-tag">{topic}</span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="qbd-document-footer">
-                    <span className="qbd-document-date">
-                      {new Date(doc.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
+            <div className="qbd-section-header-row">
+              <h3 className="qbd-section-title">
+                <BookOpen size={20} />
+                Your Sources ({uploadedDocuments.length})
+              </h3>
+              {selectedPDFs.length > 0 && (
+                <div className="qbd-selection-info">
+                  <span className="qbd-selection-count">{selectedPDFs.length} selected</span>
+                  <button className="qbd-btn-text" onClick={clearPDFSelection}>Clear</button>
                 </div>
-              ))}
+              )}
+            </div>
+            
+            <p className="qbd-section-hint">Click to select multiple PDFs as sources for question generation</p>
+            
+            <div className="qbd-documents-grid">
+              {uploadedDocuments.map(doc => {
+                const isSelected = selectedPDFs.some(p => p.id === doc.id);
+                return (
+                  <div 
+                    key={doc.id} 
+                    className={`qbd-document-card ${isSelected ? 'selected' : ''}`}
+                    onClick={() => togglePDFSelection(doc)}
+                  >
+                    <div className="qbd-document-select-indicator">
+                      {isSelected && <CheckCircle size={20} />}
+                    </div>
+                    <button 
+                      className="qbd-document-delete-btn"
+                      onClick={(e) => handleDeleteDocument(doc.id, e)}
+                      title="Delete this PDF"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                    <div className="qbd-document-header">
+                      <FileText size={24} />
+                      <div className="qbd-document-info">
+                        <h4>{doc.filename}</h4>
+                        <p>{doc.document_type}</p>
+                      </div>
+                    </div>
+                    {doc.analysis && (
+                      <div className="qbd-document-topics">
+                        {doc.analysis.main_topics?.slice(0, 3).map((topic, idx) => (
+                          <span key={idx} className="qbd-topic-tag">{topic}</span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="qbd-document-footer">
+                      <span className="qbd-document-date">
+                        {new Date(doc.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
-            {selectedDocument && (
+            {/* Selected Sources Summary */}
+            {selectedPDFs.length > 0 && (
+              <div className="qbd-selected-sources-panel">
+                <h4>Selected Sources ({selectedPDFs.length})</h4>
+                <div className="qbd-selected-sources-list">
+                  {selectedPDFs.map(pdf => (
+                    <div key={pdf.id} className="qbd-selected-source-item">
+                      <FileText size={16} />
+                      <span>{pdf.filename}</span>
+                      <button 
+                        className="qbd-remove-source-btn"
+                        onClick={() => togglePDFSelection(pdf)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedPDFs.length > 0 && (
               <div className="qbd-generation-settings">
                 <h3 className="qbd-section-title">Generation Settings</h3>
                 
@@ -629,11 +764,11 @@ const QuestionBankDashboard = () => {
 
                 <button 
                   className="qbd-btn-primary qbd-btn-large"
-                  onClick={handleGenerateFromPDF}
+                  onClick={handleGenerateFromMultiplePDFs}
                   disabled={loading}
                 >
                   {loading ? <Loader className="qbd-spin" size={18} /> : <Sparkles size={18} />}
-                  <span>{loading ? 'Generating...' : 'Generate Questions'}</span>
+                  <span>{loading ? 'Generating...' : `Generate from ${selectedPDFs.length} Source${selectedPDFs.length > 1 ? 's' : ''}`}</span>
                 </button>
               </div>
             )}

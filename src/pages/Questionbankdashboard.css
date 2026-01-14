@@ -1673,3 +1673,174 @@
     max-width: 100%;
   }
 }
+
+/* ==================== MULTI-PDF SELECTION STYLES ==================== */
+
+.qbd-section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.qbd-selection-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.qbd-selection-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--qbd-accent-glow);
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.qbd-btn-text {
+  background: none;
+  border: none;
+  color: var(--qbd-text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: color 0.2s;
+}
+
+.qbd-btn-text:hover {
+  color: var(--accent);
+}
+
+.qbd-section-hint {
+  font-size: 13px;
+  color: var(--qbd-text-secondary);
+  margin-bottom: 16px;
+  opacity: 0.8;
+}
+
+.qbd-document-card {
+  position: relative;
+}
+
+.qbd-document-select-indicator {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--qbd-border-subtle);
+  background: var(--qbd-bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.qbd-document-card.selected .qbd-document-select-indicator {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.qbd-document-delete-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+  z-index: 3;
+}
+
+.qbd-document-card:hover .qbd-document-delete-btn {
+  opacity: 1;
+}
+
+.qbd-document-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  transform: scale(1.1);
+}
+
+/* Selected Sources Panel */
+.qbd-selected-sources-panel {
+  background: var(--qbd-bg-tertiary);
+  border: 1px solid var(--qbd-border-subtle);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.qbd-selected-sources-panel h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--qbd-text-primary);
+  margin-bottom: 12px;
+}
+
+.qbd-selected-sources-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.qbd-selected-source-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--qbd-bg-secondary);
+  border: 1px solid var(--qbd-border-subtle);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--qbd-text-primary);
+}
+
+.qbd-selected-source-item svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.qbd-remove-source-btn {
+  background: none;
+  border: none;
+  color: var(--qbd-text-secondary);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  margin-left: 4px;
+  transition: color 0.2s;
+}
+
+.qbd-remove-source-btn:hover {
+  color: #ef4444;
+}
+
+/* Enhanced document card selection state */
+.qbd-document-card.selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, var(--qbd-bg-secondary));
+  box-shadow: 0 0 0 2px var(--qbd-accent-glow);
+}
+
+.qbd-document-card.selected::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--qbd-accent-glow), transparent);
+  pointer-events: none;
+}

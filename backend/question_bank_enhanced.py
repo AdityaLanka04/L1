@@ -60,6 +60,17 @@ class SimilarQuestionRequest(BaseModel):
     difficulty: Optional[str] = None
 
 
+class MultiPDFGenerationRequest(BaseModel):
+    """Request model for generating questions from multiple PDF sources"""
+    user_id: str
+    source_ids: List[int]  # List of document IDs
+    question_count: int = 10
+    difficulty_mix: Dict[str, int] = {"easy": 3, "medium": 5, "hard": 2}
+    question_types: List[str] = ["multiple_choice", "true_false", "short_answer"]
+    topics: Optional[List[str]] = None
+    title: Optional[str] = None
+
+
 class DifficultyClassifierAgent:
     def __init__(self, unified_ai):
         self.unified_ai = unified_ai
@@ -635,6 +646,44 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             logger.error(f"Error fetching documents: {e}")
             raise HTTPException(status_code=500, detail=str(e))
     
+    @app.delete("/api/qb/delete_document/{doc_id}")
+    async def delete_document(
+        doc_id: int,
+        user_id: str = Query(...),
+        db: Session = Depends(get_db_func)
+    ):
+        """Delete an uploaded PDF document"""
+        try:
+            import models
+            
+            user = db.query(models.User).filter(
+                (models.User.username == user_id) | (models.User.email == user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            document = db.query(models.UploadedDocument).filter(
+                models.UploadedDocument.id == doc_id,
+                models.UploadedDocument.user_id == user.id
+            ).first()
+            
+            if not document:
+                raise HTTPException(status_code=404, detail="Document not found")
+            
+            db.delete(document)
+            db.commit()
+            
+            logger.info(f"Document {doc_id} deleted successfully for user {user_id}")
+            return {"status": "success", "message": "Document deleted successfully"}
+            
+        except HTTPException as http_e:
+            raise http_e
+        except Exception as e:
+            logger.error(f"Error deleting document: {e}")
+            db.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+    
     @app.post("/api/qb/generate_from_pdf")
     async def generate_from_pdf(
         request: QuestionGenerationRequest,
@@ -749,6 +798,121 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             
         except Exception as e:
             logger.error(f"Error generating questions from PDF: {e}")
+            db.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/qb/generate_from_multiple_pdfs")
+    async def generate_from_multiple_pdfs(
+        request: MultiPDFGenerationRequest,
+        db: Session = Depends(get_db_func)
+    ):
+        """Generate questions from multiple PDF documents"""
+        try:
+            import models
+            
+            logger.info(f"Generating questions from {len(request.source_ids)} PDFs for user {request.user_id}")
+            
+            user = db.query(models.User).filter(
+                (models.User.username == request.user_id) | (models.User.email == request.user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            if not request.source_ids or len(request.source_ids) == 0:
+                raise HTTPException(status_code=400, detail="At least one PDF source is required")
+            
+            # Fetch all selected documents
+            documents = db.query(models.UploadedDocument).filter(
+                models.UploadedDocument.id.in_(request.source_ids),
+                models.UploadedDocument.user_id == user.id
+            ).all()
+            
+            if len(documents) == 0:
+                raise HTTPException(status_code=404, detail="No documents found")
+            
+            if len(documents) != len(request.source_ids):
+                logger.warning(f"Some documents not found. Requested: {len(request.source_ids)}, Found: {len(documents)}")
+            
+            # Combine content from all PDFs
+            combined_content_parts = []
+            document_names = []
+            
+            for doc in documents:
+                document_names.append(doc.filename)
+                combined_content_parts.append(f"=== Document: {doc.filename} ===\n{doc.content}")
+            
+            combined_content = "\n\n".join(combined_content_parts)
+            logger.info(f"Combined content from {len(documents)} documents: {len(combined_content)} chars")
+            
+            # Generate title from document names
+            if request.title:
+                title = request.title
+            elif len(document_names) == 1:
+                title = f"Questions from {document_names[0]}"
+            elif len(document_names) <= 3:
+                title = f"Questions from {', '.join(document_names)}"
+            else:
+                title = f"Questions from {len(document_names)} documents"
+            
+            # Generate questions from combined content
+            questions = await agents["question_generator"].generate_questions(
+                combined_content,
+                request.question_count,
+                request.question_types,
+                request.difficulty_mix,
+                request.topics
+            )
+            
+            if not questions:
+                raise HTTPException(status_code=500, detail="Failed to generate questions from the provided documents")
+            
+            # Create question set
+            question_set = models.QuestionSet(
+                user_id=user.id,
+                title=title,
+                description=f"Generated from {len(documents)} PDF documents: {', '.join(document_names[:3])}{'...' if len(document_names) > 3 else ''}",
+                source_type="multi_pdf",
+                source_id=None,  # Multiple sources, so no single ID
+                total_questions=len(questions)
+            )
+            
+            db.add(question_set)
+            db.flush()
+            
+            # Add questions
+            for idx, q in enumerate(questions):
+                question = models.Question(
+                    question_set_id=question_set.id,
+                    question_text=q.get("question_text"),
+                    question_type=q.get("question_type"),
+                    difficulty=q.get("difficulty"),
+                    topic=q.get("topic"),
+                    correct_answer=q.get("correct_answer"),
+                    options=json.dumps(q.get("options", [])),
+                    explanation=q.get("explanation"),
+                    points=q.get("points", 1),
+                    order_index=idx
+                )
+                db.add(question)
+            
+            db.commit()
+            db.refresh(question_set)
+            
+            logger.info(f"Successfully generated {len(questions)} questions from {len(documents)} PDFs")
+            
+            return {
+                "status": "success",
+                "question_set_id": question_set.id,
+                "question_count": len(questions),
+                "title": title,
+                "source_documents": document_names
+            }
+            
+        except HTTPException as http_e:
+            raise http_e
+        except Exception as e:
+            logger.error(f"Error generating questions from multiple PDFs: {e}", exc_info=True)
             db.rollback()
             raise HTTPException(status_code=500, detail=str(e))
     

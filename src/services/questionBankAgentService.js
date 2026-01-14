@@ -82,6 +82,56 @@ class QuestionBankAgentService {
   }
 
   /**
+   * Generate questions from multiple PDF documents (NotebookLM style)
+   */
+  async generateFromMultiplePDFs(params) {
+    const { userId, sourceIds, questionCount, difficultyMix, title, questionTypes, topics } = params;
+
+    const response = await fetch(`${API_URL}/qb/generate_from_multiple_pdfs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        source_ids: sourceIds,
+        question_count: questionCount,
+        difficulty_mix: difficultyMix,
+        title: title,
+        question_types: questionTypes || ['multiple_choice', 'true_false', 'short_answer'],
+        topics: topics
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to generate questions');
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Delete an uploaded PDF document
+   */
+  async deleteDocument(userId, documentId) {
+    const response = await fetch(`${API_URL}/qb/delete_document/${documentId}?user_id=${userId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to delete document');
+    }
+
+    return await response.json();
+  }
+
+  /**
    * Generate questions from chat sessions and slides
    */
   async generateFromSources(params) {
