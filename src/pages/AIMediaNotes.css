@@ -2,11 +2,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ==================== ALLOW ROUNDED CORNERS LIKE MYNOTES ==================== */
-.ai-media-notes-page *,
-.ai-media-notes-page *::before,
-.ai-media-notes-page *::after {
-  /* Allow natural border-radius */
-}
+
 
 /* CSS Variables - Matching MyNotes Exactly */
 .ai-media-notes-page {
