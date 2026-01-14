@@ -44,6 +44,10 @@ sentence-transformers>=2.2.0
 # Vector Database
 chromadb>=0.4.0
 
+# Re-ranking (for Advanced RAG)
+# Cross-encoder models for improved retrieval
+# sentence-transformers already included above
+
 # Data Processing
 numpy>=1.21.0
 pandas>=1.5.0

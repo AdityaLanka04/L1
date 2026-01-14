@@ -2,6 +2,13 @@
 Advanced AI Chat Agent
 High-capacity LangGraph-based agent for intelligent tutoring conversations
 with multi-modal reasoning, adaptive responses, and deep memory integration.
+
+Enhanced with:
+- Reasoning models (step-by-step thinking)
+- Proactive interventions
+- Long-term student modeling
+- Emotional state tracking
+- Learning style auto-detection
 """
 
 import logging
@@ -18,6 +25,22 @@ from langgraph.checkpoint.memory import MemorySaver
 from .base_agent import BaseAgent, AgentState, AgentType, AgentResponse, agent_registry
 from .memory import MemoryManager, get_memory_manager
 from .memory.unified_memory import MemoryType
+
+# Import advanced AI features
+from .advanced_ai_features import (
+    AdvancedAISystem,
+    get_advanced_ai_system,
+    initialize_advanced_ai,
+    ReasoningEngine,
+    EmotionalIntelligenceEngine,
+    LearningStyleDetector,
+    ProactiveInterventionEngine,
+    LongTermStudentModeler,
+    EmotionalState as AdvancedEmotionalState,
+    LearningStyle,
+    InterventionType,
+    ProactiveIntervention
+)
 
 logger = logging.getLogger(__name__)
 
@@ -516,6 +539,13 @@ class ChatAgent(BaseAgent):
     - Emotional intelligence
     - Learning path awareness
     - Self-improvement through reflection
+    
+    Enhanced with Advanced AI Features:
+    - Reasoning models (step-by-step thinking for complex problems)
+    - Proactive interventions (real-time help triggers)
+    - Long-term student modeling (cross-session patterns)
+    - Emotional state tracking (adaptive tone)
+    - Learning style auto-detection (real-time adaptation)
     """
     
     def __init__(
@@ -523,11 +553,17 @@ class ChatAgent(BaseAgent):
         ai_client: Any,
         knowledge_graph: Optional[Any] = None,
         memory_manager: Optional[MemoryManager] = None,
-        checkpointer: Optional[MemorySaver] = None
+        checkpointer: Optional[MemorySaver] = None,
+        db_session_factory: Optional[Any] = None
     ):
         self.memory_manager = memory_manager or get_memory_manager()
         self.analyzer = ConversationAnalyzer(ai_client)
         self.generator = ResponseGenerator(ai_client)
+        self.db_session_factory = db_session_factory
+        
+        # Initialize Advanced AI System
+        self.advanced_ai = initialize_advanced_ai(ai_client, db_session_factory)
+        logger.info("🧠 Advanced AI features initialized (reasoning, emotions, learning styles)")
         
         super().__init__(
             agent_type=AgentType.CHAT,
@@ -538,16 +574,18 @@ class ChatAgent(BaseAgent):
         
     
     def _build_graph(self) -> None:
-        """Build the LangGraph state machine"""
+        """Build the LangGraph state machine with advanced AI features"""
         graph = StateGraph(ChatAgentState)
         
         # Add nodes
         graph.add_node("load_memory", self._load_memory_context)
         graph.add_node("analyze_input", self._analyze_input)
+        graph.add_node("advanced_ai_processing", self._advanced_ai_processing)  # NEW
         graph.add_node("determine_mode", self._determine_mode)
         graph.add_node("build_reasoning", self._build_reasoning_chain)
         graph.add_node("generate_response", self._generate_response)
         graph.add_node("enhance_response", self._enhance_response)
+        graph.add_node("check_intervention", self._check_proactive_intervention)  # NEW
         graph.add_node("reflect_and_improve", self._reflect_and_improve)
         graph.add_node("prepare_followups", self._prepare_followups)
         graph.add_node("update_memory", self._update_memory)
@@ -557,14 +595,16 @@ class ChatAgent(BaseAgent):
         # Set entry point
         graph.set_entry_point("load_memory")
         
-        # Add edges
+        # Add edges with advanced AI processing
         graph.add_edge("load_memory", "analyze_input")
-        graph.add_edge("analyze_input", "determine_mode")
+        graph.add_edge("analyze_input", "advanced_ai_processing")  # NEW
+        graph.add_edge("advanced_ai_processing", "determine_mode")
         graph.add_edge("determine_mode", "build_reasoning")
         graph.add_edge("build_reasoning", "generate_response")
         graph.add_edge("generate_response", "enhance_response")
+        graph.add_edge("enhance_response", "check_intervention")  # NEW
         graph.add_conditional_edges(
-            "enhance_response",
+            "check_intervention",
             self._should_reflect,
             {"reflect": "reflect_and_improve", "continue": "prepare_followups"}
         )
@@ -743,16 +783,125 @@ class ChatAgent(BaseAgent):
         
         return state
     
+    async def _advanced_ai_processing(self, state: ChatAgentState) -> ChatAgentState:
+        """
+        Process with advanced AI features:
+        - Update long-term student model
+        - Detect emotional state with high accuracy
+        - Auto-detect learning style
+        - Check for reasoning needs
+        - Get personalization context
+        """
+        user_id = state.get("user_id")
+        user_input = state.get("user_input", "")
+        
+        state["execution_path"].append("chat:advanced_ai")
+        
+        try:
+            # Get topic from concept analysis
+            concepts = state.get("concept_analysis", {}).get("concepts", [])
+            topic = concepts[0] if concepts else None
+            
+            # Process with advanced AI system
+            advanced_context = await self.advanced_ai.process_with_advanced_features(
+                user_id=user_id,
+                message=user_input,
+                context=state.get("memory_context", {}),
+                topic=topic
+            )
+            
+            # Update state with advanced AI insights
+            state["_advanced_emotional_state"] = advanced_context.get("emotional_state", "neutral")
+            state["_frustration_level"] = advanced_context.get("frustration_level", 0.0)
+            state["_engagement_level"] = advanced_context.get("engagement_level", 0.5)
+            state["_learning_style"] = advanced_context.get("learning_style", "multimodal")
+            state["_style_confidence"] = advanced_context.get("style_confidence", 0.3)
+            
+            # Store reasoning trace if generated
+            if advanced_context.get("reasoning_trace"):
+                state["_reasoning_trace"] = advanced_context["reasoning_trace"]
+            
+            # Store intervention if triggered
+            if advanced_context.get("intervention"):
+                state["_proactive_intervention"] = advanced_context["intervention"]
+            
+            # Store encouragement if available
+            if advanced_context.get("encouragement"):
+                state["_encouragement"] = advanced_context["encouragement"]
+            
+            # Get system prompt enhancement
+            prompt_enhancement = self.advanced_ai.get_system_prompt_enhancement(user_id)
+            state["_personalization_prompt"] = prompt_enhancement
+            
+            # Store tone and content adaptations
+            state["_tone_adaptation"] = advanced_context.get("tone_adaptation", {})
+            state["_content_adaptation"] = advanced_context.get("content_adaptation", {})
+            
+            # Update knowledge gaps and strengths from student model
+            state["knowledge_gaps"] = advanced_context.get("knowledge_gaps", state.get("knowledge_gaps", []))
+            state["_strengths"] = advanced_context.get("strengths", [])
+            
+            logger.info(f"🧠 Advanced AI: emotion={state['_advanced_emotional_state']}, "
+                       f"style={state['_learning_style']}, "
+                       f"frustration={state['_frustration_level']:.2f}")
+            
+        except Exception as e:
+            logger.error(f"Advanced AI processing failed: {e}")
+            # Continue with defaults
+            state["_advanced_emotional_state"] = "neutral"
+            state["_learning_style"] = "multimodal"
+        
+        return state
+    
+    async def _check_proactive_intervention(self, state: ChatAgentState) -> ChatAgentState:
+        """
+        Check if proactive intervention should be added to response.
+        Interventions help students before they explicitly ask for help.
+        """
+        state["execution_path"].append("chat:intervention_check")
+        
+        intervention = state.get("_proactive_intervention")
+        encouragement = state.get("_encouragement")
+        
+        if intervention:
+            # Add intervention message to response
+            intervention_msg = intervention.get("message", "")
+            intervention_type = intervention.get("intervention_type", "")
+            
+            logger.info(f"🎯 Proactive intervention triggered: {intervention_type}")
+            
+            # Store for metadata
+            state["_intervention_triggered"] = True
+            state["_intervention_type"] = intervention_type
+            state["_intervention_message"] = intervention_msg
+            
+            # Optionally prepend intervention to response
+            if intervention_type in ["frustration_support", "confusion_help"]:
+                current_response = state.get("final_response", "")
+                state["final_response"] = f"{intervention_msg}\n\n{current_response}"
+        
+        elif encouragement:
+            # Add encouragement to response
+            current_response = state.get("final_response", "")
+            state["final_response"] = f"{current_response}\n\n{encouragement}"
+            state["_encouragement_added"] = True
+        
+        return state
+    
     async def _generate_response(self, state: ChatAgentState) -> ChatAgentState:
-        """Generate the main response"""
+        """Generate the main response with advanced AI personalization"""
         user_input = state.get("user_input", "")
         mode = ChatMode(state.get("chat_mode", "tutoring"))
         style = ResponseStyle(state.get("response_style", "conversational"))
-        emotion = EmotionalState(state.get("emotional_state", "neutral"))
+        
+        # Use advanced emotional state if available
+        advanced_emotion = state.get("_advanced_emotional_state", "neutral")
+        emotion = EmotionalState(advanced_emotion) if advanced_emotion in [e.value for e in EmotionalState] else EmotionalState.NEUTRAL
         
         # Check if we have enhanced system prompt from comprehensive context
         enhanced_prompt = state.get("enhanced_system_prompt")
         
+        # Build context with advanced AI insights
         context = {
             "conversation_history": state.get("conversation_history", []),
             "user_preferences": state.get("user_preferences", {}),
@@ -761,26 +910,49 @@ class ChatAgent(BaseAgent):
             "session_history_summary": state.get("_session_history_summary", ""),
             "has_previous_sessions": state.get("_has_previous_sessions", False),
             # Add comprehensive context data
-            "user_strengths": state.get("user_strengths", []),
+            "user_strengths": state.get("user_strengths", []) or state.get("_strengths", []),
             "user_weaknesses": state.get("user_weaknesses", []),
             "topics_needing_review": state.get("topics_needing_review", []),
             "notes_context": state.get("notes_context", {}),
             "flashcards_context": state.get("flashcards_context", {}),
             "quiz_context": state.get("quiz_context", {}),
+            # Advanced AI context
+            "learning_style": state.get("_learning_style", "multimodal"),
+            "frustration_level": state.get("_frustration_level", 0.0),
+            "engagement_level": state.get("_engagement_level", 0.5),
+            "tone_adaptation": state.get("_tone_adaptation", {}),
+            "content_adaptation": state.get("_content_adaptation", {}),
         }
         
         # Use enhanced prompt if available, otherwise use standard generation
         if enhanced_prompt:
             context["enhanced_system_prompt"] = enhanced_prompt
         
-        response = self.generator.generate(
-            user_input=user_input,
-            mode=mode,
-            style=style,
-            emotional_state=emotion,
-            context=context,
-            reasoning_chain=state.get("reasoning_chain", [])
-        )
+        # Add personalization prompt from advanced AI
+        personalization_prompt = state.get("_personalization_prompt", "")
+        if personalization_prompt:
+            if context.get("enhanced_system_prompt"):
+                context["enhanced_system_prompt"] += f"\n\n{personalization_prompt}"
+            else:
+                context["enhanced_system_prompt"] = personalization_prompt
+        
+        # Check if we have a reasoning trace to use
+        reasoning_trace = state.get("_reasoning_trace")
+        if reasoning_trace and reasoning_trace.get("final_answer"):
+            # Use the reasoning model's answer directly
+            response = reasoning_trace["final_answer"]
+            state["_used_reasoning_model"] = True
+            logger.info("🧠 Using reasoning model response")
+        else:
+            # Generate with standard method
+            response = self.generator.generate(
+                user_input=user_input,
+                mode=mode,
+                style=style,
+                emotional_state=emotion,
+                context=context,
+                reasoning_chain=state.get("reasoning_chain", [])
+            )
         
         state["draft_response"] = response
         state["execution_path"].append("chat:generate")
@@ -981,7 +1153,7 @@ Return ONLY a JSON array of strings, nothing else:
         return state
     
     async def _finalize_response(self, state: ChatAgentState) -> ChatAgentState:
-        """Finalize response with metadata"""
+        """Finalize response with metadata including advanced AI insights"""
         state["response_metadata"] = {
             "success": True,
             "chat_mode": state.get("chat_mode"),
@@ -995,7 +1167,22 @@ Return ONLY a JSON array of strings, nothing else:
             "execution_path": state.get("execution_path", []),
             "has_previous_sessions": state.get("_has_previous_sessions", False),
             "session_history_summary": state.get("_session_history_summary", ""),
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
+            
+            # Advanced AI metadata
+            "advanced_ai": {
+                "emotional_state": state.get("_advanced_emotional_state", "neutral"),
+                "frustration_level": state.get("_frustration_level", 0.0),
+                "engagement_level": state.get("_engagement_level", 0.5),
+                "learning_style": state.get("_learning_style", "multimodal"),
+                "style_confidence": state.get("_style_confidence", 0.3),
+                "used_reasoning_model": state.get("_used_reasoning_model", False),
+                "intervention_triggered": state.get("_intervention_triggered", False),
+                "intervention_type": state.get("_intervention_type"),
+                "encouragement_added": state.get("_encouragement_added", False),
+                "knowledge_gaps": state.get("knowledge_gaps", [])[:5],
+                "strengths": state.get("_strengths", [])[:5],
+            }
         }
         
         return state
@@ -1036,16 +1223,18 @@ Return ONLY a JSON array of strings, nothing else:
 def create_chat_agent(
     ai_client,
     knowledge_graph=None,
-    memory_manager=None
+    memory_manager=None,
+    db_session_factory=None
 ) -> ChatAgent:
-    """Factory function to create and register the chat agent"""
+    """Factory function to create and register the chat agent with advanced AI features"""
     agent = ChatAgent(
         ai_client=ai_client,
         knowledge_graph=knowledge_graph,
-        memory_manager=memory_manager
+        memory_manager=memory_manager,
+        db_session_factory=db_session_factory
     )
     agent_registry.register(agent)
-    logger.info(" Advanced Chat Agent registered")
+    logger.info("🧠 Advanced Chat Agent registered with reasoning, emotions, and learning style detection")
     return agent
 
 

@@ -286,11 +286,12 @@ async def initialize_agent_system(
         db_session_factory=db_session_factory
     )
     
-    # Initialize the Advanced Chat Agent
+    # Initialize the Advanced Chat Agent with Advanced AI Features
     _chat_agent = create_chat_agent(
         ai_client=ai_client,
         knowledge_graph=knowledge_graph,
-        memory_manager=_memory_manager
+        memory_manager=_memory_manager,
+        db_session_factory=db_session_factory  # Enable advanced AI features
     )
     
     # Initialize the Flashcard Agent

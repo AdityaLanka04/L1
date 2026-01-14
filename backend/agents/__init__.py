@@ -16,7 +16,14 @@ from .search_hub_agent import SearchHubAgent, create_search_hub_agent, SearchHub
 from .search_hub_enhanced import EnhancedSearchHubAgent, create_enhanced_search_hub_agent
 from .nlp_engine import NLPEngine, get_nlp_engine, IntentMatch
 from .master_agent import MasterAgent, create_master_agent, MasterAction
-from .memory import MemoryManager, get_memory_manager, initialize_memory_manager
+from .memory import (
+    MemoryManager, get_memory_manager, initialize_memory_manager,
+    EnhancedMemorySystem, MemoryPriority
+)
+from .rag import (
+    AdvancedRAGSystem, HybridSearchEngine, ReRanker,
+    GraphRAGEngine, AgenticRAGEngine, SearchMode
+)
 
 __all__ = [
     # Base
@@ -83,5 +90,14 @@ __all__ = [
     'MemoryManager',
     'get_memory_manager',
     'initialize_memory_manager',
+    'EnhancedMemorySystem',
+    'MemoryPriority',
+    # Advanced RAG
+    'AdvancedRAGSystem',
+    'HybridSearchEngine',
+    'ReRanker',
+    'GraphRAGEngine',
+    'AgenticRAGEngine',
+    'SearchMode',
 ]
 
