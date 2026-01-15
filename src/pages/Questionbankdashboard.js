@@ -50,6 +50,11 @@ const QuestionBankDashboard = () => {
   const [results, setResults] = useState(null);
   const [sessionStartTime, setSessionStartTime] = useState(null);
 
+  // Smart generation state
+  const [customPrompt, setCustomPrompt] = useState('');
+  const [referenceDocId, setReferenceDocId] = useState(null);
+  const [showSmartOptions, setShowSmartOptions] = useState(false);
+
   useEffect(() => {
     fetchQuestionSets();
     fetchUploadedDocuments();
@@ -219,35 +224,83 @@ const QuestionBankDashboard = () => {
 
     try {
       setLoading(true);
-      console.log('🚀 Generating from multiple PDFs:', { userId, selectedPDFs, questionCount, difficultyMix });
       
-      const response = await questionBankAgentService.generateFromMultiplePDFs({
-        userId,
-        sourceIds: selectedPDFs.map(p => p.id),
-        questionCount,
-        difficultyMix,
-        title: selectedPDFs.length === 1 
-          ? `Questions from ${selectedPDFs[0].filename}`
-          : `Questions from ${selectedPDFs.length} documents`,
-        questionTypes
-      });
+      // Check if using smart generation (custom prompt or reference doc)
+      const useSmartGeneration = customPrompt.trim() || referenceDocId;
+      
+      if (useSmartGeneration) {
+        console.log('🧠 Smart generation:', { userId, selectedPDFs, customPrompt, referenceDocId });
+        
+        const response = await questionBankAgentService.smartGenerate({
+          userId,
+          sourceIds: selectedPDFs.map(p => p.id),
+          questionCount,
+          difficultyMix,
+          title: selectedPDFs.length === 1 
+            ? `Questions from ${selectedPDFs[0].filename}`
+            : `Smart Questions from ${selectedPDFs.length} documents`,
+          questionTypes,
+          customPrompt: customPrompt.trim() || null,
+          referenceDocumentId: referenceDocId,
+          contentDocumentIds: selectedPDFs.filter(p => p.id !== referenceDocId).map(p => p.id)
+        });
 
-      console.log('✅ Response:', response);
-      
-      if (response.status === 'success') {
-        alert(`Successfully generated ${response.question_count} questions from ${selectedPDFs.length} document(s)!`);
-        setSelectedPDFs([]);
-        setSelectedDocument(null);
-        await fetchQuestionSets();
-        setActiveView('question-sets');
+        console.log('✅ Smart Response:', response);
+        
+        if (response.status === 'success') {
+          alert(`Successfully generated ${response.question_count} questions using smart generation!`);
+          resetSelections();
+          await fetchQuestionSets();
+          setActiveView('question-sets');
+        } else {
+          alert('Failed to generate questions: ' + (response.error || 'Unknown error'));
+        }
       } else {
-        alert('Failed to generate questions: ' + (response.error || 'Unknown error'));
+        console.log('🚀 Standard generation:', { userId, selectedPDFs, questionCount, difficultyMix });
+        
+        const response = await questionBankAgentService.generateFromMultiplePDFs({
+          userId,
+          sourceIds: selectedPDFs.map(p => p.id),
+          questionCount,
+          difficultyMix,
+          title: selectedPDFs.length === 1 
+            ? `Questions from ${selectedPDFs[0].filename}`
+            : `Questions from ${selectedPDFs.length} documents`,
+          questionTypes
+        });
+
+        console.log('✅ Response:', response);
+        
+        if (response.status === 'success') {
+          alert(`Successfully generated ${response.question_count} questions from ${selectedPDFs.length} document(s)!`);
+          resetSelections();
+          await fetchQuestionSets();
+          setActiveView('question-sets');
+        } else {
+          alert('Failed to generate questions: ' + (response.error || 'Unknown error'));
+        }
       }
     } catch (error) {
       console.error('❌ Error:', error);
       alert('Error generating questions: ' + error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const resetSelections = () => {
+    setSelectedPDFs([]);
+    setSelectedDocument(null);
+    setCustomPrompt('');
+    setReferenceDocId(null);
+    setShowSmartOptions(false);
+  };
+
+  const toggleReferenceDoc = (docId) => {
+    if (referenceDocId === docId) {
+      setReferenceDocId(null);
+    } else {
+      setReferenceDocId(docId);
     }
   };
 
@@ -292,6 +345,9 @@ const QuestionBankDashboard = () => {
   const clearPDFSelection = () => {
     setSelectedPDFs([]);
     setSelectedDocument(null);
+    setCustomPrompt('');
+    setReferenceDocId(null);
+    setShowSmartOptions(false);
   };
 
   const handleGenerateFromChatSlides = async () => {
@@ -729,15 +785,36 @@ const QuestionBankDashboard = () => {
               })}
             </div>
 
-            {/* Selected Sources Summary */}
+            {/* Selected Sources Summary with Smart Options */}
             {selectedPDFs.length > 0 && (
               <div className="qbd-selected-sources-panel">
-                <h4>Selected Sources ({selectedPDFs.length})</h4>
+                <div className="qbd-panel-header">
+                  <h4>Selected Sources ({selectedPDFs.length})</h4>
+                  {selectedPDFs.length >= 2 && (
+                    <button 
+                      className={`qbd-smart-toggle ${showSmartOptions ? 'active' : ''}`}
+                      onClick={() => setShowSmartOptions(!showSmartOptions)}
+                    >
+                      <Brain size={16} />
+                      <span>Smart Mode</span>
+                    </button>
+                  )}
+                </div>
+                
                 <div className="qbd-selected-sources-list">
                   {selectedPDFs.map(pdf => (
-                    <div key={pdf.id} className="qbd-selected-source-item">
+                    <div key={pdf.id} className={`qbd-selected-source-item ${referenceDocId === pdf.id ? 'reference' : ''}`}>
                       <FileText size={16} />
-                      <span>{pdf.filename}</span>
+                      <span className="qbd-source-name">{pdf.filename}</span>
+                      {showSmartOptions && (
+                        <button 
+                          className={`qbd-ref-toggle ${referenceDocId === pdf.id ? 'active' : ''}`}
+                          onClick={() => toggleReferenceDoc(pdf.id)}
+                          title={referenceDocId === pdf.id ? 'Remove as reference' : 'Set as reference (sample questions)'}
+                        >
+                          {referenceDocId === pdf.id ? '📋 Reference' : 'Set as Reference'}
+                        </button>
+                      )}
                       <button 
                         className="qbd-remove-source-btn"
                         onClick={() => togglePDFSelection(pdf)}
@@ -747,12 +824,50 @@ const QuestionBankDashboard = () => {
                     </div>
                   ))}
                 </div>
+
+                {showSmartOptions && (
+                  <div className="qbd-smart-hint">
+                    <Sparkles size={14} />
+                    <span>
+                      {referenceDocId 
+                        ? "Reference doc will be used as style guide. Other docs are content sources."
+                        : "Tip: Mark one PDF as 'Reference' (e.g., sample questions) to match its style"}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 
             {selectedPDFs.length > 0 && (
               <div className="qbd-generation-settings">
                 <h3 className="qbd-section-title">Generation Settings</h3>
+
+                {/* Custom Prompt Section */}
+                <div className="qbd-setting-group qbd-prompt-section">
+                  <label>
+                    <Sparkles size={16} />
+                    Custom Instructions (Optional)
+                  </label>
+                  <textarea
+                    value={customPrompt}
+                    onChange={(e) => setCustomPrompt(e.target.value)}
+                    placeholder="e.g., 'Generate questions similar to the sample questions from my textbook' or 'Focus on practical applications and real-world scenarios' or 'Create exam-style questions covering chapters 3-5'"
+                    className="qbd-textarea qbd-prompt-input"
+                    rows={3}
+                  />
+                  <div className="qbd-prompt-examples">
+                    <span className="qbd-examples-label">Quick prompts:</span>
+                    <button onClick={() => setCustomPrompt('Generate questions similar to the sample questions style from my textbook content')}>
+                      Match sample style
+                    </button>
+                    <button onClick={() => setCustomPrompt('Focus on practical applications and real-world scenarios')}>
+                      Practical focus
+                    </button>
+                    <button onClick={() => setCustomPrompt('Create exam-style questions with detailed explanations')}>
+                      Exam style
+                    </button>
+                  </div>
+                </div>
                 
                 <div className="qbd-setting-group">
                   <label>Number of Questions</label>
@@ -825,12 +940,19 @@ const QuestionBankDashboard = () => {
                 </div>
 
                 <button 
-                  className="qbd-btn-primary qbd-btn-large"
+                  className={`qbd-btn-primary qbd-btn-large ${(customPrompt.trim() || referenceDocId) ? 'qbd-smart-btn' : ''}`}
                   onClick={handleGenerateFromMultiplePDFs}
                   disabled={loading}
                 >
-                  {loading ? <Loader className="qbd-spin" size={18} /> : <Sparkles size={18} />}
-                  <span>{loading ? 'Generating...' : `Generate from ${selectedPDFs.length} Source${selectedPDFs.length > 1 ? 's' : ''}`}</span>
+                  {loading ? <Loader className="qbd-spin" size={18} /> : (customPrompt.trim() || referenceDocId) ? <Brain size={18} /> : <Sparkles size={18} />}
+                  <span>
+                    {loading 
+                      ? 'Generating...' 
+                      : (customPrompt.trim() || referenceDocId)
+                        ? `Smart Generate from ${selectedPDFs.length} Source${selectedPDFs.length > 1 ? 's' : ''}`
+                        : `Generate from ${selectedPDFs.length} Source${selectedPDFs.length > 1 ? 's' : ''}`
+                    }
+                  </span>
                 </button>
               </div>
             )}

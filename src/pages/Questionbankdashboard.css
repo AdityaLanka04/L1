@@ -2175,3 +2175,228 @@
 .qbd-set-study-btn {
   flex: 1;
 }
+
+/* ==================== SMART GENERATION STYLES ==================== */
+
+/* Panel header with smart toggle */
+.qbd-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.qbd-panel-header h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--qbd-text-primary);
+}
+
+/* Smart mode toggle button */
+.qbd-smart-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 20px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.qbd-smart-toggle:hover {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
+  border-color: var(--accent);
+}
+
+.qbd-smart-toggle.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+/* Selected source item with reference indicator */
+.qbd-selected-source-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--qbd-bg-tertiary);
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.qbd-selected-source-item.reference {
+  background: color-mix(in srgb, var(--accent) 15%, var(--qbd-bg-tertiary));
+  border-color: var(--accent);
+}
+
+.qbd-source-name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--qbd-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Reference toggle button */
+.qbd-ref-toggle {
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 12px;
+  color: var(--qbd-text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.qbd-ref-toggle:hover {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.qbd-ref-toggle.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+/* Smart hint message */
+.qbd-smart-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border-radius: 8px;
+  border-left: 3px solid var(--accent);
+}
+
+.qbd-smart-hint span {
+  font-size: 12px;
+  color: var(--qbd-text-secondary);
+  line-height: 1.4;
+}
+
+.qbd-smart-hint svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* Custom prompt section */
+.qbd-prompt-section {
+  background: color-mix(in srgb, var(--accent) 5%, var(--qbd-bg-tertiary));
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  margin-bottom: 16px;
+}
+
+.qbd-prompt-section label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+
+.qbd-prompt-input {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--qbd-bg-secondary);
+  border: 1px solid var(--qbd-border-subtle);
+  border-radius: 8px;
+  color: var(--qbd-text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+  transition: all 0.2s ease;
+}
+
+.qbd-prompt-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--qbd-accent-glow);
+}
+
+.qbd-prompt-input::placeholder {
+  color: var(--qbd-text-secondary);
+  opacity: 0.7;
+}
+
+/* Quick prompt examples */
+.qbd-prompt-examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.qbd-examples-label {
+  font-size: 11px;
+  color: var(--qbd-text-secondary);
+  font-weight: 500;
+}
+
+.qbd-prompt-examples button {
+  padding: 5px 10px;
+  background: var(--qbd-bg-secondary);
+  border: 1px solid var(--qbd-border-subtle);
+  border-radius: 14px;
+  color: var(--qbd-text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.qbd-prompt-examples button:hover {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Smart generate button */
+.qbd-smart-btn {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #9333ea)) !important;
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.qbd-smart-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 28px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .qbd-panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .qbd-selected-source-item {
+    flex-wrap: wrap;
+  }
+  
+  .qbd-ref-toggle {
+    margin-left: auto;
+  }
+  
+  .qbd-prompt-examples {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

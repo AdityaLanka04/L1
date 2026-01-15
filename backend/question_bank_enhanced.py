@@ -456,6 +456,9 @@ class MultiPDFGenerationRequest(BaseModel):
     question_types: List[str] = ["multiple_choice", "true_false", "short_answer"]
     topics: Optional[List[str]] = None
     title: Optional[str] = None
+    custom_prompt: Optional[str] = None  # Custom instructions for question generation
+    reference_document_id: Optional[int] = None  # ID of document to use as reference (e.g., sample questions)
+    content_document_ids: Optional[List[int]] = None  # IDs of documents to generate questions FROM (e.g., textbook)
 
 
 class DifficultyClassifierAgent:
@@ -535,9 +538,34 @@ class PDFProcessorAgent:
             text = ""
             pdf_bytes = io.BytesIO(pdf_content)
             
+            # Method 1: Try PyMuPDF (fitz) first - handles more PDF types
             try:
-                # Try primary extraction method
+                import fitz  # PyMuPDF
+                logger.info("Attempting PyMuPDF (fitz) extraction...")
+                
+                doc = fitz.open(stream=pdf_content, filetype="pdf")
+                for page_num in range(len(doc)):
+                    page = doc[page_num]
+                    page_text = page.get_text()
+                    if page_text:
+                        text += page_text + "\n\n"
+                doc.close()
+                
+                if text.strip():
+                    logger.info(f"PyMuPDF extracted {len(text)} characters from PDF")
+                    return text.strip()
+                else:
+                    logger.warning("PyMuPDF returned empty text, trying other methods...")
+                    
+            except ImportError:
+                logger.warning("PyMuPDF not available, trying PyPDF2...")
+            except Exception as fitz_error:
+                logger.warning(f"PyMuPDF extraction failed: {fitz_error}")
+            
+            # Method 2: Try PyPDF2
+            try:
                 logger.info("Attempting PyPDF2 extraction...")
+                pdf_bytes.seek(0)  # Reset stream position
                 pdf_reader = PyPDF2.PdfReader(pdf_bytes)
                 
                 for page_num in range(len(pdf_reader.pages)):
@@ -551,41 +579,50 @@ class PDFProcessorAgent:
                         continue
                 
                 if text.strip():
-                    logger.info(f"Successfully extracted {len(text)} characters from PDF")
+                    logger.info(f"PyPDF2 extracted {len(text)} characters from PDF")
                     return text.strip()
-                else:
-                    raise ValueError("No text extracted from PDF using primary method")
                     
-            except Exception as primary_error:
-                logger.warning(f"PyPDF2 extraction failed: {primary_error}, attempting fallback...")
+            except Exception as pypdf_error:
+                logger.warning(f"PyPDF2 extraction failed: {pypdf_error}")
+            
+            # Method 3: Try pdfplumber as fallback
+            try:
+                import pdfplumber
+                logger.info("Attempting pdfplumber extraction...")
                 
-                # Fallback: Try with pdfplumber if available, or return a default error
-                try:
-                    import pdfplumber
-                    with pdfplumber.open(io.BytesIO(pdf_content)) as pdf:
-                        for page in pdf.pages:
-                            page_text = page.extract_text()
-                            if page_text:
-                                text += page_text + "\n\n"
+                with pdfplumber.open(io.BytesIO(pdf_content)) as pdf:
+                    for page in pdf.pages:
+                        page_text = page.extract_text()
+                        if page_text:
+                            text += page_text + "\n\n"
+                
+                if text.strip():
+                    logger.info(f"pdfplumber extracted {len(text)} characters")
+                    return text.strip()
                     
-                    if text.strip():
-                        logger.info(f"Fallback extraction successful, got {len(text)} characters")
-                        return text.strip()
-                except ImportError:
-                    logger.warning("pdfplumber not available for fallback")
-                except Exception as fallback_error:
-                    logger.warning(f"Fallback extraction also failed: {fallback_error}")
+            except ImportError:
+                logger.warning("pdfplumber not available")
+            except Exception as plumber_error:
+                logger.warning(f"pdfplumber extraction failed: {plumber_error}")
+            
+            # If all methods fail but we have some text, return it
+            if text.strip():
+                return text.strip()
+            
+            # All methods failed
+            raise ValueError(
+                "Unable to extract text from PDF. This may be a scanned/image PDF. "
+                "Try using a PDF with selectable text, or use OCR to convert the PDF first."
+            )
                 
-                # If both methods fail, raise a meaningful error
-                raise ValueError("Unable to extract text from PDF with available methods")
-                
+        except HTTPException:
+            raise
         except Exception as e:
             error_msg = str(e)
             logger.error(f"PDF extraction error: {error_msg}", exc_info=True)
-            # Return a 400 error with a user-friendly message
             raise HTTPException(
                 status_code=400, 
-                detail=f"Unable to extract text from PDF. The file may be corrupted, encrypted, or in an unsupported format. Error: {error_msg[:100]}"
+                detail=f"Unable to extract text from PDF. The file may be scanned, encrypted, or corrupted. Error: {error_msg[:150]}"
             )
     
     async def analyze_document(self, text: str) -> Dict[str, Any]:
@@ -657,16 +694,305 @@ class QuestionGeneratorAgent:
         question_count: int,
         question_types: List[str],
         difficulty_distribution: Dict[str, int],
-        topics: List[str] = None
+        topics: List[str] = None,
+        custom_prompt: str = None,
+        reference_content: str = None
     ) -> List[Dict[str, Any]]:
+        """
+        Generate questions from content. For large content, uses chunking strategy
+        to process entire PDFs and generate questions from all parts.
+        """
         
         types_str = ", ".join(question_types)
         topics_str = ", ".join(topics) if topics else "all topics in the content"
         
-        prompt = f"""Generate {question_count} high-quality, clear, and well-formed exam questions from this content.
+        # Truncate reference content if needed (style guide doesn't need to be huge)
+        max_ref_chars = 5000
+        if reference_content and len(reference_content) > max_ref_chars:
+            reference_content = reference_content[:max_ref_chars]
+        
+        # Check if content is large enough to need chunking
+        chunk_size = 12000  # Characters per chunk
+        
+        if len(content) > chunk_size:
+            # Use chunking strategy for large content
+            logger.info(f"Large content detected ({len(content)} chars). Using chunking strategy.")
+            return await self._generate_questions_chunked(
+                content, question_count, question_types, difficulty_distribution,
+                topics, custom_prompt, reference_content, chunk_size
+            )
+        
+        # For smaller content, use single-pass generation
+        return await self._generate_questions_single(
+            content, question_count, question_types, difficulty_distribution,
+            topics, custom_prompt, reference_content
+        )
+    
+    async def _generate_questions_chunked(
+        self,
+        content: str,
+        question_count: int,
+        question_types: List[str],
+        difficulty_distribution: Dict[str, int],
+        topics: List[str],
+        custom_prompt: str,
+        reference_content: str,
+        chunk_size: int
+    ) -> List[Dict[str, Any]]:
+        """Generate questions from large content by processing in chunks"""
+        
+        # Split content into chunks, preferring document boundaries
+        chunks = self._split_content_into_chunks(content, chunk_size)
+        logger.info(f"Split content into {len(chunks)} chunks")
+        
+        # Calculate questions per chunk (distribute evenly, with remainder to last chunk)
+        base_questions_per_chunk = question_count // len(chunks)
+        remainder = question_count % len(chunks)
+        
+        all_questions = []
+        seen_questions = set()  # Track to avoid duplicates
+        
+        for i, chunk in enumerate(chunks):
+            # Last chunk gets the remainder
+            chunk_question_count = base_questions_per_chunk + (remainder if i == len(chunks) - 1 else 0)
+            
+            if chunk_question_count == 0:
+                continue
+            
+            logger.info(f"Processing chunk {i+1}/{len(chunks)} ({len(chunk)} chars, {chunk_question_count} questions)")
+            
+            # Generate questions for this chunk
+            chunk_questions = await self._generate_questions_single(
+                chunk, chunk_question_count, question_types, difficulty_distribution,
+                topics, custom_prompt, reference_content
+            )
+            
+            # Add unique questions
+            for q in chunk_questions:
+                q_text = q.get('question_text', '').strip().lower()
+                if q_text and q_text not in seen_questions:
+                    seen_questions.add(q_text)
+                    all_questions.append(q)
+        
+        logger.info(f"Generated {len(all_questions)} total questions from {len(chunks)} chunks")
+        
+        # If we didn't get enough questions, try to generate more from a summary
+        if len(all_questions) < question_count * 0.7:  # Less than 70% of requested
+            logger.warning(f"Only got {len(all_questions)} questions, attempting supplementary generation")
+            additional_needed = question_count - len(all_questions)
+            
+            # Create a summary of all content for additional questions
+            summary_content = self._create_content_summary(content, 8000)
+            additional_questions = await self._generate_questions_single(
+                summary_content, additional_needed, question_types, difficulty_distribution,
+                topics, custom_prompt, reference_content
+            )
+            
+            for q in additional_questions:
+                q_text = q.get('question_text', '').strip().lower()
+                if q_text and q_text not in seen_questions:
+                    seen_questions.add(q_text)
+                    all_questions.append(q)
+        
+        return all_questions[:question_count]  # Return exactly the requested count
+    
+    def _split_content_into_chunks(self, content: str, chunk_size: int) -> List[str]:
+        """Split content into chunks, preferring document boundaries"""
+        
+        # First, try to split by document markers
+        doc_marker = "=== "
+        if doc_marker in content:
+            sections = content.split(doc_marker)
+            chunks = []
+            current_chunk = ""
+            
+            for section in sections:
+                if not section.strip():
+                    continue
+                    
+                section_with_marker = doc_marker + section
+                
+                # If adding this section would exceed chunk size
+                if len(current_chunk) + len(section_with_marker) > chunk_size:
+                    if current_chunk:
+                        chunks.append(current_chunk)
+                    
+                    # If single section is larger than chunk size, split it
+                    if len(section_with_marker) > chunk_size:
+                        section_chunks = self._split_text_by_paragraphs(section_with_marker, chunk_size)
+                        chunks.extend(section_chunks)
+                        current_chunk = ""
+                    else:
+                        current_chunk = section_with_marker
+                else:
+                    current_chunk += section_with_marker
+            
+            if current_chunk:
+                chunks.append(current_chunk)
+            
+            return chunks if chunks else [content]
+        
+        # No document markers, split by paragraphs
+        return self._split_text_by_paragraphs(content, chunk_size)
+    
+    def _split_text_by_paragraphs(self, text: str, chunk_size: int) -> List[str]:
+        """Split text into chunks at paragraph boundaries"""
+        paragraphs = text.split('\n\n')
+        chunks = []
+        current_chunk = ""
+        
+        for para in paragraphs:
+            if len(current_chunk) + len(para) + 2 > chunk_size:
+                if current_chunk:
+                    chunks.append(current_chunk)
+                current_chunk = para
+            else:
+                current_chunk = current_chunk + "\n\n" + para if current_chunk else para
+        
+        if current_chunk:
+            chunks.append(current_chunk)
+        
+        # If still no chunks or chunks are too large, force split
+        if not chunks:
+            chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+        
+        return chunks
+    
+    def _create_content_summary(self, content: str, max_chars: int) -> str:
+        """Create a summary by taking key parts from each document section"""
+        doc_marker = "=== "
+        if doc_marker in content:
+            sections = content.split(doc_marker)
+            chars_per_section = max_chars // max(len(sections), 1)
+            
+            summary_parts = []
+            for section in sections:
+                if section.strip():
+                    # Take beginning and end of each section
+                    if len(section) > chars_per_section:
+                        half = chars_per_section // 2
+                        summary_parts.append(doc_marker + section[:half] + "\n...\n" + section[-half:])
+                    else:
+                        summary_parts.append(doc_marker + section)
+            
+            return "\n".join(summary_parts)
+        
+        # No sections, just truncate
+        return content[:max_chars]
+    
+    async def _generate_questions_single(
+        self,
+        content: str,
+        question_count: int,
+        question_types: List[str],
+        difficulty_distribution: Dict[str, int],
+        topics: List[str],
+        custom_prompt: str,
+        reference_content: str
+    ) -> List[Dict[str, Any]]:
+        """Generate questions from a single chunk of content"""
+        
+        types_str = ", ".join(question_types)
+        topics_str = ", ".join(topics) if topics else "all topics in the content"
+        
+        # Build the prompt based on whether we have reference content and custom instructions
+        if reference_content and custom_prompt:
+            prompt = f"""You are an expert question generator. Follow these custom instructions:
+
+CUSTOM INSTRUCTIONS:
+{custom_prompt}
+
+REFERENCE MATERIAL (Sample Questions/Style Guide):
+{reference_content}
+
+CONTENT TO GENERATE QUESTIONS FROM:
+{content}
+
+Generate {question_count} questions following the style, difficulty, and format shown in the reference material.
+Question types to include: {types_str}
+Difficulty distribution: {json.dumps(difficulty_distribution)}
+Focus topics: {topics_str}
+
+For each question, provide:
+{{
+    "question_text": "Clear, specific question matching the reference style",
+    "question_type": "multiple_choice|true_false|short_answer|fill_blank",
+    "difficulty": "easy|medium|hard",
+    "topic": "specific topic from content",
+    "correct_answer": "precise answer",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "explanation": "Why this answer is correct",
+    "points": 1
+}}
+
+Return ONLY a valid JSON array of questions."""
+
+        elif reference_content:
+            prompt = f"""Analyze the reference questions below and generate similar questions from the main content.
+
+REFERENCE QUESTIONS (Use these as style/difficulty guide):
+{reference_content}
+
+MAIN CONTENT (Generate questions from this):
+{content}
+
+Generate {question_count} questions that:
+1. Match the STYLE and FORMAT of the reference questions
+2. Match the DIFFICULTY LEVEL of the reference questions
+3. Cover topics from the MAIN CONTENT
+4. Use similar question structures and wording patterns
+
+Question types: {types_str}
+Difficulty distribution: {json.dumps(difficulty_distribution)}
+Focus topics: {topics_str}
+
+For each question, provide:
+{{
+    "question_text": "Question matching reference style",
+    "question_type": "multiple_choice|true_false|short_answer|fill_blank",
+    "difficulty": "easy|medium|hard",
+    "topic": "specific topic",
+    "correct_answer": "precise answer",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "explanation": "Why this answer is correct",
+    "points": 1
+}}
+
+Return ONLY a valid JSON array of questions."""
+
+        elif custom_prompt:
+            prompt = f"""You are an expert question generator. Follow these custom instructions:
+
+CUSTOM INSTRUCTIONS:
+{custom_prompt}
+
+CONTENT:
+{content}
+
+Generate {question_count} questions following the custom instructions above.
+Question types: {types_str}
+Difficulty distribution: {json.dumps(difficulty_distribution)}
+Focus topics: {topics_str}
+
+For each question, provide:
+{{
+    "question_text": "Clear, specific question",
+    "question_type": "multiple_choice|true_false|short_answer|fill_blank",
+    "difficulty": "easy|medium|hard",
+    "topic": "specific topic",
+    "correct_answer": "precise answer",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "explanation": "Why this answer is correct",
+    "points": 1
+}}
+
+Return ONLY a valid JSON array of questions."""
+
+        else:
+            prompt = f"""Generate {question_count} high-quality, clear, and well-formed exam questions from this content.
 
 Content:
-{content[:10000]}
+{content}
 
 Requirements:
 - Question types: {types_str}
@@ -676,12 +1002,10 @@ Requirements:
 IMPORTANT GUIDELINES:
 1. Make questions CLEAR and SPECIFIC - avoid vague or ambiguous wording
 2. Ensure questions are DIRECTLY answerable from the content provided
-3. For short_answer questions, accept reasonable variations (synonyms, different phrasings)
-4. For fill_blank questions, make the blank obvious and have ONE clear answer
+3. For short_answer questions, accept reasonable variations
+4. For fill_blank questions, make the blank obvious with ONE clear answer
 5. For multiple_choice, ensure options are distinct and only ONE is clearly correct
 6. Questions should test understanding, not trick the student
-7. Use proper grammar and complete sentences
-8. Avoid questions that start with "What is the..." unless necessary
 
 For each question, provide:
 {{
@@ -689,33 +1013,123 @@ For each question, provide:
     "question_type": "multiple_choice|true_false|short_answer|fill_blank",
     "difficulty": "easy|medium|hard",
     "topic": "specific topic from content",
-    "correct_answer": "precise answer (for short_answer, use the most common/simple form)",
+    "correct_answer": "precise answer",
     "options": ["Option A", "Option B", "Option C", "Option D"],
-    "explanation": "Why this answer is correct and others are wrong",
+    "explanation": "Why this answer is correct",
     "points": 1
 }}
 
 Return ONLY a valid JSON array of questions, no additional text."""
         
         try:
-            content = self.unified_ai.generate(prompt, max_tokens=4000, temperature=0.7)
+            response_content = self.unified_ai.generate(prompt, max_tokens=4000, temperature=0.7)
             
             # Remove markdown code blocks if present
-            if content.startswith('```'):
-                content = re.sub(r'^```(?:json)?\n?', '', content)
-                content = re.sub(r'\n?```$', '', content).strip()
+            if response_content.startswith('```'):
+                response_content = re.sub(r'^```(?:json)?\n?', '', response_content)
+                response_content = re.sub(r'\n?```$', '', response_content).strip()
             
-            json_match = re.search(r'\[.*\]', content, re.DOTALL)
-            if json_match:
-                questions = json.loads(json_match.group())
+            # Try to extract and parse JSON
+            questions = self._parse_questions_json(response_content)
+            
+            if questions:
+                logger.info(f"Generated {len(questions)} questions successfully")
+                return questions
             else:
-                questions = json.loads(content)
-            
-            logger.info(f"Generated {len(questions)} questions successfully")
-            return questions
+                logger.error("Failed to parse questions from AI response")
+                return []
         except Exception as e:
             logger.error(f"Question generation error: {e}")
             return []
+    
+    def _parse_questions_json(self, content: str) -> List[Dict[str, Any]]:
+        """Robust JSON parsing with multiple fallback strategies"""
+        
+        # Strategy 1: Direct parse
+        try:
+            return json.loads(content)
+        except:
+            pass
+        
+        # Strategy 2: Extract JSON array
+        try:
+            json_match = re.search(r'\[.*\]', content, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+        except:
+            pass
+        
+        # Strategy 3: Fix common JSON issues
+        try:
+            fixed = content
+            # Remove trailing commas before ] or }
+            fixed = re.sub(r',(\s*[\]\}])', r'\1', fixed)
+            # Fix unescaped quotes in strings (common AI mistake)
+            fixed = re.sub(r'(?<!\\)"(?=[^"]*"[^"]*":)', r'\\"', fixed)
+            # Remove control characters
+            fixed = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', fixed)
+            
+            json_match = re.search(r'\[.*\]', fixed, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+        except:
+            pass
+        
+        # Strategy 4: Parse individual question objects
+        try:
+            questions = []
+            # Find all JSON objects that look like questions
+            pattern = r'\{[^{}]*"question_text"[^{}]*\}'
+            matches = re.findall(pattern, content, re.DOTALL)
+            
+            for match in matches:
+                try:
+                    # Clean up the match
+                    cleaned = re.sub(r',(\s*\})', r'\1', match)
+                    q = json.loads(cleaned)
+                    if 'question_text' in q:
+                        questions.append(q)
+                except:
+                    continue
+            
+            if questions:
+                logger.info(f"Recovered {len(questions)} questions using fallback parsing")
+                return questions
+        except:
+            pass
+        
+        # Strategy 5: More aggressive extraction
+        try:
+            questions = []
+            # Split by question boundaries
+            parts = re.split(r'\},\s*\{', content)
+            
+            for i, part in enumerate(parts):
+                try:
+                    # Add back braces
+                    if not part.strip().startswith('{'):
+                        part = '{' + part
+                    if not part.strip().endswith('}'):
+                        part = part + '}'
+                    
+                    # Clean
+                    part = re.sub(r',(\s*\})', r'\1', part)
+                    part = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', part)
+                    
+                    q = json.loads(part)
+                    if 'question_text' in q:
+                        questions.append(q)
+                except:
+                    continue
+            
+            if questions:
+                logger.info(f"Recovered {len(questions)} questions using aggressive parsing")
+                return questions
+        except:
+            pass
+        
+        logger.error(f"All JSON parsing strategies failed. Content preview: {content[:500]}")
+        return []
     
     async def generate_similar_question(
         self, 
@@ -1242,23 +1656,57 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             else:
                 title = f"Questions from {len(document_names)} documents"
             
-            # Generate questions from combined content
+            # Handle reference document (sample questions) vs content documents
+            reference_content = None
+            main_content = combined_content
+            
+            # If user specified which documents are reference vs content
+            if request.reference_document_id and request.content_document_ids:
+                # Separate reference document from content documents
+                reference_doc = next((d for d in documents if d.id == request.reference_document_id), None)
+                content_docs = [d for d in documents if d.id in request.content_document_ids]
+                
+                if reference_doc:
+                    reference_content = f"=== Reference: {reference_doc.filename} ===\n{reference_doc.content}"
+                    logger.info(f"Using {reference_doc.filename} as reference/sample questions")
+                
+                if content_docs:
+                    main_content = "\n\n".join([
+                        f"=== Content: {d.filename} ===\n{d.content}" for d in content_docs
+                    ])
+                    logger.info(f"Using {len(content_docs)} documents as main content")
+            
+            # Log custom prompt if provided
+            if request.custom_prompt:
+                logger.info(f"Custom prompt provided: {request.custom_prompt[:100]}...")
+            
+            # Generate questions from combined content with custom prompt support
             questions = await agents["question_generator"].generate_questions(
-                combined_content,
+                main_content,
                 request.question_count,
                 request.question_types,
                 request.difficulty_mix,
-                request.topics
+                request.topics,
+                custom_prompt=request.custom_prompt,
+                reference_content=reference_content
             )
             
             if not questions:
                 raise HTTPException(status_code=500, detail="Failed to generate questions from the provided documents")
             
+            # Create description based on what was used
+            description_parts = [f"Generated from {len(documents)} PDF documents"]
+            if request.custom_prompt:
+                description_parts.append("with custom instructions")
+            if reference_content:
+                description_parts.append("using reference style")
+            description = f"{'. '.join(description_parts)}: {', '.join(document_names[:3])}{'...' if len(document_names) > 3 else ''}"
+            
             # Create question set
             question_set = models.QuestionSet(
                 user_id=user.id,
                 title=title,
-                description=f"Generated from {len(documents)} PDF documents: {', '.join(document_names[:3])}{'...' if len(document_names) > 3 else ''}",
+                description=description,
                 source_type="multi_pdf",
                 source_id=None,  # Multiple sources, so no single ID
                 total_questions=len(questions)
@@ -1300,6 +1748,160 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             raise http_e
         except Exception as e:
             logger.error(f"Error generating questions from multiple PDFs: {e}", exc_info=True)
+            db.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/qb/smart_generate")
+    async def smart_generate_questions(
+        request: MultiPDFGenerationRequest,
+        db: Session = Depends(get_db_func)
+    ):
+        """
+        Smart question generation with custom prompts and reference documents.
+        
+        Use cases:
+        1. "Generate questions like these sample questions from my textbook"
+        2. "Create easy questions focusing on chapter 3 topics"
+        3. "Make questions similar to last year's exam from this study material"
+        
+        Parameters:
+        - source_ids: All document IDs to use
+        - reference_document_id: Document to use as style/format reference (e.g., sample questions)
+        - content_document_ids: Documents to generate questions FROM (e.g., textbook)
+        - custom_prompt: Custom instructions (e.g., "focus on practical applications")
+        """
+        try:
+            import models
+            
+            logger.info(f"Smart generation for user {request.user_id} with {len(request.source_ids)} sources")
+            if request.custom_prompt:
+                logger.info(f"Custom prompt: {request.custom_prompt[:100]}...")
+            
+            user = db.query(models.User).filter(
+                (models.User.username == request.user_id) | (models.User.email == request.user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            # Fetch all documents
+            documents = db.query(models.UploadedDocument).filter(
+                models.UploadedDocument.id.in_(request.source_ids),
+                models.UploadedDocument.user_id == user.id
+            ).all()
+            
+            if not documents:
+                raise HTTPException(status_code=404, detail="No documents found")
+            
+            doc_map = {d.id: d for d in documents}
+            document_names = [d.filename for d in documents]
+            
+            # Separate reference and content documents
+            reference_content = None
+            main_content_parts = []
+            
+            if request.reference_document_id and request.reference_document_id in doc_map:
+                ref_doc = doc_map[request.reference_document_id]
+                reference_content = f"=== REFERENCE DOCUMENT: {ref_doc.filename} ===\n{ref_doc.content}"
+                logger.info(f"Reference document: {ref_doc.filename}")
+            
+            # Get content documents
+            content_ids = request.content_document_ids or [
+                d.id for d in documents if d.id != request.reference_document_id
+            ]
+            
+            for doc_id in content_ids:
+                if doc_id in doc_map:
+                    doc = doc_map[doc_id]
+                    main_content_parts.append(f"=== CONTENT: {doc.filename} ===\n{doc.content}")
+            
+            if not main_content_parts:
+                # If no content docs specified, use all non-reference docs
+                for doc in documents:
+                    if doc.id != request.reference_document_id:
+                        main_content_parts.append(f"=== CONTENT: {doc.filename} ===\n{doc.content}")
+            
+            main_content = "\n\n".join(main_content_parts)
+            
+            if not main_content.strip():
+                raise HTTPException(status_code=400, detail="No content to generate questions from")
+            
+            logger.info(f"Main content: {len(main_content)} chars from {len(main_content_parts)} docs")
+            
+            # Generate title
+            title = request.title or f"Smart Questions from {len(documents)} documents"
+            
+            # Generate questions with all the context
+            questions = await agents["question_generator"].generate_questions(
+                main_content,
+                request.question_count,
+                request.question_types,
+                request.difficulty_mix,
+                request.topics,
+                custom_prompt=request.custom_prompt,
+                reference_content=reference_content
+            )
+            
+            if not questions:
+                raise HTTPException(
+                    status_code=500, 
+                    detail="Failed to generate questions. The AI response could not be parsed. Please try again with a simpler prompt or fewer documents."
+                )
+            
+            # Build description
+            desc_parts = []
+            if request.custom_prompt:
+                desc_parts.append(f"Custom: {request.custom_prompt[:50]}...")
+            if reference_content:
+                desc_parts.append("Style matched to reference")
+            desc_parts.append(f"Sources: {', '.join(document_names[:3])}")
+            
+            question_set = models.QuestionSet(
+                user_id=user.id,
+                title=title,
+                description=" | ".join(desc_parts),
+                source_type="smart_multi_pdf",
+                source_id=None,
+                total_questions=len(questions)
+            )
+            
+            db.add(question_set)
+            db.flush()
+            
+            for idx, q in enumerate(questions):
+                question = models.Question(
+                    question_set_id=question_set.id,
+                    question_text=q.get("question_text"),
+                    question_type=q.get("question_type"),
+                    difficulty=q.get("difficulty"),
+                    topic=q.get("topic"),
+                    correct_answer=q.get("correct_answer"),
+                    options=json.dumps(q.get("options", [])),
+                    explanation=q.get("explanation"),
+                    points=q.get("points", 1),
+                    order_index=idx
+                )
+                db.add(question)
+            
+            db.commit()
+            db.refresh(question_set)
+            
+            logger.info(f"Smart generation complete: {len(questions)} questions")
+            
+            return {
+                "status": "success",
+                "question_set_id": question_set.id,
+                "question_count": len(questions),
+                "title": title,
+                "source_documents": document_names,
+                "used_reference": reference_content is not None,
+                "used_custom_prompt": request.custom_prompt is not None
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Smart generation error: {e}", exc_info=True)
             db.rollback()
             raise HTTPException(status_code=500, detail=str(e))
     

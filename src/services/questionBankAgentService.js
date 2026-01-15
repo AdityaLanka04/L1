@@ -113,6 +113,55 @@ class QuestionBankAgentService {
   }
 
   /**
+   * Smart question generation with custom prompts and reference documents
+   * Use cases:
+   * - "Generate questions like these sample questions from my textbook"
+   * - "Create easy questions focusing on chapter 3 topics"
+   * - "Make questions similar to last year's exam from this study material"
+   */
+  async smartGenerate(params) {
+    const { 
+      userId, 
+      sourceIds, 
+      questionCount, 
+      difficultyMix, 
+      title, 
+      questionTypes, 
+      topics,
+      customPrompt,
+      referenceDocumentId,
+      contentDocumentIds
+    } = params;
+
+    const response = await fetch(`${API_URL}/qb/smart_generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        source_ids: sourceIds,
+        question_count: questionCount,
+        difficulty_mix: difficultyMix,
+        title: title,
+        question_types: questionTypes || ['multiple_choice', 'true_false', 'short_answer'],
+        topics: topics,
+        custom_prompt: customPrompt,
+        reference_document_id: referenceDocumentId,
+        content_document_ids: contentDocumentIds
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to generate questions');
+    }
+
+    return await response.json();
+  }
+
+  /**
    * Delete an uploaded PDF document
    */
   async deleteDocument(userId, documentId) {
