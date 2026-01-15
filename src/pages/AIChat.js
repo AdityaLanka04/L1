@@ -1728,12 +1728,13 @@ const AIChat = ({ sharedMode = false }) => {
             {/* Chats Section */}
             <div className="ac-nav-section">
               <div className="ac-nav-section-title">
-                Chats
+                {selectedFolder ? folders.find(f => f.id === selectedFolder)?.name || 'Folder' : 'Chats'}
                 {selectedFolder && (
                   <button 
                     className="ac-add-folder-btn"
                     onClick={() => setSelectedFolder(null)}
-                    title="Show all"
+                    title="Close folder"
+                    style={{ marginLeft: 'auto' }}
                   >
                     {Icons.x}
                   </button>
@@ -2031,38 +2032,40 @@ const AIChat = ({ sharedMode = false }) => {
                       )}
                     </div>
                     
-                    <div className="ac-message-meta">
-                      <span className="ac-message-time">
-                        {new Date(message.timestamp).toLocaleTimeString('en-US', { 
-                          hour: 'numeric', 
-                          minute: '2-digit',
-                          hour12: true
-                        })}
-                      </span>
-                      
-                      {message.type === 'ai' && message.aiConfidence !== undefined && (
-                        <span className={`ac-confidence ${getConfidenceClass(message.aiConfidence)}`}>
-                          {Math.round(message.aiConfidence * 100)}%
+                    <div className="ac-message-meta" style={{ maxWidth: '85%' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className="ac-message-time">
+                          {new Date(message.timestamp).toLocaleTimeString('en-US', { 
+                            hour: 'numeric', 
+                            minute: '2-digit',
+                            hour12: true
+                          })}
                         </span>
+                        
+                        {message.type === 'ai' && message.aiConfidence !== undefined && (
+                          <span className={`ac-confidence ${getConfidenceClass(message.aiConfidence)}`}>
+                            {Math.round(message.aiConfidence * 100)}%
+                          </span>
+                        )}
+                      </div>
+                      
+                      {message.type === 'ai' && !message.userRating && !message.feedbackSubmitted && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto', marginRight: '0' }}>
+                          <span className="ac-rating-label">RATE THIS RESPONSE</span>
+                          <div className="ac-rating-buttons">
+                            {[1, 2, 3, 4, 5].map(rating => (
+                              <button
+                                key={rating}
+                                className="ac-rating-btn"
+                                onClick={() => rateResponse(message.id, rating)}
+                              >
+                                {rating}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
-
-                    {message.type === 'ai' && !message.userRating && !message.feedbackSubmitted && (
-                      <div className="ac-rating">
-                        <span className="ac-rating-label">Rate this response</span>
-                        <div className="ac-rating-buttons">
-                          {[1, 2, 3, 4, 5].map(rating => (
-                            <button
-                              key={rating}
-                              className="ac-rating-btn"
-                              onClick={() => rateResponse(message.id, rating)}
-                            >
-                              {rating}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
 
                     {showFeedbackFor === message.id && (
                       <div className="ac-feedback">
@@ -2261,13 +2264,15 @@ const AIChat = ({ sharedMode = false }) => {
                 {folder.name}
               </button>
             ))}
-            <button
-              className="ac-move-menu-item"
-              onClick={() => handleMoveToFolder(showMoveMenu, null)}
-            >
-              {Icons.x}
-              Remove from Folder
-            </button>
+            {chatSessions.find(s => s.id === showMoveMenu)?.folder_id && (
+              <button
+                className="ac-move-menu-item"
+                onClick={() => handleMoveToFolder(showMoveMenu, null)}
+              >
+                {Icons.x}
+                Remove from {folders.find(f => f.id === chatSessions.find(s => s.id === showMoveMenu)?.folder_id)?.name || 'Folder'}
+              </button>
+            )}
           </div>
         </>
       )}

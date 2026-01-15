@@ -16,8 +16,7 @@ const AIMediaNotes = () => {
   const fileInputRef = useRef(null);
   const contentRef = useRef(null);
 
-  // Sidebar state
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
 
   // Upload state
   const [uploadedFile, setUploadedFile] = useState(null);
@@ -352,49 +351,18 @@ const AIMediaNotes = () => {
       {/* Top Header - Exact MyNotes Style */}
       <header className="mn-top-header">
         <div className="mn-top-header-left">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="mn-nav-btn-ghost"
-            style={{ padding: '8px' }}
-            title="Back to Dashboard"
-          >
-            <ArrowLeft size={18} />
-          </button>
           <h1 className="mn-top-header-title" onClick={() => navigate('/dashboard')}>cerbyl</h1>
           <div className="mn-top-header-divider"></div>
           <p className="mn-top-header-subtitle">MEDIA NOTES</p>
         </div>
-
-        <nav className="mn-top-header-nav">
-          <button className="mn-nav-btn-ghost" onClick={() => navigate("/notes/my-notes")}>
-            <span>My Notes</span>
-            <ChevronRight size={14} />
-          </button>
-          <button className="mn-nav-btn-ghost" onClick={() => navigate("/flashcards")}>
-            <span>Flashcards</span>
-            <ChevronRight size={14} />
-          </button>
-          <button className="mn-nav-btn-ghost" onClick={() => navigate("/dashboard")}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
-          </button>
-        </nav>
       </header>
 
       <div className="mn-layout">
         {/* Sidebar */}
-        <aside className={`mn-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+        <aside className="mn-sidebar">
           <div className="mn-sidebar-header">
             <div className="mn-logo" onClick={() => navigate('/dashboard')}>
-              <div className="mn-logo-icon">{Icons.media}</div>
-              <span className="mn-logo-text">MEDIA NOTES</span>
             </div>
-            <button 
-              className="mn-collapse-btn"
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            >
-              {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-            </button>
           </div>
 
           <button className="mn-new-upload-btn" onClick={() => {
@@ -450,51 +418,13 @@ const AIMediaNotes = () => {
               <span className="mn-nav-icon">{Icons.home}</span>
               <span className="mn-nav-text">DASHBOARD</span>
             </button>
-            <button className="mn-nav-item" onClick={handleLogout}>
-              <span className="mn-nav-icon">{Icons.logout}</span>
-              <span className="mn-nav-text">LOGOUT</span>
-            </button>
           </div>
         </aside>
 
-        {/* Show Sidebar Button - appears when sidebar is collapsed */}
-        {sidebarCollapsed && (
-          <button 
-            className="mn-show-sidebar-btn" 
-            onClick={() => setSidebarCollapsed(false)}
-            title="Show Sidebar"
-          >
-            <Menu size={20} />
-          </button>
-        )}
+
 
         {/* Main Content */}
         <main className="mn-main">
-          <header className="mn-header">
-            <div className="mn-header-left">
-              <h1 className="mn-header-title">cerbyl</h1>
-              <div className="mn-header-divider"></div>
-              <p className="mn-header-subtitle">MEDIA NOTES</p>
-            </div>
-            <div className="mn-header-actions">
-              <button 
-                className="mn-nav-btn-ghost"
-                onClick={() => {
-                  setResults(null);
-                  setUploadedFile(null);
-                  setYoutubeUrl('');
-                }}
-              >
-                <Upload size={16} />
-                <span>NEW UPLOAD</span>
-              </button>
-              <button className="mn-nav-btn-ghost" onClick={() => navigate("/notes/my-notes")}>
-                <span>My Notes</span>
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          </header>
-
           <div className="mn-content" ref={contentRef}>
             {!results ? (
               <div className="mn-upload-section">

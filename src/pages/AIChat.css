@@ -365,13 +365,17 @@ html:has(.ai-chat-page) {
 }
 
 .ac-nav-section-title {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.8px;
   padding: 12px 16px 8px 16px;
   margin-bottom: 4px;
   margin-top: 8px;
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .ac-nav-item {
@@ -523,7 +527,7 @@ html:has(.ai-chat-page) {
   color: var(--ac-text-secondary);
   cursor: pointer;
   transition: all 0.2s;
-  width: 100%;
+  width: 90%;
   text-align: left;
   position: relative;
 }
@@ -684,11 +688,13 @@ html:has(.ai-chat-page) {
 /* Chat Content Area */
 .ac-content {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: hidden !important;
   overflow-x: hidden;
-  padding: 24px 32px;
+  padding: 0 !important;
+  margin: 0 !important;
   display: flex;
   flex-direction: column;
+  width: 100% !important;
 }
 
 .ac-content::-webkit-scrollbar {
@@ -714,10 +720,22 @@ html:has(.ai-chat-page) {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-width: 900px;
-  margin: 0 auto;
+  max-width: 100% !important;
+  margin: 0 !important;
   width: 100%;
-  overflow-x: hidden;
+  padding: 24px 40px;
+  overflow-y: auto !important;
+  overflow-x: visible !important;
+}
+
+/* Hide scrollbar completely */
+.ac-messages::-webkit-scrollbar {
+  display: none;
+}
+
+.ac-messages {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Welcome Screen */
@@ -766,10 +784,20 @@ html:has(.ai-chat-page) {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: 100%;
 }
 
 .ac-message.user {
   align-items: flex-end;
+}
+
+.ac-message.user .ac-message-meta {
+  order: 2;
+  justify-content: flex-end;
+}
+
+.ac-message.user .ac-message-bubble {
+  order: 1;
 }
 
 .ac-message.ai {
@@ -777,7 +805,7 @@ html:has(.ai-chat-page) {
 }
 
 .ac-message-bubble {
-  max-width: 75%;
+  max-width: 85%;
   background: var(--ac-bg-card);
   border: 1px solid var(--ac-border-subtle);
   border-radius: 12px;
@@ -788,6 +816,14 @@ html:has(.ai-chat-page) {
 .ac-message.user .ac-message-bubble {
   background: var(--ac-accent-glow);
   border-color: var(--ac-accent);
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.ac-message.ai .ac-message-bubble {
+  padding: 20px 24px;
+  margin-left: 0;
+  margin-right: auto;
 }
 
 .ac-message-content {
@@ -801,8 +837,12 @@ html:has(.ai-chat-page) {
 .ac-message-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   padding: 0 4px;
+  justify-content: flex-start;
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
 }
 
 .ac-message-time {
@@ -1156,27 +1196,29 @@ html:has(.ai-chat-page) {
 }
 
 .ac-add-folder-btn {
-  width: 24px;
-  height: 24px;
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  width: 18px;
+  height: 18px;
+  background: transparent;
+  border: none;
   color: var(--ac-accent);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s;
+  padding: 0;
 }
 
 .ac-add-folder-btn:hover {
-  background: color-mix(in srgb, var(--accent) 20%, transparent);
-  border-color: var(--ac-accent);
-  transform: scale(1.05);
+  background: transparent;
+  border: none;
+  transform: scale(1.1);
+  opacity: 0.8;
 }
 
 .ac-add-folder-btn svg {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
 }
 
 .ac-folder-item {
@@ -1190,7 +1232,7 @@ html:has(.ai-chat-page) {
   color: var(--ac-text-secondary);
   cursor: pointer;
   transition: all 0.2s;
-  width: 100%;
+  width: 90%;
   text-align: left;
   position: relative;
 }
@@ -1211,7 +1253,8 @@ html:has(.ai-chat-page) {
 }
 
 .ac-folder-item:hover {
-  background: rgba(215, 179, 140, 0.1);
+  background: rgba(215, 179, 140, 0.08);
+  margin-right: 8px;
 }
 
 .ac-folder-icon {
@@ -1231,11 +1274,7 @@ html:has(.ai-chat-page) {
 }
 
 .ac-folder-count {
-  font-size: 11px;
-  padding: 2px 6px;
-  background: var(--ac-bg-tertiary);
-  border-radius: 12px;
-  color: var(--ac-text-muted);
+  display: none !important;
 }
 
 /* Folder Creation Input */
@@ -1247,8 +1286,8 @@ html:has(.ai-chat-page) {
 
 .ac-folder-input {
   flex: 1;
-  background: var(--ac-bg-primary);
-  border: 1px solid var(--ac-border-subtle);
+  background: transparent;
+  border: none;
   border-radius: 8px;
   color: var(--ac-text-primary);
   padding: 6px 10px;
@@ -1257,7 +1296,8 @@ html:has(.ai-chat-page) {
 }
 
 .ac-folder-input:focus {
-  border-color: var(--ac-accent);
+  border: none;
+  outline: none;
 }
 
 .ac-folder-submit,
@@ -1350,34 +1390,37 @@ html:has(.ai-chat-page) {
 }
 
 .ac-rating-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  color: var(--ac-text-muted);
+  color: var(--ac-accent);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
+  letter-spacing: 1.5px;
+  margin: 0;
+  white-space: nowrap;
 }
 
 .ac-rating-buttons {
   display: flex;
   gap: 6px;
+  margin: 0;
+  flex-shrink: 0;
 }
 
 .ac-rating-btn {
   padding: 6px 12px;
-  background: var(--ac-bg-secondary);
-  border: 1px solid var(--ac-border-subtle);
-  border-radius: 8px;
-  color: var(--ac-text-secondary);
+  background: transparent;
+  border: none;
+  color: var(--ac-accent);
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
+  font-weight: 600;
 }
 
 .ac-rating-btn:hover {
   background: var(--ac-accent-glow);
-  border-color: var(--ac-accent);
   color: var(--ac-accent);
+  transform: scale(1.1);
 }
 
 /* Confidence Badge */
@@ -2330,13 +2373,13 @@ sub {
 }
 
 .ac-message.user .ac-message-bubble {
-  background: linear-gradient(135deg, var(--ac-accent-glow), var(--ac-bg-tertiary));
+  background: var(--ac-accent-glow);
   border: 1px solid var(--ac-accent);
-  box-shadow: 0 0 20px rgba(215, 179, 140, 0.2);
+  box-shadow: none !important;
 }
 
 [data-theme-mode="dark"] .ac-message.user .ac-message-bubble {
-  box-shadow: 0 0 30px rgba(215, 179, 140, 0.3);
+  box-shadow: none !important;
 }
 
 /* Enhanced Input Area */
@@ -2783,16 +2826,11 @@ sub {
 }
 
 .ac-folder-item::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, var(--ac-accent-glow), transparent);
-  opacity: 0;
-  transition: opacity 0.3s;
+  display: none;
 }
 
 .ac-folder-item:hover::after {
-  opacity: 1;
+  display: none;
 }
 
 .ac-folder-icon {
@@ -4709,14 +4747,19 @@ button:not(:disabled):active,
 
 .ac-search-input {
   width: 100%;
-  padding: 10px 12px 10px 40px;
+  padding: 8px 10px 8px 32px;
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(215, 179, 140, 0.3);
+  border-radius: 8px;
   color: inherit;
-  font-size: 13px;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
   outline: none;
   transition: all 0.3s;
   position: relative;
+  height: 36px;
 }
 
 [data-theme-mode="dark"] .ac-search-input {
@@ -4797,11 +4840,11 @@ button:not(:disabled):active,
 
 /* User message accent glow */
 .ac-message.user .ac-message-bubble {
-  box-shadow: 0 2px 12px var(--ac-accent-glow);
+  box-shadow: none !important;
 }
 
 .ac-message.user .ac-message-bubble:hover {
-  box-shadow: 0 4px 20px var(--ac-accent-glow);
+  box-shadow: none !important;
 }
 
 /* Input area with elevated appearance */
@@ -5004,35 +5047,41 @@ button:focus-visible {
 
 .ac-search-input {
   width: 100% !important;
-  padding: 12px 16px 12px 44px !important;
-  border-radius: 12px !important;
-  font-size: 13px !important;
-  background: var(--ac-bg-tertiary) !important;
-  border: 1px solid color-mix(in srgb, var(--ac-accent) 20%, transparent) !important;
-  color: var(--ac-text-primary) !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  padding: 8px 10px 8px 32px !important;
+  border-radius: 8px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 2px !important;
+  text-transform: uppercase !important;
+  background: rgba(0, 0, 0, 0.2) !important;
+  border: 1px solid rgba(215, 179, 140, 0.3) !important;
+  color: inherit !important;
+  transition: all 0.3s !important;
+  height: 36px !important;
 }
 
 [data-theme-mode="dark"] .ac-search-input {
-  background: rgba(0, 0, 0, 0.4) !important;
-  border: 1px solid color-mix(in srgb, var(--ac-accent) 25%, transparent) !important;
+  background: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent) !important;
+  color: color-mix(in srgb, var(--accent) 60%, #ffffff) !important;
 }
 
 [data-theme-mode="light"] .ac-search-input {
-  background: rgba(255, 255, 255, 0.8) !important;
-  border: 1px solid color-mix(in srgb, var(--ac-accent) 30%, transparent) !important;
+  background: rgba(255, 255, 255, 0.6) !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent) !important;
+  color: color-mix(in srgb, var(--accent) 80%, #000000) !important;
 }
 
 .ac-search-input:focus {
   border-color: var(--ac-accent) !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ac-accent) 20%, transparent), 
-              0 4px 16px rgba(0, 0, 0, 0.1) !important;
-  transform: translateY(-1px) !important;
+  box-shadow: 0 0 0 2px rgba(215, 179, 140, 0.2) !important;
 }
 
 .ac-search-input::placeholder {
-  color: var(--ac-text-muted) !important;
-  font-weight: 400 !important;
+  color: color-mix(in srgb, var(--accent) 50%, transparent) !important;
+  font-weight: 600 !important;
+  letter-spacing: 2px !important;
+  text-transform: uppercase !important;
 }
 
 /* Folders Section - Premium Design */
@@ -5082,6 +5131,8 @@ button:focus-visible {
   border: 1px solid transparent !important;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
   position: relative !important;
+  width: 90% !important;
+  max-width: 90% !important;
 }
 
 .ac-folder-item:hover {
@@ -5145,12 +5196,14 @@ button:focus-visible {
 
 /* Chat Session Items - Modern Cards */
 .ac-session-item {
-  margin: 4px 12px !important;
+  margin: 4px 12px 4px 12px !important;
   padding: 12px 14px !important;
   border-radius: 10px !important;
   background: transparent !important;
   border: 1px solid transparent !important;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  width: 90% !important;
+  max-width: 90% !important;
 }
 
 .ac-session-item:hover {
@@ -5252,40 +5305,29 @@ button:focus-visible {
 /* Folder Input Group - Modern Style */
 .ac-folder-input-group {
   margin: 8px 12px !important;
-  padding: 8px !important;
+  padding: 4px 6px !important;
   background: color-mix(in srgb, var(--ac-accent) 5%, transparent) !important;
-  border-radius: 12px !important;
+  border-radius: 8px !important;
   border: 1px solid color-mix(in srgb, var(--ac-accent) 20%, transparent) !important;
 }
 
 .ac-folder-input {
-  padding: 10px 12px !important;
+  padding: 6px 10px !important;
   border-radius: 8px !important;
-  font-size: 13px !important;
-  background: var(--ac-bg-primary) !important;
-  border: 1px solid color-mix(in srgb, var(--ac-accent) 20%, transparent) !important;
+  font-size: 11px !important;
+  background: transparent !important;
+  border: none !important;
 }
 
 .ac-folder-input:focus {
-  border-color: var(--ac-accent) !important;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ac-accent) 20%, transparent) !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .ac-folder-submit,
 .ac-folder-cancel {
-  width: 32px !important;
-  height: 32px !important;
-  border-radius: 8px !important;
-}
-
-.ac-folder-submit {
-  background: var(--ac-accent) !important;
-  color: var(--ac-bg-primary) !important;
-}
-
-.ac-folder-submit:hover {
-  transform: scale(1.05) !important;
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--ac-accent) 40%, transparent) !important;
+  display: none !important;
 }
 
 /* Collapse Button - Refined */

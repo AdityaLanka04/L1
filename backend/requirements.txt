@@ -61,6 +61,9 @@ python-docx>=0.8.11
 python-pptx>=0.6.21
 Pillow>=10.0.0
 
+# PDF Generation
+reportlab>=4.0.0
+
 # Media Processing
 youtube-transcript-api>=0.6.0
 pytube>=15.0.0

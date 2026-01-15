@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, Upload, MessageSquare, Sparkles, FileText, BarChart3, 
   Plus, Play, Trash2, TrendingUp, Target, Brain, Zap, Award, 
-  CheckCircle, XCircle, Loader, Clock, FileUp, BookOpen, PieChart, ChevronLeft
+  CheckCircle, XCircle, Loader, Clock, FileUp, BookOpen, PieChart, ChevronLeft,
+  Download, FileDown
 } from 'lucide-react';
 import './Questionbankdashboard.css';
 import './QuestionbankConvert.css';
@@ -22,6 +23,10 @@ const QuestionBankDashboard = () => {
   const [uploadedSlides, setUploadedSlides] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(null);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportSetId, setExportSetId] = useState(null);
+  const [includeAnswers, setIncludeAnswers] = useState(false);
 
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
@@ -467,6 +472,63 @@ const QuestionBankDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const exportQuestionSetPdf = async (setId, withAnswers = false) => {
+    try {
+      setExportingPdf(setId);
+      
+      const response = await fetch(
+        `${API_URL}/qb/export_question_set_pdf/${setId}?user_id=${userId}&include_answers=${withAnswers}`,
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+      
+      // Get the blob from response
+      const blob = await response.blob();
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // Get filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'Question_Set.pdf';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename=(.+)/);
+        if (filenameMatch) {
+          filename = filenameMatch[1].replace(/"/g, '');
+        }
+      }
+      
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      setShowExportModal(false);
+      setExportSetId(null);
+      setIncludeAnswers(false);
+      
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      alert('Error generating PDF. Please try again.');
+    } finally {
+      setExportingPdf(null);
+    }
+  };
+
+  const openExportModal = (setId) => {
+    setExportSetId(setId);
+    setIncludeAnswers(false);
+    setShowExportModal(true);
   };
 
   const toggleSourceSelection = (type, id, title) => {
@@ -1065,13 +1127,30 @@ const QuestionBankDashboard = () => {
                 <div className="qbd-set-icon">
                   <FileText size={28} />
                 </div>
-                <button 
-                  className="qbd-set-delete"
-                  onClick={() => deleteQuestionSet(set.id)}
-                  title="Delete question set"
-                >
-                  <Trash2 size={16} />
-                </button>
+                <div className="qbd-set-header-actions">
+                  <button 
+                    className="qbd-set-export"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openExportModal(set.id);
+                    }}
+                    title="Export as PDF"
+                    disabled={exportingPdf === set.id}
+                  >
+                    {exportingPdf === set.id ? (
+                      <Loader className="qbd-spin" size={16} />
+                    ) : (
+                      <FileDown size={16} />
+                    )}
+                  </button>
+                  <button 
+                    className="qbd-set-delete"
+                    onClick={() => deleteQuestionSet(set.id)}
+                    title="Delete question set"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
 
               <div className="qbd-set-content">
@@ -1101,13 +1180,30 @@ const QuestionBankDashboard = () => {
                 </div>
               </div>
 
-              <button 
-                className="qbd-set-study-btn"
-                onClick={() => startStudySession(set.id)}
-              >
-                <Play size={18} />
-                <span>Start Practice</span>
-              </button>
+              <div className="qbd-set-actions">
+                <button 
+                  className="qbd-set-study-btn"
+                  onClick={() => startStudySession(set.id)}
+                >
+                  <Play size={18} />
+                  <span>Start Practice</span>
+                </button>
+                <button 
+                  className="qbd-set-export-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openExportModal(set.id);
+                  }}
+                  disabled={exportingPdf === set.id}
+                >
+                  {exportingPdf === set.id ? (
+                    <Loader className="qbd-spin" size={16} />
+                  ) : (
+                    <Download size={16} />
+                  )}
+                  <span>Export PDF</span>
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -1539,6 +1635,75 @@ const QuestionBankDashboard = () => {
           fetchQuestionSets();
         }}
       />
+      
+      {/* PDF Export Modal */}
+      {showExportModal && (
+        <div className="qbd-modal-overlay" onClick={() => setShowExportModal(false)}>
+          <div className="qbd-export-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="qbd-export-modal-header">
+              <div className="qbd-export-modal-icon">
+                <FileDown size={32} />
+              </div>
+              <h2>Export Question Set</h2>
+              <p>Generate a professionally formatted PDF document</p>
+            </div>
+            
+            <div className="qbd-export-modal-content">
+              <div className="qbd-export-option">
+                <label className="qbd-export-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={includeAnswers}
+                    onChange={(e) => setIncludeAnswers(e.target.checked)}
+                  />
+                  <span className="qbd-checkbox-custom"></span>
+                  <div className="qbd-export-option-text">
+                    <span className="qbd-export-option-title">Include Answer Key</span>
+                    <span className="qbd-export-option-desc">Add answers and explanations at the end of the document</span>
+                  </div>
+                </label>
+              </div>
+              
+              <div className="qbd-export-features">
+                <h4>PDF Features:</h4>
+                <ul>
+                  <li><CheckCircle size={14} /> Professional academic formatting</li>
+                  <li><CheckCircle size={14} /> LaTeX math expression support</li>
+                  <li><CheckCircle size={14} /> Difficulty level indicators</li>
+                  <li><CheckCircle size={14} /> Topic categorization</li>
+                  <li><CheckCircle size={14} /> Page numbers and headers</li>
+                </ul>
+              </div>
+            </div>
+            
+            <div className="qbd-export-modal-actions">
+              <button 
+                className="qbd-btn-secondary"
+                onClick={() => setShowExportModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="qbd-btn-primary"
+                onClick={() => exportQuestionSetPdf(exportSetId, includeAnswers)}
+                disabled={exportingPdf}
+              >
+                {exportingPdf ? (
+                  <>
+                    <Loader className="qbd-spin" size={18} />
+                    <span>Generating PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download size={18} />
+                    <span>Download PDF</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

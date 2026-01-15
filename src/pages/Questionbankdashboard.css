@@ -1844,3 +1844,334 @@
   background: linear-gradient(135deg, var(--qbd-accent-glow), transparent);
   pointer-events: none;
 }
+
+
+/* ==================== PDF EXPORT STYLES ==================== */
+
+/* Export button in card header */
+.qbd-set-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.qbd-set-export {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--qbd-border-subtle);
+  color: var(--qbd-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.qbd-set-export:hover {
+  background: var(--qbd-accent-glow);
+  border-color: var(--qbd-accent);
+  color: var(--qbd-accent);
+}
+
+.qbd-set-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Card actions container */
+.qbd-set-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+.qbd-set-export-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: transparent;
+  border: 1px solid var(--qbd-border-subtle);
+  border-radius: 8px;
+  color: var(--qbd-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.qbd-set-export-btn:hover {
+  background: var(--qbd-accent-glow);
+  border-color: var(--qbd-accent);
+  color: var(--qbd-accent);
+}
+
+.qbd-set-export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Export Modal Overlay */
+.qbd-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Export Modal */
+.qbd-export-modal {
+  background: var(--qbd-bg-secondary);
+  border-radius: 16px;
+  border: 1px solid var(--qbd-border-subtle);
+  width: 90%;
+  max-width: 480px;
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.qbd-export-modal-header {
+  padding: 32px 32px 24px;
+  text-align: center;
+  border-bottom: 1px solid var(--qbd-border-subtle);
+  background: linear-gradient(180deg, var(--qbd-accent-glow), transparent);
+}
+
+.qbd-export-modal-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: var(--qbd-accent-glow);
+  border: 1px solid var(--qbd-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  color: var(--qbd-accent);
+}
+
+.qbd-export-modal-header h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--qbd-text-primary);
+  margin-bottom: 8px;
+}
+
+.qbd-export-modal-header p {
+  font-size: 14px;
+  color: var(--qbd-text-secondary);
+}
+
+.qbd-export-modal-content {
+  padding: 24px 32px;
+}
+
+/* Export Option Checkbox */
+.qbd-export-option {
+  margin-bottom: 24px;
+}
+
+.qbd-export-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  cursor: pointer;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--qbd-border-subtle);
+  background: var(--qbd-bg-tertiary);
+  transition: all 0.2s;
+}
+
+.qbd-export-checkbox:hover {
+  border-color: var(--qbd-accent);
+  background: var(--qbd-accent-glow);
+}
+
+.qbd-export-checkbox input {
+  display: none;
+}
+
+.qbd-checkbox-custom {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 6px;
+  border: 2px solid var(--qbd-border-subtle);
+  background: var(--qbd-bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  margin-top: 2px;
+}
+
+.qbd-export-checkbox input:checked + .qbd-checkbox-custom {
+  background: var(--qbd-accent);
+  border-color: var(--qbd-accent);
+}
+
+.qbd-export-checkbox input:checked + .qbd-checkbox-custom::after {
+  content: '✓';
+  color: var(--qbd-bg-primary);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.qbd-export-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.qbd-export-option-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--qbd-text-primary);
+}
+
+.qbd-export-option-desc {
+  font-size: 12px;
+  color: var(--qbd-text-secondary);
+  line-height: 1.4;
+}
+
+/* Export Features List */
+.qbd-export-features {
+  background: var(--qbd-bg-tertiary);
+  border-radius: 12px;
+  padding: 16px 20px;
+  border: 1px solid var(--qbd-border-subtle);
+}
+
+.qbd-export-features h4 {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--qbd-text-secondary);
+  margin-bottom: 12px;
+}
+
+.qbd-export-features ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qbd-export-features li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--qbd-text-primary);
+}
+
+.qbd-export-features li svg {
+  color: var(--qbd-accent);
+  flex-shrink: 0;
+}
+
+/* Export Modal Actions */
+.qbd-export-modal-actions {
+  display: flex;
+  gap: 12px;
+  padding: 20px 32px 32px;
+  border-top: 1px solid var(--qbd-border-subtle);
+}
+
+.qbd-export-modal-actions .qbd-btn-secondary {
+  flex: 1;
+  padding: 14px 20px;
+  background: transparent;
+  border: 1px solid var(--qbd-border-subtle);
+  border-radius: 10px;
+  color: var(--qbd-text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.qbd-export-modal-actions .qbd-btn-secondary:hover {
+  background: var(--qbd-bg-tertiary);
+  color: var(--qbd-text-primary);
+}
+
+.qbd-export-modal-actions .qbd-btn-primary {
+  flex: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, var(--qbd-accent), var(--qbd-accent-dark));
+  border: none;
+  border-radius: 10px;
+  color: var(--qbd-bg-primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.qbd-export-modal-actions .qbd-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px var(--qbd-accent-glow);
+}
+
+.qbd-export-modal-actions .qbd-btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Spin animation for loader */
+.qbd-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Update set card to accommodate new layout */
+.qbd-set-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.qbd-set-study-btn {
+  flex: 1;
+}

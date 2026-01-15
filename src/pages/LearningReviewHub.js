@@ -149,7 +149,7 @@ const LearningReviewHub = () => {
                   <div className="lrh-card-footer">
                     <button className="lrh-card-cta">
                       <span>{tool.cta}</span>
-                      <Play size={12} fill="currentColor" className="lrh-card-cta-icon" />
+                      <ChevronRight size={14} className="lrh-card-cta-icon" />
                     </button>
                   </div>
                 </div>

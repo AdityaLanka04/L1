@@ -21,6 +21,393 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def generate_question_set_pdf(question_set, questions, include_answers: bool = False, user_name: str = "Student"):
+    """
+    Generate a professionally formatted PDF for a question set with LaTeX support.
+    Uses ReportLab for PDF generation with custom styling.
+    """
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch, cm
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, HRFlowable
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    import io
+    
+    buffer = io.BytesIO()
+    
+    # Create document
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=0.75*inch,
+        leftMargin=0.75*inch,
+        topMargin=0.75*inch,
+        bottomMargin=0.75*inch
+    )
+    
+    # Custom styles
+    styles = getSampleStyleSheet()
+    
+    # Title style
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        spaceAfter=6,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#1a1a2e'),
+        fontName='Helvetica-Bold'
+    )
+    
+    # Subtitle style
+    subtitle_style = ParagraphStyle(
+        'CustomSubtitle',
+        parent=styles['Normal'],
+        fontSize=12,
+        spaceAfter=20,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#666666'),
+        fontName='Helvetica'
+    )
+    
+    # Section header style
+    section_style = ParagraphStyle(
+        'SectionHeader',
+        parent=styles['Heading2'],
+        fontSize=14,
+        spaceBefore=20,
+        spaceAfter=10,
+        textColor=colors.HexColor('#2d3436'),
+        fontName='Helvetica-Bold',
+        borderPadding=(0, 0, 5, 0)
+    )
+    
+    # Question number style
+    question_num_style = ParagraphStyle(
+        'QuestionNumber',
+        parent=styles['Normal'],
+        fontSize=11,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor('#d4a574'),
+        spaceBefore=15,
+        spaceAfter=5
+    )
+    
+    # Question text style
+    question_style = ParagraphStyle(
+        'QuestionText',
+        parent=styles['Normal'],
+        fontSize=11,
+        fontName='Helvetica',
+        textColor=colors.HexColor('#1a1a2e'),
+        spaceAfter=8,
+        leading=14,
+        alignment=TA_JUSTIFY
+    )
+    
+    # Option style
+    option_style = ParagraphStyle(
+        'OptionText',
+        parent=styles['Normal'],
+        fontSize=10,
+        fontName='Helvetica',
+        textColor=colors.HexColor('#333333'),
+        leftIndent=20,
+        spaceAfter=4,
+        leading=13
+    )
+    
+    # Difficulty badge style
+    difficulty_style = ParagraphStyle(
+        'DifficultyBadge',
+        parent=styles['Normal'],
+        fontSize=8,
+        fontName='Helvetica-Bold',
+        textColor=colors.white,
+        alignment=TA_CENTER
+    )
+    
+    # Answer style
+    answer_style = ParagraphStyle(
+        'AnswerText',
+        parent=styles['Normal'],
+        fontSize=10,
+        fontName='Helvetica-Oblique',
+        textColor=colors.HexColor('#27ae60'),
+        leftIndent=20,
+        spaceBefore=5,
+        spaceAfter=10
+    )
+    
+    # Explanation style
+    explanation_style = ParagraphStyle(
+        'ExplanationText',
+        parent=styles['Normal'],
+        fontSize=9,
+        fontName='Helvetica',
+        textColor=colors.HexColor('#555555'),
+        leftIndent=20,
+        spaceAfter=15,
+        leading=12,
+        borderPadding=(5, 5, 5, 5)
+    )
+    
+    # Build content
+    story = []
+    
+    # Header section
+    story.append(Paragraph("QUESTION SET", title_style))
+    story.append(Paragraph(question_set.title, subtitle_style))
+    
+    # Metadata line
+    created_date = question_set.created_at.strftime("%B %d, %Y") if question_set.created_at else "N/A"
+    meta_text = f"Generated for: {user_name} | Total Questions: {len(questions)} | Created: {created_date}"
+    story.append(Paragraph(meta_text, subtitle_style))
+    
+    # Horizontal line
+    story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#d4a574'), spaceBefore=10, spaceAfter=20))
+    
+    # Instructions
+    instructions_style = ParagraphStyle(
+        'Instructions',
+        parent=styles['Normal'],
+        fontSize=10,
+        fontName='Helvetica',
+        textColor=colors.HexColor('#555555'),
+        spaceAfter=20,
+        leading=14,
+        borderPadding=(10, 10, 10, 10),
+        backColor=colors.HexColor('#f8f9fa')
+    )
+    
+    instructions = """
+    <b>Instructions:</b><br/>
+    • Read each question carefully before answering.<br/>
+    • For multiple choice questions, select the best answer.<br/>
+    • For short answer questions, provide a concise response.<br/>
+    • Show your work for mathematical problems where applicable.
+    """
+    story.append(Paragraph(instructions, instructions_style))
+    story.append(Spacer(1, 20))
+    
+    # Group questions by difficulty
+    difficulty_order = {'easy': 1, 'medium': 2, 'hard': 3}
+    difficulty_colors = {
+        'easy': colors.HexColor('#27ae60'),
+        'medium': colors.HexColor('#f39c12'),
+        'hard': colors.HexColor('#e74c3c')
+    }
+    
+    # Questions section
+    for idx, question in enumerate(questions, 1):
+        # Question header with number and difficulty
+        difficulty = question.difficulty or 'medium'
+        diff_color = difficulty_colors.get(difficulty.lower(), colors.HexColor('#666666'))
+        
+        # Question number and difficulty badge
+        q_header = f"<b>Question {idx}</b>"
+        if question.topic:
+            q_header += f" <font color='#888888'>| {question.topic}</font>"
+        
+        story.append(Paragraph(q_header, question_num_style))
+        
+        # Difficulty indicator
+        diff_text = f"<font color='{diff_color.hexval()}'>[{difficulty.upper()}]</font>"
+        diff_para = ParagraphStyle(
+            'DiffIndicator',
+            parent=styles['Normal'],
+            fontSize=9,
+            fontName='Helvetica-Bold',
+            spaceAfter=8
+        )
+        story.append(Paragraph(diff_text, diff_para))
+        
+        # Process question text for LaTeX
+        q_text = process_latex_for_pdf(question.question_text)
+        story.append(Paragraph(q_text, question_style))
+        
+        # Options for multiple choice
+        if question.question_type == 'multiple_choice' and question.options:
+            try:
+                options = json.loads(question.options) if isinstance(question.options, str) else question.options
+                if isinstance(options, list):
+                    for i, opt in enumerate(options):
+                        opt_letter = chr(65 + i)  # A, B, C, D...
+                        opt_text = process_latex_for_pdf(opt)
+                        story.append(Paragraph(f"<b>{opt_letter}.</b> {opt_text}", option_style))
+            except:
+                pass
+        
+        # True/False options
+        elif question.question_type == 'true_false':
+            story.append(Paragraph("<b>A.</b> True", option_style))
+            story.append(Paragraph("<b>B.</b> False", option_style))
+        
+        # Short answer space
+        elif question.question_type == 'short_answer':
+            answer_box_style = ParagraphStyle(
+                'AnswerBox',
+                parent=styles['Normal'],
+                fontSize=10,
+                fontName='Helvetica',
+                textColor=colors.HexColor('#888888'),
+                leftIndent=20,
+                spaceAfter=10,
+                borderPadding=(10, 10, 10, 10)
+            )
+            story.append(Paragraph("<i>Answer:</i> _" + "_" * 60, answer_box_style))
+        
+        # Add answer if requested
+        if include_answers and question.correct_answer:
+            answer_text = process_latex_for_pdf(question.correct_answer)
+            story.append(Paragraph(f"<b>Answer:</b> {answer_text}", answer_style))
+            
+            if question.explanation:
+                exp_text = process_latex_for_pdf(question.explanation)
+                story.append(Paragraph(f"<b>Explanation:</b> {exp_text}", explanation_style))
+        
+        story.append(Spacer(1, 10))
+        
+        # Add page break every 5 questions for readability
+        if idx % 5 == 0 and idx < len(questions):
+            story.append(PageBreak())
+    
+    # Answer key section (if answers included)
+    if include_answers:
+        story.append(PageBreak())
+        story.append(Paragraph("ANSWER KEY", title_style))
+        story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#d4a574'), spaceBefore=10, spaceAfter=20))
+        
+        # Create answer key table
+        answer_data = [["Q#", "Answer", "Difficulty", "Topic"]]
+        for idx, q in enumerate(questions, 1):
+            answer_data.append([
+                str(idx),
+                process_latex_for_pdf(q.correct_answer or "N/A")[:50],
+                (q.difficulty or "medium").capitalize(),
+                (q.topic or "General")[:30]
+            ])
+        
+        answer_table = Table(answer_data, colWidths=[0.5*inch, 3*inch, 1*inch, 2*inch])
+        answer_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#d4a574')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#f8f9fa')),
+            ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#333333')),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#dddddd')),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')])
+        ]))
+        story.append(answer_table)
+    
+    # Footer
+    story.append(Spacer(1, 30))
+    footer_style = ParagraphStyle(
+        'Footer',
+        parent=styles['Normal'],
+        fontSize=8,
+        fontName='Helvetica',
+        textColor=colors.HexColor('#888888'),
+        alignment=TA_CENTER
+    )
+    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#dddddd'), spaceBefore=20, spaceAfter=10))
+    story.append(Paragraph(f"Generated by Cerbyl Learning Platform | {datetime.now().strftime('%Y-%m-%d %H:%M')}", footer_style))
+    
+    # Build PDF
+    doc.build(story)
+    
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def process_latex_for_pdf(text: str) -> str:
+    """
+    Process LaTeX expressions in text for PDF rendering.
+    Converts common LaTeX patterns to readable text format.
+    """
+    if not text:
+        return ""
+    
+    # Handle inline math $...$
+    text = re.sub(r'\$([^$]+)\$', r'<i>\1</i>', text)
+    
+    # Handle display math $$...$$
+    text = re.sub(r'\$\$([^$]+)\$\$', r'<br/><i>\1</i><br/>', text)
+    
+    # Handle common LaTeX commands
+    latex_replacements = {
+        r'\\frac\{([^}]+)\}\{([^}]+)\}': r'(\1)/(\2)',
+        r'\\sqrt\{([^}]+)\}': r'√(\1)',
+        r'\\sum': '∑',
+        r'\\prod': '∏',
+        r'\\int': '∫',
+        r'\\infty': '∞',
+        r'\\alpha': 'α',
+        r'\\beta': 'β',
+        r'\\gamma': 'γ',
+        r'\\delta': 'δ',
+        r'\\epsilon': 'ε',
+        r'\\theta': 'θ',
+        r'\\lambda': 'λ',
+        r'\\mu': 'μ',
+        r'\\pi': 'π',
+        r'\\sigma': 'σ',
+        r'\\omega': 'ω',
+        r'\\times': '×',
+        r'\\div': '÷',
+        r'\\pm': '±',
+        r'\\leq': '≤',
+        r'\\geq': '≥',
+        r'\\neq': '≠',
+        r'\\approx': '≈',
+        r'\\rightarrow': '→',
+        r'\\leftarrow': '←',
+        r'\\Rightarrow': '⇒',
+        r'\\Leftarrow': '⇐',
+        r'\\cdot': '·',
+        r'\\ldots': '...',
+        r'\\degree': '°',
+        r'\^2': '²',
+        r'\^3': '³',
+        r'\^n': 'ⁿ',
+        r'\\text\{([^}]+)\}': r'\1',
+        r'\\mathbf\{([^}]+)\}': r'<b>\1</b>',
+        r'\\textbf\{([^}]+)\}': r'<b>\1</b>',
+        r'\\textit\{([^}]+)\}': r'<i>\1</i>',
+        r'\\underline\{([^}]+)\}': r'<u>\1</u>',
+    }
+    
+    for pattern, replacement in latex_replacements.items():
+        text = re.sub(pattern, replacement, text)
+    
+    # Handle superscripts x^{n}
+    text = re.sub(r'\^\{([^}]+)\}', r'<super>\1</super>', text)
+    text = re.sub(r'\^(\d)', r'<super>\1</super>', text)
+    
+    # Handle subscripts x_{n}
+    text = re.sub(r'_\{([^}]+)\}', r'<sub>\1</sub>', text)
+    text = re.sub(r'_(\d)', r'<sub>\1</sub>', text)
+    
+    # Clean up remaining backslashes
+    text = text.replace('\\\\', '<br/>')
+    text = re.sub(r'\\([a-zA-Z]+)', r'\1', text)
+    
+    # Escape special XML characters that aren't already part of tags
+    # Be careful not to escape our HTML tags
+    text = text.replace('&', '&amp;')
+    
+    return text
+
+
 class PDFUploadRequest(BaseModel):
     user_id: str
 
@@ -1478,6 +1865,83 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             
         except Exception as e:
             logger.error(f"Error fetching analytics: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.get("/api/qb/export_question_set_pdf/{set_id}")
+    async def export_question_set_pdf(
+        set_id: int,
+        user_id: str = Query(...),
+        include_answers: bool = Query(False),
+        db: Session = Depends(get_db_func)
+    ):
+        """
+        Export a question set as a professionally formatted PDF with LaTeX support.
+        
+        Features:
+        - Professional academic formatting
+        - LaTeX math rendering
+        - Difficulty indicators
+        - Topic categorization
+        - Optional answer key
+        - Page numbers and headers
+        """
+        from fastapi.responses import StreamingResponse
+        import io
+        
+        try:
+            import models
+            
+            # Get user
+            user = db.query(models.User).filter(
+                (models.User.username == user_id) | (models.User.email == user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            # Get question set
+            question_set = db.query(models.QuestionSet).filter(
+                models.QuestionSet.id == set_id,
+                models.QuestionSet.user_id == user.id
+            ).first()
+            
+            if not question_set:
+                raise HTTPException(status_code=404, detail="Question set not found")
+            
+            # Get questions
+            questions = db.query(models.Question).filter(
+                models.Question.question_set_id == set_id
+            ).order_by(models.Question.order_index).all()
+            
+            if not questions:
+                raise HTTPException(status_code=404, detail="No questions found in this set")
+            
+            # Generate PDF
+            pdf_buffer = generate_question_set_pdf(
+                question_set=question_set,
+                questions=questions,
+                include_answers=include_answers,
+                user_name=user.first_name or user.username
+            )
+            
+            # Create filename
+            safe_title = "".join(c for c in question_set.title if c.isalnum() or c in (' ', '-', '_')).strip()
+            safe_title = safe_title.replace(' ', '_')[:50]
+            filename = f"Question_Set_{safe_title}.pdf"
+            
+            return StreamingResponse(
+                io.BytesIO(pdf_buffer),
+                media_type="application/pdf",
+                headers={
+                    "Content-Disposition": f"attachment; filename={filename}",
+                    "Content-Type": "application/pdf"
+                }
+            )
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error exporting question set PDF: {e}")
             raise HTTPException(status_code=500, detail=str(e))
     
     logger.info("Enhanced Question Bank API with sophisticated AI agents registered successfully")
