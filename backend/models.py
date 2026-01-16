@@ -902,7 +902,104 @@ class SlideAnalysis(Base):
     slide = relationship("UploadedSlide", backref="analysis")
 
 
+class UserWeakArea(Base):
+    """Track user's weak areas based on wrong answers"""
+    __tablename__ = "user_weak_areas"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    topic = Column(String(255), nullable=False, index=True)
+    subtopic = Column(String(255), nullable=True)
+    
+    # Performance metrics
+    total_questions = Column(Integer, default=0)
+    correct_count = Column(Integer, default=0)
+    incorrect_count = Column(Integer, default=0)
+    accuracy = Column(Float, default=0.0)
+    
+    # Weakness tracking
+    weakness_score = Column(Float, default=0.0)  # 0-100, higher = weaker
+    consecutive_wrong = Column(Integer, default=0)
+    last_wrong_streak = Column(Integer, default=0)
+    
+    # Practice tracking
+    practice_sessions = Column(Integer, default=0)
+    last_practiced = Column(DateTime, nullable=True)
+    improvement_rate = Column(Float, default=0.0)  # Positive = improving
+    
+    # Status
+    status = Column(String(50), default="needs_practice")  # needs_practice, improving, mastered
+    priority = Column(Integer, default=5)  # 1-10, higher = more urgent
+    
+    # Timestamps
+    first_identified = Column(DateTime, default=datetime.utcnow)
+    last_updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = relationship("User")
 
+
+class WrongAnswerLog(Base):
+    """Detailed log of wrong answers for analysis"""
+    __tablename__ = "wrong_answer_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    question_id = Column(Integer, ForeignKey("questions.id"), nullable=False)
+    question_set_id = Column(Integer, ForeignKey("question_sets.id"), nullable=False)
+    attempt_id = Column(Integer, ForeignKey("question_attempts.id"), nullable=True)
+    
+    # Question details (denormalized for quick access)
+    question_text = Column(Text, nullable=False)
+    topic = Column(String(255), nullable=True, index=True)
+    difficulty = Column(String(20), nullable=True)
+    
+    # Answer details
+    correct_answer = Column(Text, nullable=False)
+    user_answer = Column(Text, nullable=False)
+    
+    # Analysis
+    mistake_type = Column(String(100), nullable=True)  # conceptual, careless, knowledge_gap, misread
+    confidence_before = Column(Integer, nullable=True)  # 1-5 if user indicated
+    
+    # Review status
+    reviewed = Column(Boolean, default=False)
+    reviewed_at = Column(DateTime, nullable=True)
+    understood_after_review = Column(Boolean, nullable=True)
+    
+    # Timestamps
+    answered_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User")
+    question = relationship("Question")
+
+
+class PracticeRecommendation(Base):
+    """AI-generated practice recommendations based on weak areas"""
+    __tablename__ = "practice_recommendations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    
+    # Recommendation details
+    recommendation_type = Column(String(50), nullable=False)  # weak_area, review, challenge
+    topic = Column(String(255), nullable=False)
+    reason = Column(Text, nullable=True)
+    priority = Column(Integer, default=5)
+    
+    # Linked content
+    question_set_id = Column(Integer, ForeignKey("question_sets.id"), nullable=True)
+    suggested_question_count = Column(Integer, default=5)
+    suggested_difficulty = Column(String(20), default="medium")
+    
+    # Status
+    status = Column(String(50), default="pending")  # pending, started, completed, dismissed
+    completed_at = Column(DateTime, nullable=True)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=True)
+    
+    user = relationship("User")
 
 
 class QuestionAttempt(Base):

@@ -695,6 +695,147 @@ class QuestionBankAgentService {
 
     return await response.json();
   }
+
+  // ==================== WEAK AREAS TRACKING ====================
+
+  /**
+   * Get user's weak areas sorted by priority
+   */
+  async getWeakAreas(userId) {
+    const response = await fetch(`${API_URL}/qb/weak_areas?user_id=${encodeURIComponent(userId)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to get weak areas');
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Get wrong answer history for review
+   */
+  async getWrongAnswers(userId, topic = null, limit = 50) {
+    let url = `${API_URL}/qb/wrong_answers?user_id=${encodeURIComponent(userId)}&limit=${limit}`;
+    if (topic) {
+      url += `&topic=${encodeURIComponent(topic)}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to get wrong answers');
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Mark a wrong answer as reviewed
+   */
+  async markWrongAnswerReviewed(wrongAnswerId, understood = true) {
+    const response = await fetch(`${API_URL}/qb/mark_reviewed`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({
+        wrong_answer_id: wrongAnswerId,
+        understood
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to mark as reviewed');
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Generate practice questions focused on weak areas
+   */
+  async generatePractice(userId, topic = null, questionCount = 10, includeReview = true) {
+    const response = await fetch(`${API_URL}/qb/generate_practice`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        topic,
+        question_count: questionCount,
+        include_review: includeReview
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to generate practice questions');
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Get AI-powered practice recommendations
+   */
+  async getPracticeRecommendations(userId) {
+    const response = await fetch(`${API_URL}/qb/practice_recommendations?user_id=${encodeURIComponent(userId)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to get recommendations');
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Reset a weak area (mark as mastered or delete)
+   */
+  async resetWeakArea(weakAreaId, action = 'mastered') {
+    const response = await fetch(`${API_URL}/qb/reset_weak_area`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({
+        weak_area_id: weakAreaId,
+        action
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to reset weak area');
+    }
+
+    return await response.json();
+  }
 }
 
 const questionBankAgentService = new QuestionBankAgentService();

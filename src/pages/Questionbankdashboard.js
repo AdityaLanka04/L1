@@ -29,6 +29,13 @@ const QuestionBankDashboard = () => {
   const [exportSetId, setExportSetId] = useState(null);
   const [includeAnswers, setIncludeAnswers] = useState(false);
 
+  // Weak Areas State
+  const [weakAreas, setWeakAreas] = useState([]);
+  const [wrongAnswers, setWrongAnswers] = useState([]);
+  const [practiceRecommendations, setPracticeRecommendations] = useState(null);
+  const [generatingPractice, setGeneratingPractice] = useState(false);
+  const [selectedWeakTopic, setSelectedWeakTopic] = useState(null);
+
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showCustomModal, setShowCustomModal] = useState(false);
@@ -175,6 +182,10 @@ const QuestionBankDashboard = () => {
     if (activeView === 'analytics') {
       fetchAnalytics();
     }
+    if (activeView === 'weak-areas') {
+      fetchWeakAreas();
+      fetchPracticeRecommendations();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeView]);
 
@@ -254,6 +265,79 @@ const QuestionBankDashboard = () => {
       setLoading(false);
     }
   };
+
+  // ==================== WEAK AREAS FUNCTIONS ====================
+
+  const fetchWeakAreas = async () => {
+    try {
+      setLoading(true);
+      const data = await questionBankAgentService.getWeakAreas(userId);
+      setWeakAreas(data.weak_areas || []);
+    } catch (error) {
+      console.error('Error fetching weak areas:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchWrongAnswers = async (topic = null) => {
+    try {
+      const data = await questionBankAgentService.getWrongAnswers(userId, topic, 50);
+      setWrongAnswers(data.wrong_answers || []);
+    } catch (error) {
+      console.error('Error fetching wrong answers:', error);
+    }
+  };
+
+  const fetchPracticeRecommendations = async () => {
+    try {
+      const data = await questionBankAgentService.getPracticeRecommendations(userId);
+      setPracticeRecommendations(data);
+    } catch (error) {
+      console.error('Error fetching recommendations:', error);
+    }
+  };
+
+  const handleGeneratePractice = async (topic = null) => {
+    try {
+      setGeneratingPractice(true);
+      const data = await questionBankAgentService.generatePractice(userId, topic, 10, true);
+      
+      if (data.practice_set_id) {
+        alert(`Practice set created with ${data.total_questions} questions!`);
+        await fetchQuestionSets();
+        setActiveView('question-sets');
+      } else {
+        alert(data.message || 'Could not generate practice questions');
+      }
+    } catch (error) {
+      console.error('Error generating practice:', error);
+      alert('Failed to generate practice: ' + error.message);
+    } finally {
+      setGeneratingPractice(false);
+    }
+  };
+
+  const handleMarkReviewed = async (wrongAnswerId, understood = true) => {
+    try {
+      await questionBankAgentService.markWrongAnswerReviewed(wrongAnswerId, understood);
+      // Refresh wrong answers
+      await fetchWrongAnswers(selectedWeakTopic);
+    } catch (error) {
+      console.error('Error marking reviewed:', error);
+    }
+  };
+
+  const handleResetWeakArea = async (weakAreaId, action = 'mastered') => {
+    try {
+      await questionBankAgentService.resetWeakArea(weakAreaId, action);
+      await fetchWeakAreas();
+    } catch (error) {
+      console.error('Error resetting weak area:', error);
+    }
+  };
+
+  // ==================== END WEAK AREAS FUNCTIONS ====================
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -1071,6 +1155,14 @@ const QuestionBankDashboard = () => {
         >
           <BarChart3 size={20} />
           <span className="qbd-nav-text">Analytics</span>
+        </button>
+
+        <button 
+          className={`qbd-sidebar-item ${activeView === 'weak-areas' ? 'active' : ''}`}
+          onClick={() => setActiveView('weak-areas')}
+        >
+          <AlertTriangle size={20} />
+          <span className="qbd-nav-text">Weak Areas</span>
         </button>
         
         <button 
@@ -2031,6 +2123,276 @@ const QuestionBankDashboard = () => {
     </div>
   );
 
+  const renderWeakAreas = () => (
+    <div className="qbd-view">
+      <div className="qbd-view-header">
+        <div className="qbd-view-title-group">
+          <AlertTriangle className="qbd-view-icon" size={32} />
+          <div>
+            <h2 className="qbd-view-title">Weak Areas & Practice</h2>
+            <p className="qbd-view-subtitle">Track your struggles and generate targeted practice</p>
+          </div>
+        </div>
+        <button 
+          className="qbd-btn-primary"
+          onClick={() => handleGeneratePractice(null)}
+          disabled={generatingPractice || weakAreas.length === 0}
+        >
+          {generatingPractice ? <Loader className="qbd-spin" size={18} /> : <Zap size={18} />}
+          <span>{generatingPractice ? 'Generating...' : 'Practice All Weak Areas'}</span>
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="qbd-loading">
+          <Loader className="qbd-spin" size={48} />
+          <p>Loading weak areas...</p>
+        </div>
+      ) : weakAreas.length === 0 ? (
+        <div className="qbd-empty-state">
+          <CheckCircle size={64} />
+          <h3>No Weak Areas Found!</h3>
+          <p>Complete some question sets to identify areas that need practice</p>
+        </div>
+      ) : (
+        <div className="qbd-weak-areas-content">
+          {/* Recommendations Panel */}
+          {practiceRecommendations && practiceRecommendations.recommendations?.length > 0 && (
+            <div className="qbd-recommendations-panel">
+              <h3 className="qbd-section-title">
+                <Brain size={20} />
+                AI Recommendations
+              </h3>
+              <div className="qbd-recommendations-list">
+                {practiceRecommendations.recommendations.map((rec, idx) => (
+                  <div key={idx} className={`qbd-recommendation-card ${rec.type}`}>
+                    <div className="qbd-rec-header">
+                      {rec.type === 'critical' && <AlertTriangle size={20} className="qbd-rec-icon critical" />}
+                      {rec.type === 'declining' && <TrendingUp size={20} className="qbd-rec-icon declining" style={{transform: 'rotate(180deg)'}} />}
+                      {rec.type === 'stale' && <Clock size={20} className="qbd-rec-icon stale" />}
+                      {rec.type === 'review' && <Eye size={20} className="qbd-rec-icon review" />}
+                      <h4>{rec.title}</h4>
+                    </div>
+                    <p className="qbd-rec-description">{rec.description}</p>
+                    {rec.topics && (
+                      <div className="qbd-rec-topics">
+                        {rec.topics.slice(0, 3).map((topic, i) => (
+                          <span key={i} className="qbd-topic-tag">{topic}</span>
+                        ))}
+                      </div>
+                    )}
+                    <button 
+                      className="qbd-btn-secondary qbd-btn-sm"
+                      onClick={() => rec.action === 'generate_practice' 
+                        ? handleGeneratePractice(rec.topics?.[0]) 
+                        : setSelectedWeakTopic(rec.topics?.[0])}
+                    >
+                      {rec.action === 'generate_practice' ? 'Practice Now' : 'Review'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Summary Stats */}
+          <div className="qbd-weak-stats-row">
+            <div className="qbd-stat-box">
+              <div className="qbd-stat-icon warning">
+                <AlertTriangle size={24} />
+              </div>
+              <div className="qbd-stat-data">
+                <span className="qbd-stat-value">{weakAreas.length}</span>
+                <span className="qbd-stat-label">Weak Topics</span>
+              </div>
+            </div>
+            <div className="qbd-stat-box">
+              <div className="qbd-stat-icon danger">
+                <XCircle size={24} />
+              </div>
+              <div className="qbd-stat-data">
+                <span className="qbd-stat-value">
+                  {weakAreas.filter(wa => wa.priority >= 8).length}
+                </span>
+                <span className="qbd-stat-label">Critical</span>
+              </div>
+            </div>
+            <div className="qbd-stat-box">
+              <div className="qbd-stat-icon primary">
+                <TrendingUp size={24} />
+              </div>
+              <div className="qbd-stat-data">
+                <span className="qbd-stat-value">
+                  {weakAreas.filter(wa => wa.status === 'improving').length}
+                </span>
+                <span className="qbd-stat-label">Improving</span>
+              </div>
+            </div>
+            <div className="qbd-stat-box">
+              <div className="qbd-stat-icon success">
+                <Target size={24} />
+              </div>
+              <div className="qbd-stat-data">
+                <span className="qbd-stat-value">
+                  {practiceRecommendations?.summary?.unreviewed_mistakes || 0}
+                </span>
+                <span className="qbd-stat-label">To Review</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Weak Areas List */}
+          <div className="qbd-weak-areas-section">
+            <h3 className="qbd-section-title">
+              <Target size={20} />
+              Topics Needing Practice
+            </h3>
+            <div className="qbd-weak-areas-list">
+              {weakAreas.map((wa) => (
+                <div 
+                  key={wa.id} 
+                  className={`qbd-weak-area-card ${wa.priority >= 8 ? 'critical' : wa.priority >= 5 ? 'medium' : 'low'}`}
+                  onClick={() => {
+                    setSelectedWeakTopic(wa.topic);
+                    fetchWrongAnswers(wa.topic);
+                  }}
+                >
+                  <div className="qbd-weak-area-header">
+                    <div className="qbd-weak-area-info">
+                      <h4 className="qbd-weak-area-topic">{wa.topic}</h4>
+                      <div className="qbd-weak-area-meta">
+                        <span className={`qbd-status-badge ${wa.status}`}>{wa.status.replace('_', ' ')}</span>
+                        <span className="qbd-weak-area-stats">
+                          {wa.correct_count}/{wa.total_questions} correct
+                        </span>
+                      </div>
+                    </div>
+                    <div className="qbd-weak-area-accuracy">
+                      <span className={`qbd-accuracy-value ${wa.accuracy < 50 ? 'low' : wa.accuracy < 70 ? 'medium' : 'high'}`}>
+                        {wa.accuracy.toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="qbd-weak-area-bar">
+                    <div 
+                      className="qbd-weak-area-fill"
+                      style={{ 
+                        width: `${wa.accuracy}%`,
+                        backgroundColor: wa.accuracy < 50 ? 'var(--danger)' : wa.accuracy < 70 ? 'var(--warning)' : 'var(--success)'
+                      }}
+                    />
+                  </div>
+
+                  <div className="qbd-weak-area-footer">
+                    <div className="qbd-weak-area-details">
+                      {wa.consecutive_wrong > 0 && (
+                        <span className="qbd-streak-badge">
+                          <XCircle size={14} /> {wa.consecutive_wrong} wrong streak
+                        </span>
+                      )}
+                      {wa.practice_sessions > 0 && (
+                        <span className="qbd-practice-badge">
+                          <RefreshCw size={14} /> {wa.practice_sessions} practice sessions
+                        </span>
+                      )}
+                    </div>
+                    <div className="qbd-weak-area-actions">
+                      <button 
+                        className="qbd-btn-icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleGeneratePractice(wa.topic);
+                        }}
+                        title="Practice this topic"
+                      >
+                        <Play size={16} />
+                      </button>
+                      <button 
+                        className="qbd-btn-icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleResetWeakArea(wa.id, 'mastered');
+                        }}
+                        title="Mark as mastered"
+                      >
+                        <CheckCircle size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Wrong Answers Review Panel */}
+          {selectedWeakTopic && (
+            <div className="qbd-wrong-answers-panel">
+              <div className="qbd-panel-header">
+                <h3>
+                  <Eye size={20} />
+                  Review Wrong Answers: {selectedWeakTopic}
+                </h3>
+                <button 
+                  className="qbd-btn-text"
+                  onClick={() => setSelectedWeakTopic(null)}
+                >
+                  <X size={18} /> Close
+                </button>
+              </div>
+              
+              {wrongAnswers.length === 0 ? (
+                <p className="qbd-empty-text">No wrong answers to review for this topic</p>
+              ) : (
+                <div className="qbd-wrong-answers-list">
+                  {wrongAnswers.map((wa) => (
+                    <div key={wa.id} className={`qbd-wrong-answer-card ${wa.reviewed ? 'reviewed' : ''}`}>
+                      <div className="qbd-wrong-answer-question">
+                        <span className="qbd-difficulty-badge">{wa.difficulty}</span>
+                        <p>{wa.question_text}</p>
+                      </div>
+                      <div className="qbd-wrong-answer-comparison">
+                        <div className="qbd-answer-box wrong">
+                          <span className="qbd-answer-label">Your Answer</span>
+                          <span className="qbd-answer-text">{wa.user_answer}</span>
+                        </div>
+                        <div className="qbd-answer-box correct">
+                          <span className="qbd-answer-label">Correct Answer</span>
+                          <span className="qbd-answer-text">{wa.correct_answer}</span>
+                        </div>
+                      </div>
+                      {!wa.reviewed && (
+                        <div className="qbd-wrong-answer-actions">
+                          <button 
+                            className="qbd-btn-secondary qbd-btn-sm"
+                            onClick={() => handleMarkReviewed(wa.id, true)}
+                          >
+                            <CheckCircle size={14} /> I understand now
+                          </button>
+                          <button 
+                            className="qbd-btn-text qbd-btn-sm"
+                            onClick={() => handleMarkReviewed(wa.id, false)}
+                          >
+                            Still confused
+                          </button>
+                        </div>
+                      )}
+                      {wa.reviewed && (
+                        <div className="qbd-reviewed-badge">
+                          <CheckCircle size={14} /> Reviewed
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
   const renderStudyModal = () => {
     if (!showStudyModal || !selectedQuestionSet) return null;
 
@@ -2279,6 +2641,7 @@ const QuestionBankDashboard = () => {
             {activeView === 'custom' && renderCustom()}
             {activeView === 'question-sets' && renderQuestionSets()}
             {activeView === 'analytics' && renderAnalytics()}
+            {activeView === 'weak-areas' && renderWeakAreas()}
           </div>
         </div>
       </div>

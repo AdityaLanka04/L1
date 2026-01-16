@@ -3,7 +3,7 @@ import sys
 import json
 import logging
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 import re
@@ -19,6 +19,106 @@ from groq import Groq
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+async def _update_weak_areas(db: Session, user_id: int, results: List[Dict], models):
+    """
+    Update weak areas based on quiz results.
+    Called after each quiz submission to track wrong answers and identify weak topics.
+    """
+    try:
+        for result in results:
+            topic = result.get("topic", "General")
+            is_correct = result.get("is_correct", False)
+            question_id = result.get("question_id")
+            
+            # Get or create weak area record for this topic
+            weak_area = db.query(models.UserWeakArea).filter(
+                models.UserWeakArea.user_id == user_id,
+                models.UserWeakArea.topic == topic
+            ).first()
+            
+            if not weak_area:
+                weak_area = models.UserWeakArea(
+                    user_id=user_id,
+                    topic=topic,
+                    total_questions=0,
+                    correct_count=0,
+                    incorrect_count=0,
+                    first_identified=datetime.now(timezone.utc)
+                )
+                db.add(weak_area)
+                db.flush()
+            
+            # Update counts
+            weak_area.total_questions += 1
+            
+            if is_correct:
+                weak_area.correct_count += 1
+                weak_area.consecutive_wrong = 0
+            else:
+                weak_area.incorrect_count += 1
+                weak_area.consecutive_wrong += 1
+                weak_area.last_wrong_streak = max(weak_area.last_wrong_streak, weak_area.consecutive_wrong)
+                
+                # Log the wrong answer
+                wrong_log = models.WrongAnswerLog(
+                    user_id=user_id,
+                    question_id=question_id,
+                    question_set_id=result.get("question_set_id"),
+                    question_text=result.get("question_text", ""),
+                    topic=topic,
+                    difficulty=result.get("difficulty"),
+                    correct_answer=result.get("correct_answer", ""),
+                    user_answer=result.get("user_answer", ""),
+                    answered_at=datetime.now(timezone.utc)
+                )
+                db.add(wrong_log)
+            
+            # Calculate accuracy
+            if weak_area.total_questions > 0:
+                weak_area.accuracy = (weak_area.correct_count / weak_area.total_questions) * 100
+            
+            # Calculate weakness score (0-100, higher = weaker)
+            # Factors: accuracy (inverted), consecutive wrong, total wrong
+            accuracy_factor = 100 - weak_area.accuracy
+            streak_factor = min(weak_area.consecutive_wrong * 10, 30)  # Max 30 points from streak
+            volume_factor = min(weak_area.incorrect_count * 2, 20)  # Max 20 points from volume
+            
+            weak_area.weakness_score = min(100, accuracy_factor * 0.5 + streak_factor + volume_factor)
+            
+            # Calculate priority (1-10)
+            if weak_area.accuracy < 30:
+                weak_area.priority = 10
+            elif weak_area.accuracy < 50:
+                weak_area.priority = 8
+            elif weak_area.accuracy < 70:
+                weak_area.priority = 6
+            elif weak_area.accuracy < 85:
+                weak_area.priority = 4
+            else:
+                weak_area.priority = 2
+            
+            # Boost priority for consecutive wrong answers
+            if weak_area.consecutive_wrong >= 3:
+                weak_area.priority = min(10, weak_area.priority + 2)
+            
+            # Update status
+            if weak_area.accuracy >= 90 and weak_area.total_questions >= 5:
+                weak_area.status = "mastered"
+            elif weak_area.accuracy >= 70:
+                weak_area.status = "improving"
+            else:
+                weak_area.status = "needs_practice"
+            
+            weak_area.last_updated = datetime.now(timezone.utc)
+        
+        db.commit()
+        logger.info(f"Updated weak areas for user {user_id}")
+        
+    except Exception as e:
+        logger.error(f"Error updating weak areas: {e}")
+        # Don't raise - this is a non-critical operation
 
 
 def generate_question_set_pdf(question_set, questions, include_answers: bool = False, user_name: str = "Student"):
@@ -3104,6 +3204,7 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 
                 results.append({
                     "question_id": question.id,
+                    "question_set_id": request.question_set_id,
                     "question_text": question.question_text,
                     "user_answer": user_answer,
                     "correct_answer": question.correct_answer,
@@ -3149,6 +3250,9 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 })
             
             adaptation = agents["adaptive_difficulty"].analyze_performance(history_data)
+            
+            # Track weak areas from wrong answers
+            await _update_weak_areas(db, user.id, results, models)
             
             return {
                 "status": "success",
@@ -4146,6 +4250,454 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             raise
         except Exception as e:
             logger.error(f"Merge sets error: {e}")
+            db.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    # ==================== WEAK AREAS TRACKING ENDPOINTS ====================
+    
+    @app.get("/api/qb/weak_areas")
+    async def get_weak_areas(
+        user_id: str = Query(...),
+        db: Session = Depends(get_db_func)
+    ):
+        """Get user's weak areas sorted by priority"""
+        try:
+            import models
+            
+            user = db.query(models.User).filter(
+                (models.User.username == user_id) | (models.User.email == user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            weak_areas = db.query(models.UserWeakArea).filter(
+                models.UserWeakArea.user_id == user.id,
+                models.UserWeakArea.status != "mastered"
+            ).order_by(
+                models.UserWeakArea.priority.desc(),
+                models.UserWeakArea.weakness_score.desc()
+            ).all()
+            
+            return {
+                "status": "success",
+                "weak_areas": [
+                    {
+                        "id": wa.id,
+                        "topic": wa.topic,
+                        "subtopic": wa.subtopic,
+                        "total_questions": wa.total_questions,
+                        "correct_count": wa.correct_count,
+                        "incorrect_count": wa.incorrect_count,
+                        "accuracy": round(wa.accuracy, 1),
+                        "weakness_score": round(wa.weakness_score, 1),
+                        "consecutive_wrong": wa.consecutive_wrong,
+                        "status": wa.status,
+                        "priority": wa.priority,
+                        "practice_sessions": wa.practice_sessions,
+                        "improvement_rate": round(wa.improvement_rate, 2),
+                        "last_practiced": wa.last_practiced.isoformat() if wa.last_practiced else None,
+                        "first_identified": wa.first_identified.isoformat() if wa.first_identified else None
+                    }
+                    for wa in weak_areas
+                ],
+                "total_weak_areas": len(weak_areas),
+                "critical_count": len([wa for wa in weak_areas if wa.priority >= 8]),
+                "needs_practice_count": len([wa for wa in weak_areas if wa.status == "needs_practice"])
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Get weak areas error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.get("/api/qb/wrong_answers")
+    async def get_wrong_answers(
+        user_id: str = Query(...),
+        topic: Optional[str] = Query(None),
+        limit: int = Query(50),
+        db: Session = Depends(get_db_func)
+    ):
+        """Get user's wrong answer history for review"""
+        try:
+            import models
+            
+            user = db.query(models.User).filter(
+                (models.User.username == user_id) | (models.User.email == user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            query = db.query(models.WrongAnswerLog).filter(
+                models.WrongAnswerLog.user_id == user.id
+            )
+            
+            if topic:
+                query = query.filter(models.WrongAnswerLog.topic == topic)
+            
+            wrong_answers = query.order_by(
+                models.WrongAnswerLog.answered_at.desc()
+            ).limit(limit).all()
+            
+            return {
+                "status": "success",
+                "wrong_answers": [
+                    {
+                        "id": wa.id,
+                        "question_id": wa.question_id,
+                        "question_text": wa.question_text,
+                        "topic": wa.topic,
+                        "difficulty": wa.difficulty,
+                        "correct_answer": wa.correct_answer,
+                        "user_answer": wa.user_answer,
+                        "mistake_type": wa.mistake_type,
+                        "reviewed": wa.reviewed,
+                        "understood_after_review": wa.understood_after_review,
+                        "answered_at": wa.answered_at.isoformat() if wa.answered_at else None
+                    }
+                    for wa in wrong_answers
+                ],
+                "total": len(wrong_answers)
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Get wrong answers error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/qb/mark_reviewed")
+    async def mark_wrong_answer_reviewed(
+        payload: dict = Body(...),
+        db: Session = Depends(get_db_func)
+    ):
+        """Mark a wrong answer as reviewed"""
+        try:
+            import models
+            
+            wrong_answer_id = payload.get("wrong_answer_id")
+            understood = payload.get("understood", True)
+            
+            wrong_answer = db.query(models.WrongAnswerLog).filter(
+                models.WrongAnswerLog.id == wrong_answer_id
+            ).first()
+            
+            if not wrong_answer:
+                raise HTTPException(status_code=404, detail="Wrong answer not found")
+            
+            wrong_answer.reviewed = True
+            wrong_answer.reviewed_at = datetime.now(timezone.utc)
+            wrong_answer.understood_after_review = understood
+            
+            db.commit()
+            
+            return {"status": "success", "message": "Marked as reviewed"}
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Mark reviewed error: {e}")
+            db.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/qb/generate_practice")
+    async def generate_practice_questions(
+        payload: dict = Body(...),
+        db: Session = Depends(get_db_func)
+    ):
+        """Generate practice questions focused on weak areas"""
+        try:
+            import models
+            
+            user_id = payload.get("user_id")
+            topic = payload.get("topic")  # Optional: specific topic to practice
+            question_count = payload.get("question_count", 10)
+            include_review = payload.get("include_review", True)  # Include previously wrong questions
+            
+            user = db.query(models.User).filter(
+                (models.User.username == user_id) | (models.User.email == user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            # Get weak areas
+            weak_area_query = db.query(models.UserWeakArea).filter(
+                models.UserWeakArea.user_id == user.id,
+                models.UserWeakArea.status != "mastered"
+            )
+            
+            if topic:
+                weak_area_query = weak_area_query.filter(models.UserWeakArea.topic == topic)
+            
+            weak_areas = weak_area_query.order_by(
+                models.UserWeakArea.priority.desc()
+            ).limit(5).all()
+            
+            if not weak_areas:
+                return {
+                    "status": "success",
+                    "message": "No weak areas found! Great job!",
+                    "questions": [],
+                    "practice_set_id": None
+                }
+            
+            # Collect topics to focus on
+            focus_topics = [wa.topic for wa in weak_areas]
+            
+            # Get previously wrong questions for review
+            review_questions = []
+            if include_review:
+                wrong_logs = db.query(models.WrongAnswerLog).filter(
+                    models.WrongAnswerLog.user_id == user.id,
+                    models.WrongAnswerLog.topic.in_(focus_topics),
+                    models.WrongAnswerLog.reviewed == False
+                ).order_by(
+                    models.WrongAnswerLog.answered_at.desc()
+                ).limit(question_count // 2).all()
+                
+                for wl in wrong_logs:
+                    question = db.query(models.Question).filter(
+                        models.Question.id == wl.question_id
+                    ).first()
+                    if question:
+                        review_questions.append({
+                            "question_text": question.question_text,
+                            "question_type": question.question_type,
+                            "difficulty": question.difficulty,
+                            "topic": question.topic,
+                            "correct_answer": question.correct_answer,
+                            "options": json.loads(question.options) if question.options else [],
+                            "explanation": question.explanation,
+                            "points": question.points,
+                            "is_review": True,
+                            "original_wrong_answer": wl.user_answer
+                        })
+            
+            # Generate new questions for remaining count
+            new_question_count = question_count - len(review_questions)
+            new_questions = []
+            
+            if new_question_count > 0:
+                # Get content from documents related to weak topics
+                docs = db.query(models.UploadedDocument).filter(
+                    models.UploadedDocument.user_id == user.id
+                ).limit(3).all()
+                
+                if docs:
+                    content = "\n\n".join([d.content for d in docs if d.content])[:15000]
+                    
+                    # Generate questions focused on weak areas
+                    generated = await agents["question_generator"].generate_questions(
+                        content,
+                        new_question_count,
+                        ["multiple_choice"],
+                        {"easy": 40, "medium": 40, "hard": 20},
+                        focus_topics,
+                        custom_prompt=f"Focus specifically on these weak areas that need practice: {', '.join(focus_topics)}. Create questions that test understanding of these concepts."
+                    )
+                    
+                    for q in generated:
+                        q["is_review"] = False
+                        new_questions.append(q)
+            
+            all_questions = review_questions + new_questions
+            
+            if not all_questions:
+                return {
+                    "status": "success",
+                    "message": "Could not generate practice questions. Try uploading more content.",
+                    "questions": [],
+                    "practice_set_id": None
+                }
+            
+            # Create a practice question set
+            practice_set = models.QuestionSet(
+                user_id=user.id,
+                title=f"Practice: {', '.join(focus_topics[:3])}",
+                description=f"Targeted practice for weak areas. {len(review_questions)} review + {len(new_questions)} new questions.",
+                source_type="practice",
+                total_questions=len(all_questions)
+            )
+            
+            db.add(practice_set)
+            db.flush()
+            
+            # Add questions
+            for idx, q in enumerate(all_questions):
+                question = models.Question(
+                    question_set_id=practice_set.id,
+                    question_text=q.get("question_text"),
+                    question_type=q.get("question_type", "multiple_choice"),
+                    difficulty=q.get("difficulty", "medium"),
+                    topic=q.get("topic", focus_topics[0] if focus_topics else "General"),
+                    correct_answer=q.get("correct_answer"),
+                    options=json.dumps(q.get("options", [])),
+                    explanation=q.get("explanation", ""),
+                    points=q.get("points", 1),
+                    order_index=idx
+                )
+                db.add(question)
+            
+            # Update weak area practice count
+            for wa in weak_areas:
+                wa.practice_sessions += 1
+                wa.last_practiced = datetime.now(timezone.utc)
+            
+            db.commit()
+            db.refresh(practice_set)
+            
+            return {
+                "status": "success",
+                "practice_set_id": practice_set.id,
+                "total_questions": len(all_questions),
+                "review_questions": len(review_questions),
+                "new_questions": len(new_questions),
+                "focus_topics": focus_topics,
+                "questions": all_questions
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Generate practice error: {e}")
+            db.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.get("/api/qb/practice_recommendations")
+    async def get_practice_recommendations(
+        user_id: str = Query(...),
+        db: Session = Depends(get_db_func)
+    ):
+        """Get AI-powered practice recommendations based on performance"""
+        try:
+            import models
+            
+            user = db.query(models.User).filter(
+                (models.User.username == user_id) | (models.User.email == user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            # Get weak areas
+            weak_areas = db.query(models.UserWeakArea).filter(
+                models.UserWeakArea.user_id == user.id,
+                models.UserWeakArea.status != "mastered"
+            ).order_by(models.UserWeakArea.priority.desc()).limit(10).all()
+            
+            # Get recent performance
+            recent_sessions = db.query(models.QuestionSession).filter(
+                models.QuestionSession.user_id == user.id
+            ).order_by(models.QuestionSession.completed_at.desc()).limit(10).all()
+            
+            recommendations = []
+            
+            # Critical weak areas (priority >= 8)
+            critical = [wa for wa in weak_areas if wa.priority >= 8]
+            if critical:
+                recommendations.append({
+                    "type": "critical",
+                    "title": "Critical Areas Need Attention",
+                    "description": f"You have {len(critical)} topics with very low accuracy that need immediate practice.",
+                    "topics": [wa.topic for wa in critical],
+                    "action": "generate_practice",
+                    "priority": 10
+                })
+            
+            # Topics with declining performance
+            declining = [wa for wa in weak_areas if wa.improvement_rate < -0.1]
+            if declining:
+                recommendations.append({
+                    "type": "declining",
+                    "title": "Performance Declining",
+                    "description": f"Your performance in {len(declining)} topics is getting worse. Review these concepts.",
+                    "topics": [wa.topic for wa in declining],
+                    "action": "review_wrong_answers",
+                    "priority": 8
+                })
+            
+            # Topics not practiced recently
+            from datetime import timedelta
+            stale_threshold = datetime.now(timezone.utc) - timedelta(days=7)
+            stale = [wa for wa in weak_areas if wa.last_practiced and wa.last_practiced < stale_threshold]
+            if stale:
+                recommendations.append({
+                    "type": "stale",
+                    "title": "Time to Review",
+                    "description": f"{len(stale)} weak topics haven't been practiced in over a week.",
+                    "topics": [wa.topic for wa in stale],
+                    "action": "generate_practice",
+                    "priority": 6
+                })
+            
+            # Unreviewed wrong answers
+            unreviewed_count = db.query(models.WrongAnswerLog).filter(
+                models.WrongAnswerLog.user_id == user.id,
+                models.WrongAnswerLog.reviewed == False
+            ).count()
+            
+            if unreviewed_count > 5:
+                recommendations.append({
+                    "type": "review",
+                    "title": "Review Your Mistakes",
+                    "description": f"You have {unreviewed_count} wrong answers that haven't been reviewed yet.",
+                    "action": "review_wrong_answers",
+                    "priority": 7
+                })
+            
+            # Overall stats
+            total_questions_answered = sum(s.total_questions for s in recent_sessions) if recent_sessions else 0
+            avg_score = sum(s.score for s in recent_sessions) / len(recent_sessions) if recent_sessions else 0
+            
+            return {
+                "status": "success",
+                "recommendations": sorted(recommendations, key=lambda x: x["priority"], reverse=True),
+                "summary": {
+                    "total_weak_areas": len(weak_areas),
+                    "critical_count": len(critical),
+                    "recent_sessions": len(recent_sessions),
+                    "total_questions_answered": total_questions_answered,
+                    "average_score": round(avg_score, 1),
+                    "unreviewed_mistakes": unreviewed_count
+                }
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Get recommendations error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/qb/reset_weak_area")
+    async def reset_weak_area(
+        payload: dict = Body(...),
+        db: Session = Depends(get_db_func)
+    ):
+        """Reset a weak area (mark as mastered or delete)"""
+        try:
+            import models
+            
+            weak_area_id = payload.get("weak_area_id")
+            action = payload.get("action", "mastered")  # mastered or delete
+            
+            weak_area = db.query(models.UserWeakArea).filter(
+                models.UserWeakArea.id == weak_area_id
+            ).first()
+            
+            if not weak_area:
+                raise HTTPException(status_code=404, detail="Weak area not found")
+            
+            if action == "delete":
+                db.delete(weak_area)
+            else:
+                weak_area.status = "mastered"
+                weak_area.priority = 0
+            
+            db.commit()
+            
+            return {"status": "success", "message": f"Weak area {action}"}
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Reset weak area error: {e}")
             db.rollback()
             raise HTTPException(status_code=500, detail=str(e))
     
