@@ -511,11 +511,13 @@ Key Concepts: {json.dumps(analysis.get('key_concepts', []))}
 
 Content: {transcript[:5000]}
 
+CRITICAL: Each option MUST contain the FULL ANSWER TEXT, not just letter labels like "A", "B", "C", "D".
+
 Create questions as JSON array:
 [
   {{
     "question": "...",
-    "options": ["A", "B", "C", "D"],
+    "options": ["First option with full answer text", "Second option with full answer text", "Third option with full answer text", "Fourth option with full answer text"],
     "correct_answer": 0,
     "explanation": "...",
     "difficulty": "easy/medium/hard"

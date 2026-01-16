@@ -83,7 +83,9 @@ def generate_quiz_questions(topic: str, num_questions: int = 5, difficulty: str 
 Difficulty: {difficulty}
 
 Return JSON array only:
-[{{"question": "...", "options": ["A", "B", "C", "D"], "correct": 0, "explanation": "..."}}]
+[{{"question": "...", "options": ["First option with full answer text", "Second option with full answer text", "Third option with full answer text", "Fourth option with full answer text"], "correct": 0, "explanation": "..."}}]
+
+CRITICAL: Each option MUST contain the FULL ANSWER TEXT, not just letter labels like "A", "B", "C", "D".
 """
     
     try:

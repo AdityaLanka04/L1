@@ -44,12 +44,73 @@ const QuestionBankDashboard = () => {
   const [difficultyMix, setDifficultyMix] = useState({ easy: 30, medium: 50, hard: 20 }); // Percentages
   const [questionTypes, setQuestionTypes] = useState(['multiple_choice', 'true_false', 'short_answer']);
 
-  // Calculate actual difficulty counts from percentages
-  const getDifficultyCount = (percentage) => Math.round((percentage / 100) * questionCount);
-  const difficultyCount = {
-    easy: getDifficultyCount(difficultyMix.easy),
-    medium: getDifficultyCount(difficultyMix.medium),
-    hard: getDifficultyCount(difficultyMix.hard)
+  // Calculate actual difficulty counts from percentages, ensuring they sum to questionCount
+  const getDifficultyCounts = () => {
+    const total = difficultyMix.easy + difficultyMix.medium + difficultyMix.hard;
+    if (total === 0) return { easy: 0, medium: 0, hard: 0 };
+    
+    // Normalize percentages to ensure they sum to 100%
+    const normalizedEasy = difficultyMix.easy / total;
+    const normalizedMedium = difficultyMix.medium / total;
+    const normalizedHard = difficultyMix.hard / total;
+    
+    // Calculate counts
+    const count = typeof questionCount === 'number' ? questionCount : 10;
+    let easyCount = Math.round(normalizedEasy * count);
+    let mediumCount = Math.round(normalizedMedium * count);
+    let hardCount = Math.round(normalizedHard * count);
+    
+    // Adjust for rounding errors to ensure total matches questionCount
+    const diff = count - (easyCount + mediumCount + hardCount);
+    if (diff !== 0) {
+      // Add/subtract from the largest category
+      if (mediumCount >= easyCount && mediumCount >= hardCount) {
+        mediumCount += diff;
+      } else if (easyCount >= hardCount) {
+        easyCount += diff;
+      } else {
+        hardCount += diff;
+      }
+    }
+    
+    return { easy: easyCount, medium: mediumCount, hard: hardCount };
+  };
+  
+  const difficultyCount = getDifficultyCounts();
+  
+  // Handle difficulty slider change - adjust others to maintain 100% total
+  const handleDifficultyChange = (level, newValue) => {
+    const value = parseInt(newValue);
+    const others = ['easy', 'medium', 'hard'].filter(l => l !== level);
+    const currentOthersTotal = others.reduce((sum, l) => sum + difficultyMix[l], 0);
+    const remaining = 100 - value;
+    
+    if (currentOthersTotal === 0) {
+      // If others are 0, split remaining equally
+      setDifficultyMix({
+        ...difficultyMix,
+        [level]: value,
+        [others[0]]: Math.floor(remaining / 2),
+        [others[1]]: Math.ceil(remaining / 2)
+      });
+    } else {
+      // Scale others proportionally
+      const scale = remaining / currentOthersTotal;
+      const newMix = { [level]: value };
+      let allocated = value;
+      
+      others.forEach((l, idx) => {
+        if (idx === others.length - 1) {
+          // Last one gets the remainder to ensure exactly 100
+          newMix[l] = 100 - allocated;
+        } else {
+          newMix[l] = Math.round(difficultyMix[l] * scale);
+          allocated += newMix[l];
+        }
+      });
+      
+      setDifficultyMix(newMix);
+    }
   };
 
   // Handle question count change with better UX
@@ -1233,7 +1294,7 @@ const QuestionBankDashboard = () => {
                         min="0"
                         max="100"
                         value={difficultyMix.easy}
-                        onChange={(e) => setDifficultyMix({...difficultyMix, easy: parseInt(e.target.value)})}
+                        onChange={(e) => handleDifficultyChange('easy', e.target.value)}
                       />
                     </div>
                     <div className="qbd-slider-item">
@@ -1243,7 +1304,7 @@ const QuestionBankDashboard = () => {
                         min="0"
                         max="100"
                         value={difficultyMix.medium}
-                        onChange={(e) => setDifficultyMix({...difficultyMix, medium: parseInt(e.target.value)})}
+                        onChange={(e) => handleDifficultyChange('medium', e.target.value)}
                       />
                     </div>
                     <div className="qbd-slider-item">
@@ -1253,7 +1314,7 @@ const QuestionBankDashboard = () => {
                         min="0"
                         max="100"
                         value={difficultyMix.hard}
-                        onChange={(e) => setDifficultyMix({...difficultyMix, hard: parseInt(e.target.value)})}
+                        onChange={(e) => handleDifficultyChange('hard', e.target.value)}
                       />
                     </div>
                   </div>
@@ -1483,7 +1544,7 @@ const QuestionBankDashboard = () => {
                     min="0"
                     max="100"
                     value={difficultyMix.easy}
-                    onChange={(e) => setDifficultyMix({...difficultyMix, easy: parseInt(e.target.value)})}
+                    onChange={(e) => handleDifficultyChange('easy', e.target.value)}
                   />
                 </div>
                 <div className="qbd-slider-item">
@@ -1493,7 +1554,7 @@ const QuestionBankDashboard = () => {
                     min="0"
                     max="100"
                     value={difficultyMix.medium}
-                    onChange={(e) => setDifficultyMix({...difficultyMix, medium: parseInt(e.target.value)})}
+                    onChange={(e) => handleDifficultyChange('medium', e.target.value)}
                   />
                 </div>
                 <div className="qbd-slider-item">
@@ -1503,7 +1564,7 @@ const QuestionBankDashboard = () => {
                     min="0"
                     max="100"
                     value={difficultyMix.hard}
-                    onChange={(e) => setDifficultyMix({...difficultyMix, hard: parseInt(e.target.value)})}
+                    onChange={(e) => handleDifficultyChange('hard', e.target.value)}
                   />
                 </div>
               </div>
@@ -1586,7 +1647,7 @@ const QuestionBankDashboard = () => {
                 min="0"
                 max="100"
                 value={difficultyMix.easy}
-                onChange={(e) => setDifficultyMix({...difficultyMix, easy: parseInt(e.target.value)})}
+                onChange={(e) => handleDifficultyChange('easy', e.target.value)}
               />
             </div>
             <div className="qbd-slider-item">
@@ -1596,7 +1657,7 @@ const QuestionBankDashboard = () => {
                 min="0"
                 max="100"
                 value={difficultyMix.medium}
-                onChange={(e) => setDifficultyMix({...difficultyMix, medium: parseInt(e.target.value)})}
+                onChange={(e) => handleDifficultyChange('medium', e.target.value)}
               />
             </div>
             <div className="qbd-slider-item">
@@ -1606,7 +1667,7 @@ const QuestionBankDashboard = () => {
                 min="0"
                 max="100"
                 value={difficultyMix.hard}
-                onChange={(e) => setDifficultyMix({...difficultyMix, hard: parseInt(e.target.value)})}
+                onChange={(e) => handleDifficultyChange('hard', e.target.value)}
               />
             </div>
           </div>

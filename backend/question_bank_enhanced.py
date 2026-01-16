@@ -1394,10 +1394,24 @@ class QuestionGeneratorAgent:
         
         # Calculate exact counts per difficulty
         total_diff = sum(difficulty_distribution.values())
-        if total_diff > 0:
+        if total_diff > 0 and question_count >= 3:
+            # Only use distribution if we have enough questions
             easy_count = max(1, round(question_count * difficulty_distribution.get('easy', 30) / total_diff))
             medium_count = max(1, round(question_count * difficulty_distribution.get('medium', 50) / total_diff))
             hard_count = max(0, question_count - easy_count - medium_count)
+        elif question_count == 2:
+            # For 2 questions, do 1 easy and 1 medium
+            easy_count = 1
+            medium_count = 1
+            hard_count = 0
+        elif question_count == 1:
+            # For 1 question, pick based on highest distribution weight
+            if difficulty_distribution.get('hard', 20) >= difficulty_distribution.get('medium', 50):
+                easy_count, medium_count, hard_count = 0, 0, 1
+            elif difficulty_distribution.get('easy', 30) >= difficulty_distribution.get('medium', 50):
+                easy_count, medium_count, hard_count = 1, 0, 0
+            else:
+                easy_count, medium_count, hard_count = 0, 1, 0
         else:
             easy_count = question_count // 3
             medium_count = question_count // 3
@@ -1676,10 +1690,11 @@ HARD (Bloom's: Analyze/Evaluate/Create):
 QUESTION FORMAT REQUIREMENTS:
 
 For multiple_choice:
-- 4 distinct options (A, B, C, D)
+- 4 distinct options with FULL ANSWER TEXT
 - Correct answer must be unambiguous
 - Distractors must be plausible but clearly wrong when you know the content
 - Avoid "all of the above" or "none of the above"
+- NEVER use just letter labels like "A", "B", "C", "D" - always include the full answer text
 
 For true_false:
 - Statement must be definitively true or false based on content
@@ -1703,9 +1718,9 @@ OUTPUT FORMAT - Return a JSON array with EXACTLY {len(blueprint)} questions:
     "question_type": "multiple_choice",
     "difficulty": "easy",
     "topic": "Specific topic from content",
-    "correct_answer": "The exact correct answer",
-    "options": ["Correct answer", "Plausible wrong 1", "Plausible wrong 2", "Plausible wrong 3"],
-    "explanation": "Detailed explanation: This is correct because [quote/reference content]. Option B is wrong because... Option C is wrong because...",
+    "correct_answer": "The exact correct answer text",
+    "options": ["The correct answer text", "A plausible but wrong answer", "Another plausible wrong answer", "A third plausible wrong answer"],
+    "explanation": "Detailed explanation: This is correct because [quote/reference content]. The second option is wrong because... The third option is wrong because...",
     "points": 1,
     "bloom_level": "remember",
     "content_reference": "Quote or specific reference from source content"
@@ -1717,6 +1732,7 @@ CRITICAL RULES:
 2. Each question MUST be answerable from the source content
 3. Each question MUST test a DIFFERENT concept
 4. Explanations MUST reference the source content
+5. OPTIONS MUST CONTAIN FULL ANSWER TEXT - NEVER use just "A", "B", "C", "D" as option values
 5. Return ONLY valid JSON array, no other text"""
 
         try:
@@ -1772,6 +1788,21 @@ CRITICAL RULES:
             if not isinstance(q['options'], list):
                 q['options'] = []
             
+            # Fix options that are just letter labels (A, B, C, D)
+            letter_only_options = {'a', 'b', 'c', 'd', 'A', 'B', 'C', 'D'}
+            if q['options']:
+                fixed_options = []
+                has_letter_only = any(opt.strip() in letter_only_options for opt in q['options'])
+                if has_letter_only:
+                    # Options are just letters - this is a generation error
+                    # Try to use correct_answer as the first option if it's meaningful
+                    if q['correct_answer'] and q['correct_answer'].strip() not in letter_only_options:
+                        fixed_options = [q['correct_answer']]
+                        for i in range(3):
+                            fixed_options.append(f"Alternative answer {i + 1}")
+                        q['options'] = fixed_options
+                        logger.warning(f"Fixed letter-only options for question: {q['question_text'][:50]}...")
+            
             # For multiple choice, ensure correct answer is in options
             if q['question_type'] == 'multiple_choice':
                 if q['options'] and q['correct_answer'] not in q['options']:
@@ -1822,10 +1853,14 @@ CRITICAL RULES:
         topics_str = ", ".join(topics) if topics else "topics directly from the content"
         
         total_diff = sum(difficulty_distribution.values())
-        if total_diff > 0:
+        if total_diff > 0 and question_count >= 3:
             easy_count = max(1, round(question_count * difficulty_distribution.get('easy', 30) / total_diff))
             medium_count = max(1, round(question_count * difficulty_distribution.get('medium', 50) / total_diff))
             hard_count = question_count - easy_count - medium_count
+        elif question_count == 2:
+            easy_count, medium_count, hard_count = 1, 1, 0
+        elif question_count == 1:
+            easy_count, medium_count, hard_count = 0, 1, 0
         else:
             easy_count = question_count // 3
             medium_count = question_count // 3
@@ -1846,7 +1881,9 @@ DIFFICULTY GUIDE:
 - HARD: Analysis, comparison, evaluation, applying to new scenarios
 
 Return JSON array:
-[{{"question_text": "...", "question_type": "multiple_choice", "difficulty": "easy", "topic": "...", "correct_answer": "...", "options": ["A","B","C","D"], "explanation": "...", "points": 1}}]
+[{{"question_text": "...", "question_type": "multiple_choice", "difficulty": "easy", "topic": "...", "correct_answer": "Full text of correct answer", "options": ["First option with full answer text", "Second option with full answer text", "Third option with full answer text", "Fourth option with full answer text"], "explanation": "...", "points": 1}}]
+
+CRITICAL: Each option MUST contain the FULL ANSWER TEXT, not just letter labels like "A", "B", "C", "D". The correct_answer must exactly match one of the options.
 
 Return ONLY valid JSON."""
         
@@ -2016,11 +2053,13 @@ Parse any existing questions and return them in this format:
     "question_type": "multiple_choice|true_false|short_answer|fill_blank",
     "difficulty": "easy|medium|hard",
     "topic": "topic",
-    "correct_answer": "answer if available",
-    "options": ["A", "B", "C", "D"],
+    "correct_answer": "Full text of the correct answer",
+    "options": ["First option with full answer text", "Second option with full answer text", "Third option with full answer text", "Fourth option with full answer text"],
     "explanation": "explanation if available",
     "points": 1
 }}
+
+CRITICAL: Each option MUST contain the FULL ANSWER TEXT from the document, not just letter labels like "A", "B", "C", "D".
 
 Return a JSON array of questions. If no questions found, return empty array []."""
         

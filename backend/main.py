@@ -12225,13 +12225,14 @@ async def generate_quiz_questions(subject: str, difficulty: str, count: int):
 
 For each question provide:
 - A clear question
-- 4 answer options
+- 4 answer options with FULL ANSWER TEXT (not just "A", "B", "C", "D")
 - The index of the correct answer (0-3)
 - A brief explanation of the correct answer
 
 IMPORTANT: Return ONLY a valid JSON array, no markdown formatting, no code blocks, no extra text.
+CRITICAL: Each option MUST contain the FULL ANSWER TEXT, not just letter labels.
 Use this exact structure:
-[{{"question": "...", "options": ["A", "B", "C", "D"], "correct_answer": 0, "explanation": "..."}}]"""
+[{{"question": "...", "options": ["First option with full answer text", "Second option with full answer text", "Third option with full answer text", "Fourth option with full answer text"], "correct_answer": 0, "explanation": "..."}}]"""
 
         response = groq_client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
@@ -14320,11 +14321,13 @@ Category: {concept.category}
 Recent learning context:
 {chat_context}
 
+CRITICAL: Each option MUST contain the FULL ANSWER TEXT, not just letter labels like "A", "B", "C", "D".
+
 Return ONLY a JSON array:
 [
   {{
     "question": "Question text",
-    "options": ["A", "B", "C", "D"],
+    "options": ["First option with full answer text", "Second option with full answer text", "Third option with full answer text", "Fourth option with full answer text"],
     "correct": 0,
     "explanation": "Why this is correct"
   }}
