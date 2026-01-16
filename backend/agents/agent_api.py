@@ -146,6 +146,7 @@ _question_bank_agent: Optional[Any] = None
 _slide_explorer_agent: Optional[Any] = None
 _search_hub_agent: Optional[Any] = None
 _master_agent: Optional[Any] = None
+_rag_system: Optional[Any] = None  # Advanced RAG system for context-aware generation
 _knowledge_graph = None
 _db_session_factory = None
 _memory_manager = None
@@ -268,7 +269,7 @@ async def initialize_agent_system(
     user_knowledge_graph: Any = None
 ):
     """Initialize the intelligent agent system with unified memory"""
-    global _orchestrator, _chat_agent, _flashcard_agent, _note_agent, _quiz_agent, _question_bank_agent, _slide_explorer_agent, _conversion_agent, _search_hub_agent, _master_agent, _knowledge_graph, _db_session_factory, _memory_manager, _user_knowledge_graph, _enhanced_context_provider
+    global _orchestrator, _chat_agent, _flashcard_agent, _note_agent, _quiz_agent, _question_bank_agent, _slide_explorer_agent, _conversion_agent, _search_hub_agent, _master_agent, _rag_system, _knowledge_graph, _db_session_factory, _memory_manager, _user_knowledge_graph, _enhanced_context_provider
     
     _knowledge_graph = knowledge_graph
     _db_session_factory = db_session_factory
@@ -285,6 +286,18 @@ async def initialize_agent_system(
         knowledge_graph=knowledge_graph,
         db_session_factory=db_session_factory
     )
+    
+    # Initialize the RAG system for context-aware generation
+    try:
+        from .rag.rag_api import get_rag_system
+        _rag_system = get_rag_system()
+        if _rag_system:
+            logger.info("✅ RAG system connected for context-aware generation")
+        else:
+            logger.warning("⚠️ RAG system not initialized yet - will be connected later")
+    except Exception as e:
+        logger.warning(f"⚠️ Could not get RAG system: {e}")
+        _rag_system = None
     
     # Initialize the Advanced Chat Agent with Advanced AI Features
     _chat_agent = create_chat_agent(
@@ -330,15 +343,16 @@ async def initialize_agent_system(
     )
     logger.info("✅ Master Agent initialized (Central Intelligence Hub)")
     
-    # Initialize the Question Bank Agent (connected to Master Agent)
+    # Initialize the Question Bank Agent (connected to Master Agent and RAG system)
     from .question_bank_agent import create_question_bank_agent
     _question_bank_agent = create_question_bank_agent(
         ai_client=ai_client,
         memory_manager=_memory_manager,
         db_session_factory=db_session_factory,
-        master_agent=_master_agent  # Connect to Master Agent for user context
+        master_agent=_master_agent,  # Connect to Master Agent for user context
+        rag_system=_rag_system  # Connect to RAG system for context-aware generation
     )
-    logger.info("✅ Question Bank Agent initialized (connected to Master Agent)")
+    logger.info("✅ Question Bank Agent initialized (connected to Master Agent + RAG)")
     
     # Initialize the Slide Explorer Agent
     from .slide_explorer_agent import create_slide_explorer_agent

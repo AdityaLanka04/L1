@@ -6,6 +6,7 @@ LangGraph-based agent for intelligent question generation with:
 - Unified memory system
 - Adaptive difficulty based on user performance
 - Quality scoring and Bloom's taxonomy tagging
+- RAG-enhanced context retrieval for better question generation
 """
 
 import logging
@@ -20,6 +21,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from .base_agent import BaseAgent, AgentState, AgentType, AgentResponse, agent_registry
 from .memory import MemoryManager, get_memory_manager
 from .memory.unified_memory import MemoryType
+from .rag.advanced_rag import AdvancedRAGSystem, SearchMode
 
 logger = logging.getLogger(__name__)
 
@@ -47,12 +49,18 @@ class QuestionBankAgentState(TypedDict, total=False):
     topics: List[str]
     custom_prompt: str
     reference_document_id: Optional[int]
+    use_rag: bool  # Whether to use RAG for context enhancement
 
     # User context from Master Agent
     user_profile: Dict[str, Any]
     weak_topics: List[str]
     strong_topics: List[str]
     mastery_levels: Dict[str, float]
+    
+    # RAG-enhanced context
+    rag_context: str
+    rag_related_concepts: List[str]
+    rag_learning_path: List[Dict[str, Any]]
     
     # Agentic pipeline state
     content_analysis: Dict[str, Any]
@@ -80,6 +88,7 @@ class QuestionBankAgent(BaseAgent):
     - Master Agent integration for personalization
     - Unified memory for cross-agent learning
     - Quality validation and Bloom's taxonomy
+    - RAG-enhanced context retrieval for better questions
     """
     
     def __init__(
@@ -88,11 +97,13 @@ class QuestionBankAgent(BaseAgent):
         memory_manager: Optional[MemoryManager] = None,
         db_session_factory: Optional[Any] = None,
         master_agent: Optional[Any] = None,
+        rag_system: Optional[AdvancedRAGSystem] = None,
         checkpointer: Optional[MemorySaver] = None
     ):
         self.memory_manager = memory_manager or get_memory_manager()
         self.db_session_factory = db_session_factory
         self.master_agent = master_agent
+        self.rag_system = rag_system  # RAG system for context-aware generation
         
         super().__init__(
             agent_type=AgentType.QUESTION_BANK,
@@ -100,7 +111,12 @@ class QuestionBankAgent(BaseAgent):
             checkpointer=checkpointer or MemorySaver()
         )
         
-        logger.info("Enhanced Question Bank Agent initialized")
+        logger.info("Enhanced Question Bank Agent initialized with RAG support")
+
+    def set_rag_system(self, rag_system: AdvancedRAGSystem) -> None:
+        """Set or update the RAG system (useful for late initialization)"""
+        self.rag_system = rag_system
+        logger.info("RAG system connected to Question Bank Agent")
 
     def _build_graph(self) -> None:
         """Build the LangGraph state machine with agentic pipeline"""
@@ -109,6 +125,7 @@ class QuestionBankAgent(BaseAgent):
         # Core nodes
         graph.add_node("parse_request", self._parse_request)
         graph.add_node("load_user_context", self._load_user_context)
+        graph.add_node("retrieve_rag_context", self._retrieve_rag_context)  # NEW: RAG context retrieval
         graph.add_node("route_action", self._route_action)
         
         # Agentic generation pipeline
@@ -131,9 +148,10 @@ class QuestionBankAgent(BaseAgent):
         # Entry point
         graph.set_entry_point("parse_request")
         
-        # Edges
+        # Edges - now includes RAG context retrieval
         graph.add_edge("parse_request", "load_user_context")
-        graph.add_edge("load_user_context", "route_action")
+        graph.add_edge("load_user_context", "retrieve_rag_context")
+        graph.add_edge("retrieve_rag_context", "route_action")
         
         # Conditional routing based on action
         graph.add_conditional_edges(
@@ -167,7 +185,7 @@ class QuestionBankAgent(BaseAgent):
         
         self.graph = graph
         self.compiled_graph = graph.compile(checkpointer=self.checkpointer)
-        logger.info("Question Bank Agent graph compiled")
+        logger.info("Question Bank Agent graph compiled with RAG integration")
 
     def _get_action_route(self, state: QuestionBankAgentState) -> str:
         """Route to appropriate action handler"""
@@ -194,8 +212,14 @@ class QuestionBankAgent(BaseAgent):
         state.setdefault("difficulty_mix", {"easy": 30, "medium": 50, "hard": 20})
         state.setdefault("topics", [])
         state.setdefault("custom_prompt", "")
+        state.setdefault("use_rag", True)  # Enable RAG by default
         
-        logger.info(f"Parsed request: action={state.get('action')}, count={state.get('question_count')}")
+        # Initialize RAG context fields
+        state.setdefault("rag_context", "")
+        state.setdefault("rag_related_concepts", [])
+        state.setdefault("rag_learning_path", [])
+        
+        logger.info(f"Parsed request: action={state.get('action')}, count={state.get('question_count')}, use_rag={state.get('use_rag')}")
         return state
     
     async def _load_user_context(self, state: QuestionBankAgentState) -> QuestionBankAgentState:
@@ -250,12 +274,124 @@ class QuestionBankAgent(BaseAgent):
         """Prepare for action routing"""
         state["execution_path"].append(f"qb:route:{state.get('action')}")
         return state
+
+    async def _retrieve_rag_context(self, state: QuestionBankAgentState) -> QuestionBankAgentState:
+        """
+        NEW: Retrieve relevant context using the RAG system.
+        This enhances question generation with related content from notes, flashcards, etc.
+        """
+        user_id = state.get("user_id")
+        content = state.get("content", "")
+        topics = state.get("topics", [])
+        weak_topics = state.get("weak_topics", [])
+        use_rag = state.get("use_rag", True)
+        
+        state["execution_path"].append("qb:rag_context")
+        
+        # Skip RAG if disabled or no RAG system available
+        if not use_rag or not self.rag_system:
+            logger.info("RAG context retrieval skipped (disabled or unavailable)")
+            return state
+        
+        try:
+            # Build a query for RAG based on content and topics
+            rag_query_parts = []
+            
+            # Add topics to query
+            if topics:
+                rag_query_parts.append(f"Topics: {', '.join(topics[:5])}")
+            
+            # Add weak topics for targeted retrieval
+            if weak_topics:
+                rag_query_parts.append(f"Focus areas: {', '.join(weak_topics[:3])}")
+            
+            # Add content summary if available
+            if content:
+                # Extract key terms from content for better RAG retrieval
+                content_preview = content[:1000]
+                rag_query_parts.append(f"Content context: {content_preview}")
+            
+            if not rag_query_parts:
+                logger.info("No query context for RAG retrieval")
+                return state
+            
+            rag_query = " | ".join(rag_query_parts)
+            
+            # Use Agentic RAG for intelligent retrieval
+            logger.info(f"Retrieving RAG context for query: {rag_query[:100]}...")
+            
+            rag_result = await self.rag_system.retrieve(
+                query=rag_query,
+                user_id=user_id,
+                mode=SearchMode.AGENTIC,
+                top_k=10,
+                use_cache=True,
+                context={
+                    "topics_of_interest": topics,
+                    "weak_topics": weak_topics,
+                    "purpose": "question_generation"
+                }
+            )
+            
+            # Extract and format RAG results
+            rag_results = rag_result.get("results", [])
+            
+            if rag_results:
+                # Build context string from RAG results
+                context_parts = []
+                related_concepts = set()
+                
+                for r in rag_results[:7]:  # Limit to top 7 results
+                    if hasattr(r, 'content'):
+                        content_text = r.content[:500]
+                        source = r.source if hasattr(r, 'source') else "unknown"
+                        context_parts.append(f"[{source}] {content_text}")
+                        
+                        # Collect related concepts from graph results
+                        if hasattr(r, 'related_concepts') and r.related_concepts:
+                            related_concepts.update(r.related_concepts)
+                    elif isinstance(r, dict):
+                        content_text = r.get("content", "")[:500]
+                        source = r.get("source", "unknown")
+                        context_parts.append(f"[{source}] {content_text}")
+                        
+                        if r.get("related_concepts"):
+                            related_concepts.update(r["related_concepts"])
+                
+                state["rag_context"] = "\n\n".join(context_parts)
+                state["rag_related_concepts"] = list(related_concepts)[:10]
+                
+                logger.info(f"RAG context retrieved: {len(context_parts)} items, {len(related_concepts)} related concepts")
+            
+            # Try to get learning path from GraphRAG if available
+            if self.rag_system.graph_rag and topics:
+                try:
+                    learning_path = await self.rag_system.graph_rag.get_learning_path(
+                        target_concept=topics[0],
+                        user_id=user_id
+                    )
+                    state["rag_learning_path"] = learning_path[:5] if learning_path else []
+                except Exception as e:
+                    logger.warning(f"Learning path retrieval failed: {e}")
+            
+            # Log RAG strategy used
+            strategy = rag_result.get("strategy", {})
+            logger.info(f"RAG strategy used: {strategy.get('method', 'unknown')}, reasoning: {strategy.get('reasoning', 'N/A')}")
+            
+        except Exception as e:
+            logger.error(f"RAG context retrieval failed: {e}")
+            # Don't fail the pipeline, just continue without RAG context
+            state["errors"].append(f"RAG context retrieval warning: {str(e)}")
+        
+        return state
     
     # ==================== AGENTIC GENERATION PIPELINE ====================
     
     async def _analyze_content(self, state: QuestionBankAgentState) -> QuestionBankAgentState:
-        """STEP 1: Analyze content to extract testable elements"""
+        """STEP 1: Analyze content to extract testable elements, enhanced with RAG context"""
         content = state.get("content", "")
+        rag_context = state.get("rag_context", "")
+        rag_related_concepts = state.get("rag_related_concepts", [])
         state["execution_path"].append("qb:analyze")
         
         if not content:
@@ -271,11 +407,27 @@ class QuestionBankAgent(BaseAgent):
         # Truncate for analysis prompt
         analysis_content = content[:8000]
         
+        # Build RAG-enhanced analysis prompt
+        rag_section = ""
+        if rag_context:
+            rag_section = f"""
+ADDITIONAL CONTEXT FROM USER'S LEARNING MATERIALS (RAG-retrieved):
+{rag_context[:3000]}
+
+RELATED CONCEPTS FROM KNOWLEDGE GRAPH:
+{', '.join(rag_related_concepts) if rag_related_concepts else 'None identified'}
+
+Use this additional context to:
+1. Identify connections between the main content and user's existing knowledge
+2. Find opportunities for questions that bridge concepts
+3. Prioritize testable elements that relate to the user's learning path
+"""
+        
         analysis_prompt = f"""Analyze this educational content and extract ALL testable elements.
 
 CONTENT:
 {analysis_content}
-
+{rag_section}
 Extract and categorize testable information. Return JSON:
 {{
     "main_topic": "Primary subject",
@@ -297,10 +449,14 @@ Extract and categorize testable information. Return JSON:
     ],
     "numerical_data": [
         {{"value": "Number/stat", "context": "What it represents"}}
+    ],
+    "cross_concept_connections": [
+        {{"from_concept": "Concept from content", "to_concept": "Related concept from RAG context", "connection_type": "prerequisite|extension|application"}}
     ]
 }}
 
 Extract at least 15-20 testable elements. Be specific with names, dates, numbers.
+{"Include cross-concept connections if RAG context was provided." if rag_context else ""}
 Return ONLY valid JSON."""
 
         try:
@@ -445,10 +601,13 @@ Return ONLY valid JSON."""
         return state
 
     async def _generate_from_blueprint(self, state: QuestionBankAgentState) -> QuestionBankAgentState:
-        """STEP 3: Generate questions following the blueprint"""
+        """STEP 3: Generate questions following the blueprint, enhanced with RAG context"""
         blueprint = state.get("question_blueprint", [])
         content = state.get("content", "")[:10000]
         custom_prompt = state.get("custom_prompt", "")
+        rag_context = state.get("rag_context", "")
+        rag_related_concepts = state.get("rag_related_concepts", [])
+        rag_learning_path = state.get("rag_learning_path", [])
         
         state["execution_path"].append("qb:generate")
         
@@ -481,11 +640,30 @@ Question {i}: {bp['difficulty'].upper()} ({bp['question_type']})
         
         custom_section = f"\nUSER INSTRUCTIONS:\n{custom_prompt}\n" if custom_prompt else ""
         
+        # Build RAG-enhanced context section
+        rag_section = ""
+        if rag_context or rag_related_concepts:
+            rag_section = f"""
+ADDITIONAL CONTEXT FROM USER'S LEARNING MATERIALS (RAG-retrieved):
+{rag_context[:2000] if rag_context else 'None'}
+
+RELATED CONCEPTS TO CONSIDER:
+{', '.join(rag_related_concepts) if rag_related_concepts else 'None'}
+
+LEARNING PATH CONTEXT:
+{json.dumps(rag_learning_path[:3], indent=2) if rag_learning_path else 'None'}
+
+Use this context to:
+1. Create questions that connect to concepts the user has studied before
+2. Include distractors based on common misconceptions from related materials
+3. Reference real examples from the user's learning history where appropriate
+"""
+        
         generation_prompt = f"""Generate questions following this EXACT blueprint.
 
 SOURCE CONTENT:
 {content}
-{custom_section}
+{custom_section}{rag_section}
 BLUEPRINT:
 {blueprint_text}
 
@@ -511,7 +689,8 @@ Return JSON array with {len(blueprint)} questions:
     "options": ["First option with full answer text", "Second option with full answer text", "Third option with full answer text", "Fourth option with full answer text"],
     "explanation": "Why correct, why others wrong",
     "points": 1,
-    "bloom_level": "remember"
+    "bloom_level": "remember",
+    "rag_enhanced": {"true if this question leverages RAG context" if rag_context else "false"}
   }}
 ]
 
@@ -1107,19 +1286,26 @@ Return ONLY valid JSON."""
         return state
     
     async def _format_response(self, state: QuestionBankAgentState) -> QuestionBankAgentState:
-        """Format final response"""
+        """Format final response with RAG enhancement info"""
         action = state.get("action", "generate")
         response_data = state.get("response_data", {})
+        rag_context = state.get("rag_context", "")
+        rag_related_concepts = state.get("rag_related_concepts", [])
         
         state["execution_path"].append("qb:format")
         
+        # Add RAG info to response
+        rag_enhanced = bool(rag_context or rag_related_concepts)
+        
         if action in ["generate", "smart_generate"]:
             count = response_data.get("question_count", 0)
-            state["final_response"] = f"Generated {count} questions successfully."
+            rag_note = " (RAG-enhanced)" if rag_enhanced else ""
+            state["final_response"] = f"Generated {count} questions successfully{rag_note}."
         elif action == "adaptive_generate":
             count = response_data.get("question_count", 0)
             weak = response_data.get("weak_topics_targeted", [])
-            state["final_response"] = f"Generated {count} adaptive questions targeting: {', '.join(weak)}"
+            rag_note = " with RAG context" if rag_enhanced else ""
+            state["final_response"] = f"Generated {count} adaptive questions{rag_note} targeting: {', '.join(weak)}"
         elif action == "search":
             count = response_data.get("count", 0)
             state["final_response"] = f"Found {count} matching questions."
@@ -1134,7 +1320,9 @@ Return ONLY valid JSON."""
         state["response_metadata"] = {
             "action": action,
             "success": not state.get("errors"),
-            "response_data": response_data
+            "response_data": response_data,
+            "rag_enhanced": rag_enhanced,
+            "rag_concepts_used": len(rag_related_concepts) if rag_related_concepts else 0
         }
         
         return state
@@ -1151,12 +1339,14 @@ def create_question_bank_agent(
     ai_client,
     memory_manager=None,
     db_session_factory=None,
-    master_agent=None
+    master_agent=None,
+    rag_system=None
 ) -> QuestionBankAgent:
-    """Factory function to create question bank agent"""
+    """Factory function to create question bank agent with optional RAG integration"""
     return QuestionBankAgent(
         ai_client=ai_client,
         memory_manager=memory_manager,
         db_session_factory=db_session_factory,
-        master_agent=master_agent
+        master_agent=master_agent,
+        rag_system=rag_system
     )
