@@ -66,8 +66,7 @@ Pillow>=10.0.0
 reportlab>=4.0.0
 
 # Media Processing
-youtube-transcript-api>=0.6.0
-pytube>=15.0.0
+yt-dlp>=2024.0.0
 pydub>=0.25.1
 
 moviepy>=1.0.3
@@ -92,6 +91,7 @@ pytest-asyncio>=0.21.0
 
 # Utilities
 aiofiles>=23.0.0
+aiohttp>=3.9.0
 psutil>=5.9.0
 python-dateutil>=2.8.0
 argon2-cffi>=23.1.0

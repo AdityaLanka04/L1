@@ -45,19 +45,15 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Media Processing Imports (optional - will be imported when needed)
+# Note: YouTube processing now uses official YouTube Data API v3 via youtube_api_service.py
+# The youtube-transcript-api is no longer used directly (blocked on AWS)
 try:
-    from youtube_transcript_api import YouTubeTranscriptApi
+    from youtube_api_service import youtube_service
     YOUTUBE_AVAILABLE = True
-except ImportError:
+    logger.info("YouTube API service loaded successfully")
+except ImportError as e:
     YOUTUBE_AVAILABLE = False
-    logger.warning("youtube-transcript-api not installed")
-
-try:
-    from pytube import YouTube
-    PYTUBE_AVAILABLE = True
-except ImportError:
-    PYTUBE_AVAILABLE = False
-    logger.warning("pytube not installed")
+    logger.warning(f"YouTube API service not available: {e}")
 
 try:
     from langdetect import detect, LangDetectException

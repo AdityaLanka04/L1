@@ -1,5 +1,6 @@
 """
 AI-Powered Media Processing System
+Uses official YouTube Data API v3 for production/AWS deployment
 Uses free APIs for transcription and AI analysis
 """
 import os
@@ -9,150 +10,126 @@ import subprocess
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 import asyncio
-
-# YouTube
-try:
-    from youtube_transcript_api import YouTubeTranscriptApi
-    from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
-except ImportError:
-    YouTubeTranscriptApi = None
-    TranscriptsDisabled = Exception
-    NoTranscriptFound = Exception
-
-try:
-    from pytube import YouTube
-except ImportError:
-    YouTube = None
-
 import re
+import logging
 
 # Language detection
-from langdetect import detect, LangDetectException
-import pycountry
+try:
+    from langdetect import detect, LangDetectException
+except ImportError:
+    detect = None
+    LangDetectException = Exception
+
+try:
+    import pycountry
+except ImportError:
+    pycountry = None
 
 # AI
-import google.generativeai as genai
-from groq import Groq
+try:
+    import google.generativeai as genai
+    GEMINI_AVAILABLE = True
+except ImportError:
+    genai = None
+    GEMINI_AVAILABLE = False
+
+try:
+    from groq import Groq
+    GROQ_AVAILABLE = True
+except ImportError:
+    Groq = None
+    GROQ_AVAILABLE = False
 
 # Audio processing
-from pydub import AudioSegment
-import base64
+try:
+    from pydub import AudioSegment
+    PYDUB_AVAILABLE = True
+except ImportError:
+    AudioSegment = None
+    PYDUB_AVAILABLE = False
 
-import logging
+# YouTube API Service (official API)
+from youtube_api_service import youtube_service, YouTubeAPIService
 
 logger = logging.getLogger(__name__)
 
 # Initialize AI clients
-genai.configure(api_key=os.getenv("GOOGLE_GENERATIVE_AI_KEY"))
-groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+GEMINI_API_KEY = os.getenv("GOOGLE_GENERATIVE_AI_KEY") or os.getenv("GEMINI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+if GEMINI_AVAILABLE and GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+
+groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_AVAILABLE and GROQ_API_KEY else None
 
 
 class AIMediaProcessor:
-    """AI-powered media processing with free APIs"""
+    """
+    AI-powered media processing with official YouTube API
+    Works reliably on AWS and other cloud environments
+    """
     
     def __init__(self):
-        # Use the correct Gemini model name
-        self.gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        # Initialize Gemini model if available
+        if GEMINI_AVAILABLE and GEMINI_API_KEY:
+            try:
+                self.gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            except Exception as e:
+                logger.warning(f"Could not initialize Gemini: {e}")
+                self.gemini_model = None
+        else:
+            self.gemini_model = None
+        
         self.groq_client = groq_client
+        self.youtube_service = youtube_service
     
     async def process_youtube_video(self, url: str, options: Dict = None) -> Dict:
-        """Extract and process YouTube video transcript"""
+        """
+        Extract and process YouTube video transcript using official YouTube API
+        This method works reliably on AWS and cloud environments
+        """
         try:
-            logger.info(f"Processing YouTube URL: {url}")
+            logger.info(f"Processing YouTube URL with official API: {url}")
             
             # Validate URL
             if not url or url.strip() == "":
                 raise ValueError("YouTube URL is empty")
             
-            # Extract video ID
-            video_id = self._extract_video_id(url)
-            if not video_id:
-                raise ValueError(f"Invalid YouTube URL format: {url}")
+            # Use the official YouTube API service
+            result = await self.youtube_service.process_video(url.strip())
             
-            logger.info(f"Extracted video ID: {video_id}")
+            if not result.get("success"):
+                error_msg = result.get("error", "Failed to process YouTube video")
+                logger.error(f"YouTube API error: {error_msg}")
+                raise ValueError(error_msg)
             
-            # Get transcript using the correct API
-            try:
-                # Create API instance and fetch transcript
-                api = YouTubeTranscriptApi()
-                transcript_data = api.fetch(video_id)
-                language = 'en'  # Default, will detect later
-                
-                logger.info(f"Successfully fetched transcript with {len(transcript_data)} segments")
-                
-            except Exception as e:
-                logger.error(f"Transcript fetch error: {e}")
-                raise ValueError(f"No transcript available for this video. Make sure the video has captions enabled. Error: {str(e)}")
+            # Format response to match expected structure
+            video_info = result.get("video_info", {})
             
-            # Get video info (try pytube, but don't fail if it doesn't work)
-            video_info = {
-                "title": f"YouTube Video {video_id}",
-                "author": "Unknown",
-                "length": 0,
-                "description": "",
-                "thumbnail": f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg"
-            }
-            
-            if YouTube:
+            # Detect language if not provided
+            language = result.get("language", "en")
+            if detect and result.get("transcript"):
                 try:
-                    yt = YouTube(url)
-                    video_info = {
-                        "title": yt.title,
-                        "author": yt.author,
-                        "length": yt.length,
-                        "description": yt.description or "",
-                        "thumbnail": yt.thumbnail_url
-                    }
-                    logger.info(f"Fetched video metadata: {video_info['title']}")
-                except Exception as e:
-                    logger.warning(f"Could not fetch video metadata with pytube: {e}")
-                    # Continue with basic info
-            
-            # Process transcript segments
-            segments = []
-            full_text = []
-            
-            for entry in transcript_data:
-                # Handle both dict and object formats
-                if hasattr(entry, 'text'):
-                    text = entry.text
-                    start = entry.start
-                    duration = entry.duration
-                else:
-                    text = entry.get('text', '')
-                    start = entry.get('start', 0)
-                    duration = entry.get('duration', 0)
-                
-                segments.append({
-                    "start": start,
-                    "end": start + duration,
-                    "text": text,
-                    "duration": duration
-                })
-                full_text.append(text)
-            
-            full_transcript = " ".join(full_text)
-            
-            # Detect language if not English
-            try:
-                detected_lang = detect(full_transcript[:500])
-                language = detected_lang
-            except:
-                pass
-            
-            # Calculate duration from segments if not available from video info
-            duration = video_info.get("length", 0)
-            if duration == 0 and segments:
-                duration = int(segments[-1]["end"])
+                    detected_lang = detect(result["transcript"][:500])
+                    language = detected_lang
+                except:
+                    pass
             
             return {
                 "success": True,
-                "video_info": video_info,
-                "transcript": full_transcript,
-                "segments": segments,
+                "video_info": {
+                    "title": video_info.get("title", f"YouTube Video"),
+                    "author": video_info.get("author", "Unknown"),
+                    "length": video_info.get("length", result.get("duration", 0)),
+                    "description": video_info.get("description", ""),
+                    "thumbnail": video_info.get("thumbnail", "")
+                },
+                "transcript": result.get("transcript", ""),
+                "segments": result.get("segments", []),
                 "language": language,
-                "duration": duration,
-                "has_timestamps": True
+                "duration": result.get("duration", video_info.get("length", 0)),
+                "has_timestamps": result.get("has_timestamps", True),
+                "is_auto_generated": result.get("is_auto_generated", False)
             }
             
         except Exception as e:
@@ -165,6 +142,9 @@ class AIMediaProcessor:
     async def transcribe_audio_groq(self, audio_path: str) -> Dict:
         """Transcribe audio using Groq Whisper (FREE)"""
         try:
+            if not self.groq_client:
+                raise ValueError("Groq client not available - check GROQ_API_KEY")
+            
             # Groq Whisper is free and fast
             with open(audio_path, "rb") as audio_file:
                 transcription = self.groq_client.audio.transcriptions.create(
@@ -188,11 +168,17 @@ class AIMediaProcessor:
             # Detect language
             language = transcription.language if hasattr(transcription, 'language') else 'en'
             
+            # Calculate duration from segments
+            duration = 0
+            if segments:
+                duration = int(segments[-1].get("end", 0))
+            
             return {
                 "success": True,
                 "transcript": transcription.text,
                 "segments": segments,
                 "language": language,
+                "duration": duration,
                 "has_timestamps": len(segments) > 0
             }
             
@@ -206,6 +192,9 @@ class AIMediaProcessor:
     async def analyze_transcript_ai(self, transcript: str, options: Dict = None) -> Dict:
         """AI analysis of transcript using Groq (FREE with high limits)"""
         try:
+            if not self.groq_client:
+                raise ValueError("Groq client not available")
+            
             options = options or {}
             subject = options.get('subject', 'general')
             difficulty = options.get('difficulty', 'intermediate')
@@ -279,6 +268,9 @@ Format as valid JSON."""
     async def generate_notes_ai(self, transcript: str, analysis: Dict, style: str = "detailed", options: Dict = None) -> Dict:
         """Generate formatted notes using Groq with optimized prompts for detailed output"""
         try:
+            if not self.groq_client:
+                raise ValueError("Groq client not available")
+            
             options = options or {}
             difficulty = options.get('difficulty', 'intermediate')
             subject = options.get('subject', 'general')
@@ -345,7 +337,6 @@ Return ONLY the HTML content (no markdown code blocks, no ```html tags)."""
             )
             
             html_content = response.choices[0].message.content
-            
             
             # Clean up markdown if present
             if "```html" in html_content:
@@ -458,6 +449,9 @@ Return ONLY HTML content (no markdown)."""
     async def generate_flashcards_ai(self, transcript: str, analysis: Dict, count: int = 10) -> Dict:
         """Generate flashcards from content using Groq"""
         try:
+            if not self.groq_client:
+                raise ValueError("Groq client not available")
+            
             prompt = f"""Generate {count} flashcards from this content.
 
 Key Concepts: {json.dumps(analysis.get('key_concepts', []))}
@@ -508,6 +502,9 @@ Return ONLY valid JSON array."""
     async def generate_quiz_ai(self, transcript: str, analysis: Dict, count: int = 10) -> Dict:
         """Generate quiz questions from content using Groq"""
         try:
+            if not self.groq_client:
+                raise ValueError("Groq client not available")
+            
             prompt = f"""Generate {count} multiple-choice quiz questions from this content.
 
 Key Concepts: {json.dumps(analysis.get('key_concepts', []))}
@@ -597,26 +594,12 @@ Return ONLY valid JSON array."""
             logger.error(f"Key moments extraction error: {str(e)}")
             return []
     
-    def _extract_video_id(self, url: str) -> Optional[str]:
-        """Extract YouTube video ID from URL"""
-        patterns = [
-            r'(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)',
-            r'youtube\.com\/embed\/([^&\n?#]+)',
-            r'youtube\.com\/v\/([^&\n?#]+)'
-        ]
-        
-        for pattern in patterns:
-            match = re.search(pattern, url)
-            if match:
-                return match.group(1)
-        return None
-    
     def _extract_concepts(self, text: str, max_concepts: int = 10) -> List[str]:
         """Simple concept extraction fallback"""
         # This is a simple fallback - AI analysis is preferred
         words = text.split()
         # Get capitalized words (likely important terms)
-        concepts = [w for w in words if w[0].isupper() and len(w) > 3]
+        concepts = [w for w in words if len(w) > 3 and w[0].isupper()]
         # Remove duplicates and limit
         concepts = list(set(concepts))[:max_concepts]
         return concepts
@@ -624,6 +607,10 @@ Return ONLY valid JSON array."""
     async def convert_audio_format(self, input_path: str, output_format: str = "mp3") -> str:
         """Convert audio to compatible format"""
         try:
+            if not PYDUB_AVAILABLE:
+                logger.warning("pydub not available for audio conversion")
+                return input_path
+            
             audio = AudioSegment.from_file(input_path)
             output_path = input_path.rsplit('.', 1)[0] + f'.{output_format}'
             audio.export(output_path, format=output_format)
@@ -636,7 +623,7 @@ Return ONLY valid JSON array."""
         """Estimate processing cost (all free APIs)"""
         return {
             "transcription_cost": 0.0,  # Groq Whisper is free
-            "ai_analysis_cost": 0.0,  # Gemini free tier
+            "ai_analysis_cost": 0.0,  # Groq free tier
             "total_cost": 0.0,
             "note": "Using free tier APIs"
         }
@@ -644,8 +631,10 @@ Return ONLY valid JSON array."""
     def get_language_name(self, language_code: str) -> str:
         """Get full language name from code"""
         try:
-            lang = pycountry.languages.get(alpha_2=language_code)
-            return lang.name if lang else language_code
+            if pycountry:
+                lang = pycountry.languages.get(alpha_2=language_code)
+                return lang.name if lang else language_code
+            return language_code
         except:
             return language_code
 
