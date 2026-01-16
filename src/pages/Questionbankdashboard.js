@@ -4,7 +4,8 @@ import {
   ArrowLeft, Upload, MessageSquare, Sparkles, FileText, BarChart3, 
   Plus, Play, Trash2, TrendingUp, Target, Brain, Zap, Award, 
   CheckCircle, XCircle, Loader, Clock, FileUp, BookOpen, PieChart, ChevronLeft,
-  Download, FileDown
+  Download, FileDown, Eye, Edit3, RefreshCw, Layers, AlertTriangle, 
+  Star, GitMerge, Wand2, List, ChevronDown, ChevronUp, X, Save
 } from 'lucide-react';
 import './Questionbankdashboard.css';
 import './QuestionbankConvert.css';
@@ -40,8 +41,37 @@ const QuestionBankDashboard = () => {
   const [customContent, setCustomContent] = useState('');
   const [customTitle, setCustomTitle] = useState('');
   const [questionCount, setQuestionCount] = useState(10);
-  const [difficultyMix, setDifficultyMix] = useState({ easy: 3, medium: 5, hard: 2 });
+  const [difficultyMix, setDifficultyMix] = useState({ easy: 30, medium: 50, hard: 20 }); // Percentages
   const [questionTypes, setQuestionTypes] = useState(['multiple_choice', 'true_false', 'short_answer']);
+
+  // Calculate actual difficulty counts from percentages
+  const getDifficultyCount = (percentage) => Math.round((percentage / 100) * questionCount);
+  const difficultyCount = {
+    easy: getDifficultyCount(difficultyMix.easy),
+    medium: getDifficultyCount(difficultyMix.medium),
+    hard: getDifficultyCount(difficultyMix.hard)
+  };
+
+  // Handle question count change with better UX
+  const handleQuestionCountChange = (e) => {
+    const value = e.target.value;
+    // Allow empty string while typing
+    if (value === '') {
+      setQuestionCount('');
+      return;
+    }
+    const num = parseInt(value, 10);
+    if (!isNaN(num) && num >= 0) {
+      setQuestionCount(Math.min(Math.max(num, 1), 100));
+    }
+  };
+
+  const handleQuestionCountBlur = () => {
+    // Reset to default if empty or invalid on blur
+    if (questionCount === '' || questionCount < 1) {
+      setQuestionCount(10);
+    }
+  };
 
   const [selectedQuestionSet, setSelectedQuestionSet] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -49,6 +79,27 @@ const QuestionBankDashboard = () => {
   const [showResults, setShowResults] = useState(false);
   const [results, setResults] = useState(null);
   const [sessionStartTime, setSessionStartTime] = useState(null);
+
+  // AI Features State
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewQuestions, setPreviewQuestions] = useState([]);
+  const [previewStats, setPreviewStats] = useState(null);
+  const [editingQuestion, setEditingQuestion] = useState(null);
+  const [regenerateFeedback, setRegenerateFeedback] = useState('');
+  const [extractedTopics, setExtractedTopics] = useState(null);
+  const [selectedTopics, setSelectedTopics] = useState([]);
+  const [showTopicsPanel, setShowTopicsPanel] = useState(false);
+  const [enhancedPrompt, setEnhancedPrompt] = useState('');
+  const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
+  const [weaknessAnalysis, setWeaknessAnalysis] = useState(null);
+  const [showWeaknessPanel, setShowWeaknessPanel] = useState(false);
+  
+  // Batch operations state
+  const [selectedSets, setSelectedSets] = useState([]);
+  const [showBatchActions, setShowBatchActions] = useState(false);
+  const [showMergeModal, setShowMergeModal] = useState(false);
+  const [mergeTitle, setMergeTitle] = useState('');
+  const [deleteOriginals, setDeleteOriginals] = useState(false);
 
   // Smart generation state
   const [customPrompt, setCustomPrompt] = useState('');
@@ -187,13 +238,13 @@ const QuestionBankDashboard = () => {
 
     try {
       setLoading(true);
-      console.log('🚀 Calling Question Bank Agent - Generate from PDF:', { userId, selectedDocument, questionCount, difficultyMix });
+      console.log('🚀 Calling Question Bank Agent - Generate from PDF:', { userId, selectedDocument, questionCount, difficultyCount });
       
       const response = await questionBankAgentService.generateFromPDF({
         userId,
         sourceId: selectedDocument,
-        questionCount,
-        difficultyMix,
+        questionCount: questionCount || 10,
+        difficultyMix: difficultyCount,
         sessionId: `qb_pdf_${userId}_${Date.now()}`
       });
 
@@ -229,13 +280,13 @@ const QuestionBankDashboard = () => {
       const useSmartGeneration = customPrompt.trim() || referenceDocId;
       
       if (useSmartGeneration) {
-        console.log('🧠 Smart generation:', { userId, selectedPDFs, customPrompt, referenceDocId });
+        console.log('🧠 Smart generation:', { userId, selectedPDFs, customPrompt, referenceDocId, difficultyCount });
         
         const response = await questionBankAgentService.smartGenerate({
           userId,
           sourceIds: selectedPDFs.map(p => p.id),
-          questionCount,
-          difficultyMix,
+          questionCount: questionCount || 10,
+          difficultyMix: difficultyCount,
           title: selectedPDFs.length === 1 
             ? `Questions from ${selectedPDFs[0].filename}`
             : `Smart Questions from ${selectedPDFs.length} documents`,
@@ -256,13 +307,13 @@ const QuestionBankDashboard = () => {
           alert('Failed to generate questions: ' + (response.error || 'Unknown error'));
         }
       } else {
-        console.log('🚀 Standard generation:', { userId, selectedPDFs, questionCount, difficultyMix });
+        console.log('🚀 Standard generation:', { userId, selectedPDFs, questionCount, difficultyCount });
         
         const response = await questionBankAgentService.generateFromMultiplePDFs({
           userId,
           sourceIds: selectedPDFs.map(p => p.id),
-          questionCount,
-          difficultyMix,
+          questionCount: questionCount || 10,
+          difficultyMix: difficultyCount,
           title: selectedPDFs.length === 1 
             ? `Questions from ${selectedPDFs[0].filename}`
             : `Questions from ${selectedPDFs.length} documents`,
@@ -358,13 +409,13 @@ const QuestionBankDashboard = () => {
 
     try {
       setLoading(true);
-      console.log('🚀 Calling Question Bank Agent - Generate from sources:', { userId, selectedSources, questionCount });
+      console.log('🚀 Calling Question Bank Agent - Generate from sources:', { userId, selectedSources, questionCount, difficultyCount });
       
       const response = await questionBankAgentService.generateFromSources({
         userId,
         sources: selectedSources,
-        questionCount,
-        difficultyMix,
+        questionCount: questionCount || 10,
+        difficultyMix: difficultyCount,
         sessionId: `qb_sources_${userId}_${Date.now()}`
       });
 
@@ -395,14 +446,14 @@ const QuestionBankDashboard = () => {
 
     try {
       setLoading(true);
-      console.log('🚀 Calling Question Bank Agent - Generate from custom content:', { userId, contentLength: customContent.length });
+      console.log('🚀 Calling Question Bank Agent - Generate from custom content:', { userId, contentLength: customContent.length, difficultyCount });
       
       const response = await questionBankAgentService.generateFromCustom({
         userId,
         content: customContent,
         title: customTitle || 'Custom Question Set',
-        questionCount,
-        difficultyMix,
+        questionCount: questionCount || 10,
+        difficultyMix: difficultyCount,
         sessionId: `qb_custom_${userId}_${Date.now()}`
       });
 
@@ -628,6 +679,296 @@ const QuestionBankDashboard = () => {
     }
   };
 
+  // ==================== AI FEATURE HANDLERS ====================
+
+  // Enhance prompt with AI
+  const handleEnhancePrompt = async () => {
+    if (!customPrompt.trim()) return;
+    
+    try {
+      setIsEnhancingPrompt(true);
+      const contentSummary = selectedPDFs.length > 0 
+        ? `Documents: ${selectedPDFs.map(p => p.filename).join(', ')}`
+        : '';
+      
+      const result = await questionBankAgentService.enhancePrompt(customPrompt, contentSummary);
+      
+      if (result.enhanced) {
+        setEnhancedPrompt(result.enhanced.enhanced_prompt);
+        setCustomPrompt(result.enhanced.enhanced_prompt);
+        
+        // Apply suggested settings if available
+        if (result.enhanced.suggested_difficulty_distribution) {
+          setDifficultyMix(result.enhanced.suggested_difficulty_distribution);
+        }
+      }
+    } catch (error) {
+      console.error('Prompt enhancement error:', error);
+    } finally {
+      setIsEnhancingPrompt(false);
+    }
+  };
+
+  // Extract topics from selected documents
+  const handleExtractTopics = async () => {
+    if (selectedPDFs.length === 0) return;
+    
+    try {
+      setLoading(true);
+      const result = await questionBankAgentService.extractTopics(
+        userId, 
+        selectedPDFs[0].id
+      );
+      
+      if (result.topics) {
+        setExtractedTopics(result.topics);
+        setShowTopicsPanel(true);
+      }
+    } catch (error) {
+      console.error('Topic extraction error:', error);
+      alert('Failed to extract topics');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Preview generate questions
+  const handlePreviewGenerate = async () => {
+    if (selectedPDFs.length === 0) {
+      alert('Please select at least one PDF');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      const result = await questionBankAgentService.previewGenerate({
+        userId,
+        sourceIds: selectedPDFs.map(p => p.id),
+        questionCount: questionCount || 10,
+        difficultyMix: difficultyCount,
+        questionTypes,
+        topics: selectedTopics.length > 0 ? selectedTopics : null,
+        customPrompt: customPrompt.trim() || null
+      });
+
+      if (result.status === 'success') {
+        setPreviewQuestions(result.questions);
+        setPreviewStats(result.stats);
+        setShowPreviewModal(true);
+      }
+    } catch (error) {
+      console.error('Preview generation error:', error);
+      alert('Failed to generate preview: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Regenerate a single question in preview
+  const handleRegenerateQuestion = async (index) => {
+    const question = previewQuestions[index];
+    if (!regenerateFeedback.trim()) {
+      setRegenerateFeedback('Make it better');
+    }
+
+    try {
+      setEditingQuestion(index);
+      
+      const result = await questionBankAgentService.regenerateQuestion(
+        userId,
+        question,
+        regenerateFeedback || 'Make it better',
+        selectedPDFs.length > 0 ? selectedPDFs[0].id : null
+      );
+
+      if (result.regenerated) {
+        const newQuestions = [...previewQuestions];
+        newQuestions[index] = { ...result.regenerated, quality_score: 7 };
+        setPreviewQuestions(newQuestions);
+        setRegenerateFeedback('');
+      }
+    } catch (error) {
+      console.error('Regeneration error:', error);
+      alert('Failed to regenerate question');
+    } finally {
+      setEditingQuestion(null);
+    }
+  };
+
+  // Save previewed questions
+  const handleSavePreviewedQuestions = async () => {
+    if (previewQuestions.length === 0) return;
+
+    try {
+      setLoading(true);
+      
+      const title = selectedPDFs.length === 1 
+        ? `Questions from ${selectedPDFs[0].filename}`
+        : `Questions from ${selectedPDFs.length} documents`;
+
+      const result = await questionBankAgentService.savePreviewedQuestions(
+        userId,
+        previewQuestions,
+        title,
+        `Generated with AI preview. Quality score: ${previewStats?.average_quality_score || 'N/A'}`
+      );
+
+      if (result.status === 'success') {
+        alert(`Saved ${result.question_count} questions!`);
+        setShowPreviewModal(false);
+        setPreviewQuestions([]);
+        resetSelections();
+        await fetchQuestionSets();
+        setActiveView('question-sets');
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      alert('Failed to save questions: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Analyze weaknesses
+  const handleAnalyzeWeaknesses = async () => {
+    try {
+      setLoading(true);
+      const result = await questionBankAgentService.analyzeWeaknesses(userId);
+      
+      if (result.analysis) {
+        setWeaknessAnalysis(result.analysis);
+        setShowWeaknessPanel(true);
+      } else {
+        alert('No performance data available yet. Complete some question sets first!');
+      }
+    } catch (error) {
+      console.error('Weakness analysis error:', error);
+      alert('Failed to analyze weaknesses');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Generate adaptive questions
+  const handleGenerateAdaptive = async () => {
+    if (selectedPDFs.length === 0) {
+      alert('Please select at least one PDF');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      const result = await questionBankAgentService.generateAdaptive(
+        userId,
+        selectedPDFs.map(p => p.id),
+        questionCount || 10
+      );
+
+      if (result.status === 'success') {
+        setPreviewQuestions(result.questions);
+        setWeaknessAnalysis(result.weakness_analysis);
+        setPreviewStats({
+          total: result.questions.length,
+          average_quality_score: 7,
+          adaptive: true
+        });
+        setShowPreviewModal(true);
+      }
+    } catch (error) {
+      console.error('Adaptive generation error:', error);
+      alert('Failed to generate adaptive questions: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Toggle set selection for batch operations
+  const toggleSetSelection = (setId) => {
+    if (selectedSets.includes(setId)) {
+      setSelectedSets(selectedSets.filter(id => id !== setId));
+    } else {
+      setSelectedSets([...selectedSets, setId]);
+    }
+  };
+
+  // Batch delete
+  const handleBatchDelete = async () => {
+    if (selectedSets.length === 0) return;
+    
+    if (!window.confirm(`Delete ${selectedSets.length} question set(s)? This cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const result = await questionBankAgentService.batchDelete(userId, selectedSets);
+      
+      if (result.status === 'success') {
+        alert(`Deleted ${result.deleted_count} question set(s)`);
+        setSelectedSets([]);
+        await fetchQuestionSets();
+      }
+    } catch (error) {
+      console.error('Batch delete error:', error);
+      alert('Failed to delete: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Merge sets
+  const handleMergeSets = async () => {
+    if (selectedSets.length < 2) {
+      alert('Select at least 2 question sets to merge');
+      return;
+    }
+
+    if (!mergeTitle.trim()) {
+      alert('Please enter a title for the merged set');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const result = await questionBankAgentService.mergeSets(
+        userId,
+        selectedSets,
+        mergeTitle,
+        deleteOriginals
+      );
+
+      if (result.status === 'success') {
+        alert(`Merged ${result.source_sets.length} sets into "${mergeTitle}" (${result.total_questions} questions)`);
+        setShowMergeModal(false);
+        setSelectedSets([]);
+        setMergeTitle('');
+        setDeleteOriginals(false);
+        await fetchQuestionSets();
+      }
+    } catch (error) {
+      console.error('Merge error:', error);
+      alert('Failed to merge: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Remove question from preview
+  const removeQuestionFromPreview = (index) => {
+    const newQuestions = previewQuestions.filter((_, i) => i !== index);
+    setPreviewQuestions(newQuestions);
+    if (previewStats) {
+      setPreviewStats({
+        ...previewStats,
+        total: newQuestions.length
+      });
+    }
+  };
+
+  // ==================== END AI FEATURE HANDLERS ====================
+
   const renderSidebar = () => (
     <div className="qbd-sidebar">
       <nav className="qbd-sidebar-nav">
@@ -751,7 +1092,7 @@ const QuestionBankDashboard = () => {
                     className={`qbd-document-card ${isSelected ? 'selected' : ''}`}
                     onClick={() => togglePDFSelection(doc)}
                   >
-                    <div className="qbd-document-select-indicator">
+                    <div className="qbd-source-check">
                       {isSelected && <CheckCircle size={20} />}
                     </div>
                     <button 
@@ -874,9 +1215,10 @@ const QuestionBankDashboard = () => {
                   <input
                     type="number"
                     min="1"
-                    max="50"
+                    max="100"
                     value={questionCount}
-                    onChange={(e) => setQuestionCount(parseInt(e.target.value) || 10)}
+                    onChange={handleQuestionCountChange}
+                    onBlur={handleQuestionCountBlur}
                     className="qbd-input"
                   />
                 </div>
@@ -885,35 +1227,38 @@ const QuestionBankDashboard = () => {
                   <label>Difficulty Mix</label>
                   <div className="qbd-difficulty-sliders">
                     <div className="qbd-slider-item">
-                      <span>Easy: {difficultyMix.easy}</span>
+                      <span>Easy: {difficultyCount.easy} ({difficultyMix.easy}%)</span>
                       <input
                         type="range"
                         min="0"
-                        max="10"
+                        max="100"
                         value={difficultyMix.easy}
                         onChange={(e) => setDifficultyMix({...difficultyMix, easy: parseInt(e.target.value)})}
                       />
                     </div>
                     <div className="qbd-slider-item">
-                      <span>Medium: {difficultyMix.medium}</span>
+                      <span>Medium: {difficultyCount.medium} ({difficultyMix.medium}%)</span>
                       <input
                         type="range"
                         min="0"
-                        max="10"
+                        max="100"
                         value={difficultyMix.medium}
                         onChange={(e) => setDifficultyMix({...difficultyMix, medium: parseInt(e.target.value)})}
                       />
                     </div>
                     <div className="qbd-slider-item">
-                      <span>Hard: {difficultyMix.hard}</span>
+                      <span>Hard: {difficultyCount.hard} ({difficultyMix.hard}%)</span>
                       <input
                         type="range"
                         min="0"
-                        max="10"
+                        max="100"
                         value={difficultyMix.hard}
                         onChange={(e) => setDifficultyMix({...difficultyMix, hard: parseInt(e.target.value)})}
                       />
                     </div>
+                  </div>
+                  <div className="qbd-difficulty-total">
+                    Total: {difficultyCount.easy + difficultyCount.medium + difficultyCount.hard} questions
                   </div>
                 </div>
 
@@ -938,6 +1283,80 @@ const QuestionBankDashboard = () => {
                     ))}
                   </div>
                 </div>
+
+                {/* AI Feature Buttons */}
+                <div className="qbd-ai-actions">
+                  <button 
+                    className="qbd-btn-secondary qbd-ai-btn"
+                    onClick={handleExtractTopics}
+                    disabled={loading || selectedPDFs.length === 0}
+                    title="Extract topics from documents"
+                  >
+                    <List size={16} />
+                    <span>Extract Topics</span>
+                  </button>
+                  
+                  <button 
+                    className="qbd-btn-secondary qbd-ai-btn"
+                    onClick={handlePreviewGenerate}
+                    disabled={loading || selectedPDFs.length === 0}
+                    title="Preview questions before saving"
+                  >
+                    <Eye size={16} />
+                    <span>Preview & Edit</span>
+                  </button>
+                  
+                  <button 
+                    className="qbd-btn-secondary qbd-ai-btn qbd-adaptive-btn"
+                    onClick={handleGenerateAdaptive}
+                    disabled={loading || selectedPDFs.length === 0}
+                    title="Generate questions targeting your weak areas"
+                  >
+                    <Target size={16} />
+                    <span>Adaptive</span>
+                  </button>
+                </div>
+
+                {/* Topics Panel */}
+                {showTopicsPanel && extractedTopics && (
+                  <div className="qbd-topics-panel">
+                    <div className="qbd-topics-header">
+                      <h4><List size={16} /> Select Topics to Focus On</h4>
+                      <button onClick={() => setShowTopicsPanel(false)}><X size={16} /></button>
+                    </div>
+                    <div className="qbd-topics-list">
+                      {extractedTopics.chapters?.map((chapter, idx) => (
+                        <div key={idx} className="qbd-chapter-group">
+                          <h5>{chapter.name}</h5>
+                          <div className="qbd-topic-chips">
+                            {chapter.topics?.map((topic, tidx) => (
+                              <button
+                                key={tidx}
+                                className={`qbd-topic-chip ${selectedTopics.includes(topic.name) ? 'selected' : ''}`}
+                                onClick={() => {
+                                  if (selectedTopics.includes(topic.name)) {
+                                    setSelectedTopics(selectedTopics.filter(t => t !== topic.name));
+                                  } else {
+                                    setSelectedTopics([...selectedTopics, topic.name]);
+                                  }
+                                }}
+                              >
+                                {topic.name}
+                                <span className="qbd-topic-potential">{topic.question_potential}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {selectedTopics.length > 0 && (
+                      <div className="qbd-selected-topics">
+                        <span>Selected: {selectedTopics.length} topics</span>
+                        <button onClick={() => setSelectedTopics([])}>Clear</button>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <button 
                   className={`qbd-btn-primary qbd-btn-large ${(customPrompt.trim() || referenceDocId) ? 'qbd-smart-btn' : ''}`}
@@ -1046,9 +1465,10 @@ const QuestionBankDashboard = () => {
               <input
                 type="number"
                 min="1"
-                max="50"
+                max="100"
                 value={questionCount}
-                onChange={(e) => setQuestionCount(parseInt(e.target.value) || 10)}
+                onChange={handleQuestionCountChange}
+                onBlur={handleQuestionCountBlur}
                 className="qbd-input"
               />
             </div>
@@ -1057,35 +1477,38 @@ const QuestionBankDashboard = () => {
               <label>Difficulty Mix</label>
               <div className="qbd-difficulty-sliders">
                 <div className="qbd-slider-item">
-                  <span>Easy: {difficultyMix.easy}</span>
+                  <span>Easy: {difficultyCount.easy} ({difficultyMix.easy}%)</span>
                   <input
                     type="range"
                     min="0"
-                    max="10"
+                    max="100"
                     value={difficultyMix.easy}
                     onChange={(e) => setDifficultyMix({...difficultyMix, easy: parseInt(e.target.value)})}
                   />
                 </div>
                 <div className="qbd-slider-item">
-                  <span>Medium: {difficultyMix.medium}</span>
+                  <span>Medium: {difficultyCount.medium} ({difficultyMix.medium}%)</span>
                   <input
                     type="range"
                     min="0"
-                    max="10"
+                    max="100"
                     value={difficultyMix.medium}
                     onChange={(e) => setDifficultyMix({...difficultyMix, medium: parseInt(e.target.value)})}
                   />
                 </div>
                 <div className="qbd-slider-item">
-                  <span>Hard: {difficultyMix.hard}</span>
+                  <span>Hard: {difficultyCount.hard} ({difficultyMix.hard}%)</span>
                   <input
                     type="range"
                     min="0"
-                    max="10"
+                    max="100"
                     value={difficultyMix.hard}
                     onChange={(e) => setDifficultyMix({...difficultyMix, hard: parseInt(e.target.value)})}
                   />
                 </div>
+              </div>
+              <div className="qbd-difficulty-total">
+                Total: {difficultyCount.easy + difficultyCount.medium + difficultyCount.hard} questions
               </div>
             </div>
 
@@ -1144,9 +1567,10 @@ const QuestionBankDashboard = () => {
             <input
               type="number"
               min="1"
-              max="50"
+              max="100"
               value={questionCount}
-              onChange={(e) => setQuestionCount(parseInt(e.target.value) || 10)}
+              onChange={handleQuestionCountChange}
+              onBlur={handleQuestionCountBlur}
               className="qbd-input"
             />
           </div>
@@ -1156,35 +1580,38 @@ const QuestionBankDashboard = () => {
           <label>Difficulty Mix</label>
           <div className="qbd-difficulty-sliders">
             <div className="qbd-slider-item">
-              <span>Easy: {difficultyMix.easy}</span>
+              <span>Easy: {difficultyCount.easy} ({difficultyMix.easy}%)</span>
               <input
                 type="range"
                 min="0"
-                max="10"
+                max="100"
                 value={difficultyMix.easy}
                 onChange={(e) => setDifficultyMix({...difficultyMix, easy: parseInt(e.target.value)})}
               />
             </div>
             <div className="qbd-slider-item">
-              <span>Medium: {difficultyMix.medium}</span>
+              <span>Medium: {difficultyCount.medium} ({difficultyMix.medium}%)</span>
               <input
                 type="range"
                 min="0"
-                max="10"
+                max="100"
                 value={difficultyMix.medium}
                 onChange={(e) => setDifficultyMix({...difficultyMix, medium: parseInt(e.target.value)})}
               />
             </div>
             <div className="qbd-slider-item">
-              <span>Hard: {difficultyMix.hard}</span>
+              <span>Hard: {difficultyCount.hard} ({difficultyMix.hard}%)</span>
               <input
                 type="range"
                 min="0"
-                max="10"
+                max="100"
                 value={difficultyMix.hard}
                 onChange={(e) => setDifficultyMix({...difficultyMix, hard: parseInt(e.target.value)})}
               />
             </div>
+          </div>
+          <div className="qbd-difficulty-total">
+            Total: {difficultyCount.easy + difficultyCount.medium + difficultyCount.hard} questions
           </div>
         </div>
 
@@ -1226,6 +1653,37 @@ const QuestionBankDashboard = () => {
     console.log('🎨 Rendering question sets view, questionSets:', questionSets, 'loading:', loading);
     return (
     <div className="qbd-view">
+      {/* Batch Selection Header */}
+      {questionSets.length > 0 && (
+        <div className="qbd-sets-header">
+          <div className="qbd-sets-title">
+            <h2>Your Question Sets ({questionSets.length})</h2>
+          </div>
+          <div className="qbd-sets-actions">
+            <button 
+              className="qbd-btn-secondary qbd-btn-small"
+              onClick={() => {
+                if (selectedSets.length === questionSets.length) {
+                  setSelectedSets([]);
+                } else {
+                  setSelectedSets(questionSets.map(s => s.id));
+                }
+              }}
+            >
+              {selectedSets.length === questionSets.length ? 'Deselect All' : 'Select All'}
+            </button>
+            <button 
+              className="qbd-btn-secondary qbd-btn-small"
+              onClick={handleAnalyzeWeaknesses}
+              disabled={loading}
+            >
+              <Target size={14} />
+              <span>Analyze Weaknesses</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="qbd-loading">
           <Loader className="qbd-spin" size={48} />
@@ -1243,91 +1701,109 @@ const QuestionBankDashboard = () => {
         </div>
       ) : (
         <div className="qbd-sets-grid">
-          {questionSets.map(set => (
-            <div key={set.id} className="qbd-set-card">
-              <div className="qbd-set-header">
-                <div className="qbd-set-icon">
-                  <FileText size={28} />
+          {questionSets.map(set => {
+            const isSelected = selectedSets.includes(set.id);
+            return (
+              <div 
+                key={set.id} 
+                className={`qbd-set-card ${isSelected ? 'selected' : ''}`}
+                onClick={() => toggleSetSelection(set.id)}
+              >
+                {/* Selection Check Indicator */}
+                <div className="qbd-source-check">
+                  {isSelected && <CheckCircle size={20} />}
                 </div>
-                <div className="qbd-set-header-actions">
+                
+                <div className="qbd-set-header">
+                  <div className="qbd-set-icon">
+                    <FileText size={28} />
+                  </div>
+                  <div className="qbd-set-header-actions">
+                    <button 
+                      className="qbd-set-export"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openExportModal(set.id);
+                      }}
+                      title="Export as PDF"
+                      disabled={exportingPdf === set.id}
+                    >
+                      {exportingPdf === set.id ? (
+                        <Loader className="qbd-spin" size={16} />
+                      ) : (
+                        <FileDown size={16} />
+                      )}
+                    </button>
+                    <button 
+                      className="qbd-set-delete"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteQuestionSet(set.id);
+                      }}
+                      title="Delete question set"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="qbd-set-content">
+                  <h3>{set.title}</h3>
+                  <p>{set.description}</p>
+                  
+                  <div className="qbd-set-stats">
+                    <div className="qbd-stat-item">
+                      <FileText size={16} />
+                      <span>{set.total_questions} questions</span>
+                    </div>
+                    <div className="qbd-stat-item">
+                      <Target size={16} />
+                      <span>Best: {set.best_score}%</span>
+                    </div>
+                    <div className="qbd-stat-item">
+                      <TrendingUp size={16} />
+                      <span>{set.attempts} attempts</span>
+                    </div>
+                  </div>
+
+                  <div className="qbd-set-meta">
+                    <span className="qbd-source-badge">{set.source_type}</span>
+                    <span className="qbd-date-badge">
+                      {new Date(set.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="qbd-set-actions">
                   <button 
-                    className="qbd-set-export"
+                    className="qbd-set-study-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      startStudySession(set.id);
+                    }}
+                  >
+                    <Play size={18} />
+                    <span>Start Practice</span>
+                  </button>
+                  <button 
+                    className="qbd-set-export-btn"
                     onClick={(e) => {
                       e.stopPropagation();
                       openExportModal(set.id);
                     }}
-                    title="Export as PDF"
                     disabled={exportingPdf === set.id}
                   >
                     {exportingPdf === set.id ? (
                       <Loader className="qbd-spin" size={16} />
                     ) : (
-                      <FileDown size={16} />
+                      <Download size={16} />
                     )}
-                  </button>
-                  <button 
-                    className="qbd-set-delete"
-                    onClick={() => deleteQuestionSet(set.id)}
-                    title="Delete question set"
-                  >
-                    <Trash2 size={16} />
+                    <span>Export PDF</span>
                   </button>
                 </div>
               </div>
-
-              <div className="qbd-set-content">
-                <h3>{set.title}</h3>
-                <p>{set.description}</p>
-                
-                <div className="qbd-set-stats">
-                  <div className="qbd-stat-item">
-                    <FileText size={16} />
-                    <span>{set.total_questions} questions</span>
-                  </div>
-                  <div className="qbd-stat-item">
-                    <Target size={16} />
-                    <span>Best: {set.best_score}%</span>
-                  </div>
-                  <div className="qbd-stat-item">
-                    <TrendingUp size={16} />
-                    <span>{set.attempts} attempts</span>
-                  </div>
-                </div>
-
-                <div className="qbd-set-meta">
-                  <span className="qbd-source-badge">{set.source_type}</span>
-                  <span className="qbd-date-badge">
-                    {new Date(set.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-
-              <div className="qbd-set-actions">
-                <button 
-                  className="qbd-set-study-btn"
-                  onClick={() => startStudySession(set.id)}
-                >
-                  <Play size={18} />
-                  <span>Start Practice</span>
-                </button>
-                <button 
-                  className="qbd-set-export-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openExportModal(set.id);
-                  }}
-                  disabled={exportingPdf === set.id}
-                >
-                  {exportingPdf === set.id ? (
-                    <Loader className="qbd-spin" size={16} />
-                  ) : (
-                    <Download size={16} />
-                  )}
-                  <span>Export PDF</span>
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -1823,6 +2299,243 @@ const QuestionBankDashboard = () => {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Questions Modal */}
+      {showPreviewModal && (
+        <div className="qbd-modal-overlay" onClick={() => setShowPreviewModal(false)}>
+          <div className="qbd-preview-modal" onClick={e => e.stopPropagation()}>
+            <div className="qbd-preview-header">
+              <div className="qbd-preview-title">
+                <Eye size={24} />
+                <div>
+                  <h2>Preview Questions</h2>
+                  <p>Review, edit, or regenerate before saving</p>
+                </div>
+              </div>
+              <button className="qbd-modal-close" onClick={() => setShowPreviewModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {previewStats && (
+              <div className="qbd-preview-stats">
+                <div className="qbd-stat-chip">
+                  <FileText size={14} />
+                  <span>{previewStats.total} Questions</span>
+                </div>
+                <div className="qbd-stat-chip">
+                  <Star size={14} />
+                  <span>Quality: {previewStats.average_quality_score}/10</span>
+                </div>
+                {previewStats.potential_duplicates > 0 && (
+                  <div className="qbd-stat-chip warning">
+                    <AlertTriangle size={14} />
+                    <span>{previewStats.potential_duplicates} Potential Duplicates</span>
+                  </div>
+                )}
+                {previewStats.bloom_distribution && (
+                  <div className="qbd-bloom-dist">
+                    {Object.entries(previewStats.bloom_distribution).map(([level, count]) => (
+                      <span key={level} className={`qbd-bloom-chip ${level}`}>
+                        {level}: {count}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="qbd-preview-questions">
+              {previewQuestions.map((q, idx) => (
+                <div 
+                  key={idx} 
+                  className={`qbd-preview-question ${q.is_potential_duplicate ? 'duplicate-warning' : ''}`}
+                >
+                  <div className="qbd-preview-q-header">
+                    <span className="qbd-q-number">Q{idx + 1}</span>
+                    <span className={`qbd-difficulty-badge ${q.difficulty}`}>{q.difficulty}</span>
+                    {q.bloom_level && (
+                      <span className={`qbd-bloom-badge ${q.bloom_level}`}>{q.bloom_level}</span>
+                    )}
+                    {q.quality_score && (
+                      <span className="qbd-quality-badge">
+                        <Star size={12} /> {q.quality_score.toFixed(1)}
+                      </span>
+                    )}
+                    {q.is_potential_duplicate && (
+                      <span className="qbd-duplicate-badge">
+                        <AlertTriangle size={12} /> Similar exists
+                      </span>
+                    )}
+                  </div>
+                  
+                  <p className="qbd-preview-q-text">{q.question_text}</p>
+                  
+                  {q.options && q.options.length > 0 && (
+                    <div className="qbd-preview-options">
+                      {q.options.map((opt, oidx) => (
+                        <div 
+                          key={oidx} 
+                          className={`qbd-preview-option ${opt === q.correct_answer ? 'correct' : ''}`}
+                        >
+                          {String.fromCharCode(65 + oidx)}. {opt}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <div className="qbd-preview-answer">
+                    <strong>Answer:</strong> {q.correct_answer}
+                  </div>
+                  
+                  {q.explanation && (
+                    <div className="qbd-preview-explanation">
+                      <strong>Explanation:</strong> {q.explanation}
+                    </div>
+                  )}
+
+                  <div className="qbd-preview-q-actions">
+                    <div className="qbd-regenerate-input">
+                      <input
+                        type="text"
+                        placeholder="Feedback for regeneration..."
+                        value={editingQuestion === idx ? regenerateFeedback : ''}
+                        onChange={(e) => {
+                          setEditingQuestion(idx);
+                          setRegenerateFeedback(e.target.value);
+                        }}
+                        onFocus={() => setEditingQuestion(idx)}
+                      />
+                      <button 
+                        onClick={() => handleRegenerateQuestion(idx)}
+                        disabled={editingQuestion === idx && loading}
+                        title="Regenerate this question"
+                      >
+                        {editingQuestion === idx && loading ? (
+                          <Loader className="qbd-spin" size={14} />
+                        ) : (
+                          <RefreshCw size={14} />
+                        )}
+                      </button>
+                    </div>
+                    <button 
+                      className="qbd-remove-q-btn"
+                      onClick={() => removeQuestionFromPreview(idx)}
+                      title="Remove this question"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="qbd-preview-footer">
+              <button 
+                className="qbd-btn-secondary"
+                onClick={() => setShowPreviewModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="qbd-btn-primary"
+                onClick={handleSavePreviewedQuestions}
+                disabled={loading || previewQuestions.length === 0}
+              >
+                {loading ? (
+                  <>
+                    <Loader className="qbd-spin" size={18} />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} />
+                    <span>Save {previewQuestions.length} Questions</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Merge Sets Modal */}
+      {showMergeModal && (
+        <div className="qbd-modal-overlay" onClick={() => setShowMergeModal(false)}>
+          <div className="qbd-merge-modal" onClick={e => e.stopPropagation()}>
+            <div className="qbd-merge-header">
+              <GitMerge size={24} />
+              <h2>Merge Question Sets</h2>
+            </div>
+            
+            <div className="qbd-merge-content">
+              <p>Merging {selectedSets.length} question sets</p>
+              
+              <div className="qbd-setting-group">
+                <label>New Set Title</label>
+                <input
+                  type="text"
+                  value={mergeTitle}
+                  onChange={(e) => setMergeTitle(e.target.value)}
+                  placeholder="Enter title for merged set..."
+                  className="qbd-input"
+                />
+              </div>
+              
+              <label className="qbd-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={deleteOriginals}
+                  onChange={(e) => setDeleteOriginals(e.target.checked)}
+                />
+                <span>Delete original sets after merging</span>
+              </label>
+            </div>
+            
+            <div className="qbd-merge-actions">
+              <button 
+                className="qbd-btn-secondary"
+                onClick={() => {
+                  setShowMergeModal(false);
+                  setMergeTitle('');
+                  setDeleteOriginals(false);
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="qbd-btn-primary"
+                onClick={handleMergeSets}
+                disabled={loading || !mergeTitle.trim()}
+              >
+                {loading ? <Loader className="qbd-spin" size={18} /> : <GitMerge size={18} />}
+                <span>Merge Sets</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Batch Actions Bar */}
+      {selectedSets.length > 0 && (
+        <div className="qbd-batch-bar">
+          <span>{selectedSets.length} set(s) selected</span>
+          <div className="qbd-batch-actions">
+            <button onClick={() => setShowMergeModal(true)} disabled={selectedSets.length < 2}>
+              <GitMerge size={16} />
+              <span>Merge</span>
+            </button>
+            <button onClick={handleBatchDelete} className="qbd-batch-delete">
+              <Trash2 size={16} />
+              <span>Delete</span>
+            </button>
+            <button onClick={() => setSelectedSets([])} className="qbd-batch-clear">
+              <X size={16} />
+              <span>Clear</span>
+            </button>
           </div>
         </div>
       )}

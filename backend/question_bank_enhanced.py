@@ -684,6 +684,494 @@ Return ONLY valid JSON, no markdown formatting."""
             }
 
 
+# ==================== AI ENHANCEMENT FEATURES ====================
+
+class PromptEnhancerAgent:
+    """Enhances user prompts to generate better questions"""
+    def __init__(self, unified_ai):
+        self.unified_ai = unified_ai
+    
+    async def enhance_prompt(self, user_prompt: str, content_summary: str = "") -> Dict[str, Any]:
+        """Take a simple user prompt and enhance it for better question generation"""
+        prompt = f"""You are an expert at crafting prompts for educational question generation.
+
+USER'S ORIGINAL PROMPT:
+"{user_prompt}"
+
+CONTENT SUMMARY (if available):
+{content_summary[:2000] if content_summary else "Not provided"}
+
+Enhance this prompt to generate better educational questions. Consider:
+1. Clarity and specificity
+2. Learning objectives
+3. Question variety
+4. Difficulty progression
+5. Real-world application
+
+Return JSON:
+{{
+    "enhanced_prompt": "The improved, detailed prompt",
+    "suggested_question_types": ["multiple_choice", "short_answer", etc],
+    "suggested_difficulty_distribution": {{"easy": 30, "medium": 50, "hard": 20}},
+    "focus_areas": ["list of specific topics to focus on"],
+    "learning_objectives": ["what students should learn"],
+    "prompt_improvements": ["list of improvements made"]
+}}
+
+Return ONLY valid JSON."""
+
+        try:
+            content = self.unified_ai.generate(prompt, max_tokens=1000, temperature=0.7)
+            
+            if content.startswith('```'):
+                content = re.sub(r'^```(?:json)?\n?', '', content)
+                content = re.sub(r'\n?```$', '', content).strip()
+            
+            json_match = re.search(r'\{.*\}', content, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+            return json.loads(content)
+        except Exception as e:
+            logger.error(f"Prompt enhancement error: {e}")
+            return {
+                "enhanced_prompt": user_prompt,
+                "suggested_question_types": ["multiple_choice", "short_answer"],
+                "suggested_difficulty_distribution": {"easy": 30, "medium": 50, "hard": 20},
+                "focus_areas": [],
+                "learning_objectives": [],
+                "prompt_improvements": []
+            }
+
+
+class TopicExtractorAgent:
+    """Extracts and organizes topics from content"""
+    def __init__(self, unified_ai):
+        self.unified_ai = unified_ai
+    
+    async def extract_topics(self, content: str) -> Dict[str, Any]:
+        """Extract hierarchical topics from content"""
+        prompt = f"""Analyze this educational content and extract a hierarchical topic structure.
+
+CONTENT:
+{content[:8000]}
+
+Extract:
+1. Main subject/course
+2. Chapters/Units
+3. Topics within each chapter
+4. Key concepts within each topic
+5. Estimated question potential per topic
+
+Return JSON:
+{{
+    "subject": "Main subject name",
+    "chapters": [
+        {{
+            "name": "Chapter/Unit name",
+            "topics": [
+                {{
+                    "name": "Topic name",
+                    "key_concepts": ["concept1", "concept2"],
+                    "question_potential": "high|medium|low",
+                    "suggested_question_count": 5
+                }}
+            ]
+        }}
+    ],
+    "total_topics": 10,
+    "recommended_total_questions": 50
+}}
+
+Return ONLY valid JSON."""
+
+        try:
+            response = self.unified_ai.generate(prompt, max_tokens=2000, temperature=0.5)
+            
+            if response.startswith('```'):
+                response = re.sub(r'^```(?:json)?\n?', '', response)
+                response = re.sub(r'\n?```$', '', response).strip()
+            
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+            return json.loads(response)
+        except Exception as e:
+            logger.error(f"Topic extraction error: {e}")
+            return {"subject": "Unknown", "chapters": [], "total_topics": 0}
+
+
+class QuestionQualityAgent:
+    """Scores and improves question quality"""
+    def __init__(self, unified_ai):
+        self.unified_ai = unified_ai
+    
+    async def score_question(self, question: Dict[str, Any]) -> Dict[str, Any]:
+        """Score a question on multiple quality dimensions"""
+        prompt = f"""Evaluate this question's quality on multiple dimensions.
+
+QUESTION:
+{json.dumps(question, indent=2)}
+
+Score each dimension from 1-10 and provide specific feedback:
+
+1. CLARITY: Is the question clear and unambiguous?
+2. DIFFICULTY_ACCURACY: Does the stated difficulty match actual difficulty?
+3. ANSWER_QUALITY: Is the correct answer accurate? Are distractors plausible?
+4. EXPLANATION_QUALITY: Is the explanation helpful and educational?
+5. RELEVANCE: Is this question educationally valuable?
+6. GRAMMAR: Is the grammar and spelling correct?
+
+Return JSON:
+{{
+    "overall_score": 8.5,
+    "scores": {{
+        "clarity": {{"score": 9, "feedback": "Clear and specific"}},
+        "difficulty_accuracy": {{"score": 8, "feedback": "Matches stated difficulty"}},
+        "answer_quality": {{"score": 7, "feedback": "Good but distractor B is too obvious"}},
+        "explanation_quality": {{"score": 8, "feedback": "Helpful explanation"}},
+        "relevance": {{"score": 9, "feedback": "Tests important concept"}},
+        "grammar": {{"score": 10, "feedback": "No errors"}}
+    }},
+    "improvements": ["List of specific improvements"],
+    "improved_question": {{...improved version if score < 7...}}
+}}
+
+Return ONLY valid JSON."""
+
+        try:
+            response = self.unified_ai.generate(prompt, max_tokens=1500, temperature=0.3)
+            
+            if response.startswith('```'):
+                response = re.sub(r'^```(?:json)?\n?', '', response)
+                response = re.sub(r'\n?```$', '', response).strip()
+            
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+            return json.loads(response)
+        except Exception as e:
+            logger.error(f"Question quality scoring error: {e}")
+            return {"overall_score": 7, "scores": {}, "improvements": []}
+    
+    async def batch_score_questions(self, questions: List[Dict]) -> List[Dict]:
+        """Score multiple questions and return with scores"""
+        scored = []
+        for q in questions:
+            score_result = await self.score_question(q)
+            q['quality_score'] = score_result.get('overall_score', 7)
+            q['quality_feedback'] = score_result.get('improvements', [])
+            scored.append(q)
+        return scored
+
+
+class BloomTaxonomyAgent:
+    """Tags questions with Bloom's Taxonomy levels"""
+    def __init__(self, unified_ai):
+        self.unified_ai = unified_ai
+    
+    BLOOM_LEVELS = {
+        "remember": {"verbs": ["define", "list", "recall", "identify", "name"], "description": "Recall facts and basic concepts"},
+        "understand": {"verbs": ["explain", "describe", "summarize", "interpret"], "description": "Explain ideas or concepts"},
+        "apply": {"verbs": ["use", "solve", "demonstrate", "calculate"], "description": "Use information in new situations"},
+        "analyze": {"verbs": ["compare", "contrast", "examine", "differentiate"], "description": "Draw connections among ideas"},
+        "evaluate": {"verbs": ["judge", "critique", "justify", "assess"], "description": "Justify a decision or course of action"},
+        "create": {"verbs": ["design", "construct", "develop", "formulate"], "description": "Produce new or original work"}
+    }
+    
+    async def tag_question(self, question: Dict[str, Any]) -> Dict[str, Any]:
+        """Tag a question with Bloom's taxonomy level"""
+        prompt = f"""Classify this question according to Bloom's Taxonomy.
+
+QUESTION:
+{question.get('question_text', '')}
+
+BLOOM'S TAXONOMY LEVELS (lowest to highest):
+1. REMEMBER - Recall facts (define, list, recall, identify)
+2. UNDERSTAND - Explain ideas (explain, describe, summarize)
+3. APPLY - Use in new situations (use, solve, demonstrate)
+4. ANALYZE - Draw connections (compare, contrast, examine)
+5. EVALUATE - Justify decisions (judge, critique, assess)
+6. CREATE - Produce original work (design, construct, develop)
+
+Return JSON:
+{{
+    "bloom_level": "remember|understand|apply|analyze|evaluate|create",
+    "confidence": 0.95,
+    "reasoning": "Why this level was chosen",
+    "cognitive_verbs_detected": ["list of verbs found"],
+    "suggested_level_up_version": "A harder version of this question at the next Bloom level"
+}}
+
+Return ONLY valid JSON."""
+
+        try:
+            response = self.unified_ai.generate(prompt, max_tokens=800, temperature=0.3)
+            
+            if response.startswith('```'):
+                response = re.sub(r'^```(?:json)?\n?', '', response)
+                response = re.sub(r'\n?```$', '', response).strip()
+            
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                result = json.loads(json_match.group())
+                question['bloom_level'] = result.get('bloom_level', 'understand')
+                question['bloom_confidence'] = result.get('confidence', 0.5)
+                return result
+            return {"bloom_level": "understand", "confidence": 0.5}
+        except Exception as e:
+            logger.error(f"Bloom taxonomy tagging error: {e}")
+            return {"bloom_level": "understand", "confidence": 0.5}
+    
+    async def batch_tag_questions(self, questions: List[Dict]) -> List[Dict]:
+        """Tag multiple questions with Bloom's levels"""
+        for q in questions:
+            await self.tag_question(q)
+        return questions
+
+
+class DuplicateDetectorAgent:
+    """Detects semantically similar questions"""
+    def __init__(self, unified_ai):
+        self.unified_ai = unified_ai
+    
+    async def find_duplicates(self, new_question: str, existing_questions: List[str]) -> Dict[str, Any]:
+        """Check if a question is too similar to existing ones"""
+        if not existing_questions:
+            return {"is_duplicate": False, "similar_questions": []}
+        
+        # Limit to most recent 50 questions for efficiency
+        recent_questions = existing_questions[-50:]
+        
+        prompt = f"""Check if this NEW question is too similar to any EXISTING questions.
+
+NEW QUESTION:
+"{new_question}"
+
+EXISTING QUESTIONS:
+{json.dumps(recent_questions, indent=2)}
+
+A question is a "duplicate" if:
+1. It tests the exact same concept in the same way
+2. Only minor wording changes
+3. Same answer would be correct
+
+Return JSON:
+{{
+    "is_duplicate": true/false,
+    "similarity_score": 0.0-1.0,
+    "most_similar_question": "The most similar existing question or null",
+    "similarity_reason": "Why they are similar",
+    "suggestion": "How to make the new question more unique"
+}}
+
+Return ONLY valid JSON."""
+
+        try:
+            response = self.unified_ai.generate(prompt, max_tokens=600, temperature=0.2)
+            
+            if response.startswith('```'):
+                response = re.sub(r'^```(?:json)?\n?', '', response)
+                response = re.sub(r'\n?```$', '', response).strip()
+            
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+            return json.loads(response)
+        except Exception as e:
+            logger.error(f"Duplicate detection error: {e}")
+            return {"is_duplicate": False, "similarity_score": 0}
+
+
+class AdaptiveGeneratorAgent:
+    """Generates questions based on user's weak areas"""
+    def __init__(self, unified_ai):
+        self.unified_ai = unified_ai
+    
+    async def analyze_weaknesses(self, performance_data: List[Dict]) -> Dict[str, Any]:
+        """Analyze user performance to identify weak areas"""
+        prompt = f"""Analyze this student's question performance data to identify weak areas.
+
+PERFORMANCE DATA:
+{json.dumps(performance_data[:30], indent=2)}
+
+Identify:
+1. Topics with lowest accuracy
+2. Question types they struggle with
+3. Difficulty levels they fail most
+4. Patterns in wrong answers
+5. Recommended focus areas
+
+Return JSON:
+{{
+    "weak_topics": [{{"topic": "name", "accuracy": 0.4, "attempts": 10}}],
+    "weak_question_types": ["short_answer"],
+    "struggling_difficulty": "hard",
+    "error_patterns": ["Confuses X with Y", "Calculation errors"],
+    "recommendations": {{
+        "focus_topics": ["topic1", "topic2"],
+        "suggested_difficulty": "medium",
+        "suggested_question_types": ["multiple_choice"],
+        "study_tips": ["Review chapter 3", "Practice calculations"]
+    }},
+    "confidence_score": 0.85
+}}
+
+Return ONLY valid JSON."""
+
+        try:
+            response = self.unified_ai.generate(prompt, max_tokens=1000, temperature=0.4)
+            
+            if response.startswith('```'):
+                response = re.sub(r'^```(?:json)?\n?', '', response)
+                response = re.sub(r'\n?```$', '', response).strip()
+            
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+            return json.loads(response)
+        except Exception as e:
+            logger.error(f"Weakness analysis error: {e}")
+            return {"weak_topics": [], "recommendations": {}}
+    
+    async def generate_adaptive_prompt(self, weakness_analysis: Dict, content: str) -> str:
+        """Generate a custom prompt targeting weak areas"""
+        weak_topics = weakness_analysis.get('weak_topics', [])
+        recommendations = weakness_analysis.get('recommendations', {})
+        
+        focus_topics = [t['topic'] for t in weak_topics[:3]]
+        
+        prompt = f"""Generate questions that specifically target these weak areas:
+
+WEAK TOPICS: {', '.join(focus_topics)}
+RECOMMENDED DIFFICULTY: {recommendations.get('suggested_difficulty', 'medium')}
+ERROR PATTERNS TO ADDRESS: {weakness_analysis.get('error_patterns', [])}
+
+Focus on:
+1. Questions that test understanding of commonly confused concepts
+2. Step-by-step problems to build confidence
+3. Varied question formats to reinforce learning
+4. Clear explanations that address common misconceptions
+
+Generate questions from this content that specifically help with these weak areas."""
+        
+        return prompt
+
+
+class ExplanationEnhancerAgent:
+    """Enhances question explanations with detailed steps"""
+    def __init__(self, unified_ai):
+        self.unified_ai = unified_ai
+    
+    async def enhance_explanation(self, question: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate a detailed, step-by-step explanation"""
+        prompt = f"""Create a comprehensive, educational explanation for this question.
+
+QUESTION: {question.get('question_text', '')}
+CORRECT ANSWER: {question.get('correct_answer', '')}
+CURRENT EXPLANATION: {question.get('explanation', 'None provided')}
+
+Create an enhanced explanation that includes:
+1. WHY the correct answer is correct (conceptual understanding)
+2. Step-by-step reasoning process
+3. Common mistakes and why they're wrong
+4. Related concepts to review
+5. A memory tip or mnemonic if applicable
+
+Return JSON:
+{{
+    "enhanced_explanation": "Detailed explanation with steps",
+    "key_concept": "The main concept being tested",
+    "step_by_step": ["Step 1: ...", "Step 2: ..."],
+    "common_mistakes": [{{"mistake": "...", "why_wrong": "..."}}],
+    "related_concepts": ["concept1", "concept2"],
+    "memory_tip": "A helpful way to remember this",
+    "difficulty_justification": "Why this question is easy/medium/hard"
+}}
+
+Return ONLY valid JSON."""
+
+        try:
+            response = self.unified_ai.generate(prompt, max_tokens=1200, temperature=0.6)
+            
+            if response.startswith('```'):
+                response = re.sub(r'^```(?:json)?\n?', '', response)
+                response = re.sub(r'\n?```$', '', response).strip()
+            
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                result = json.loads(json_match.group())
+                question['enhanced_explanation'] = result.get('enhanced_explanation', question.get('explanation', ''))
+                question['step_by_step'] = result.get('step_by_step', [])
+                question['common_mistakes'] = result.get('common_mistakes', [])
+                question['memory_tip'] = result.get('memory_tip', '')
+                return result
+            return {}
+        except Exception as e:
+            logger.error(f"Explanation enhancement error: {e}")
+            return {}
+
+
+class QuestionPreviewAgent:
+    """Handles question preview and editing before saving"""
+    def __init__(self, unified_ai):
+        self.unified_ai = unified_ai
+    
+    async def regenerate_single_question(
+        self, 
+        original_question: Dict, 
+        feedback: str,
+        content: str
+    ) -> Dict[str, Any]:
+        """Regenerate a single question based on user feedback"""
+        prompt = f"""Regenerate this question based on user feedback.
+
+ORIGINAL QUESTION:
+{json.dumps(original_question, indent=2)}
+
+USER FEEDBACK:
+"{feedback}"
+
+AVAILABLE CONTENT:
+{content[:3000]}
+
+Generate an improved question that addresses the feedback while:
+1. Maintaining the same topic/concept
+2. Keeping similar difficulty unless feedback says otherwise
+3. Improving based on the specific feedback
+
+Return JSON with the same structure as the original question:
+{{
+    "question_text": "...",
+    "question_type": "...",
+    "difficulty": "...",
+    "topic": "...",
+    "correct_answer": "...",
+    "options": [...],
+    "explanation": "...",
+    "points": 1
+}}
+
+Return ONLY valid JSON."""
+
+        try:
+            response = self.unified_ai.generate(prompt, max_tokens=800, temperature=0.7)
+            
+            if response.startswith('```'):
+                response = re.sub(r'^```(?:json)?\n?', '', response)
+                response = re.sub(r'\n?```$', '', response).strip()
+            
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+            return json.loads(response)
+        except Exception as e:
+            logger.error(f"Question regeneration error: {e}")
+            return original_question
+
+
+# ==================== END AI ENHANCEMENT FEATURES ====================
+
+
 class QuestionGeneratorAgent:
     def __init__(self, unified_ai):
         self.unified_ai = unified_ai
@@ -890,141 +1378,481 @@ class QuestionGeneratorAgent:
         custom_prompt: str,
         reference_content: str
     ) -> List[Dict[str, Any]]:
-        """Generate questions from a single chunk of content"""
+        """
+        AGENTIC QUESTION GENERATION PIPELINE
+        
+        This uses a multi-step agentic approach:
+        1. ANALYZE: Extract key concepts, facts, and relationships from content
+        2. PLAN: Create a question blueprint with specific targets per difficulty
+        3. GENERATE: Create questions following the blueprint
+        4. VALIDATE: Check quality and relevance of each question
+        5. REFINE: Fix any issues found during validation
+        """
         
         types_str = ", ".join(question_types)
-        topics_str = ", ".join(topics) if topics else "all topics in the content"
+        topics_str = ", ".join(topics) if topics else "all major topics from the content"
         
-        # Build the prompt based on whether we have reference content and custom instructions
-        if reference_content and custom_prompt:
-            prompt = f"""You are an expert question generator. Follow these custom instructions:
-
-CUSTOM INSTRUCTIONS:
-{custom_prompt}
-
-REFERENCE MATERIAL (Sample Questions/Style Guide):
-{reference_content}
-
-CONTENT TO GENERATE QUESTIONS FROM:
-{content}
-
-Generate {question_count} questions following the style, difficulty, and format shown in the reference material.
-Question types to include: {types_str}
-Difficulty distribution: {json.dumps(difficulty_distribution)}
-Focus topics: {topics_str}
-
-For each question, provide:
-{{
-    "question_text": "Clear, specific question matching the reference style",
-    "question_type": "multiple_choice|true_false|short_answer|fill_blank",
-    "difficulty": "easy|medium|hard",
-    "topic": "specific topic from content",
-    "correct_answer": "precise answer",
-    "options": ["Option A", "Option B", "Option C", "Option D"],
-    "explanation": "Why this answer is correct",
-    "points": 1
-}}
-
-Return ONLY a valid JSON array of questions."""
-
-        elif reference_content:
-            prompt = f"""Analyze the reference questions below and generate similar questions from the main content.
-
-REFERENCE QUESTIONS (Use these as style/difficulty guide):
-{reference_content}
-
-MAIN CONTENT (Generate questions from this):
-{content}
-
-Generate {question_count} questions that:
-1. Match the STYLE and FORMAT of the reference questions
-2. Match the DIFFICULTY LEVEL of the reference questions
-3. Cover topics from the MAIN CONTENT
-4. Use similar question structures and wording patterns
-
-Question types: {types_str}
-Difficulty distribution: {json.dumps(difficulty_distribution)}
-Focus topics: {topics_str}
-
-For each question, provide:
-{{
-    "question_text": "Question matching reference style",
-    "question_type": "multiple_choice|true_false|short_answer|fill_blank",
-    "difficulty": "easy|medium|hard",
-    "topic": "specific topic",
-    "correct_answer": "precise answer",
-    "options": ["Option A", "Option B", "Option C", "Option D"],
-    "explanation": "Why this answer is correct",
-    "points": 1
-}}
-
-Return ONLY a valid JSON array of questions."""
-
-        elif custom_prompt:
-            prompt = f"""You are an expert question generator. Follow these custom instructions:
-
-CUSTOM INSTRUCTIONS:
-{custom_prompt}
+        # Calculate exact counts per difficulty
+        total_diff = sum(difficulty_distribution.values())
+        if total_diff > 0:
+            easy_count = max(1, round(question_count * difficulty_distribution.get('easy', 30) / total_diff))
+            medium_count = max(1, round(question_count * difficulty_distribution.get('medium', 50) / total_diff))
+            hard_count = max(0, question_count - easy_count - medium_count)
+        else:
+            easy_count = question_count // 3
+            medium_count = question_count // 3
+            hard_count = question_count - easy_count - medium_count
+        
+        logger.info(f"Agentic generation: {easy_count} easy, {medium_count} medium, {hard_count} hard")
+        
+        # STEP 1: ANALYZE - Extract testable content
+        analysis = await self._agent_analyze_content(content)
+        
+        # STEP 2: PLAN - Create question blueprint
+        blueprint = await self._agent_create_blueprint(
+            analysis, easy_count, medium_count, hard_count, 
+            question_types, topics, custom_prompt, reference_content
+        )
+        
+        # STEP 3: GENERATE - Create questions from blueprint
+        questions = await self._agent_generate_from_blueprint(
+            content, blueprint, question_types, custom_prompt, reference_content
+        )
+        
+        # STEP 4: VALIDATE & REFINE
+        questions = await self._agent_validate_questions(questions, content, question_count)
+        
+        return questions
+    
+    async def _agent_analyze_content(self, content: str) -> Dict[str, Any]:
+        """AGENT STEP 1: Analyze content to extract testable elements"""
+        
+        analysis_prompt = f"""You are a content analysis expert. Analyze this educational content and extract ALL testable elements.
 
 CONTENT:
-{content}
+{content[:8000]}
 
-Generate {question_count} questions following the custom instructions above.
-Question types: {types_str}
-Difficulty distribution: {json.dumps(difficulty_distribution)}
-Focus topics: {topics_str}
+TASK: Extract and categorize every piece of information that could be tested. Be thorough and specific.
 
-For each question, provide:
+Return a JSON object with this structure:
 {{
+    "main_topic": "The primary subject of this content",
+    "subtopics": ["List of specific subtopics covered"],
+    "key_facts": [
+        {{"fact": "A specific, testable fact", "source_quote": "Brief quote from content", "complexity": "simple|moderate|complex"}}
+    ],
+    "definitions": [
+        {{"term": "Term name", "definition": "What it means", "source_quote": "Quote"}}
+    ],
+    "relationships": [
+        {{"concept1": "First concept", "relationship": "how they relate", "concept2": "Second concept", "complexity": "simple|moderate|complex"}}
+    ],
+    "processes": [
+        {{"name": "Process name", "steps": ["step1", "step2"], "complexity": "simple|moderate|complex"}}
+    ],
+    "comparisons": [
+        {{"items": ["item1", "item2"], "differences": ["diff1"], "similarities": ["sim1"]}}
+    ],
+    "cause_effects": [
+        {{"cause": "What causes it", "effect": "What happens", "complexity": "simple|moderate|complex"}}
+    ],
+    "numerical_data": [
+        {{"value": "The number/statistic", "context": "What it represents", "source_quote": "Quote"}}
+    ]
+}}
+
+Extract AT LEAST 15-20 testable elements total. Be specific - use exact names, dates, numbers from the content.
+Return ONLY valid JSON."""
+
+        try:
+            response = self.unified_ai.generate(analysis_prompt, max_tokens=3000, temperature=0.3)
+            
+            # Parse the analysis
+            if response.startswith('```'):
+                response = re.sub(r'^```(?:json)?\n?', '', response)
+                response = re.sub(r'\n?```$', '', response).strip()
+            
+            try:
+                analysis = json.loads(response)
+                logger.info(f"Content analysis extracted: {len(analysis.get('key_facts', []))} facts, {len(analysis.get('definitions', []))} definitions")
+                return analysis
+            except:
+                # Return basic structure if parsing fails
+                return {
+                    "main_topic": "Content Analysis",
+                    "subtopics": [],
+                    "key_facts": [],
+                    "definitions": [],
+                    "relationships": [],
+                    "processes": [],
+                    "comparisons": [],
+                    "cause_effects": [],
+                    "numerical_data": []
+                }
+        except Exception as e:
+            logger.error(f"Content analysis failed: {e}")
+            return {"main_topic": "Unknown", "subtopics": [], "key_facts": []}
+    
+    async def _agent_create_blueprint(
+        self, analysis: Dict, easy_count: int, medium_count: int, hard_count: int,
+        question_types: List[str], topics: List[str], custom_prompt: str, reference_content: str
+    ) -> List[Dict]:
+        """AGENT STEP 2: Create a detailed blueprint for each question"""
+        
+        # Build question targets based on analysis
+        blueprint = []
+        
+        # EASY questions: Direct facts, definitions, simple recall
+        easy_sources = []
+        for fact in analysis.get('key_facts', []):
+            if fact.get('complexity') == 'simple':
+                easy_sources.append({"type": "fact", "data": fact})
+        for defn in analysis.get('definitions', []):
+            easy_sources.append({"type": "definition", "data": defn})
+        for num in analysis.get('numerical_data', []):
+            easy_sources.append({"type": "numerical", "data": num})
+        
+        # MEDIUM questions: Relationships, cause-effect, moderate complexity
+        medium_sources = []
+        for fact in analysis.get('key_facts', []):
+            if fact.get('complexity') == 'moderate':
+                medium_sources.append({"type": "fact", "data": fact})
+        for rel in analysis.get('relationships', []):
+            if rel.get('complexity') in ['simple', 'moderate']:
+                medium_sources.append({"type": "relationship", "data": rel})
+        for ce in analysis.get('cause_effects', []):
+            if ce.get('complexity') in ['simple', 'moderate']:
+                medium_sources.append({"type": "cause_effect", "data": ce})
+        for proc in analysis.get('processes', []):
+            if proc.get('complexity') in ['simple', 'moderate']:
+                medium_sources.append({"type": "process", "data": proc})
+        
+        # HARD questions: Complex relationships, comparisons, analysis
+        hard_sources = []
+        for fact in analysis.get('key_facts', []):
+            if fact.get('complexity') == 'complex':
+                hard_sources.append({"type": "fact", "data": fact})
+        for rel in analysis.get('relationships', []):
+            if rel.get('complexity') == 'complex':
+                hard_sources.append({"type": "relationship", "data": rel})
+        for comp in analysis.get('comparisons', []):
+            hard_sources.append({"type": "comparison", "data": comp})
+        for ce in analysis.get('cause_effects', []):
+            if ce.get('complexity') == 'complex':
+                hard_sources.append({"type": "cause_effect", "data": ce})
+        for proc in analysis.get('processes', []):
+            if proc.get('complexity') == 'complex':
+                hard_sources.append({"type": "process", "data": proc})
+        
+        # Create blueprint entries
+        import random
+        
+        # Assign easy questions
+        for i in range(easy_count):
+            if easy_sources:
+                source = easy_sources[i % len(easy_sources)]
+            else:
+                source = {"type": "general", "data": {"fact": "basic concept"}}
+            
+            blueprint.append({
+                "difficulty": "easy",
+                "question_type": question_types[i % len(question_types)] if question_types else "multiple_choice",
+                "source": source,
+                "bloom_level": "remember",
+                "instruction": "Ask for direct recall of a specific fact or definition"
+            })
+        
+        # Assign medium questions
+        for i in range(medium_count):
+            if medium_sources:
+                source = medium_sources[i % len(medium_sources)]
+            else:
+                source = {"type": "general", "data": {"relationship": "concept connection"}}
+            
+            blueprint.append({
+                "difficulty": "medium",
+                "question_type": question_types[i % len(question_types)] if question_types else "multiple_choice",
+                "source": source,
+                "bloom_level": "understand/apply",
+                "instruction": "Ask about relationships, causes, effects, or application of concepts"
+            })
+        
+        # Assign hard questions
+        for i in range(hard_count):
+            if hard_sources:
+                source = hard_sources[i % len(hard_sources)]
+            else:
+                source = {"type": "general", "data": {"analysis": "complex reasoning"}}
+            
+            blueprint.append({
+                "difficulty": "hard",
+                "question_type": question_types[i % len(question_types)] if question_types else "multiple_choice",
+                "source": source,
+                "bloom_level": "analyze/evaluate",
+                "instruction": "Ask for analysis, comparison, evaluation, or synthesis of multiple concepts"
+            })
+        
+        logger.info(f"Blueprint created: {len(blueprint)} question targets")
+        return blueprint
+    
+    async def _agent_generate_from_blueprint(
+        self, content: str, blueprint: List[Dict], 
+        question_types: List[str], custom_prompt: str, reference_content: str
+    ) -> List[Dict]:
+        """AGENT STEP 3: Generate questions following the blueprint"""
+        
+        # Build detailed generation prompt with blueprint
+        blueprint_text = ""
+        for i, bp in enumerate(blueprint, 1):
+            source_info = bp.get('source', {})
+            source_data = source_info.get('data', {})
+            
+            if source_info.get('type') == 'fact':
+                target = f"Fact: {source_data.get('fact', 'N/A')}"
+            elif source_info.get('type') == 'definition':
+                target = f"Definition: {source_data.get('term', 'N/A')} - {source_data.get('definition', 'N/A')}"
+            elif source_info.get('type') == 'relationship':
+                target = f"Relationship: {source_data.get('concept1', '')} {source_data.get('relationship', '')} {source_data.get('concept2', '')}"
+            elif source_info.get('type') == 'cause_effect':
+                target = f"Cause-Effect: {source_data.get('cause', '')} → {source_data.get('effect', '')}"
+            elif source_info.get('type') == 'process':
+                target = f"Process: {source_data.get('name', '')} with steps"
+            elif source_info.get('type') == 'comparison':
+                target = f"Comparison: {', '.join(source_data.get('items', []))}"
+            elif source_info.get('type') == 'numerical':
+                target = f"Data: {source_data.get('value', '')} - {source_data.get('context', '')}"
+            else:
+                target = "General concept from content"
+            
+            blueprint_text += f"""
+Question {i}:
+- Difficulty: {bp['difficulty'].upper()}
+- Type: {bp['question_type']}
+- Bloom's Level: {bp['bloom_level']}
+- Target: {target}
+- Instruction: {bp['instruction']}
+"""
+        
+        # Custom instructions section
+        custom_section = ""
+        if custom_prompt:
+            custom_section = f"\nUSER'S CUSTOM INSTRUCTIONS:\n{custom_prompt}\n"
+        
+        reference_section = ""
+        if reference_content:
+            reference_section = f"\nREFERENCE QUESTIONS (match this style):\n{reference_content[:2000]}\n"
+        
+        generation_prompt = f"""You are an expert exam question writer. Generate questions following the EXACT blueprint below.
+
+SOURCE CONTENT (all questions MUST be answerable from this):
+{content[:10000]}
+{custom_section}{reference_section}
+QUESTION BLUEPRINT (follow EXACTLY):
+{blueprint_text}
+
+DIFFICULTY CALIBRATION (CRITICAL - follow precisely):
+
+EASY (Bloom's: Remember):
+- Tests: Direct recall of facts, definitions, names, dates, simple concepts
+- Question style: "What is...", "Which of the following...", "True or False:..."
+- Answer: Explicitly stated in content, single concept
+- Distractors: Obviously different from correct answer
+- Example: "What year did X happen?" or "The definition of Y is..."
+
+MEDIUM (Bloom's: Understand/Apply):
+- Tests: Comprehension, explanation, application to familiar situations
+- Question style: "Why does...", "How does X relate to Y...", "What would happen if..."
+- Answer: Requires connecting 2 concepts or understanding relationships
+- Distractors: Related concepts that could be confused
+- Example: "Why is X important for Y?" or "Which best explains the relationship between..."
+
+HARD (Bloom's: Analyze/Evaluate/Create):
+- Tests: Analysis, comparison, evaluation, synthesis, novel application
+- Question style: "Compare and contrast...", "Evaluate...", "What conclusion can be drawn..."
+- Answer: Requires analyzing multiple concepts, making judgments, or applying to new scenarios
+- Distractors: Partially correct or require deeper analysis to eliminate
+- Example: "Which statement best analyzes the impact of..." or "Based on X and Y, what can be concluded about..."
+
+QUESTION FORMAT REQUIREMENTS:
+
+For multiple_choice:
+- 4 distinct options (A, B, C, D)
+- Correct answer must be unambiguous
+- Distractors must be plausible but clearly wrong when you know the content
+- Avoid "all of the above" or "none of the above"
+
+For true_false:
+- Statement must be definitively true or false based on content
+- Avoid double negatives or tricky wording
+- Include the specific fact being tested
+
+For short_answer:
+- Answer should be 1-5 words
+- Only ONE correct answer possible
+- Question must be specific enough to have single answer
+
+For fill_blank:
+- Blank should test a key term or concept
+- Context must make the answer clear
+- Only ONE word/phrase fits correctly
+
+OUTPUT FORMAT - Return a JSON array with EXACTLY {len(blueprint)} questions:
+[
+  {{
     "question_text": "Clear, specific question",
-    "question_type": "multiple_choice|true_false|short_answer|fill_blank",
-    "difficulty": "easy|medium|hard",
-    "topic": "specific topic",
-    "correct_answer": "precise answer",
-    "options": ["Option A", "Option B", "Option C", "Option D"],
-    "explanation": "Why this answer is correct",
-    "points": 1
-}}
+    "question_type": "multiple_choice",
+    "difficulty": "easy",
+    "topic": "Specific topic from content",
+    "correct_answer": "The exact correct answer",
+    "options": ["Correct answer", "Plausible wrong 1", "Plausible wrong 2", "Plausible wrong 3"],
+    "explanation": "Detailed explanation: This is correct because [quote/reference content]. Option B is wrong because... Option C is wrong because...",
+    "points": 1,
+    "bloom_level": "remember",
+    "content_reference": "Quote or specific reference from source content"
+  }}
+]
 
-Return ONLY a valid JSON array of questions."""
+CRITICAL RULES:
+1. Each question MUST match its blueprint difficulty EXACTLY
+2. Each question MUST be answerable from the source content
+3. Each question MUST test a DIFFERENT concept
+4. Explanations MUST reference the source content
+5. Return ONLY valid JSON array, no other text"""
 
+        try:
+            response = self.unified_ai.generate(generation_prompt, max_tokens=6000, temperature=0.4)
+            
+            # Clean response
+            if response.startswith('```'):
+                response = re.sub(r'^```(?:json)?\n?', '', response)
+                response = re.sub(r'\n?```$', '', response).strip()
+            
+            questions = self._parse_questions_json(response)
+            
+            if questions:
+                logger.info(f"Generated {len(questions)} questions from blueprint")
+                return questions
+            else:
+                logger.error("Failed to parse questions from blueprint generation")
+                return []
+                
+        except Exception as e:
+            logger.error(f"Blueprint generation failed: {e}")
+            return []
+    
+    async def _agent_validate_questions(
+        self, questions: List[Dict], content: str, target_count: int
+    ) -> List[Dict]:
+        """AGENT STEP 4: Validate and refine questions"""
+        
+        if not questions:
+            return []
+        
+        validated = []
+        
+        for q in questions:
+            # Basic validation
+            if not q.get('question_text'):
+                continue
+            
+            # Ensure required fields
+            q.setdefault('question_type', 'multiple_choice')
+            q.setdefault('difficulty', 'medium')
+            q.setdefault('topic', 'General')
+            q.setdefault('correct_answer', '')
+            q.setdefault('options', [])
+            q.setdefault('explanation', '')
+            q.setdefault('points', 1)
+            
+            # Validate difficulty
+            if q['difficulty'] not in ['easy', 'medium', 'hard']:
+                q['difficulty'] = 'medium'
+            
+            # Ensure options is a list
+            if not isinstance(q['options'], list):
+                q['options'] = []
+            
+            # For multiple choice, ensure correct answer is in options
+            if q['question_type'] == 'multiple_choice':
+                if q['options'] and q['correct_answer'] not in q['options']:
+                    # Try to find correct answer in options (case-insensitive)
+                    found = False
+                    for i, opt in enumerate(q['options']):
+                        if opt.lower().strip() == q['correct_answer'].lower().strip():
+                            q['correct_answer'] = opt
+                            found = True
+                            break
+                    if not found:
+                        q['options'][0] = q['correct_answer']
+                
+                # Ensure 4 options
+                while len(q['options']) < 4:
+                    q['options'].append(f"Option {len(q['options']) + 1}")
+            
+            # For true/false, ensure proper options
+            if q['question_type'] == 'true_false':
+                q['options'] = ['True', 'False']
+                if q['correct_answer'].lower() not in ['true', 'false']:
+                    q['correct_answer'] = 'True'
+                else:
+                    q['correct_answer'] = q['correct_answer'].capitalize()
+            
+            validated.append(q)
+        
+        # Ensure we have the right count
+        validated = validated[:target_count]
+        
+        logger.info(f"Validated {len(validated)} questions")
+        return validated
+    
+    # Keep the old method signature for backward compatibility but use new pipeline
+    async def _generate_questions_single_legacy(
+        self,
+        content: str,
+        question_count: int,
+        question_types: List[str],
+        difficulty_distribution: Dict[str, int],
+        topics: List[str],
+        custom_prompt: str,
+        reference_content: str
+    ) -> List[Dict[str, Any]]:
+        """Legacy single-prompt generation (fallback)"""
+        
+        types_str = ", ".join(question_types)
+        topics_str = ", ".join(topics) if topics else "topics directly from the content"
+        
+        total_diff = sum(difficulty_distribution.values())
+        if total_diff > 0:
+            easy_count = max(1, round(question_count * difficulty_distribution.get('easy', 30) / total_diff))
+            medium_count = max(1, round(question_count * difficulty_distribution.get('medium', 50) / total_diff))
+            hard_count = question_count - easy_count - medium_count
         else:
-            prompt = f"""Generate {question_count} high-quality, clear, and well-formed exam questions from this content.
+            easy_count = question_count // 3
+            medium_count = question_count // 3
+            hard_count = question_count - easy_count - medium_count
 
-Content:
+        prompt = f"""You are an expert educational assessment designer.
+
+SOURCE CONTENT:
 {content}
 
-Requirements:
-- Question types: {types_str}
-- Difficulty distribution: {json.dumps(difficulty_distribution)}
-- Focus topics: {topics_str}
+Generate exactly {question_count} questions: {easy_count} EASY, {medium_count} MEDIUM, {hard_count} HARD
+Question types: {types_str}
+Topics: {topics_str}
 
-IMPORTANT GUIDELINES:
-1. Make questions CLEAR and SPECIFIC - avoid vague or ambiguous wording
-2. Ensure questions are DIRECTLY answerable from the content provided
-3. For short_answer questions, accept reasonable variations
-4. For fill_blank questions, make the blank obvious with ONE clear answer
-5. For multiple_choice, ensure options are distinct and only ONE is clearly correct
-6. Questions should test understanding, not trick the student
+DIFFICULTY GUIDE:
+- EASY: Direct recall, single fact, explicitly stated in content
+- MEDIUM: Understanding, connecting 2 concepts, explaining why
+- HARD: Analysis, comparison, evaluation, applying to new scenarios
 
-For each question, provide:
-{{
-    "question_text": "Clear, specific question with proper grammar",
-    "question_type": "multiple_choice|true_false|short_answer|fill_blank",
-    "difficulty": "easy|medium|hard",
-    "topic": "specific topic from content",
-    "correct_answer": "precise answer",
-    "options": ["Option A", "Option B", "Option C", "Option D"],
-    "explanation": "Why this answer is correct",
-    "points": 1
-}}
+Return JSON array:
+[{{"question_text": "...", "question_type": "multiple_choice", "difficulty": "easy", "topic": "...", "correct_answer": "...", "options": ["A","B","C","D"], "explanation": "...", "points": 1}}]
 
-Return ONLY a valid JSON array of questions, no additional text."""
+Return ONLY valid JSON."""
         
         try:
-            response_content = self.unified_ai.generate(prompt, max_tokens=4000, temperature=0.7)
+            response_content = self.unified_ai.generate(prompt, max_tokens=4500, temperature=0.5)
             
-            # Remove markdown code blocks if present
             if response_content.startswith('```'):
                 response_content = re.sub(r'^```(?:json)?\n?', '', response_content)
                 response_content = re.sub(r'\n?```$', '', response_content).strip()
@@ -1033,6 +1861,8 @@ Return ONLY a valid JSON array of questions, no additional text."""
             questions = self._parse_questions_json(response_content)
             
             if questions:
+                # Post-process to ensure quality
+                questions = self._post_process_questions(questions, question_count, difficulty_distribution)
                 logger.info(f"Generated {len(questions)} questions successfully")
                 return questions
             else:
@@ -1328,7 +2158,16 @@ def register_question_bank_api(app, unified_ai, get_db_func):
         "difficulty_classifier": DifficultyClassifierAgent(unified_ai),
         "adaptive_difficulty": AdaptiveDifficultyAgent(),
         "ml_predictor": MLPredictorAgent(),
-        "chat_slide_processor": ChatSlideProcessorAgent(unified_ai)
+        "chat_slide_processor": ChatSlideProcessorAgent(unified_ai),
+        # AI Enhancement Agents
+        "prompt_enhancer": PromptEnhancerAgent(unified_ai),
+        "topic_extractor": TopicExtractorAgent(unified_ai),
+        "quality_scorer": QuestionQualityAgent(unified_ai),
+        "bloom_tagger": BloomTaxonomyAgent(unified_ai),
+        "duplicate_detector": DuplicateDetectorAgent(unified_ai),
+        "adaptive_generator": AdaptiveGeneratorAgent(unified_ai),
+        "explanation_enhancer": ExplanationEnhancerAgent(unified_ai),
+        "question_preview": QuestionPreviewAgent(unified_ai)
     }
     
     @app.post("/api/qb/upload_pdf")
@@ -2544,6 +3383,731 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             raise
         except Exception as e:
             logger.error(f"Error exporting question set PDF: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    # ==================== AI ENHANCEMENT ENDPOINTS ====================
+    
+    @app.post("/api/qb/enhance_prompt")
+    async def enhance_prompt(
+        payload: dict = Body(...),
+        db: Session = Depends(get_db_func)
+    ):
+        """Enhance a user's prompt for better question generation"""
+        try:
+            user_prompt = payload.get("prompt", "")
+            content_summary = payload.get("content_summary", "")
+            
+            if not user_prompt:
+                raise HTTPException(status_code=400, detail="Prompt is required")
+            
+            result = await agents["prompt_enhancer"].enhance_prompt(user_prompt, content_summary)
+            
+            return {
+                "status": "success",
+                "original_prompt": user_prompt,
+                "enhanced": result
+            }
+        except Exception as e:
+            logger.error(f"Prompt enhancement error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/qb/extract_topics")
+    async def extract_topics(
+        payload: dict = Body(...),
+        db: Session = Depends(get_db_func)
+    ):
+        """Extract topics from document content"""
+        try:
+            import models
+            
+            user_id = payload.get("user_id")
+            document_id = payload.get("document_id")
+            content = payload.get("content", "")
+            
+            # If document_id provided, get content from document
+            if document_id and user_id:
+                user = db.query(models.User).filter(
+                    (models.User.username == user_id) | (models.User.email == user_id)
+                ).first()
+                
+                if user:
+                    doc = db.query(models.UploadedDocument).filter(
+                        models.UploadedDocument.id == document_id,
+                        models.UploadedDocument.user_id == user.id
+                    ).first()
+                    
+                    if doc:
+                        content = doc.content
+            
+            if not content:
+                raise HTTPException(status_code=400, detail="Content or document_id is required")
+            
+            result = await agents["topic_extractor"].extract_topics(content)
+            
+            return {
+                "status": "success",
+                "topics": result
+            }
+        except Exception as e:
+            logger.error(f"Topic extraction error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/qb/score_questions")
+    async def score_questions(
+        payload: dict = Body(...),
+        db: Session = Depends(get_db_func)
+    ):
+        """Score question quality"""
+        try:
+            questions = payload.get("questions", [])
+            
+            if not questions:
+                raise HTTPException(status_code=400, detail="Questions are required")
+            
+            scored_questions = await agents["quality_scorer"].batch_score_questions(questions)
+            
+            # Calculate average score
+            avg_score = sum(q.get('quality_score', 7) for q in scored_questions) / len(scored_questions)
+            
+            return {
+                "status": "success",
+                "questions": scored_questions,
+                "average_score": round(avg_score, 2),
+                "total_scored": len(scored_questions)
+            }
+        except Exception as e:
+            logger.error(f"Question scoring error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/qb/tag_bloom_taxonomy")
+    async def tag_bloom_taxonomy(
+        payload: dict = Body(...),
+        db: Session = Depends(get_db_func)
+    ):
+        """Tag questions with Bloom's Taxonomy levels"""
+        try:
+            questions = payload.get("questions", [])
+            
+            if not questions:
+                raise HTTPException(status_code=400, detail="Questions are required")
+            
+            tagged_questions = await agents["bloom_tagger"].batch_tag_questions(questions)
+            
+            # Count by level
+            level_counts = {}
+            for q in tagged_questions:
+                level = q.get('bloom_level', 'understand')
+                level_counts[level] = level_counts.get(level, 0) + 1
+            
+            return {
+                "status": "success",
+                "questions": tagged_questions,
+                "level_distribution": level_counts,
+                "bloom_levels": BloomTaxonomyAgent.BLOOM_LEVELS
+            }
+        except Exception as e:
+            logger.error(f"Bloom taxonomy tagging error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/qb/check_duplicates")
+    async def check_duplicates(
+        payload: dict = Body(...),
+        db: Session = Depends(get_db_func)
+    ):
+        """Check if a question is a duplicate of existing questions"""
+        try:
+            import models
+            
+            user_id = payload.get("user_id")
+            new_question = payload.get("question", "")
+            question_set_id = payload.get("question_set_id")
+            
+            if not new_question:
+                raise HTTPException(status_code=400, detail="Question is required")
+            
+            # Get existing questions
+            existing_questions = []
+            
+            if user_id:
+                user = db.query(models.User).filter(
+                    (models.User.username == user_id) | (models.User.email == user_id)
+                ).first()
+                
+                if user:
+                    query = db.query(models.Question).join(models.QuestionSet).filter(
+                        models.QuestionSet.user_id == user.id
+                    )
+                    
+                    if question_set_id:
+                        query = query.filter(models.QuestionSet.id == question_set_id)
+                    
+                    questions = query.order_by(models.Question.id.desc()).limit(100).all()
+                    existing_questions = [q.question_text for q in questions]
+            
+            result = await agents["duplicate_detector"].find_duplicates(new_question, existing_questions)
+            
+            return {
+                "status": "success",
+                "result": result
+            }
+        except Exception as e:
+            logger.error(f"Duplicate check error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/qb/analyze_weaknesses")
+    async def analyze_weaknesses(
+        payload: dict = Body(...),
+        db: Session = Depends(get_db_func)
+    ):
+        """Analyze user's weak areas based on performance"""
+        try:
+            import models
+            
+            user_id = payload.get("user_id")
+            
+            if not user_id:
+                raise HTTPException(status_code=400, detail="user_id is required")
+            
+            user = db.query(models.User).filter(
+                (models.User.username == user_id) | (models.User.email == user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            # Get user's answer history
+            sessions = db.query(models.StudySession).filter(
+                models.StudySession.user_id == user.id
+            ).order_by(models.StudySession.created_at.desc()).limit(20).all()
+            
+            performance_data = []
+            for session in sessions:
+                answers = db.query(models.UserAnswer).filter(
+                    models.UserAnswer.study_session_id == session.id
+                ).all()
+                
+                for answer in answers:
+                    question = db.query(models.Question).filter(
+                        models.Question.id == answer.question_id
+                    ).first()
+                    
+                    if question:
+                        performance_data.append({
+                            "topic": question.topic,
+                            "difficulty": question.difficulty,
+                            "question_type": question.question_type,
+                            "is_correct": answer.is_correct,
+                            "time_taken": answer.time_taken_seconds
+                        })
+            
+            if not performance_data:
+                return {
+                    "status": "success",
+                    "message": "No performance data available yet",
+                    "analysis": None
+                }
+            
+            analysis = await agents["adaptive_generator"].analyze_weaknesses(performance_data)
+            
+            return {
+                "status": "success",
+                "analysis": analysis,
+                "data_points": len(performance_data)
+            }
+        except Exception as e:
+            logger.error(f"Weakness analysis error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/qb/generate_adaptive")
+    async def generate_adaptive_questions(
+        payload: dict = Body(...),
+        db: Session = Depends(get_db_func)
+    ):
+        """Generate questions targeting user's weak areas"""
+        try:
+            import models
+            
+            user_id = payload.get("user_id")
+            document_ids = payload.get("document_ids", [])
+            question_count = payload.get("question_count", 10)
+            
+            if not user_id:
+                raise HTTPException(status_code=400, detail="user_id is required")
+            
+            user = db.query(models.User).filter(
+                (models.User.username == user_id) | (models.User.email == user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            # Get weakness analysis
+            sessions = db.query(models.StudySession).filter(
+                models.StudySession.user_id == user.id
+            ).order_by(models.StudySession.created_at.desc()).limit(20).all()
+            
+            performance_data = []
+            for session in sessions:
+                answers = db.query(models.UserAnswer).filter(
+                    models.UserAnswer.study_session_id == session.id
+                ).all()
+                
+                for answer in answers:
+                    question = db.query(models.Question).filter(
+                        models.Question.id == answer.question_id
+                    ).first()
+                    
+                    if question:
+                        performance_data.append({
+                            "topic": question.topic,
+                            "difficulty": question.difficulty,
+                            "question_type": question.question_type,
+                            "is_correct": answer.is_correct
+                        })
+            
+            weakness_analysis = await agents["adaptive_generator"].analyze_weaknesses(performance_data) if performance_data else {}
+            
+            # Get content from documents
+            content_parts = []
+            if document_ids:
+                documents = db.query(models.UploadedDocument).filter(
+                    models.UploadedDocument.id.in_(document_ids),
+                    models.UploadedDocument.user_id == user.id
+                ).all()
+                
+                for doc in documents:
+                    content_parts.append(f"=== {doc.filename} ===\n{doc.content}")
+            
+            content = "\n\n".join(content_parts)
+            
+            if not content:
+                raise HTTPException(status_code=400, detail="No content available for question generation")
+            
+            # Generate adaptive prompt
+            adaptive_prompt = await agents["adaptive_generator"].generate_adaptive_prompt(weakness_analysis, content)
+            
+            # Generate questions with adaptive prompt
+            questions = await agents["question_generator"].generate_questions(
+                content,
+                question_count,
+                weakness_analysis.get('recommendations', {}).get('suggested_question_types', ['multiple_choice', 'short_answer']),
+                {"easy": 20, "medium": 50, "hard": 30},
+                weakness_analysis.get('recommendations', {}).get('focus_topics'),
+                custom_prompt=adaptive_prompt
+            )
+            
+            return {
+                "status": "success",
+                "questions": questions,
+                "weakness_analysis": weakness_analysis,
+                "adaptive_prompt_used": adaptive_prompt
+            }
+        except Exception as e:
+            logger.error(f"Adaptive generation error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/qb/enhance_explanations")
+    async def enhance_explanations(
+        payload: dict = Body(...),
+        db: Session = Depends(get_db_func)
+    ):
+        """Enhance question explanations with detailed steps"""
+        try:
+            questions = payload.get("questions", [])
+            
+            if not questions:
+                raise HTTPException(status_code=400, detail="Questions are required")
+            
+            enhanced_questions = []
+            for q in questions:
+                await agents["explanation_enhancer"].enhance_explanation(q)
+                enhanced_questions.append(q)
+            
+            return {
+                "status": "success",
+                "questions": enhanced_questions
+            }
+        except Exception as e:
+            logger.error(f"Explanation enhancement error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/qb/regenerate_question")
+    async def regenerate_question(
+        payload: dict = Body(...),
+        db: Session = Depends(get_db_func)
+    ):
+        """Regenerate a single question based on feedback"""
+        try:
+            import models
+            
+            user_id = payload.get("user_id")
+            original_question = payload.get("question", {})
+            feedback = payload.get("feedback", "Make it better")
+            document_id = payload.get("document_id")
+            
+            if not original_question:
+                raise HTTPException(status_code=400, detail="Question is required")
+            
+            # Get content if document_id provided
+            content = ""
+            if document_id and user_id:
+                user = db.query(models.User).filter(
+                    (models.User.username == user_id) | (models.User.email == user_id)
+                ).first()
+                
+                if user:
+                    doc = db.query(models.UploadedDocument).filter(
+                        models.UploadedDocument.id == document_id,
+                        models.UploadedDocument.user_id == user.id
+                    ).first()
+                    
+                    if doc:
+                        content = doc.content
+            
+            new_question = await agents["question_preview"].regenerate_single_question(
+                original_question, feedback, content
+            )
+            
+            return {
+                "status": "success",
+                "original": original_question,
+                "regenerated": new_question,
+                "feedback_applied": feedback
+            }
+        except Exception as e:
+            logger.error(f"Question regeneration error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/qb/preview_generate")
+    async def preview_generate_questions(
+        request: MultiPDFGenerationRequest,
+        db: Session = Depends(get_db_func)
+    ):
+        """Generate questions for preview (not saved to database)"""
+        try:
+            import models
+            
+            user = db.query(models.User).filter(
+                (models.User.username == request.user_id) | (models.User.email == request.user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            # Get documents
+            documents = db.query(models.UploadedDocument).filter(
+                models.UploadedDocument.id.in_(request.source_ids),
+                models.UploadedDocument.user_id == user.id
+            ).all()
+            
+            if not documents:
+                raise HTTPException(status_code=404, detail="No documents found")
+            
+            # Combine content
+            content_parts = []
+            for doc in documents:
+                content_parts.append(f"=== {doc.filename} ===\n{doc.content}")
+            
+            content = "\n\n".join(content_parts)
+            
+            # Enhance prompt if provided
+            enhanced_prompt = request.custom_prompt
+            if request.custom_prompt:
+                enhancement = await agents["prompt_enhancer"].enhance_prompt(
+                    request.custom_prompt, 
+                    content[:2000]
+                )
+                enhanced_prompt = enhancement.get('enhanced_prompt', request.custom_prompt)
+            
+            # Generate questions
+            questions = await agents["question_generator"].generate_questions(
+                content,
+                request.question_count,
+                request.question_types,
+                request.difficulty_mix,
+                request.topics,
+                custom_prompt=enhanced_prompt
+            )
+            
+            if not questions:
+                raise HTTPException(status_code=500, detail="Failed to generate questions")
+            
+            # Score quality
+            scored_questions = await agents["quality_scorer"].batch_score_questions(questions)
+            
+            # Tag with Bloom's taxonomy
+            tagged_questions = await agents["bloom_tagger"].batch_tag_questions(scored_questions)
+            
+            # Check for duplicates
+            existing_questions = []
+            user_questions = db.query(models.Question).join(models.QuestionSet).filter(
+                models.QuestionSet.user_id == user.id
+            ).order_by(models.Question.id.desc()).limit(100).all()
+            existing_questions = [q.question_text for q in user_questions]
+            
+            for q in tagged_questions:
+                dup_check = await agents["duplicate_detector"].find_duplicates(
+                    q.get('question_text', ''), 
+                    existing_questions
+                )
+                q['is_potential_duplicate'] = dup_check.get('is_duplicate', False)
+                q['duplicate_similarity'] = dup_check.get('similarity_score', 0)
+            
+            # Calculate stats
+            avg_quality = sum(q.get('quality_score', 7) for q in tagged_questions) / len(tagged_questions)
+            bloom_dist = {}
+            for q in tagged_questions:
+                level = q.get('bloom_level', 'understand')
+                bloom_dist[level] = bloom_dist.get(level, 0) + 1
+            
+            return {
+                "status": "success",
+                "questions": tagged_questions,
+                "stats": {
+                    "total": len(tagged_questions),
+                    "average_quality_score": round(avg_quality, 2),
+                    "bloom_distribution": bloom_dist,
+                    "potential_duplicates": sum(1 for q in tagged_questions if q.get('is_potential_duplicate'))
+                },
+                "enhanced_prompt": enhanced_prompt if enhanced_prompt != request.custom_prompt else None,
+                "source_documents": [d.filename for d in documents]
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Preview generation error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/qb/save_previewed_questions")
+    async def save_previewed_questions(
+        payload: dict = Body(...),
+        db: Session = Depends(get_db_func)
+    ):
+        """Save previewed questions (after user review/edit)"""
+        try:
+            import models
+            
+            user_id = payload.get("user_id")
+            questions = payload.get("questions", [])
+            title = payload.get("title", "Question Set")
+            description = payload.get("description", "")
+            source_type = payload.get("source_type", "preview")
+            
+            if not user_id or not questions:
+                raise HTTPException(status_code=400, detail="user_id and questions are required")
+            
+            user = db.query(models.User).filter(
+                (models.User.username == user_id) | (models.User.email == user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            # Create question set
+            question_set = models.QuestionSet(
+                user_id=user.id,
+                title=title,
+                description=description,
+                source_type=source_type,
+                total_questions=len(questions)
+            )
+            
+            db.add(question_set)
+            db.flush()
+            
+            # Add questions
+            for idx, q in enumerate(questions):
+                question = models.Question(
+                    question_set_id=question_set.id,
+                    question_text=q.get("question_text"),
+                    question_type=q.get("question_type"),
+                    difficulty=q.get("difficulty"),
+                    topic=q.get("topic"),
+                    correct_answer=q.get("correct_answer"),
+                    options=json.dumps(q.get("options", [])),
+                    explanation=q.get("enhanced_explanation", q.get("explanation", "")),
+                    points=q.get("points", 1),
+                    order_index=idx
+                )
+                db.add(question)
+            
+            db.commit()
+            db.refresh(question_set)
+            
+            return {
+                "status": "success",
+                "question_set_id": question_set.id,
+                "question_count": len(questions),
+                "title": title
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Save previewed questions error: {e}")
+            db.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/qb/batch_delete")
+    async def batch_delete_question_sets(
+        payload: dict = Body(...),
+        db: Session = Depends(get_db_func)
+    ):
+        """Delete multiple question sets at once"""
+        try:
+            import models
+            
+            user_id = payload.get("user_id")
+            set_ids = payload.get("set_ids", [])
+            
+            if not user_id or not set_ids:
+                raise HTTPException(status_code=400, detail="user_id and set_ids are required")
+            
+            user = db.query(models.User).filter(
+                (models.User.username == user_id) | (models.User.email == user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            deleted_count = 0
+            for set_id in set_ids:
+                question_set = db.query(models.QuestionSet).filter(
+                    models.QuestionSet.id == set_id,
+                    models.QuestionSet.user_id == user.id
+                ).first()
+                
+                if question_set:
+                    # Delete questions first
+                    db.query(models.Question).filter(
+                        models.Question.question_set_id == set_id
+                    ).delete()
+                    
+                    # Delete the set
+                    db.delete(question_set)
+                    deleted_count += 1
+            
+            db.commit()
+            
+            return {
+                "status": "success",
+                "deleted_count": deleted_count,
+                "requested_count": len(set_ids)
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Batch delete error: {e}")
+            db.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/qb/merge_sets")
+    async def merge_question_sets(
+        payload: dict = Body(...),
+        db: Session = Depends(get_db_func)
+    ):
+        """Merge multiple question sets into one"""
+        try:
+            import models
+            
+            user_id = payload.get("user_id")
+            set_ids = payload.get("set_ids", [])
+            new_title = payload.get("title", "Merged Question Set")
+            delete_originals = payload.get("delete_originals", False)
+            
+            if not user_id or len(set_ids) < 2:
+                raise HTTPException(status_code=400, detail="user_id and at least 2 set_ids are required")
+            
+            user = db.query(models.User).filter(
+                (models.User.username == user_id) | (models.User.email == user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            # Get all questions from the sets
+            all_questions = []
+            source_titles = []
+            
+            for set_id in set_ids:
+                question_set = db.query(models.QuestionSet).filter(
+                    models.QuestionSet.id == set_id,
+                    models.QuestionSet.user_id == user.id
+                ).first()
+                
+                if question_set:
+                    source_titles.append(question_set.title)
+                    questions = db.query(models.Question).filter(
+                        models.Question.question_set_id == set_id
+                    ).all()
+                    
+                    for q in questions:
+                        all_questions.append({
+                            "question_text": q.question_text,
+                            "question_type": q.question_type,
+                            "difficulty": q.difficulty,
+                            "topic": q.topic,
+                            "correct_answer": q.correct_answer,
+                            "options": json.loads(q.options) if q.options else [],
+                            "explanation": q.explanation,
+                            "points": q.points
+                        })
+            
+            if not all_questions:
+                raise HTTPException(status_code=400, detail="No questions found in the selected sets")
+            
+            # Create new merged set
+            merged_set = models.QuestionSet(
+                user_id=user.id,
+                title=new_title,
+                description=f"Merged from: {', '.join(source_titles)}",
+                source_type="merged",
+                total_questions=len(all_questions)
+            )
+            
+            db.add(merged_set)
+            db.flush()
+            
+            # Add questions to merged set
+            for idx, q in enumerate(all_questions):
+                question = models.Question(
+                    question_set_id=merged_set.id,
+                    question_text=q["question_text"],
+                    question_type=q["question_type"],
+                    difficulty=q["difficulty"],
+                    topic=q["topic"],
+                    correct_answer=q["correct_answer"],
+                    options=json.dumps(q["options"]),
+                    explanation=q["explanation"],
+                    points=q["points"],
+                    order_index=idx
+                )
+                db.add(question)
+            
+            # Delete originals if requested
+            if delete_originals:
+                for set_id in set_ids:
+                    db.query(models.Question).filter(
+                        models.Question.question_set_id == set_id
+                    ).delete()
+                    db.query(models.QuestionSet).filter(
+                        models.QuestionSet.id == set_id
+                    ).delete()
+            
+            db.commit()
+            db.refresh(merged_set)
+            
+            return {
+                "status": "success",
+                "merged_set_id": merged_set.id,
+                "total_questions": len(all_questions),
+                "source_sets": source_titles,
+                "originals_deleted": delete_originals
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Merge sets error: {e}")
+            db.rollback()
             raise HTTPException(status_code=500, detail=str(e))
     
     logger.info("Enhanced Question Bank API with sophisticated AI agents registered successfully")

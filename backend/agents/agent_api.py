@@ -318,13 +318,27 @@ async def initialize_agent_system(
         db_session_factory=db_session_factory
     )
     
-    # Initialize the Question Bank Agent
+    # Initialize the Master Agent FIRST (Central Intelligence Hub)
+    # Other agents need it for user context integration
+    from .master_agent import create_master_agent
+    _master_agent = create_master_agent(
+        ai_client=ai_client,
+        knowledge_graph=knowledge_graph,
+        memory_manager=_memory_manager,
+        db_session_factory=db_session_factory,
+        user_knowledge_graph=user_knowledge_graph
+    )
+    logger.info("✅ Master Agent initialized (Central Intelligence Hub)")
+    
+    # Initialize the Question Bank Agent (connected to Master Agent)
     from .question_bank_agent import create_question_bank_agent
     _question_bank_agent = create_question_bank_agent(
         ai_client=ai_client,
         memory_manager=_memory_manager,
-        db_session_factory=db_session_factory
+        db_session_factory=db_session_factory,
+        master_agent=_master_agent  # Connect to Master Agent for user context
     )
+    logger.info("✅ Question Bank Agent initialized (connected to Master Agent)")
     
     # Initialize the Slide Explorer Agent
     from .slide_explorer_agent import create_slide_explorer_agent
@@ -341,17 +355,6 @@ async def initialize_agent_system(
         knowledge_graph=knowledge_graph,
         memory_manager=_memory_manager,
         db_session_factory=db_session_factory
-    )
-    
-    # Initialize the Master Agent (Central Intelligence Hub) FIRST
-    # (SearchHub needs it for knowledge graph integration)
-    from .master_agent import create_master_agent
-    _master_agent = create_master_agent(
-        ai_client=ai_client,
-        knowledge_graph=knowledge_graph,
-        memory_manager=_memory_manager,
-        db_session_factory=db_session_factory,
-        user_knowledge_graph=user_knowledge_graph
     )
     
     # Initialize the Enhanced SearchHub Agent (NLP-powered, with KG and Master Agent integration)
@@ -2443,14 +2446,38 @@ class QuestionBankGenerateRequest(BaseModel):
     content: Optional[str] = None
     title: Optional[str] = None
     question_count: int = 10
+    question_types: Optional[List[str]] = ["multiple_choice"]
     difficulty_mix: Optional[Dict[str, int]] = None
+    topics: Optional[List[str]] = []
+    custom_prompt: Optional[str] = ""
+    reference_document_id: Optional[int] = None
+    session_id: Optional[str] = None
+
+
+class QuestionBankAdaptiveRequest(BaseModel):
+    """Request for adaptive question generation based on user weaknesses"""
+    user_id: str
+    content: Optional[str] = None
+    source_type: str = "custom"
+    source_id: Optional[Any] = None
+    question_count: int = 10
     session_id: Optional[str] = None
 
 
 @router.post("/question-bank/generate")
 async def question_bank_generate(request: QuestionBankGenerateRequest):
-    """Generate questions using Question Bank Agent"""
-    logger.info(f"🚀 Question Bank Generate endpoint called: source_type={request.source_type}, question_count={request.question_count}")
+    """
+    Generate questions using the Enhanced Question Bank Agent.
+    
+    Uses agentic pipeline:
+    1. Analyze content to extract testable elements
+    2. Create question blueprint based on difficulty distribution
+    3. Generate questions following the blueprint
+    4. Validate and save questions
+    
+    Integrates with Master Agent for user context (weak topics, mastery levels).
+    """
+    logger.info(f"🚀 Question Bank Generate: source_type={request.source_type}, count={request.question_count}")
     
     state = {
         "user_id": request.user_id,
@@ -2458,46 +2485,80 @@ async def question_bank_generate(request: QuestionBankGenerateRequest):
         "source_type": request.source_type,
         "source_id": request.source_id,
         "sources": request.sources or [],
-        "content": request.content,
-        "title": request.title,
+        "content": request.content or "",
+        "title": request.title or "Generated Questions",
         "question_count": request.question_count,
-        "difficulty_mix": request.difficulty_mix or {"easy": 3, "medium": 5, "hard": 2},
+        "question_types": request.question_types or ["multiple_choice"],
+        "difficulty_mix": request.difficulty_mix or {"easy": 30, "medium": 50, "hard": 20},
+        "topics": request.topics or [],
+        "custom_prompt": request.custom_prompt or "",
+        "reference_document_id": request.reference_document_id,
         "session_id": request.session_id or f"qb_{request.user_id}_{datetime.utcnow().timestamp()}"
     }
     
     try:
         agent = get_question_bank_agent()
-        logger.info(f"✅ Got agent: {agent}")
-        
         result = await agent.invoke(state)
-        logger.info(f"✅ Agent invoke result: {result}")
         
-        # Convert AgentResponse to dict if needed
         result_dict = result.to_dict() if hasattr(result, 'to_dict') else result
-        logger.info(f"✅ Result dict: {result_dict}")
-        
-        # Extract response_data from metadata
         response_data = result_dict.get("metadata", {}).get("response_data", {})
         questions = response_data.get("questions", [])
-        question_count_result = response_data.get("question_count", 0)
         
-        logger.info(f"✅ Extracted response_data: {response_data}")
-        logger.info(f"✅ Extracted {question_count_result} questions from response")
-        logger.info(f"✅ Questions: {questions}")
+        logger.info(f"✅ Generated {len(questions)} questions via agentic pipeline")
         
-        response_data_final = {
+        return {
             "success": True,
             "action": "generate",
             "questions": questions,
-            "question_count": question_count_result,
+            "question_count": len(questions),
+            "question_set_id": response_data.get("question_set_id"),
+            "saved": response_data.get("saved", False),
             "metadata": result_dict.get("metadata", {})
         }
         
-        logger.info(f"✅ Returning response: {response_data_final}")
-        return response_data_final
-        
     except Exception as e:
         logger.error(f"Question bank generate error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/question-bank/adaptive")
+async def question_bank_adaptive_generate(request: QuestionBankAdaptiveRequest):
+    """
+    Generate adaptive questions focused on user's weak areas.
+    
+    Uses Master Agent to identify weak topics and generates questions
+    specifically targeting those areas for improvement.
+    """
+    logger.info(f"🎯 Adaptive Question Generation for user {request.user_id}")
+    
+    state = {
+        "user_id": request.user_id,
+        "action": "adaptive_generate",
+        "source_type": request.source_type,
+        "source_id": request.source_id,
+        "content": request.content or "",
+        "question_count": request.question_count,
+        "session_id": request.session_id or f"qb_adaptive_{request.user_id}_{datetime.utcnow().timestamp()}"
+    }
+    
+    try:
+        agent = get_question_bank_agent()
+        result = await agent.invoke(state)
+        
+        result_dict = result.to_dict() if hasattr(result, 'to_dict') else result
+        response_data = result_dict.get("metadata", {}).get("response_data", {})
+        
+        return {
+            "success": True,
+            "action": "adaptive_generate",
+            "questions": response_data.get("questions", []),
+            "question_count": response_data.get("question_count", 0),
+            "weak_topics_targeted": response_data.get("weak_topics_targeted", []),
+            "metadata": result_dict.get("metadata", {})
+        }
+        
+    except Exception as e:
+        logger.error(f"Adaptive generation error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 

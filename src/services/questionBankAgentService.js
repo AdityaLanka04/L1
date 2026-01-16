@@ -317,6 +317,384 @@ class QuestionBankAgentService {
       })
     });
   }
+
+  // ==================== AI ENHANCEMENT FEATURES ====================
+
+  /**
+   * Enhance a user prompt for better question generation
+   */
+  async enhancePrompt(prompt, contentSummary = '') {
+    const response = await fetch(`${API_URL}/qb/enhance_prompt`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({
+        prompt,
+        content_summary: contentSummary
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to enhance prompt');
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Extract topics from document content
+   */
+  async extractTopics(userId, documentId = null, content = '') {
+    const response = await fetch(`${API_URL}/qb/extract_topics`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        document_id: documentId,
+        content
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to extract topics');
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Score question quality
+   */
+  async scoreQuestions(questions) {
+    const response = await fetch(`${API_URL}/qb/score_questions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({ questions })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to score questions');
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Tag questions with Bloom's Taxonomy levels
+   */
+  async tagBloomTaxonomy(questions) {
+    const response = await fetch(`${API_URL}/qb/tag_bloom_taxonomy`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({ questions })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to tag questions');
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Check for duplicate questions
+   */
+  async checkDuplicates(userId, question, questionSetId = null) {
+    const response = await fetch(`${API_URL}/qb/check_duplicates`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        question,
+        question_set_id: questionSetId
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to check duplicates');
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Analyze user's weak areas
+   */
+  async analyzeWeaknesses(userId) {
+    const response = await fetch(`${API_URL}/qb/analyze_weaknesses`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({ user_id: userId })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to analyze weaknesses');
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Generate adaptive questions targeting weak areas
+   * Uses the new Agent-based endpoint that integrates with Master Agent
+   */
+  async generateAdaptive(userId, documentIds, questionCount = 10) {
+    // Try the new agent endpoint first
+    try {
+      return await this.request('/adaptive', {
+        method: 'POST',
+        body: JSON.stringify({
+          user_id: userId,
+          content: '', // Will be fetched from sources
+          source_type: 'custom',
+          question_count: questionCount,
+        })
+      });
+    } catch (e) {
+      // Fallback to legacy endpoint
+      const response = await fetch(`${API_URL}/qb/generate_adaptive`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getAuthToken()}`
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          document_ids: documentIds,
+          question_count: questionCount
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+        throw new Error(error.detail || 'Failed to generate adaptive questions');
+      }
+
+      return await response.json();
+    }
+  }
+
+  /**
+   * Generate questions using the new agentic pipeline
+   * This uses the enhanced agent with:
+   * - Content analysis
+   * - Question blueprint creation
+   * - Master Agent integration for user context
+   */
+  async generateWithAgent(params) {
+    const { 
+      userId, 
+      content, 
+      title, 
+      questionCount, 
+      questionTypes,
+      difficultyMix, 
+      topics,
+      customPrompt,
+      sourceType = 'custom',
+      sourceId = null,
+      sources = []
+    } = params;
+
+    return this.request('/generate', {
+      method: 'POST',
+      body: JSON.stringify({
+        user_id: userId,
+        action: 'generate',
+        source_type: sourceType,
+        source_id: sourceId,
+        sources: sources,
+        content: content || '',
+        title: title || 'Generated Questions',
+        question_count: questionCount || 10,
+        question_types: questionTypes || ['multiple_choice'],
+        difficulty_mix: difficultyMix || { easy: 30, medium: 50, hard: 20 },
+        topics: topics || [],
+        custom_prompt: customPrompt || ''
+      })
+    });
+  }
+
+  /**
+   * Enhance question explanations
+   */
+  async enhanceExplanations(questions) {
+    const response = await fetch(`${API_URL}/qb/enhance_explanations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({ questions })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to enhance explanations');
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Regenerate a single question with feedback
+   */
+  async regenerateQuestion(userId, question, feedback, documentId = null) {
+    const response = await fetch(`${API_URL}/qb/regenerate_question`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        question,
+        feedback,
+        document_id: documentId
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to regenerate question');
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Preview generate questions (not saved)
+   */
+  async previewGenerate(params) {
+    const { 
+      userId, sourceIds, questionCount, difficultyMix, 
+      questionTypes, topics, customPrompt 
+    } = params;
+
+    const response = await fetch(`${API_URL}/qb/preview_generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        source_ids: sourceIds,
+        question_count: questionCount,
+        difficulty_mix: difficultyMix,
+        question_types: questionTypes || ['multiple_choice', 'true_false', 'short_answer'],
+        topics,
+        custom_prompt: customPrompt
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to preview generate');
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Save previewed questions after review
+   */
+  async savePreviewedQuestions(userId, questions, title, description = '', sourceType = 'preview') {
+    const response = await fetch(`${API_URL}/qb/save_previewed_questions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        questions,
+        title,
+        description,
+        source_type: sourceType
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to save questions');
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Batch delete multiple question sets
+   */
+  async batchDelete(userId, setIds) {
+    const response = await fetch(`${API_URL}/qb/batch_delete`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        set_ids: setIds
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to delete question sets');
+    }
+
+    return await response.json();
+  }
+
+  /**
+   * Merge multiple question sets into one
+   */
+  async mergeSets(userId, setIds, title, deleteOriginals = false) {
+    const response = await fetch(`${API_URL}/qb/merge_sets`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        set_ids: setIds,
+        title,
+        delete_originals: deleteOriginals
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || 'Failed to merge question sets');
+    }
+
+    return await response.json();
+  }
 }
 
 const questionBankAgentService = new QuestionBankAgentService();
