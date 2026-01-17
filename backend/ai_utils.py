@@ -94,7 +94,10 @@ class UnifiedAIClient:
                             elif response.status_code == 429:
                                 # Rate limit - immediately fall back to Groq instead of retrying
                                 logger.warning(f" Gemini rate limited (429), falling back to Groq immediately...")
-                                raise Exception(f"Gemini quota exceeded: {response.status_code}")
+                                raise Exception(f"Gemini API quota exceeded. Please wait for quota reset or use Groq API instead.")
+                            elif response.status_code == 400 and "quota" in response.text.lower():
+                                logger.warning(f" Gemini quota exceeded, falling back to Groq...")
+                                raise Exception(f"Gemini API quota exceeded. Falling back to Groq API.")
                             else:
                                 logger.error(f" Gemini REST API error: {response.status_code} - {response.text}")
                                 if attempt == max_retries - 1:

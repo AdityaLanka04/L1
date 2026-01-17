@@ -1,0 +1,4879 @@
+{
+  "success": true,
+  "transcript": "the topic is minimum cause spanning tree the topic is minimum cause spanning tree so for that first of all we'll so for that first of all we'll so for that first of all we'll understand what does it mean by a understand what does it mean by a understand what does it mean by a spanning spanning spanning tree here I have an example tree here I have an example tree here I have an example graph graph is represented as G and v e graph graph is represented as G and v e graph graph is represented as G and v e v is the set of v is the set of v is the set of vertices 1 2 3 4 5 6 and E is the set of vertices 1 2 3 4 5 6 and E is the set of vertices 1 2 3 4 5 6 and E is the set of edges the set of edges are from 1 to edges the set of edges are from 1 to edges the set of edges are from 1 to 2 and 2 to 2 and 2 to 2 and 2 to 3 3 to 4 and so 3 3 to 4 and so 3 3 to 4 and so on graphs are represented as set of on graphs are represented as set of on graphs are represented as set of vertices and edges now what is this vertices and edges now what is this vertices and edges now what is this spanning tree spanning tree is a spanning tree spanning tree is a spanning tree spanning tree is a subgraph of a graph me I should take the subgraph of a graph me I should take the subgraph of a graph me I should take the subset of this so subset of what what is subset of this so subset of what what is subset of this so subset of what what is this and it just both subset or only one this and it just both subset or only one this and it just both subset or only one subset so I should take the subset of subset so I should take the subset of subset so I should take the subset of edges vertices must be as it is so I edges vertices must be as it is so I edges vertices must be as it is so I should take all vertices should take all vertices should take all vertices six spanning Tre means I should take all six spanning Tre means I should take all six spanning Tre means I should take all vertices then how many edges how many vertices then how many edges how many vertices then how many edges how many vertices I have number of vertices are n vertices I have number of vertices are n vertices I have number of vertices are n that is six so I should take number of that is six so I should take number of that is six so I should take number of vertices minus one that is only five vertices minus one that is only five vertices minus one that is only five edges SP Tre is a subgraph of a graph edges SP Tre is a subgraph of a graph edges SP Tre is a subgraph of a graph having all vertices but only nus one having all vertices but only nus one having all vertices but only nus one edges so out of these edges I should edges so out of these edges I should edges so out of these edges I should take only five so 1 2 3 4 take only five so 1 2 3 4 take only five so 1 2 3 4 5 I did not take this one so this is 5 I did not take this one so this is 5 I did not take this one so this is spinning spinning spinning tree see a tree will not have a cycle so tree see a tree will not have a cycle so tree see a tree will not have a cycle so there is no cycle here yes there's no there is no cycle here yes there's no there is no cycle here yes there's no cycle here if I this you can say it's a cycle here if I this you can say it's a cycle here if I this you can say it's a cycle if you start from one vertex you cycle if you start from one vertex you cycle if you start from one vertex you can again reach back to that vertex but can again reach back to that vertex but can again reach back to that vertex but here here here there is no there is no there is no cycle is it possible that I will take cycle is it possible that I will take cycle is it possible that I will take this one but I will not take this yes this one but I will not take this yes this one but I will not take this yes there's also an spanning there's also an spanning there's also an spanning tree I will take this but I will not tree I will take this but I will not tree I will take this but I will not take this yes this is also an spanning take this yes this is also an spanning take this yes this is also an spanning tree so which Edge to select that is a tree so which Edge to select that is a tree so which Edge to select that is a choice that is a choice for a spanning choice that is a choice for a spanning choice that is a choice for a spanning tree so I can say that s is a subgraph tree so I can say that s is a subgraph tree so I can say that s is a subgraph of a graph where s is defined as set of of a graph where s is defined as set of of a graph where s is defined as set of of vertices and set of edges where set of vertices and set of edges where set of vertices and set of edges where set of vertices are same as the vertices of of vertices are same as the vertices of of vertices are same as the vertices of a a a graph and edges are number of vertices graph and edges are number of vertices graph and edges are number of vertices minus one so the number of edges are minus one so the number of edges are minus one so the number of edges are number of vertices minus one this is how number of vertices minus one this is how number of vertices minus one this is how formally we can divide in mathematics we formally we can divide in mathematics we formally we can divide in mathematics we can Define like this now next thing for can Define like this now next thing for can Define like this now next thing for a given graph how many different a given graph how many different a given graph how many different spanning trees can be generated I want spanning trees can be generated I want spanning trees can be generated I want to know that how many different spanning to know that how many different spanning to know that how many different spanning trees are possible so see number of trees are possible so see number of trees are possible so see number of edges are how many six 1 2 3 4 5 6 I edges are how many six 1 2 3 4 5 6 I edges are how many six 1 2 3 4 5 6 I have and a spanning tree I should take have and a spanning tree I should take have and a spanning tree I should take only only only five I should take only five so 6 five I should take only five so 6 five I should take only five so 6 C5 out of six edges out of six edges I C5 out of six edges out of six edges I C5 out of six edges out of six edges I have to select five how many ways I can have to select five how many ways I can have to select five how many ways I can do that so 65 C ways so F 65 C is how do that so 65 C ways so F 65 C is how do that so 65 C ways so F 65 C is how much six only so I can have six much six only so I can have six much six only so I can have six different spanning trees just now you different spanning trees just now you different spanning trees just now you can see it's a simple one that I have can see it's a simple one that I have can see it's a simple one that I have skip this Edge like this I can leave one skip this Edge like this I can leave one skip this Edge like this I can leave one one Edge right and I can form a spanning one Edge right and I can form a spanning one Edge right and I can form a spanning tree right I can take all except this tree right I can take all except this tree right I can take all except this take all except this take all except take all except this take all except take all except this take all except this six are possible suppose if I have this six are possible suppose if I have this six are possible suppose if I have one more Edge now now I have seven edges one more Edge now now I have seven edges one more Edge now now I have seven edges and I want to select five now how many and I want to select five now how many and I want to select five now how many spaning trees are possible see I can spaning trees are possible see I can spaning trees are possible see I can have this spanning tree have this spanning tree have this spanning tree also or I can have this spanning tree also or I can have this spanning tree also or I can have this spanning tree also no possibilities are more now this also no possibilities are more now this also no possibilities are more now this is 7 is 7 is 7 C5 7 C5 but this Edge will form cycle so C5 7 C5 but this Edge will form cycle so C5 7 C5 but this Edge will form cycle so how many cycles it is forming this is how many cycles it is forming this is how many cycles it is forming this is one cycle and this is another cycle so one cycle and this is another cycle so one cycle and this is another cycle so this Edge is forming two cycles of this Edge is forming two cycles of this Edge is forming two cycles of number of vertices less than six so if number of vertices less than six so if number of vertices less than six so if it is forming number of vertices less it is forming number of vertices less it is forming number of vertices less than 6 then you will than 6 then you will than 6 then you will be 7 C5 - be 7 C5 - be 7 C5 - 2 so that's it so what's the formula to 2 so that's it so what's the formula to 2 so that's it so what's the formula to know how many different spanning trees know how many different spanning trees know how many different spanning trees are possible from a given graph so are possible from a given graph so are possible from a given graph so whatever the number of edges you have whatever the number of edges you have whatever the number of edges you have you should take all those and see of how you should take all those and see of how you should take all those and see of how many edges you need you need five so many edges you need you need five so many edges you need you need five so five is what number of vertices minus five is what number of vertices minus five is what number of vertices minus one so this is number of vertices minus one so this is number of vertices minus one so this is number of vertices minus 1 and minus number of 1 and minus number of 1 and minus number of Cycles you have to subtract number of Cycles you have to subtract number of Cycles you have to subtract number of Cycles I have a graph where the edges Cycles I have a graph where the edges Cycles I have a graph where the edges are having weights so this is a weighted are having weights so this is a weighted are having weights so this is a weighted graph this a weighted graph this a weighted graph this a weighted graph I want to know what are the graph I want to know what are the graph I want to know what are the possible spanning trees possible so I'll possible spanning trees possible so I'll possible spanning trees possible so I'll draw a few spanning trees let us draw draw a few spanning trees let us draw draw a few spanning trees let us draw one spanning tree this is vertex 1 and 2 one spanning tree this is vertex 1 and 2 one spanning tree this is vertex 1 and 2 and 3 and four so four vertices are and 3 and four so four vertices are and 3 and four so four vertices are there then how many edges I should take there then how many edges I should take there then how many edges I should take 4 - 1 only three so I'll select this one 4 - 1 only three so I'll select this one 4 - 1 only three so I'll select this one 1 2 3 so what is the weight of this one 1 2 3 so what is the weight of this one 1 2 3 so what is the weight of this one 5 3 and six so what is the cost of this 5 3 and six so what is the cost of this 5 3 and six so what is the cost of this spanning tree cost of this spanning tree spanning tree cost of this spanning tree spanning tree cost of this spanning tree is is is 14 I'll take one more spanning tree 1 2 14 I'll take one more spanning tree 1 2 14 I'll take one more spanning tree 1 2 3 4 and I'll take these edges let us see 3 4 and I'll take these edges let us see 3 4 and I'll take these edges let us see what is the cost of this 4 63 then what what is the cost of this 4 63 then what what is the cost of this 4 63 then what is the cost of this one 13 I'll take one more spanning Tre 1 2 3 13 I'll take one more spanning Tre 1 2 3 4 and I'll take these edges this one and 4 and I'll take these edges this one and 4 and I'll take these edges this one and this one and this one 4 2 and 3 so this this one and this one 4 2 and 3 so this this one and this one 4 2 and 3 so this is cost is how much 9 now from this example some observation 9 now from this example some observation we can understand something if you have we can understand something if you have we can understand something if you have a weighted graph and you get different a weighted graph and you get different a weighted graph and you get different spanning trees the cost of the spanning spanning trees the cost of the spanning spanning trees the cost of the spanning trees may be varying you can get a trees may be varying you can get a trees may be varying you can get a different cost of spanning different cost of spanning different cost of spanning trees now the problem is can I find out trees now the problem is can I find out trees now the problem is can I find out the minimum cost of spanning tree can I the minimum cost of spanning tree can I the minimum cost of spanning tree can I find out the minimum one which gives me find out the minimum one which gives me find out the minimum one which gives me minimum yes you can find out how you can minimum yes you can find out how you can minimum yes you can find out how you can try all possible spanning trees try all possible spanning trees try all possible spanning trees and then from that you can check and then from that you can check and then from that you can check whichever is minimum you can pick up whichever is minimum you can pick up whichever is minimum you can pick up that answer this is one that answer this is one that answer this is one method trying all possible spanning method trying all possible spanning method trying all possible spanning trees will be too lengthy is there any trees will be too lengthy is there any trees will be too lengthy is there any greedy greedy greedy method yes the greedy methods are method yes the greedy methods are method yes the greedy methods are available for finding the minimum cause available for finding the minimum cause available for finding the minimum cause spanning tree if a weighted graph is spanning tree if a weighted graph is spanning tree if a weighted graph is given you can find out the minimum cause given you can find out the minimum cause given you can find out the minimum cause spanning Tree by following the method spanning Tree by following the method spanning Tree by following the method without finding out all possible span without finding out all possible span without finding out all possible span entries so what are those those methods entries so what are those those methods entries so what are those those methods one method one method one method is prims algorithm and the second method is prims algorithm and the second method is prims algorithm and the second method is cuscal algorithm there are two algorithms for algorithm there are two algorithms for finding minimum costes pan inry I have a finding minimum costes pan inry I have a finding minimum costes pan inry I have a weighted graph here and I have to find a weighted graph here and I have to find a weighted graph here and I have to find a minimum cost of spanning tree by minimum cost of spanning tree by minimum cost of spanning tree by following prim's algorithm let's see how following prim's algorithm let's see how following prim's algorithm let's see how Prim algorithm Works through an example Prim algorithm Works through an example Prim algorithm Works through an example now as per prims algorithm he says that now as per prims algorithm he says that now as per prims algorithm he says that from a graph first of all you select a from a graph first of all you select a from a graph first of all you select a minimum cause Edge so the smallest Edge minimum cause Edge so the smallest Edge minimum cause Edge so the smallest Edge in the entire graph is this in the entire graph is this in the entire graph is this one one one then this is the initial one now for the then this is the initial one now for the then this is the initial one now for the rest of the procedure always select a rest of the procedure always select a rest of the procedure always select a minimum cost Edge from the graph but minimum cost Edge from the graph but minimum cost Edge from the graph but make sure that it should be connected to make sure that it should be connected to make sure that it should be connected to already selected already selected already selected vertices now the next minimum is which vertices now the next minimum is which vertices now the next minimum is which one 3 to 4 one 3 to 4 one 3 to 4 don't take that it will not be connected don't take that it will not be connected don't take that it will not be connected to one or six so take only those which to one or six so take only those which to one or six so take only those which are connected to one or six means what are connected to one or six means what are connected to one or six means what he is trying to do is always maintain a he is trying to do is always maintain a he is trying to do is always maintain a tree primce thinks that if some farther tree primce thinks that if some farther tree primce thinks that if some farther away Edge is selected then it may not be away Edge is selected then it may not be away Edge is selected then it may not be forming a tree forming a tree forming a tree finally so that is the reason he finally so that is the reason he finally so that is the reason he suggested that always select a minimum suggested that always select a minimum suggested that always select a minimum Edge which should be connected so let us Edge which should be connected so let us Edge which should be connected so let us see what's the next one so for this see what's the next one so for this see what's the next one so for this connected one are this one and this one connected one are this one and this one connected one are this one and this one so out of this 25 and 28 25 is minimum so out of this 25 and 28 25 is minimum so out of this 25 and 28 25 is minimum so select this 25 then this 28 and five connected to 25 then this 28 and five connected to five are 22 and 24 so out of this 28 24 five are 22 and 24 so out of this 28 24 five are 22 and 24 so out of this 28 24 and 22 so from 1 and 6 and 5 I'm and 22 so from 1 and 6 and 5 I'm and 22 so from 1 and 6 and 5 I'm checking so already six is over so 1 and checking so already six is over so 1 and checking so already six is over so 1 and five so out of those this is smallest five so out of those this is smallest five so out of those this is smallest one so four is selected now from 1 six one so four is selected now from 1 six one so four is selected now from 1 six and 5 4 who is smallest the connected and 5 4 who is smallest the connected and 5 4 who is smallest the connected one so this is 24 and 18 and 12 so 12 is one so this is 24 and 18 and 12 so 12 is one so this is 24 and 18 and 12 so 12 is a smaller so we will take 12 then out of all these which connected 12 then out of all these which connected is the smallest so here I have 24 18 and is the smallest so here I have 24 18 and is the smallest so here I have 24 18 and 16 so 16 is a smaller so take that 16 then out of all these who is next 16 then out of all these who is next connected so from 2 to 7 there is an connected so from 2 to 7 there is an connected so from 2 to 7 there is an edge which is connected so this is edge which is connected so this is edge which is connected so this is 7 that's 7 that's 7 that's it there are seven vertices so 1 2 3 4 5 it there are seven vertices so 1 2 3 4 5 it there are seven vertices so 1 2 3 4 5 6 six edges are selected and this how we 6 six edges are selected and this how we 6 six edges are selected and this how we got a minimum C cost spanning tree and got a minimum C cost spanning tree and got a minimum C cost spanning tree and and this is how we got a minimum cost and this is how we got a minimum cost and this is how we got a minimum cost spanning tree what is the cost of a tree spanning tree what is the cost of a tree spanning tree what is the cost of a tree the cost of a tree is if I add all these if I add all these it is 99 these if I add all these it is 99 so the approach of prims is initially so the approach of prims is initially so the approach of prims is initially select the smallest one then always select the smallest one then always select the smallest one then always select the connected smallest select the connected smallest select the connected smallest one all right so this is the method of one all right so this is the method of one all right so this is the method of Prim Prim Prim algorithm next if I have a graph 1 algorithm next if I have a graph 1 4 5 6 4 5 6 7 if I have a graph like this which is 7 if I have a graph like this which is 7 if I have a graph like this which is not connected there are total seven not connected there are total seven not connected there are total seven vertices but there are two pieces in a vertices but there are two pieces in a vertices but there are two pieces in a graph can Prim find out the minimum cost graph can Prim find out the minimum cost graph can Prim find out the minimum cost spanning tree for this one no no spanning tree for this one no no spanning tree for this one no no algorithm can find out because we cannot algorithm can find out because we cannot algorithm can find out because we cannot find a tree for this one spanning tree find a tree for this one spanning tree find a tree for this one spanning tree for this one in a spanning tree it must for this one in a spanning tree it must for this one in a spanning tree it must be connected so for non-connected graph be connected so for non-connected graph be connected so for non-connected graph we cannot find spanning trees at all but we cannot find spanning trees at all but we cannot find spanning trees at all but if I start prims on this one starting if I start prims on this one starting if I start prims on this one starting from vertex one if it is starting then from vertex one if it is starting then from vertex one if it is starting then it may find the spanning tree for only it may find the spanning tree for only it may find the spanning tree for only one component not the other component one component not the other component one component not the other component next method for finding minimum cost of next method for finding minimum cost of next method for finding minimum cost of spanning tree is Cru sculls method this spanning tree is Cru sculls method this spanning tree is Cru sculls method this also follows a greedy approach instead also follows a greedy approach instead also follows a greedy approach instead of trying out all possible spanning of trying out all possible spanning of trying out all possible spanning trees it shows a procedure by following trees it shows a procedure by following trees it shows a procedure by following which we can get a minimum cost of which we can get a minimum cost of which we can get a minimum cost of spanning tree it says that always select spanning tree it says that always select spanning tree it says that always select a minimum cost Edge always select a a minimum cost Edge always select a a minimum cost Edge always select a minimum cost Edge let us follow this one minimum cost Edge let us follow this one minimum cost Edge let us follow this one select smallest select smallest select smallest Edge 1 2 6 that is 10 this one is Edge 1 2 6 that is 10 this one is Edge 1 2 6 that is 10 this one is smallest and the next smallest test is 3 smallest and the next smallest test is 3 smallest and the next smallest test is 3 to 4 so the second Edge I'm selecting is to 4 so the second Edge I'm selecting is to 4 so the second Edge I'm selecting is 3 to 4 and it's cost is 12 next minimum 3 to 4 and it's cost is 12 next minimum 3 to 4 and it's cost is 12 next minimum is 2 to 7 select 2 to 7 and this is 14 is 2 to 7 select 2 to 7 and this is 14 is 2 to 7 select 2 to 7 and this is 14 and the next minimum is 2 to 3 that is and the next minimum is 2 to 3 that is and the next minimum is 2 to 3 that is 16 and after this 16 and after this 16 and after this the next minimum Ed is 7 to 4 but that the next minimum Ed is 7 to 4 but that the next minimum Ed is 7 to 4 but that is 18 if I select that it will form a is 18 if I select that it will form a is 18 if I select that it will form a cycle yes cral method says that always cycle yes cral method says that always cycle yes cral method says that always select a minimum cost Edge but if it is select a minimum cost Edge but if it is select a minimum cost Edge but if it is forming a cycle don't con include it in forming a cycle don't con include it in forming a cycle don't con include it in the solution discard that edge don't the solution discard that edge don't the solution discard that edge don't include an edge so it means always include an edge so it means always include an edge so it means always select such that it is not forming a select such that it is not forming a select such that it is not forming a cycle so if I include 4 to 7 it will cycle so if I include 4 to 7 it will cycle so if I include 4 to 7 it will form a cycle so next one you check so form a cycle so next one you check so form a cycle so next one you check so the next one is 22 so this is from 5 to the next one is 22 so this is from 5 to the next one is 22 so this is from 5 to 4 or 4 to 5 so this is 22 next minimum 4 or 4 to 5 so this is 22 next minimum 4 or 4 to 5 so this is 22 next minimum is 24 so that is 7 and 5 if I include is 24 so that is 7 and 5 if I include is 24 so that is 7 and 5 if I include this also it will form a cycle don't this also it will form a cycle don't this also it will form a cycle don't include that one then the next minimum include that one then the next minimum include that one then the next minimum one is 25 that is from 5 to 6 so this is one is 25 that is from 5 to 6 so this is one is 25 that is from 5 to 6 so this is 25 and the cost of this one is if you 25 and the cost of this one is if you 25 and the cost of this one is if you add all these weights it's add all these weights it's add all these weights it's 99 so here also I got the same result 99 so here also I got the same result 99 so here also I got the same result just how I got in prim's algorithm so just how I got in prim's algorithm so just how I got in prim's algorithm so the so the prim algorithm and cral the so the prim algorithm and cral the so the prim algorithm and cral algorithm has given the same result on algorithm has given the same result on algorithm has given the same result on this particular graph now time taken by this particular graph now time taken by this particular graph now time taken by Cal's algorithm how much time it takes Cal's algorithm how much time it takes Cal's algorithm how much time it takes see it has to always select a minimum see it has to always select a minimum see it has to always select a minimum cost Edge from the set of edges so let cost Edge from the set of edges so let cost Edge from the set of edges so let us say there are e number of edges so us say there are e number of edges so us say there are e number of edges so out of these edges it will find out the out of these edges it will find out the out of these edges it will find out the minimum one and how many such edges it minimum one and how many such edges it minimum one and how many such edges it will be selecting it will be selecting V will be selecting it will be selecting V will be selecting it will be selecting V minus one that is number of vertices minus one that is number of vertices minus one that is number of vertices minus one like we know in a spanning minus one like we know in a spanning minus one like we know in a spanning tree if there there are seven vertices tree if there there are seven vertices tree if there there are seven vertices we need six edes for forming a spanning we need six edes for forming a spanning we need six edes for forming a spanning tree so that's 7 - 1 so as many vertices tree so that's 7 - 1 so as many vertices tree so that's 7 - 1 so as many vertices we have minus one number of edges we we have minus one number of edges we we have minus one number of edges we have to select so the total time will be have to select so the total time will be have to select so the total time will be Theta of V into e there e v is number of Theta of V into e there e v is number of Theta of V into e there e v is number of vertices and E is number of edges so it vertices and E is number of edges so it vertices and E is number of edges so it is n into e n is the number of vertices is n into e n is the number of vertices is n into e n is the number of vertices and E is the number of edges which can and E is the number of edges which can and E is the number of edges which can also be written as n square if we say also be written as n square if we say also be written as n square if we say both are n then it is n squ so the time both are n then it is n squ so the time both are n then it is n squ so the time taken by chal algorithm is taken by chal algorithm is taken by chal algorithm is n² n² n² but cisal algorithm can be improve when but cisal algorithm can be improve when but cisal algorithm can be improve when we have to always select a minimum cost we have to always select a minimum cost we have to always select a minimum cost Edge then there is one data structure Edge then there is one data structure Edge then there is one data structure which will always give you minimum value which will always give you minimum value which will always give you minimum value that is min that is min that is min heap if Min Heap is used then Min Heap heap if Min Heap is used then Min Heap heap if Min Heap is used then Min Heap will always give you a minimum value will always give you a minimum value will always give you a minimum value whenever you delete a value you get a whenever you delete a value you get a whenever you delete a value you get a minimum value so if all these edges are minimum value so if all these edges are minimum value so if all these edges are kept in a Min he whenever you delete you kept in a Min he whenever you delete you kept in a Min he whenever you delete you will be getting a next minimum Edge so will be getting a next minimum Edge so will be getting a next minimum Edge so you don't have to search so from Min you don't have to search so from Min you don't have to search so from Min whenever you delete the time taken is whenever you delete the time taken is whenever you delete the time taken is login so how much time it will take for login so how much time it will take for login so how much time it will take for finding a minimum cost Edge log n time finding a minimum cost Edge log n time finding a minimum cost Edge log n time so how many times you have to do that so how many times you have to do that so how many times you have to do that that is end time number of vertices that is end time number of vertices that is end time number of vertices minus one time so n so by using Min he minus one time so n so by using Min he minus one time so n so by using Min he the time time complexity of crysal the time time complexity of crysal the time time complexity of crysal algorithm will be n log n so that's how algorithm will be n log n so that's how algorithm will be n log n so that's how crysal algorithm can be made faster now if there is a graph given faster now if there is a graph given that is not connected graph it is having that is not connected graph it is having that is not connected graph it is having two components four vertices on this two components four vertices on this two components four vertices on this side five vertices on that side can we side five vertices on that side can we side five vertices on that side can we find a spanning tree on a non-connected find a spanning tree on a non-connected find a spanning tree on a non-connected graph no spanning tree is not possible graph no spanning tree is not possible graph no spanning tree is not possible but what happens if I run a scal but what happens if I run a scal but what happens if I run a scal algorithm so csal algorithm will try to algorithm so csal algorithm will try to algorithm so csal algorithm will try to find out total number of edges that is 9 find out total number of edges that is 9 find out total number of edges that is 9 - 1 so it will try to select eight edges - 1 so it will try to select eight edges - 1 so it will try to select eight edges and it will not be forming a spanning and it will not be forming a spanning and it will not be forming a spanning tree for entire graph but it may be tree for entire graph but it may be tree for entire graph but it may be finding the spanning tree for each finding the spanning tree for each finding the spanning tree for each component let us say if the first component let us say if the first component let us say if the first minimum the one it will select is this minimum the one it will select is this minimum the one it will select is this one then the next minimum it is having one then the next minimum it is having one then the next minimum it is having more than one edes let us say it selects more than one edes let us say it selects more than one edes let us say it selects next minimum and the next minimum it next minimum and the next minimum it next minimum and the next minimum it will select this next minimum it selects will select this next minimum it selects will select this next minimum it selects this and this is the next minimum so in this and this is the next minimum so in this and this is the next minimum so in this way it is selecting the minimum this way it is selecting the minimum this way it is selecting the minimum adjust from both the components or it adjust from both the components or it adjust from both the components or it will be selecting from all the will be selecting from all the will be selecting from all the components so it may be finding spanning components so it may be finding spanning components so it may be finding spanning trees for all the components but not for trees for all the components but not for trees for all the components but not for the entire graph so cisal algor them may the entire graph so cisal algor them may the entire graph so cisal algor them may work for non-connected graphs also but work for non-connected graphs also but work for non-connected graphs also but it may give spanning tree for those it may give spanning tree for those it may give spanning tree for those components let us take a problem here a components let us take a problem here a components let us take a problem here a graph is given and the weights of the graph is given and the weights of the graph is given and the weights of the edges are also given but here two edges edges are also given but here two edges edges are also given but here two edges are not having their weights if I take are not having their weights if I take are not having their weights if I take only these edges which are having a only these edges which are having a only these edges which are having a weight they are forming a spanning tree weight they are forming a spanning tree weight they are forming a spanning tree of a graph just hide these two edges it of a graph just hide these two edges it of a graph just hide these two edges it becomes a spanning tree now the question becomes a spanning tree now the question becomes a spanning tree now the question is what could be the minimum values of is what could be the minimum values of is what could be the minimum values of these two edges what could be the these two edges what could be the these two edges what could be the minimum possible value maximum it can be minimum possible value maximum it can be minimum possible value maximum it can be anything but at least what could be the anything but at least what could be the anything but at least what could be the value see as this is included in a value see as this is included in a value see as this is included in a spanning tree this is included in a spanning tree this is included in a spanning tree this is included in a spanning tree this is not included spanning tree this is not included spanning tree this is not included because it is forming a cycle so it is because it is forming a cycle so it is because it is forming a cycle so it is forming a cycle if it is included this forming a cycle if it is included this forming a cycle if it is included this will form a cycle so it may be will form a cycle so it may be will form a cycle so it may be considered after selecting these two considered after selecting these two considered after selecting these two after selecting these two so the weight after selecting these two so the weight after selecting these two so the weight of this could be four right first this is selected then four right first this is selected then this is selected then this is not this is selected then this is not this is selected then this is not selected means definitely it is four if selected means definitely it is four if selected means definitely it is four if it is less than four then that would it is less than four then that would it is less than four then that would have been selected first right so it have been selected first right so it have been selected first right so it came later so it is forming a cycle so came later so it is forming a cycle so came later so it is forming a cycle so it is not taken then this four is taken it is not taken then this four is taken it is not taken then this four is taken then this four is taken this five is then this four is taken this five is then this four is taken this five is taken so then what could be the minimum taken so then what could be the minimum taken so then what could be the minimum weight of this one so it is not selected weight of this one so it is not selected weight of this one so it is not selected at last it is left over means minimum at last it is left over means minimum at last it is left over means minimum weight of this one could be six so this weight of this one could be six so this weight of this one could be six so this is four and that is is four and that is is four and that is six so if any missing edges are there six so if any missing edges are there six so if any missing edges are there you can find out these type of problems you can find out these type of problems you can find out these type of problems we find in examinations so some missing we find in examinations so some missing we find in examinations so some missing edges you can find out so if you know edges you can find out so if you know edges you can find out so if you know spanning tree you can answer this type spanning tree you can answer this type spanning tree you can answer this type of question let us take this example and of question let us take this example and of question let us take this example and let us find out spanning tree for this let us find out spanning tree for this let us find out spanning tree for this one minimum cost is spaning tree so if I one minimum cost is spaning tree so if I one minimum cost is spaning tree so if I follow crysals method so first I will follow crysals method so first I will follow crysals method so first I will select the minimum cause Edge this Edge select the minimum cause Edge this Edge select the minimum cause Edge this Edge I have selected then the next minimum is I have selected then the next minimum is I have selected then the next minimum is this three and that three so I can this three and that three so I can this three and that three so I can select anyone so I'll select this one select anyone so I'll select this one select anyone so I'll select this one first this selected next I'll select first this selected next I'll select first this selected next I'll select this one so is it forming a cycle this one so is it forming a cycle this one so is it forming a cycle inclusion of this one no so I'll select inclusion of this one no so I'll select inclusion of this one no so I'll select that one then which are the edges four that one then which are the edges four that one then which are the edges four and four these two are there so I can and four these two are there so I can and four these two are there so I can select anyone so I'll select this one select anyone so I'll select this one select anyone so I'll select this one whether this will form any cycle no so whether this will form any cycle no so whether this will form any cycle no so total how many edges I have selected 1 2 total how many edges I have selected 1 2 total how many edges I have selected 1 2 3 4 and total how many vertices are 3 4 and total how many vertices are 3 4 and total how many vertices are there five vertices are there so four there five vertices are there so four there five vertices are there so four edges are selected that's how I got a edges are selected that's how I got a edges are selected that's how I got a spanning tree so what is the cost of the spanning tree so what is the cost of the spanning tree so what is the cost of the spanning tree 2 + 3 + 3 + 4 and this is spanning tree 2 + 3 + 3 + 4 and this is spanning tree 2 + 3 + 3 + 4 and this is 12 spanning tree is a minimization 12 spanning tree is a minimization 12 spanning tree is a minimization result so definitely there will be only result so definitely there will be only result so definitely there will be only one result so for a problem there can be one result so for a problem there can be one result so for a problem there can be only one optimal solution so we should only one optimal solution so we should only one optimal solution so we should have exactly one spanning tree only have exactly one spanning tree only have exactly one spanning tree only there cannot be more than one spanning there cannot be more than one spanning there cannot be more than one spanning tree right but in this example you can tree right but in this example you can tree right but in this example you can see instead of taking this see instead of taking this see instead of taking this four this Edge I can take this four also now also it's forming a spanning also now also it's forming a spanning tree yes so I can select one more but tree yes so I can select one more but tree yes so I can select one more but what is the cost cost is 12 so cost is what is the cost cost is 12 so cost is what is the cost cost is 12 so cost is only one the optimal cost is 12 only you only one the optimal cost is 12 only you only one the optimal cost is 12 only you will get definitely only one answer in will get definitely only one answer in will get definitely only one answer in the minimization OR maximization problem the minimization OR maximization problem the minimization OR maximization problem but for that answer the set of input may but for that answer the set of input may but for that answer the set of input may be changed be changed be changed so either you can include this four or so either you can include this four or so either you can include this four or this four so total how many spanning this four so total how many spanning this four so total how many spanning trees are trees are possible two trees are trees are possible two trees are trees are possible two spanning trees are possible but what is spanning trees are possible but what is spanning trees are possible but what is the minimum cost that is 12",
+  "segments": [
+    {
+      "start": 0.56,
+      "end": 3.909,
+      "duration": 3.3489999999999998,
+      "text": "the topic is minimum cause spanning tree"
+    },
+    {
+      "start": 3.919,
+      "end": 5.51,
+      "duration": 1.5909999999999997,
+      "text": "the topic is minimum cause spanning tree so for that first of all we'll"
+    },
+    {
+      "start": 5.51,
+      "end": 5.52,
+      "duration": 0.009999999999999787,
+      "text": "so for that first of all we'll"
+    },
+    {
+      "start": 5.52,
+      "end": 6.67,
+      "duration": 1.1500000000000004,
+      "text": "so for that first of all we'll understand what does it mean by a"
+    },
+    {
+      "start": 6.67,
+      "end": 6.68,
+      "duration": 0.009999999999999787,
+      "text": "understand what does it mean by a"
+    },
+    {
+      "start": 6.68,
+      "end": 8.03,
+      "duration": 1.3499999999999996,
+      "text": "understand what does it mean by a spanning"
+    },
+    {
+      "start": 8.03,
+      "end": 8.04,
+      "duration": 0.009999999999999787,
+      "text": "spanning"
+    },
+    {
+      "start": 8.04,
+      "end": 11.07,
+      "duration": 3.030000000000001,
+      "text": "spanning tree here I have an example"
+    },
+    {
+      "start": 11.07,
+      "end": 11.08,
+      "duration": 0.009999999999999787,
+      "text": "tree here I have an example"
+    },
+    {
+      "start": 11.08,
+      "end": 18.31,
+      "duration": 7.229999999999999,
+      "text": "tree here I have an example graph graph is represented as G and v e"
+    },
+    {
+      "start": 18.31,
+      "end": 18.32,
+      "duration": 0.010000000000001563,
+      "text": "graph graph is represented as G and v e"
+    },
+    {
+      "start": 18.32,
+      "end": 20.39,
+      "duration": 2.0700000000000003,
+      "text": "graph graph is represented as G and v e v is the set of"
+    },
+    {
+      "start": 20.39,
+      "end": 20.4,
+      "duration": 0.00999999999999801,
+      "text": "v is the set of"
+    },
+    {
+      "start": 20.4,
+      "end": 27.15,
+      "duration": 6.75,
+      "text": "v is the set of vertices 1 2 3 4 5 6 and E is the set of"
+    },
+    {
+      "start": 27.15,
+      "end": 27.16,
+      "duration": 0.010000000000001563,
+      "text": "vertices 1 2 3 4 5 6 and E is the set of"
+    },
+    {
+      "start": 27.16,
+      "end": 31.03,
+      "duration": 3.870000000000001,
+      "text": "vertices 1 2 3 4 5 6 and E is the set of edges the set of edges are from 1 to"
+    },
+    {
+      "start": 31.03,
+      "end": 31.04,
+      "duration": 0.00999999999999801,
+      "text": "edges the set of edges are from 1 to"
+    },
+    {
+      "start": 31.04,
+      "end": 34.11,
+      "duration": 3.0700000000000003,
+      "text": "edges the set of edges are from 1 to 2 and 2 to"
+    },
+    {
+      "start": 34.11,
+      "end": 34.12,
+      "duration": 0.00999999999999801,
+      "text": "2 and 2 to"
+    },
+    {
+      "start": 34.12,
+      "end": 38.47,
+      "duration": 4.350000000000001,
+      "text": "2 and 2 to 3 3 to 4 and so"
+    },
+    {
+      "start": 38.47,
+      "end": 38.48,
+      "duration": 0.00999999999999801,
+      "text": "3 3 to 4 and so"
+    },
+    {
+      "start": 38.48,
+      "end": 41.11,
+      "duration": 2.6300000000000026,
+      "text": "3 3 to 4 and so on graphs are represented as set of"
+    },
+    {
+      "start": 41.11,
+      "end": 41.12,
+      "duration": 0.00999999999999801,
+      "text": "on graphs are represented as set of"
+    },
+    {
+      "start": 41.12,
+      "end": 43.51,
+      "duration": 2.3900000000000006,
+      "text": "on graphs are represented as set of vertices and edges now what is this"
+    },
+    {
+      "start": 43.51,
+      "end": 43.52,
+      "duration": 0.010000000000005116,
+      "text": "vertices and edges now what is this"
+    },
+    {
+      "start": 43.52,
+      "end": 46.59,
+      "duration": 3.0700000000000003,
+      "text": "vertices and edges now what is this spanning tree spanning tree is a"
+    },
+    {
+      "start": 46.59,
+      "end": 46.6,
+      "duration": 0.00999999999999801,
+      "text": "spanning tree spanning tree is a"
+    },
+    {
+      "start": 46.6,
+      "end": 49.95,
+      "duration": 3.3500000000000014,
+      "text": "spanning tree spanning tree is a subgraph of a graph me I should take the"
+    },
+    {
+      "start": 49.95,
+      "end": 49.96,
+      "duration": 0.00999999999999801,
+      "text": "subgraph of a graph me I should take the"
+    },
+    {
+      "start": 49.96,
+      "end": 53.029,
+      "duration": 3.0690000000000026,
+      "text": "subgraph of a graph me I should take the subset of this so subset of what what is"
+    },
+    {
+      "start": 53.029,
+      "end": 53.039,
+      "duration": 0.00999999999999801,
+      "text": "subset of this so subset of what what is"
+    },
+    {
+      "start": 53.039,
+      "end": 56.51,
+      "duration": 3.4709999999999965,
+      "text": "subset of this so subset of what what is this and it just both subset or only one"
+    },
+    {
+      "start": 56.51,
+      "end": 56.52,
+      "duration": 0.010000000000005116,
+      "text": "this and it just both subset or only one"
+    },
+    {
+      "start": 56.52,
+      "end": 58.75,
+      "duration": 2.229999999999997,
+      "text": "this and it just both subset or only one subset so I should take the subset of"
+    },
+    {
+      "start": 58.75,
+      "end": 58.76,
+      "duration": 0.00999999999999801,
+      "text": "subset so I should take the subset of"
+    },
+    {
+      "start": 58.76,
+      "end": 62.869,
+      "duration": 4.109000000000002,
+      "text": "subset so I should take the subset of edges vertices must be as it is so I"
+    },
+    {
+      "start": 62.869,
+      "end": 62.879,
+      "duration": 0.00999999999999801,
+      "text": "edges vertices must be as it is so I"
+    },
+    {
+      "start": 62.879,
+      "end": 65.71,
+      "duration": 2.830999999999996,
+      "text": "edges vertices must be as it is so I should take all vertices"
+    },
+    {
+      "start": 65.71,
+      "end": 65.72,
+      "duration": 0.010000000000005116,
+      "text": "should take all vertices"
+    },
+    {
+      "start": 65.72,
+      "end": 69.469,
+      "duration": 3.7489999999999952,
+      "text": "should take all vertices six spanning Tre means I should take all"
+    },
+    {
+      "start": 69.469,
+      "end": 69.479,
+      "duration": 0.010000000000005116,
+      "text": "six spanning Tre means I should take all"
+    },
+    {
+      "start": 69.479,
+      "end": 72.71,
+      "duration": 3.2309999999999945,
+      "text": "six spanning Tre means I should take all vertices then how many edges how many"
+    },
+    {
+      "start": 72.71,
+      "end": 72.72,
+      "duration": 0.010000000000005116,
+      "text": "vertices then how many edges how many"
+    },
+    {
+      "start": 72.72,
+      "end": 76.31,
+      "duration": 3.5900000000000034,
+      "text": "vertices then how many edges how many vertices I have number of vertices are n"
+    },
+    {
+      "start": 76.31,
+      "end": 76.32,
+      "duration": 0.009999999999990905,
+      "text": "vertices I have number of vertices are n"
+    },
+    {
+      "start": 76.32,
+      "end": 78.83,
+      "duration": 2.510000000000005,
+      "text": "vertices I have number of vertices are n that is six so I should take number of"
+    },
+    {
+      "start": 78.83,
+      "end": 78.84,
+      "duration": 0.010000000000005116,
+      "text": "that is six so I should take number of"
+    },
+    {
+      "start": 78.84,
+      "end": 83.31,
+      "duration": 4.469999999999999,
+      "text": "that is six so I should take number of vertices minus one that is only five"
+    },
+    {
+      "start": 83.31,
+      "end": 83.32,
+      "duration": 0.009999999999990905,
+      "text": "vertices minus one that is only five"
+    },
+    {
+      "start": 83.32,
+      "end": 87.19,
+      "duration": 3.8700000000000045,
+      "text": "vertices minus one that is only five edges SP Tre is a subgraph of a graph"
+    },
+    {
+      "start": 87.19,
+      "end": 87.2,
+      "duration": 0.010000000000005116,
+      "text": "edges SP Tre is a subgraph of a graph"
+    },
+    {
+      "start": 87.2,
+      "end": 91.55,
+      "duration": 4.349999999999994,
+      "text": "edges SP Tre is a subgraph of a graph having all vertices but only nus one"
+    },
+    {
+      "start": 91.55,
+      "end": 91.56,
+      "duration": 0.010000000000005116,
+      "text": "having all vertices but only nus one"
+    },
+    {
+      "start": 91.56,
+      "end": 95.87,
+      "duration": 4.310000000000002,
+      "text": "having all vertices but only nus one edges so out of these edges I should"
+    },
+    {
+      "start": 95.87,
+      "end": 95.88,
+      "duration": 0.009999999999990905,
+      "text": "edges so out of these edges I should"
+    },
+    {
+      "start": 95.88,
+      "end": 100.83,
+      "duration": 4.950000000000003,
+      "text": "edges so out of these edges I should take only five so 1 2 3 4"
+    },
+    {
+      "start": 100.83,
+      "end": 100.84,
+      "duration": 0.010000000000005116,
+      "text": "take only five so 1 2 3 4"
+    },
+    {
+      "start": 100.84,
+      "end": 103.91,
+      "duration": 3.069999999999993,
+      "text": "take only five so 1 2 3 4 5 I did not take this one so this is"
+    },
+    {
+      "start": 103.91,
+      "end": 103.92,
+      "duration": 0.010000000000005116,
+      "text": "5 I did not take this one so this is"
+    },
+    {
+      "start": 103.92,
+      "end": 105.55,
+      "duration": 1.6299999999999955,
+      "text": "5 I did not take this one so this is spinning"
+    },
+    {
+      "start": 105.55,
+      "end": 105.56,
+      "duration": 0.010000000000005116,
+      "text": "spinning"
+    },
+    {
+      "start": 105.56,
+      "end": 109.23,
+      "duration": 3.6700000000000017,
+      "text": "spinning tree see a tree will not have a cycle so"
+    },
+    {
+      "start": 109.23,
+      "end": 109.24,
+      "duration": 0.009999999999990905,
+      "text": "tree see a tree will not have a cycle so"
+    },
+    {
+      "start": 109.24,
+      "end": 112.59,
+      "duration": 3.3500000000000085,
+      "text": "tree see a tree will not have a cycle so there is no cycle here yes there's no"
+    },
+    {
+      "start": 112.59,
+      "end": 112.6,
+      "duration": 0.009999999999990905,
+      "text": "there is no cycle here yes there's no"
+    },
+    {
+      "start": 112.6,
+      "end": 115.109,
+      "duration": 2.5090000000000003,
+      "text": "there is no cycle here yes there's no cycle here if I this you can say it's a"
+    },
+    {
+      "start": 115.109,
+      "end": 115.119,
+      "duration": 0.010000000000005116,
+      "text": "cycle here if I this you can say it's a"
+    },
+    {
+      "start": 115.119,
+      "end": 116.91,
+      "duration": 1.7909999999999968,
+      "text": "cycle here if I this you can say it's a cycle if you start from one vertex you"
+    },
+    {
+      "start": 116.91,
+      "end": 116.92,
+      "duration": 0.010000000000005116,
+      "text": "cycle if you start from one vertex you"
+    },
+    {
+      "start": 116.92,
+      "end": 119.63,
+      "duration": 2.7099999999999937,
+      "text": "cycle if you start from one vertex you can again reach back to that vertex but"
+    },
+    {
+      "start": 119.63,
+      "end": 119.64,
+      "duration": 0.010000000000005116,
+      "text": "can again reach back to that vertex but"
+    },
+    {
+      "start": 119.64,
+      "end": 120.429,
+      "duration": 0.7890000000000015,
+      "text": "can again reach back to that vertex but here"
+    },
+    {
+      "start": 120.429,
+      "end": 120.439,
+      "duration": 0.009999999999990905,
+      "text": "here"
+    },
+    {
+      "start": 120.439,
+      "end": 121.51,
+      "duration": 1.0710000000000122,
+      "text": "here there is no"
+    },
+    {
+      "start": 121.51,
+      "end": 121.52,
+      "duration": 0.009999999999990905,
+      "text": "there is no"
+    },
+    {
+      "start": 121.52,
+      "end": 124.069,
+      "duration": 2.5490000000000066,
+      "text": "there is no cycle is it possible that I will take"
+    },
+    {
+      "start": 124.069,
+      "end": 124.079,
+      "duration": 0.009999999999990905,
+      "text": "cycle is it possible that I will take"
+    },
+    {
+      "start": 124.079,
+      "end": 127.19,
+      "duration": 3.111000000000004,
+      "text": "cycle is it possible that I will take this one but I will not take this yes"
+    },
+    {
+      "start": 127.19,
+      "end": 127.2,
+      "duration": 0.010000000000005116,
+      "text": "this one but I will not take this yes"
+    },
+    {
+      "start": 127.2,
+      "end": 129.949,
+      "duration": 2.7490000000000094,
+      "text": "this one but I will not take this yes there's also an spanning"
+    },
+    {
+      "start": 129.949,
+      "end": 129.959,
+      "duration": 0.009999999999990905,
+      "text": "there's also an spanning"
+    },
+    {
+      "start": 129.959,
+      "end": 132.869,
+      "duration": 2.9099999999999966,
+      "text": "there's also an spanning tree I will take this but I will not"
+    },
+    {
+      "start": 132.869,
+      "end": 132.879,
+      "duration": 0.009999999999990905,
+      "text": "tree I will take this but I will not"
+    },
+    {
+      "start": 132.879,
+      "end": 135.91,
+      "duration": 3.031000000000006,
+      "text": "tree I will take this but I will not take this yes this is also an spanning"
+    },
+    {
+      "start": 135.91,
+      "end": 135.92,
+      "duration": 0.009999999999990905,
+      "text": "take this yes this is also an spanning"
+    },
+    {
+      "start": 135.92,
+      "end": 138.949,
+      "duration": 3.029000000000025,
+      "text": "take this yes this is also an spanning tree so which Edge to select that is a"
+    },
+    {
+      "start": 138.949,
+      "end": 138.959,
+      "duration": 0.009999999999990905,
+      "text": "tree so which Edge to select that is a"
+    },
+    {
+      "start": 138.959,
+      "end": 141.91,
+      "duration": 2.9509999999999934,
+      "text": "tree so which Edge to select that is a choice that is a choice for a spanning"
+    },
+    {
+      "start": 141.91,
+      "end": 141.92,
+      "duration": 0.009999999999990905,
+      "text": "choice that is a choice for a spanning"
+    },
+    {
+      "start": 141.92,
+      "end": 146.07,
+      "duration": 4.150000000000006,
+      "text": "choice that is a choice for a spanning tree so I can say that s is a subgraph"
+    },
+    {
+      "start": 146.07,
+      "end": 146.08,
+      "duration": 0.010000000000019327,
+      "text": "tree so I can say that s is a subgraph"
+    },
+    {
+      "start": 146.08,
+      "end": 149.99,
+      "duration": 3.9099999999999966,
+      "text": "tree so I can say that s is a subgraph of a graph where s is defined as set of"
+    },
+    {
+      "start": 149.99,
+      "end": 150.0,
+      "duration": 0.009999999999990905,
+      "text": "of a graph where s is defined as set of"
+    },
+    {
+      "start": 150.0,
+      "end": 153.19,
+      "duration": 3.1899999999999977,
+      "text": "of a graph where s is defined as set of of vertices and set of edges where set"
+    },
+    {
+      "start": 153.19,
+      "end": 153.2,
+      "duration": 0.009999999999990905,
+      "text": "of vertices and set of edges where set"
+    },
+    {
+      "start": 153.2,
+      "end": 155.71,
+      "duration": 2.5100000000000193,
+      "text": "of vertices and set of edges where set of vertices are same as the vertices of"
+    },
+    {
+      "start": 155.71,
+      "end": 155.72,
+      "duration": 0.009999999999990905,
+      "text": "of vertices are same as the vertices of"
+    },
+    {
+      "start": 155.72,
+      "end": 157.03,
+      "duration": 1.3100000000000023,
+      "text": "of vertices are same as the vertices of a"
+    },
+    {
+      "start": 157.03,
+      "end": 157.04,
+      "duration": 0.009999999999990905,
+      "text": "a"
+    },
+    {
+      "start": 157.04,
+      "end": 161.47,
+      "duration": 4.430000000000007,
+      "text": "a graph and edges are number of vertices"
+    },
+    {
+      "start": 161.47,
+      "end": 161.48,
+      "duration": 0.009999999999990905,
+      "text": "graph and edges are number of vertices"
+    },
+    {
+      "start": 161.48,
+      "end": 164.43,
+      "duration": 2.950000000000017,
+      "text": "graph and edges are number of vertices minus one so the number of edges are"
+    },
+    {
+      "start": 164.43,
+      "end": 164.44,
+      "duration": 0.009999999999990905,
+      "text": "minus one so the number of edges are"
+    },
+    {
+      "start": 164.44,
+      "end": 166.949,
+      "duration": 2.5090000000000146,
+      "text": "minus one so the number of edges are number of vertices minus one this is how"
+    },
+    {
+      "start": 166.949,
+      "end": 166.959,
+      "duration": 0.009999999999990905,
+      "text": "number of vertices minus one this is how"
+    },
+    {
+      "start": 166.959,
+      "end": 169.149,
+      "duration": 2.1899999999999977,
+      "text": "number of vertices minus one this is how formally we can divide in mathematics we"
+    },
+    {
+      "start": 169.149,
+      "end": 169.159,
+      "duration": 0.009999999999990905,
+      "text": "formally we can divide in mathematics we"
+    },
+    {
+      "start": 169.159,
+      "end": 171.509,
+      "duration": 2.3499999999999943,
+      "text": "formally we can divide in mathematics we can Define like this now next thing for"
+    },
+    {
+      "start": 171.509,
+      "end": 171.519,
+      "duration": 0.010000000000019327,
+      "text": "can Define like this now next thing for"
+    },
+    {
+      "start": 171.519,
+      "end": 173.91,
+      "duration": 2.390999999999991,
+      "text": "can Define like this now next thing for a given graph how many different"
+    },
+    {
+      "start": 173.91,
+      "end": 173.92,
+      "duration": 0.009999999999990905,
+      "text": "a given graph how many different"
+    },
+    {
+      "start": 173.92,
+      "end": 176.63,
+      "duration": 2.710000000000008,
+      "text": "a given graph how many different spanning trees can be generated I want"
+    },
+    {
+      "start": 176.63,
+      "end": 176.64,
+      "duration": 0.009999999999990905,
+      "text": "spanning trees can be generated I want"
+    },
+    {
+      "start": 176.64,
+      "end": 178.39,
+      "duration": 1.75,
+      "text": "spanning trees can be generated I want to know that how many different spanning"
+    },
+    {
+      "start": 178.39,
+      "end": 178.4,
+      "duration": 0.010000000000019327,
+      "text": "to know that how many different spanning"
+    },
+    {
+      "start": 178.4,
+      "end": 181.35,
+      "duration": 2.9499999999999886,
+      "text": "to know that how many different spanning trees are possible so see number of"
+    },
+    {
+      "start": 181.35,
+      "end": 181.36,
+      "duration": 0.010000000000019327,
+      "text": "trees are possible so see number of"
+    },
+    {
+      "start": 181.36,
+      "end": 187.07,
+      "duration": 5.7099999999999795,
+      "text": "trees are possible so see number of edges are how many six 1 2 3 4 5 6 I"
+    },
+    {
+      "start": 187.07,
+      "end": 187.08,
+      "duration": 0.010000000000019327,
+      "text": "edges are how many six 1 2 3 4 5 6 I"
+    },
+    {
+      "start": 187.08,
+      "end": 188.75,
+      "duration": 1.6699999999999875,
+      "text": "edges are how many six 1 2 3 4 5 6 I have and a spanning tree I should take"
+    },
+    {
+      "start": 188.75,
+      "end": 188.76,
+      "duration": 0.009999999999990905,
+      "text": "have and a spanning tree I should take"
+    },
+    {
+      "start": 188.76,
+      "end": 189.71,
+      "duration": 0.950000000000017,
+      "text": "have and a spanning tree I should take only"
+    },
+    {
+      "start": 189.71,
+      "end": 189.72,
+      "duration": 0.009999999999990905,
+      "text": "only"
+    },
+    {
+      "start": 189.72,
+      "end": 195.03,
+      "duration": 5.310000000000002,
+      "text": "only five I should take only five so 6"
+    },
+    {
+      "start": 195.03,
+      "end": 195.04,
+      "duration": 0.009999999999990905,
+      "text": "five I should take only five so 6"
+    },
+    {
+      "start": 195.04,
+      "end": 200.03,
+      "duration": 4.990000000000009,
+      "text": "five I should take only five so 6 C5 out of six edges out of six edges I"
+    },
+    {
+      "start": 200.03,
+      "end": 200.04,
+      "duration": 0.009999999999990905,
+      "text": "C5 out of six edges out of six edges I"
+    },
+    {
+      "start": 200.04,
+      "end": 202.949,
+      "duration": 2.9090000000000202,
+      "text": "C5 out of six edges out of six edges I have to select five how many ways I can"
+    },
+    {
+      "start": 202.949,
+      "end": 202.959,
+      "duration": 0.009999999999990905,
+      "text": "have to select five how many ways I can"
+    },
+    {
+      "start": 202.959,
+      "end": 208.509,
+      "duration": 5.549999999999983,
+      "text": "have to select five how many ways I can do that so 65 C ways so F 65 C is how"
+    },
+    {
+      "start": 208.509,
+      "end": 208.519,
+      "duration": 0.010000000000019327,
+      "text": "do that so 65 C ways so F 65 C is how"
+    },
+    {
+      "start": 208.519,
+      "end": 212.589,
+      "duration": 4.069999999999993,
+      "text": "do that so 65 C ways so F 65 C is how much six only so I can have six"
+    },
+    {
+      "start": 212.589,
+      "end": 212.599,
+      "duration": 0.009999999999990905,
+      "text": "much six only so I can have six"
+    },
+    {
+      "start": 212.599,
+      "end": 215.47,
+      "duration": 2.8710000000000093,
+      "text": "much six only so I can have six different spanning trees just now you"
+    },
+    {
+      "start": 215.47,
+      "end": 215.48,
+      "duration": 0.009999999999990905,
+      "text": "different spanning trees just now you"
+    },
+    {
+      "start": 215.48,
+      "end": 217.869,
+      "duration": 2.38900000000001,
+      "text": "different spanning trees just now you can see it's a simple one that I have"
+    },
+    {
+      "start": 217.869,
+      "end": 217.879,
+      "duration": 0.009999999999990905,
+      "text": "can see it's a simple one that I have"
+    },
+    {
+      "start": 217.879,
+      "end": 220.11,
+      "duration": 2.231000000000023,
+      "text": "can see it's a simple one that I have skip this Edge like this I can leave one"
+    },
+    {
+      "start": 220.11,
+      "end": 220.12,
+      "duration": 0.009999999999990905,
+      "text": "skip this Edge like this I can leave one"
+    },
+    {
+      "start": 220.12,
+      "end": 222.71,
+      "duration": 2.5900000000000034,
+      "text": "skip this Edge like this I can leave one one Edge right and I can form a spanning"
+    },
+    {
+      "start": 222.71,
+      "end": 222.72,
+      "duration": 0.009999999999990905,
+      "text": "one Edge right and I can form a spanning"
+    },
+    {
+      "start": 222.72,
+      "end": 225.11,
+      "duration": 2.390000000000015,
+      "text": "one Edge right and I can form a spanning tree right I can take all except this"
+    },
+    {
+      "start": 225.11,
+      "end": 225.12,
+      "duration": 0.009999999999990905,
+      "text": "tree right I can take all except this"
+    },
+    {
+      "start": 225.12,
+      "end": 226.91,
+      "duration": 1.789999999999992,
+      "text": "tree right I can take all except this take all except this take all except"
+    },
+    {
+      "start": 226.91,
+      "end": 226.92,
+      "duration": 0.009999999999990905,
+      "text": "take all except this take all except"
+    },
+    {
+      "start": 226.92,
+      "end": 230.19,
+      "duration": 3.2700000000000102,
+      "text": "take all except this take all except this six are possible suppose if I have"
+    },
+    {
+      "start": 230.19,
+      "end": 230.2,
+      "duration": 0.009999999999990905,
+      "text": "this six are possible suppose if I have"
+    },
+    {
+      "start": 230.2,
+      "end": 234.63,
+      "duration": 4.430000000000007,
+      "text": "this six are possible suppose if I have one more Edge now now I have seven edges"
+    },
+    {
+      "start": 234.63,
+      "end": 234.64,
+      "duration": 0.009999999999990905,
+      "text": "one more Edge now now I have seven edges"
+    },
+    {
+      "start": 234.64,
+      "end": 237.39,
+      "duration": 2.75,
+      "text": "one more Edge now now I have seven edges and I want to select five now how many"
+    },
+    {
+      "start": 237.39,
+      "end": 237.4,
+      "duration": 0.010000000000019327,
+      "text": "and I want to select five now how many"
+    },
+    {
+      "start": 237.4,
+      "end": 240.229,
+      "duration": 2.8290000000000077,
+      "text": "and I want to select five now how many spaning trees are possible see I can"
+    },
+    {
+      "start": 240.229,
+      "end": 240.239,
+      "duration": 0.009999999999990905,
+      "text": "spaning trees are possible see I can"
+    },
+    {
+      "start": 240.239,
+      "end": 242.309,
+      "duration": 2.069999999999993,
+      "text": "spaning trees are possible see I can have this spanning tree"
+    },
+    {
+      "start": 242.309,
+      "end": 242.319,
+      "duration": 0.009999999999990905,
+      "text": "have this spanning tree"
+    },
+    {
+      "start": 242.319,
+      "end": 246.91,
+      "duration": 4.591000000000008,
+      "text": "have this spanning tree also or I can have this spanning tree"
+    },
+    {
+      "start": 246.91,
+      "end": 246.92,
+      "duration": 0.009999999999990905,
+      "text": "also or I can have this spanning tree"
+    },
+    {
+      "start": 246.92,
+      "end": 249.83,
+      "duration": 2.910000000000025,
+      "text": "also or I can have this spanning tree also no possibilities are more now this"
+    },
+    {
+      "start": 249.83,
+      "end": 249.84,
+      "duration": 0.009999999999990905,
+      "text": "also no possibilities are more now this"
+    },
+    {
+      "start": 249.84,
+      "end": 251.309,
+      "duration": 1.468999999999994,
+      "text": "also no possibilities are more now this is 7"
+    },
+    {
+      "start": 251.309,
+      "end": 251.319,
+      "duration": 0.009999999999990905,
+      "text": "is 7"
+    },
+    {
+      "start": 251.319,
+      "end": 257.749,
+      "duration": 6.430000000000035,
+      "text": "is 7 C5 7 C5 but this Edge will form cycle so"
+    },
+    {
+      "start": 257.749,
+      "end": 257.759,
+      "duration": 0.009999999999990905,
+      "text": "C5 7 C5 but this Edge will form cycle so"
+    },
+    {
+      "start": 257.759,
+      "end": 260.11,
+      "duration": 2.350999999999999,
+      "text": "C5 7 C5 but this Edge will form cycle so how many cycles it is forming this is"
+    },
+    {
+      "start": 260.11,
+      "end": 260.12,
+      "duration": 0.009999999999990905,
+      "text": "how many cycles it is forming this is"
+    },
+    {
+      "start": 260.12,
+      "end": 263.11,
+      "duration": 2.990000000000009,
+      "text": "how many cycles it is forming this is one cycle and this is another cycle so"
+    },
+    {
+      "start": 263.11,
+      "end": 263.12,
+      "duration": 0.009999999999990905,
+      "text": "one cycle and this is another cycle so"
+    },
+    {
+      "start": 263.12,
+      "end": 266.03,
+      "duration": 2.909999999999968,
+      "text": "one cycle and this is another cycle so this Edge is forming two cycles of"
+    },
+    {
+      "start": 266.03,
+      "end": 266.04,
+      "duration": 0.010000000000047748,
+      "text": "this Edge is forming two cycles of"
+    },
+    {
+      "start": 266.04,
+      "end": 269.99,
+      "duration": 3.9499999999999886,
+      "text": "this Edge is forming two cycles of number of vertices less than six so if"
+    },
+    {
+      "start": 269.99,
+      "end": 270.0,
+      "duration": 0.009999999999990905,
+      "text": "number of vertices less than six so if"
+    },
+    {
+      "start": 270.0,
+      "end": 272.07,
+      "duration": 2.069999999999993,
+      "text": "number of vertices less than six so if it is forming number of vertices less"
+    },
+    {
+      "start": 272.07,
+      "end": 272.08,
+      "duration": 0.009999999999990905,
+      "text": "it is forming number of vertices less"
+    },
+    {
+      "start": 272.08,
+      "end": 274.15,
+      "duration": 2.069999999999993,
+      "text": "it is forming number of vertices less than 6 then you will"
+    },
+    {
+      "start": 274.15,
+      "end": 274.16,
+      "duration": 0.010000000000047748,
+      "text": "than 6 then you will"
+    },
+    {
+      "start": 274.16,
+      "end": 278.07,
+      "duration": 3.909999999999968,
+      "text": "than 6 then you will be 7 C5 -"
+    },
+    {
+      "start": 278.07,
+      "end": 278.08,
+      "duration": 0.009999999999990905,
+      "text": "be 7 C5 -"
+    },
+    {
+      "start": 278.08,
+      "end": 281.629,
+      "duration": 3.549000000000035,
+      "text": "be 7 C5 - 2 so that's it so what's the formula to"
+    },
+    {
+      "start": 281.629,
+      "end": 281.639,
+      "duration": 0.009999999999990905,
+      "text": "2 so that's it so what's the formula to"
+    },
+    {
+      "start": 281.639,
+      "end": 283.749,
+      "duration": 2.1100000000000136,
+      "text": "2 so that's it so what's the formula to know how many different spanning trees"
+    },
+    {
+      "start": 283.749,
+      "end": 283.759,
+      "duration": 0.009999999999990905,
+      "text": "know how many different spanning trees"
+    },
+    {
+      "start": 283.759,
+      "end": 287.629,
+      "duration": 3.8700000000000045,
+      "text": "know how many different spanning trees are possible from a given graph so"
+    },
+    {
+      "start": 287.629,
+      "end": 287.639,
+      "duration": 0.009999999999990905,
+      "text": "are possible from a given graph so"
+    },
+    {
+      "start": 287.639,
+      "end": 289.469,
+      "duration": 1.829999999999984,
+      "text": "are possible from a given graph so whatever the number of edges you have"
+    },
+    {
+      "start": 289.469,
+      "end": 289.479,
+      "duration": 0.009999999999990905,
+      "text": "whatever the number of edges you have"
+    },
+    {
+      "start": 289.479,
+      "end": 292.629,
+      "duration": 3.150000000000034,
+      "text": "whatever the number of edges you have you should take all those and see of how"
+    },
+    {
+      "start": 292.629,
+      "end": 292.639,
+      "duration": 0.009999999999990905,
+      "text": "you should take all those and see of how"
+    },
+    {
+      "start": 292.639,
+      "end": 295.469,
+      "duration": 2.829999999999984,
+      "text": "you should take all those and see of how many edges you need you need five so"
+    },
+    {
+      "start": 295.469,
+      "end": 295.479,
+      "duration": 0.009999999999990905,
+      "text": "many edges you need you need five so"
+    },
+    {
+      "start": 295.479,
+      "end": 297.43,
+      "duration": 1.9510000000000218,
+      "text": "many edges you need you need five so five is what number of vertices minus"
+    },
+    {
+      "start": 297.43,
+      "end": 297.44,
+      "duration": 0.009999999999990905,
+      "text": "five is what number of vertices minus"
+    },
+    {
+      "start": 297.44,
+      "end": 299.95,
+      "duration": 2.509999999999991,
+      "text": "five is what number of vertices minus one so this is number of vertices minus"
+    },
+    {
+      "start": 299.95,
+      "end": 299.96,
+      "duration": 0.009999999999990905,
+      "text": "one so this is number of vertices minus"
+    },
+    {
+      "start": 299.96,
+      "end": 305.15,
+      "duration": 5.189999999999998,
+      "text": "one so this is number of vertices minus 1 and minus number of"
+    },
+    {
+      "start": 305.15,
+      "end": 305.16,
+      "duration": 0.010000000000047748,
+      "text": "1 and minus number of"
+    },
+    {
+      "start": 305.16,
+      "end": 308.43,
+      "duration": 3.269999999999982,
+      "text": "1 and minus number of Cycles you have to subtract number of"
+    },
+    {
+      "start": 308.43,
+      "end": 308.44,
+      "duration": 0.009999999999990905,
+      "text": "Cycles you have to subtract number of"
+    },
+    {
+      "start": 308.44,
+      "end": 312.15,
+      "duration": 3.7099999999999795,
+      "text": "Cycles you have to subtract number of Cycles I have a graph where the edges"
+    },
+    {
+      "start": 312.15,
+      "end": 312.16,
+      "duration": 0.010000000000047748,
+      "text": "Cycles I have a graph where the edges"
+    },
+    {
+      "start": 312.16,
+      "end": 315.59,
+      "duration": 3.42999999999995,
+      "text": "Cycles I have a graph where the edges are having weights so this is a weighted"
+    },
+    {
+      "start": 315.59,
+      "end": 315.6,
+      "duration": 0.010000000000047748,
+      "text": "are having weights so this is a weighted"
+    },
+    {
+      "start": 315.6,
+      "end": 318.029,
+      "duration": 2.4289999999999736,
+      "text": "are having weights so this is a weighted graph this a weighted"
+    },
+    {
+      "start": 318.029,
+      "end": 318.039,
+      "duration": 0.009999999999990905,
+      "text": "graph this a weighted"
+    },
+    {
+      "start": 318.039,
+      "end": 320.749,
+      "duration": 2.7100000000000364,
+      "text": "graph this a weighted graph I want to know what are the"
+    },
+    {
+      "start": 320.749,
+      "end": 320.759,
+      "duration": 0.009999999999990905,
+      "text": "graph I want to know what are the"
+    },
+    {
+      "start": 320.759,
+      "end": 322.71,
+      "duration": 1.950999999999965,
+      "text": "graph I want to know what are the possible spanning trees possible so I'll"
+    },
+    {
+      "start": 322.71,
+      "end": 322.72,
+      "duration": 0.010000000000047748,
+      "text": "possible spanning trees possible so I'll"
+    },
+    {
+      "start": 322.72,
+      "end": 325.39,
+      "duration": 2.669999999999959,
+      "text": "possible spanning trees possible so I'll draw a few spanning trees let us draw"
+    },
+    {
+      "start": 325.39,
+      "end": 325.4,
+      "duration": 0.009999999999990905,
+      "text": "draw a few spanning trees let us draw"
+    },
+    {
+      "start": 325.4,
+      "end": 328.909,
+      "duration": 3.5090000000000146,
+      "text": "draw a few spanning trees let us draw one spanning tree this is vertex 1 and 2"
+    },
+    {
+      "start": 328.909,
+      "end": 328.919,
+      "duration": 0.009999999999990905,
+      "text": "one spanning tree this is vertex 1 and 2"
+    },
+    {
+      "start": 328.919,
+      "end": 332.07,
+      "duration": 3.1510000000000105,
+      "text": "one spanning tree this is vertex 1 and 2 and 3 and four so four vertices are"
+    },
+    {
+      "start": 332.07,
+      "end": 332.08,
+      "duration": 0.009999999999990905,
+      "text": "and 3 and four so four vertices are"
+    },
+    {
+      "start": 332.08,
+      "end": 334.029,
+      "duration": 1.9490000000000123,
+      "text": "and 3 and four so four vertices are there then how many edges I should take"
+    },
+    {
+      "start": 334.029,
+      "end": 334.039,
+      "duration": 0.009999999999990905,
+      "text": "there then how many edges I should take"
+    },
+    {
+      "start": 334.039,
+      "end": 337.27,
+      "duration": 3.2309999999999945,
+      "text": "there then how many edges I should take 4 - 1 only three so I'll select this one"
+    },
+    {
+      "start": 337.27,
+      "end": 337.28,
+      "duration": 0.009999999999990905,
+      "text": "4 - 1 only three so I'll select this one"
+    },
+    {
+      "start": 337.28,
+      "end": 340.67,
+      "duration": 3.390000000000043,
+      "text": "4 - 1 only three so I'll select this one 1 2 3 so what is the weight of this one"
+    },
+    {
+      "start": 340.67,
+      "end": 340.68,
+      "duration": 0.009999999999990905,
+      "text": "1 2 3 so what is the weight of this one"
+    },
+    {
+      "start": 340.68,
+      "end": 343.83,
+      "duration": 3.1499999999999773,
+      "text": "1 2 3 so what is the weight of this one 5 3 and six so what is the cost of this"
+    },
+    {
+      "start": 343.83,
+      "end": 343.84,
+      "duration": 0.009999999999990905,
+      "text": "5 3 and six so what is the cost of this"
+    },
+    {
+      "start": 343.84,
+      "end": 346.11,
+      "duration": 2.2700000000000387,
+      "text": "5 3 and six so what is the cost of this spanning tree cost of this spanning tree"
+    },
+    {
+      "start": 346.11,
+      "end": 346.12,
+      "duration": 0.009999999999990905,
+      "text": "spanning tree cost of this spanning tree"
+    },
+    {
+      "start": 346.12,
+      "end": 347.83,
+      "duration": 1.7099999999999795,
+      "text": "spanning tree cost of this spanning tree is"
+    },
+    {
+      "start": 347.83,
+      "end": 347.84,
+      "duration": 0.009999999999990905,
+      "text": "is"
+    },
+    {
+      "start": 347.84,
+      "end": 352.469,
+      "duration": 4.629000000000019,
+      "text": "is 14 I'll take one more spanning tree 1 2"
+    },
+    {
+      "start": 352.469,
+      "end": 352.479,
+      "duration": 0.009999999999990905,
+      "text": "14 I'll take one more spanning tree 1 2"
+    },
+    {
+      "start": 352.479,
+      "end": 356.629,
+      "duration": 4.150000000000034,
+      "text": "14 I'll take one more spanning tree 1 2 3 4 and I'll take these edges let us see"
+    },
+    {
+      "start": 356.629,
+      "end": 356.639,
+      "duration": 0.009999999999990905,
+      "text": "3 4 and I'll take these edges let us see"
+    },
+    {
+      "start": 356.639,
+      "end": 360.029,
+      "duration": 3.3899999999999864,
+      "text": "3 4 and I'll take these edges let us see what is the cost of this 4 63 then what"
+    },
+    {
+      "start": 360.029,
+      "end": 360.039,
+      "duration": 0.009999999999990905,
+      "text": "what is the cost of this 4 63 then what"
+    },
+    {
+      "start": 360.039,
+      "end": 364.71,
+      "duration": 4.670999999999992,
+      "text": "what is the cost of this 4 63 then what is the cost of this one"
+    },
+    {
+      "start": 364.72,
+      "end": 370.39,
+      "duration": 5.669999999999959,
+      "text": "13 I'll take one more spanning Tre 1 2 3"
+    },
+    {
+      "start": 370.4,
+      "end": 374.43,
+      "duration": 4.03000000000003,
+      "text": "13 I'll take one more spanning Tre 1 2 3 4 and I'll take these edges this one and"
+    },
+    {
+      "start": 374.43,
+      "end": 374.44,
+      "duration": 0.009999999999990905,
+      "text": "4 and I'll take these edges this one and"
+    },
+    {
+      "start": 374.44,
+      "end": 378.629,
+      "duration": 4.189000000000021,
+      "text": "4 and I'll take these edges this one and this one and this one 4 2 and 3 so this"
+    },
+    {
+      "start": 378.629,
+      "end": 378.639,
+      "duration": 0.009999999999990905,
+      "text": "this one and this one 4 2 and 3 so this"
+    },
+    {
+      "start": 378.639,
+      "end": 383.469,
+      "duration": 4.829999999999984,
+      "text": "this one and this one 4 2 and 3 so this is cost is how much"
+    },
+    {
+      "start": 383.479,
+      "end": 388.83,
+      "duration": 5.350999999999999,
+      "text": "9 now from this example some observation"
+    },
+    {
+      "start": 388.84,
+      "end": 391.67,
+      "duration": 2.830000000000041,
+      "text": "9 now from this example some observation we can understand something if you have"
+    },
+    {
+      "start": 391.67,
+      "end": 391.68,
+      "duration": 0.009999999999990905,
+      "text": "we can understand something if you have"
+    },
+    {
+      "start": 391.68,
+      "end": 394.39,
+      "duration": 2.7099999999999795,
+      "text": "we can understand something if you have a weighted graph and you get different"
+    },
+    {
+      "start": 394.39,
+      "end": 394.4,
+      "duration": 0.009999999999990905,
+      "text": "a weighted graph and you get different"
+    },
+    {
+      "start": 394.4,
+      "end": 396.95,
+      "duration": 2.5500000000000114,
+      "text": "a weighted graph and you get different spanning trees the cost of the spanning"
+    },
+    {
+      "start": 396.95,
+      "end": 396.96,
+      "duration": 0.009999999999990905,
+      "text": "spanning trees the cost of the spanning"
+    },
+    {
+      "start": 396.96,
+      "end": 399.629,
+      "duration": 2.6690000000000396,
+      "text": "spanning trees the cost of the spanning trees may be varying you can get a"
+    },
+    {
+      "start": 399.629,
+      "end": 399.639,
+      "duration": 0.009999999999990905,
+      "text": "trees may be varying you can get a"
+    },
+    {
+      "start": 399.639,
+      "end": 402.79,
+      "duration": 3.1510000000000105,
+      "text": "trees may be varying you can get a different cost of spanning"
+    },
+    {
+      "start": 402.79,
+      "end": 402.8,
+      "duration": 0.009999999999990905,
+      "text": "different cost of spanning"
+    },
+    {
+      "start": 402.8,
+      "end": 407.749,
+      "duration": 4.949000000000012,
+      "text": "different cost of spanning trees now the problem is can I find out"
+    },
+    {
+      "start": 407.749,
+      "end": 407.759,
+      "duration": 0.009999999999990905,
+      "text": "trees now the problem is can I find out"
+    },
+    {
+      "start": 407.759,
+      "end": 410.67,
+      "duration": 2.9110000000000014,
+      "text": "trees now the problem is can I find out the minimum cost of spanning tree can I"
+    },
+    {
+      "start": 410.67,
+      "end": 410.68,
+      "duration": 0.009999999999990905,
+      "text": "the minimum cost of spanning tree can I"
+    },
+    {
+      "start": 410.68,
+      "end": 413.15,
+      "duration": 2.4699999999999704,
+      "text": "the minimum cost of spanning tree can I find out the minimum one which gives me"
+    },
+    {
+      "start": 413.15,
+      "end": 413.16,
+      "duration": 0.010000000000047748,
+      "text": "find out the minimum one which gives me"
+    },
+    {
+      "start": 413.16,
+      "end": 417.189,
+      "duration": 4.028999999999996,
+      "text": "find out the minimum one which gives me minimum yes you can find out how you can"
+    },
+    {
+      "start": 417.189,
+      "end": 417.199,
+      "duration": 0.009999999999990905,
+      "text": "minimum yes you can find out how you can"
+    },
+    {
+      "start": 417.199,
+      "end": 420.07,
+      "duration": 2.870999999999981,
+      "text": "minimum yes you can find out how you can try all possible spanning trees"
+    },
+    {
+      "start": 420.07,
+      "end": 420.08,
+      "duration": 0.009999999999990905,
+      "text": "try all possible spanning trees"
+    },
+    {
+      "start": 420.08,
+      "end": 421.589,
+      "duration": 1.5090000000000146,
+      "text": "try all possible spanning trees and then from that you can check"
+    },
+    {
+      "start": 421.589,
+      "end": 421.599,
+      "duration": 0.009999999999990905,
+      "text": "and then from that you can check"
+    },
+    {
+      "start": 421.599,
+      "end": 423.43,
+      "duration": 1.8310000000000173,
+      "text": "and then from that you can check whichever is minimum you can pick up"
+    },
+    {
+      "start": 423.43,
+      "end": 423.44,
+      "duration": 0.009999999999990905,
+      "text": "whichever is minimum you can pick up"
+    },
+    {
+      "start": 423.44,
+      "end": 426.07,
+      "duration": 2.6299999999999955,
+      "text": "whichever is minimum you can pick up that answer this is one"
+    },
+    {
+      "start": 426.07,
+      "end": 426.08,
+      "duration": 0.009999999999990905,
+      "text": "that answer this is one"
+    },
+    {
+      "start": 426.08,
+      "end": 428.95,
+      "duration": 2.8700000000000045,
+      "text": "that answer this is one method trying all possible spanning"
+    },
+    {
+      "start": 428.95,
+      "end": 428.96,
+      "duration": 0.009999999999990905,
+      "text": "method trying all possible spanning"
+    },
+    {
+      "start": 428.96,
+      "end": 431.629,
+      "duration": 2.6690000000000396,
+      "text": "method trying all possible spanning trees will be too lengthy is there any"
+    },
+    {
+      "start": 431.629,
+      "end": 431.639,
+      "duration": 0.009999999999990905,
+      "text": "trees will be too lengthy is there any"
+    },
+    {
+      "start": 431.639,
+      "end": 432.589,
+      "duration": 0.9499999999999886,
+      "text": "trees will be too lengthy is there any greedy"
+    },
+    {
+      "start": 432.589,
+      "end": 432.599,
+      "duration": 0.009999999999990905,
+      "text": "greedy"
+    },
+    {
+      "start": 432.599,
+      "end": 435.27,
+      "duration": 2.6709999999999923,
+      "text": "greedy method yes the greedy methods are"
+    },
+    {
+      "start": 435.27,
+      "end": 435.28,
+      "duration": 0.009999999999990905,
+      "text": "method yes the greedy methods are"
+    },
+    {
+      "start": 435.28,
+      "end": 438.23,
+      "duration": 2.9500000000000455,
+      "text": "method yes the greedy methods are available for finding the minimum cause"
+    },
+    {
+      "start": 438.23,
+      "end": 438.24,
+      "duration": 0.009999999999990905,
+      "text": "available for finding the minimum cause"
+    },
+    {
+      "start": 438.24,
+      "end": 440.189,
+      "duration": 1.9490000000000123,
+      "text": "available for finding the minimum cause spanning tree if a weighted graph is"
+    },
+    {
+      "start": 440.189,
+      "end": 440.199,
+      "duration": 0.009999999999990905,
+      "text": "spanning tree if a weighted graph is"
+    },
+    {
+      "start": 440.199,
+      "end": 442.79,
+      "duration": 2.591000000000008,
+      "text": "spanning tree if a weighted graph is given you can find out the minimum cause"
+    },
+    {
+      "start": 442.79,
+      "end": 442.8,
+      "duration": 0.009999999999990905,
+      "text": "given you can find out the minimum cause"
+    },
+    {
+      "start": 442.8,
+      "end": 445.469,
+      "duration": 2.6689999999999827,
+      "text": "given you can find out the minimum cause spanning Tree by following the method"
+    },
+    {
+      "start": 445.469,
+      "end": 445.479,
+      "duration": 0.009999999999990905,
+      "text": "spanning Tree by following the method"
+    },
+    {
+      "start": 445.479,
+      "end": 447.99,
+      "duration": 2.511000000000024,
+      "text": "spanning Tree by following the method without finding out all possible span"
+    },
+    {
+      "start": 447.99,
+      "end": 448.0,
+      "duration": 0.009999999999990905,
+      "text": "without finding out all possible span"
+    },
+    {
+      "start": 448.0,
+      "end": 450.629,
+      "duration": 2.629000000000019,
+      "text": "without finding out all possible span entries so what are those those methods"
+    },
+    {
+      "start": 450.629,
+      "end": 450.639,
+      "duration": 0.009999999999990905,
+      "text": "entries so what are those those methods"
+    },
+    {
+      "start": 450.639,
+      "end": 452.589,
+      "duration": 1.9499999999999886,
+      "text": "entries so what are those those methods one method"
+    },
+    {
+      "start": 452.589,
+      "end": 452.599,
+      "duration": 0.009999999999990905,
+      "text": "one method"
+    },
+    {
+      "start": 452.599,
+      "end": 456.35,
+      "duration": 3.751000000000033,
+      "text": "one method is prims algorithm and the second method"
+    },
+    {
+      "start": 456.35,
+      "end": 456.36,
+      "duration": 0.009999999999990905,
+      "text": "is prims algorithm and the second method"
+    },
+    {
+      "start": 456.36,
+      "end": 461.309,
+      "duration": 4.949000000000012,
+      "text": "is prims algorithm and the second method is cuscal"
+    },
+    {
+      "start": 461.319,
+      "end": 463.749,
+      "duration": 2.430000000000007,
+      "text": "algorithm there are two algorithms for"
+    },
+    {
+      "start": 463.759,
+      "end": 466.83,
+      "duration": 3.0709999999999695,
+      "text": "algorithm there are two algorithms for finding minimum costes pan inry I have a"
+    },
+    {
+      "start": 466.83,
+      "end": 466.84,
+      "duration": 0.009999999999990905,
+      "text": "finding minimum costes pan inry I have a"
+    },
+    {
+      "start": 466.84,
+      "end": 469.149,
+      "duration": 2.309000000000026,
+      "text": "finding minimum costes pan inry I have a weighted graph here and I have to find a"
+    },
+    {
+      "start": 469.149,
+      "end": 469.159,
+      "duration": 0.009999999999990905,
+      "text": "weighted graph here and I have to find a"
+    },
+    {
+      "start": 469.159,
+      "end": 471.07,
+      "duration": 1.9110000000000014,
+      "text": "weighted graph here and I have to find a minimum cost of spanning tree by"
+    },
+    {
+      "start": 471.07,
+      "end": 471.08,
+      "duration": 0.009999999999990905,
+      "text": "minimum cost of spanning tree by"
+    },
+    {
+      "start": 471.08,
+      "end": 473.55,
+      "duration": 2.4700000000000273,
+      "text": "minimum cost of spanning tree by following prim's algorithm let's see how"
+    },
+    {
+      "start": 473.55,
+      "end": 473.56,
+      "duration": 0.009999999999990905,
+      "text": "following prim's algorithm let's see how"
+    },
+    {
+      "start": 473.56,
+      "end": 476.55,
+      "duration": 2.990000000000009,
+      "text": "following prim's algorithm let's see how Prim algorithm Works through an example"
+    },
+    {
+      "start": 476.55,
+      "end": 476.56,
+      "duration": 0.009999999999990905,
+      "text": "Prim algorithm Works through an example"
+    },
+    {
+      "start": 476.56,
+      "end": 479.51,
+      "duration": 2.9499999999999886,
+      "text": "Prim algorithm Works through an example now as per prims algorithm he says that"
+    },
+    {
+      "start": 479.51,
+      "end": 479.52,
+      "duration": 0.009999999999990905,
+      "text": "now as per prims algorithm he says that"
+    },
+    {
+      "start": 479.52,
+      "end": 482.55,
+      "duration": 3.0300000000000296,
+      "text": "now as per prims algorithm he says that from a graph first of all you select a"
+    },
+    {
+      "start": 482.55,
+      "end": 482.56,
+      "duration": 0.009999999999990905,
+      "text": "from a graph first of all you select a"
+    },
+    {
+      "start": 482.56,
+      "end": 485.869,
+      "duration": 3.309000000000026,
+      "text": "from a graph first of all you select a minimum cause Edge so the smallest Edge"
+    },
+    {
+      "start": 485.869,
+      "end": 485.879,
+      "duration": 0.009999999999990905,
+      "text": "minimum cause Edge so the smallest Edge"
+    },
+    {
+      "start": 485.879,
+      "end": 488.79,
+      "duration": 2.9110000000000014,
+      "text": "minimum cause Edge so the smallest Edge in the entire graph is this"
+    },
+    {
+      "start": 488.79,
+      "end": 488.8,
+      "duration": 0.009999999999990905,
+      "text": "in the entire graph is this"
+    },
+    {
+      "start": 488.8,
+      "end": 490.51,
+      "duration": 1.7099999999999795,
+      "text": "in the entire graph is this one"
+    },
+    {
+      "start": 490.51,
+      "end": 490.52,
+      "duration": 0.009999999999990905,
+      "text": "one"
+    },
+    {
+      "start": 490.52,
+      "end": 493.79,
+      "duration": 3.2700000000000387,
+      "text": "one then this is the initial one now for the"
+    },
+    {
+      "start": 493.79,
+      "end": 493.8,
+      "duration": 0.009999999999990905,
+      "text": "then this is the initial one now for the"
+    },
+    {
+      "start": 493.8,
+      "end": 496.27,
+      "duration": 2.4699999999999704,
+      "text": "then this is the initial one now for the rest of the procedure always select a"
+    },
+    {
+      "start": 496.27,
+      "end": 496.28,
+      "duration": 0.009999999999990905,
+      "text": "rest of the procedure always select a"
+    },
+    {
+      "start": 496.28,
+      "end": 499.51,
+      "duration": 3.230000000000018,
+      "text": "rest of the procedure always select a minimum cost Edge from the graph but"
+    },
+    {
+      "start": 499.51,
+      "end": 499.52,
+      "duration": 0.009999999999990905,
+      "text": "minimum cost Edge from the graph but"
+    },
+    {
+      "start": 499.52,
+      "end": 502.55,
+      "duration": 3.0300000000000296,
+      "text": "minimum cost Edge from the graph but make sure that it should be connected to"
+    },
+    {
+      "start": 502.55,
+      "end": 502.56,
+      "duration": 0.009999999999990905,
+      "text": "make sure that it should be connected to"
+    },
+    {
+      "start": 502.56,
+      "end": 505.35,
+      "duration": 2.7900000000000205,
+      "text": "make sure that it should be connected to already selected"
+    },
+    {
+      "start": 505.35,
+      "end": 505.36,
+      "duration": 0.009999999999990905,
+      "text": "already selected"
+    },
+    {
+      "start": 505.36,
+      "end": 507.749,
+      "duration": 2.38900000000001,
+      "text": "already selected vertices now the next minimum is which"
+    },
+    {
+      "start": 507.749,
+      "end": 507.759,
+      "duration": 0.009999999999990905,
+      "text": "vertices now the next minimum is which"
+    },
+    {
+      "start": 507.759,
+      "end": 509.99,
+      "duration": 2.2309999999999945,
+      "text": "vertices now the next minimum is which one 3 to 4"
+    },
+    {
+      "start": 509.99,
+      "end": 510.0,
+      "duration": 0.009999999999990905,
+      "text": "one 3 to 4"
+    },
+    {
+      "start": 510.0,
+      "end": 511.869,
+      "duration": 1.8690000000000282,
+      "text": "one 3 to 4 don't take that it will not be connected"
+    },
+    {
+      "start": 511.869,
+      "end": 511.879,
+      "duration": 0.009999999999990905,
+      "text": "don't take that it will not be connected"
+    },
+    {
+      "start": 511.879,
+      "end": 514.469,
+      "duration": 2.590000000000032,
+      "text": "don't take that it will not be connected to one or six so take only those which"
+    },
+    {
+      "start": 514.469,
+      "end": 514.479,
+      "duration": 0.009999999999990905,
+      "text": "to one or six so take only those which"
+    },
+    {
+      "start": 514.479,
+      "end": 517.79,
+      "duration": 3.310999999999922,
+      "text": "to one or six so take only those which are connected to one or six means what"
+    },
+    {
+      "start": 517.79,
+      "end": 517.8,
+      "duration": 0.009999999999990905,
+      "text": "are connected to one or six means what"
+    },
+    {
+      "start": 517.8,
+      "end": 522.149,
+      "duration": 4.349000000000046,
+      "text": "are connected to one or six means what he is trying to do is always maintain a"
+    },
+    {
+      "start": 522.149,
+      "end": 522.159,
+      "duration": 0.009999999999990905,
+      "text": "he is trying to do is always maintain a"
+    },
+    {
+      "start": 522.159,
+      "end": 526.11,
+      "duration": 3.951000000000022,
+      "text": "he is trying to do is always maintain a tree primce thinks that if some farther"
+    },
+    {
+      "start": 526.11,
+      "end": 526.12,
+      "duration": 0.009999999999990905,
+      "text": "tree primce thinks that if some farther"
+    },
+    {
+      "start": 526.12,
+      "end": 529.55,
+      "duration": 3.42999999999995,
+      "text": "tree primce thinks that if some farther away Edge is selected then it may not be"
+    },
+    {
+      "start": 529.55,
+      "end": 529.56,
+      "duration": 0.009999999999990905,
+      "text": "away Edge is selected then it may not be"
+    },
+    {
+      "start": 529.56,
+      "end": 530.949,
+      "duration": 1.38900000000001,
+      "text": "away Edge is selected then it may not be forming a tree"
+    },
+    {
+      "start": 530.949,
+      "end": 530.959,
+      "duration": 0.009999999999990905,
+      "text": "forming a tree"
+    },
+    {
+      "start": 530.959,
+      "end": 533.269,
+      "duration": 2.310000000000059,
+      "text": "forming a tree finally so that is the reason he"
+    },
+    {
+      "start": 533.269,
+      "end": 533.279,
+      "duration": 0.009999999999990905,
+      "text": "finally so that is the reason he"
+    },
+    {
+      "start": 533.279,
+      "end": 535.509,
+      "duration": 2.230000000000018,
+      "text": "finally so that is the reason he suggested that always select a minimum"
+    },
+    {
+      "start": 535.509,
+      "end": 535.519,
+      "duration": 0.009999999999990905,
+      "text": "suggested that always select a minimum"
+    },
+    {
+      "start": 535.519,
+      "end": 538.23,
+      "duration": 2.7110000000000127,
+      "text": "suggested that always select a minimum Edge which should be connected so let us"
+    },
+    {
+      "start": 538.23,
+      "end": 538.24,
+      "duration": 0.009999999999990905,
+      "text": "Edge which should be connected so let us"
+    },
+    {
+      "start": 538.24,
+      "end": 540.43,
+      "duration": 2.189999999999941,
+      "text": "Edge which should be connected so let us see what's the next one so for this"
+    },
+    {
+      "start": 540.43,
+      "end": 540.44,
+      "duration": 0.010000000000104592,
+      "text": "see what's the next one so for this"
+    },
+    {
+      "start": 540.44,
+      "end": 542.35,
+      "duration": 1.9099999999999682,
+      "text": "see what's the next one so for this connected one are this one and this one"
+    },
+    {
+      "start": 542.35,
+      "end": 542.36,
+      "duration": 0.009999999999990905,
+      "text": "connected one are this one and this one"
+    },
+    {
+      "start": 542.36,
+      "end": 545.35,
+      "duration": 2.990000000000009,
+      "text": "connected one are this one and this one so out of this 25 and 28 25 is minimum"
+    },
+    {
+      "start": 545.35,
+      "end": 545.36,
+      "duration": 0.009999999999990905,
+      "text": "so out of this 25 and 28 25 is minimum"
+    },
+    {
+      "start": 545.36,
+      "end": 548.59,
+      "duration": 3.230000000000018,
+      "text": "so out of this 25 and 28 25 is minimum so select this"
+    },
+    {
+      "start": 548.6,
+      "end": 553.069,
+      "duration": 4.468999999999937,
+      "text": "25 then this 28 and five connected to"
+    },
+    {
+      "start": 553.079,
+      "end": 556.55,
+      "duration": 3.4710000000000036,
+      "text": "25 then this 28 and five connected to five are 22 and 24 so out of this 28 24"
+    },
+    {
+      "start": 556.55,
+      "end": 556.56,
+      "duration": 0.009999999999990905,
+      "text": "five are 22 and 24 so out of this 28 24"
+    },
+    {
+      "start": 556.56,
+      "end": 559.31,
+      "duration": 2.75,
+      "text": "five are 22 and 24 so out of this 28 24 and 22 so from 1 and 6 and 5 I'm"
+    },
+    {
+      "start": 559.31,
+      "end": 559.32,
+      "duration": 0.010000000000104592,
+      "text": "and 22 so from 1 and 6 and 5 I'm"
+    },
+    {
+      "start": 559.32,
+      "end": 561.91,
+      "duration": 2.589999999999918,
+      "text": "and 22 so from 1 and 6 and 5 I'm checking so already six is over so 1 and"
+    },
+    {
+      "start": 561.91,
+      "end": 561.92,
+      "duration": 0.009999999999990905,
+      "text": "checking so already six is over so 1 and"
+    },
+    {
+      "start": 561.92,
+      "end": 564.47,
+      "duration": 2.550000000000068,
+      "text": "checking so already six is over so 1 and five so out of those this is smallest"
+    },
+    {
+      "start": 564.47,
+      "end": 564.48,
+      "duration": 0.009999999999990905,
+      "text": "five so out of those this is smallest"
+    },
+    {
+      "start": 564.48,
+      "end": 567.75,
+      "duration": 3.269999999999982,
+      "text": "five so out of those this is smallest one so four is selected now from 1 six"
+    },
+    {
+      "start": 567.75,
+      "end": 567.76,
+      "duration": 0.009999999999990905,
+      "text": "one so four is selected now from 1 six"
+    },
+    {
+      "start": 567.76,
+      "end": 570.63,
+      "duration": 2.8700000000000045,
+      "text": "one so four is selected now from 1 six and 5 4 who is smallest the connected"
+    },
+    {
+      "start": 570.63,
+      "end": 570.64,
+      "duration": 0.009999999999990905,
+      "text": "and 5 4 who is smallest the connected"
+    },
+    {
+      "start": 570.64,
+      "end": 573.91,
+      "duration": 3.269999999999982,
+      "text": "and 5 4 who is smallest the connected one so this is 24 and 18 and 12 so 12 is"
+    },
+    {
+      "start": 573.91,
+      "end": 573.92,
+      "duration": 0.009999999999990905,
+      "text": "one so this is 24 and 18 and 12 so 12 is"
+    },
+    {
+      "start": 573.92,
+      "end": 579.35,
+      "duration": 5.430000000000064,
+      "text": "one so this is 24 and 18 and 12 so 12 is a smaller so we will take"
+    },
+    {
+      "start": 579.36,
+      "end": 582.59,
+      "duration": 3.230000000000018,
+      "text": "12 then out of all these which connected"
+    },
+    {
+      "start": 582.6,
+      "end": 585.79,
+      "duration": 3.189999999999941,
+      "text": "12 then out of all these which connected is the smallest so here I have 24 18 and"
+    },
+    {
+      "start": 585.79,
+      "end": 585.8,
+      "duration": 0.009999999999990905,
+      "text": "is the smallest so here I have 24 18 and"
+    },
+    {
+      "start": 585.8,
+      "end": 591.63,
+      "duration": 5.830000000000041,
+      "text": "is the smallest so here I have 24 18 and 16 so 16 is a smaller so take that"
+    },
+    {
+      "start": 591.64,
+      "end": 594.75,
+      "duration": 3.1100000000000136,
+      "text": "16 then out of all these who is next"
+    },
+    {
+      "start": 594.76,
+      "end": 597.15,
+      "duration": 2.3899999999999864,
+      "text": "16 then out of all these who is next connected so from 2 to 7 there is an"
+    },
+    {
+      "start": 597.15,
+      "end": 597.16,
+      "duration": 0.009999999999990905,
+      "text": "connected so from 2 to 7 there is an"
+    },
+    {
+      "start": 597.16,
+      "end": 601.19,
+      "duration": 4.030000000000086,
+      "text": "connected so from 2 to 7 there is an edge which is connected so this is"
+    },
+    {
+      "start": 601.19,
+      "end": 601.2,
+      "duration": 0.009999999999990905,
+      "text": "edge which is connected so this is"
+    },
+    {
+      "start": 601.2,
+      "end": 603.509,
+      "duration": 2.308999999999969,
+      "text": "edge which is connected so this is 7 that's"
+    },
+    {
+      "start": 603.509,
+      "end": 603.519,
+      "duration": 0.009999999999990905,
+      "text": "7 that's"
+    },
+    {
+      "start": 603.519,
+      "end": 608.55,
+      "duration": 5.030999999999949,
+      "text": "7 that's it there are seven vertices so 1 2 3 4 5"
+    },
+    {
+      "start": 608.55,
+      "end": 608.56,
+      "duration": 0.009999999999990905,
+      "text": "it there are seven vertices so 1 2 3 4 5"
+    },
+    {
+      "start": 608.56,
+      "end": 611.67,
+      "duration": 3.1100000000000136,
+      "text": "it there are seven vertices so 1 2 3 4 5 6 six edges are selected and this how we"
+    },
+    {
+      "start": 611.67,
+      "end": 611.68,
+      "duration": 0.009999999999990905,
+      "text": "6 six edges are selected and this how we"
+    },
+    {
+      "start": 611.68,
+      "end": 615.63,
+      "duration": 3.9500000000000455,
+      "text": "6 six edges are selected and this how we got a minimum C cost spanning tree and"
+    },
+    {
+      "start": 615.63,
+      "end": 615.64,
+      "duration": 0.009999999999990905,
+      "text": "got a minimum C cost spanning tree and"
+    },
+    {
+      "start": 615.64,
+      "end": 617.47,
+      "duration": 1.830000000000041,
+      "text": "got a minimum C cost spanning tree and and this is how we got a minimum cost"
+    },
+    {
+      "start": 617.47,
+      "end": 617.48,
+      "duration": 0.009999999999990905,
+      "text": "and this is how we got a minimum cost"
+    },
+    {
+      "start": 617.48,
+      "end": 620.31,
+      "duration": 2.8299999999999272,
+      "text": "and this is how we got a minimum cost spanning tree what is the cost of a tree"
+    },
+    {
+      "start": 620.31,
+      "end": 620.32,
+      "duration": 0.010000000000104592,
+      "text": "spanning tree what is the cost of a tree"
+    },
+    {
+      "start": 620.32,
+      "end": 624.949,
+      "duration": 4.628999999999905,
+      "text": "spanning tree what is the cost of a tree the cost of a tree is if I add all"
+    },
+    {
+      "start": 624.959,
+      "end": 630.63,
+      "duration": 5.671000000000049,
+      "text": "these if I add all these it is 99"
+    },
+    {
+      "start": 630.64,
+      "end": 633.069,
+      "duration": 2.4289999999999736,
+      "text": "these if I add all these it is 99 so the approach of prims is initially"
+    },
+    {
+      "start": 633.069,
+      "end": 633.079,
+      "duration": 0.009999999999990905,
+      "text": "so the approach of prims is initially"
+    },
+    {
+      "start": 633.079,
+      "end": 635.269,
+      "duration": 2.1900000000000546,
+      "text": "so the approach of prims is initially select the smallest one then always"
+    },
+    {
+      "start": 635.269,
+      "end": 635.279,
+      "duration": 0.009999999999990905,
+      "text": "select the smallest one then always"
+    },
+    {
+      "start": 635.279,
+      "end": 638.269,
+      "duration": 2.990000000000009,
+      "text": "select the smallest one then always select the connected smallest"
+    },
+    {
+      "start": 638.269,
+      "end": 638.279,
+      "duration": 0.009999999999990905,
+      "text": "select the connected smallest"
+    },
+    {
+      "start": 638.279,
+      "end": 641.67,
+      "duration": 3.3909999999999627,
+      "text": "select the connected smallest one all right so this is the method of"
+    },
+    {
+      "start": 641.67,
+      "end": 641.68,
+      "duration": 0.009999999999990905,
+      "text": "one all right so this is the method of"
+    },
+    {
+      "start": 641.68,
+      "end": 642.87,
+      "duration": 1.1900000000000546,
+      "text": "one all right so this is the method of Prim"
+    },
+    {
+      "start": 642.87,
+      "end": 642.88,
+      "duration": 0.009999999999990905,
+      "text": "Prim"
+    },
+    {
+      "start": 642.88,
+      "end": 647.389,
+      "duration": 4.5090000000000146,
+      "text": "Prim algorithm next if I have a graph 1"
+    },
+    {
+      "start": 647.389,
+      "end": 647.399,
+      "duration": 0.009999999999990905,
+      "text": "algorithm next if I have a graph 1"
+    },
+    {
+      "start": 651.639,
+      "end": 656.15,
+      "duration": 4.510999999999967,
+      "text": "4 5 6"
+    },
+    {
+      "start": 656.16,
+      "end": 658.99,
+      "duration": 2.830000000000041,
+      "text": "4 5 6 7 if I have a graph like this which is"
+    },
+    {
+      "start": 658.99,
+      "end": 659.0,
+      "duration": 0.009999999999990905,
+      "text": "7 if I have a graph like this which is"
+    },
+    {
+      "start": 659.0,
+      "end": 661.75,
+      "duration": 2.75,
+      "text": "7 if I have a graph like this which is not connected there are total seven"
+    },
+    {
+      "start": 661.75,
+      "end": 661.76,
+      "duration": 0.009999999999990905,
+      "text": "not connected there are total seven"
+    },
+    {
+      "start": 661.76,
+      "end": 663.75,
+      "duration": 1.990000000000009,
+      "text": "not connected there are total seven vertices but there are two pieces in a"
+    },
+    {
+      "start": 663.75,
+      "end": 663.76,
+      "duration": 0.009999999999990905,
+      "text": "vertices but there are two pieces in a"
+    },
+    {
+      "start": 663.76,
+      "end": 667.949,
+      "duration": 4.1889999999999645,
+      "text": "vertices but there are two pieces in a graph can Prim find out the minimum cost"
+    },
+    {
+      "start": 667.949,
+      "end": 667.959,
+      "duration": 0.009999999999990905,
+      "text": "graph can Prim find out the minimum cost"
+    },
+    {
+      "start": 667.959,
+      "end": 670.829,
+      "duration": 2.8700000000000045,
+      "text": "graph can Prim find out the minimum cost spanning tree for this one no no"
+    },
+    {
+      "start": 670.829,
+      "end": 670.839,
+      "duration": 0.010000000000104592,
+      "text": "spanning tree for this one no no"
+    },
+    {
+      "start": 670.839,
+      "end": 673.829,
+      "duration": 2.9899999999998954,
+      "text": "spanning tree for this one no no algorithm can find out because we cannot"
+    },
+    {
+      "start": 673.829,
+      "end": 673.839,
+      "duration": 0.010000000000104592,
+      "text": "algorithm can find out because we cannot"
+    },
+    {
+      "start": 673.839,
+      "end": 676.269,
+      "duration": 2.42999999999995,
+      "text": "algorithm can find out because we cannot find a tree for this one spanning tree"
+    },
+    {
+      "start": 676.269,
+      "end": 676.279,
+      "duration": 0.009999999999990905,
+      "text": "find a tree for this one spanning tree"
+    },
+    {
+      "start": 676.279,
+      "end": 678.79,
+      "duration": 2.5109999999999673,
+      "text": "find a tree for this one spanning tree for this one in a spanning tree it must"
+    },
+    {
+      "start": 678.79,
+      "end": 678.8,
+      "duration": 0.009999999999990905,
+      "text": "for this one in a spanning tree it must"
+    },
+    {
+      "start": 678.8,
+      "end": 681.67,
+      "duration": 2.8700000000000045,
+      "text": "for this one in a spanning tree it must be connected so for non-connected graph"
+    },
+    {
+      "start": 681.67,
+      "end": 681.68,
+      "duration": 0.009999999999990905,
+      "text": "be connected so for non-connected graph"
+    },
+    {
+      "start": 681.68,
+      "end": 685.269,
+      "duration": 3.5890000000000555,
+      "text": "be connected so for non-connected graph we cannot find spanning trees at all but"
+    },
+    {
+      "start": 685.269,
+      "end": 685.279,
+      "duration": 0.009999999999990905,
+      "text": "we cannot find spanning trees at all but"
+    },
+    {
+      "start": 685.279,
+      "end": 687.269,
+      "duration": 1.990000000000009,
+      "text": "we cannot find spanning trees at all but if I start prims on this one starting"
+    },
+    {
+      "start": 687.269,
+      "end": 687.279,
+      "duration": 0.009999999999990905,
+      "text": "if I start prims on this one starting"
+    },
+    {
+      "start": 687.279,
+      "end": 689.47,
+      "duration": 2.191000000000031,
+      "text": "if I start prims on this one starting from vertex one if it is starting then"
+    },
+    {
+      "start": 689.47,
+      "end": 689.48,
+      "duration": 0.009999999999990905,
+      "text": "from vertex one if it is starting then"
+    },
+    {
+      "start": 689.48,
+      "end": 691.269,
+      "duration": 1.7889999999999873,
+      "text": "from vertex one if it is starting then it may find the spanning tree for only"
+    },
+    {
+      "start": 691.269,
+      "end": 691.279,
+      "duration": 0.009999999999990905,
+      "text": "it may find the spanning tree for only"
+    },
+    {
+      "start": 691.279,
+      "end": 693.67,
+      "duration": 2.3909999999999627,
+      "text": "it may find the spanning tree for only one component not the other component"
+    },
+    {
+      "start": 693.67,
+      "end": 693.68,
+      "duration": 0.009999999999990905,
+      "text": "one component not the other component"
+    },
+    {
+      "start": 693.68,
+      "end": 696.03,
+      "duration": 2.3500000000000227,
+      "text": "one component not the other component next method for finding minimum cost of"
+    },
+    {
+      "start": 696.03,
+      "end": 696.04,
+      "duration": 0.009999999999990905,
+      "text": "next method for finding minimum cost of"
+    },
+    {
+      "start": 696.04,
+      "end": 698.829,
+      "duration": 2.7889999999999873,
+      "text": "next method for finding minimum cost of spanning tree is Cru sculls method this"
+    },
+    {
+      "start": 698.829,
+      "end": 698.839,
+      "duration": 0.010000000000104592,
+      "text": "spanning tree is Cru sculls method this"
+    },
+    {
+      "start": 698.839,
+      "end": 701.91,
+      "duration": 3.0709999999999127,
+      "text": "spanning tree is Cru sculls method this also follows a greedy approach instead"
+    },
+    {
+      "start": 701.91,
+      "end": 701.92,
+      "duration": 0.009999999999990905,
+      "text": "also follows a greedy approach instead"
+    },
+    {
+      "start": 701.92,
+      "end": 703.829,
+      "duration": 1.9089999999999918,
+      "text": "also follows a greedy approach instead of trying out all possible spanning"
+    },
+    {
+      "start": 703.829,
+      "end": 703.839,
+      "duration": 0.010000000000104592,
+      "text": "of trying out all possible spanning"
+    },
+    {
+      "start": 703.839,
+      "end": 707.55,
+      "duration": 3.710999999999899,
+      "text": "of trying out all possible spanning trees it shows a procedure by following"
+    },
+    {
+      "start": 707.55,
+      "end": 707.56,
+      "duration": 0.009999999999990905,
+      "text": "trees it shows a procedure by following"
+    },
+    {
+      "start": 707.56,
+      "end": 709.55,
+      "duration": 1.990000000000009,
+      "text": "trees it shows a procedure by following which we can get a minimum cost of"
+    },
+    {
+      "start": 709.55,
+      "end": 709.56,
+      "duration": 0.009999999999990905,
+      "text": "which we can get a minimum cost of"
+    },
+    {
+      "start": 709.56,
+      "end": 712.75,
+      "duration": 3.1900000000000546,
+      "text": "which we can get a minimum cost of spanning tree it says that always select"
+    },
+    {
+      "start": 712.75,
+      "end": 712.76,
+      "duration": 0.009999999999990905,
+      "text": "spanning tree it says that always select"
+    },
+    {
+      "start": 712.76,
+      "end": 716.269,
+      "duration": 3.5090000000000146,
+      "text": "spanning tree it says that always select a minimum cost Edge always select a"
+    },
+    {
+      "start": 716.269,
+      "end": 716.279,
+      "duration": 0.009999999999990905,
+      "text": "a minimum cost Edge always select a"
+    },
+    {
+      "start": 716.279,
+      "end": 719.31,
+      "duration": 3.030999999999949,
+      "text": "a minimum cost Edge always select a minimum cost Edge let us follow this one"
+    },
+    {
+      "start": 719.31,
+      "end": 719.32,
+      "duration": 0.010000000000104592,
+      "text": "minimum cost Edge let us follow this one"
+    },
+    {
+      "start": 719.32,
+      "end": 721.71,
+      "duration": 2.3899999999999864,
+      "text": "minimum cost Edge let us follow this one select smallest"
+    },
+    {
+      "start": 721.71,
+      "end": 721.72,
+      "duration": 0.009999999999990905,
+      "text": "select smallest"
+    },
+    {
+      "start": 721.72,
+      "end": 725.949,
+      "duration": 4.228999999999928,
+      "text": "select smallest Edge 1 2 6 that is 10 this one is"
+    },
+    {
+      "start": 725.949,
+      "end": 725.959,
+      "duration": 0.009999999999990905,
+      "text": "Edge 1 2 6 that is 10 this one is"
+    },
+    {
+      "start": 725.959,
+      "end": 729.15,
+      "duration": 3.191000000000031,
+      "text": "Edge 1 2 6 that is 10 this one is smallest and the next smallest test is 3"
+    },
+    {
+      "start": 729.15,
+      "end": 729.16,
+      "duration": 0.009999999999990905,
+      "text": "smallest and the next smallest test is 3"
+    },
+    {
+      "start": 729.16,
+      "end": 733.389,
+      "duration": 4.229000000000042,
+      "text": "smallest and the next smallest test is 3 to 4 so the second Edge I'm selecting is"
+    },
+    {
+      "start": 733.389,
+      "end": 733.399,
+      "duration": 0.009999999999990905,
+      "text": "to 4 so the second Edge I'm selecting is"
+    },
+    {
+      "start": 733.399,
+      "end": 737.189,
+      "duration": 3.7899999999999636,
+      "text": "to 4 so the second Edge I'm selecting is 3 to 4 and it's cost is 12 next minimum"
+    },
+    {
+      "start": 737.189,
+      "end": 737.199,
+      "duration": 0.009999999999990905,
+      "text": "3 to 4 and it's cost is 12 next minimum"
+    },
+    {
+      "start": 737.199,
+      "end": 743.11,
+      "duration": 5.911000000000058,
+      "text": "3 to 4 and it's cost is 12 next minimum is 2 to 7 select 2 to 7 and this is 14"
+    },
+    {
+      "start": 743.11,
+      "end": 743.12,
+      "duration": 0.009999999999990905,
+      "text": "is 2 to 7 select 2 to 7 and this is 14"
+    },
+    {
+      "start": 743.12,
+      "end": 747.509,
+      "duration": 4.38900000000001,
+      "text": "is 2 to 7 select 2 to 7 and this is 14 and the next minimum is 2 to 3 that is"
+    },
+    {
+      "start": 747.509,
+      "end": 747.519,
+      "duration": 0.009999999999990905,
+      "text": "and the next minimum is 2 to 3 that is"
+    },
+    {
+      "start": 747.519,
+      "end": 749.75,
+      "duration": 2.2309999999999945,
+      "text": "and the next minimum is 2 to 3 that is 16 and after this"
+    },
+    {
+      "start": 749.75,
+      "end": 749.76,
+      "duration": 0.009999999999990905,
+      "text": "16 and after this"
+    },
+    {
+      "start": 749.76,
+      "end": 753.79,
+      "duration": 4.029999999999973,
+      "text": "16 and after this the next minimum Ed is 7 to 4 but that"
+    },
+    {
+      "start": 753.79,
+      "end": 753.8,
+      "duration": 0.009999999999990905,
+      "text": "the next minimum Ed is 7 to 4 but that"
+    },
+    {
+      "start": 753.8,
+      "end": 757.03,
+      "duration": 3.230000000000018,
+      "text": "the next minimum Ed is 7 to 4 but that is 18 if I select that it will form a"
+    },
+    {
+      "start": 757.03,
+      "end": 757.04,
+      "duration": 0.009999999999990905,
+      "text": "is 18 if I select that it will form a"
+    },
+    {
+      "start": 757.04,
+      "end": 760.269,
+      "duration": 3.229000000000042,
+      "text": "is 18 if I select that it will form a cycle yes cral method says that always"
+    },
+    {
+      "start": 760.269,
+      "end": 760.279,
+      "duration": 0.009999999999990905,
+      "text": "cycle yes cral method says that always"
+    },
+    {
+      "start": 760.279,
+      "end": 763.03,
+      "duration": 2.7509999999999764,
+      "text": "cycle yes cral method says that always select a minimum cost Edge but if it is"
+    },
+    {
+      "start": 763.03,
+      "end": 763.04,
+      "duration": 0.009999999999990905,
+      "text": "select a minimum cost Edge but if it is"
+    },
+    {
+      "start": 763.04,
+      "end": 765.829,
+      "duration": 2.7889999999999873,
+      "text": "select a minimum cost Edge but if it is forming a cycle don't con include it in"
+    },
+    {
+      "start": 765.829,
+      "end": 765.839,
+      "duration": 0.010000000000104592,
+      "text": "forming a cycle don't con include it in"
+    },
+    {
+      "start": 765.839,
+      "end": 768.67,
+      "duration": 2.8309999999999036,
+      "text": "forming a cycle don't con include it in the solution discard that edge don't"
+    },
+    {
+      "start": 768.67,
+      "end": 768.68,
+      "duration": 0.009999999999990905,
+      "text": "the solution discard that edge don't"
+    },
+    {
+      "start": 768.68,
+      "end": 770.71,
+      "duration": 2.0300000000000864,
+      "text": "the solution discard that edge don't include an edge so it means always"
+    },
+    {
+      "start": 770.71,
+      "end": 770.72,
+      "duration": 0.009999999999990905,
+      "text": "include an edge so it means always"
+    },
+    {
+      "start": 770.72,
+      "end": 772.509,
+      "duration": 1.7889999999999873,
+      "text": "include an edge so it means always select such that it is not forming a"
+    },
+    {
+      "start": 772.509,
+      "end": 772.519,
+      "duration": 0.009999999999990905,
+      "text": "select such that it is not forming a"
+    },
+    {
+      "start": 772.519,
+      "end": 775.15,
+      "duration": 2.630999999999972,
+      "text": "select such that it is not forming a cycle so if I include 4 to 7 it will"
+    },
+    {
+      "start": 775.15,
+      "end": 775.16,
+      "duration": 0.009999999999990905,
+      "text": "cycle so if I include 4 to 7 it will"
+    },
+    {
+      "start": 775.16,
+      "end": 777.87,
+      "duration": 2.7100000000000364,
+      "text": "cycle so if I include 4 to 7 it will form a cycle so next one you check so"
+    },
+    {
+      "start": 777.87,
+      "end": 777.88,
+      "duration": 0.009999999999990905,
+      "text": "form a cycle so next one you check so"
+    },
+    {
+      "start": 777.88,
+      "end": 780.829,
+      "duration": 2.9489999999999554,
+      "text": "form a cycle so next one you check so the next one is 22 so this is from 5 to"
+    },
+    {
+      "start": 780.829,
+      "end": 780.839,
+      "duration": 0.010000000000104592,
+      "text": "the next one is 22 so this is from 5 to"
+    },
+    {
+      "start": 780.839,
+      "end": 784.189,
+      "duration": 3.349999999999909,
+      "text": "the next one is 22 so this is from 5 to 4 or 4 to 5 so this is 22 next minimum"
+    },
+    {
+      "start": 784.189,
+      "end": 784.199,
+      "duration": 0.009999999999990905,
+      "text": "4 or 4 to 5 so this is 22 next minimum"
+    },
+    {
+      "start": 784.199,
+      "end": 787.47,
+      "duration": 3.271000000000072,
+      "text": "4 or 4 to 5 so this is 22 next minimum is 24 so that is 7 and 5 if I include"
+    },
+    {
+      "start": 787.47,
+      "end": 787.48,
+      "duration": 0.009999999999990905,
+      "text": "is 24 so that is 7 and 5 if I include"
+    },
+    {
+      "start": 787.48,
+      "end": 789.67,
+      "duration": 2.189999999999941,
+      "text": "is 24 so that is 7 and 5 if I include this also it will form a cycle don't"
+    },
+    {
+      "start": 789.67,
+      "end": 789.68,
+      "duration": 0.009999999999990905,
+      "text": "this also it will form a cycle don't"
+    },
+    {
+      "start": 789.68,
+      "end": 791.67,
+      "duration": 1.990000000000009,
+      "text": "this also it will form a cycle don't include that one then the next minimum"
+    },
+    {
+      "start": 791.67,
+      "end": 791.68,
+      "duration": 0.009999999999990905,
+      "text": "include that one then the next minimum"
+    },
+    {
+      "start": 791.68,
+      "end": 795.87,
+      "duration": 4.190000000000055,
+      "text": "include that one then the next minimum one is 25 that is from 5 to 6 so this is"
+    },
+    {
+      "start": 795.87,
+      "end": 795.88,
+      "duration": 0.009999999999990905,
+      "text": "one is 25 that is from 5 to 6 so this is"
+    },
+    {
+      "start": 795.88,
+      "end": 799.31,
+      "duration": 3.42999999999995,
+      "text": "one is 25 that is from 5 to 6 so this is 25 and the cost of this one is if you"
+    },
+    {
+      "start": 799.31,
+      "end": 799.32,
+      "duration": 0.010000000000104592,
+      "text": "25 and the cost of this one is if you"
+    },
+    {
+      "start": 799.32,
+      "end": 803.11,
+      "duration": 3.7899999999999636,
+      "text": "25 and the cost of this one is if you add all these weights it's"
+    },
+    {
+      "start": 803.11,
+      "end": 803.12,
+      "duration": 0.009999999999990905,
+      "text": "add all these weights it's"
+    },
+    {
+      "start": 803.12,
+      "end": 805.99,
+      "duration": 2.8700000000000045,
+      "text": "add all these weights it's 99 so here also I got the same result"
+    },
+    {
+      "start": 805.99,
+      "end": 806.0,
+      "duration": 0.009999999999990905,
+      "text": "99 so here also I got the same result"
+    },
+    {
+      "start": 806.0,
+      "end": 808.99,
+      "duration": 2.990000000000009,
+      "text": "99 so here also I got the same result just how I got in prim's algorithm so"
+    },
+    {
+      "start": 808.99,
+      "end": 809.0,
+      "duration": 0.009999999999990905,
+      "text": "just how I got in prim's algorithm so"
+    },
+    {
+      "start": 809.0,
+      "end": 810.71,
+      "duration": 1.7100000000000364,
+      "text": "just how I got in prim's algorithm so the so the prim algorithm and cral"
+    },
+    {
+      "start": 810.71,
+      "end": 810.72,
+      "duration": 0.009999999999990905,
+      "text": "the so the prim algorithm and cral"
+    },
+    {
+      "start": 810.72,
+      "end": 812.79,
+      "duration": 2.0699999999999363,
+      "text": "the so the prim algorithm and cral algorithm has given the same result on"
+    },
+    {
+      "start": 812.79,
+      "end": 812.8,
+      "duration": 0.009999999999990905,
+      "text": "algorithm has given the same result on"
+    },
+    {
+      "start": 812.8,
+      "end": 815.55,
+      "duration": 2.75,
+      "text": "algorithm has given the same result on this particular graph now time taken by"
+    },
+    {
+      "start": 815.55,
+      "end": 815.56,
+      "duration": 0.009999999999990905,
+      "text": "this particular graph now time taken by"
+    },
+    {
+      "start": 815.56,
+      "end": 818.829,
+      "duration": 3.2690000000000055,
+      "text": "this particular graph now time taken by Cal's algorithm how much time it takes"
+    },
+    {
+      "start": 818.829,
+      "end": 818.839,
+      "duration": 0.010000000000104592,
+      "text": "Cal's algorithm how much time it takes"
+    },
+    {
+      "start": 818.839,
+      "end": 821.389,
+      "duration": 2.5499999999999545,
+      "text": "Cal's algorithm how much time it takes see it has to always select a minimum"
+    },
+    {
+      "start": 821.389,
+      "end": 821.399,
+      "duration": 0.009999999999990905,
+      "text": "see it has to always select a minimum"
+    },
+    {
+      "start": 821.399,
+      "end": 824.67,
+      "duration": 3.270999999999958,
+      "text": "see it has to always select a minimum cost Edge from the set of edges so let"
+    },
+    {
+      "start": 824.67,
+      "end": 824.68,
+      "duration": 0.009999999999990905,
+      "text": "cost Edge from the set of edges so let"
+    },
+    {
+      "start": 824.68,
+      "end": 826.75,
+      "duration": 2.07000000000005,
+      "text": "cost Edge from the set of edges so let us say there are e number of edges so"
+    },
+    {
+      "start": 826.75,
+      "end": 826.76,
+      "duration": 0.009999999999990905,
+      "text": "us say there are e number of edges so"
+    },
+    {
+      "start": 826.76,
+      "end": 828.509,
+      "duration": 1.7490000000000236,
+      "text": "us say there are e number of edges so out of these edges it will find out the"
+    },
+    {
+      "start": 828.509,
+      "end": 828.519,
+      "duration": 0.009999999999990905,
+      "text": "out of these edges it will find out the"
+    },
+    {
+      "start": 828.519,
+      "end": 831.03,
+      "duration": 2.5109999999999673,
+      "text": "out of these edges it will find out the minimum one and how many such edges it"
+    },
+    {
+      "start": 831.03,
+      "end": 831.04,
+      "duration": 0.009999999999990905,
+      "text": "minimum one and how many such edges it"
+    },
+    {
+      "start": 831.04,
+      "end": 833.99,
+      "duration": 2.9500000000000455,
+      "text": "minimum one and how many such edges it will be selecting it will be selecting V"
+    },
+    {
+      "start": 833.99,
+      "end": 834.0,
+      "duration": 0.009999999999990905,
+      "text": "will be selecting it will be selecting V"
+    },
+    {
+      "start": 834.0,
+      "end": 836.55,
+      "duration": 2.5499999999999545,
+      "text": "will be selecting it will be selecting V minus one that is number of vertices"
+    },
+    {
+      "start": 836.55,
+      "end": 836.56,
+      "duration": 0.009999999999990905,
+      "text": "minus one that is number of vertices"
+    },
+    {
+      "start": 836.56,
+      "end": 838.47,
+      "duration": 1.9100000000000819,
+      "text": "minus one that is number of vertices minus one like we know in a spanning"
+    },
+    {
+      "start": 838.47,
+      "end": 838.48,
+      "duration": 0.009999999999990905,
+      "text": "minus one like we know in a spanning"
+    },
+    {
+      "start": 838.48,
+      "end": 840.23,
+      "duration": 1.75,
+      "text": "minus one like we know in a spanning tree if there there are seven vertices"
+    },
+    {
+      "start": 840.23,
+      "end": 840.24,
+      "duration": 0.009999999999990905,
+      "text": "tree if there there are seven vertices"
+    },
+    {
+      "start": 840.24,
+      "end": 843.11,
+      "duration": 2.8700000000000045,
+      "text": "tree if there there are seven vertices we need six edes for forming a spanning"
+    },
+    {
+      "start": 843.11,
+      "end": 843.12,
+      "duration": 0.009999999999990905,
+      "text": "we need six edes for forming a spanning"
+    },
+    {
+      "start": 843.12,
+      "end": 845.949,
+      "duration": 2.828999999999951,
+      "text": "we need six edes for forming a spanning tree so that's 7 - 1 so as many vertices"
+    },
+    {
+      "start": 845.949,
+      "end": 845.959,
+      "duration": 0.009999999999990905,
+      "text": "tree so that's 7 - 1 so as many vertices"
+    },
+    {
+      "start": 845.959,
+      "end": 847.99,
+      "duration": 2.0310000000000628,
+      "text": "tree so that's 7 - 1 so as many vertices we have minus one number of edges we"
+    },
+    {
+      "start": 847.99,
+      "end": 848.0,
+      "duration": 0.009999999999990905,
+      "text": "we have minus one number of edges we"
+    },
+    {
+      "start": 848.0,
+      "end": 850.749,
+      "duration": 2.7490000000000236,
+      "text": "we have minus one number of edges we have to select so the total time will be"
+    },
+    {
+      "start": 850.749,
+      "end": 850.759,
+      "duration": 0.009999999999990905,
+      "text": "have to select so the total time will be"
+    },
+    {
+      "start": 850.759,
+      "end": 857.389,
+      "duration": 6.6299999999999955,
+      "text": "have to select so the total time will be Theta of V into e there e v is number of"
+    },
+    {
+      "start": 857.389,
+      "end": 857.399,
+      "duration": 0.009999999999990905,
+      "text": "Theta of V into e there e v is number of"
+    },
+    {
+      "start": 857.399,
+      "end": 860.03,
+      "duration": 2.630999999999972,
+      "text": "Theta of V into e there e v is number of vertices and E is number of edges so it"
+    },
+    {
+      "start": 860.03,
+      "end": 860.04,
+      "duration": 0.009999999999990905,
+      "text": "vertices and E is number of edges so it"
+    },
+    {
+      "start": 860.04,
+      "end": 864.11,
+      "duration": 4.07000000000005,
+      "text": "vertices and E is number of edges so it is n into e n is the number of vertices"
+    },
+    {
+      "start": 864.11,
+      "end": 864.12,
+      "duration": 0.009999999999990905,
+      "text": "is n into e n is the number of vertices"
+    },
+    {
+      "start": 864.12,
+      "end": 866.99,
+      "duration": 2.8700000000000045,
+      "text": "is n into e n is the number of vertices and E is the number of edges which can"
+    },
+    {
+      "start": 866.99,
+      "end": 867.0,
+      "duration": 0.009999999999990905,
+      "text": "and E is the number of edges which can"
+    },
+    {
+      "start": 867.0,
+      "end": 870.43,
+      "duration": 3.42999999999995,
+      "text": "and E is the number of edges which can also be written as n square if we say"
+    },
+    {
+      "start": 870.43,
+      "end": 870.44,
+      "duration": 0.010000000000104592,
+      "text": "also be written as n square if we say"
+    },
+    {
+      "start": 870.44,
+      "end": 873.47,
+      "duration": 3.0299999999999727,
+      "text": "also be written as n square if we say both are n then it is n squ so the time"
+    },
+    {
+      "start": 873.47,
+      "end": 873.48,
+      "duration": 0.009999999999990905,
+      "text": "both are n then it is n squ so the time"
+    },
+    {
+      "start": 873.48,
+      "end": 876.829,
+      "duration": 3.3489999999999327,
+      "text": "both are n then it is n squ so the time taken by chal algorithm is"
+    },
+    {
+      "start": 876.829,
+      "end": 876.839,
+      "duration": 0.010000000000104592,
+      "text": "taken by chal algorithm is"
+    },
+    {
+      "start": 876.839,
+      "end": 878.67,
+      "duration": 1.8309999999999036,
+      "text": "taken by chal algorithm is n²"
+    },
+    {
+      "start": 878.67,
+      "end": 878.68,
+      "duration": 0.009999999999990905,
+      "text": "n²"
+    },
+    {
+      "start": 878.68,
+      "end": 882.189,
+      "duration": 3.5090000000000146,
+      "text": "n² but cisal algorithm can be improve when"
+    },
+    {
+      "start": 882.189,
+      "end": 882.199,
+      "duration": 0.009999999999990905,
+      "text": "but cisal algorithm can be improve when"
+    },
+    {
+      "start": 882.199,
+      "end": 884.829,
+      "duration": 2.6299999999999955,
+      "text": "but cisal algorithm can be improve when we have to always select a minimum cost"
+    },
+    {
+      "start": 884.829,
+      "end": 884.839,
+      "duration": 0.010000000000104592,
+      "text": "we have to always select a minimum cost"
+    },
+    {
+      "start": 884.839,
+      "end": 887.47,
+      "duration": 2.630999999999972,
+      "text": "we have to always select a minimum cost Edge then there is one data structure"
+    },
+    {
+      "start": 887.47,
+      "end": 887.48,
+      "duration": 0.009999999999990905,
+      "text": "Edge then there is one data structure"
+    },
+    {
+      "start": 887.48,
+      "end": 890.23,
+      "duration": 2.75,
+      "text": "Edge then there is one data structure which will always give you minimum value"
+    },
+    {
+      "start": 890.23,
+      "end": 890.24,
+      "duration": 0.009999999999990905,
+      "text": "which will always give you minimum value"
+    },
+    {
+      "start": 890.24,
+      "end": 892.47,
+      "duration": 2.230000000000018,
+      "text": "which will always give you minimum value that is min"
+    },
+    {
+      "start": 892.47,
+      "end": 892.48,
+      "duration": 0.009999999999990905,
+      "text": "that is min"
+    },
+    {
+      "start": 892.48,
+      "end": 895.91,
+      "duration": 3.42999999999995,
+      "text": "that is min heap if Min Heap is used then Min Heap"
+    },
+    {
+      "start": 895.91,
+      "end": 895.92,
+      "duration": 0.009999999999990905,
+      "text": "heap if Min Heap is used then Min Heap"
+    },
+    {
+      "start": 895.92,
+      "end": 898.43,
+      "duration": 2.509999999999991,
+      "text": "heap if Min Heap is used then Min Heap will always give you a minimum value"
+    },
+    {
+      "start": 898.43,
+      "end": 898.44,
+      "duration": 0.010000000000104592,
+      "text": "will always give you a minimum value"
+    },
+    {
+      "start": 898.44,
+      "end": 899.91,
+      "duration": 1.4699999999999136,
+      "text": "will always give you a minimum value whenever you delete a value you get a"
+    },
+    {
+      "start": 899.91,
+      "end": 899.92,
+      "duration": 0.009999999999990905,
+      "text": "whenever you delete a value you get a"
+    },
+    {
+      "start": 899.92,
+      "end": 902.389,
+      "duration": 2.469000000000051,
+      "text": "whenever you delete a value you get a minimum value so if all these edges are"
+    },
+    {
+      "start": 902.389,
+      "end": 902.399,
+      "duration": 0.009999999999990905,
+      "text": "minimum value so if all these edges are"
+    },
+    {
+      "start": 902.399,
+      "end": 905.269,
+      "duration": 2.8700000000000045,
+      "text": "minimum value so if all these edges are kept in a Min he whenever you delete you"
+    },
+    {
+      "start": 905.269,
+      "end": 905.279,
+      "duration": 0.009999999999990905,
+      "text": "kept in a Min he whenever you delete you"
+    },
+    {
+      "start": 905.279,
+      "end": 907.35,
+      "duration": 2.0710000000000264,
+      "text": "kept in a Min he whenever you delete you will be getting a next minimum Edge so"
+    },
+    {
+      "start": 907.35,
+      "end": 907.36,
+      "duration": 0.009999999999990905,
+      "text": "will be getting a next minimum Edge so"
+    },
+    {
+      "start": 907.36,
+      "end": 910.03,
+      "duration": 2.669999999999959,
+      "text": "will be getting a next minimum Edge so you don't have to search so from Min"
+    },
+    {
+      "start": 910.03,
+      "end": 910.04,
+      "duration": 0.009999999999990905,
+      "text": "you don't have to search so from Min"
+    },
+    {
+      "start": 910.04,
+      "end": 912.71,
+      "duration": 2.6700000000000728,
+      "text": "you don't have to search so from Min whenever you delete the time taken is"
+    },
+    {
+      "start": 912.71,
+      "end": 912.72,
+      "duration": 0.009999999999990905,
+      "text": "whenever you delete the time taken is"
+    },
+    {
+      "start": 912.72,
+      "end": 915.829,
+      "duration": 3.1089999999999236,
+      "text": "whenever you delete the time taken is login so how much time it will take for"
+    },
+    {
+      "start": 915.829,
+      "end": 915.839,
+      "duration": 0.010000000000104592,
+      "text": "login so how much time it will take for"
+    },
+    {
+      "start": 915.839,
+      "end": 919.47,
+      "duration": 3.630999999999972,
+      "text": "login so how much time it will take for finding a minimum cost Edge log n time"
+    },
+    {
+      "start": 919.47,
+      "end": 919.48,
+      "duration": 0.009999999999990905,
+      "text": "finding a minimum cost Edge log n time"
+    },
+    {
+      "start": 919.48,
+      "end": 921.55,
+      "duration": 2.0699999999999363,
+      "text": "finding a minimum cost Edge log n time so how many times you have to do that"
+    },
+    {
+      "start": 921.55,
+      "end": 921.56,
+      "duration": 0.009999999999990905,
+      "text": "so how many times you have to do that"
+    },
+    {
+      "start": 921.56,
+      "end": 923.509,
+      "duration": 1.9490000000000691,
+      "text": "so how many times you have to do that that is end time number of vertices"
+    },
+    {
+      "start": 923.509,
+      "end": 923.519,
+      "duration": 0.009999999999990905,
+      "text": "that is end time number of vertices"
+    },
+    {
+      "start": 923.519,
+      "end": 927.749,
+      "duration": 4.230000000000018,
+      "text": "that is end time number of vertices minus one time so n so by using Min he"
+    },
+    {
+      "start": 927.749,
+      "end": 927.759,
+      "duration": 0.009999999999990905,
+      "text": "minus one time so n so by using Min he"
+    },
+    {
+      "start": 927.759,
+      "end": 929.629,
+      "duration": 1.8700000000000045,
+      "text": "minus one time so n so by using Min he the time time complexity of crysal"
+    },
+    {
+      "start": 929.629,
+      "end": 929.639,
+      "duration": 0.009999999999990905,
+      "text": "the time time complexity of crysal"
+    },
+    {
+      "start": 929.639,
+      "end": 932.829,
+      "duration": 3.189999999999941,
+      "text": "the time time complexity of crysal algorithm will be n log n so that's how"
+    },
+    {
+      "start": 932.829,
+      "end": 932.839,
+      "duration": 0.010000000000104592,
+      "text": "algorithm will be n log n so that's how"
+    },
+    {
+      "start": 932.839,
+      "end": 936.87,
+      "duration": 4.030999999999949,
+      "text": "algorithm will be n log n so that's how crysal algorithm can be made"
+    },
+    {
+      "start": 936.88,
+      "end": 939.389,
+      "duration": 2.5090000000000146,
+      "text": "faster now if there is a graph given"
+    },
+    {
+      "start": 939.399,
+      "end": 941.35,
+      "duration": 1.9510000000000218,
+      "text": "faster now if there is a graph given that is not connected graph it is having"
+    },
+    {
+      "start": 941.35,
+      "end": 941.36,
+      "duration": 0.009999999999990905,
+      "text": "that is not connected graph it is having"
+    },
+    {
+      "start": 941.36,
+      "end": 943.15,
+      "duration": 1.7899999999999636,
+      "text": "that is not connected graph it is having two components four vertices on this"
+    },
+    {
+      "start": 943.15,
+      "end": 943.16,
+      "duration": 0.009999999999990905,
+      "text": "two components four vertices on this"
+    },
+    {
+      "start": 943.16,
+      "end": 945.55,
+      "duration": 2.3899999999999864,
+      "text": "two components four vertices on this side five vertices on that side can we"
+    },
+    {
+      "start": 945.55,
+      "end": 945.56,
+      "duration": 0.009999999999990905,
+      "text": "side five vertices on that side can we"
+    },
+    {
+      "start": 945.56,
+      "end": 947.309,
+      "duration": 1.7490000000000236,
+      "text": "side five vertices on that side can we find a spanning tree on a non-connected"
+    },
+    {
+      "start": 947.309,
+      "end": 947.319,
+      "duration": 0.009999999999990905,
+      "text": "find a spanning tree on a non-connected"
+    },
+    {
+      "start": 947.319,
+      "end": 950.23,
+      "duration": 2.911000000000058,
+      "text": "find a spanning tree on a non-connected graph no spanning tree is not possible"
+    },
+    {
+      "start": 950.23,
+      "end": 950.24,
+      "duration": 0.009999999999990905,
+      "text": "graph no spanning tree is not possible"
+    },
+    {
+      "start": 950.24,
+      "end": 952.35,
+      "duration": 2.1100000000000136,
+      "text": "graph no spanning tree is not possible but what happens if I run a scal"
+    },
+    {
+      "start": 952.35,
+      "end": 952.36,
+      "duration": 0.009999999999990905,
+      "text": "but what happens if I run a scal"
+    },
+    {
+      "start": 952.36,
+      "end": 955.069,
+      "duration": 2.7089999999999463,
+      "text": "but what happens if I run a scal algorithm so csal algorithm will try to"
+    },
+    {
+      "start": 955.069,
+      "end": 955.079,
+      "duration": 0.009999999999990905,
+      "text": "algorithm so csal algorithm will try to"
+    },
+    {
+      "start": 955.079,
+      "end": 957.59,
+      "duration": 2.511000000000081,
+      "text": "algorithm so csal algorithm will try to find out total number of edges that is 9"
+    },
+    {
+      "start": 957.59,
+      "end": 957.6,
+      "duration": 0.009999999999990905,
+      "text": "find out total number of edges that is 9"
+    },
+    {
+      "start": 957.6,
+      "end": 960.67,
+      "duration": 3.0699999999999363,
+      "text": "find out total number of edges that is 9 - 1 so it will try to select eight edges"
+    },
+    {
+      "start": 960.67,
+      "end": 960.68,
+      "duration": 0.009999999999990905,
+      "text": "- 1 so it will try to select eight edges"
+    },
+    {
+      "start": 960.68,
+      "end": 962.15,
+      "duration": 1.4700000000000273,
+      "text": "- 1 so it will try to select eight edges and it will not be forming a spanning"
+    },
+    {
+      "start": 962.15,
+      "end": 962.16,
+      "duration": 0.009999999999990905,
+      "text": "and it will not be forming a spanning"
+    },
+    {
+      "start": 962.16,
+      "end": 964.71,
+      "duration": 2.550000000000068,
+      "text": "and it will not be forming a spanning tree for entire graph but it may be"
+    },
+    {
+      "start": 964.71,
+      "end": 964.72,
+      "duration": 0.009999999999990905,
+      "text": "tree for entire graph but it may be"
+    },
+    {
+      "start": 964.72,
+      "end": 967.23,
+      "duration": 2.509999999999991,
+      "text": "tree for entire graph but it may be finding the spanning tree for each"
+    },
+    {
+      "start": 967.23,
+      "end": 967.24,
+      "duration": 0.009999999999990905,
+      "text": "finding the spanning tree for each"
+    },
+    {
+      "start": 967.24,
+      "end": 969.269,
+      "duration": 2.0289999999999964,
+      "text": "finding the spanning tree for each component let us say if the first"
+    },
+    {
+      "start": 969.269,
+      "end": 969.279,
+      "duration": 0.009999999999990905,
+      "text": "component let us say if the first"
+    },
+    {
+      "start": 969.279,
+      "end": 971.069,
+      "duration": 1.7899999999999636,
+      "text": "component let us say if the first minimum the one it will select is this"
+    },
+    {
+      "start": 971.069,
+      "end": 971.079,
+      "duration": 0.009999999999990905,
+      "text": "minimum the one it will select is this"
+    },
+    {
+      "start": 971.079,
+      "end": 973.389,
+      "duration": 2.310000000000059,
+      "text": "minimum the one it will select is this one then the next minimum it is having"
+    },
+    {
+      "start": 973.389,
+      "end": 973.399,
+      "duration": 0.009999999999990905,
+      "text": "one then the next minimum it is having"
+    },
+    {
+      "start": 973.399,
+      "end": 976.99,
+      "duration": 3.591000000000008,
+      "text": "one then the next minimum it is having more than one edes let us say it selects"
+    },
+    {
+      "start": 976.99,
+      "end": 977.0,
+      "duration": 0.009999999999990905,
+      "text": "more than one edes let us say it selects"
+    },
+    {
+      "start": 977.0,
+      "end": 978.79,
+      "duration": 1.7899999999999636,
+      "text": "more than one edes let us say it selects next minimum and the next minimum it"
+    },
+    {
+      "start": 978.79,
+      "end": 978.8,
+      "duration": 0.009999999999990905,
+      "text": "next minimum and the next minimum it"
+    },
+    {
+      "start": 978.8,
+      "end": 980.87,
+      "duration": 2.07000000000005,
+      "text": "next minimum and the next minimum it will select this next minimum it selects"
+    },
+    {
+      "start": 980.87,
+      "end": 980.88,
+      "duration": 0.009999999999990905,
+      "text": "will select this next minimum it selects"
+    },
+    {
+      "start": 980.88,
+      "end": 982.79,
+      "duration": 1.9099999999999682,
+      "text": "will select this next minimum it selects this and this is the next minimum so in"
+    },
+    {
+      "start": 982.79,
+      "end": 982.8,
+      "duration": 0.009999999999990905,
+      "text": "this and this is the next minimum so in"
+    },
+    {
+      "start": 982.8,
+      "end": 984.629,
+      "duration": 1.8290000000000646,
+      "text": "this and this is the next minimum so in this way it is selecting the minimum"
+    },
+    {
+      "start": 984.629,
+      "end": 984.639,
+      "duration": 0.009999999999990905,
+      "text": "this way it is selecting the minimum"
+    },
+    {
+      "start": 984.639,
+      "end": 986.99,
+      "duration": 2.350999999999999,
+      "text": "this way it is selecting the minimum adjust from both the components or it"
+    },
+    {
+      "start": 986.99,
+      "end": 987.0,
+      "duration": 0.009999999999990905,
+      "text": "adjust from both the components or it"
+    },
+    {
+      "start": 987.0,
+      "end": 988.389,
+      "duration": 1.38900000000001,
+      "text": "adjust from both the components or it will be selecting from all the"
+    },
+    {
+      "start": 988.389,
+      "end": 988.399,
+      "duration": 0.009999999999990905,
+      "text": "will be selecting from all the"
+    },
+    {
+      "start": 988.399,
+      "end": 990.87,
+      "duration": 2.4710000000000036,
+      "text": "will be selecting from all the components so it may be finding spanning"
+    },
+    {
+      "start": 990.87,
+      "end": 990.88,
+      "duration": 0.009999999999990905,
+      "text": "components so it may be finding spanning"
+    },
+    {
+      "start": 990.88,
+      "end": 994.15,
+      "duration": 3.269999999999982,
+      "text": "components so it may be finding spanning trees for all the components but not for"
+    },
+    {
+      "start": 994.15,
+      "end": 994.16,
+      "duration": 0.009999999999990905,
+      "text": "trees for all the components but not for"
+    },
+    {
+      "start": 994.16,
+      "end": 997.629,
+      "duration": 3.469000000000051,
+      "text": "trees for all the components but not for the entire graph so cisal algor them may"
+    },
+    {
+      "start": 997.629,
+      "end": 997.639,
+      "duration": 0.009999999999990905,
+      "text": "the entire graph so cisal algor them may"
+    },
+    {
+      "start": 997.639,
+      "end": 1001.829,
+      "duration": 4.189999999999941,
+      "text": "the entire graph so cisal algor them may work for non-connected graphs also but"
+    },
+    {
+      "start": 1001.829,
+      "end": 1001.839,
+      "duration": 0.010000000000104592,
+      "text": "work for non-connected graphs also but"
+    },
+    {
+      "start": 1001.839,
+      "end": 1005.15,
+      "duration": 3.310999999999922,
+      "text": "work for non-connected graphs also but it may give spanning tree for those"
+    },
+    {
+      "start": 1005.15,
+      "end": 1005.16,
+      "duration": 0.009999999999990905,
+      "text": "it may give spanning tree for those"
+    },
+    {
+      "start": 1005.16,
+      "end": 1008.15,
+      "duration": 2.990000000000009,
+      "text": "it may give spanning tree for those components let us take a problem here a"
+    },
+    {
+      "start": 1008.15,
+      "end": 1008.16,
+      "duration": 0.009999999999990905,
+      "text": "components let us take a problem here a"
+    },
+    {
+      "start": 1008.16,
+      "end": 1010.189,
+      "duration": 2.0289999999999964,
+      "text": "components let us take a problem here a graph is given and the weights of the"
+    },
+    {
+      "start": 1010.189,
+      "end": 1010.199,
+      "duration": 0.009999999999990905,
+      "text": "graph is given and the weights of the"
+    },
+    {
+      "start": 1010.199,
+      "end": 1013.509,
+      "duration": 3.310000000000059,
+      "text": "graph is given and the weights of the edges are also given but here two edges"
+    },
+    {
+      "start": 1013.509,
+      "end": 1013.519,
+      "duration": 0.009999999999990905,
+      "text": "edges are also given but here two edges"
+    },
+    {
+      "start": 1013.519,
+      "end": 1016.509,
+      "duration": 2.990000000000009,
+      "text": "edges are also given but here two edges are not having their weights if I take"
+    },
+    {
+      "start": 1016.509,
+      "end": 1016.519,
+      "duration": 0.009999999999990905,
+      "text": "are not having their weights if I take"
+    },
+    {
+      "start": 1016.519,
+      "end": 1018.269,
+      "duration": 1.75,
+      "text": "are not having their weights if I take only these edges which are having a"
+    },
+    {
+      "start": 1018.269,
+      "end": 1018.279,
+      "duration": 0.009999999999990905,
+      "text": "only these edges which are having a"
+    },
+    {
+      "start": 1018.279,
+      "end": 1020.189,
+      "duration": 1.9099999999999682,
+      "text": "only these edges which are having a weight they are forming a spanning tree"
+    },
+    {
+      "start": 1020.189,
+      "end": 1020.199,
+      "duration": 0.009999999999990905,
+      "text": "weight they are forming a spanning tree"
+    },
+    {
+      "start": 1020.199,
+      "end": 1022.99,
+      "duration": 2.7910000000000537,
+      "text": "weight they are forming a spanning tree of a graph just hide these two edges it"
+    },
+    {
+      "start": 1022.99,
+      "end": 1023.0,
+      "duration": 0.009999999999990905,
+      "text": "of a graph just hide these two edges it"
+    },
+    {
+      "start": 1023.0,
+      "end": 1025.75,
+      "duration": 2.75,
+      "text": "of a graph just hide these two edges it becomes a spanning tree now the question"
+    },
+    {
+      "start": 1025.75,
+      "end": 1025.76,
+      "duration": 0.009999999999990905,
+      "text": "becomes a spanning tree now the question"
+    },
+    {
+      "start": 1025.76,
+      "end": 1028.59,
+      "duration": 2.8299999999999272,
+      "text": "becomes a spanning tree now the question is what could be the minimum values of"
+    },
+    {
+      "start": 1028.59,
+      "end": 1028.6,
+      "duration": 0.009999999999990905,
+      "text": "is what could be the minimum values of"
+    },
+    {
+      "start": 1028.6,
+      "end": 1030.75,
+      "duration": 2.150000000000091,
+      "text": "is what could be the minimum values of these two edges what could be the"
+    },
+    {
+      "start": 1030.75,
+      "end": 1030.76,
+      "duration": 0.009999999999990905,
+      "text": "these two edges what could be the"
+    },
+    {
+      "start": 1030.76,
+      "end": 1032.63,
+      "duration": 1.8700000000001182,
+      "text": "these two edges what could be the minimum possible value maximum it can be"
+    },
+    {
+      "start": 1032.63,
+      "end": 1032.64,
+      "duration": 0.009999999999990905,
+      "text": "minimum possible value maximum it can be"
+    },
+    {
+      "start": 1032.64,
+      "end": 1034.829,
+      "duration": 2.188999999999851,
+      "text": "minimum possible value maximum it can be anything but at least what could be the"
+    },
+    {
+      "start": 1034.829,
+      "end": 1034.839,
+      "duration": 0.009999999999990905,
+      "text": "anything but at least what could be the"
+    },
+    {
+      "start": 1034.839,
+      "end": 1038.51,
+      "duration": 3.671000000000049,
+      "text": "anything but at least what could be the value see as this is included in a"
+    },
+    {
+      "start": 1038.51,
+      "end": 1038.52,
+      "duration": 0.009999999999990905,
+      "text": "value see as this is included in a"
+    },
+    {
+      "start": 1038.52,
+      "end": 1040.35,
+      "duration": 1.8299999999999272,
+      "text": "value see as this is included in a spanning tree this is included in a"
+    },
+    {
+      "start": 1040.35,
+      "end": 1040.36,
+      "duration": 0.009999999999990905,
+      "text": "spanning tree this is included in a"
+    },
+    {
+      "start": 1040.36,
+      "end": 1041.909,
+      "duration": 1.5490000000002055,
+      "text": "spanning tree this is included in a spanning tree this is not included"
+    },
+    {
+      "start": 1041.909,
+      "end": 1041.919,
+      "duration": 0.009999999999990905,
+      "text": "spanning tree this is not included"
+    },
+    {
+      "start": 1041.919,
+      "end": 1044.669,
+      "duration": 2.75,
+      "text": "spanning tree this is not included because it is forming a cycle so it is"
+    },
+    {
+      "start": 1044.669,
+      "end": 1044.679,
+      "duration": 0.009999999999990905,
+      "text": "because it is forming a cycle so it is"
+    },
+    {
+      "start": 1044.679,
+      "end": 1046.59,
+      "duration": 1.9109999999998308,
+      "text": "because it is forming a cycle so it is forming a cycle if it is included this"
+    },
+    {
+      "start": 1046.59,
+      "end": 1046.6,
+      "duration": 0.009999999999990905,
+      "text": "forming a cycle if it is included this"
+    },
+    {
+      "start": 1046.6,
+      "end": 1048.95,
+      "duration": 2.3500000000001364,
+      "text": "forming a cycle if it is included this will form a cycle so it may be"
+    },
+    {
+      "start": 1048.95,
+      "end": 1048.96,
+      "duration": 0.009999999999990905,
+      "text": "will form a cycle so it may be"
+    },
+    {
+      "start": 1048.96,
+      "end": 1051.669,
+      "duration": 2.70900000000006,
+      "text": "will form a cycle so it may be considered after selecting these two"
+    },
+    {
+      "start": 1051.669,
+      "end": 1051.679,
+      "duration": 0.009999999999990905,
+      "text": "considered after selecting these two"
+    },
+    {
+      "start": 1051.679,
+      "end": 1053.83,
+      "duration": 2.15099999999984,
+      "text": "considered after selecting these two after selecting these two so the weight"
+    },
+    {
+      "start": 1053.83,
+      "end": 1053.84,
+      "duration": 0.009999999999990905,
+      "text": "after selecting these two so the weight"
+    },
+    {
+      "start": 1053.84,
+      "end": 1057.11,
+      "duration": 3.269999999999982,
+      "text": "after selecting these two so the weight of this could be"
+    },
+    {
+      "start": 1057.12,
+      "end": 1059.549,
+      "duration": 2.4290000000000873,
+      "text": "four right first this is selected then"
+    },
+    {
+      "start": 1059.559,
+      "end": 1061.31,
+      "duration": 1.7509999999999764,
+      "text": "four right first this is selected then this is selected then this is not"
+    },
+    {
+      "start": 1061.31,
+      "end": 1061.32,
+      "duration": 0.009999999999990905,
+      "text": "this is selected then this is not"
+    },
+    {
+      "start": 1061.32,
+      "end": 1063.19,
+      "duration": 1.8700000000001182,
+      "text": "this is selected then this is not selected means definitely it is four if"
+    },
+    {
+      "start": 1063.19,
+      "end": 1063.2,
+      "duration": 0.009999999999990905,
+      "text": "selected means definitely it is four if"
+    },
+    {
+      "start": 1063.2,
+      "end": 1065.029,
+      "duration": 1.8289999999999509,
+      "text": "selected means definitely it is four if it is less than four then that would"
+    },
+    {
+      "start": 1065.029,
+      "end": 1065.039,
+      "duration": 0.009999999999990905,
+      "text": "it is less than four then that would"
+    },
+    {
+      "start": 1065.039,
+      "end": 1068.27,
+      "duration": 3.2309999999999945,
+      "text": "it is less than four then that would have been selected first right so it"
+    },
+    {
+      "start": 1068.27,
+      "end": 1068.28,
+      "duration": 0.009999999999990905,
+      "text": "have been selected first right so it"
+    },
+    {
+      "start": 1068.28,
+      "end": 1070.549,
+      "duration": 2.2690000000000055,
+      "text": "have been selected first right so it came later so it is forming a cycle so"
+    },
+    {
+      "start": 1070.549,
+      "end": 1070.559,
+      "duration": 0.009999999999990905,
+      "text": "came later so it is forming a cycle so"
+    },
+    {
+      "start": 1070.559,
+      "end": 1072.71,
+      "duration": 2.1510000000000673,
+      "text": "came later so it is forming a cycle so it is not taken then this four is taken"
+    },
+    {
+      "start": 1072.71,
+      "end": 1072.72,
+      "duration": 0.009999999999990905,
+      "text": "it is not taken then this four is taken"
+    },
+    {
+      "start": 1072.72,
+      "end": 1074.19,
+      "duration": 1.4700000000000273,
+      "text": "it is not taken then this four is taken then this four is taken this five is"
+    },
+    {
+      "start": 1074.19,
+      "end": 1074.2,
+      "duration": 0.009999999999990905,
+      "text": "then this four is taken this five is"
+    },
+    {
+      "start": 1074.2,
+      "end": 1075.87,
+      "duration": 1.6699999999998454,
+      "text": "then this four is taken this five is taken so then what could be the minimum"
+    },
+    {
+      "start": 1075.87,
+      "end": 1075.88,
+      "duration": 0.010000000000218279,
+      "text": "taken so then what could be the minimum"
+    },
+    {
+      "start": 1075.88,
+      "end": 1078.43,
+      "duration": 2.5499999999999545,
+      "text": "taken so then what could be the minimum weight of this one so it is not selected"
+    },
+    {
+      "start": 1078.43,
+      "end": 1078.44,
+      "duration": 0.009999999999990905,
+      "text": "weight of this one so it is not selected"
+    },
+    {
+      "start": 1078.44,
+      "end": 1080.59,
+      "duration": 2.1499999999998636,
+      "text": "weight of this one so it is not selected at last it is left over means minimum"
+    },
+    {
+      "start": 1080.59,
+      "end": 1080.6,
+      "duration": 0.009999999999990905,
+      "text": "at last it is left over means minimum"
+    },
+    {
+      "start": 1080.6,
+      "end": 1083.51,
+      "duration": 2.910000000000082,
+      "text": "at last it is left over means minimum weight of this one could be six so this"
+    },
+    {
+      "start": 1083.51,
+      "end": 1083.52,
+      "duration": 0.009999999999990905,
+      "text": "weight of this one could be six so this"
+    },
+    {
+      "start": 1083.52,
+      "end": 1085.27,
+      "duration": 1.75,
+      "text": "weight of this one could be six so this is four and that is"
+    },
+    {
+      "start": 1085.27,
+      "end": 1085.28,
+      "duration": 0.009999999999990905,
+      "text": "is four and that is"
+    },
+    {
+      "start": 1085.28,
+      "end": 1087.909,
+      "duration": 2.629000000000133,
+      "text": "is four and that is six so if any missing edges are there"
+    },
+    {
+      "start": 1087.909,
+      "end": 1087.919,
+      "duration": 0.009999999999990905,
+      "text": "six so if any missing edges are there"
+    },
+    {
+      "start": 1087.919,
+      "end": 1089.75,
+      "duration": 1.8309999999999036,
+      "text": "six so if any missing edges are there you can find out these type of problems"
+    },
+    {
+      "start": 1089.75,
+      "end": 1089.76,
+      "duration": 0.009999999999990905,
+      "text": "you can find out these type of problems"
+    },
+    {
+      "start": 1089.76,
+      "end": 1093.19,
+      "duration": 3.4300000000000637,
+      "text": "you can find out these type of problems we find in examinations so some missing"
+    },
+    {
+      "start": 1093.19,
+      "end": 1093.2,
+      "duration": 0.009999999999990905,
+      "text": "we find in examinations so some missing"
+    },
+    {
+      "start": 1093.2,
+      "end": 1095.07,
+      "duration": 1.8699999999998909,
+      "text": "we find in examinations so some missing edges you can find out so if you know"
+    },
+    {
+      "start": 1095.07,
+      "end": 1095.08,
+      "duration": 0.009999999999990905,
+      "text": "edges you can find out so if you know"
+    },
+    {
+      "start": 1095.08,
+      "end": 1096.71,
+      "duration": 1.6300000000001091,
+      "text": "edges you can find out so if you know spanning tree you can answer this type"
+    },
+    {
+      "start": 1096.71,
+      "end": 1096.72,
+      "duration": 0.009999999999990905,
+      "text": "spanning tree you can answer this type"
+    },
+    {
+      "start": 1096.72,
+      "end": 1099.43,
+      "duration": 2.7100000000000364,
+      "text": "spanning tree you can answer this type of question let us take this example and"
+    },
+    {
+      "start": 1099.43,
+      "end": 1099.44,
+      "duration": 0.009999999999990905,
+      "text": "of question let us take this example and"
+    },
+    {
+      "start": 1099.44,
+      "end": 1101.35,
+      "duration": 1.9099999999998545,
+      "text": "of question let us take this example and let us find out spanning tree for this"
+    },
+    {
+      "start": 1101.35,
+      "end": 1101.36,
+      "duration": 0.009999999999990905,
+      "text": "let us find out spanning tree for this"
+    },
+    {
+      "start": 1101.36,
+      "end": 1104.75,
+      "duration": 3.3900000000001,
+      "text": "let us find out spanning tree for this one minimum cost is spaning tree so if I"
+    },
+    {
+      "start": 1104.75,
+      "end": 1104.76,
+      "duration": 0.009999999999990905,
+      "text": "one minimum cost is spaning tree so if I"
+    },
+    {
+      "start": 1104.76,
+      "end": 1106.83,
+      "duration": 2.0699999999999363,
+      "text": "one minimum cost is spaning tree so if I follow crysals method so first I will"
+    },
+    {
+      "start": 1106.83,
+      "end": 1106.84,
+      "duration": 0.009999999999990905,
+      "text": "follow crysals method so first I will"
+    },
+    {
+      "start": 1106.84,
+      "end": 1109.35,
+      "duration": 2.509999999999991,
+      "text": "follow crysals method so first I will select the minimum cause Edge this Edge"
+    },
+    {
+      "start": 1109.35,
+      "end": 1109.36,
+      "duration": 0.009999999999990905,
+      "text": "select the minimum cause Edge this Edge"
+    },
+    {
+      "start": 1109.36,
+      "end": 1111.789,
+      "duration": 2.4290000000000873,
+      "text": "select the minimum cause Edge this Edge I have selected then the next minimum is"
+    },
+    {
+      "start": 1111.789,
+      "end": 1111.799,
+      "duration": 0.009999999999990905,
+      "text": "I have selected then the next minimum is"
+    },
+    {
+      "start": 1111.799,
+      "end": 1113.35,
+      "duration": 1.5509999999999309,
+      "text": "I have selected then the next minimum is this three and that three so I can"
+    },
+    {
+      "start": 1113.35,
+      "end": 1113.36,
+      "duration": 0.009999999999990905,
+      "text": "this three and that three so I can"
+    },
+    {
+      "start": 1113.36,
+      "end": 1116.19,
+      "duration": 2.8300000000001546,
+      "text": "this three and that three so I can select anyone so I'll select this one"
+    },
+    {
+      "start": 1116.19,
+      "end": 1116.2,
+      "duration": 0.009999999999990905,
+      "text": "select anyone so I'll select this one"
+    },
+    {
+      "start": 1116.2,
+      "end": 1119.31,
+      "duration": 3.1099999999999,
+      "text": "select anyone so I'll select this one first this selected next I'll select"
+    },
+    {
+      "start": 1119.31,
+      "end": 1119.32,
+      "duration": 0.009999999999990905,
+      "text": "first this selected next I'll select"
+    },
+    {
+      "start": 1119.32,
+      "end": 1121.83,
+      "duration": 2.509999999999991,
+      "text": "first this selected next I'll select this one so is it forming a cycle"
+    },
+    {
+      "start": 1121.83,
+      "end": 1121.84,
+      "duration": 0.009999999999990905,
+      "text": "this one so is it forming a cycle"
+    },
+    {
+      "start": 1121.84,
+      "end": 1124.549,
+      "duration": 2.70900000000006,
+      "text": "this one so is it forming a cycle inclusion of this one no so I'll select"
+    },
+    {
+      "start": 1124.549,
+      "end": 1124.559,
+      "duration": 0.009999999999990905,
+      "text": "inclusion of this one no so I'll select"
+    },
+    {
+      "start": 1124.559,
+      "end": 1126.87,
+      "duration": 2.310999999999922,
+      "text": "inclusion of this one no so I'll select that one then which are the edges four"
+    },
+    {
+      "start": 1126.87,
+      "end": 1126.88,
+      "duration": 0.010000000000218279,
+      "text": "that one then which are the edges four"
+    },
+    {
+      "start": 1126.88,
+      "end": 1128.87,
+      "duration": 1.9899999999997817,
+      "text": "that one then which are the edges four and four these two are there so I can"
+    },
+    {
+      "start": 1128.87,
+      "end": 1128.88,
+      "duration": 0.010000000000218279,
+      "text": "and four these two are there so I can"
+    },
+    {
+      "start": 1128.88,
+      "end": 1131.43,
+      "duration": 2.5499999999999545,
+      "text": "and four these two are there so I can select anyone so I'll select this one"
+    },
+    {
+      "start": 1131.43,
+      "end": 1131.44,
+      "duration": 0.009999999999990905,
+      "text": "select anyone so I'll select this one"
+    },
+    {
+      "start": 1131.44,
+      "end": 1134.11,
+      "duration": 2.6699999999998454,
+      "text": "select anyone so I'll select this one whether this will form any cycle no so"
+    },
+    {
+      "start": 1134.11,
+      "end": 1134.12,
+      "duration": 0.009999999999990905,
+      "text": "whether this will form any cycle no so"
+    },
+    {
+      "start": 1134.12,
+      "end": 1137.27,
+      "duration": 3.150000000000091,
+      "text": "whether this will form any cycle no so total how many edges I have selected 1 2"
+    },
+    {
+      "start": 1137.27,
+      "end": 1137.28,
+      "duration": 0.009999999999990905,
+      "text": "total how many edges I have selected 1 2"
+    },
+    {
+      "start": 1137.28,
+      "end": 1140.07,
+      "duration": 2.7899999999999636,
+      "text": "total how many edges I have selected 1 2 3 4 and total how many vertices are"
+    },
+    {
+      "start": 1140.07,
+      "end": 1140.08,
+      "duration": 0.009999999999990905,
+      "text": "3 4 and total how many vertices are"
+    },
+    {
+      "start": 1140.08,
+      "end": 1142.19,
+      "duration": 2.1100000000001273,
+      "text": "3 4 and total how many vertices are there five vertices are there so four"
+    },
+    {
+      "start": 1142.19,
+      "end": 1142.2,
+      "duration": 0.009999999999990905,
+      "text": "there five vertices are there so four"
+    },
+    {
+      "start": 1142.2,
+      "end": 1144.23,
+      "duration": 2.0299999999999727,
+      "text": "there five vertices are there so four edges are selected that's how I got a"
+    },
+    {
+      "start": 1144.23,
+      "end": 1144.24,
+      "duration": 0.009999999999990905,
+      "text": "edges are selected that's how I got a"
+    },
+    {
+      "start": 1144.24,
+      "end": 1146.23,
+      "duration": 1.990000000000009,
+      "text": "edges are selected that's how I got a spanning tree so what is the cost of the"
+    },
+    {
+      "start": 1146.23,
+      "end": 1146.24,
+      "duration": 0.009999999999990905,
+      "text": "spanning tree so what is the cost of the"
+    },
+    {
+      "start": 1146.24,
+      "end": 1151.95,
+      "duration": 5.710000000000036,
+      "text": "spanning tree so what is the cost of the spanning tree 2 + 3 + 3 + 4 and this is"
+    },
+    {
+      "start": 1151.95,
+      "end": 1151.96,
+      "duration": 0.009999999999990905,
+      "text": "spanning tree 2 + 3 + 3 + 4 and this is"
+    },
+    {
+      "start": 1151.96,
+      "end": 1154.51,
+      "duration": 2.5499999999999545,
+      "text": "spanning tree 2 + 3 + 3 + 4 and this is 12 spanning tree is a minimization"
+    },
+    {
+      "start": 1154.51,
+      "end": 1154.52,
+      "duration": 0.009999999999990905,
+      "text": "12 spanning tree is a minimization"
+    },
+    {
+      "start": 1154.52,
+      "end": 1156.71,
+      "duration": 2.1900000000000546,
+      "text": "12 spanning tree is a minimization result so definitely there will be only"
+    },
+    {
+      "start": 1156.71,
+      "end": 1156.72,
+      "duration": 0.009999999999990905,
+      "text": "result so definitely there will be only"
+    },
+    {
+      "start": 1156.72,
+      "end": 1158.669,
+      "duration": 1.9490000000000691,
+      "text": "result so definitely there will be only one result so for a problem there can be"
+    },
+    {
+      "start": 1158.669,
+      "end": 1158.679,
+      "duration": 0.009999999999990905,
+      "text": "one result so for a problem there can be"
+    },
+    {
+      "start": 1158.679,
+      "end": 1161.11,
+      "duration": 2.4309999999998126,
+      "text": "one result so for a problem there can be only one optimal solution so we should"
+    },
+    {
+      "start": 1161.11,
+      "end": 1161.12,
+      "duration": 0.009999999999990905,
+      "text": "only one optimal solution so we should"
+    },
+    {
+      "start": 1161.12,
+      "end": 1163.83,
+      "duration": 2.7100000000000364,
+      "text": "only one optimal solution so we should have exactly one spanning tree only"
+    },
+    {
+      "start": 1163.83,
+      "end": 1163.84,
+      "duration": 0.009999999999990905,
+      "text": "have exactly one spanning tree only"
+    },
+    {
+      "start": 1163.84,
+      "end": 1165.95,
+      "duration": 2.1100000000001273,
+      "text": "have exactly one spanning tree only there cannot be more than one spanning"
+    },
+    {
+      "start": 1165.95,
+      "end": 1165.96,
+      "duration": 0.009999999999990905,
+      "text": "there cannot be more than one spanning"
+    },
+    {
+      "start": 1165.96,
+      "end": 1169.149,
+      "duration": 3.188999999999851,
+      "text": "there cannot be more than one spanning tree right but in this example you can"
+    },
+    {
+      "start": 1169.149,
+      "end": 1169.159,
+      "duration": 0.010000000000218279,
+      "text": "tree right but in this example you can"
+    },
+    {
+      "start": 1169.159,
+      "end": 1171.75,
+      "duration": 2.5909999999998945,
+      "text": "tree right but in this example you can see instead of taking this"
+    },
+    {
+      "start": 1171.75,
+      "end": 1171.76,
+      "duration": 0.009999999999990905,
+      "text": "see instead of taking this"
+    },
+    {
+      "start": 1171.76,
+      "end": 1178.07,
+      "duration": 6.309999999999945,
+      "text": "see instead of taking this four this Edge I can take this four"
+    },
+    {
+      "start": 1178.08,
+      "end": 1180.63,
+      "duration": 2.550000000000182,
+      "text": "also now also it's forming a spanning"
+    },
+    {
+      "start": 1180.64,
+      "end": 1184.029,
+      "duration": 3.3889999999998963,
+      "text": "also now also it's forming a spanning tree yes so I can select one more but"
+    },
+    {
+      "start": 1184.029,
+      "end": 1184.039,
+      "duration": 0.009999999999990905,
+      "text": "tree yes so I can select one more but"
+    },
+    {
+      "start": 1184.039,
+      "end": 1187.029,
+      "duration": 2.990000000000009,
+      "text": "tree yes so I can select one more but what is the cost cost is 12 so cost is"
+    },
+    {
+      "start": 1187.029,
+      "end": 1187.039,
+      "duration": 0.009999999999990905,
+      "text": "what is the cost cost is 12 so cost is"
+    },
+    {
+      "start": 1187.039,
+      "end": 1190.51,
+      "duration": 3.4710000000000036,
+      "text": "what is the cost cost is 12 so cost is only one the optimal cost is 12 only you"
+    },
+    {
+      "start": 1190.51,
+      "end": 1190.52,
+      "duration": 0.009999999999990905,
+      "text": "only one the optimal cost is 12 only you"
+    },
+    {
+      "start": 1190.52,
+      "end": 1192.99,
+      "duration": 2.4700000000000273,
+      "text": "only one the optimal cost is 12 only you will get definitely only one answer in"
+    },
+    {
+      "start": 1192.99,
+      "end": 1193.0,
+      "duration": 0.009999999999990905,
+      "text": "will get definitely only one answer in"
+    },
+    {
+      "start": 1193.0,
+      "end": 1195.63,
+      "duration": 2.630000000000109,
+      "text": "will get definitely only one answer in the minimization OR maximization problem"
+    },
+    {
+      "start": 1195.63,
+      "end": 1195.64,
+      "duration": 0.009999999999990905,
+      "text": "the minimization OR maximization problem"
+    },
+    {
+      "start": 1195.64,
+      "end": 1198.029,
+      "duration": 2.3889999999998963,
+      "text": "the minimization OR maximization problem but for that answer the set of input may"
+    },
+    {
+      "start": 1198.029,
+      "end": 1198.039,
+      "duration": 0.009999999999990905,
+      "text": "but for that answer the set of input may"
+    },
+    {
+      "start": 1198.039,
+      "end": 1200.11,
+      "duration": 2.0709999999999127,
+      "text": "but for that answer the set of input may be changed"
+    },
+    {
+      "start": 1200.11,
+      "end": 1200.12,
+      "duration": 0.009999999999990905,
+      "text": "be changed"
+    },
+    {
+      "start": 1200.12,
+      "end": 1202.47,
+      "duration": 2.3500000000001364,
+      "text": "be changed so either you can include this four or"
+    },
+    {
+      "start": 1202.47,
+      "end": 1202.48,
+      "duration": 0.009999999999990905,
+      "text": "so either you can include this four or"
+    },
+    {
+      "start": 1202.48,
+      "end": 1204.789,
+      "duration": 2.308999999999969,
+      "text": "so either you can include this four or this four so total how many spanning"
+    },
+    {
+      "start": 1204.789,
+      "end": 1204.799,
+      "duration": 0.009999999999990905,
+      "text": "this four so total how many spanning"
+    },
+    {
+      "start": 1204.799,
+      "end": 1206.83,
+      "duration": 2.030999999999949,
+      "text": "this four so total how many spanning trees are trees are possible two"
+    },
+    {
+      "start": 1206.83,
+      "end": 1206.84,
+      "duration": 0.009999999999990905,
+      "text": "trees are trees are possible two"
+    },
+    {
+      "start": 1206.84,
+      "end": 1208.95,
+      "duration": 2.1100000000001273,
+      "text": "trees are trees are possible two spanning trees are possible but what is"
+    },
+    {
+      "start": 1208.95,
+      "end": 1208.96,
+      "duration": 0.009999999999990905,
+      "text": "spanning trees are possible but what is"
+    },
+    {
+      "start": 1208.96,
+      "end": 1213.679,
+      "duration": 4.719000000000051,
+      "text": "spanning trees are possible but what is the minimum cost that is 12"
+    }
+  ],
+  "language": "en",
+  "is_auto_generated": false,
+  "has_timestamps": true,
+  "title": "3.5 Prims and Kruskals Algorithms - Greedy Method",
+  "author": "Abdul Bari",
+  "duration": 1212,
+  "thumbnail": "https://i.ytimg.com/vi/4ZlRH0eK-qQ/maxresdefault.jpg"
+}

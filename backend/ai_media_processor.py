@@ -1,7 +1,17 @@
 """
 AI-Powered Media Processing System
-Uses official YouTube Data API v3 for production/AWS deployment
-Uses free APIs for transcription and AI analysis
+
+IMPORTANT: This system uses FREE APIs with the following limits:
+- YouTube transcripts: yt-dlp (unlimited, no API key needed)
+- AI Analysis: Groq API (free tier: 14,400 requests/day, 30 req/min)
+- Fallback: Gemini API (free tier: 1,500 requests/day, 15 req/min)
+
+If you see "quota exceeded" or "out of credits" errors:
+1. Wait for quota reset (resets daily)
+2. Get a new Gemini API key from https://makersuite.google.com/app/apikey
+3. Increase Groq usage (higher limits) by setting GROQ_API_KEY in .env
+
+The system automatically falls back to Groq when Gemini hits limits.
 """
 import os
 import json
@@ -50,6 +60,7 @@ except ImportError:
 
 # YouTube API Service (official API)
 from youtube_api_service import youtube_service, YouTubeAPIService
+from rate_limiter import rate_limiter
 
 logger = logging.getLogger(__name__)
 
@@ -70,18 +81,21 @@ class AIMediaProcessor:
     """
     
     def __init__(self):
-        # Initialize Gemini model if available
+        # Prioritize Groq over Gemini (higher free tier limits)
+        self.groq_client = groq_client
+        self.youtube_service = youtube_service
+        
+        # Gemini as fallback only (has strict rate limits)
         if GEMINI_AVAILABLE and GEMINI_API_KEY:
             try:
                 self.gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+                logger.info("Gemini available as fallback (Groq is primary)")
             except Exception as e:
                 logger.warning(f"Could not initialize Gemini: {e}")
                 self.gemini_model = None
         else:
             self.gemini_model = None
-        
-        self.groq_client = groq_client
-        self.youtube_service = youtube_service
+            logger.info("Using Groq exclusively for AI processing")
     
     async def process_youtube_video(self, url: str, options: Dict = None) -> Dict:
         """
@@ -190,19 +204,25 @@ class AIMediaProcessor:
             }
     
     async def analyze_transcript_ai(self, transcript: str, options: Dict = None) -> Dict:
-        """AI analysis of transcript using Groq (FREE with high limits)"""
+        """AI analysis of transcript using Groq (FREE with high limits), falls back to Gemini"""
         try:
-            if not self.groq_client:
-                raise ValueError("Groq client not available")
-            
-            options = options or {}
-            subject = options.get('subject', 'general')
-            difficulty = options.get('difficulty', 'intermediate')
-            
-            # Use more of the transcript for analysis (up to 30k chars)
-            transcript_sample = transcript[:30000]
-            
-            prompt = f"""Analyze this transcript and provide a comprehensive analysis:
+            # Try Groq first
+            if self.groq_client:
+                try:
+                    # Check rate limit
+                    can_call, wait_time = rate_limiter.can_call_groq()
+                    if not can_call:
+                        logger.warning(f"Groq rate limit reached, waiting {wait_time:.1f} seconds...")
+                        await asyncio.sleep(wait_time + 1)
+                    
+                    options = options or {}
+                    subject = options.get('subject', 'general')
+                    difficulty = options.get('difficulty', 'intermediate')
+                    
+                    # Use more of the transcript for analysis (up to 30k chars)
+                    transcript_sample = transcript[:30000]
+                    
+                    prompt = f"""Analyze this transcript and provide a comprehensive analysis:
 
 Transcript: {transcript_sample}
 
@@ -218,45 +238,105 @@ Provide a JSON response with:
 
 Format as valid JSON."""
 
-            # Use Groq with higher token limit
-            response = self.groq_client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[
-                    {"role": "system", "content": "You are an expert educational content analyzer. Always respond with valid JSON."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=4000
-            )
+                    # Use Groq with higher token limit
+                    rate_limiter.record_groq_call()
+                    response = self.groq_client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=[
+                            {"role": "system", "content": "You are an expert educational content analyzer. Always respond with valid JSON."},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.7,
+                        max_tokens=4000
+                    )
+                    
+                    result_text = response.choices[0].message.content
+                    
+                    try:
+                        # Extract JSON if wrapped in markdown
+                        if "```json" in result_text:
+                            result_text = result_text.split("```json")[1].split("```")[0]
+                        elif "```" in result_text:
+                            result_text = result_text.split("```")[1].split("```")[0]
+                        
+                        analysis = json.loads(result_text.strip())
+                    except Exception as parse_error:
+                        logger.warning(f"JSON parse error: {parse_error}, creating fallback response")
+                        # Fallback: create structured response
+                        analysis = {
+                            "key_concepts": self._extract_concepts(transcript),
+                            "topics": [subject],
+                            "difficulty_level": difficulty,
+                            "estimated_study_time": max(10, len(transcript.split()) // 150),
+                            "summary": result_text[:500] if result_text else "Content analysis",
+                            "action_items": [],
+                            "questions": [],
+                            "language": "en"
+                        }
+                    
+                    return {
+                        "success": True,
+                        "analysis": analysis
+                    }
+                    
+                except Exception as groq_error:
+                    error_msg = str(groq_error)
+                    if "429" in error_msg or "rate_limit" in error_msg.lower():
+                        logger.warning(f"Groq rate limit hit, falling back to Gemini: {error_msg}")
+                        # Fall through to Gemini
+                    else:
+                        raise
             
-            result_text = response.choices[0].message.content
-            
-            try:
-                # Extract JSON if wrapped in markdown
-                if "```json" in result_text:
-                    result_text = result_text.split("```json")[1].split("```")[0]
-                elif "```" in result_text:
-                    result_text = result_text.split("```")[1].split("```")[0]
+            # Fallback to Gemini if Groq fails or unavailable
+            if self.gemini_model:
+                logger.info("Using Gemini as fallback for analysis")
+                options = options or {}
+                subject = options.get('subject', 'general')
+                difficulty = options.get('difficulty', 'intermediate')
+                transcript_sample = transcript[:30000]
                 
-                analysis = json.loads(result_text.strip())
-            except Exception as parse_error:
-                logger.warning(f"JSON parse error: {parse_error}, creating fallback response")
-                # Fallback: create structured response
-                analysis = {
-                    "key_concepts": self._extract_concepts(transcript),
-                    "topics": [subject],
-                    "difficulty_level": difficulty,
-                    "estimated_study_time": max(10, len(transcript.split()) // 150),
-                    "summary": result_text[:500] if result_text else "Content analysis",
-                    "action_items": [],
-                    "questions": [],
-                    "language": "en"
+                prompt = f"""Analyze this transcript and provide a comprehensive analysis in JSON format:
+
+Transcript: {transcript_sample}
+
+Provide a JSON response with:
+1. key_concepts: Array of main concepts (max 20)
+2. topics: Array of topics covered
+3. difficulty_level: beginner/intermediate/advanced
+4. estimated_study_time: minutes needed to study this
+5. summary: Comprehensive 5-7 sentence summary
+6. action_items: Things to remember or do
+7. questions: 10 study questions
+8. language: detected language code"""
+
+                response = self.gemini_model.generate_content(prompt)
+                result_text = response.text
+                
+                try:
+                    if "```json" in result_text:
+                        result_text = result_text.split("```json")[1].split("```")[0]
+                    elif "```" in result_text:
+                        result_text = result_text.split("```")[1].split("```")[0]
+                    
+                    analysis = json.loads(result_text.strip())
+                except:
+                    analysis = {
+                        "key_concepts": self._extract_concepts(transcript),
+                        "topics": [subject],
+                        "difficulty_level": difficulty,
+                        "estimated_study_time": max(10, len(transcript.split()) // 150),
+                        "summary": result_text[:500] if result_text else "Content analysis",
+                        "action_items": [],
+                        "questions": [],
+                        "language": "en"
+                    }
+                
+                return {
+                    "success": True,
+                    "analysis": analysis
                 }
             
-            return {
-                "success": True,
-                "analysis": analysis
-            }
+            raise ValueError("No AI service available (both Groq and Gemini unavailable)")
             
         except Exception as e:
             logger.error(f"AI analysis error: {str(e)}")
@@ -280,8 +360,8 @@ Format as valid JSON."""
             word_count = len(transcript.split())
             logger.info(f"Transcript word count: {word_count}")
             
-            # For very long transcripts, use chunking with Groq
-            if word_count > 8000 and style == "detailed":
+            # For very long transcripts (>12k words), use chunking with Groq
+            if word_count > 12000 and style == "detailed":
                 logger.info("Using chunked processing for long transcript")
                 return await self._generate_notes_chunked_groq(transcript, analysis, difficulty, subject, custom_instructions)
             
@@ -311,6 +391,14 @@ KEY CONCEPTS TO ELABORATE ON:
 COMPLETE LECTURE TRANSCRIPT:
 {transcript}
 
+IMPORTANT INSTRUCTIONS:
+1. Base your notes ONLY on the content from the transcript above
+2. Do NOT add information that wasn't mentioned in the lecture
+3. Organize and explain what the lecturer actually said
+4. You can rephrase for clarity, but stay true to the source material
+5. If the lecturer gives examples, include them
+6. If concepts are explained in the video, use those explanations
+
 FORMAT YOUR NOTES AS HTML:
 - Use <h2> for main sections (e.g., "Introduction", "Core Concepts", "Applications")
 - Use <h3> for major topics within sections
@@ -326,6 +414,7 @@ CRITICAL: Make these notes COMPREHENSIVE and DETAILED. Students should be able t
 Return ONLY the HTML content (no markdown code blocks, no ```html tags)."""
 
             # Use Groq with maximum output tokens
+            rate_limiter.record_groq_call()
             response = self.groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[
@@ -360,21 +449,26 @@ Return ONLY the HTML content (no markdown code blocks, no ```html tags)."""
     async def _generate_notes_chunked_groq(self, transcript: str, analysis: Dict, difficulty: str, subject: str, custom_instructions: str) -> Dict:
         """Generate notes in chunks for very long transcripts using Groq, then combine"""
         try:
-            # Split transcript into chunks (roughly 7k words each for Groq)
+            # Split transcript into chunks (roughly 10k words each to minimize API calls)
             words = transcript.split()
-            chunk_size = 7000
+            chunk_size = 10000  # Increased to reduce number of API calls
             chunks = []
             
             for i in range(0, len(words), chunk_size):
                 chunk = ' '.join(words[i:i + chunk_size])
                 chunks.append(chunk)
             
-            logger.info(f"Processing {len(chunks)} chunks with Groq")
+            logger.info(f"Processing {len(chunks)} chunks with Groq (rate limit: 30 req/min)")
             
-            # Generate notes for each chunk
+            # Generate notes for each chunk with rate limit handling
             all_notes = []
             for idx, chunk in enumerate(chunks):
                 logger.info(f"Processing chunk {idx + 1}/{len(chunks)}")
+                
+                # Add delay between chunks to avoid rate limits (Groq: 30 req/min)
+                if idx > 0:
+                    logger.info("Waiting 3 seconds to avoid rate limits...")
+                    await asyncio.sleep(3)
                 
                 prompt = f"""Create comprehensive study notes for PART {idx + 1} of {len(chunks)} of a lecture.
 
@@ -384,6 +478,8 @@ Key Concepts: {json.dumps(analysis.get('key_concepts', []))}
 
 LECTURE CONTENT (Part {idx + 1}/{len(chunks)}):
 {chunk}
+
+IMPORTANT: Base your notes ONLY on the content from this transcript section. Do NOT add information that wasn't mentioned. Organize and explain what was actually said in the lecture.
 
 Create DETAILED HTML notes for this section:
 - Use <h3> for main topics
@@ -398,17 +494,40 @@ Make this comprehensive - students should understand the material from your note
 
 Return ONLY HTML content (no markdown)."""
 
-                response = self.groq_client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=[
-                        {"role": "system", "content": "You are an expert educational content writer creating detailed study notes."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=0.7,
-                    max_tokens=8000
-                )
-                
-                all_notes.append(response.choices[0].message.content)
+                # Retry logic for rate limits
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        # Check rate limit before calling
+                        can_call, wait_time = rate_limiter.can_call_groq()
+                        if not can_call:
+                            logger.warning(f"Rate limit check: waiting {wait_time:.1f} seconds...")
+                            await asyncio.sleep(wait_time + 1)
+                        
+                        rate_limiter.record_groq_call()
+                        response = self.groq_client.chat.completions.create(
+                            model="llama-3.3-70b-versatile",
+                            messages=[
+                                {"role": "system", "content": "You are an expert educational content writer creating detailed study notes."},
+                                {"role": "user", "content": prompt}
+                            ],
+                            temperature=0.7,
+                            max_tokens=8000
+                        )
+                        
+                        all_notes.append(response.choices[0].message.content)
+                        break  # Success, exit retry loop
+                        
+                    except Exception as e:
+                        if "429" in str(e) or "rate" in str(e).lower():
+                            if attempt < max_retries - 1:
+                                wait_time = (attempt + 1) * 10  # 10, 20, 30 seconds
+                                logger.warning(f"Rate limit hit, waiting {wait_time} seconds...")
+                                await asyncio.sleep(wait_time)
+                            else:
+                                raise Exception("Groq rate limit exceeded. Please wait 1 minute and try again.")
+                        else:
+                            raise
             
             # Combine all chunks with section headers
             combined_html = f"""<div class="lecture-notes">

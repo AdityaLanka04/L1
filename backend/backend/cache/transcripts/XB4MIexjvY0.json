@@ -1,0 +1,4729 @@
+{
+  "success": true,
+  "transcript": "topic is dtra algorithm this algorithm topic is dtra algorithm this algorithm is for single Source shortest path is for single Source shortest path is for single Source shortest path problem if a weighted graph is given problem if a weighted graph is given problem if a weighted graph is given then we have to find our shortest path then we have to find our shortest path then we have to find our shortest path from some starting vertex to all of the from some starting vertex to all of the from some starting vertex to all of the vertexes let us say I'm selecting vertexes let us say I'm selecting vertexes let us say I'm selecting starting vertex as one then I have to starting vertex as one then I have to starting vertex as one then I have to find out shortest path to all the find out shortest path to all the find out shortest path to all the vertexes maybe a direct path or via vertexes maybe a direct path or via vertexes maybe a direct path or via other vertices and I can select any one other vertices and I can select any one other vertices and I can select any one of the vertex as a source vertex of the vertex as a source vertex of the vertex as a source vertex as we have to find out a shortest path as we have to find out a shortest path as we have to find out a shortest path so it's a minimization problem and the so it's a minimization problem and the so it's a minimization problem and the minimization problem is an optimization minimization problem is an optimization minimization problem is an optimization problem so optimization problems can be problem so optimization problems can be problem so optimization problems can be solved using greedy method greedy method solved using greedy method greedy method solved using greedy method greedy method says that a problem should be solved in says that a problem should be solved in says that a problem should be solved in stages by taking one step at a time and stages by taking one step at a time and stages by taking one step at a time and considering one input at a time to get a considering one input at a time to get a considering one input at a time to get a optimal solution and in Greedy method optimal solution and in Greedy method optimal solution and in Greedy method there are predefined procedures and we there are predefined procedures and we there are predefined procedures and we follow that procedure to get a follow that procedure to get a follow that procedure to get a optimal optimal optimal solution so Dix algorithm gives a solution so Dix algorithm gives a solution so Dix algorithm gives a procedure for getting a optimal solution procedure for getting a optimal solution procedure for getting a optimal solution that is minimum result that is shortest that is minimum result that is shortest that is minimum result that is shortest part in this video I will show how a part in this video I will show how a part in this video I will show how a dixar algorithms works and the disra dixar algorithms works and the disra dixar algorithms works and the disra algorithm can work on a directed as well algorithm can work on a directed as well algorithm can work on a directed as well as non-directed graph and also I will as non-directed graph and also I will as non-directed graph and also I will show you the drawback of dixa show you the drawback of dixa show you the drawback of dixa algorithm let us see the approach of algorithm let us see the approach of algorithm let us see the approach of dixar algorithm for that I'll show you dixar algorithm for that I'll show you dixar algorithm for that I'll show you the base basic thing that is followed by the base basic thing that is followed by the base basic thing that is followed by dexra so for that first of all I'll take dexra so for that first of all I'll take dexra so for that first of all I'll take a very small example and show a very small example and show a very small example and show you to show the approach of Dix you to show the approach of Dix you to show the approach of Dix algorithm I have taken a very small algorithm I have taken a very small algorithm I have taken a very small graph here from this we will understand graph here from this we will understand graph here from this we will understand what is the approach of thra if I say what is the approach of thra if I say what is the approach of thra if I say one is the starting vertex and I want to one is the starting vertex and I want to one is the starting vertex and I want to find the shortest path to two as well as find the shortest path to two as well as find the shortest path to two as well as three so if you see from this graph three so if you see from this graph three so if you see from this graph there is a direct path to Vex 2 so its there is a direct path to Vex 2 so its there is a direct path to Vex 2 so its cost is 2 and there is no direct path to cost is 2 and there is no direct path to cost is 2 and there is no direct path to three so we don't know what is the three so we don't know what is the three so we don't know what is the path first of all we consider a direct path first of all we consider a direct path first of all we consider a direct Edge path but now if we follow this Edge path but now if we follow this Edge path but now if we follow this algorithm we'll be selecting first the algorithm we'll be selecting first the algorithm we'll be selecting first the shortest path vertex so this is shortest shortest path vertex so this is shortest shortest path vertex so this is shortest because this is two that is infinity so because this is two that is infinity so because this is two that is infinity so we'll select this one and Di says that we'll select this one and Di says that we'll select this one and Di says that once you have selected one of the once you have selected one of the once you have selected one of the shortest path then check via that vertex shortest path then check via that vertex shortest path then check via that vertex from that vertex there is any shortest from that vertex there is any shortest from that vertex there is any shortest path to other vertices so let us check path to other vertices so let us check path to other vertices so let us check who is connected to two so from two we who is connected to two so from two we who is connected to two so from two we can go three this is 2 + 4 that is 6 and can go three this is 2 + 4 that is 6 and can go three this is 2 + 4 that is 6 and right now it is infinity yes this right now it is infinity yes this right now it is infinity yes this Infinity can be changed to six this Infinity can be changed to six this Infinity can be changed to six this means that there is a shortest path from means that there is a shortest path from means that there is a shortest path from verx 1 to 3 of distance 6 no doubt it's verx 1 to 3 of distance 6 no doubt it's verx 1 to 3 of distance 6 no doubt it's not a direct path it's coming via two not a direct path it's coming via two not a direct path it's coming via two but there is a path that's how the Dix but there is a path that's how the Dix but there is a path that's how the Dix algorithm always select a Vertex with a algorithm always select a Vertex with a algorithm always select a Vertex with a short shortest path then it will update short shortest path then it will update short shortest path then it will update the shortest path to other vertices if the shortest path to other vertices if the shortest path to other vertices if possible and this updation is called as possible and this updation is called as possible and this updation is called as relaxation let me show you how this relaxation let me show you how this relaxation let me show you how this relaxation works for that I will call relaxation works for that I will call relaxation works for that I will call this vertex as U and this vertex as V this vertex as U and this vertex as V this vertex as U and this vertex as V and this is distance of U and this is and this is distance of U and this is and this is distance of U and this is distance of V initially it was Infinity distance of V initially it was Infinity distance of V initially it was Infinity now it is change to six and this is cost now it is change to six and this is cost now it is change to six and this is cost of an H from U to V so here relaxation of an H from U to V so here relaxation of an H from U to V so here relaxation means if the distance of vertex U + cost means if the distance of vertex U + cost means if the distance of vertex U + cost of an edge U comma V is less than of an edge U comma V is less than of an edge U comma V is less than distance of vertex V see here the distance of vertex V see here the distance of vertex V see here the distance of U was 2 and the cost of an distance of U was 2 and the cost of an distance of U was 2 and the cost of an edge was 4 and this was initially edge was 4 and this was initially edge was 4 and this was initially Infinity so this 2 + 4 is less than Infinity so this 2 + 4 is less than Infinity so this 2 + 4 is less than infinity yes so we have modified this to infinity yes so we have modified this to infinity yes so we have modified this to six so we'll modify this one that is six so we'll modify this one that is six so we'll modify this one that is distance of V is modified to distance of distance of V is modified to distance of distance of V is modified to distance of U Plus cost of an edge U comma V this what we followed and this is V this what we followed and this is called as relaxation and we do called as relaxation and we do called as relaxation and we do relaxation for the vertices whenever we relaxation for the vertices whenever we relaxation for the vertices whenever we select a shortest path we will try to select a shortest path we will try to select a shortest path we will try to relax other relax other relax other vertices now let us follow this vertices now let us follow this vertices now let us follow this procedure and solve this graph problem procedure and solve this graph problem procedure and solve this graph problem to find the shortest to find the shortest to find the shortest path let me solve this graph problem for path let me solve this graph problem for path let me solve this graph problem for this I will select this vertex as the this I will select this vertex as the this I will select this vertex as the source vertex starting vertex s starting source vertex starting vertex s starting source vertex starting vertex s starting vertex now I will give the distances for vertex now I will give the distances for vertex now I will give the distances for all the vertices by considering just all the vertices by considering just all the vertices by considering just single edge so I will label the single edge so I will label the single edge so I will label the distances above those vertices only this distances above those vertices only this distances above those vertices only this distance is zero and this distance is distance is zero and this distance is distance is zero and this distance is two this distance is two this distance is two this distance is 4 from 1 to 4 there is no direct catch 4 from 1 to 4 there is no direct catch 4 from 1 to 4 there is no direct catch Infinity from 1 to 5 there is no direct Infinity from 1 to 5 there is no direct Infinity from 1 to 5 there is no direct Edge Infinity similarly six is also Edge Infinity similarly six is also Edge Infinity similarly six is also Infinity Infinity Infinity except two and three all are Infinity except two and three all are Infinity except two and three all are Infinity this is the initial thing that we should this is the initial thing that we should this is the initial thing that we should do for any do for any do for any graph now let us start the repeating graph now let us start the repeating graph now let us start the repeating steps now the steps will be repeating steps now the steps will be repeating steps now the steps will be repeating First Step select a shortest path out of First Step select a shortest path out of First Step select a shortest path out of 2 4 infinity infinity infinity this is 2 4 infinity infinity infinity this is 2 4 infinity infinity infinity this is smallest select this one once we smallest select this one once we smallest select this one once we selected this we should perform selected this we should perform selected this we should perform relaxation what is that check who are relaxation what is that check who are relaxation what is that check who are connected three and four are connected connected three and four are connected connected three and four are connected just check the distance of U that is 2 + just check the distance of U that is 2 + just check the distance of U that is 2 + 1 3 and this is 4 3 is less than 4 1 3 and this is 4 3 is less than 4 1 3 and this is 4 3 is less than 4 modify modify modify this then this is also connected 2 + 7 7 this then this is also connected 2 + 7 7 this then this is also connected 2 + 7 7 is this is N9 and this is infinity is this is N9 and this is infinity is this is N9 and this is infinity modify this modify this modify this nine that's all some vertices are nine that's all some vertices are nine that's all some vertices are relaxed they may or may not relax but we relaxed they may or may not relax but we relaxed they may or may not relax but we should check this one now second step should check this one now second step should check this one now second step now the step is repeating same thing I now the step is repeating same thing I now the step is repeating same thing I should do select the smallest one 3 should do select the smallest one 3 should do select the smallest one 3 Infinity 9 Infinity which one is the Infinity 9 Infinity which one is the Infinity 9 Infinity which one is the smallest shortest this one select this smallest shortest this one select this smallest shortest this one select this one now check if any vertex get relaxed one now check if any vertex get relaxed one now check if any vertex get relaxed so there is only one connected it's 3 + so there is only one connected it's 3 + so there is only one connected it's 3 + 3 6 this is infinity so change 3 6 this is infinity so change 3 6 this is infinity so change it now select the shortest out of what 6 it now select the shortest out of what 6 it now select the shortest out of what 6 9 Infinity which one is shortest this 9 Infinity which one is shortest this 9 Infinity which one is shortest this one select this one and see who are one select this one and see who are one select this one and see who are connected and try to relax them so 6 + 2 connected and try to relax them so 6 + 2 connected and try to relax them so 6 + 2 is 8 and is 9 so this is more smaller is 8 and is 9 so this is more smaller is 8 and is 9 so this is more smaller modifi it 6 + 5 is 11 this is infinity modifi it 6 + 5 is 11 this is infinity modifi it 6 + 5 is 11 this is infinity modified so two vertices are modified modified so two vertices are modified modified so two vertices are modified they are relaxed now who are remaining they are relaxed now who are remaining they are relaxed now who are remaining four and six who is minimum eight select four and six who is minimum eight select four and six who is minimum eight select this this this one and check if anything gets relaxed 8 one and check if anything gets relaxed 8 one and check if anything gets relaxed 8 + 1 is 9 it's already 11 modified so here I have taken an example most of so here I have taken an example most of the time the vertices are modifying the time the vertices are modifying the time the vertices are modifying their distances are modifying they may their distances are modifying they may their distances are modifying they may or may not modify now the last one is or may not modify now the last one is or may not modify now the last one is remaining is six so now we have the remaining is six so now we have the remaining is six so now we have the shortest part from starting vertex one shortest part from starting vertex one shortest part from starting vertex one to all the vertexes so what are the to all the vertexes so what are the to all the vertexes so what are the other vertices 2 3 4 5 and 6 what are other vertices 2 3 4 5 and 6 what are other vertices 2 3 4 5 and 6 what are the distances I got for 2 it is 2 and the distances I got for 2 it is 2 and the distances I got for 2 it is 2 and three it is three and four it is 8 five three it is three and four it is 8 five three it is three and four it is 8 five is six and 6 is 9 these are the is six and 6 is 9 these are the is six and 6 is 9 these are the distances of all the vertices and these distances of all the vertices and these distances of all the vertices and these are the set of vertices these are DVS are the set of vertices these are DVS are the set of vertices these are DVS and these are and these are and these are vertices so that's how a Tex algorithm vertices so that's how a Tex algorithm vertices so that's how a Tex algorithm works on a graph to find the shortest works on a graph to find the shortest works on a graph to find the shortest path let us little bit analyze and find path let us little bit analyze and find path let us little bit analyze and find out the time complexity of this out the time complexity of this out the time complexity of this algorithm if you analyze what it is algorithm if you analyze what it is algorithm if you analyze what it is doing it is finding shortest path to all doing it is finding shortest path to all doing it is finding shortest path to all the vertices how many vertices are there the vertices how many vertices are there the vertices how many vertices are there these are the vertices or we can also these are the vertices or we can also these are the vertices or we can also say n number of vertices so for all say n number of vertices so for all say n number of vertices so for all vertices it's finding shortest path vertices it's finding shortest path vertices it's finding shortest path while doing so what it is doing it is while doing so what it is doing it is while doing so what it is doing it is relaxing relaxing which vertexes when it relaxing relaxing which vertexes when it relaxing relaxing which vertexes when it is on three it is relaxed it has relaxed is on three it is relaxed it has relaxed is on three it is relaxed it has relaxed only five when it was on two it has only five when it was on two it has only five when it was on two it has relax only three and four so total how relax only three and four so total how relax only three and four so total how many veres it may be relaxing we don't many veres it may be relaxing we don't many veres it may be relaxing we don't know it depends on the graph okay at know it depends on the graph okay at know it depends on the graph okay at most how many vertices it may be most how many vertices it may be most how many vertices it may be relaxing all n vertices suppose two is relaxing all n vertices suppose two is relaxing all n vertices suppose two is connecting to all then it may be connecting to all then it may be connecting to all then it may be relaxing all of them it may be checking relaxing all of them it may be checking relaxing all of them it may be checking all of them so again it is V so it means all of them so again it is V so it means all of them so again it is V so it means n into n n for vertices and N vertices n into n n for vertices and N vertices n into n n for vertices and N vertices are relaxed so when it will happen that are relaxed so when it will happen that are relaxed so when it will happen that from two all are connected then again from two all are connected then again from two all are connected then again three all are connected that will be a three all are connected that will be a three all are connected that will be a complete graph in case of complete graph complete graph in case of complete graph complete graph in case of complete graph it will take n into n time and this will it will take n into n time and this will it will take n into n time and this will be n² be n² be n² so this is the worst case time of this so this is the worst case time of this so this is the worst case time of this algorithm maximum time it may be order algorithm maximum time it may be order algorithm maximum time it may be order of of of n² I can write it as Theta of v² or n² I can write it as Theta of v² or n² I can write it as Theta of v² or Theta of n² the worst case time and I Theta of n² the worst case time and I Theta of n² the worst case time and I can use Theta there once I know that can use Theta there once I know that can use Theta there once I know that function that is n² and it belongs to function that is n² and it belongs to function that is n² and it belongs to some class that is n sare class some class that is n sare class some class that is n sare class quadratic class so this is Theta of n² quadratic class so this is Theta of n² quadratic class so this is Theta of n² here I have a weighted directed graph here I have a weighted directed graph here I have a weighted directed graph commonly found in textbooks on this we commonly found in textbooks on this we commonly found in textbooks on this we will run the extra algorithm to solve will run the extra algorithm to solve will run the extra algorithm to solve single Source shortest spot problem so I single Source shortest spot problem so I single Source shortest spot problem so I will not be updating the distances upon will not be updating the distances upon will not be updating the distances upon the vertices itself but I will be the vertices itself but I will be the vertices itself but I will be writing them in the table so let us see writing them in the table so let us see writing them in the table so let us see how I can prepare this table so instead how I can prepare this table so instead how I can prepare this table so instead of writing there I'm writing here so of writing there I'm writing here so of writing there I'm writing here so initially I should find the direct Edge initially I should find the direct Edge initially I should find the direct Edge passs to all the vertices so for two it passs to all the vertices so for two it passs to all the vertices so for two it is 5 53 it is 45 likewise all the parts is 5 53 it is 45 likewise all the parts is 5 53 it is 45 likewise all the parts are given and one thing to mention here are given and one thing to mention here are given and one thing to mention here the starting vertex is one so in the the starting vertex is one so in the the starting vertex is one so in the graph you can see 1 to 2 50 1 to 3 45 1 graph you can see 1 to 2 50 1 to 3 45 1 graph you can see 1 to 2 50 1 to 3 45 1 to 4 10 1 to 5 no Edge 1 to six no Edge to 4 10 1 to 5 no Edge 1 to six no Edge to 4 10 1 to 5 no Edge 1 to six no Edge so 50 45 10 infinity infinity already so 50 45 10 infinity infinity already so 50 45 10 infinity infinity already given let us solve it the smallest given let us solve it the smallest given let us solve it the smallest vertex is four so I select vertex four vertex is four so I select vertex four vertex is four so I select vertex four so the selected vertex is four then once so the selected vertex is four then once so the selected vertex is four then once the vertex four is selected see from the vertex four is selected see from the vertex four is selected see from four five is connected so can we relax four five is connected so can we relax four five is connected so can we relax this one so four is is a 10 10 + 15 25 this one so four is is a 10 10 + 15 25 this one so four is is a 10 10 + 15 25 yes five can be modified and we got a yes five can be modified and we got a yes five can be modified and we got a path that is infinity so it is 25 now path that is infinity so it is 25 now path that is infinity so it is 25 now and this remains infinity and this is 10 and this remains infinity and this is 10 and this remains infinity and this is 10 which is already selected 45 and 50 they which is already selected 45 and 50 they which is already selected 45 and 50 they remains as it is now select the next remains as it is now select the next remains as it is now select the next smallest one so this one Vex 5 is smallest one so this one Vex 5 is smallest one so this one Vex 5 is selected so Vex 5 when it is selected selected so Vex 5 when it is selected selected so Vex 5 when it is selected there's an H to three and there's an H there's an H to three and there's an H there's an H to three and there's an H to two so if I take two how much is five to two so if I take two how much is five to two so if I take two how much is five 25 now so I did not mention here 25 + 20 25 now so I did not mention here 25 + 20 25 now so I did not mention here 25 + 20 45 and this distance is already 50 This 45 and this distance is already 50 This 45 and this distance is already 50 This Is 50 but now we have a shorter path V Is 50 but now we have a shorter path V Is 50 but now we have a shorter path V five that is 45 so modify this five that is 45 so modify this five that is 45 so modify this 45 and this is also 45 this 10 is 45 and this is also 45 this 10 is 45 and this is also 45 this 10 is selected 25 is selected this Still selected 25 is selected this Still selected 25 is selected this Still Remains Remains Remains Infinity now I have to select the next Infinity now I have to select the next Infinity now I have to select the next shortest one so I have 45 45 Infinity so shortest one so I have 45 45 Infinity so shortest one so I have 45 45 Infinity so I can pick up any one so I'll select the I can pick up any one so I'll select the I can pick up any one so I'll select the second vertex 2 once vertex 2 is second vertex 2 once vertex 2 is second vertex 2 once vertex 2 is selected from there the connected vertex selected from there the connected vertex selected from there the connected vertex is three so + 10 45 + 10 55 but already is three so + 10 45 + 10 55 but already is three so + 10 45 + 10 55 but already the distance to three is the distance to three is the distance to three is 45 so 45 + 10 will be 55 so this is 45 so 45 + 10 will be 55 so this is 45 so 45 + 10 will be 55 so this is smaller no change so this remains as it smaller no change so this remains as it smaller no change so this remains as it is 45 is already selected this remains is 45 is already selected this remains is 45 is already selected this remains 45 only 10 is selected 25 is selected 45 only 10 is selected 25 is selected 45 only 10 is selected 25 is selected and infinity and infinity and infinity now select next minimum so three three now select next minimum so three three now select next minimum so three three is selected now from three there's an is selected now from three there's an is selected now from three there's an edge coming towards five but five is edge coming towards five but five is edge coming towards five but five is already in the selected vertex don't already in the selected vertex don't already in the selected vertex don't check it if you check also it's of no check it if you check also it's of no check it if you check also it's of no use see 30 is how 3 is how much 45 45 + use see 30 is how 3 is how much 45 45 + use see 30 is how 3 is how much 45 45 + 30 will 30 will 30 will be uh be uh be uh 75 so already five is having its weight 75 so already five is having its weight 75 so already five is having its weight as distance as 25 so no use of ch it so as distance as 25 so no use of ch it so as distance as 25 so no use of ch it so nothing is relaxed and this is selected nothing is relaxed and this is selected nothing is relaxed and this is selected that's all so 45 selected 46 this also that's all so 45 selected 46 this also that's all so 45 selected 46 this also selected 10 selected 25 selected selected 10 selected 25 selected selected 10 selected 25 selected Infinity now who is remaining Infinity Infinity now who is remaining Infinity Infinity now who is remaining Infinity is remaining so six is also selected so is remaining so six is also selected so is remaining so six is also selected so the path to verx 6 has remained Infinity the path to verx 6 has remained Infinity the path to verx 6 has remained Infinity only because there is no incoming Ed on only because there is no incoming Ed on only because there is no incoming Ed on six so we cannot reach six the path to six so we cannot reach six the path to six so we cannot reach six the path to verx 6 is infin only this is how the verx 6 is infin only this is how the verx 6 is infin only this is how the extra algorithm works the extra extra algorithm works the extra extra algorithm works the extra algorithm can work on non-directed graph algorithm can work on non-directed graph algorithm can work on non-directed graph also suppose you have a graph simple also suppose you have a graph simple also suppose you have a graph simple example I will take example I will take example I will take here simple example I have taken here here simple example I have taken here here simple example I have taken here now how it works on this one so if now how it works on this one so if now how it works on this one so if you're not comfortable with non-directed you're not comfortable with non-directed you're not comfortable with non-directed edges you can convert them into directed edges you can convert them into directed edges you can convert them into directed by adding parallel edges so you can say by adding parallel edges so you can say by adding parallel edges so you can say this is three and this is also this is three and this is also this is three and this is also three now it becomes a directed graph so three now it becomes a directed graph so three now it becomes a directed graph so you can convert a non-directed graph to you can convert a non-directed graph to you can convert a non-directed graph to directed graph right so it can work on directed graph right so it can work on directed graph right so it can work on both directed well as non-directed graph both directed well as non-directed graph both directed well as non-directed graph now I will show you the drawback of dixa now I will show you the drawback of dixa now I will show you the drawback of dixa algorithm let us see the drawback of algorithm let us see the drawback of algorithm let us see the drawback of dixa algorithm for that I have taken a dixa algorithm for that I have taken a dixa algorithm for that I have taken a very simple graph and it is having a very simple graph and it is having a very simple graph and it is having a negative weighted Edge the weight of negative weighted Edge the weight of negative weighted Edge the weight of this Edge is negative so weight of an this Edge is negative so weight of an this Edge is negative so weight of an edge how it can be negative see it is edge how it can be negative see it is edge how it can be negative see it is not distance so distance is not not not distance so distance is not not not distance so distance is not not measured in POS negative right but any measured in POS negative right but any measured in POS negative right but any problem or any business problem we can problem or any business problem we can problem or any business problem we can represent it using graphs like usually represent it using graphs like usually represent it using graphs like usually when we want to explain something to our when we want to explain something to our when we want to explain something to our friend then what we do we just take a friend then what we do we just take a friend then what we do we just take a paper and draw something so what is that paper and draw something so what is that paper and draw something so what is that it looks like a graph only so most of it looks like a graph only so most of it looks like a graph only so most of the problems from Real World are mapped the problems from Real World are mapped the problems from Real World are mapped in the form of a graph so when you are in the form of a graph so when you are in the form of a graph so when you are representing something in the form of a representing something in the form of a representing something in the form of a graph it may have positive and negative graph it may have positive and negative graph it may have positive and negative values also so this is not exactly values also so this is not exactly values also so this is not exactly distance that is measured by tape but distance that is measured by tape but distance that is measured by tape but this is some value so those values can this is some value so those values can this is some value so those values can be negative also so actually drra has be negative also so actually drra has be negative also so actually drra has not considered that if there are not considered that if there are not considered that if there are negative edes then what we should do he negative edes then what we should do he negative edes then what we should do he has not considered let us see what has not considered let us see what has not considered let us see what happens if you follow his procedures on happens if you follow his procedures on happens if you follow his procedures on this one let us start if I say this is this one let us start if I say this is this one let us start if I say this is the starting vertex then the distance is the starting vertex then the distance is the starting vertex then the distance is zero the direct Edge path is three and zero the direct Edge path is three and zero the direct Edge path is three and the direct Edge path is five and there the direct Edge path is five and there the direct Edge path is five and there is no direct Edge path so this is is no direct Edge path so this is is no direct Edge path so this is infinity infinity infinity this is the initial setup of JRA now let this is the initial setup of JRA now let this is the initial setup of JRA now let us solve this one which one I should us solve this one which one I should us solve this one which one I should select the smallest one the shortest select the smallest one the shortest select the smallest one the shortest path is two select this one are there path is two select this one are there path is two select this one are there any connected vertices to this one so any connected vertices to this one so any connected vertices to this one so that I can relax no there is no outgoing that I can relax no there is no outgoing that I can relax no there is no outgoing adj just from to leave it next select adj just from to leave it next select adj just from to leave it next select the next smallest so five and infinity the next smallest so five and infinity the next smallest so five and infinity so five is smallest so select four if we so five is smallest so select four if we so five is smallest so select four if we select this four then will it relax any select this four then will it relax any select this four then will it relax any vertex yes the connected vertex is three vertex yes the connected vertex is three vertex yes the connected vertex is three so what is that part so what is that part so what is that part 5 + 2 7 so this is 5 + 2 7 so this is 5 + 2 7 so this is 7 now both are selected third one is 7 now both are selected third one is 7 now both are selected third one is remaining select that one also once this remaining select that one also once this remaining select that one also once this is selected shall we relax that one no is selected shall we relax that one no is selected shall we relax that one no no need already we learned that when no need already we learned that when no need already we learned that when already vertex is already relaxed no already vertex is already relaxed no already vertex is already relaxed no need to check it let us check it once 7 need to check it let us check it once 7 need to check it let us check it once 7 - 3 is 4 no already it is three so - 3 is 4 no already it is three so - 3 is 4 no already it is three so that's that's that's better so all the things are perfect the better so all the things are perfect the better so all the things are perfect the answer is perfect so this algorithm has answer is perfect so this algorithm has answer is perfect so this algorithm has worked even when there is a negative worked even when there is a negative worked even when there is a negative weight weight weight Edge now I'll make a small change I'll Edge now I'll make a small change I'll Edge now I'll make a small change I'll restart again I'll start over again and now I again I'll start over again and now I will make this Edge as minus 10 let's will make this Edge as minus 10 let's will make this Edge as minus 10 let's see what happens now I'm again finding see what happens now I'm again finding see what happens now I'm again finding the shortest part to all the vertices the shortest part to all the vertices the shortest part to all the vertices this is the source vertex so it is zero this is the source vertex so it is zero this is the source vertex so it is zero and this is three and this is five and and this is three and this is five and and this is three and this is five and there is no direct Edge path Infinity there is no direct Edge path Infinity there is no direct Edge path Infinity I'm performing this TR once again I'm performing this TR once again I'm performing this TR once again because I have changed an edge now let because I have changed an edge now let because I have changed an edge now let us see select the minimum one so two is us see select the minimum one so two is us see select the minimum one so two is minimum selected anything get modified minimum selected anything get modified minimum selected anything get modified no next minimum is this one anything get no next minimum is this one anything get no next minimum is this one anything get modified that's 5 + 2 is 7 modify this modified that's 5 + 2 is 7 modify this modified that's 5 + 2 is 7 modify this next minimum is this one and this is the next minimum is this one and this is the next minimum is this one and this is the last one shall I Rel that no it's last one shall I Rel that no it's last one shall I Rel that no it's already selected but let us check it already selected but let us check it already selected but let us check it once 7 - 10 - 3 now actually the path we once 7 - 10 - 3 now actually the path we once 7 - 10 - 3 now actually the path we found was three but now we realize that found was three but now we realize that found was three but now we realize that when we come along these vertices and when we come along these vertices and when we come along these vertices and reach here it is minus reach here it is minus reach here it is minus 3 so we were in a hurry to select the 3 so we were in a hurry to select the 3 so we were in a hurry to select the shortest path to vertex 2 and we select shortest path to vertex 2 and we select shortest path to vertex 2 and we select it as three it was wrong if you would it as three it was wrong if you would it as three it was wrong if you would have tried the other way we would have have tried the other way we would have have tried the other way we would have got the better answer so actual correct got the better answer so actual correct got the better answer so actual correct answer is minus 3 but distra has given answer is minus 3 but distra has given answer is minus 3 but distra has given us the wrong answer and also ask us not us the wrong answer and also ask us not us the wrong answer and also ask us not to check those vertices which are to check those vertices which are to check those vertices which are already relaxed we should not check them already relaxed we should not check them already relaxed we should not check them because no need to check you will not because no need to check you will not because no need to check you will not find any better answer but here we are find any better answer but here we are find any better answer but here we are finding a better answer the reason is we finding a better answer the reason is we finding a better answer the reason is we have a Negative Edge so Dix algorithm have a Negative Edge so Dix algorithm have a Negative Edge so Dix algorithm may work or may not work in case of may work or may not work in case of may work or may not work in case of negative negative negative edges that's all about single Source edges that's all about single Source edges that's all about single Source shortest spot problem and the approach shortest spot problem and the approach shortest spot problem and the approach was greedy you can see you can see the was greedy you can see you can see the was greedy you can see you can see the greediness here that see it is not greediness here that see it is not greediness here that see it is not trying all possibilities and selecting trying all possibilities and selecting trying all possibilities and selecting the minimum one it found that this the minimum one it found that this the minimum one it found that this minimum selected minimum selected minimum selected right this what the greedy approach so right this what the greedy approach so right this what the greedy approach so greedy approach has failed here when greedy approach has failed here when greedy approach has failed here when there are negative there are negative there are negative edges all right there's another solution edges all right there's another solution edges all right there's another solution for this single Source shortest paath for this single Source shortest paath for this single Source shortest paath problem that is bman Ford's algorithm we problem that is bman Ford's algorithm we problem that is bman Ford's algorithm we will see that in dynamic will see that in dynamic will see that in dynamic programming all right so next video will programming all right so next video will programming all right so next video will be on dynamic programming these are the be on dynamic programming these are the be on dynamic programming these are the topics I have covered from gry method topics I have covered from gry method topics I have covered from gry method leave your comment so that I can know leave your comment so that I can know leave your comment so that I can know how you are following the videos right how you are following the videos right how you are following the videos right if any suggestion just give me I'll try if any suggestion just give me I'll try if any suggestion just give me I'll try to implement them in my next videos",
+  "segments": [
+    {
+      "start": 0.56,
+      "end": 4.39,
+      "duration": 3.8299999999999996,
+      "text": "topic is dtra algorithm this algorithm"
+    },
+    {
+      "start": 4.4,
+      "end": 8.43,
+      "duration": 4.029999999999999,
+      "text": "topic is dtra algorithm this algorithm is for single Source shortest path"
+    },
+    {
+      "start": 8.43,
+      "end": 8.44,
+      "duration": 0.009999999999999787,
+      "text": "is for single Source shortest path"
+    },
+    {
+      "start": 8.44,
+      "end": 11.31,
+      "duration": 2.870000000000001,
+      "text": "is for single Source shortest path problem if a weighted graph is given"
+    },
+    {
+      "start": 11.31,
+      "end": 11.32,
+      "duration": 0.009999999999999787,
+      "text": "problem if a weighted graph is given"
+    },
+    {
+      "start": 11.32,
+      "end": 13.43,
+      "duration": 2.1099999999999994,
+      "text": "problem if a weighted graph is given then we have to find our shortest path"
+    },
+    {
+      "start": 13.43,
+      "end": 13.44,
+      "duration": 0.009999999999999787,
+      "text": "then we have to find our shortest path"
+    },
+    {
+      "start": 13.44,
+      "end": 15.509,
+      "duration": 2.069000000000001,
+      "text": "then we have to find our shortest path from some starting vertex to all of the"
+    },
+    {
+      "start": 15.509,
+      "end": 15.519,
+      "duration": 0.009999999999999787,
+      "text": "from some starting vertex to all of the"
+    },
+    {
+      "start": 15.519,
+      "end": 17.71,
+      "duration": 2.1910000000000007,
+      "text": "from some starting vertex to all of the vertexes let us say I'm selecting"
+    },
+    {
+      "start": 17.71,
+      "end": 17.72,
+      "duration": 0.00999999999999801,
+      "text": "vertexes let us say I'm selecting"
+    },
+    {
+      "start": 17.72,
+      "end": 19.47,
+      "duration": 1.75,
+      "text": "vertexes let us say I'm selecting starting vertex as one then I have to"
+    },
+    {
+      "start": 19.47,
+      "end": 19.48,
+      "duration": 0.010000000000001563,
+      "text": "starting vertex as one then I have to"
+    },
+    {
+      "start": 19.48,
+      "end": 21.39,
+      "duration": 1.9100000000000001,
+      "text": "starting vertex as one then I have to find out shortest path to all the"
+    },
+    {
+      "start": 21.39,
+      "end": 21.4,
+      "duration": 0.00999999999999801,
+      "text": "find out shortest path to all the"
+    },
+    {
+      "start": 21.4,
+      "end": 25.109,
+      "duration": 3.709000000000003,
+      "text": "find out shortest path to all the vertexes maybe a direct path or via"
+    },
+    {
+      "start": 25.109,
+      "end": 25.119,
+      "duration": 0.00999999999999801,
+      "text": "vertexes maybe a direct path or via"
+    },
+    {
+      "start": 25.119,
+      "end": 28.029,
+      "duration": 2.91,
+      "text": "vertexes maybe a direct path or via other vertices and I can select any one"
+    },
+    {
+      "start": 28.029,
+      "end": 28.039,
+      "duration": 0.010000000000001563,
+      "text": "other vertices and I can select any one"
+    },
+    {
+      "start": 28.039,
+      "end": 31.07,
+      "duration": 3.030999999999999,
+      "text": "other vertices and I can select any one of the vertex as a source vertex"
+    },
+    {
+      "start": 31.07,
+      "end": 31.08,
+      "duration": 0.00999999999999801,
+      "text": "of the vertex as a source vertex"
+    },
+    {
+      "start": 31.08,
+      "end": 32.79,
+      "duration": 1.7100000000000009,
+      "text": "of the vertex as a source vertex as we have to find out a shortest path"
+    },
+    {
+      "start": 32.79,
+      "end": 32.8,
+      "duration": 0.00999999999999801,
+      "text": "as we have to find out a shortest path"
+    },
+    {
+      "start": 32.8,
+      "end": 36.03,
+      "duration": 3.230000000000004,
+      "text": "as we have to find out a shortest path so it's a minimization problem and the"
+    },
+    {
+      "start": 36.03,
+      "end": 36.04,
+      "duration": 0.00999999999999801,
+      "text": "so it's a minimization problem and the"
+    },
+    {
+      "start": 36.04,
+      "end": 38.79,
+      "duration": 2.75,
+      "text": "so it's a minimization problem and the minimization problem is an optimization"
+    },
+    {
+      "start": 38.79,
+      "end": 38.8,
+      "duration": 0.00999999999999801,
+      "text": "minimization problem is an optimization"
+    },
+    {
+      "start": 38.8,
+      "end": 41.47,
+      "duration": 2.6700000000000017,
+      "text": "minimization problem is an optimization problem so optimization problems can be"
+    },
+    {
+      "start": 41.47,
+      "end": 41.48,
+      "duration": 0.00999999999999801,
+      "text": "problem so optimization problems can be"
+    },
+    {
+      "start": 41.48,
+      "end": 44.869,
+      "duration": 3.389000000000003,
+      "text": "problem so optimization problems can be solved using greedy method greedy method"
+    },
+    {
+      "start": 44.869,
+      "end": 44.879,
+      "duration": 0.00999999999999801,
+      "text": "solved using greedy method greedy method"
+    },
+    {
+      "start": 44.879,
+      "end": 47.27,
+      "duration": 2.3910000000000053,
+      "text": "solved using greedy method greedy method says that a problem should be solved in"
+    },
+    {
+      "start": 47.27,
+      "end": 47.28,
+      "duration": 0.00999999999999801,
+      "text": "says that a problem should be solved in"
+    },
+    {
+      "start": 47.28,
+      "end": 49.869,
+      "duration": 2.5889999999999986,
+      "text": "says that a problem should be solved in stages by taking one step at a time and"
+    },
+    {
+      "start": 49.869,
+      "end": 49.879,
+      "duration": 0.00999999999999801,
+      "text": "stages by taking one step at a time and"
+    },
+    {
+      "start": 49.879,
+      "end": 52.59,
+      "duration": 2.7110000000000056,
+      "text": "stages by taking one step at a time and considering one input at a time to get a"
+    },
+    {
+      "start": 52.59,
+      "end": 52.6,
+      "duration": 0.00999999999999801,
+      "text": "considering one input at a time to get a"
+    },
+    {
+      "start": 52.6,
+      "end": 55.99,
+      "duration": 3.3900000000000006,
+      "text": "considering one input at a time to get a optimal solution and in Greedy method"
+    },
+    {
+      "start": 55.99,
+      "end": 56.0,
+      "duration": 0.00999999999999801,
+      "text": "optimal solution and in Greedy method"
+    },
+    {
+      "start": 56.0,
+      "end": 58.389,
+      "duration": 2.389000000000003,
+      "text": "optimal solution and in Greedy method there are predefined procedures and we"
+    },
+    {
+      "start": 58.389,
+      "end": 58.399,
+      "duration": 0.00999999999999801,
+      "text": "there are predefined procedures and we"
+    },
+    {
+      "start": 58.399,
+      "end": 60.43,
+      "duration": 2.030999999999999,
+      "text": "there are predefined procedures and we follow that procedure to get a"
+    },
+    {
+      "start": 60.43,
+      "end": 60.44,
+      "duration": 0.00999999999999801,
+      "text": "follow that procedure to get a"
+    },
+    {
+      "start": 60.44,
+      "end": 61.63,
+      "duration": 1.1900000000000048,
+      "text": "follow that procedure to get a optimal"
+    },
+    {
+      "start": 61.63,
+      "end": 61.64,
+      "duration": 0.00999999999999801,
+      "text": "optimal"
+    },
+    {
+      "start": 61.64,
+      "end": 64.63,
+      "duration": 2.989999999999995,
+      "text": "optimal solution so Dix algorithm gives a"
+    },
+    {
+      "start": 64.63,
+      "end": 64.64,
+      "duration": 0.010000000000005116,
+      "text": "solution so Dix algorithm gives a"
+    },
+    {
+      "start": 64.64,
+      "end": 67.19,
+      "duration": 2.549999999999997,
+      "text": "solution so Dix algorithm gives a procedure for getting a optimal solution"
+    },
+    {
+      "start": 67.19,
+      "end": 67.2,
+      "duration": 0.010000000000005116,
+      "text": "procedure for getting a optimal solution"
+    },
+    {
+      "start": 67.2,
+      "end": 69.429,
+      "duration": 2.228999999999999,
+      "text": "procedure for getting a optimal solution that is minimum result that is shortest"
+    },
+    {
+      "start": 69.429,
+      "end": 69.439,
+      "duration": 0.009999999999990905,
+      "text": "that is minimum result that is shortest"
+    },
+    {
+      "start": 69.439,
+      "end": 72.63,
+      "duration": 3.1910000000000025,
+      "text": "that is minimum result that is shortest part in this video I will show how a"
+    },
+    {
+      "start": 72.63,
+      "end": 72.64,
+      "duration": 0.010000000000005116,
+      "text": "part in this video I will show how a"
+    },
+    {
+      "start": 72.64,
+      "end": 75.149,
+      "duration": 2.5090000000000003,
+      "text": "part in this video I will show how a dixar algorithms works and the disra"
+    },
+    {
+      "start": 75.149,
+      "end": 75.159,
+      "duration": 0.010000000000005116,
+      "text": "dixar algorithms works and the disra"
+    },
+    {
+      "start": 75.159,
+      "end": 78.03,
+      "duration": 2.870999999999995,
+      "text": "dixar algorithms works and the disra algorithm can work on a directed as well"
+    },
+    {
+      "start": 78.03,
+      "end": 78.04,
+      "duration": 0.010000000000005116,
+      "text": "algorithm can work on a directed as well"
+    },
+    {
+      "start": 78.04,
+      "end": 80.99,
+      "duration": 2.9499999999999886,
+      "text": "algorithm can work on a directed as well as non-directed graph and also I will"
+    },
+    {
+      "start": 80.99,
+      "end": 81.0,
+      "duration": 0.010000000000005116,
+      "text": "as non-directed graph and also I will"
+    },
+    {
+      "start": 81.0,
+      "end": 84.19,
+      "duration": 3.1899999999999977,
+      "text": "as non-directed graph and also I will show you the drawback of dixa"
+    },
+    {
+      "start": 84.19,
+      "end": 84.2,
+      "duration": 0.010000000000005116,
+      "text": "show you the drawback of dixa"
+    },
+    {
+      "start": 84.2,
+      "end": 86.55,
+      "duration": 2.3499999999999943,
+      "text": "show you the drawback of dixa algorithm let us see the approach of"
+    },
+    {
+      "start": 86.55,
+      "end": 86.56,
+      "duration": 0.010000000000005116,
+      "text": "algorithm let us see the approach of"
+    },
+    {
+      "start": 86.56,
+      "end": 89.39,
+      "duration": 2.8299999999999983,
+      "text": "algorithm let us see the approach of dixar algorithm for that I'll show you"
+    },
+    {
+      "start": 89.39,
+      "end": 89.4,
+      "duration": 0.010000000000005116,
+      "text": "dixar algorithm for that I'll show you"
+    },
+    {
+      "start": 89.4,
+      "end": 91.91,
+      "duration": 2.509999999999991,
+      "text": "dixar algorithm for that I'll show you the base basic thing that is followed by"
+    },
+    {
+      "start": 91.91,
+      "end": 91.92,
+      "duration": 0.010000000000005116,
+      "text": "the base basic thing that is followed by"
+    },
+    {
+      "start": 91.92,
+      "end": 94.149,
+      "duration": 2.228999999999999,
+      "text": "the base basic thing that is followed by dexra so for that first of all I'll take"
+    },
+    {
+      "start": 94.149,
+      "end": 94.159,
+      "duration": 0.010000000000005116,
+      "text": "dexra so for that first of all I'll take"
+    },
+    {
+      "start": 94.159,
+      "end": 96.95,
+      "duration": 2.790999999999997,
+      "text": "dexra so for that first of all I'll take a very small example and show"
+    },
+    {
+      "start": 96.95,
+      "end": 96.96,
+      "duration": 0.009999999999990905,
+      "text": "a very small example and show"
+    },
+    {
+      "start": 96.96,
+      "end": 100.389,
+      "duration": 3.429000000000002,
+      "text": "a very small example and show you to show the approach of Dix"
+    },
+    {
+      "start": 100.389,
+      "end": 100.399,
+      "duration": 0.010000000000005116,
+      "text": "you to show the approach of Dix"
+    },
+    {
+      "start": 100.399,
+      "end": 102.55,
+      "duration": 2.1509999999999962,
+      "text": "you to show the approach of Dix algorithm I have taken a very small"
+    },
+    {
+      "start": 102.55,
+      "end": 102.56,
+      "duration": 0.010000000000005116,
+      "text": "algorithm I have taken a very small"
+    },
+    {
+      "start": 102.56,
+      "end": 105.789,
+      "duration": 3.228999999999999,
+      "text": "algorithm I have taken a very small graph here from this we will understand"
+    },
+    {
+      "start": 105.789,
+      "end": 105.799,
+      "duration": 0.010000000000005116,
+      "text": "graph here from this we will understand"
+    },
+    {
+      "start": 105.799,
+      "end": 108.789,
+      "duration": 2.989999999999995,
+      "text": "graph here from this we will understand what is the approach of thra if I say"
+    },
+    {
+      "start": 108.789,
+      "end": 108.799,
+      "duration": 0.010000000000005116,
+      "text": "what is the approach of thra if I say"
+    },
+    {
+      "start": 108.799,
+      "end": 110.87,
+      "duration": 2.070999999999998,
+      "text": "what is the approach of thra if I say one is the starting vertex and I want to"
+    },
+    {
+      "start": 110.87,
+      "end": 110.88,
+      "duration": 0.009999999999990905,
+      "text": "one is the starting vertex and I want to"
+    },
+    {
+      "start": 110.88,
+      "end": 113.91,
+      "duration": 3.030000000000001,
+      "text": "one is the starting vertex and I want to find the shortest path to two as well as"
+    },
+    {
+      "start": 113.91,
+      "end": 113.92,
+      "duration": 0.010000000000005116,
+      "text": "find the shortest path to two as well as"
+    },
+    {
+      "start": 113.92,
+      "end": 116.469,
+      "duration": 2.5489999999999924,
+      "text": "find the shortest path to two as well as three so if you see from this graph"
+    },
+    {
+      "start": 116.469,
+      "end": 116.479,
+      "duration": 0.010000000000005116,
+      "text": "three so if you see from this graph"
+    },
+    {
+      "start": 116.479,
+      "end": 118.95,
+      "duration": 2.4710000000000036,
+      "text": "three so if you see from this graph there is a direct path to Vex 2 so its"
+    },
+    {
+      "start": 118.95,
+      "end": 118.96,
+      "duration": 0.009999999999990905,
+      "text": "there is a direct path to Vex 2 so its"
+    },
+    {
+      "start": 118.96,
+      "end": 121.99,
+      "duration": 3.030000000000001,
+      "text": "there is a direct path to Vex 2 so its cost is 2 and there is no direct path to"
+    },
+    {
+      "start": 121.99,
+      "end": 122.0,
+      "duration": 0.010000000000005116,
+      "text": "cost is 2 and there is no direct path to"
+    },
+    {
+      "start": 122.0,
+      "end": 124.91,
+      "duration": 2.9099999999999966,
+      "text": "cost is 2 and there is no direct path to three so we don't know what is the"
+    },
+    {
+      "start": 124.91,
+      "end": 124.92,
+      "duration": 0.010000000000005116,
+      "text": "three so we don't know what is the"
+    },
+    {
+      "start": 124.92,
+      "end": 127.55,
+      "duration": 2.6299999999999955,
+      "text": "three so we don't know what is the path first of all we consider a direct"
+    },
+    {
+      "start": 127.55,
+      "end": 127.56,
+      "duration": 0.010000000000005116,
+      "text": "path first of all we consider a direct"
+    },
+    {
+      "start": 127.56,
+      "end": 131.19,
+      "duration": 3.6299999999999955,
+      "text": "path first of all we consider a direct Edge path but now if we follow this"
+    },
+    {
+      "start": 131.19,
+      "end": 131.2,
+      "duration": 0.009999999999990905,
+      "text": "Edge path but now if we follow this"
+    },
+    {
+      "start": 131.2,
+      "end": 133.51,
+      "duration": 2.3100000000000023,
+      "text": "Edge path but now if we follow this algorithm we'll be selecting first the"
+    },
+    {
+      "start": 133.51,
+      "end": 133.52,
+      "duration": 0.010000000000019327,
+      "text": "algorithm we'll be selecting first the"
+    },
+    {
+      "start": 133.52,
+      "end": 136.509,
+      "duration": 2.988999999999976,
+      "text": "algorithm we'll be selecting first the shortest path vertex so this is shortest"
+    },
+    {
+      "start": 136.509,
+      "end": 136.519,
+      "duration": 0.010000000000019327,
+      "text": "shortest path vertex so this is shortest"
+    },
+    {
+      "start": 136.519,
+      "end": 138.19,
+      "duration": 1.6709999999999923,
+      "text": "shortest path vertex so this is shortest because this is two that is infinity so"
+    },
+    {
+      "start": 138.19,
+      "end": 138.2,
+      "duration": 0.009999999999990905,
+      "text": "because this is two that is infinity so"
+    },
+    {
+      "start": 138.2,
+      "end": 142.229,
+      "duration": 4.029000000000025,
+      "text": "because this is two that is infinity so we'll select this one and Di says that"
+    },
+    {
+      "start": 142.229,
+      "end": 142.239,
+      "duration": 0.009999999999990905,
+      "text": "we'll select this one and Di says that"
+    },
+    {
+      "start": 142.239,
+      "end": 143.67,
+      "duration": 1.4309999999999832,
+      "text": "we'll select this one and Di says that once you have selected one of the"
+    },
+    {
+      "start": 143.67,
+      "end": 143.68,
+      "duration": 0.010000000000019327,
+      "text": "once you have selected one of the"
+    },
+    {
+      "start": 143.68,
+      "end": 146.869,
+      "duration": 3.188999999999993,
+      "text": "once you have selected one of the shortest path then check via that vertex"
+    },
+    {
+      "start": 146.869,
+      "end": 146.879,
+      "duration": 0.009999999999990905,
+      "text": "shortest path then check via that vertex"
+    },
+    {
+      "start": 146.879,
+      "end": 149.55,
+      "duration": 2.6710000000000207,
+      "text": "shortest path then check via that vertex from that vertex there is any shortest"
+    },
+    {
+      "start": 149.55,
+      "end": 149.56,
+      "duration": 0.009999999999990905,
+      "text": "from that vertex there is any shortest"
+    },
+    {
+      "start": 149.56,
+      "end": 152.75,
+      "duration": 3.1899999999999977,
+      "text": "from that vertex there is any shortest path to other vertices so let us check"
+    },
+    {
+      "start": 152.75,
+      "end": 152.76,
+      "duration": 0.009999999999990905,
+      "text": "path to other vertices so let us check"
+    },
+    {
+      "start": 152.76,
+      "end": 154.869,
+      "duration": 2.109000000000009,
+      "text": "path to other vertices so let us check who is connected to two so from two we"
+    },
+    {
+      "start": 154.869,
+      "end": 154.879,
+      "duration": 0.009999999999990905,
+      "text": "who is connected to two so from two we"
+    },
+    {
+      "start": 154.879,
+      "end": 158.55,
+      "duration": 3.6710000000000207,
+      "text": "who is connected to two so from two we can go three this is 2 + 4 that is 6 and"
+    },
+    {
+      "start": 158.55,
+      "end": 158.56,
+      "duration": 0.009999999999990905,
+      "text": "can go three this is 2 + 4 that is 6 and"
+    },
+    {
+      "start": 158.56,
+      "end": 161.19,
+      "duration": 2.6299999999999955,
+      "text": "can go three this is 2 + 4 that is 6 and right now it is infinity yes this"
+    },
+    {
+      "start": 161.19,
+      "end": 161.2,
+      "duration": 0.009999999999990905,
+      "text": "right now it is infinity yes this"
+    },
+    {
+      "start": 161.2,
+      "end": 163.949,
+      "duration": 2.7490000000000236,
+      "text": "right now it is infinity yes this Infinity can be changed to six this"
+    },
+    {
+      "start": 163.949,
+      "end": 163.959,
+      "duration": 0.009999999999990905,
+      "text": "Infinity can be changed to six this"
+    },
+    {
+      "start": 163.959,
+      "end": 166.35,
+      "duration": 2.390999999999991,
+      "text": "Infinity can be changed to six this means that there is a shortest path from"
+    },
+    {
+      "start": 166.35,
+      "end": 166.36,
+      "duration": 0.010000000000019327,
+      "text": "means that there is a shortest path from"
+    },
+    {
+      "start": 166.36,
+      "end": 170.99,
+      "duration": 4.6299999999999955,
+      "text": "means that there is a shortest path from verx 1 to 3 of distance 6 no doubt it's"
+    },
+    {
+      "start": 170.99,
+      "end": 171.0,
+      "duration": 0.009999999999990905,
+      "text": "verx 1 to 3 of distance 6 no doubt it's"
+    },
+    {
+      "start": 171.0,
+      "end": 173.79,
+      "duration": 2.789999999999992,
+      "text": "verx 1 to 3 of distance 6 no doubt it's not a direct path it's coming via two"
+    },
+    {
+      "start": 173.79,
+      "end": 173.8,
+      "duration": 0.010000000000019327,
+      "text": "not a direct path it's coming via two"
+    },
+    {
+      "start": 173.8,
+      "end": 177.149,
+      "duration": 3.3489999999999895,
+      "text": "not a direct path it's coming via two but there is a path that's how the Dix"
+    },
+    {
+      "start": 177.149,
+      "end": 177.159,
+      "duration": 0.009999999999990905,
+      "text": "but there is a path that's how the Dix"
+    },
+    {
+      "start": 177.159,
+      "end": 179.589,
+      "duration": 2.430000000000007,
+      "text": "but there is a path that's how the Dix algorithm always select a Vertex with a"
+    },
+    {
+      "start": 179.589,
+      "end": 179.599,
+      "duration": 0.009999999999990905,
+      "text": "algorithm always select a Vertex with a"
+    },
+    {
+      "start": 179.599,
+      "end": 181.91,
+      "duration": 2.311000000000007,
+      "text": "algorithm always select a Vertex with a short shortest path then it will update"
+    },
+    {
+      "start": 181.91,
+      "end": 181.92,
+      "duration": 0.009999999999990905,
+      "text": "short shortest path then it will update"
+    },
+    {
+      "start": 181.92,
+      "end": 185.27,
+      "duration": 3.3500000000000227,
+      "text": "short shortest path then it will update the shortest path to other vertices if"
+    },
+    {
+      "start": 185.27,
+      "end": 185.28,
+      "duration": 0.009999999999990905,
+      "text": "the shortest path to other vertices if"
+    },
+    {
+      "start": 185.28,
+      "end": 190.03,
+      "duration": 4.75,
+      "text": "the shortest path to other vertices if possible and this updation is called as"
+    },
+    {
+      "start": 190.03,
+      "end": 190.04,
+      "duration": 0.009999999999990905,
+      "text": "possible and this updation is called as"
+    },
+    {
+      "start": 190.04,
+      "end": 192.229,
+      "duration": 2.1890000000000214,
+      "text": "possible and this updation is called as relaxation let me show you how this"
+    },
+    {
+      "start": 192.229,
+      "end": 192.239,
+      "duration": 0.009999999999990905,
+      "text": "relaxation let me show you how this"
+    },
+    {
+      "start": 192.239,
+      "end": 194.83,
+      "duration": 2.591000000000008,
+      "text": "relaxation let me show you how this relaxation works for that I will call"
+    },
+    {
+      "start": 194.83,
+      "end": 194.84,
+      "duration": 0.009999999999990905,
+      "text": "relaxation works for that I will call"
+    },
+    {
+      "start": 194.84,
+      "end": 197.91,
+      "duration": 3.069999999999993,
+      "text": "relaxation works for that I will call this vertex as U and this vertex as V"
+    },
+    {
+      "start": 197.91,
+      "end": 197.92,
+      "duration": 0.009999999999990905,
+      "text": "this vertex as U and this vertex as V"
+    },
+    {
+      "start": 197.92,
+      "end": 201.149,
+      "duration": 3.2290000000000134,
+      "text": "this vertex as U and this vertex as V and this is distance of U and this is"
+    },
+    {
+      "start": 201.149,
+      "end": 201.159,
+      "duration": 0.009999999999990905,
+      "text": "and this is distance of U and this is"
+    },
+    {
+      "start": 201.159,
+      "end": 203.229,
+      "duration": 2.0700000000000216,
+      "text": "and this is distance of U and this is distance of V initially it was Infinity"
+    },
+    {
+      "start": 203.229,
+      "end": 203.239,
+      "duration": 0.009999999999990905,
+      "text": "distance of V initially it was Infinity"
+    },
+    {
+      "start": 203.239,
+      "end": 206.11,
+      "duration": 2.8710000000000093,
+      "text": "distance of V initially it was Infinity now it is change to six and this is cost"
+    },
+    {
+      "start": 206.11,
+      "end": 206.12,
+      "duration": 0.009999999999990905,
+      "text": "now it is change to six and this is cost"
+    },
+    {
+      "start": 206.12,
+      "end": 209.789,
+      "duration": 3.6689999999999827,
+      "text": "now it is change to six and this is cost of an H from U to V so here relaxation"
+    },
+    {
+      "start": 209.789,
+      "end": 209.799,
+      "duration": 0.010000000000019327,
+      "text": "of an H from U to V so here relaxation"
+    },
+    {
+      "start": 209.799,
+      "end": 213.67,
+      "duration": 3.870999999999981,
+      "text": "of an H from U to V so here relaxation means if the distance of vertex U + cost"
+    },
+    {
+      "start": 213.67,
+      "end": 213.68,
+      "duration": 0.010000000000019327,
+      "text": "means if the distance of vertex U + cost"
+    },
+    {
+      "start": 213.68,
+      "end": 217.309,
+      "duration": 3.6289999999999907,
+      "text": "means if the distance of vertex U + cost of an edge U comma V is less than"
+    },
+    {
+      "start": 217.309,
+      "end": 217.319,
+      "duration": 0.009999999999990905,
+      "text": "of an edge U comma V is less than"
+    },
+    {
+      "start": 217.319,
+      "end": 221.149,
+      "duration": 3.8300000000000125,
+      "text": "of an edge U comma V is less than distance of vertex V see here the"
+    },
+    {
+      "start": 221.149,
+      "end": 221.159,
+      "duration": 0.009999999999990905,
+      "text": "distance of vertex V see here the"
+    },
+    {
+      "start": 221.159,
+      "end": 223.509,
+      "duration": 2.3499999999999943,
+      "text": "distance of vertex V see here the distance of U was 2 and the cost of an"
+    },
+    {
+      "start": 223.509,
+      "end": 223.519,
+      "duration": 0.010000000000019327,
+      "text": "distance of U was 2 and the cost of an"
+    },
+    {
+      "start": 223.519,
+      "end": 225.869,
+      "duration": 2.3499999999999943,
+      "text": "distance of U was 2 and the cost of an edge was 4 and this was initially"
+    },
+    {
+      "start": 225.869,
+      "end": 225.879,
+      "duration": 0.009999999999990905,
+      "text": "edge was 4 and this was initially"
+    },
+    {
+      "start": 225.879,
+      "end": 228.429,
+      "duration": 2.5500000000000114,
+      "text": "edge was 4 and this was initially Infinity so this 2 + 4 is less than"
+    },
+    {
+      "start": 228.429,
+      "end": 228.439,
+      "duration": 0.009999999999990905,
+      "text": "Infinity so this 2 + 4 is less than"
+    },
+    {
+      "start": 228.439,
+      "end": 231.35,
+      "duration": 2.9110000000000014,
+      "text": "Infinity so this 2 + 4 is less than infinity yes so we have modified this to"
+    },
+    {
+      "start": 231.35,
+      "end": 231.36,
+      "duration": 0.010000000000019327,
+      "text": "infinity yes so we have modified this to"
+    },
+    {
+      "start": 231.36,
+      "end": 233.99,
+      "duration": 2.6299999999999955,
+      "text": "infinity yes so we have modified this to six so we'll modify this one that is"
+    },
+    {
+      "start": 233.99,
+      "end": 234.0,
+      "duration": 0.009999999999990905,
+      "text": "six so we'll modify this one that is"
+    },
+    {
+      "start": 234.0,
+      "end": 237.229,
+      "duration": 3.2290000000000134,
+      "text": "six so we'll modify this one that is distance of V is modified to distance of"
+    },
+    {
+      "start": 237.229,
+      "end": 237.239,
+      "duration": 0.009999999999990905,
+      "text": "distance of V is modified to distance of"
+    },
+    {
+      "start": 237.239,
+      "end": 243.309,
+      "duration": 6.069999999999993,
+      "text": "distance of V is modified to distance of U Plus cost of an edge U comma"
+    },
+    {
+      "start": 243.319,
+      "end": 246.229,
+      "duration": 2.910000000000025,
+      "text": "V this what we followed and this is"
+    },
+    {
+      "start": 246.239,
+      "end": 248.71,
+      "duration": 2.4710000000000036,
+      "text": "V this what we followed and this is called as relaxation and we do"
+    },
+    {
+      "start": 248.71,
+      "end": 248.72,
+      "duration": 0.009999999999990905,
+      "text": "called as relaxation and we do"
+    },
+    {
+      "start": 248.72,
+      "end": 251.39,
+      "duration": 2.6699999999999875,
+      "text": "called as relaxation and we do relaxation for the vertices whenever we"
+    },
+    {
+      "start": 251.39,
+      "end": 251.4,
+      "duration": 0.010000000000019327,
+      "text": "relaxation for the vertices whenever we"
+    },
+    {
+      "start": 251.4,
+      "end": 253.589,
+      "duration": 2.188999999999993,
+      "text": "relaxation for the vertices whenever we select a shortest path we will try to"
+    },
+    {
+      "start": 253.589,
+      "end": 253.599,
+      "duration": 0.009999999999990905,
+      "text": "select a shortest path we will try to"
+    },
+    {
+      "start": 253.599,
+      "end": 255.43,
+      "duration": 1.8310000000000173,
+      "text": "select a shortest path we will try to relax other"
+    },
+    {
+      "start": 255.43,
+      "end": 255.44,
+      "duration": 0.009999999999990905,
+      "text": "relax other"
+    },
+    {
+      "start": 255.44,
+      "end": 257.909,
+      "duration": 2.468999999999994,
+      "text": "relax other vertices now let us follow this"
+    },
+    {
+      "start": 257.909,
+      "end": 257.919,
+      "duration": 0.009999999999990905,
+      "text": "vertices now let us follow this"
+    },
+    {
+      "start": 257.919,
+      "end": 261.03,
+      "duration": 3.11099999999999,
+      "text": "vertices now let us follow this procedure and solve this graph problem"
+    },
+    {
+      "start": 261.03,
+      "end": 261.04,
+      "duration": 0.010000000000047748,
+      "text": "procedure and solve this graph problem"
+    },
+    {
+      "start": 261.04,
+      "end": 262.749,
+      "duration": 1.7090000000000032,
+      "text": "procedure and solve this graph problem to find the shortest"
+    },
+    {
+      "start": 262.749,
+      "end": 262.759,
+      "duration": 0.009999999999990905,
+      "text": "to find the shortest"
+    },
+    {
+      "start": 262.759,
+      "end": 266.15,
+      "duration": 3.3909999999999627,
+      "text": "to find the shortest path let me solve this graph problem for"
+    },
+    {
+      "start": 266.15,
+      "end": 266.16,
+      "duration": 0.010000000000047748,
+      "text": "path let me solve this graph problem for"
+    },
+    {
+      "start": 266.16,
+      "end": 267.83,
+      "duration": 1.669999999999959,
+      "text": "path let me solve this graph problem for this I will select this vertex as the"
+    },
+    {
+      "start": 267.83,
+      "end": 267.84,
+      "duration": 0.009999999999990905,
+      "text": "this I will select this vertex as the"
+    },
+    {
+      "start": 267.84,
+      "end": 270.749,
+      "duration": 2.9090000000000487,
+      "text": "this I will select this vertex as the source vertex starting vertex s starting"
+    },
+    {
+      "start": 270.749,
+      "end": 270.759,
+      "duration": 0.009999999999990905,
+      "text": "source vertex starting vertex s starting"
+    },
+    {
+      "start": 270.759,
+      "end": 273.27,
+      "duration": 2.5109999999999673,
+      "text": "source vertex starting vertex s starting vertex now I will give the distances for"
+    },
+    {
+      "start": 273.27,
+      "end": 273.28,
+      "duration": 0.009999999999990905,
+      "text": "vertex now I will give the distances for"
+    },
+    {
+      "start": 273.28,
+      "end": 275.55,
+      "duration": 2.2700000000000387,
+      "text": "vertex now I will give the distances for all the vertices by considering just"
+    },
+    {
+      "start": 275.55,
+      "end": 275.56,
+      "duration": 0.009999999999990905,
+      "text": "all the vertices by considering just"
+    },
+    {
+      "start": 275.56,
+      "end": 277.79,
+      "duration": 2.230000000000018,
+      "text": "all the vertices by considering just single edge so I will label the"
+    },
+    {
+      "start": 277.79,
+      "end": 277.8,
+      "duration": 0.009999999999990905,
+      "text": "single edge so I will label the"
+    },
+    {
+      "start": 277.8,
+      "end": 280.469,
+      "duration": 2.6689999999999827,
+      "text": "single edge so I will label the distances above those vertices only this"
+    },
+    {
+      "start": 280.469,
+      "end": 280.479,
+      "duration": 0.009999999999990905,
+      "text": "distances above those vertices only this"
+    },
+    {
+      "start": 280.479,
+      "end": 283.469,
+      "duration": 2.990000000000009,
+      "text": "distances above those vertices only this distance is zero and this distance is"
+    },
+    {
+      "start": 283.469,
+      "end": 283.479,
+      "duration": 0.009999999999990905,
+      "text": "distance is zero and this distance is"
+    },
+    {
+      "start": 283.479,
+      "end": 286.749,
+      "duration": 3.2700000000000387,
+      "text": "distance is zero and this distance is two this distance is"
+    },
+    {
+      "start": 286.749,
+      "end": 286.759,
+      "duration": 0.009999999999990905,
+      "text": "two this distance is"
+    },
+    {
+      "start": 286.759,
+      "end": 291.27,
+      "duration": 4.510999999999967,
+      "text": "two this distance is 4 from 1 to 4 there is no direct catch"
+    },
+    {
+      "start": 291.27,
+      "end": 291.28,
+      "duration": 0.009999999999990905,
+      "text": "4 from 1 to 4 there is no direct catch"
+    },
+    {
+      "start": 291.28,
+      "end": 294.79,
+      "duration": 3.5100000000000477,
+      "text": "4 from 1 to 4 there is no direct catch Infinity from 1 to 5 there is no direct"
+    },
+    {
+      "start": 294.79,
+      "end": 294.8,
+      "duration": 0.009999999999990905,
+      "text": "Infinity from 1 to 5 there is no direct"
+    },
+    {
+      "start": 294.8,
+      "end": 298.07,
+      "duration": 3.269999999999982,
+      "text": "Infinity from 1 to 5 there is no direct Edge Infinity similarly six is also"
+    },
+    {
+      "start": 298.07,
+      "end": 298.08,
+      "duration": 0.009999999999990905,
+      "text": "Edge Infinity similarly six is also"
+    },
+    {
+      "start": 298.08,
+      "end": 300.39,
+      "duration": 2.3100000000000023,
+      "text": "Edge Infinity similarly six is also Infinity"
+    },
+    {
+      "start": 300.39,
+      "end": 300.4,
+      "duration": 0.009999999999990905,
+      "text": "Infinity"
+    },
+    {
+      "start": 300.4,
+      "end": 303.15,
+      "duration": 2.75,
+      "text": "Infinity except two and three all are Infinity"
+    },
+    {
+      "start": 303.15,
+      "end": 303.16,
+      "duration": 0.010000000000047748,
+      "text": "except two and three all are Infinity"
+    },
+    {
+      "start": 303.16,
+      "end": 305.189,
+      "duration": 2.0289999999999964,
+      "text": "except two and three all are Infinity this is the initial thing that we should"
+    },
+    {
+      "start": 305.189,
+      "end": 305.199,
+      "duration": 0.009999999999990905,
+      "text": "this is the initial thing that we should"
+    },
+    {
+      "start": 305.199,
+      "end": 307.07,
+      "duration": 1.870999999999981,
+      "text": "this is the initial thing that we should do for any"
+    },
+    {
+      "start": 307.07,
+      "end": 307.08,
+      "duration": 0.009999999999990905,
+      "text": "do for any"
+    },
+    {
+      "start": 307.08,
+      "end": 311.23,
+      "duration": 4.150000000000034,
+      "text": "do for any graph now let us start the repeating"
+    },
+    {
+      "start": 311.23,
+      "end": 311.24,
+      "duration": 0.009999999999990905,
+      "text": "graph now let us start the repeating"
+    },
+    {
+      "start": 311.24,
+      "end": 313.749,
+      "duration": 2.5090000000000146,
+      "text": "graph now let us start the repeating steps now the steps will be repeating"
+    },
+    {
+      "start": 313.749,
+      "end": 313.759,
+      "duration": 0.009999999999990905,
+      "text": "steps now the steps will be repeating"
+    },
+    {
+      "start": 313.759,
+      "end": 317.59,
+      "duration": 3.8309999999999604,
+      "text": "steps now the steps will be repeating First Step select a shortest path out of"
+    },
+    {
+      "start": 317.59,
+      "end": 317.6,
+      "duration": 0.010000000000047748,
+      "text": "First Step select a shortest path out of"
+    },
+    {
+      "start": 317.6,
+      "end": 321.27,
+      "duration": 3.669999999999959,
+      "text": "First Step select a shortest path out of 2 4 infinity infinity infinity this is"
+    },
+    {
+      "start": 321.27,
+      "end": 321.28,
+      "duration": 0.009999999999990905,
+      "text": "2 4 infinity infinity infinity this is"
+    },
+    {
+      "start": 321.28,
+      "end": 324.27,
+      "duration": 2.990000000000009,
+      "text": "2 4 infinity infinity infinity this is smallest select this one once we"
+    },
+    {
+      "start": 324.27,
+      "end": 324.28,
+      "duration": 0.009999999999990905,
+      "text": "smallest select this one once we"
+    },
+    {
+      "start": 324.28,
+      "end": 326.71,
+      "duration": 2.430000000000007,
+      "text": "smallest select this one once we selected this we should perform"
+    },
+    {
+      "start": 326.71,
+      "end": 326.72,
+      "duration": 0.010000000000047748,
+      "text": "selected this we should perform"
+    },
+    {
+      "start": 326.72,
+      "end": 329.23,
+      "duration": 2.509999999999991,
+      "text": "selected this we should perform relaxation what is that check who are"
+    },
+    {
+      "start": 329.23,
+      "end": 329.24,
+      "duration": 0.009999999999990905,
+      "text": "relaxation what is that check who are"
+    },
+    {
+      "start": 329.24,
+      "end": 332.83,
+      "duration": 3.589999999999975,
+      "text": "relaxation what is that check who are connected three and four are connected"
+    },
+    {
+      "start": 332.83,
+      "end": 332.84,
+      "duration": 0.009999999999990905,
+      "text": "connected three and four are connected"
+    },
+    {
+      "start": 332.84,
+      "end": 335.83,
+      "duration": 2.990000000000009,
+      "text": "connected three and four are connected just check the distance of U that is 2 +"
+    },
+    {
+      "start": 335.83,
+      "end": 335.84,
+      "duration": 0.009999999999990905,
+      "text": "just check the distance of U that is 2 +"
+    },
+    {
+      "start": 335.84,
+      "end": 340.029,
+      "duration": 4.189000000000021,
+      "text": "just check the distance of U that is 2 + 1 3 and this is 4 3 is less than 4"
+    },
+    {
+      "start": 340.029,
+      "end": 340.039,
+      "duration": 0.009999999999990905,
+      "text": "1 3 and this is 4 3 is less than 4"
+    },
+    {
+      "start": 340.039,
+      "end": 341.749,
+      "duration": 1.7100000000000364,
+      "text": "1 3 and this is 4 3 is less than 4 modify"
+    },
+    {
+      "start": 341.749,
+      "end": 341.759,
+      "duration": 0.009999999999990905,
+      "text": "modify"
+    },
+    {
+      "start": 341.759,
+      "end": 346.07,
+      "duration": 4.310999999999979,
+      "text": "modify this then this is also connected 2 + 7 7"
+    },
+    {
+      "start": 346.07,
+      "end": 346.08,
+      "duration": 0.009999999999990905,
+      "text": "this then this is also connected 2 + 7 7"
+    },
+    {
+      "start": 346.08,
+      "end": 348.909,
+      "duration": 2.8290000000000077,
+      "text": "this then this is also connected 2 + 7 7 is this is N9 and this is infinity"
+    },
+    {
+      "start": 348.909,
+      "end": 348.919,
+      "duration": 0.009999999999990905,
+      "text": "is this is N9 and this is infinity"
+    },
+    {
+      "start": 348.919,
+      "end": 351.189,
+      "duration": 2.2700000000000387,
+      "text": "is this is N9 and this is infinity modify this"
+    },
+    {
+      "start": 351.189,
+      "end": 351.199,
+      "duration": 0.009999999999990905,
+      "text": "modify this"
+    },
+    {
+      "start": 351.199,
+      "end": 354.79,
+      "duration": 3.591000000000008,
+      "text": "modify this nine that's all some vertices are"
+    },
+    {
+      "start": 354.79,
+      "end": 354.8,
+      "duration": 0.009999999999990905,
+      "text": "nine that's all some vertices are"
+    },
+    {
+      "start": 354.8,
+      "end": 357.79,
+      "duration": 2.990000000000009,
+      "text": "nine that's all some vertices are relaxed they may or may not relax but we"
+    },
+    {
+      "start": 357.79,
+      "end": 357.8,
+      "duration": 0.009999999999990905,
+      "text": "relaxed they may or may not relax but we"
+    },
+    {
+      "start": 357.8,
+      "end": 360.99,
+      "duration": 3.1899999999999977,
+      "text": "relaxed they may or may not relax but we should check this one now second step"
+    },
+    {
+      "start": 360.99,
+      "end": 361.0,
+      "duration": 0.009999999999990905,
+      "text": "should check this one now second step"
+    },
+    {
+      "start": 361.0,
+      "end": 362.95,
+      "duration": 1.9499999999999886,
+      "text": "should check this one now second step now the step is repeating same thing I"
+    },
+    {
+      "start": 362.95,
+      "end": 362.96,
+      "duration": 0.009999999999990905,
+      "text": "now the step is repeating same thing I"
+    },
+    {
+      "start": 362.96,
+      "end": 365.909,
+      "duration": 2.9490000000000123,
+      "text": "now the step is repeating same thing I should do select the smallest one 3"
+    },
+    {
+      "start": 365.909,
+      "end": 365.919,
+      "duration": 0.009999999999990905,
+      "text": "should do select the smallest one 3"
+    },
+    {
+      "start": 365.919,
+      "end": 368.27,
+      "duration": 2.350999999999999,
+      "text": "should do select the smallest one 3 Infinity 9 Infinity which one is the"
+    },
+    {
+      "start": 368.27,
+      "end": 368.28,
+      "duration": 0.009999999999990905,
+      "text": "Infinity 9 Infinity which one is the"
+    },
+    {
+      "start": 368.28,
+      "end": 370.27,
+      "duration": 1.990000000000009,
+      "text": "Infinity 9 Infinity which one is the smallest shortest this one select this"
+    },
+    {
+      "start": 370.27,
+      "end": 370.28,
+      "duration": 0.009999999999990905,
+      "text": "smallest shortest this one select this"
+    },
+    {
+      "start": 370.28,
+      "end": 373.79,
+      "duration": 3.5100000000000477,
+      "text": "smallest shortest this one select this one now check if any vertex get relaxed"
+    },
+    {
+      "start": 373.79,
+      "end": 373.8,
+      "duration": 0.009999999999990905,
+      "text": "one now check if any vertex get relaxed"
+    },
+    {
+      "start": 373.8,
+      "end": 376.23,
+      "duration": 2.430000000000007,
+      "text": "one now check if any vertex get relaxed so there is only one connected it's 3 +"
+    },
+    {
+      "start": 376.23,
+      "end": 376.24,
+      "duration": 0.009999999999990905,
+      "text": "so there is only one connected it's 3 +"
+    },
+    {
+      "start": 376.24,
+      "end": 379.99,
+      "duration": 3.75,
+      "text": "so there is only one connected it's 3 + 3 6 this is infinity so change"
+    },
+    {
+      "start": 379.99,
+      "end": 380.0,
+      "duration": 0.009999999999990905,
+      "text": "3 6 this is infinity so change"
+    },
+    {
+      "start": 380.0,
+      "end": 383.71,
+      "duration": 3.7099999999999795,
+      "text": "3 6 this is infinity so change it now select the shortest out of what 6"
+    },
+    {
+      "start": 383.71,
+      "end": 383.72,
+      "duration": 0.010000000000047748,
+      "text": "it now select the shortest out of what 6"
+    },
+    {
+      "start": 383.72,
+      "end": 386.35,
+      "duration": 2.6299999999999955,
+      "text": "it now select the shortest out of what 6 9 Infinity which one is shortest this"
+    },
+    {
+      "start": 386.35,
+      "end": 386.36,
+      "duration": 0.009999999999990905,
+      "text": "9 Infinity which one is shortest this"
+    },
+    {
+      "start": 386.36,
+      "end": 388.83,
+      "duration": 2.4699999999999704,
+      "text": "9 Infinity which one is shortest this one select this one and see who are"
+    },
+    {
+      "start": 388.83,
+      "end": 388.84,
+      "duration": 0.009999999999990905,
+      "text": "one select this one and see who are"
+    },
+    {
+      "start": 388.84,
+      "end": 393.07,
+      "duration": 4.230000000000018,
+      "text": "one select this one and see who are connected and try to relax them so 6 + 2"
+    },
+    {
+      "start": 393.07,
+      "end": 393.08,
+      "duration": 0.009999999999990905,
+      "text": "connected and try to relax them so 6 + 2"
+    },
+    {
+      "start": 393.08,
+      "end": 395.99,
+      "duration": 2.910000000000025,
+      "text": "connected and try to relax them so 6 + 2 is 8 and is 9 so this is more smaller"
+    },
+    {
+      "start": 395.99,
+      "end": 396.0,
+      "duration": 0.009999999999990905,
+      "text": "is 8 and is 9 so this is more smaller"
+    },
+    {
+      "start": 396.0,
+      "end": 401.11,
+      "duration": 5.110000000000014,
+      "text": "is 8 and is 9 so this is more smaller modifi it 6 + 5 is 11 this is infinity"
+    },
+    {
+      "start": 401.11,
+      "end": 401.12,
+      "duration": 0.009999999999990905,
+      "text": "modifi it 6 + 5 is 11 this is infinity"
+    },
+    {
+      "start": 401.12,
+      "end": 403.95,
+      "duration": 2.829999999999984,
+      "text": "modifi it 6 + 5 is 11 this is infinity modified so two vertices are modified"
+    },
+    {
+      "start": 403.95,
+      "end": 403.96,
+      "duration": 0.009999999999990905,
+      "text": "modified so two vertices are modified"
+    },
+    {
+      "start": 403.96,
+      "end": 406.749,
+      "duration": 2.789000000000044,
+      "text": "modified so two vertices are modified they are relaxed now who are remaining"
+    },
+    {
+      "start": 406.749,
+      "end": 406.759,
+      "duration": 0.009999999999990905,
+      "text": "they are relaxed now who are remaining"
+    },
+    {
+      "start": 406.759,
+      "end": 410.11,
+      "duration": 3.350999999999999,
+      "text": "they are relaxed now who are remaining four and six who is minimum eight select"
+    },
+    {
+      "start": 410.11,
+      "end": 410.12,
+      "duration": 0.009999999999990905,
+      "text": "four and six who is minimum eight select"
+    },
+    {
+      "start": 410.12,
+      "end": 410.909,
+      "duration": 0.7889999999999873,
+      "text": "four and six who is minimum eight select this"
+    },
+    {
+      "start": 410.909,
+      "end": 410.919,
+      "duration": 0.009999999999990905,
+      "text": "this"
+    },
+    {
+      "start": 410.919,
+      "end": 414.189,
+      "duration": 3.2700000000000387,
+      "text": "this one and check if anything gets relaxed 8"
+    },
+    {
+      "start": 414.189,
+      "end": 414.199,
+      "duration": 0.009999999999990905,
+      "text": "one and check if anything gets relaxed 8"
+    },
+    {
+      "start": 414.199,
+      "end": 420.67,
+      "duration": 6.471000000000004,
+      "text": "one and check if anything gets relaxed 8 + 1 is 9 it's already 11 modified"
+    },
+    {
+      "start": 420.68,
+      "end": 422.589,
+      "duration": 1.9089999999999918,
+      "text": "so here I have taken an example most of"
+    },
+    {
+      "start": 422.599,
+      "end": 424.469,
+      "duration": 1.8700000000000045,
+      "text": "so here I have taken an example most of the time the vertices are modifying"
+    },
+    {
+      "start": 424.469,
+      "end": 424.479,
+      "duration": 0.009999999999990905,
+      "text": "the time the vertices are modifying"
+    },
+    {
+      "start": 424.479,
+      "end": 426.749,
+      "duration": 2.2700000000000387,
+      "text": "the time the vertices are modifying their distances are modifying they may"
+    },
+    {
+      "start": 426.749,
+      "end": 426.759,
+      "duration": 0.009999999999990905,
+      "text": "their distances are modifying they may"
+    },
+    {
+      "start": 426.759,
+      "end": 429.189,
+      "duration": 2.430000000000007,
+      "text": "their distances are modifying they may or may not modify now the last one is"
+    },
+    {
+      "start": 429.189,
+      "end": 429.199,
+      "duration": 0.009999999999990905,
+      "text": "or may not modify now the last one is"
+    },
+    {
+      "start": 429.199,
+      "end": 431.11,
+      "duration": 1.9110000000000014,
+      "text": "or may not modify now the last one is remaining is six so now we have the"
+    },
+    {
+      "start": 431.11,
+      "end": 431.12,
+      "duration": 0.009999999999990905,
+      "text": "remaining is six so now we have the"
+    },
+    {
+      "start": 431.12,
+      "end": 434.11,
+      "duration": 2.990000000000009,
+      "text": "remaining is six so now we have the shortest part from starting vertex one"
+    },
+    {
+      "start": 434.11,
+      "end": 434.12,
+      "duration": 0.009999999999990905,
+      "text": "shortest part from starting vertex one"
+    },
+    {
+      "start": 434.12,
+      "end": 435.95,
+      "duration": 1.829999999999984,
+      "text": "shortest part from starting vertex one to all the vertexes so what are the"
+    },
+    {
+      "start": 435.95,
+      "end": 435.96,
+      "duration": 0.009999999999990905,
+      "text": "to all the vertexes so what are the"
+    },
+    {
+      "start": 435.96,
+      "end": 441.469,
+      "duration": 5.5090000000000146,
+      "text": "to all the vertexes so what are the other vertices 2 3 4 5 and 6 what are"
+    },
+    {
+      "start": 441.469,
+      "end": 441.479,
+      "duration": 0.009999999999990905,
+      "text": "other vertices 2 3 4 5 and 6 what are"
+    },
+    {
+      "start": 441.479,
+      "end": 444.11,
+      "duration": 2.6310000000000286,
+      "text": "other vertices 2 3 4 5 and 6 what are the distances I got for 2 it is 2 and"
+    },
+    {
+      "start": 444.11,
+      "end": 444.12,
+      "duration": 0.009999999999990905,
+      "text": "the distances I got for 2 it is 2 and"
+    },
+    {
+      "start": 444.12,
+      "end": 449.15,
+      "duration": 5.029999999999973,
+      "text": "the distances I got for 2 it is 2 and three it is three and four it is 8 five"
+    },
+    {
+      "start": 449.15,
+      "end": 449.16,
+      "duration": 0.010000000000047748,
+      "text": "three it is three and four it is 8 five"
+    },
+    {
+      "start": 449.16,
+      "end": 452.67,
+      "duration": 3.509999999999991,
+      "text": "three it is three and four it is 8 five is six and 6 is 9 these are the"
+    },
+    {
+      "start": 452.67,
+      "end": 452.68,
+      "duration": 0.009999999999990905,
+      "text": "is six and 6 is 9 these are the"
+    },
+    {
+      "start": 452.68,
+      "end": 454.51,
+      "duration": 1.829999999999984,
+      "text": "is six and 6 is 9 these are the distances of all the vertices and these"
+    },
+    {
+      "start": 454.51,
+      "end": 454.52,
+      "duration": 0.009999999999990905,
+      "text": "distances of all the vertices and these"
+    },
+    {
+      "start": 454.52,
+      "end": 457.15,
+      "duration": 2.6299999999999955,
+      "text": "distances of all the vertices and these are the set of vertices these are DVS"
+    },
+    {
+      "start": 457.15,
+      "end": 457.16,
+      "duration": 0.010000000000047748,
+      "text": "are the set of vertices these are DVS"
+    },
+    {
+      "start": 457.16,
+      "end": 459.189,
+      "duration": 2.0289999999999964,
+      "text": "are the set of vertices these are DVS and these are"
+    },
+    {
+      "start": 459.189,
+      "end": 459.199,
+      "duration": 0.009999999999990905,
+      "text": "and these are"
+    },
+    {
+      "start": 459.199,
+      "end": 462.67,
+      "duration": 3.4710000000000036,
+      "text": "and these are vertices so that's how a Tex algorithm"
+    },
+    {
+      "start": 462.67,
+      "end": 462.68,
+      "duration": 0.009999999999990905,
+      "text": "vertices so that's how a Tex algorithm"
+    },
+    {
+      "start": 462.68,
+      "end": 466.07,
+      "duration": 3.3899999999999864,
+      "text": "vertices so that's how a Tex algorithm works on a graph to find the shortest"
+    },
+    {
+      "start": 466.07,
+      "end": 466.08,
+      "duration": 0.009999999999990905,
+      "text": "works on a graph to find the shortest"
+    },
+    {
+      "start": 466.08,
+      "end": 469.149,
+      "duration": 3.069000000000017,
+      "text": "works on a graph to find the shortest path let us little bit analyze and find"
+    },
+    {
+      "start": 469.149,
+      "end": 469.159,
+      "duration": 0.009999999999990905,
+      "text": "path let us little bit analyze and find"
+    },
+    {
+      "start": 469.159,
+      "end": 471.469,
+      "duration": 2.3100000000000023,
+      "text": "path let us little bit analyze and find out the time complexity of this"
+    },
+    {
+      "start": 471.469,
+      "end": 471.479,
+      "duration": 0.009999999999990905,
+      "text": "out the time complexity of this"
+    },
+    {
+      "start": 471.479,
+      "end": 473.83,
+      "duration": 2.350999999999999,
+      "text": "out the time complexity of this algorithm if you analyze what it is"
+    },
+    {
+      "start": 473.83,
+      "end": 473.84,
+      "duration": 0.009999999999990905,
+      "text": "algorithm if you analyze what it is"
+    },
+    {
+      "start": 473.84,
+      "end": 476.95,
+      "duration": 3.1100000000000136,
+      "text": "algorithm if you analyze what it is doing it is finding shortest path to all"
+    },
+    {
+      "start": 476.95,
+      "end": 476.96,
+      "duration": 0.009999999999990905,
+      "text": "doing it is finding shortest path to all"
+    },
+    {
+      "start": 476.96,
+      "end": 480.23,
+      "duration": 3.2700000000000387,
+      "text": "doing it is finding shortest path to all the vertices how many vertices are there"
+    },
+    {
+      "start": 480.23,
+      "end": 480.24,
+      "duration": 0.009999999999990905,
+      "text": "the vertices how many vertices are there"
+    },
+    {
+      "start": 480.24,
+      "end": 482.39,
+      "duration": 2.1499999999999773,
+      "text": "the vertices how many vertices are there these are the vertices or we can also"
+    },
+    {
+      "start": 482.39,
+      "end": 482.4,
+      "duration": 0.009999999999990905,
+      "text": "these are the vertices or we can also"
+    },
+    {
+      "start": 482.4,
+      "end": 485.51,
+      "duration": 3.1100000000000136,
+      "text": "these are the vertices or we can also say n number of vertices so for all"
+    },
+    {
+      "start": 485.51,
+      "end": 485.52,
+      "duration": 0.009999999999990905,
+      "text": "say n number of vertices so for all"
+    },
+    {
+      "start": 485.52,
+      "end": 487.67,
+      "duration": 2.150000000000034,
+      "text": "say n number of vertices so for all vertices it's finding shortest path"
+    },
+    {
+      "start": 487.67,
+      "end": 487.68,
+      "duration": 0.009999999999990905,
+      "text": "vertices it's finding shortest path"
+    },
+    {
+      "start": 487.68,
+      "end": 490.27,
+      "duration": 2.589999999999975,
+      "text": "vertices it's finding shortest path while doing so what it is doing it is"
+    },
+    {
+      "start": 490.27,
+      "end": 490.28,
+      "duration": 0.009999999999990905,
+      "text": "while doing so what it is doing it is"
+    },
+    {
+      "start": 490.28,
+      "end": 493.27,
+      "duration": 2.990000000000009,
+      "text": "while doing so what it is doing it is relaxing relaxing which vertexes when it"
+    },
+    {
+      "start": 493.27,
+      "end": 493.28,
+      "duration": 0.009999999999990905,
+      "text": "relaxing relaxing which vertexes when it"
+    },
+    {
+      "start": 493.28,
+      "end": 495.469,
+      "duration": 2.1890000000000214,
+      "text": "relaxing relaxing which vertexes when it is on three it is relaxed it has relaxed"
+    },
+    {
+      "start": 495.469,
+      "end": 495.479,
+      "duration": 0.009999999999990905,
+      "text": "is on three it is relaxed it has relaxed"
+    },
+    {
+      "start": 495.479,
+      "end": 497.589,
+      "duration": 2.1100000000000136,
+      "text": "is on three it is relaxed it has relaxed only five when it was on two it has"
+    },
+    {
+      "start": 497.589,
+      "end": 497.599,
+      "duration": 0.009999999999990905,
+      "text": "only five when it was on two it has"
+    },
+    {
+      "start": 497.599,
+      "end": 500.469,
+      "duration": 2.8700000000000045,
+      "text": "only five when it was on two it has relax only three and four so total how"
+    },
+    {
+      "start": 500.469,
+      "end": 500.479,
+      "duration": 0.009999999999990905,
+      "text": "relax only three and four so total how"
+    },
+    {
+      "start": 500.479,
+      "end": 502.79,
+      "duration": 2.3110000000000355,
+      "text": "relax only three and four so total how many veres it may be relaxing we don't"
+    },
+    {
+      "start": 502.79,
+      "end": 502.8,
+      "duration": 0.009999999999990905,
+      "text": "many veres it may be relaxing we don't"
+    },
+    {
+      "start": 502.8,
+      "end": 505.23,
+      "duration": 2.430000000000007,
+      "text": "many veres it may be relaxing we don't know it depends on the graph okay at"
+    },
+    {
+      "start": 505.23,
+      "end": 505.24,
+      "duration": 0.009999999999990905,
+      "text": "know it depends on the graph okay at"
+    },
+    {
+      "start": 505.24,
+      "end": 506.95,
+      "duration": 1.7099999999999795,
+      "text": "know it depends on the graph okay at most how many vertices it may be"
+    },
+    {
+      "start": 506.95,
+      "end": 506.96,
+      "duration": 0.009999999999990905,
+      "text": "most how many vertices it may be"
+    },
+    {
+      "start": 506.96,
+      "end": 510.71,
+      "duration": 3.75,
+      "text": "most how many vertices it may be relaxing all n vertices suppose two is"
+    },
+    {
+      "start": 510.71,
+      "end": 510.72,
+      "duration": 0.010000000000047748,
+      "text": "relaxing all n vertices suppose two is"
+    },
+    {
+      "start": 510.72,
+      "end": 513.509,
+      "duration": 2.7889999999999873,
+      "text": "relaxing all n vertices suppose two is connecting to all then it may be"
+    },
+    {
+      "start": 513.509,
+      "end": 513.519,
+      "duration": 0.009999999999990905,
+      "text": "connecting to all then it may be"
+    },
+    {
+      "start": 513.519,
+      "end": 515.07,
+      "duration": 1.5510000000000446,
+      "text": "connecting to all then it may be relaxing all of them it may be checking"
+    },
+    {
+      "start": 515.07,
+      "end": 515.08,
+      "duration": 0.009999999999990905,
+      "text": "relaxing all of them it may be checking"
+    },
+    {
+      "start": 515.08,
+      "end": 519.23,
+      "duration": 4.149999999999977,
+      "text": "relaxing all of them it may be checking all of them so again it is V so it means"
+    },
+    {
+      "start": 519.23,
+      "end": 519.24,
+      "duration": 0.009999999999990905,
+      "text": "all of them so again it is V so it means"
+    },
+    {
+      "start": 519.24,
+      "end": 524.63,
+      "duration": 5.389999999999986,
+      "text": "all of them so again it is V so it means n into n n for vertices and N vertices"
+    },
+    {
+      "start": 524.63,
+      "end": 524.64,
+      "duration": 0.009999999999990905,
+      "text": "n into n n for vertices and N vertices"
+    },
+    {
+      "start": 524.64,
+      "end": 527.67,
+      "duration": 3.0299999999999727,
+      "text": "n into n n for vertices and N vertices are relaxed so when it will happen that"
+    },
+    {
+      "start": 527.67,
+      "end": 527.68,
+      "duration": 0.009999999999990905,
+      "text": "are relaxed so when it will happen that"
+    },
+    {
+      "start": 527.68,
+      "end": 529.59,
+      "duration": 1.9100000000000819,
+      "text": "are relaxed so when it will happen that from two all are connected then again"
+    },
+    {
+      "start": 529.59,
+      "end": 529.6,
+      "duration": 0.009999999999990905,
+      "text": "from two all are connected then again"
+    },
+    {
+      "start": 529.6,
+      "end": 531.75,
+      "duration": 2.1499999999999773,
+      "text": "from two all are connected then again three all are connected that will be a"
+    },
+    {
+      "start": 531.75,
+      "end": 531.76,
+      "duration": 0.009999999999990905,
+      "text": "three all are connected that will be a"
+    },
+    {
+      "start": 531.76,
+      "end": 534.55,
+      "duration": 2.7899999999999636,
+      "text": "three all are connected that will be a complete graph in case of complete graph"
+    },
+    {
+      "start": 534.55,
+      "end": 534.56,
+      "duration": 0.009999999999990905,
+      "text": "complete graph in case of complete graph"
+    },
+    {
+      "start": 534.56,
+      "end": 537.31,
+      "duration": 2.75,
+      "text": "complete graph in case of complete graph it will take n into n time and this will"
+    },
+    {
+      "start": 537.31,
+      "end": 537.32,
+      "duration": 0.010000000000104592,
+      "text": "it will take n into n time and this will"
+    },
+    {
+      "start": 537.32,
+      "end": 539.87,
+      "duration": 2.5499999999999545,
+      "text": "it will take n into n time and this will be n²"
+    },
+    {
+      "start": 539.87,
+      "end": 539.88,
+      "duration": 0.009999999999990905,
+      "text": "be n²"
+    },
+    {
+      "start": 539.88,
+      "end": 543.389,
+      "duration": 3.5090000000000146,
+      "text": "be n² so this is the worst case time of this"
+    },
+    {
+      "start": 543.389,
+      "end": 543.399,
+      "duration": 0.009999999999990905,
+      "text": "so this is the worst case time of this"
+    },
+    {
+      "start": 543.399,
+      "end": 546.069,
+      "duration": 2.669999999999959,
+      "text": "so this is the worst case time of this algorithm maximum time it may be order"
+    },
+    {
+      "start": 546.069,
+      "end": 546.079,
+      "duration": 0.009999999999990905,
+      "text": "algorithm maximum time it may be order"
+    },
+    {
+      "start": 546.079,
+      "end": 547.269,
+      "duration": 1.1900000000000546,
+      "text": "algorithm maximum time it may be order of"
+    },
+    {
+      "start": 547.269,
+      "end": 547.279,
+      "duration": 0.009999999999990905,
+      "text": "of"
+    },
+    {
+      "start": 547.279,
+      "end": 552.75,
+      "duration": 5.471000000000004,
+      "text": "of n² I can write it as Theta of v² or"
+    },
+    {
+      "start": 552.75,
+      "end": 552.76,
+      "duration": 0.009999999999990905,
+      "text": "n² I can write it as Theta of v² or"
+    },
+    {
+      "start": 552.76,
+      "end": 556.03,
+      "duration": 3.269999999999982,
+      "text": "n² I can write it as Theta of v² or Theta of n² the worst case time and I"
+    },
+    {
+      "start": 556.03,
+      "end": 556.04,
+      "duration": 0.009999999999990905,
+      "text": "Theta of n² the worst case time and I"
+    },
+    {
+      "start": 556.04,
+      "end": 558.509,
+      "duration": 2.469000000000051,
+      "text": "Theta of n² the worst case time and I can use Theta there once I know that"
+    },
+    {
+      "start": 558.509,
+      "end": 558.519,
+      "duration": 0.009999999999990905,
+      "text": "can use Theta there once I know that"
+    },
+    {
+      "start": 558.519,
+      "end": 561.269,
+      "duration": 2.75,
+      "text": "can use Theta there once I know that function that is n² and it belongs to"
+    },
+    {
+      "start": 561.269,
+      "end": 561.279,
+      "duration": 0.009999999999990905,
+      "text": "function that is n² and it belongs to"
+    },
+    {
+      "start": 561.279,
+      "end": 563.11,
+      "duration": 1.8310000000000173,
+      "text": "function that is n² and it belongs to some class that is n sare class"
+    },
+    {
+      "start": 563.11,
+      "end": 563.12,
+      "duration": 0.009999999999990905,
+      "text": "some class that is n sare class"
+    },
+    {
+      "start": 563.12,
+      "end": 566.31,
+      "duration": 3.189999999999941,
+      "text": "some class that is n sare class quadratic class so this is Theta of n²"
+    },
+    {
+      "start": 566.31,
+      "end": 566.32,
+      "duration": 0.010000000000104592,
+      "text": "quadratic class so this is Theta of n²"
+    },
+    {
+      "start": 566.32,
+      "end": 568.75,
+      "duration": 2.42999999999995,
+      "text": "quadratic class so this is Theta of n² here I have a weighted directed graph"
+    },
+    {
+      "start": 568.75,
+      "end": 568.76,
+      "duration": 0.009999999999990905,
+      "text": "here I have a weighted directed graph"
+    },
+    {
+      "start": 568.76,
+      "end": 571.069,
+      "duration": 2.308999999999969,
+      "text": "here I have a weighted directed graph commonly found in textbooks on this we"
+    },
+    {
+      "start": 571.069,
+      "end": 571.079,
+      "duration": 0.009999999999990905,
+      "text": "commonly found in textbooks on this we"
+    },
+    {
+      "start": 571.079,
+      "end": 573.75,
+      "duration": 2.671000000000049,
+      "text": "commonly found in textbooks on this we will run the extra algorithm to solve"
+    },
+    {
+      "start": 573.75,
+      "end": 573.76,
+      "duration": 0.009999999999990905,
+      "text": "will run the extra algorithm to solve"
+    },
+    {
+      "start": 573.76,
+      "end": 576.269,
+      "duration": 2.5090000000000146,
+      "text": "will run the extra algorithm to solve single Source shortest spot problem so I"
+    },
+    {
+      "start": 576.269,
+      "end": 576.279,
+      "duration": 0.009999999999990905,
+      "text": "single Source shortest spot problem so I"
+    },
+    {
+      "start": 576.279,
+      "end": 578.67,
+      "duration": 2.3909999999999627,
+      "text": "single Source shortest spot problem so I will not be updating the distances upon"
+    },
+    {
+      "start": 578.67,
+      "end": 578.68,
+      "duration": 0.009999999999990905,
+      "text": "will not be updating the distances upon"
+    },
+    {
+      "start": 578.68,
+      "end": 580.35,
+      "duration": 1.6700000000000728,
+      "text": "will not be updating the distances upon the vertices itself but I will be"
+    },
+    {
+      "start": 580.35,
+      "end": 580.36,
+      "duration": 0.009999999999990905,
+      "text": "the vertices itself but I will be"
+    },
+    {
+      "start": 580.36,
+      "end": 583.47,
+      "duration": 3.1100000000000136,
+      "text": "the vertices itself but I will be writing them in the table so let us see"
+    },
+    {
+      "start": 583.47,
+      "end": 583.48,
+      "duration": 0.009999999999990905,
+      "text": "writing them in the table so let us see"
+    },
+    {
+      "start": 583.48,
+      "end": 585.389,
+      "duration": 1.9089999999999918,
+      "text": "writing them in the table so let us see how I can prepare this table so instead"
+    },
+    {
+      "start": 585.389,
+      "end": 585.399,
+      "duration": 0.009999999999990905,
+      "text": "how I can prepare this table so instead"
+    },
+    {
+      "start": 585.399,
+      "end": 587.75,
+      "duration": 2.350999999999999,
+      "text": "how I can prepare this table so instead of writing there I'm writing here so"
+    },
+    {
+      "start": 587.75,
+      "end": 587.76,
+      "duration": 0.009999999999990905,
+      "text": "of writing there I'm writing here so"
+    },
+    {
+      "start": 587.76,
+      "end": 589.509,
+      "duration": 1.7490000000000236,
+      "text": "of writing there I'm writing here so initially I should find the direct Edge"
+    },
+    {
+      "start": 589.509,
+      "end": 589.519,
+      "duration": 0.009999999999990905,
+      "text": "initially I should find the direct Edge"
+    },
+    {
+      "start": 589.519,
+      "end": 591.67,
+      "duration": 2.1509999999999536,
+      "text": "initially I should find the direct Edge passs to all the vertices so for two it"
+    },
+    {
+      "start": 591.67,
+      "end": 591.68,
+      "duration": 0.009999999999990905,
+      "text": "passs to all the vertices so for two it"
+    },
+    {
+      "start": 591.68,
+      "end": 594.87,
+      "duration": 3.1900000000000546,
+      "text": "passs to all the vertices so for two it is 5 53 it is 45 likewise all the parts"
+    },
+    {
+      "start": 594.87,
+      "end": 594.88,
+      "duration": 0.009999999999990905,
+      "text": "is 5 53 it is 45 likewise all the parts"
+    },
+    {
+      "start": 594.88,
+      "end": 597.55,
+      "duration": 2.669999999999959,
+      "text": "is 5 53 it is 45 likewise all the parts are given and one thing to mention here"
+    },
+    {
+      "start": 597.55,
+      "end": 597.56,
+      "duration": 0.009999999999990905,
+      "text": "are given and one thing to mention here"
+    },
+    {
+      "start": 597.56,
+      "end": 599.829,
+      "duration": 2.2690000000000055,
+      "text": "are given and one thing to mention here the starting vertex is one so in the"
+    },
+    {
+      "start": 599.829,
+      "end": 599.839,
+      "duration": 0.010000000000104592,
+      "text": "the starting vertex is one so in the"
+    },
+    {
+      "start": 599.839,
+      "end": 604.389,
+      "duration": 4.5499999999999545,
+      "text": "the starting vertex is one so in the graph you can see 1 to 2 50 1 to 3 45 1"
+    },
+    {
+      "start": 604.389,
+      "end": 604.399,
+      "duration": 0.009999999999990905,
+      "text": "graph you can see 1 to 2 50 1 to 3 45 1"
+    },
+    {
+      "start": 604.399,
+      "end": 609.43,
+      "duration": 5.030999999999949,
+      "text": "graph you can see 1 to 2 50 1 to 3 45 1 to 4 10 1 to 5 no Edge 1 to six no Edge"
+    },
+    {
+      "start": 609.43,
+      "end": 609.44,
+      "duration": 0.010000000000104592,
+      "text": "to 4 10 1 to 5 no Edge 1 to six no Edge"
+    },
+    {
+      "start": 609.44,
+      "end": 613.23,
+      "duration": 3.7899999999999636,
+      "text": "to 4 10 1 to 5 no Edge 1 to six no Edge so 50 45 10 infinity infinity already"
+    },
+    {
+      "start": 613.23,
+      "end": 613.24,
+      "duration": 0.009999999999990905,
+      "text": "so 50 45 10 infinity infinity already"
+    },
+    {
+      "start": 613.24,
+      "end": 616.389,
+      "duration": 3.149000000000001,
+      "text": "so 50 45 10 infinity infinity already given let us solve it the smallest"
+    },
+    {
+      "start": 616.389,
+      "end": 616.399,
+      "duration": 0.009999999999990905,
+      "text": "given let us solve it the smallest"
+    },
+    {
+      "start": 616.399,
+      "end": 619.87,
+      "duration": 3.4710000000000036,
+      "text": "given let us solve it the smallest vertex is four so I select vertex four"
+    },
+    {
+      "start": 619.87,
+      "end": 619.88,
+      "duration": 0.009999999999990905,
+      "text": "vertex is four so I select vertex four"
+    },
+    {
+      "start": 619.88,
+      "end": 622.829,
+      "duration": 2.9489999999999554,
+      "text": "vertex is four so I select vertex four so the selected vertex is four then once"
+    },
+    {
+      "start": 622.829,
+      "end": 622.839,
+      "duration": 0.010000000000104592,
+      "text": "so the selected vertex is four then once"
+    },
+    {
+      "start": 622.839,
+      "end": 625.15,
+      "duration": 2.310999999999922,
+      "text": "so the selected vertex is four then once the vertex four is selected see from"
+    },
+    {
+      "start": 625.15,
+      "end": 625.16,
+      "duration": 0.009999999999990905,
+      "text": "the vertex four is selected see from"
+    },
+    {
+      "start": 625.16,
+      "end": 627.949,
+      "duration": 2.7889999999999873,
+      "text": "the vertex four is selected see from four five is connected so can we relax"
+    },
+    {
+      "start": 627.949,
+      "end": 627.959,
+      "duration": 0.009999999999990905,
+      "text": "four five is connected so can we relax"
+    },
+    {
+      "start": 627.959,
+      "end": 631.67,
+      "duration": 3.7110000000000127,
+      "text": "four five is connected so can we relax this one so four is is a 10 10 + 15 25"
+    },
+    {
+      "start": 631.67,
+      "end": 631.68,
+      "duration": 0.009999999999990905,
+      "text": "this one so four is is a 10 10 + 15 25"
+    },
+    {
+      "start": 631.68,
+      "end": 634.509,
+      "duration": 2.8290000000000646,
+      "text": "this one so four is is a 10 10 + 15 25 yes five can be modified and we got a"
+    },
+    {
+      "start": 634.509,
+      "end": 634.519,
+      "duration": 0.009999999999990905,
+      "text": "yes five can be modified and we got a"
+    },
+    {
+      "start": 634.519,
+      "end": 637.75,
+      "duration": 3.2309999999999945,
+      "text": "yes five can be modified and we got a path that is infinity so it is 25 now"
+    },
+    {
+      "start": 637.75,
+      "end": 637.76,
+      "duration": 0.009999999999990905,
+      "text": "path that is infinity so it is 25 now"
+    },
+    {
+      "start": 637.76,
+      "end": 640.629,
+      "duration": 2.869000000000028,
+      "text": "path that is infinity so it is 25 now and this remains infinity and this is 10"
+    },
+    {
+      "start": 640.629,
+      "end": 640.639,
+      "duration": 0.009999999999990905,
+      "text": "and this remains infinity and this is 10"
+    },
+    {
+      "start": 640.639,
+      "end": 643.99,
+      "duration": 3.350999999999999,
+      "text": "and this remains infinity and this is 10 which is already selected 45 and 50 they"
+    },
+    {
+      "start": 643.99,
+      "end": 644.0,
+      "duration": 0.009999999999990905,
+      "text": "which is already selected 45 and 50 they"
+    },
+    {
+      "start": 644.0,
+      "end": 646.87,
+      "duration": 2.8700000000000045,
+      "text": "which is already selected 45 and 50 they remains as it is now select the next"
+    },
+    {
+      "start": 646.87,
+      "end": 646.88,
+      "duration": 0.009999999999990905,
+      "text": "remains as it is now select the next"
+    },
+    {
+      "start": 646.88,
+      "end": 650.31,
+      "duration": 3.42999999999995,
+      "text": "remains as it is now select the next smallest one so this one Vex 5 is"
+    },
+    {
+      "start": 650.31,
+      "end": 650.32,
+      "duration": 0.010000000000104592,
+      "text": "smallest one so this one Vex 5 is"
+    },
+    {
+      "start": 650.32,
+      "end": 653.069,
+      "duration": 2.74899999999991,
+      "text": "smallest one so this one Vex 5 is selected so Vex 5 when it is selected"
+    },
+    {
+      "start": 653.069,
+      "end": 653.079,
+      "duration": 0.009999999999990905,
+      "text": "selected so Vex 5 when it is selected"
+    },
+    {
+      "start": 653.079,
+      "end": 655.069,
+      "duration": 1.990000000000009,
+      "text": "selected so Vex 5 when it is selected there's an H to three and there's an H"
+    },
+    {
+      "start": 655.069,
+      "end": 655.079,
+      "duration": 0.009999999999990905,
+      "text": "there's an H to three and there's an H"
+    },
+    {
+      "start": 655.079,
+      "end": 658.55,
+      "duration": 3.4710000000000036,
+      "text": "there's an H to three and there's an H to two so if I take two how much is five"
+    },
+    {
+      "start": 658.55,
+      "end": 658.56,
+      "duration": 0.009999999999990905,
+      "text": "to two so if I take two how much is five"
+    },
+    {
+      "start": 658.56,
+      "end": 662.71,
+      "duration": 4.150000000000091,
+      "text": "to two so if I take two how much is five 25 now so I did not mention here 25 + 20"
+    },
+    {
+      "start": 662.71,
+      "end": 662.72,
+      "duration": 0.009999999999990905,
+      "text": "25 now so I did not mention here 25 + 20"
+    },
+    {
+      "start": 662.72,
+      "end": 666.67,
+      "duration": 3.949999999999932,
+      "text": "25 now so I did not mention here 25 + 20 45 and this distance is already 50 This"
+    },
+    {
+      "start": 666.67,
+      "end": 666.68,
+      "duration": 0.009999999999990905,
+      "text": "45 and this distance is already 50 This"
+    },
+    {
+      "start": 666.68,
+      "end": 669.75,
+      "duration": 3.07000000000005,
+      "text": "45 and this distance is already 50 This Is 50 but now we have a shorter path V"
+    },
+    {
+      "start": 669.75,
+      "end": 669.76,
+      "duration": 0.009999999999990905,
+      "text": "Is 50 but now we have a shorter path V"
+    },
+    {
+      "start": 669.76,
+      "end": 673.629,
+      "duration": 3.869000000000028,
+      "text": "Is 50 but now we have a shorter path V five that is 45 so modify this"
+    },
+    {
+      "start": 673.629,
+      "end": 673.639,
+      "duration": 0.009999999999990905,
+      "text": "five that is 45 so modify this"
+    },
+    {
+      "start": 673.639,
+      "end": 677.509,
+      "duration": 3.8700000000000045,
+      "text": "five that is 45 so modify this 45 and this is also 45 this 10 is"
+    },
+    {
+      "start": 677.509,
+      "end": 677.519,
+      "duration": 0.009999999999990905,
+      "text": "45 and this is also 45 this 10 is"
+    },
+    {
+      "start": 677.519,
+      "end": 680.67,
+      "duration": 3.1509999999999536,
+      "text": "45 and this is also 45 this 10 is selected 25 is selected this Still"
+    },
+    {
+      "start": 680.67,
+      "end": 680.68,
+      "duration": 0.009999999999990905,
+      "text": "selected 25 is selected this Still"
+    },
+    {
+      "start": 680.68,
+      "end": 682.629,
+      "duration": 1.9490000000000691,
+      "text": "selected 25 is selected this Still Remains"
+    },
+    {
+      "start": 682.629,
+      "end": 682.639,
+      "duration": 0.009999999999990905,
+      "text": "Remains"
+    },
+    {
+      "start": 682.639,
+      "end": 684.829,
+      "duration": 2.189999999999941,
+      "text": "Remains Infinity now I have to select the next"
+    },
+    {
+      "start": 684.829,
+      "end": 684.839,
+      "duration": 0.010000000000104592,
+      "text": "Infinity now I have to select the next"
+    },
+    {
+      "start": 684.839,
+      "end": 688.23,
+      "duration": 3.3909999999999627,
+      "text": "Infinity now I have to select the next shortest one so I have 45 45 Infinity so"
+    },
+    {
+      "start": 688.23,
+      "end": 688.24,
+      "duration": 0.009999999999990905,
+      "text": "shortest one so I have 45 45 Infinity so"
+    },
+    {
+      "start": 688.24,
+      "end": 690.67,
+      "duration": 2.42999999999995,
+      "text": "shortest one so I have 45 45 Infinity so I can pick up any one so I'll select the"
+    },
+    {
+      "start": 690.67,
+      "end": 690.68,
+      "duration": 0.009999999999990905,
+      "text": "I can pick up any one so I'll select the"
+    },
+    {
+      "start": 690.68,
+      "end": 693.79,
+      "duration": 3.1100000000000136,
+      "text": "I can pick up any one so I'll select the second vertex 2 once vertex 2 is"
+    },
+    {
+      "start": 693.79,
+      "end": 693.8,
+      "duration": 0.009999999999990905,
+      "text": "second vertex 2 once vertex 2 is"
+    },
+    {
+      "start": 693.8,
+      "end": 696.11,
+      "duration": 2.310000000000059,
+      "text": "second vertex 2 once vertex 2 is selected from there the connected vertex"
+    },
+    {
+      "start": 696.11,
+      "end": 696.12,
+      "duration": 0.009999999999990905,
+      "text": "selected from there the connected vertex"
+    },
+    {
+      "start": 696.12,
+      "end": 702.03,
+      "duration": 5.909999999999968,
+      "text": "selected from there the connected vertex is three so + 10 45 + 10 55 but already"
+    },
+    {
+      "start": 702.03,
+      "end": 702.04,
+      "duration": 0.009999999999990905,
+      "text": "is three so + 10 45 + 10 55 but already"
+    },
+    {
+      "start": 702.04,
+      "end": 704.47,
+      "duration": 2.4300000000000637,
+      "text": "is three so + 10 45 + 10 55 but already the distance to three is"
+    },
+    {
+      "start": 704.47,
+      "end": 704.48,
+      "duration": 0.009999999999990905,
+      "text": "the distance to three is"
+    },
+    {
+      "start": 704.48,
+      "end": 708.829,
+      "duration": 4.348999999999933,
+      "text": "the distance to three is 45 so 45 + 10 will be 55 so this is"
+    },
+    {
+      "start": 708.829,
+      "end": 708.839,
+      "duration": 0.010000000000104592,
+      "text": "45 so 45 + 10 will be 55 so this is"
+    },
+    {
+      "start": 708.839,
+      "end": 711.99,
+      "duration": 3.1509999999999536,
+      "text": "45 so 45 + 10 will be 55 so this is smaller no change so this remains as it"
+    },
+    {
+      "start": 711.99,
+      "end": 712.0,
+      "duration": 0.009999999999990905,
+      "text": "smaller no change so this remains as it"
+    },
+    {
+      "start": 712.0,
+      "end": 714.43,
+      "duration": 2.42999999999995,
+      "text": "smaller no change so this remains as it is 45 is already selected this remains"
+    },
+    {
+      "start": 714.43,
+      "end": 714.44,
+      "duration": 0.010000000000104592,
+      "text": "is 45 is already selected this remains"
+    },
+    {
+      "start": 714.44,
+      "end": 717.87,
+      "duration": 3.42999999999995,
+      "text": "is 45 is already selected this remains 45 only 10 is selected 25 is selected"
+    },
+    {
+      "start": 717.87,
+      "end": 717.88,
+      "duration": 0.009999999999990905,
+      "text": "45 only 10 is selected 25 is selected"
+    },
+    {
+      "start": 717.88,
+      "end": 719.87,
+      "duration": 1.990000000000009,
+      "text": "45 only 10 is selected 25 is selected and infinity"
+    },
+    {
+      "start": 719.87,
+      "end": 719.88,
+      "duration": 0.009999999999990905,
+      "text": "and infinity"
+    },
+    {
+      "start": 719.88,
+      "end": 723.03,
+      "duration": 3.1499999999999773,
+      "text": "and infinity now select next minimum so three three"
+    },
+    {
+      "start": 723.03,
+      "end": 723.04,
+      "duration": 0.009999999999990905,
+      "text": "now select next minimum so three three"
+    },
+    {
+      "start": 723.04,
+      "end": 726.15,
+      "duration": 3.1100000000000136,
+      "text": "now select next minimum so three three is selected now from three there's an"
+    },
+    {
+      "start": 726.15,
+      "end": 726.16,
+      "duration": 0.009999999999990905,
+      "text": "is selected now from three there's an"
+    },
+    {
+      "start": 726.16,
+      "end": 729.03,
+      "duration": 2.8700000000000045,
+      "text": "is selected now from three there's an edge coming towards five but five is"
+    },
+    {
+      "start": 729.03,
+      "end": 729.04,
+      "duration": 0.009999999999990905,
+      "text": "edge coming towards five but five is"
+    },
+    {
+      "start": 729.04,
+      "end": 731.829,
+      "duration": 2.7889999999999873,
+      "text": "edge coming towards five but five is already in the selected vertex don't"
+    },
+    {
+      "start": 731.829,
+      "end": 731.839,
+      "duration": 0.010000000000104592,
+      "text": "already in the selected vertex don't"
+    },
+    {
+      "start": 731.839,
+      "end": 734.75,
+      "duration": 2.9109999999999445,
+      "text": "already in the selected vertex don't check it if you check also it's of no"
+    },
+    {
+      "start": 734.75,
+      "end": 734.76,
+      "duration": 0.009999999999990905,
+      "text": "check it if you check also it's of no"
+    },
+    {
+      "start": 734.76,
+      "end": 739.23,
+      "duration": 4.470000000000027,
+      "text": "check it if you check also it's of no use see 30 is how 3 is how much 45 45 +"
+    },
+    {
+      "start": 739.23,
+      "end": 739.24,
+      "duration": 0.009999999999990905,
+      "text": "use see 30 is how 3 is how much 45 45 +"
+    },
+    {
+      "start": 739.24,
+      "end": 740.47,
+      "duration": 1.2300000000000182,
+      "text": "use see 30 is how 3 is how much 45 45 + 30 will"
+    },
+    {
+      "start": 740.47,
+      "end": 740.48,
+      "duration": 0.009999999999990905,
+      "text": "30 will"
+    },
+    {
+      "start": 740.48,
+      "end": 742.59,
+      "duration": 2.1100000000000136,
+      "text": "30 will be uh"
+    },
+    {
+      "start": 742.59,
+      "end": 742.6,
+      "duration": 0.009999999999990905,
+      "text": "be uh"
+    },
+    {
+      "start": 742.6,
+      "end": 746.15,
+      "duration": 3.5499999999999545,
+      "text": "be uh 75 so already five is having its weight"
+    },
+    {
+      "start": 746.15,
+      "end": 746.16,
+      "duration": 0.009999999999990905,
+      "text": "75 so already five is having its weight"
+    },
+    {
+      "start": 746.16,
+      "end": 749.99,
+      "duration": 3.830000000000041,
+      "text": "75 so already five is having its weight as distance as 25 so no use of ch it so"
+    },
+    {
+      "start": 749.99,
+      "end": 750.0,
+      "duration": 0.009999999999990905,
+      "text": "as distance as 25 so no use of ch it so"
+    },
+    {
+      "start": 750.0,
+      "end": 753.15,
+      "duration": 3.1499999999999773,
+      "text": "as distance as 25 so no use of ch it so nothing is relaxed and this is selected"
+    },
+    {
+      "start": 753.15,
+      "end": 753.16,
+      "duration": 0.009999999999990905,
+      "text": "nothing is relaxed and this is selected"
+    },
+    {
+      "start": 753.16,
+      "end": 756.99,
+      "duration": 3.830000000000041,
+      "text": "nothing is relaxed and this is selected that's all so 45 selected 46 this also"
+    },
+    {
+      "start": 756.99,
+      "end": 757.0,
+      "duration": 0.009999999999990905,
+      "text": "that's all so 45 selected 46 this also"
+    },
+    {
+      "start": 757.0,
+      "end": 762.189,
+      "duration": 5.1889999999999645,
+      "text": "that's all so 45 selected 46 this also selected 10 selected 25 selected"
+    },
+    {
+      "start": 762.189,
+      "end": 762.199,
+      "duration": 0.009999999999990905,
+      "text": "selected 10 selected 25 selected"
+    },
+    {
+      "start": 762.199,
+      "end": 764.91,
+      "duration": 2.7110000000000127,
+      "text": "selected 10 selected 25 selected Infinity now who is remaining Infinity"
+    },
+    {
+      "start": 764.91,
+      "end": 764.92,
+      "duration": 0.009999999999990905,
+      "text": "Infinity now who is remaining Infinity"
+    },
+    {
+      "start": 764.92,
+      "end": 767.91,
+      "duration": 2.990000000000009,
+      "text": "Infinity now who is remaining Infinity is remaining so six is also selected so"
+    },
+    {
+      "start": 767.91,
+      "end": 767.92,
+      "duration": 0.009999999999990905,
+      "text": "is remaining so six is also selected so"
+    },
+    {
+      "start": 767.92,
+      "end": 770.71,
+      "duration": 2.7900000000000773,
+      "text": "is remaining so six is also selected so the path to verx 6 has remained Infinity"
+    },
+    {
+      "start": 770.71,
+      "end": 770.72,
+      "duration": 0.009999999999990905,
+      "text": "the path to verx 6 has remained Infinity"
+    },
+    {
+      "start": 770.72,
+      "end": 773.59,
+      "duration": 2.8700000000000045,
+      "text": "the path to verx 6 has remained Infinity only because there is no incoming Ed on"
+    },
+    {
+      "start": 773.59,
+      "end": 773.6,
+      "duration": 0.009999999999990905,
+      "text": "only because there is no incoming Ed on"
+    },
+    {
+      "start": 773.6,
+      "end": 777.75,
+      "duration": 4.149999999999977,
+      "text": "only because there is no incoming Ed on six so we cannot reach six the path to"
+    },
+    {
+      "start": 777.75,
+      "end": 777.76,
+      "duration": 0.009999999999990905,
+      "text": "six so we cannot reach six the path to"
+    },
+    {
+      "start": 777.76,
+      "end": 780.87,
+      "duration": 3.1100000000000136,
+      "text": "six so we cannot reach six the path to verx 6 is infin only this is how the"
+    },
+    {
+      "start": 780.87,
+      "end": 780.88,
+      "duration": 0.009999999999990905,
+      "text": "verx 6 is infin only this is how the"
+    },
+    {
+      "start": 780.88,
+      "end": 784.03,
+      "duration": 3.1499999999999773,
+      "text": "verx 6 is infin only this is how the extra algorithm works the extra"
+    },
+    {
+      "start": 784.03,
+      "end": 784.04,
+      "duration": 0.009999999999990905,
+      "text": "extra algorithm works the extra"
+    },
+    {
+      "start": 784.04,
+      "end": 786.31,
+      "duration": 2.269999999999982,
+      "text": "extra algorithm works the extra algorithm can work on non-directed graph"
+    },
+    {
+      "start": 786.31,
+      "end": 786.32,
+      "duration": 0.010000000000104592,
+      "text": "algorithm can work on non-directed graph"
+    },
+    {
+      "start": 786.32,
+      "end": 788.509,
+      "duration": 2.1889999999999645,
+      "text": "algorithm can work on non-directed graph also suppose you have a graph simple"
+    },
+    {
+      "start": 788.509,
+      "end": 788.519,
+      "duration": 0.009999999999990905,
+      "text": "also suppose you have a graph simple"
+    },
+    {
+      "start": 788.519,
+      "end": 790.949,
+      "duration": 2.42999999999995,
+      "text": "also suppose you have a graph simple example I will take"
+    },
+    {
+      "start": 790.949,
+      "end": 790.959,
+      "duration": 0.009999999999990905,
+      "text": "example I will take"
+    },
+    {
+      "start": 790.959,
+      "end": 793.87,
+      "duration": 2.911000000000058,
+      "text": "example I will take here simple example I have taken here"
+    },
+    {
+      "start": 793.87,
+      "end": 793.88,
+      "duration": 0.009999999999990905,
+      "text": "here simple example I have taken here"
+    },
+    {
+      "start": 793.88,
+      "end": 795.67,
+      "duration": 1.7899999999999636,
+      "text": "here simple example I have taken here now how it works on this one so if"
+    },
+    {
+      "start": 795.67,
+      "end": 795.68,
+      "duration": 0.009999999999990905,
+      "text": "now how it works on this one so if"
+    },
+    {
+      "start": 795.68,
+      "end": 798.03,
+      "duration": 2.3500000000000227,
+      "text": "now how it works on this one so if you're not comfortable with non-directed"
+    },
+    {
+      "start": 798.03,
+      "end": 798.04,
+      "duration": 0.009999999999990905,
+      "text": "you're not comfortable with non-directed"
+    },
+    {
+      "start": 798.04,
+      "end": 801.31,
+      "duration": 3.269999999999982,
+      "text": "you're not comfortable with non-directed edges you can convert them into directed"
+    },
+    {
+      "start": 801.31,
+      "end": 801.32,
+      "duration": 0.010000000000104592,
+      "text": "edges you can convert them into directed"
+    },
+    {
+      "start": 801.32,
+      "end": 803.91,
+      "duration": 2.589999999999918,
+      "text": "edges you can convert them into directed by adding parallel edges so you can say"
+    },
+    {
+      "start": 803.91,
+      "end": 803.92,
+      "duration": 0.009999999999990905,
+      "text": "by adding parallel edges so you can say"
+    },
+    {
+      "start": 803.92,
+      "end": 807.71,
+      "duration": 3.7900000000000773,
+      "text": "by adding parallel edges so you can say this is three and this is also"
+    },
+    {
+      "start": 807.71,
+      "end": 807.72,
+      "duration": 0.009999999999990905,
+      "text": "this is three and this is also"
+    },
+    {
+      "start": 807.72,
+      "end": 811.03,
+      "duration": 3.3099999999999454,
+      "text": "this is three and this is also three now it becomes a directed graph so"
+    },
+    {
+      "start": 811.03,
+      "end": 811.04,
+      "duration": 0.009999999999990905,
+      "text": "three now it becomes a directed graph so"
+    },
+    {
+      "start": 811.04,
+      "end": 812.99,
+      "duration": 1.9500000000000455,
+      "text": "three now it becomes a directed graph so you can convert a non-directed graph to"
+    },
+    {
+      "start": 812.99,
+      "end": 813.0,
+      "duration": 0.009999999999990905,
+      "text": "you can convert a non-directed graph to"
+    },
+    {
+      "start": 813.0,
+      "end": 816.11,
+      "duration": 3.1100000000000136,
+      "text": "you can convert a non-directed graph to directed graph right so it can work on"
+    },
+    {
+      "start": 816.11,
+      "end": 816.12,
+      "duration": 0.009999999999990905,
+      "text": "directed graph right so it can work on"
+    },
+    {
+      "start": 816.12,
+      "end": 819.389,
+      "duration": 3.2690000000000055,
+      "text": "directed graph right so it can work on both directed well as non-directed graph"
+    },
+    {
+      "start": 819.389,
+      "end": 819.399,
+      "duration": 0.009999999999990905,
+      "text": "both directed well as non-directed graph"
+    },
+    {
+      "start": 819.399,
+      "end": 822.15,
+      "duration": 2.7509999999999764,
+      "text": "both directed well as non-directed graph now I will show you the drawback of dixa"
+    },
+    {
+      "start": 822.15,
+      "end": 822.16,
+      "duration": 0.009999999999990905,
+      "text": "now I will show you the drawback of dixa"
+    },
+    {
+      "start": 822.16,
+      "end": 824.55,
+      "duration": 2.3899999999999864,
+      "text": "now I will show you the drawback of dixa algorithm let us see the drawback of"
+    },
+    {
+      "start": 824.55,
+      "end": 824.56,
+      "duration": 0.009999999999990905,
+      "text": "algorithm let us see the drawback of"
+    },
+    {
+      "start": 824.56,
+      "end": 826.629,
+      "duration": 2.0690000000000737,
+      "text": "algorithm let us see the drawback of dixa algorithm for that I have taken a"
+    },
+    {
+      "start": 826.629,
+      "end": 826.639,
+      "duration": 0.009999999999990905,
+      "text": "dixa algorithm for that I have taken a"
+    },
+    {
+      "start": 826.639,
+      "end": 830.23,
+      "duration": 3.591000000000008,
+      "text": "dixa algorithm for that I have taken a very simple graph and it is having a"
+    },
+    {
+      "start": 830.23,
+      "end": 830.24,
+      "duration": 0.009999999999990905,
+      "text": "very simple graph and it is having a"
+    },
+    {
+      "start": 830.24,
+      "end": 834.069,
+      "duration": 3.828999999999951,
+      "text": "very simple graph and it is having a negative weighted Edge the weight of"
+    },
+    {
+      "start": 834.069,
+      "end": 834.079,
+      "duration": 0.009999999999990905,
+      "text": "negative weighted Edge the weight of"
+    },
+    {
+      "start": 834.079,
+      "end": 836.71,
+      "duration": 2.6310000000000855,
+      "text": "negative weighted Edge the weight of this Edge is negative so weight of an"
+    },
+    {
+      "start": 836.71,
+      "end": 836.72,
+      "duration": 0.009999999999990905,
+      "text": "this Edge is negative so weight of an"
+    },
+    {
+      "start": 836.72,
+      "end": 839.389,
+      "duration": 2.6689999999999827,
+      "text": "this Edge is negative so weight of an edge how it can be negative see it is"
+    },
+    {
+      "start": 839.389,
+      "end": 839.399,
+      "duration": 0.009999999999990905,
+      "text": "edge how it can be negative see it is"
+    },
+    {
+      "start": 839.399,
+      "end": 841.47,
+      "duration": 2.0710000000000264,
+      "text": "edge how it can be negative see it is not distance so distance is not not"
+    },
+    {
+      "start": 841.47,
+      "end": 841.48,
+      "duration": 0.009999999999990905,
+      "text": "not distance so distance is not not"
+    },
+    {
+      "start": 841.48,
+      "end": 845.91,
+      "duration": 4.42999999999995,
+      "text": "not distance so distance is not not measured in POS negative right but any"
+    },
+    {
+      "start": 845.91,
+      "end": 845.92,
+      "duration": 0.009999999999990905,
+      "text": "measured in POS negative right but any"
+    },
+    {
+      "start": 845.92,
+      "end": 848.79,
+      "duration": 2.8700000000000045,
+      "text": "measured in POS negative right but any problem or any business problem we can"
+    },
+    {
+      "start": 848.79,
+      "end": 848.8,
+      "duration": 0.009999999999990905,
+      "text": "problem or any business problem we can"
+    },
+    {
+      "start": 848.8,
+      "end": 851.87,
+      "duration": 3.07000000000005,
+      "text": "problem or any business problem we can represent it using graphs like usually"
+    },
+    {
+      "start": 851.87,
+      "end": 851.88,
+      "duration": 0.009999999999990905,
+      "text": "represent it using graphs like usually"
+    },
+    {
+      "start": 851.88,
+      "end": 853.79,
+      "duration": 1.9099999999999682,
+      "text": "represent it using graphs like usually when we want to explain something to our"
+    },
+    {
+      "start": 853.79,
+      "end": 853.8,
+      "duration": 0.009999999999990905,
+      "text": "when we want to explain something to our"
+    },
+    {
+      "start": 853.8,
+      "end": 855.949,
+      "duration": 2.149000000000001,
+      "text": "when we want to explain something to our friend then what we do we just take a"
+    },
+    {
+      "start": 855.949,
+      "end": 855.959,
+      "duration": 0.009999999999990905,
+      "text": "friend then what we do we just take a"
+    },
+    {
+      "start": 855.959,
+      "end": 857.79,
+      "duration": 1.8310000000000173,
+      "text": "friend then what we do we just take a paper and draw something so what is that"
+    },
+    {
+      "start": 857.79,
+      "end": 857.8,
+      "duration": 0.009999999999990905,
+      "text": "paper and draw something so what is that"
+    },
+    {
+      "start": 857.8,
+      "end": 860.189,
+      "duration": 2.38900000000001,
+      "text": "paper and draw something so what is that it looks like a graph only so most of"
+    },
+    {
+      "start": 860.189,
+      "end": 860.199,
+      "duration": 0.009999999999990905,
+      "text": "it looks like a graph only so most of"
+    },
+    {
+      "start": 860.199,
+      "end": 862.59,
+      "duration": 2.3910000000000764,
+      "text": "it looks like a graph only so most of the problems from Real World are mapped"
+    },
+    {
+      "start": 862.59,
+      "end": 862.6,
+      "duration": 0.009999999999990905,
+      "text": "the problems from Real World are mapped"
+    },
+    {
+      "start": 862.6,
+      "end": 865.15,
+      "duration": 2.5499999999999545,
+      "text": "the problems from Real World are mapped in the form of a graph so when you are"
+    },
+    {
+      "start": 865.15,
+      "end": 865.16,
+      "duration": 0.009999999999990905,
+      "text": "in the form of a graph so when you are"
+    },
+    {
+      "start": 865.16,
+      "end": 867.15,
+      "duration": 1.990000000000009,
+      "text": "in the form of a graph so when you are representing something in the form of a"
+    },
+    {
+      "start": 867.15,
+      "end": 867.16,
+      "duration": 0.009999999999990905,
+      "text": "representing something in the form of a"
+    },
+    {
+      "start": 867.16,
+      "end": 869.189,
+      "duration": 2.0289999999999964,
+      "text": "representing something in the form of a graph it may have positive and negative"
+    },
+    {
+      "start": 869.189,
+      "end": 869.199,
+      "duration": 0.009999999999990905,
+      "text": "graph it may have positive and negative"
+    },
+    {
+      "start": 869.199,
+      "end": 872.189,
+      "duration": 2.990000000000009,
+      "text": "graph it may have positive and negative values also so this is not exactly"
+    },
+    {
+      "start": 872.189,
+      "end": 872.199,
+      "duration": 0.009999999999990905,
+      "text": "values also so this is not exactly"
+    },
+    {
+      "start": 872.199,
+      "end": 874.629,
+      "duration": 2.4300000000000637,
+      "text": "values also so this is not exactly distance that is measured by tape but"
+    },
+    {
+      "start": 874.629,
+      "end": 874.639,
+      "duration": 0.009999999999990905,
+      "text": "distance that is measured by tape but"
+    },
+    {
+      "start": 874.639,
+      "end": 876.79,
+      "duration": 2.1509999999999536,
+      "text": "distance that is measured by tape but this is some value so those values can"
+    },
+    {
+      "start": 876.79,
+      "end": 876.8,
+      "duration": 0.009999999999990905,
+      "text": "this is some value so those values can"
+    },
+    {
+      "start": 876.8,
+      "end": 879.55,
+      "duration": 2.75,
+      "text": "this is some value so those values can be negative also so actually drra has"
+    },
+    {
+      "start": 879.55,
+      "end": 879.56,
+      "duration": 0.009999999999990905,
+      "text": "be negative also so actually drra has"
+    },
+    {
+      "start": 879.56,
+      "end": 881.389,
+      "duration": 1.8290000000000646,
+      "text": "be negative also so actually drra has not considered that if there are"
+    },
+    {
+      "start": 881.389,
+      "end": 881.399,
+      "duration": 0.009999999999990905,
+      "text": "not considered that if there are"
+    },
+    {
+      "start": 881.399,
+      "end": 883.189,
+      "duration": 1.7899999999999636,
+      "text": "not considered that if there are negative edes then what we should do he"
+    },
+    {
+      "start": 883.189,
+      "end": 883.199,
+      "duration": 0.009999999999990905,
+      "text": "negative edes then what we should do he"
+    },
+    {
+      "start": 883.199,
+      "end": 885.31,
+      "duration": 2.11099999999999,
+      "text": "negative edes then what we should do he has not considered let us see what"
+    },
+    {
+      "start": 885.31,
+      "end": 885.32,
+      "duration": 0.010000000000104592,
+      "text": "has not considered let us see what"
+    },
+    {
+      "start": 885.32,
+      "end": 887.43,
+      "duration": 2.1099999999999,
+      "text": "has not considered let us see what happens if you follow his procedures on"
+    },
+    {
+      "start": 887.43,
+      "end": 887.44,
+      "duration": 0.010000000000104592,
+      "text": "happens if you follow his procedures on"
+    },
+    {
+      "start": 887.44,
+      "end": 890.43,
+      "duration": 2.9899999999998954,
+      "text": "happens if you follow his procedures on this one let us start if I say this is"
+    },
+    {
+      "start": 890.43,
+      "end": 890.44,
+      "duration": 0.010000000000104592,
+      "text": "this one let us start if I say this is"
+    },
+    {
+      "start": 890.44,
+      "end": 892.829,
+      "duration": 2.3889999999998963,
+      "text": "this one let us start if I say this is the starting vertex then the distance is"
+    },
+    {
+      "start": 892.829,
+      "end": 892.839,
+      "duration": 0.010000000000104592,
+      "text": "the starting vertex then the distance is"
+    },
+    {
+      "start": 892.839,
+      "end": 894.99,
+      "duration": 2.1509999999999536,
+      "text": "the starting vertex then the distance is zero the direct Edge path is three and"
+    },
+    {
+      "start": 894.99,
+      "end": 895.0,
+      "duration": 0.009999999999990905,
+      "text": "zero the direct Edge path is three and"
+    },
+    {
+      "start": 895.0,
+      "end": 897.15,
+      "duration": 2.1499999999999773,
+      "text": "zero the direct Edge path is three and the direct Edge path is five and there"
+    },
+    {
+      "start": 897.15,
+      "end": 897.16,
+      "duration": 0.009999999999990905,
+      "text": "the direct Edge path is five and there"
+    },
+    {
+      "start": 897.16,
+      "end": 898.71,
+      "duration": 1.5500000000000682,
+      "text": "the direct Edge path is five and there is no direct Edge path so this is"
+    },
+    {
+      "start": 898.71,
+      "end": 898.72,
+      "duration": 0.009999999999990905,
+      "text": "is no direct Edge path so this is"
+    },
+    {
+      "start": 898.72,
+      "end": 900.03,
+      "duration": 1.3099999999999454,
+      "text": "is no direct Edge path so this is infinity"
+    },
+    {
+      "start": 900.03,
+      "end": 900.04,
+      "duration": 0.009999999999990905,
+      "text": "infinity"
+    },
+    {
+      "start": 900.04,
+      "end": 902.389,
+      "duration": 2.3490000000000464,
+      "text": "infinity this is the initial setup of JRA now let"
+    },
+    {
+      "start": 902.389,
+      "end": 902.399,
+      "duration": 0.009999999999990905,
+      "text": "this is the initial setup of JRA now let"
+    },
+    {
+      "start": 902.399,
+      "end": 904.269,
+      "duration": 1.8700000000000045,
+      "text": "this is the initial setup of JRA now let us solve this one which one I should"
+    },
+    {
+      "start": 904.269,
+      "end": 904.279,
+      "duration": 0.009999999999990905,
+      "text": "us solve this one which one I should"
+    },
+    {
+      "start": 904.279,
+      "end": 906.35,
+      "duration": 2.0710000000000264,
+      "text": "us solve this one which one I should select the smallest one the shortest"
+    },
+    {
+      "start": 906.35,
+      "end": 906.36,
+      "duration": 0.009999999999990905,
+      "text": "select the smallest one the shortest"
+    },
+    {
+      "start": 906.36,
+      "end": 909.87,
+      "duration": 3.509999999999991,
+      "text": "select the smallest one the shortest path is two select this one are there"
+    },
+    {
+      "start": 909.87,
+      "end": 909.88,
+      "duration": 0.009999999999990905,
+      "text": "path is two select this one are there"
+    },
+    {
+      "start": 909.88,
+      "end": 912.55,
+      "duration": 2.669999999999959,
+      "text": "path is two select this one are there any connected vertices to this one so"
+    },
+    {
+      "start": 912.55,
+      "end": 912.56,
+      "duration": 0.009999999999990905,
+      "text": "any connected vertices to this one so"
+    },
+    {
+      "start": 912.56,
+      "end": 914.59,
+      "duration": 2.0300000000000864,
+      "text": "any connected vertices to this one so that I can relax no there is no outgoing"
+    },
+    {
+      "start": 914.59,
+      "end": 914.6,
+      "duration": 0.009999999999990905,
+      "text": "that I can relax no there is no outgoing"
+    },
+    {
+      "start": 914.6,
+      "end": 917.91,
+      "duration": 3.3099999999999454,
+      "text": "that I can relax no there is no outgoing adj just from to leave it next select"
+    },
+    {
+      "start": 917.91,
+      "end": 917.92,
+      "duration": 0.009999999999990905,
+      "text": "adj just from to leave it next select"
+    },
+    {
+      "start": 917.92,
+      "end": 919.87,
+      "duration": 1.9500000000000455,
+      "text": "adj just from to leave it next select the next smallest so five and infinity"
+    },
+    {
+      "start": 919.87,
+      "end": 919.88,
+      "duration": 0.009999999999990905,
+      "text": "the next smallest so five and infinity"
+    },
+    {
+      "start": 919.88,
+      "end": 922.829,
+      "duration": 2.9489999999999554,
+      "text": "the next smallest so five and infinity so five is smallest so select four if we"
+    },
+    {
+      "start": 922.829,
+      "end": 922.839,
+      "duration": 0.010000000000104592,
+      "text": "so five is smallest so select four if we"
+    },
+    {
+      "start": 922.839,
+      "end": 925.35,
+      "duration": 2.5109999999999673,
+      "text": "so five is smallest so select four if we select this four then will it relax any"
+    },
+    {
+      "start": 925.35,
+      "end": 925.36,
+      "duration": 0.009999999999990905,
+      "text": "select this four then will it relax any"
+    },
+    {
+      "start": 925.36,
+      "end": 927.91,
+      "duration": 2.5499999999999545,
+      "text": "select this four then will it relax any vertex yes the connected vertex is three"
+    },
+    {
+      "start": 927.91,
+      "end": 927.92,
+      "duration": 0.009999999999990905,
+      "text": "vertex yes the connected vertex is three"
+    },
+    {
+      "start": 927.92,
+      "end": 929.47,
+      "duration": 1.5500000000000682,
+      "text": "vertex yes the connected vertex is three so what is that part"
+    },
+    {
+      "start": 929.47,
+      "end": 929.48,
+      "duration": 0.009999999999990905,
+      "text": "so what is that part"
+    },
+    {
+      "start": 929.48,
+      "end": 933.23,
+      "duration": 3.75,
+      "text": "so what is that part 5 + 2 7 so this is"
+    },
+    {
+      "start": 933.23,
+      "end": 933.24,
+      "duration": 0.009999999999990905,
+      "text": "5 + 2 7 so this is"
+    },
+    {
+      "start": 933.24,
+      "end": 936.59,
+      "duration": 3.3500000000000227,
+      "text": "5 + 2 7 so this is 7 now both are selected third one is"
+    },
+    {
+      "start": 936.59,
+      "end": 936.6,
+      "duration": 0.009999999999990905,
+      "text": "7 now both are selected third one is"
+    },
+    {
+      "start": 936.6,
+      "end": 939.829,
+      "duration": 3.228999999999928,
+      "text": "7 now both are selected third one is remaining select that one also once this"
+    },
+    {
+      "start": 939.829,
+      "end": 939.839,
+      "duration": 0.010000000000104592,
+      "text": "remaining select that one also once this"
+    },
+    {
+      "start": 939.839,
+      "end": 942.71,
+      "duration": 2.870999999999981,
+      "text": "remaining select that one also once this is selected shall we relax that one no"
+    },
+    {
+      "start": 942.71,
+      "end": 942.72,
+      "duration": 0.009999999999990905,
+      "text": "is selected shall we relax that one no"
+    },
+    {
+      "start": 942.72,
+      "end": 944.79,
+      "duration": 2.0699999999999363,
+      "text": "is selected shall we relax that one no no need already we learned that when"
+    },
+    {
+      "start": 944.79,
+      "end": 944.8,
+      "duration": 0.009999999999990905,
+      "text": "no need already we learned that when"
+    },
+    {
+      "start": 944.8,
+      "end": 946.55,
+      "duration": 1.75,
+      "text": "no need already we learned that when already vertex is already relaxed no"
+    },
+    {
+      "start": 946.55,
+      "end": 946.56,
+      "duration": 0.009999999999990905,
+      "text": "already vertex is already relaxed no"
+    },
+    {
+      "start": 946.56,
+      "end": 949.67,
+      "duration": 3.1100000000000136,
+      "text": "already vertex is already relaxed no need to check it let us check it once 7"
+    },
+    {
+      "start": 949.67,
+      "end": 949.68,
+      "duration": 0.009999999999990905,
+      "text": "need to check it let us check it once 7"
+    },
+    {
+      "start": 949.68,
+      "end": 952.67,
+      "duration": 2.990000000000009,
+      "text": "need to check it let us check it once 7 - 3 is 4 no already it is three so"
+    },
+    {
+      "start": 952.67,
+      "end": 952.68,
+      "duration": 0.009999999999990905,
+      "text": "- 3 is 4 no already it is three so"
+    },
+    {
+      "start": 952.68,
+      "end": 953.829,
+      "duration": 1.149000000000001,
+      "text": "- 3 is 4 no already it is three so that's"
+    },
+    {
+      "start": 953.829,
+      "end": 953.839,
+      "duration": 0.010000000000104592,
+      "text": "that's"
+    },
+    {
+      "start": 953.839,
+      "end": 957.069,
+      "duration": 3.2299999999999045,
+      "text": "that's better so all the things are perfect the"
+    },
+    {
+      "start": 957.069,
+      "end": 957.079,
+      "duration": 0.009999999999990905,
+      "text": "better so all the things are perfect the"
+    },
+    {
+      "start": 957.079,
+      "end": 959.949,
+      "duration": 2.8700000000000045,
+      "text": "better so all the things are perfect the answer is perfect so this algorithm has"
+    },
+    {
+      "start": 959.949,
+      "end": 959.959,
+      "duration": 0.009999999999990905,
+      "text": "answer is perfect so this algorithm has"
+    },
+    {
+      "start": 959.959,
+      "end": 962.749,
+      "duration": 2.7900000000000773,
+      "text": "answer is perfect so this algorithm has worked even when there is a negative"
+    },
+    {
+      "start": 962.749,
+      "end": 962.759,
+      "duration": 0.009999999999990905,
+      "text": "worked even when there is a negative"
+    },
+    {
+      "start": 962.759,
+      "end": 964.189,
+      "duration": 1.42999999999995,
+      "text": "worked even when there is a negative weight"
+    },
+    {
+      "start": 964.189,
+      "end": 964.199,
+      "duration": 0.009999999999990905,
+      "text": "weight"
+    },
+    {
+      "start": 964.199,
+      "end": 967.269,
+      "duration": 3.07000000000005,
+      "text": "weight Edge now I'll make a small change I'll"
+    },
+    {
+      "start": 967.269,
+      "end": 967.279,
+      "duration": 0.009999999999990905,
+      "text": "Edge now I'll make a small change I'll"
+    },
+    {
+      "start": 967.279,
+      "end": 970.59,
+      "duration": 3.3110000000000355,
+      "text": "Edge now I'll make a small change I'll restart"
+    },
+    {
+      "start": 970.6,
+      "end": 973.829,
+      "duration": 3.228999999999928,
+      "text": "again I'll start over again and now I"
+    },
+    {
+      "start": 973.839,
+      "end": 976.79,
+      "duration": 2.950999999999908,
+      "text": "again I'll start over again and now I will make this Edge as minus 10 let's"
+    },
+    {
+      "start": 976.79,
+      "end": 976.8,
+      "duration": 0.009999999999990905,
+      "text": "will make this Edge as minus 10 let's"
+    },
+    {
+      "start": 976.8,
+      "end": 980.15,
+      "duration": 3.3500000000000227,
+      "text": "will make this Edge as minus 10 let's see what happens now I'm again finding"
+    },
+    {
+      "start": 980.15,
+      "end": 980.16,
+      "duration": 0.009999999999990905,
+      "text": "see what happens now I'm again finding"
+    },
+    {
+      "start": 980.16,
+      "end": 981.749,
+      "duration": 1.5890000000000555,
+      "text": "see what happens now I'm again finding the shortest part to all the vertices"
+    },
+    {
+      "start": 981.749,
+      "end": 981.759,
+      "duration": 0.009999999999990905,
+      "text": "the shortest part to all the vertices"
+    },
+    {
+      "start": 981.759,
+      "end": 983.87,
+      "duration": 2.11099999999999,
+      "text": "the shortest part to all the vertices this is the source vertex so it is zero"
+    },
+    {
+      "start": 983.87,
+      "end": 983.88,
+      "duration": 0.009999999999990905,
+      "text": "this is the source vertex so it is zero"
+    },
+    {
+      "start": 983.88,
+      "end": 987.15,
+      "duration": 3.269999999999982,
+      "text": "this is the source vertex so it is zero and this is three and this is five and"
+    },
+    {
+      "start": 987.15,
+      "end": 987.16,
+      "duration": 0.009999999999990905,
+      "text": "and this is three and this is five and"
+    },
+    {
+      "start": 987.16,
+      "end": 990.189,
+      "duration": 3.0289999999999964,
+      "text": "and this is three and this is five and there is no direct Edge path Infinity"
+    },
+    {
+      "start": 990.189,
+      "end": 990.199,
+      "duration": 0.009999999999990905,
+      "text": "there is no direct Edge path Infinity"
+    },
+    {
+      "start": 990.199,
+      "end": 991.829,
+      "duration": 1.6299999999999955,
+      "text": "there is no direct Edge path Infinity I'm performing this TR once again"
+    },
+    {
+      "start": 991.829,
+      "end": 991.839,
+      "duration": 0.010000000000104592,
+      "text": "I'm performing this TR once again"
+    },
+    {
+      "start": 991.839,
+      "end": 994.069,
+      "duration": 2.2299999999999045,
+      "text": "I'm performing this TR once again because I have changed an edge now let"
+    },
+    {
+      "start": 994.069,
+      "end": 994.079,
+      "duration": 0.009999999999990905,
+      "text": "because I have changed an edge now let"
+    },
+    {
+      "start": 994.079,
+      "end": 996.99,
+      "duration": 2.911000000000058,
+      "text": "because I have changed an edge now let us see select the minimum one so two is"
+    },
+    {
+      "start": 996.99,
+      "end": 997.0,
+      "duration": 0.009999999999990905,
+      "text": "us see select the minimum one so two is"
+    },
+    {
+      "start": 997.0,
+      "end": 999.47,
+      "duration": 2.4700000000000273,
+      "text": "us see select the minimum one so two is minimum selected anything get modified"
+    },
+    {
+      "start": 999.47,
+      "end": 999.48,
+      "duration": 0.009999999999990905,
+      "text": "minimum selected anything get modified"
+    },
+    {
+      "start": 999.48,
+      "end": 1001.99,
+      "duration": 2.509999999999991,
+      "text": "minimum selected anything get modified no next minimum is this one anything get"
+    },
+    {
+      "start": 1001.99,
+      "end": 1002.0,
+      "duration": 0.009999999999990905,
+      "text": "no next minimum is this one anything get"
+    },
+    {
+      "start": 1002.0,
+      "end": 1006.389,
+      "duration": 4.38900000000001,
+      "text": "no next minimum is this one anything get modified that's 5 + 2 is 7 modify this"
+    },
+    {
+      "start": 1006.389,
+      "end": 1006.399,
+      "duration": 0.009999999999990905,
+      "text": "modified that's 5 + 2 is 7 modify this"
+    },
+    {
+      "start": 1006.399,
+      "end": 1008.749,
+      "duration": 2.3500000000000227,
+      "text": "modified that's 5 + 2 is 7 modify this next minimum is this one and this is the"
+    },
+    {
+      "start": 1008.749,
+      "end": 1008.759,
+      "duration": 0.009999999999990905,
+      "text": "next minimum is this one and this is the"
+    },
+    {
+      "start": 1008.759,
+      "end": 1011.15,
+      "duration": 2.3909999999999627,
+      "text": "next minimum is this one and this is the last one shall I Rel that no it's"
+    },
+    {
+      "start": 1011.15,
+      "end": 1011.16,
+      "duration": 0.009999999999990905,
+      "text": "last one shall I Rel that no it's"
+    },
+    {
+      "start": 1011.16,
+      "end": 1013.269,
+      "duration": 2.1090000000000373,
+      "text": "last one shall I Rel that no it's already selected but let us check it"
+    },
+    {
+      "start": 1013.269,
+      "end": 1013.279,
+      "duration": 0.009999999999990905,
+      "text": "already selected but let us check it"
+    },
+    {
+      "start": 1013.279,
+      "end": 1018.91,
+      "duration": 5.630999999999972,
+      "text": "already selected but let us check it once 7 - 10 - 3 now actually the path we"
+    },
+    {
+      "start": 1018.91,
+      "end": 1018.92,
+      "duration": 0.009999999999990905,
+      "text": "once 7 - 10 - 3 now actually the path we"
+    },
+    {
+      "start": 1018.92,
+      "end": 1021.67,
+      "duration": 2.75,
+      "text": "once 7 - 10 - 3 now actually the path we found was three but now we realize that"
+    },
+    {
+      "start": 1021.67,
+      "end": 1021.68,
+      "duration": 0.009999999999990905,
+      "text": "found was three but now we realize that"
+    },
+    {
+      "start": 1021.68,
+      "end": 1024.63,
+      "duration": 2.950000000000159,
+      "text": "found was three but now we realize that when we come along these vertices and"
+    },
+    {
+      "start": 1024.63,
+      "end": 1024.64,
+      "duration": 0.009999999999990905,
+      "text": "when we come along these vertices and"
+    },
+    {
+      "start": 1024.64,
+      "end": 1026.47,
+      "duration": 1.8299999999999272,
+      "text": "when we come along these vertices and reach here it is minus"
+    },
+    {
+      "start": 1026.47,
+      "end": 1026.48,
+      "duration": 0.009999999999990905,
+      "text": "reach here it is minus"
+    },
+    {
+      "start": 1026.48,
+      "end": 1029.27,
+      "duration": 2.7899999999999636,
+      "text": "reach here it is minus 3 so we were in a hurry to select the"
+    },
+    {
+      "start": 1029.27,
+      "end": 1029.28,
+      "duration": 0.009999999999990905,
+      "text": "3 so we were in a hurry to select the"
+    },
+    {
+      "start": 1029.28,
+      "end": 1031.59,
+      "duration": 2.3099999999999454,
+      "text": "3 so we were in a hurry to select the shortest path to vertex 2 and we select"
+    },
+    {
+      "start": 1031.59,
+      "end": 1031.6,
+      "duration": 0.009999999999990905,
+      "text": "shortest path to vertex 2 and we select"
+    },
+    {
+      "start": 1031.6,
+      "end": 1035.35,
+      "duration": 3.75,
+      "text": "shortest path to vertex 2 and we select it as three it was wrong if you would"
+    },
+    {
+      "start": 1035.35,
+      "end": 1035.36,
+      "duration": 0.009999999999990905,
+      "text": "it as three it was wrong if you would"
+    },
+    {
+      "start": 1035.36,
+      "end": 1037.27,
+      "duration": 1.9100000000000819,
+      "text": "it as three it was wrong if you would have tried the other way we would have"
+    },
+    {
+      "start": 1037.27,
+      "end": 1037.28,
+      "duration": 0.009999999999990905,
+      "text": "have tried the other way we would have"
+    },
+    {
+      "start": 1037.28,
+      "end": 1040.949,
+      "duration": 3.6690000000000964,
+      "text": "have tried the other way we would have got the better answer so actual correct"
+    },
+    {
+      "start": 1040.949,
+      "end": 1040.959,
+      "duration": 0.009999999999990905,
+      "text": "got the better answer so actual correct"
+    },
+    {
+      "start": 1040.959,
+      "end": 1043.39,
+      "duration": 2.43100000000004,
+      "text": "got the better answer so actual correct answer is minus 3 but distra has given"
+    },
+    {
+      "start": 1043.39,
+      "end": 1043.4,
+      "duration": 0.009999999999990905,
+      "text": "answer is minus 3 but distra has given"
+    },
+    {
+      "start": 1043.4,
+      "end": 1046.069,
+      "duration": 2.668999999999869,
+      "text": "answer is minus 3 but distra has given us the wrong answer and also ask us not"
+    },
+    {
+      "start": 1046.069,
+      "end": 1046.079,
+      "duration": 0.009999999999990905,
+      "text": "us the wrong answer and also ask us not"
+    },
+    {
+      "start": 1046.079,
+      "end": 1047.909,
+      "duration": 1.8300000000001546,
+      "text": "us the wrong answer and also ask us not to check those vertices which are"
+    },
+    {
+      "start": 1047.909,
+      "end": 1047.919,
+      "duration": 0.009999999999990905,
+      "text": "to check those vertices which are"
+    },
+    {
+      "start": 1047.919,
+      "end": 1050.549,
+      "duration": 2.6299999999998818,
+      "text": "to check those vertices which are already relaxed we should not check them"
+    },
+    {
+      "start": 1050.549,
+      "end": 1050.559,
+      "duration": 0.009999999999990905,
+      "text": "already relaxed we should not check them"
+    },
+    {
+      "start": 1050.559,
+      "end": 1052.39,
+      "duration": 1.831000000000131,
+      "text": "already relaxed we should not check them because no need to check you will not"
+    },
+    {
+      "start": 1052.39,
+      "end": 1052.4,
+      "duration": 0.009999999999990905,
+      "text": "because no need to check you will not"
+    },
+    {
+      "start": 1052.4,
+      "end": 1054.87,
+      "duration": 2.4699999999998,
+      "text": "because no need to check you will not find any better answer but here we are"
+    },
+    {
+      "start": 1054.87,
+      "end": 1054.88,
+      "duration": 0.010000000000218279,
+      "text": "find any better answer but here we are"
+    },
+    {
+      "start": 1054.88,
+      "end": 1056.87,
+      "duration": 1.9899999999997817,
+      "text": "find any better answer but here we are finding a better answer the reason is we"
+    },
+    {
+      "start": 1056.87,
+      "end": 1056.88,
+      "duration": 0.010000000000218279,
+      "text": "finding a better answer the reason is we"
+    },
+    {
+      "start": 1056.88,
+      "end": 1060.669,
+      "duration": 3.7889999999999873,
+      "text": "finding a better answer the reason is we have a Negative Edge so Dix algorithm"
+    },
+    {
+      "start": 1060.669,
+      "end": 1060.679,
+      "duration": 0.009999999999990905,
+      "text": "have a Negative Edge so Dix algorithm"
+    },
+    {
+      "start": 1060.679,
+      "end": 1064.07,
+      "duration": 3.390999999999849,
+      "text": "have a Negative Edge so Dix algorithm may work or may not work in case of"
+    },
+    {
+      "start": 1064.07,
+      "end": 1064.08,
+      "duration": 0.009999999999990905,
+      "text": "may work or may not work in case of"
+    },
+    {
+      "start": 1064.08,
+      "end": 1065.43,
+      "duration": 1.3500000000001364,
+      "text": "may work or may not work in case of negative"
+    },
+    {
+      "start": 1065.43,
+      "end": 1065.44,
+      "duration": 0.009999999999990905,
+      "text": "negative"
+    },
+    {
+      "start": 1065.44,
+      "end": 1067.63,
+      "duration": 2.1900000000000546,
+      "text": "negative edges that's all about single Source"
+    },
+    {
+      "start": 1067.63,
+      "end": 1067.64,
+      "duration": 0.009999999999990905,
+      "text": "edges that's all about single Source"
+    },
+    {
+      "start": 1067.64,
+      "end": 1069.669,
+      "duration": 2.0289999999999964,
+      "text": "edges that's all about single Source shortest spot problem and the approach"
+    },
+    {
+      "start": 1069.669,
+      "end": 1069.679,
+      "duration": 0.009999999999990905,
+      "text": "shortest spot problem and the approach"
+    },
+    {
+      "start": 1069.679,
+      "end": 1071.789,
+      "duration": 2.1099999999999,
+      "text": "shortest spot problem and the approach was greedy you can see you can see the"
+    },
+    {
+      "start": 1071.789,
+      "end": 1071.799,
+      "duration": 0.009999999999990905,
+      "text": "was greedy you can see you can see the"
+    },
+    {
+      "start": 1071.799,
+      "end": 1074.029,
+      "duration": 2.230000000000018,
+      "text": "was greedy you can see you can see the greediness here that see it is not"
+    },
+    {
+      "start": 1074.029,
+      "end": 1074.039,
+      "duration": 0.009999999999990905,
+      "text": "greediness here that see it is not"
+    },
+    {
+      "start": 1074.039,
+      "end": 1076.11,
+      "duration": 2.0709999999999127,
+      "text": "greediness here that see it is not trying all possibilities and selecting"
+    },
+    {
+      "start": 1076.11,
+      "end": 1076.12,
+      "duration": 0.009999999999990905,
+      "text": "trying all possibilities and selecting"
+    },
+    {
+      "start": 1076.12,
+      "end": 1077.909,
+      "duration": 1.7890000000002146,
+      "text": "trying all possibilities and selecting the minimum one it found that this"
+    },
+    {
+      "start": 1077.909,
+      "end": 1077.919,
+      "duration": 0.009999999999990905,
+      "text": "the minimum one it found that this"
+    },
+    {
+      "start": 1077.919,
+      "end": 1080.35,
+      "duration": 2.4309999999998126,
+      "text": "the minimum one it found that this minimum selected"
+    },
+    {
+      "start": 1080.35,
+      "end": 1080.36,
+      "duration": 0.009999999999990905,
+      "text": "minimum selected"
+    },
+    {
+      "start": 1080.36,
+      "end": 1081.99,
+      "duration": 1.6300000000001091,
+      "text": "minimum selected right this what the greedy approach so"
+    },
+    {
+      "start": 1081.99,
+      "end": 1082.0,
+      "duration": 0.009999999999990905,
+      "text": "right this what the greedy approach so"
+    },
+    {
+      "start": 1082.0,
+      "end": 1083.71,
+      "duration": 1.7100000000000364,
+      "text": "right this what the greedy approach so greedy approach has failed here when"
+    },
+    {
+      "start": 1083.71,
+      "end": 1083.72,
+      "duration": 0.009999999999990905,
+      "text": "greedy approach has failed here when"
+    },
+    {
+      "start": 1083.72,
+      "end": 1085.11,
+      "duration": 1.3899999999998727,
+      "text": "greedy approach has failed here when there are negative"
+    },
+    {
+      "start": 1085.11,
+      "end": 1085.12,
+      "duration": 0.009999999999990905,
+      "text": "there are negative"
+    },
+    {
+      "start": 1085.12,
+      "end": 1087.789,
+      "duration": 2.6690000000000964,
+      "text": "there are negative edges all right there's another solution"
+    },
+    {
+      "start": 1087.789,
+      "end": 1087.799,
+      "duration": 0.009999999999990905,
+      "text": "edges all right there's another solution"
+    },
+    {
+      "start": 1087.799,
+      "end": 1089.99,
+      "duration": 2.191000000000031,
+      "text": "edges all right there's another solution for this single Source shortest paath"
+    },
+    {
+      "start": 1089.99,
+      "end": 1090.0,
+      "duration": 0.009999999999990905,
+      "text": "for this single Source shortest paath"
+    },
+    {
+      "start": 1090.0,
+      "end": 1092.789,
+      "duration": 2.7889999999999873,
+      "text": "for this single Source shortest paath problem that is bman Ford's algorithm we"
+    },
+    {
+      "start": 1092.789,
+      "end": 1092.799,
+      "duration": 0.009999999999990905,
+      "text": "problem that is bman Ford's algorithm we"
+    },
+    {
+      "start": 1092.799,
+      "end": 1094.95,
+      "duration": 2.1510000000000673,
+      "text": "problem that is bman Ford's algorithm we will see that in dynamic"
+    },
+    {
+      "start": 1094.95,
+      "end": 1094.96,
+      "duration": 0.009999999999990905,
+      "text": "will see that in dynamic"
+    },
+    {
+      "start": 1094.96,
+      "end": 1098.59,
+      "duration": 3.6299999999998818,
+      "text": "will see that in dynamic programming all right so next video will"
+    },
+    {
+      "start": 1098.59,
+      "end": 1098.6,
+      "duration": 0.009999999999990905,
+      "text": "programming all right so next video will"
+    },
+    {
+      "start": 1098.6,
+      "end": 1101.19,
+      "duration": 2.5900000000001455,
+      "text": "programming all right so next video will be on dynamic programming these are the"
+    },
+    {
+      "start": 1101.19,
+      "end": 1101.2,
+      "duration": 0.009999999999990905,
+      "text": "be on dynamic programming these are the"
+    },
+    {
+      "start": 1101.2,
+      "end": 1103.95,
+      "duration": 2.75,
+      "text": "be on dynamic programming these are the topics I have covered from gry method"
+    },
+    {
+      "start": 1103.95,
+      "end": 1103.96,
+      "duration": 0.009999999999990905,
+      "text": "topics I have covered from gry method"
+    },
+    {
+      "start": 1103.96,
+      "end": 1106.549,
+      "duration": 2.588999999999942,
+      "text": "topics I have covered from gry method leave your comment so that I can know"
+    },
+    {
+      "start": 1106.549,
+      "end": 1106.559,
+      "duration": 0.009999999999990905,
+      "text": "leave your comment so that I can know"
+    },
+    {
+      "start": 1106.559,
+      "end": 1109.43,
+      "duration": 2.8710000000000946,
+      "text": "leave your comment so that I can know how you are following the videos right"
+    },
+    {
+      "start": 1109.43,
+      "end": 1109.44,
+      "duration": 0.009999999999990905,
+      "text": "how you are following the videos right"
+    },
+    {
+      "start": 1109.44,
+      "end": 1112.39,
+      "duration": 2.9500000000000455,
+      "text": "how you are following the videos right if any suggestion just give me I'll try"
+    },
+    {
+      "start": 1112.39,
+      "end": 1112.4,
+      "duration": 0.009999999999990905,
+      "text": "if any suggestion just give me I'll try"
+    },
+    {
+      "start": 1112.4,
+      "end": 1116.6,
+      "duration": 4.199999999999818,
+      "text": "if any suggestion just give me I'll try to implement them in my next videos"
+    }
+  ],
+  "language": "en",
+  "is_auto_generated": false,
+  "has_timestamps": true,
+  "title": "3.6 Dijkstra Algorithm - Single Source Shortest Path - Greedy Method",
+  "author": "Abdul Bari",
+  "duration": 1115,
+  "thumbnail": "https://i.ytimg.com/vi/XB4MIexjvY0/maxresdefault.jpg"
+}

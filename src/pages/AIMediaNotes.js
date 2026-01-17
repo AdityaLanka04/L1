@@ -42,6 +42,8 @@ const AIMediaNotes = () => {
   const [results, setResults] = useState(null);
   const [activeTab, setActiveTab] = useState('notes');
   const [history, setHistory] = useState([]);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768); // Start collapsed on mobile
+  const [activeNoteId, setActiveNoteId] = useState(null);
 
   // Icons
   const Icons = {
@@ -87,6 +89,7 @@ const AIMediaNotes = () => {
     setIsProcessing(true);
     setProgress(0);
     setResults(null);
+    setActiveNoteId(null); // Clear active note when processing new media
 
     try {
       const formData = new FormData();
@@ -137,7 +140,14 @@ const AIMediaNotes = () => {
       setActiveTab('notes');
 
     } catch (error) {
-            alert(`Failed to process media: ${error.message}`);
+      // Provide helpful error messages
+      let errorMessage = error.message;
+      if (errorMessage.includes('quota') || errorMessage.includes('credits') || errorMessage.includes('429') || errorMessage.includes('V1')) {
+        errorMessage = '⏱️ AI service rate limit reached. Please wait 1-2 minutes and try again.\n\nFree tier limits:\n• Groq: 30 requests/minute\n• Gemini: 15 requests/minute';
+      } else if (errorMessage.includes('rate limit')) {
+        errorMessage = '⏱️ Too many requests. Please wait 1 minute and try again.';
+      }
+      alert(`Failed to process media: ${errorMessage}`);
     } finally {
       setIsProcessing(false);
       setProcessingStage('');
@@ -192,7 +202,8 @@ const AIMediaNotes = () => {
 
       const data = await response.json();
       alert('Notes saved successfully!');
-      fetchHistory();
+      setActiveNoteId(data.note_id);
+      await fetchHistory();
       navigate(`/notes/editor/${data.note_id}`);
 
     } catch (error) {
@@ -209,6 +220,27 @@ const AIMediaNotes = () => {
     try {
       const token = localStorage.getItem('token');
       
+      // Generate a smart title
+      const titleResponse = await fetch(`${API_URL}/media/generate-title`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          transcript: results.transcript?.substring(0, 1000) || '',
+          key_concepts: results.analysis?.key_concepts || [],
+          summary: results.analysis?.summary || ''
+        })
+      });
+
+      let smartTitle = results.filename || 'Media Flashcards';
+      if (titleResponse.ok) {
+        const titleData = await titleResponse.json();
+        smartTitle = `${titleData.title} - Flashcards`;
+      }
+      
+      // Create flashcard set
       const setResponse = await fetch(`${API_URL}/create_flashcard_set`, {
         method: 'POST',
         headers: {
@@ -217,20 +249,24 @@ const AIMediaNotes = () => {
         },
         body: JSON.stringify({
           user_id: userName,
-          title: `Flashcards: ${results.filename || 'Media Content'}`,
+          title: smartTitle,
           description: `AI-generated flashcards from ${results.source_type === 'youtube' ? 'YouTube video' : 'uploaded media'}`,
           source_type: 'media',
           source_id: null
         })
       });
 
-      if (!setResponse.ok) throw new Error('Failed to create flashcard set');
+      if (!setResponse.ok) {
+        const errorData = await setResponse.json();
+        throw new Error(errorData.detail || 'Failed to create flashcard set');
+      }
 
       const setData = await setResponse.json();
       const setId = setData.set_id;
 
+      // Add all flashcards to the set
       for (const card of results.flashcards) {
-        await fetch(`${API_URL}/add_flashcard_to_set`, {
+        const cardResponse = await fetch(`${API_URL}/add_flashcard_to_set`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -244,13 +280,18 @@ const AIMediaNotes = () => {
             category: subject || 'general'
           })
         });
+
+        if (!cardResponse.ok) {
+          console.error('Failed to add flashcard:', card.question);
+        }
       }
 
-      alert(`Successfully saved ${results.flashcards.length} flashcards!`);
+      alert(`✅ Successfully saved ${results.flashcards.length} flashcards!`);
       navigate('/flashcards');
 
     } catch (error) {
-            alert('Failed to save flashcards');
+      console.error('Save flashcards error:', error);
+      alert(`Failed to save flashcards: ${error.message}`);
     }
   };
 
@@ -297,24 +338,49 @@ const AIMediaNotes = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      if (response.ok) {
-        const note = await response.json();
-        setResults({
-          filename: note.title,
-          notes: { content: note.content, style: 'detailed' },
-          transcript: note.transcript || '',
-          analysis: note.analysis || {},
-          flashcards: note.flashcards || [],
-          quiz_questions: note.quiz_questions || [],
-          key_moments: note.key_moments || [],
-          source_type: 'history',
-          duration: 0,
-          language_name: ''
-        });
-        setActiveTab('notes');
+      if (!response.ok) {
+        throw new Error(`Failed to load note: ${response.status}`);
       }
+
+      const note = await response.json();
+      console.log('Loaded note:', note);
+      
+      // Safe JSON parsing with fallbacks
+      const safeParseJSON = (jsonString, fallback = null) => {
+        if (!jsonString) return fallback;
+        if (typeof jsonString === 'object') return jsonString; // Already parsed
+        try {
+          return JSON.parse(jsonString);
+        } catch (e) {
+          console.error('JSON parse error:', e, 'for:', jsonString);
+          return fallback;
+        }
+      };
+      
+      const analysis = safeParseJSON(note.analysis, {});
+      const flashcards = safeParseJSON(note.flashcards, []);
+      const quiz_questions = safeParseJSON(note.quiz_questions, []);
+      const key_moments = safeParseJSON(note.key_moments, []);
+      
+      console.log('Parsed data:', { analysis, flashcards, quiz_questions, key_moments });
+      
+      setResults({
+        filename: note.title || 'Untitled Note',
+        notes: { content: note.content || '', style: 'detailed' },
+        transcript: note.transcript || '',
+        analysis: analysis,
+        flashcards: flashcards,
+        quiz_questions: quiz_questions,
+        key_moments: key_moments,
+        source_type: 'history',
+        duration: 0,
+        language_name: ''
+      });
+      setActiveNoteId(item.id);
+      setActiveTab('notes');
     } catch (error) {
-            alert('Failed to load note');
+      console.error('Load error:', error);
+      alert(`Failed to load note: ${error.message}`);
     }
   };
 
@@ -331,12 +397,14 @@ const AIMediaNotes = () => {
 
       if (response.ok) {
         fetchHistory();
-        if (results && results.filename === item.title) {
+        if (activeNoteId === item.id) {
           setResults(null);
+          setActiveNoteId(null);
         }
       }
     } catch (error) {
-            alert('Failed to delete note');
+      console.error('Delete error:', error);
+      alert('Failed to delete note');
     }
   };
 
@@ -351,6 +419,13 @@ const AIMediaNotes = () => {
       {/* Top Header - Exact MyNotes Style */}
       <header className="mn-top-header">
         <div className="mn-top-header-left">
+          <button 
+            className="mn-sidebar-toggle" 
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label="Toggle sidebar"
+          >
+            <Menu size={20} />
+          </button>
           <h1 className="mn-top-header-title" onClick={() => navigate('/dashboard')}>cerbyl</h1>
           <div className="mn-top-header-divider"></div>
           <p className="mn-top-header-subtitle">MEDIA NOTES</p>
@@ -359,7 +434,7 @@ const AIMediaNotes = () => {
 
       <div className="mn-layout">
         {/* Sidebar */}
-        <aside className="mn-sidebar">
+        <aside className={`mn-sidebar ${!sidebarOpen ? 'collapsed' : ''}`}>
           <div className="mn-sidebar-header">
             <div className="mn-logo" onClick={() => navigate('/dashboard')}>
             </div>
@@ -369,6 +444,8 @@ const AIMediaNotes = () => {
             setResults(null);
             setUploadedFile(null);
             setYoutubeUrl('');
+            setActiveNoteId(null);
+            setActiveTab('notes');
           }}>
             <Upload size={18} />
             <span>NEW UPLOAD</span>
@@ -381,7 +458,7 @@ const AIMediaNotes = () => {
                 history.slice(0, 10).map((item, idx) => (
                   <div 
                     key={idx} 
-                    className="mn-history-item"
+                    className={`mn-history-item ${activeNoteId === item.id ? 'active' : ''}`}
                     onClick={() => loadHistoryItem(item)}
                   >
                     <span className="mn-history-icon">{Icons.notes}</span>
@@ -625,38 +702,22 @@ const AIMediaNotes = () => {
                     onClick={() => setActiveTab('notes')}
                   >
                     <BookOpen size={16} />
-                    Notes
+                    <span>NOTES</span>
                   </button>
                   <button
                     className={`mn-tab ${activeTab === 'analysis' ? 'active' : ''}`}
                     onClick={() => setActiveTab('analysis')}
                   >
                     <Brain size={16} />
-                    Analysis
+                    <span>ANALYSIS</span>
                   </button>
                   <button
                     className={`mn-tab ${activeTab === 'flashcards' ? 'active' : ''}`}
                     onClick={() => setActiveTab('flashcards')}
                   >
                     <Zap size={16} />
-                    Flashcards {results.flashcards?.length > 0 && `(${results.flashcards.length})`}
+                    <span>FLASHCARDS {results.flashcards?.length > 0 && `(${results.flashcards.length})`}</span>
                   </button>
-                  <button
-                    className={`mn-tab ${activeTab === 'quiz' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('quiz')}
-                  >
-                    <CheckCircle size={16} />
-                    Quiz {results.quiz_questions?.length > 0 && `(${results.quiz_questions.length})`}
-                  </button>
-                  {results.key_moments?.length > 0 && (
-                    <button
-                      className={`mn-tab ${activeTab === 'moments' ? 'active' : ''}`}
-                      onClick={() => setActiveTab('moments')}
-                    >
-                      <Play size={16} />
-                      Key Moments ({results.key_moments.length})
-                    </button>
-                  )}
                 </div>
 
                 {/* Tab Content */}
@@ -764,18 +825,11 @@ const AIMediaNotes = () => {
                           <div className="mn-flashcards-grid">
                             {results.flashcards.map((card, idx) => (
                               <div key={idx} className="mn-flashcard">
-                                <div className="mn-flashcard-front">
-                                  <span className="mn-card-label">Q{idx + 1}</span>
+                                <div className="mn-flashcard-question">
                                   <p>{card.question}</p>
                                 </div>
-                                <div className="mn-flashcard-back">
-                                  <span className="mn-card-label">Answer</span>
+                                <div className="mn-flashcard-answer">
                                   <p>{card.answer}</p>
-                                  {card.difficulty && (
-                                    <span className={`mn-difficulty-badge ${card.difficulty}`}>
-                                      {card.difficulty}
-                                    </span>
-                                  )}
                                 </div>
                               </div>
                             ))}
