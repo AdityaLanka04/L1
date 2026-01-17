@@ -1497,16 +1497,25 @@ async def ask_simple(
     chat_id: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
-    """Simplified /ask endpoint with enhanced content awareness and action buttons"""
-    print(f"\n ASK_SIMPLE CALLED")
-    print(f" User: {user_id}, Question: {question[:50]}...")
+    """
+    Main AI Chat endpoint - NOW POWERED BY CHAT AGENT WITH RAG!
+    
+    Features:
+    - Uses Chat Agent with LangGraph workflow
+    - RAG retrieval from user's notes, flashcards, chats, questions
+    - Weak concepts context for targeted help
+    - Comprehensive user context (analytics, strengths, weaknesses)
+    - Action buttons for navigation
+    """
+    print(f"\n🚀 ASK_SIMPLE CALLED (Chat Agent + RAG)")
+    print(f"👤 User: {user_id}, Question: {question[:50]}...")
     
     try:
         # Get user
-        print(f" Looking up user: {user_id}")
+        print(f"🔍 Looking up user: {user_id}")
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
-            print(f" User not found in database: {user_id}")
+            print(f"❌ User not found in database: {user_id}")
             return {
                 "answer": "Please log in again - your session may have expired.",
                 "ai_confidence": 0.0,
@@ -1529,70 +1538,177 @@ async def ask_simple(
                     models.ChatSession.user_id == user.id
                 ).first()
                 if not chat_session:
-                    print(f" Chat session {chat_id_int} not found or doesn't belong to user {user.id}")
+                    print(f"⚠️ Chat session {chat_id_int} not found or doesn't belong to user {user.id}")
                     # Don't create a new session - the frontend should have created it
                     # Just use the provided chat_id and let the message save handle it
-                    print(f" Will use provided chat_id: {chat_id_int}")
+                    print(f"✅ Will use provided chat_id: {chat_id_int}")
             except ValueError as e:
-                print(f" Invalid chat_id format: {str(e)}")
+                print(f"❌ Invalid chat_id format: {str(e)}")
                 chat_id_int = None
         
-        # Load chat history for context
-        chat_history = ""
-        if chat_id_int:
-            try:
-                recent_messages = db.query(models.ChatMessage).filter(
-                    models.ChatMessage.chat_session_id == chat_id_int
-                ).order_by(models.ChatMessage.timestamp.desc()).limit(10).all()
-                
-                if recent_messages:
-                    # Reverse to get chronological order
-                    recent_messages = list(reversed(recent_messages))
-                    chat_history = "\n\nCurrent conversation:\n"
-                    for msg in recent_messages:
-                        # Each message has both user_message and ai_response
-                        chat_history += f"Student: {msg.user_message}\n"
-                        chat_history += f"You: {msg.ai_response}\n"
-                    print(f" Loaded {len(recent_messages)} previous message pairs for context")
-            except Exception as e:
-                print(f" Error loading chat history: {str(e)}")
-        
         # ============================================================
-        # LOAD CROSS-SESSION MEMORY FROM OTHER CHAT SESSIONS
+        # GET WEAK CONCEPTS CONTEXT
         # ============================================================
+        weak_concepts_context = []
         try:
-            other_messages = db.query(models.ChatMessage).filter(
-                models.ChatMessage.user_id == user.id,
-                models.ChatMessage.chat_session_id != chat_id_int if chat_id_int else True
-            ).order_by(models.ChatMessage.timestamp.desc()).limit(15).all()
+            weak_areas = db.query(models.UserWeakArea).filter(
+                models.UserWeakArea.user_id == user.id,
+                models.UserWeakArea.status != "mastered"
+            ).order_by(
+                models.UserWeakArea.priority.desc(),
+                models.UserWeakArea.weakness_score.desc()
+            ).limit(10).all()
             
-            if other_messages:
-                chat_history += "\n\nFrom your previous conversations (memory):\n"
-                for msg in other_messages[:7]:
-                    chat_history += f"- You previously asked: {msg.user_message[:100]}...\n"
-                print(f" Loaded {len(other_messages)} messages from previous sessions for cross-session memory")
+            if weak_areas:
+                for wa in weak_areas:
+                    weak_concepts_context.append({
+                        "topic": wa.topic,
+                        "accuracy": round(wa.accuracy, 1),
+                        "weakness_score": round(wa.weakness_score, 1),
+                        "priority": wa.priority,
+                        "incorrect_count": wa.incorrect_count,
+                        "consecutive_wrong": wa.consecutive_wrong
+                    })
+                print(f"📊 Loaded {len(weak_concepts_context)} weak concepts for context")
         except Exception as e:
-            print(f" Error loading cross-session history: {str(e)}")
+            print(f"⚠️ Error loading weak concepts: {str(e)}")
         
-        # Build personalized prompt
-        first_name = user.first_name or "there"
         
         # ============================================================
         # BUILD COMPREHENSIVE CONTEXT (Notes, Flashcards, Quizzes, Analytics)
-        # Now includes full content and action buttons!
         # ============================================================
         comprehensive_context = await build_comprehensive_chat_context(db, user, question)
-        print(f" Comprehensive context built: {len(comprehensive_context.get('recent_topics', []))} topics, "
+        print(f"📚 Comprehensive context built: {len(comprehensive_context.get('recent_topics', []))} topics, "
               f"content_query={comprehensive_context.get('content_query_detected', False)}, "
               f"buttons={len(comprehensive_context.get('action_buttons', []))}")
         
-        # Build the enhanced personalized prompt with full context
-        prompt = build_enhanced_chat_prompt(user, comprehensive_context, chat_history, question)
+        # ============================================================
+        # USE CHAT AGENT WITH RAG FOR RESPONSE GENERATION
+        # ============================================================
+        print(f"🤖 Invoking Chat Agent with RAG for {user.first_name or 'Student'}...")
         
-        # Generate response using AI call
-        print(f" Calling AI with comprehensive context for {first_name}...")
-        response = call_ai(prompt, max_tokens=2000, temperature=0.7)
-        print(f" AI response received: {len(response)} chars")
+        try:
+            from agents.agent_api import get_chat_agent, get_user_id_from_identifier
+            
+            chat_agent = get_chat_agent()
+            
+            # Build state for Chat Agent
+            agent_state = {
+                "user_id": user_id,
+                "user_input": question,
+                "session_id": str(chat_id_int) if chat_id_int else f"chat_{user.id}_{datetime.now().timestamp()}",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "chat_mode": "tutoring",  # Default mode
+                "response_style": "conversational",
+                
+                # Add comprehensive context
+                "comprehensive_context": comprehensive_context,
+                
+                # Add weak concepts context
+                "weak_concepts": weak_concepts_context,
+                "user_weaknesses": [
+                    {
+                        "topic": wc["topic"],
+                        "mastery": 100 - wc["weakness_score"]  # Convert weakness to mastery
+                    }
+                    for wc in weak_concepts_context[:5]
+                ],
+                "topics_needing_review": [wc["topic"] for wc in weak_concepts_context[:5]],
+                
+                # User preferences
+                "user_preferences": {
+                    "name": user.first_name or "Student",
+                    "learning_style": user.learning_style or "Mixed",
+                    "difficulty_level": user.difficulty_level or "intermediate",
+                    "field_of_study": user.field_of_study or "General",
+                    "weak_areas": [wc["topic"] for wc in weak_concepts_context[:5]],
+                }
+            }
+            
+            # Invoke Chat Agent (includes RAG retrieval in _load_memory_context)
+            result = await chat_agent.invoke(agent_state)
+            
+            if result.success:
+                response = result.response
+                print(f"✅ Chat Agent response received: {len(response)} chars")
+                print(f"🔍 RAG used: {result.metadata.get('rag_results_count', 0)} items retrieved")
+                
+                # Extract metadata for later use
+                rag_results_count = result.metadata.get("rag_results_count", 0)
+                rag_used = rag_results_count > 0
+                topics_discussed = result.metadata.get("concepts_discussed", comprehensive_context.get("recent_topics", ["general"]))[:5]
+                emotional_state = result.metadata.get("emotional_state", "neutral")
+                confusion_detected = result.metadata.get("confusion_indicators", [])
+                
+            else:
+                # Fallback if agent fails
+                print(f"⚠️ Chat Agent failed, using fallback")
+                raise Exception("Chat Agent returned unsuccessful result")
+                
+        except Exception as agent_error:
+            print(f"⚠️ Chat Agent error: {str(agent_error)}, falling back to direct AI call")
+            import traceback
+            traceback.print_exc()
+            
+            # Fallback to original implementation
+            # Load chat history for context
+            chat_history = ""
+            if chat_id_int:
+                try:
+                    recent_messages = db.query(models.ChatMessage).filter(
+                        models.ChatMessage.chat_session_id == chat_id_int
+                    ).order_by(models.ChatMessage.timestamp.desc()).limit(10).all()
+                    
+                    if recent_messages:
+                        # Reverse to get chronological order
+                        recent_messages = list(reversed(recent_messages))
+                        chat_history = "\n\nCurrent conversation:\n"
+                        for msg in recent_messages:
+                            # Each message has both user_message and ai_response
+                            chat_history += f"Student: {msg.user_message}\n"
+                            chat_history += f"You: {msg.ai_response}\n"
+                        print(f"📜 Loaded {len(recent_messages)} previous message pairs for context")
+                except Exception as e:
+                    print(f"❌ Error loading chat history: {str(e)}")
+            
+            # Load cross-session memory
+            try:
+                other_messages = db.query(models.ChatMessage).filter(
+                    models.ChatMessage.user_id == user.id,
+                    models.ChatMessage.chat_session_id != chat_id_int if chat_id_int else True
+                ).order_by(models.ChatMessage.timestamp.desc()).limit(15).all()
+                
+                if other_messages:
+                    chat_history += "\n\nFrom your previous conversations (memory):\n"
+                    for msg in other_messages[:7]:
+                        chat_history += f"- You previously asked: {msg.user_message[:100]}...\n"
+                    print(f"🧠 Loaded {len(other_messages)} messages from previous sessions for cross-session memory")
+            except Exception as e:
+                print(f"❌ Error loading cross-session history: {str(e)}")
+            
+            # Build enhanced prompt with weak concepts
+            first_name = user.first_name or "there"
+            prompt = build_enhanced_chat_prompt(user, comprehensive_context, chat_history, question)
+            
+            # Add weak concepts to prompt
+            if weak_concepts_context:
+                weak_topics_str = "\n".join([
+                    f"- {wc['topic']}: {wc['accuracy']}% accuracy, {wc['incorrect_count']} wrong answers"
+                    for wc in weak_concepts_context[:5]
+                ])
+                prompt += f"\n\n## STUDENT'S WEAK AREAS (provide extra support on these topics):\n{weak_topics_str}"
+            
+            # Generate response using AI call
+            print(f"🤖 Calling AI with comprehensive context + weak concepts for {first_name}...")
+            response = call_ai(prompt, max_tokens=2000, temperature=0.7)
+            print(f"✅ AI response received: {len(response)} chars")
+            
+            # Set fallback metadata
+            rag_results_count = 0
+            rag_used = False
+            topics_discussed = comprehensive_context.get("recent_topics", ["general"])[:5]
+            emotional_state = "neutral"
+            confusion_detected = []
         
         # Get action buttons from context
         action_buttons = comprehensive_context.get("action_buttons", [])
@@ -1611,7 +1727,7 @@ async def ask_simple(
         # Save message to database and award points
         if chat_id_int:
             try:
-                print(f" Attempting to save message for chat_id: {chat_id_int}, user_id: {user.id}")
+                print(f"💾 Attempting to save message for chat_id: {chat_id_int}, user_id: {user.id}")
                 
                 # Check if this exact message already exists (prevent double-saving)
                 existing_message = db.query(models.ChatMessage).filter(
@@ -1630,7 +1746,7 @@ async def ask_simple(
                         is_user=True
                     )
                     db.add(chat_message)
-                    print(f" Message object created and added to session")
+                    print(f"✅ Message object created and added to session")
                     
                     # Update chat session timestamp
                     chat_session = db.query(models.ChatSession).filter(
@@ -1638,46 +1754,56 @@ async def ask_simple(
                     ).first()
                     if chat_session:
                         chat_session.updated_at = datetime.now(timezone.utc)
-                        print(f" Chat session timestamp updated")
+                        print(f"✅ Chat session timestamp updated")
                     
                     # Award points for AI chat (only once per message)
                     try:
                         from gamification_system import award_points
                         result = award_points(db, user.id, "ai_chat")
-                        print(f" Points awarded: {result}")
+                        print(f"🎯 Points awarded: {result}")
                     except Exception as gam_error:
-                        print(f" Failed to award AI chat points: {gam_error}")
+                        print(f"⚠️ Failed to award AI chat points: {gam_error}")
                         import traceback
                         traceback.print_exc()
                     
                     db.commit()
-                    print(f" Database committed - message saved!")
+                    print(f"✅ Database committed - message saved!")
                 else:
-                    print(f" Message already exists, skipping save and point award")
+                    print(f"ℹ️ Message already exists, skipping save and point award")
             except Exception as save_error:
-                print(f" Error saving message: {str(save_error)}")
+                print(f"❌ Error saving message: {str(save_error)}")
                 import traceback
                 traceback.print_exc()
                 db.rollback()
         else:
-            print(f" No chat_id_int, cannot save message")
+            print(f"⚠️ No chat_id_int, cannot save message")
+        
+        print(f"✅ ASK_SIMPLE completed successfully with Chat Agent + RAG")
         
         return {
             "answer": response,
             "ai_confidence": 0.9,
-            "misconception_detected": False,
+            "misconception_detected": len(confusion_detected) > 0,
             "should_request_feedback": False,
-            "topics_discussed": comprehensive_context.get("recent_topics", ["general"])[:5],
-            "query_type": "content_aware" if comprehensive_context.get("content_query_detected") else "simple",
-            "model_used": "groq",
-            "ai_provider": "Groq",
-            "chat_id": chat_id_int,  # Return the actual chat_id used
-            "action_buttons": action_buttons,  # NEW: Dynamic navigation buttons
+            "topics_discussed": topics_discussed,
+            "query_type": "chat_agent_rag",  # NEW: Indicate this used Chat Agent with RAG
+            "model_used": "chat_agent",
+            "ai_provider": "Chat Agent (LangGraph + RAG)",
+            "chat_id": chat_id_int,
+            "action_buttons": action_buttons,
             "content_found": {
                 "notes": len(comprehensive_context.get("content_search_results", {}).get("notes", [])),
                 "flashcards": len(comprehensive_context.get("content_search_results", {}).get("flashcards", [])),
                 "quizzes": len(comprehensive_context.get("content_search_results", {}).get("quizzes", []))
-            } if comprehensive_context.get("content_query_detected") else None
+            } if comprehensive_context.get("content_query_detected") else None,
+            # NEW: RAG metadata
+            "rag_used": rag_used,
+            "rag_results_count": rag_results_count,
+            # NEW: Weak concepts metadata
+            "weak_concepts_count": len(weak_concepts_context),
+            "weak_concepts": [wc["topic"] for wc in weak_concepts_context[:3]],  # Top 3
+            # NEW: Emotional state
+            "emotional_state": emotional_state
         }
         
     except HTTPException:

@@ -610,7 +610,12 @@ const AIChat = ({ sharedMode = false }) => {
 
       const data = await response.json();
       
-      console.log(`AI response received. Chat ID: ${data.chat_id || currentChatId}`);
+      console.log(`✅ AI response received (Chat Agent + RAG)`);
+      console.log(`   Chat ID: ${data.chat_id || currentChatId}`);
+      console.log(`   RAG Used: ${data.rag_used ? 'YES' : 'NO'}`);
+      console.log(`   RAG Results: ${data.rag_results_count || 0} items`);
+      console.log(`   Weak Concepts: ${data.weak_concepts_count || 0} tracked`);
+      console.log(`   Provider: ${data.ai_provider || 'Unknown'}`);
       
       if (!data.answer) {
         throw new Error('No answer received from AI');
@@ -638,11 +643,22 @@ const AIChat = ({ sharedMode = false }) => {
         fileSummaries: data.file_summaries || [],
         hasFileContext: data.has_file_context || false,
         agentAnalysis: agentAnalysis,
-        actionButtons: data.action_buttons || [],  // NEW: Action buttons for navigation
-        contentFound: data.content_found || null   // NEW: Content search results
+        actionButtons: data.action_buttons || [],
+        contentFound: data.content_found || null,
+        // NEW: RAG metadata
+        ragUsed: data.rag_used || false,
+        ragResultsCount: data.rag_results_count || 0,
+        weakConcepts: data.weak_concepts || [],
+        emotionalState: data.emotional_state || 'neutral',
+        aiProvider: data.ai_provider || 'AI'
       };
 
-      console.log('AI Message with buttons:', aiMessage.actionButtons);
+      console.log('💬 AI Message created:', {
+        ragUsed: aiMessage.ragUsed,
+        ragResults: aiMessage.ragResultsCount,
+        weakConcepts: aiMessage.weakConcepts,
+        buttons: aiMessage.actionButtons?.length || 0
+      });
 
       setMessages(prev => [...prev, aiMessage]);
       clearAllFiles();
