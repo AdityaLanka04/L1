@@ -1662,7 +1662,8 @@ class SearchHubAgent(BaseAgent):
         return state
     
     async def _knowledge_graph_action(self, state: SearchHubState) -> SearchHubState:
-        """Handle knowledge graph related actions - weak areas, strong areas, gaps, analytics"""
+        """Handle knowledge graph related actions - weak areas, strong areas, gaps, analytics
+        Enhanced with RAG integration to retrieve relevant user content"""
         action = state.get("detected_action")
         user_id = state.get("user_id")
         topic = state.get("extracted_topic", "")
@@ -1698,6 +1699,15 @@ class SearchHubAgent(BaseAgent):
         message = ""
         ai_response = ""
         
+        # ==================== RAG INTEGRATION ====================
+        # Get user's RAG manager for retrieving relevant content
+        user_rag = None
+        try:
+            from .rag.user_rag_manager import get_user_rag_manager
+            user_rag = get_user_rag_manager()
+        except Exception as e:
+            logger.warning(f"Could not load RAG manager: {e}")
+        
         # Handle different knowledge graph actions
         if action == SearchHubAction.SHOW_WEAK_AREAS.value:
             result = await self.kg_integration.get_weak_areas(user_id_int)
@@ -1706,19 +1716,64 @@ class SearchHubAgent(BaseAgent):
             
             if result.get("success") and result.get("weak_concepts"):
                 weak_list = result["weak_concepts"][:5]
+                
+                # ==================== RAG: Retrieve content for weak concepts ====================
+                rag_content = {}
+                if user_rag and weak_list:
+                    try:
+                        # Build query from weak concepts
+                        weak_concepts = [c['concept'] for c in weak_list]
+                        query = f"study materials for {', '.join(weak_concepts[:3])}"
+                        
+                        logger.info(f"🔍 RAG: Retrieving content for weak areas: {query}")
+                        rag_results = await user_rag.retrieve_for_user(
+                            user_id=str(user_id_int),
+                            query=query,
+                            top_k=10,
+                            content_types=["note", "flashcard", "chat"]
+                        )
+                        
+                        if rag_results:
+                            # Organize by concept
+                            for concept_data in weak_list:
+                                concept = concept_data['concept']
+                                # Find relevant content for this concept
+                                relevant = [r for r in rag_results if concept.lower() in r.get('content', '').lower()]
+                                if relevant:
+                                    rag_content[concept] = relevant[:3]  # Top 3 per concept
+                            
+                            logger.info(f"✅ RAG: Found content for {len(rag_content)} weak concepts")
+                    except Exception as e:
+                        logger.error(f"❌ RAG retrieval failed: {e}")
+                
+                # Build response with RAG content
                 concepts_text = "\n".join([
                     f"  - {c['concept']}: {c['mastery']:.0%} mastery ({c['classification']})"
                     for c in weak_list
                 ])
+                
+                # Add relevant content suggestions
+                content_suggestions = ""
+                if rag_content:
+                    content_suggestions = "\n\nRelevant Study Materials:"
+                    for concept, items in list(rag_content.items())[:3]:
+                        content_suggestions += f"\n\nFor {concept}:"
+                        for item in items[:2]:
+                            content_type = item.get('metadata', {}).get('type', 'content')
+                            title = item.get('metadata', {}).get('title', 'Untitled')
+                            content_suggestions += f"\n  - {content_type.title()}: {title}"
+                
                 recommendations_text = "\n".join([
                     f"  - {r['action']}" for r in result.get('recommendations', [])[:3]
                 ])
+                
                 ai_response = f"""Your Weak Areas:
 
 {concepts_text}
 
 Recommendations:
 {recommendations_text}
+{content_suggestions}
 
 Focus on these areas to improve your overall mastery."""
                 message = f"Found {len(result['weak_concepts'])} concepts that need attention"
@@ -1732,13 +1787,53 @@ Focus on these areas to improve your overall mastery."""
             
             if result.get("success") and result.get("strong_concepts"):
                 strong_list = result["strong_concepts"][:5]
+                
+                # ==================== RAG: Retrieve content for strong concepts ====================
+                rag_content = {}
+                if user_rag and strong_list:
+                    try:
+                        strong_concepts = [c['concept'] for c in strong_list]
+                        query = f"advanced topics related to {', '.join(strong_concepts[:3])}"
+                        
+                        logger.info(f"🔍 RAG: Retrieving advanced content for strengths")
+                        rag_results = await user_rag.retrieve_for_user(
+                            user_id=str(user_id_int),
+                            query=query,
+                            top_k=8,
+                            content_types=["note", "flashcard"]
+                        )
+                        
+                        if rag_results:
+                            for concept_data in strong_list:
+                                concept = concept_data['concept']
+                                relevant = [r for r in rag_results if concept.lower() in r.get('content', '').lower()]
+                                if relevant:
+                                    rag_content[concept] = relevant[:2]
+                            
+                            logger.info(f"✅ RAG: Found content for {len(rag_content)} strong concepts")
+                    except Exception as e:
+                        logger.error(f"❌ RAG retrieval failed: {e}")
+                
                 concepts_text = "\n".join([
                     f"  - {c['concept']}: {c['mastery']:.0%} mastery ({c['classification']})"
                     for c in strong_list
                 ])
+                
+                # Add content suggestions for deepening knowledge
+                content_suggestions = ""
+                if rag_content:
+                    content_suggestions = "\n\nYour Mastered Materials:"
+                    for concept, items in list(rag_content.items())[:3]:
+                        content_suggestions += f"\n\nFor {concept}:"
+                        for item in items:
+                            content_type = item.get('metadata', {}).get('type', 'content')
+                            title = item.get('metadata', {}).get('title', 'Untitled')
+                            content_suggestions += f"\n  - {content_type.title()}: {title}"
+                
                 ai_response = f"""Your Strengths:
 
 {concepts_text}
+{content_suggestions}
 
 You're excelling in these areas! Consider:
   - Challenging yourself with harder questions
@@ -1755,6 +1850,27 @@ You're excelling in these areas! Consider:
             
             if result.get("success") and result.get("gaps"):
                 gaps_list = result["gaps"][:5]
+                
+                # ==================== RAG: Find prerequisite content ====================
+                if user_rag and gaps_list:
+                    try:
+                        # Look for content that could help fill gaps
+                        gap_concepts = [g['concept'] for g in gaps_list]
+                        query = f"prerequisites and fundamentals for {', '.join(gap_concepts[:3])}"
+                        
+                        logger.info(f"🔍 RAG: Retrieving prerequisite content for gaps")
+                        rag_results = await user_rag.retrieve_for_user(
+                            user_id=str(user_id_int),
+                            query=query,
+                            top_k=8,
+                            content_types=["note", "flashcard", "chat"]
+                        )
+                        
+                        if rag_results:
+                            logger.info(f"✅ RAG: Found {len(rag_results)} items to help fill gaps")
+                    except Exception as e:
+                        logger.error(f"❌ RAG retrieval failed: {e}")
+                
                 gaps_text = "\n".join([
                     f"  - {g['concept']}: {g.get('reason', 'Ready to learn')}"
                     for g in gaps_list
@@ -1781,15 +1897,48 @@ Suggested Learning Path:
             
             if result.get("success") and result.get("concepts_to_review"):
                 review_list = result["concepts_to_review"][:5]
+                
+                # ==================== RAG: Retrieve review materials ====================
+                review_materials = []
+                if user_rag and review_list:
+                    try:
+                        review_concepts = [c['concept'] for c in review_list]
+                        query = f"review materials for {', '.join(review_concepts[:3])}"
+                        
+                        logger.info(f"🔍 RAG: Retrieving review materials")
+                        rag_results = await user_rag.retrieve_for_user(
+                            user_id=str(user_id_int),
+                            query=query,
+                            top_k=10,
+                            content_types=["flashcard", "note"]
+                        )
+                        
+                        if rag_results:
+                            review_materials = rag_results[:5]
+                            logger.info(f"✅ RAG: Found {len(review_materials)} review materials")
+                    except Exception as e:
+                        logger.error(f"❌ RAG retrieval failed: {e}")
+                
                 review_text = "\n".join([
                     f"  - {c['concept']}: {c['mastery']:.0%} mastery (last reviewed: {c['last_reviewed']})"
                     for c in review_list
                 ])
+                
+                # Add review materials
+                materials_text = ""
+                if review_materials:
+                    materials_text = "\n\nReview Materials Ready:"
+                    for item in review_materials[:3]:
+                        content_type = item.get('metadata', {}).get('type', 'content')
+                        title = item.get('metadata', {}).get('title', 'Untitled')
+                        materials_text += f"\n  - {content_type.title()}: {title}"
+                
                 ai_response = f"""Concepts Due for Review:
 
 {review_text}
 
 You have {result['overdue_count']} concepts that need review to maintain retention.
+{materials_text}
 
 Tip: Regular spaced repetition helps move knowledge to long-term memory."""
                 message = f"{result['overdue_count']} concepts need review"

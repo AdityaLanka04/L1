@@ -542,10 +542,18 @@ const AIChat = ({ sharedMode = false }) => {
     let currentChatId = activeChatId;
     let isNewChat = false;
     
+    // Store message text and files before clearing
+    const messageText = inputMessage;
+    const messagedFiles = [...selectedFiles];
+    
+    // Clear input immediately for better UX
+    setInputMessage('');
+    
     if (!currentChatId) {
       currentChatId = await createNewChat();
       if (!currentChatId) {
         alert('Error: Failed to create new chat. Please try again.');
+        setInputMessage(messageText); // Restore input on error
         return;
       }
       isNewChat = true;
@@ -563,18 +571,19 @@ const AIChat = ({ sharedMode = false }) => {
     const userMessage = {
       id: `user_${Date.now()}`,
       type: 'user',
-      content: inputMessage || (selectedFiles.length > 0 ? `${selectedFiles.length} file(s) uploaded` : ''),
+      content: messageText || (messagedFiles.length > 0 ? `${messagedFiles.length} file(s) uploaded` : ''),
       timestamp: new Date().toISOString(),
-      files: selectedFiles.map(file => ({
+      files: messagedFiles.map(file => ({
         name: file.name,
         type: file.type,
         size: file.size
       }))
     };
 
+    // Add user message to UI immediately
     setMessages(prev => [...prev, userMessage]);
-    const messageText = inputMessage;
-    setInputMessage('');
+    
+    // Set loading state
     setLoading(true);
 
     try {
@@ -588,12 +597,12 @@ const AIChat = ({ sharedMode = false }) => {
       formData.append('question', messageText || 'Please analyze the uploaded files.');
       formData.append('chat_id', currentChatId.toString());
 
-      selectedFiles.forEach(file => {
+      messagedFiles.forEach(file => {
         formData.append('files', file);
       });
 
       // Use ask_simple for proper LaTeX formatting, files endpoint for attachments
-      const endpoint = selectedFiles.length > 0 ? 
+      const endpoint = messagedFiles.length > 0 ? 
         `${API_URL}/ask_with_files/` : 
         `${API_URL}/ask_simple/`;
 
@@ -622,7 +631,7 @@ const AIChat = ({ sharedMode = false }) => {
       }
       
       // Get agent analysis AFTER receiving the real AI response (don't replace the response)
-      if (messageText && !selectedFiles.length) {
+      if (messageText && !messagedFiles.length) {
         sendMessageWithAgent(messageText, currentChatId).catch(err => {
           console.log('Agent analysis failed (non-critical):', err);
         });
@@ -1559,19 +1568,22 @@ const AIChat = ({ sharedMode = false }) => {
     console.log('useEffect triggered:', { numericChatId, activeChatId, justSent: justSentMessageRef.current });
     
     if (numericChatId && !isNaN(numericChatId)) {
+      // Skip reload if we just sent a message (to preserve messages and action buttons)
+      if (justSentMessageRef.current) {
+        console.log('Skipping reload - just sent message');
+        justSentMessageRef.current = false;
+        isLoadingRef.current = false;
+        // Update activeChatId if needed but don't reload messages
+        if (activeChatId !== numericChatId) {
+          setActiveChatId(numericChatId);
+        }
+        return;
+      }
+      
       // Only load messages if this is a different chat than what we have active
-      // This prevents clearing messages when we just created a new chat
       if (activeChatId !== numericChatId) {
         setActiveChatId(numericChatId);
-        // Skip reload if we just sent a message (to preserve action buttons)
-        if (justSentMessageRef.current) {
-          console.log('Skipping reload - just sent message');
-          justSentMessageRef.current = false;
-          isLoadingRef.current = false;
-          return;
-        }
         // Only clear and reload if we're switching to a different existing chat
-        // Don't clear if messages are already being added (new chat scenario)
         if (!isLoadingRef.current) {
           console.log('Loading messages for chat:', numericChatId);
           isLoadingRef.current = true;
@@ -1581,13 +1593,15 @@ const AIChat = ({ sharedMode = false }) => {
       }
     } else if (chatId === undefined || chatId === null) {
       // Only reset if we're at /ai-chat with no ID (fresh start)
-      if (activeChatId !== null) {
+      // Don't reset if we just sent a message (new chat creation)
+      if (!justSentMessageRef.current && activeChatId !== null) {
         setActiveChatId(null);
         setMessages([]);
       }
       isLoadingRef.current = false;
+      justSentMessageRef.current = false;
     }
-  }, [chatId, activeChatId]);
+  }, [chatId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -1931,9 +1945,9 @@ const AIChat = ({ sharedMode = false }) => {
                                 const topic = btn.navigate_params?.topic || 'General';
                                 
                                 if (btn.action === 'create' && btn.content_type === 'note') {
-                                  // Create a new note first, then navigate
+                                  // Create a note with AI-generated content via SearchHub agent
                                   try {
-                                    const response = await fetch(`${API_URL}/create_note`, {
+                                    const response = await fetch(`${API_URL}/agents/searchhub/create-note`, {
                                       method: 'POST',
                                       headers: {
                                         'Content-Type': 'application/json',
@@ -1941,13 +1955,19 @@ const AIChat = ({ sharedMode = false }) => {
                                       },
                                       body: JSON.stringify({
                                         user_id: userName,
-                                        title: `Notes: ${topic}`,
-                                        content: `<h2>${topic}</h2><p>Start writing your notes here...</p>`
+                                        topic: topic,
+                                        session_id: `chat_${Date.now()}`
                                       })
                                     });
                                     if (response.ok) {
-                                      const newNote = await response.json();
-                                      navigate(`/notes/editor/${newNote.id}`);
+                                      const result = await response.json();
+                                      if (result.navigate_to) {
+                                        navigate(result.navigate_to);
+                                      } else if (result.content_id) {
+                                        navigate(`/notes/editor/${result.content_id}`);
+                                      } else {
+                                        navigate('/notes/my-notes');
+                                      }
                                     }
                                   } catch (error) {
                                     console.error('Failed to create note:', error);

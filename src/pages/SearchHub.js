@@ -61,14 +61,10 @@ const SearchHub = () => {
       // Not logged in - clear any stale data and show default recommendations
       setUserName('');
       const defaultPrompts = [
-        { text: 'explain quantum physics', reason: 'Popular topic', priority: 'high' },
-        { text: 'how to learn faster', reason: 'Study tips', priority: 'high' },
-        { text: 'summarize world history', reason: 'Quick overview', priority: 'medium' },
-        { text: 'explain calculus basics', reason: 'Math fundamentals', priority: 'medium' },
-        { text: 'what is machine learning', reason: 'Tech trends', priority: 'medium' },
-        { text: 'improve memory retention', reason: 'Brain training', priority: 'low' },
-        { text: 'learn a new language', reason: 'Language skills', priority: 'low' },
-        { text: 'understand economics', reason: 'Financial literacy', priority: 'low' },
+        { text: 'chat about any topic', reason: 'AI tutor ready to help', priority: 'high' },
+        { text: 'create notes on a topic', reason: 'Start documenting', priority: 'high' },
+        { text: 'create flashcards to study', reason: 'Build study materials', priority: 'high' },
+        { text: 'what are my weak areas', reason: 'Identify gaps', priority: 'high' },
       ];
       setPersonalizedPrompts(defaultPrompts);
     }
@@ -172,33 +168,129 @@ const SearchHub = () => {
       
       if (response.ok) {
         const data = await response.json();
-        const userTopicPrompts = (data.prompts || []).map(prompt => ({
-          ...prompt,
-          text: typeof prompt.text === 'string' ? prompt.text : (prompt.text?.label || 'Unknown'),
-          reason: typeof prompt.reason === 'string' ? prompt.reason : (prompt.reason?.label || null)
-        })).slice(0, 4);
         
-        const adaptiveLearningPrompts = [
-          { text: 'what is my learning style', reason: 'AI detects your preferences', priority: 'high' },
-          { text: 'show knowledge gaps', reason: 'Find your blind spots', priority: 'high' },
-          { text: 'optimize my retention', reason: 'Spaced repetition schedule', priority: 'medium' },
-          { text: 'what will I forget next', reason: 'Predict forgetting curve', priority: 'medium' },
-          { text: 'detect my burnout risk', reason: 'Mental health monitoring', priority: 'medium' },
-          { text: 'adapt difficulty to my level', reason: 'Auto-adjust content difficulty', priority: 'low' },
-        ];
+        // Helper function to extract clean topic name (1-2 words)
+        const extractTopicName = (text) => {
+          if (!text) return null;
+          
+          // Remove common prefixes and clean up
+          let cleaned = text
+            .toLowerCase()
+            .replace(/^(explain|create|what is|tell me about|learn about|study|understand|quiz on|notes on|flashcards on|about)\s+/gi, '')
+            .replace(/\s+(flashcards?|notes?|quiz|roadmap|export)$/gi, '')
+            .trim();
+          
+          // If still too long or has "create" repeated, try to extract key noun phrase
+          if (cleaned.includes('create') || cleaned.includes('exploring')) {
+            // Extract the main topic after common words
+            const match = cleaned.match(/(?:on|about|exploring)\s+([a-z\s]+?)(?:\s*-|\s*$)/i);
+            if (match && match[1]) {
+              cleaned = match[1].trim();
+            }
+          }
+          
+          // Take first 2-3 meaningful words
+          const words = cleaned.split(/\s+/).filter(w => w.length > 2);
+          if (words.length === 0) return null;
+          
+          // Return up to 3 words for compound topics
+          const topicWords = words.slice(0, 3);
+          return topicWords.join(' ');
+        };
         
-        const remainingSlots = 10 - userTopicPrompts.length;
-        const combinedPrompts = [
-          ...userTopicPrompts,
-          ...adaptiveLearningPrompts.slice(0, remainingSlots)
-        ];
+        // Get user-specific topics from their activity
+        const userTopicPrompts = (data.prompts || []).map(prompt => {
+          const fullText = typeof prompt.text === 'string' ? prompt.text : (prompt.text?.label || '');
+          const cleanTopic = extractTopicName(fullText);
+          
+          console.log('Topic extraction:', { fullText, cleanTopic }); // Debug log
+          
+          return {
+            ...prompt,
+            text: fullText,
+            cleanTopic: cleanTopic,
+            reason: typeof prompt.reason === 'string' ? prompt.reason : (prompt.reason?.label || 'Based on your activity')
+          };
+        }).filter(p => p.cleanTopic); // Only keep prompts with valid topics
         
-        setPersonalizedPrompts(combinedPrompts);
+        console.log('Filtered topics:', userTopicPrompts); // Debug log
+        
+        // Build recommendations based on available topics
+        const recommendations = [];
+        
+        // 1. AI Chat - always show
+        recommendations.push({ 
+          text: 'chat about any topic', 
+          reason: 'AI tutor ready to help', 
+          priority: 'high' 
+        });
+        
+        // 2. Create Notes - use actual topic if available
+        if (userTopicPrompts.length > 0) {
+          const topic = userTopicPrompts[0].cleanTopic;
+          recommendations.push({ 
+            text: `create notes on ${topic}`, 
+            reason: 'From your recent chats', 
+            priority: 'high' 
+          });
+        } else {
+          recommendations.push({ 
+            text: 'create notes on a topic', 
+            reason: 'Start documenting', 
+            priority: 'high' 
+          });
+        }
+        
+        // 3. Create Flashcards - use actual topic if available
+        if (userTopicPrompts.length > 1) {
+          const topic = userTopicPrompts[1].cleanTopic;
+          recommendations.push({ 
+            text: `create flashcards on ${topic}`, 
+            reason: 'From your recent chats', 
+            priority: 'high' 
+          });
+        } else if (userTopicPrompts.length > 0) {
+          const topic = userTopicPrompts[0].cleanTopic;
+          recommendations.push({ 
+            text: `create flashcards on ${topic}`, 
+            reason: 'From your recent chats', 
+            priority: 'high' 
+          });
+        } else {
+          recommendations.push({ 
+            text: 'create flashcards to study', 
+            reason: 'Build study materials', 
+            priority: 'high' 
+          });
+        }
+        
+        // 4. Weak Areas - always show
+        recommendations.push({ 
+          text: 'what are my weak areas', 
+          reason: 'Identify gaps', 
+          priority: 'high' 
+        });
+        
+        console.log('Final recommendations:', recommendations); // Debug log
+        setPersonalizedPrompts(recommendations);
       } else {
-                setPersonalizedPrompts([]);
+        // Fallback to generic prompts
+        setPersonalizedPrompts([
+          { text: 'chat about any topic', reason: 'AI tutor ready to help', priority: 'high' },
+          { text: 'create notes on a topic', reason: 'Start documenting', priority: 'high' },
+          { text: 'create flashcards to study', reason: 'Build study materials', priority: 'high' },
+          { text: 'what are my weak areas', reason: 'Identify gaps', priority: 'high' },
+        ]);
       }
     } catch (error) {
-            setPersonalizedPrompts([]);
+      console.error('Error loading prompts:', error);
+      // Fallback to generic prompts
+      setPersonalizedPrompts([
+        { text: 'chat about any topic', reason: 'AI tutor ready to help', priority: 'high' },
+        { text: 'create notes on a topic', reason: 'Start documenting', priority: 'high' },
+        { text: 'create flashcards to study', reason: 'Build study materials', priority: 'high' },
+        { text: 'what are my weak areas', reason: 'Identify gaps', priority: 'high' },
+      ]);
     }
   };
 

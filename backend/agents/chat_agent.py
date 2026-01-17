@@ -425,7 +425,7 @@ Provide a helpful, educational response. Be interactive and engaging. Reference 
         try:
             response = self.ai_client.generate(
                 full_prompt, 
-                max_tokens=1500, 
+                max_tokens=4000,  # Increased to allow detailed explanations
                 temperature=0.7
             )
             return response.strip()
@@ -1064,14 +1064,14 @@ class ChatAgent(BaseAgent):
                 # Try to add structure
                 pass  # Keep as-is if already structured
         
-        # Ensure response isn't too long
-        if len(response) > 2000:
-            # Truncate gracefully
+        # Ensure response isn't excessively long (allow up to 8000 chars for detailed explanations)
+        if len(response) > 8000:
+            # Truncate gracefully at sentence boundaries
             sentences = response.split('. ')
             truncated = []
             length = 0
             for s in sentences:
-                if length + len(s) < 1800:
+                if length + len(s) < 7500:
                     truncated.append(s)
                     length += len(s)
                 else:
@@ -1118,7 +1118,7 @@ Original: {response[:800]}
 
 Improved response:"""
                 
-                improved = self.ai_client.generate(improve_prompt, max_tokens=1000, temperature=0.7)
+                improved = self.ai_client.generate(improve_prompt, max_tokens=4000, temperature=0.7)
                 state["final_response"] = improved.strip()
                 state["_reflection_improved"] = True
             

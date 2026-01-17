@@ -458,6 +458,30 @@ Return ONLY valid JSON:
         """Create flashcards with AI-generated content"""
         logger.info(f"Creating {count} flashcards for user {user_id} on topic: {topic}")
         
+        # Helper function to create clean title
+        def create_clean_title(topic_text: str, content_type: str = "Flashcards") -> str:
+            """Create a clean, properly formatted title from topic text"""
+            # Remove common prefixes
+            cleaned = topic_text.lower().strip()
+            cleaned = cleaned.replace('create flashcards on', '').replace('flashcards on', '')
+            cleaned = cleaned.replace('create notes on', '').replace('notes on', '')
+            cleaned = cleaned.replace('create questions on', '').replace('questions on', '')
+            cleaned = cleaned.replace('explain', '').replace('about', '').strip()
+            
+            # Capitalize first letter of each major word (but not articles/prepositions)
+            words = cleaned.split()
+            minor_words = {'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with'}
+            
+            title_words = []
+            for i, word in enumerate(words):
+                if i == 0 or word not in minor_words:
+                    title_words.append(word.capitalize())
+                else:
+                    title_words.append(word)
+            
+            clean_topic = ' '.join(title_words)
+            return f"{clean_topic} {content_type}"
+        
         prompt = self.FLASHCARD_PROMPT.format(topic=topic, count=count)
         response = self.ai_client.generate(prompt, max_tokens=3000, temperature=0.7)
         
@@ -481,9 +505,12 @@ Return ONLY valid JSON:
             elif isinstance(user_id, str):
                 actual_user_id = int(user_id)
             
+            # Create clean title
+            clean_title = create_clean_title(topic, "Flashcards")
+            
             flashcard_set = FlashcardSet(
                 user_id=actual_user_id,
-                title=f"{topic.title()} Flashcards",
+                title=clean_title,
                 description=f"AI-generated flashcards covering key concepts of {topic}",
                 source_type="ai_generated",
                 share_code=self._generate_share_code(),
@@ -530,6 +557,30 @@ Return ONLY valid JSON:
         """Create questions with AI-generated content"""
         logger.info(f"Creating {count} questions for user {user_id} on topic: {topic}")
         
+        # Helper function to create clean title
+        def create_clean_title(topic_text: str, content_type: str = "Questions") -> str:
+            """Create a clean, properly formatted title from topic text"""
+            # Remove common prefixes
+            cleaned = topic_text.lower().strip()
+            cleaned = cleaned.replace('create flashcards on', '').replace('flashcards on', '')
+            cleaned = cleaned.replace('create notes on', '').replace('notes on', '')
+            cleaned = cleaned.replace('create questions on', '').replace('questions on', '')
+            cleaned = cleaned.replace('explain', '').replace('about', '').strip()
+            
+            # Capitalize first letter of each major word (but not articles/prepositions)
+            words = cleaned.split()
+            minor_words = {'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with'}
+            
+            title_words = []
+            for i, word in enumerate(words):
+                if i == 0 or word not in minor_words:
+                    title_words.append(word.capitalize())
+                else:
+                    title_words.append(word)
+            
+            clean_topic = ' '.join(title_words)
+            return f"{clean_topic} {content_type}"
+        
         prompt = self.QUESTION_PROMPT.format(topic=topic, count=count)
         response = self.ai_client.generate(prompt, max_tokens=3000, temperature=0.7)
         
@@ -553,9 +604,12 @@ Return ONLY valid JSON:
             elif isinstance(user_id, str):
                 actual_user_id = int(user_id)
             
+            # Create clean title
+            clean_title = create_clean_title(topic, "Questions")
+            
             question_set = QuestionSet(
                 user_id=actual_user_id,
-                title=f"{topic.title()} Questions",
+                title=clean_title,
                 description=f"AI-generated practice questions about {topic}",
                 source_type="ai_generated",
                 total_questions=len(questions[:count]),
@@ -1213,19 +1267,161 @@ class EnhancedSearchHubAgent(BaseAgent):
         
         # Handle different knowledge graph actions
         if intent == "show_weak_areas":
+            # ==================== PRIMARY: Get weak areas from UserWeakArea table ====================
+            # This is what the analytics page uses - actual performance data
+            weak_areas_from_db = []
+            if self.db_session_factory:
+                try:
+                    from models import UserWeakArea
+                    db = self.db_session_factory()
+                    try:
+                        weak_areas = db.query(UserWeakArea).filter(
+                            UserWeakArea.user_id == user_id_int,
+                            UserWeakArea.status.in_(["needs_practice", "improving"])
+                        ).order_by(
+                            UserWeakArea.priority.desc(),
+                            UserWeakArea.weakness_score.desc()
+                        ).limit(10).all()
+                        
+                        if weak_areas:
+                            for wa in weak_areas:
+                                weak_areas_from_db.append({
+                                    "concept": wa.topic,
+                                    "subtopic": wa.subtopic,
+                                    "accuracy": round(wa.accuracy, 1),
+                                    "weakness_score": round(wa.weakness_score, 1),
+                                    "incorrect_count": wa.incorrect_count,
+                                    "total_questions": wa.total_questions,
+                                    "consecutive_wrong": wa.consecutive_wrong,
+                                    "priority": wa.priority,
+                                    "status": wa.status
+                                })
+                            logger.info(f"✅ Found {len(weak_areas_from_db)} weak areas from UserWeakArea table")
+                    finally:
+                        db.close()
+                except Exception as e:
+                    logger.error(f"Failed to get weak areas from UserWeakArea: {e}")
+            
+            # Try knowledge graph as secondary source
             result = await self.kg_integration.get_weak_areas(user_id_int)
             state["kg_data"] = result
             
-            if result.get("success") and result.get("weak_concepts"):
-                weak_list = result["weak_concepts"][:5]
+            # ==================== RAG INTEGRATION ====================
+            # Get user's RAG manager for retrieving relevant content
+            user_rag = None
+            try:
+                from .rag.user_rag_manager import get_user_rag_manager
+                user_rag = get_user_rag_manager()
+            except Exception as e:
+                logger.warning(f"Could not load RAG manager: {e}")
+            
+            # Use UserWeakArea data if available (primary source)
+            if weak_areas_from_db:
+                weak_list = weak_areas_from_db[:5]
+                
+                # ==================== RAG: Retrieve content for weak concepts ====================
+                rag_content = {}
+                if user_rag and weak_list:
+                    try:
+                        # Build query from weak concepts
+                        weak_concepts = [c['concept'] for c in weak_list]
+                        query = f"study materials for {', '.join(weak_concepts[:3])}"
+                        
+                        logger.info(f"🔍 RAG: Retrieving content for weak areas: {query}")
+                        rag_results = await user_rag.retrieve_for_user(
+                            user_id=str(user_id_int),
+                            query=query,
+                            top_k=10,
+                            content_types=["note", "flashcard", "chat"]
+                        )
+                        
+                        if rag_results:
+                            # Organize by concept
+                            for concept_data in weak_list:
+                                concept = concept_data['concept']
+                                # Find relevant content for this concept
+                                relevant = [r for r in rag_results if concept.lower() in r.get('content', '').lower()]
+                                if relevant:
+                                    rag_content[concept] = relevant[:3]  # Top 3 per concept
+                            
+                            logger.info(f"✅ RAG: Found content for {len(rag_content)} weak concepts")
+                    except Exception as e:
+                        logger.error(f"❌ RAG retrieval failed: {e}")
+                
                 concepts_text = "\n".join([
-                    f"  • {c['concept']}: {c['mastery']:.0%} mastery"
+                    f"• {c['concept']}: {c['accuracy']}% accuracy ({c['incorrect_count']}/{c['total_questions']} wrong)"
                     for c in weak_list
                 ])
-                ai_response = f"Here are your areas that need attention:\n\n{concepts_text}\n\nI recommend focusing on these topics to improve your overall mastery."
+                
+                # Add relevant content suggestions
+                content_suggestions = ""
+                if rag_content:
+                    content_suggestions = "\n\nRelevant Study Materials:"
+                    for concept, items in list(rag_content.items())[:3]:
+                        content_suggestions += f"\n\nFor {concept}:"
+                        for item in items[:2]:
+                            content_type = item.get('metadata', {}).get('type', 'content')
+                            title = item.get('metadata', {}).get('title', 'Untitled')
+                            content_suggestions += f"\n  • {content_type.title()}: {title}"
+                
+                ai_response = f"Here are your areas that need attention:\n\n{concepts_text}{content_suggestions}\n\nI recommend focusing on these topics to improve your overall mastery."
+                message = f"Found {len(weak_areas_from_db)} concepts that need attention"
+                result["success"] = True
+                result["weak_concepts"] = weak_areas_from_db
+            
+            # Fallback to knowledge graph if available
+            elif result.get("success") and result.get("weak_concepts"):
+                weak_list = result["weak_concepts"][:5]
+                
+                # ==================== RAG: Retrieve content for weak concepts ====================
+                rag_content = {}
+                if user_rag and weak_list:
+                    try:
+                        # Build query from weak concepts
+                        weak_concepts = [c['concept'] for c in weak_list]
+                        query = f"study materials for {', '.join(weak_concepts[:3])}"
+                        
+                        logger.info(f"🔍 RAG: Retrieving content for weak areas: {query}")
+                        rag_results = await user_rag.retrieve_for_user(
+                            user_id=str(user_id_int),
+                            query=query,
+                            top_k=10,
+                            content_types=["note", "flashcard", "chat"]
+                        )
+                        
+                        if rag_results:
+                            # Organize by concept
+                            for concept_data in weak_list:
+                                concept = concept_data['concept']
+                                # Find relevant content for this concept
+                                relevant = [r for r in rag_results if concept.lower() in r.get('content', '').lower()]
+                                if relevant:
+                                    rag_content[concept] = relevant[:3]  # Top 3 per concept
+                            
+                            logger.info(f"✅ RAG: Found content for {len(rag_content)} weak concepts")
+                    except Exception as e:
+                        logger.error(f"❌ RAG retrieval failed: {e}")
+                
+                concepts_text = "\n".join([
+                    f"• {c['concept']}: {c['mastery']:.0%} mastery"
+                    for c in weak_list
+                ])
+                
+                # Add relevant content suggestions
+                content_suggestions = ""
+                if rag_content:
+                    content_suggestions = "\n\nRelevant Study Materials:"
+                    for concept, items in list(rag_content.items())[:3]:
+                        content_suggestions += f"\n\nFor {concept}:"
+                        for item in items[:2]:
+                            content_type = item.get('metadata', {}).get('type', 'content')
+                            title = item.get('metadata', {}).get('title', 'Untitled')
+                            content_suggestions += f"\n  • {content_type.title()}: {title}"
+                
+                ai_response = f"Here are your areas that need attention:\n\n{concepts_text}{content_suggestions}\n\nI recommend focusing on these topics to improve your overall mastery."
                 message = f"Found {len(result['weak_concepts'])} concepts that need attention"
             else:
-                # Fallback: Get weak areas from flashcard performance
+                # Final fallback: Get weak areas from flashcard performance
                 if self.db_session_factory:
                     try:
                         from models import FlashcardSet, Flashcard

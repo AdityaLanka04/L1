@@ -64,6 +64,111 @@ def _strip_html(html_content: str) -> str:
     return clean
 
 
+def _is_informational_query(question: str) -> bool:
+    """Check if the question is asking for information/analysis rather than explanation/tutoring."""
+    question_lower = question.lower().strip()
+    
+    # Patterns that indicate informational/analytical queries (not tutoring)
+    informational_patterns = [
+        r'\bwhat am i\b',
+        r'\bwhat are my\b',
+        r'\bshow me my\b',
+        r'\bwhere am i\b',
+        r'\bhow am i doing\b',
+        r'\bmy progress\b',
+        r'\bmy stats\b',
+        r'\bmy performance\b',
+        r'\bweak at\b',
+        r'\bstruggling with\b',
+        r'\bstrength\b',
+        r'\bweakness\b',
+        r'\bdo i know\b',
+        r'\bhave i learned\b',
+        r'\bmy score\b',
+        r'\bmy accuracy\b',
+        r'\bmy streak\b',
+        r'\bmy level\b',
+        r'\blist my\b',
+        r'\bshow my\b',
+        r'\bwhat have i\b',
+        r'\bhow many\b',
+        r'\bdo i have\b',
+        r'\bwhat topics\b',
+        r'\bwhich topics\b',
+    ]
+    
+    for pattern in informational_patterns:
+        if re.search(pattern, question_lower):
+            return True
+    
+    return False
+
+
+def _is_casual_conversation(question: str) -> bool:
+    """Check if the question is casual conversation rather than educational."""
+    question_lower = question.lower().strip()
+    
+    # Casual conversation patterns (greetings, small talk, etc.)
+    casual_patterns = [
+        r'^(hi|hello|hey|greetings|good morning|good afternoon|good evening)[\s!.?]*$',
+        r'^how are you[\s!.?]*$',
+        r'^how\'s it going[\s!.?]*$',
+        r'^what\'s up[\s!.?]*$',
+        r'^sup[\s!.?]*$',
+        r'^thanks[\s!.?]*$',
+        r'^thank you[\s!.?]*$',
+        r'^bye[\s!.?]*$',
+        r'^goodbye[\s!.?]*$',
+        r'^see you[\s!.?]*$',
+        r'^ok[\s!.?]*$',
+        r'^okay[\s!.?]*$',
+        r'^cool[\s!.?]*$',
+        r'^nice[\s!.?]*$',
+        r'^great[\s!.?]*$',
+        r'^awesome[\s!.?]*$',
+        r'^who are you[\s!.?]*$',
+        r'^what can you do[\s!.?]*$',
+        r'^help[\s!.?]*$',
+        r'^tell me about yourself[\s!.?]*$',
+        r'^what is your name[\s!.?]*$',
+    ]
+    
+    for pattern in casual_patterns:
+        if re.match(pattern, question_lower):
+            return True
+    
+    # Very short questions (likely not educational)
+    if len(question_lower) < 10 and not any(word in question_lower for word in ['explain', 'what', 'how', 'why', 'define']):
+        return True
+    
+    return False
+
+
+def _is_educational_topic(question: str) -> bool:
+    """Check if the question is about an educational topic that warrants action buttons."""
+    question_lower = question.lower().strip()
+    
+    # Educational keywords that indicate learning content
+    educational_keywords = [
+        'explain', 'what is', 'what are', 'how does', 'how do', 'why is', 'why are',
+        'define', 'describe', 'tell me about', 'teach me', 'learn about',
+        'understand', 'concept', 'theory', 'principle', 'formula', 'equation',
+        'algorithm', 'process', 'method', 'technique', 'approach',
+        'difference between', 'compare', 'contrast', 'relationship between',
+        'example of', 'examples of', 'demonstrate', 'show me how',
+        'solve', 'calculate', 'compute', 'derive', 'prove',
+        'analyze', 'evaluate', 'assess', 'examine',
+    ]
+    
+    # Check if question contains educational keywords
+    has_educational_keyword = any(keyword in question_lower for keyword in educational_keywords)
+    
+    # Must be reasonably long (at least 15 characters for a real question)
+    is_long_enough = len(question_lower) >= 15
+    
+    return has_educational_keyword and is_long_enough
+
+
 def _extract_topic_from_question(question: str) -> Optional[str]:
     """Extract the main topic from any question for generating relevant action buttons."""
     question_lower = question.lower().strip()
@@ -105,7 +210,13 @@ def _extract_topic_from_question(question: str) -> Optional[str]:
 
 
 def _generate_topic_buttons(topic: str) -> List[Dict[str, Any]]:
-    """Generate action buttons for a topic (create note, flashcards, quiz)."""
+    """Generate action buttons for a topic (create note, flashcards, quiz).
+    
+    Should only be called for explanation/tutoring questions, NOT for:
+    - Informational queries (what am I weak at, show my progress, etc.)
+    - Status queries (how am I doing, what's my score, etc.)
+    - List queries (show my notes, list my flashcards, etc.)
+    """
     if not topic:
         return []
     
@@ -512,8 +623,17 @@ async def build_comprehensive_chat_context(db: Session, user, question: str) -> 
             
             context["full_content_context"] = "\n\n".join(full_context_parts)
         
-        # ALWAYS generate topic-based action buttons if we have a topic and no content buttons yet
-        if extracted_topic and not context["action_buttons"]:
+        # Generate topic-based action buttons ONLY if:
+        # 1. We have a topic
+        # 2. No content buttons yet
+        # 3. It's NOT an informational query (like "what am I weak at")
+        # 4. It's NOT casual conversation (like "how are you")
+        # 5. It IS an educational topic (like "explain neural networks")
+        if (extracted_topic and 
+            not context["action_buttons"] and 
+            not _is_informational_query(question) and
+            not _is_casual_conversation(question) and
+            _is_educational_topic(question)):
             context["action_buttons"] = _generate_topic_buttons(extracted_topic)
         
         # Get comprehensive profile
@@ -698,7 +818,21 @@ def build_enhanced_chat_prompt(user, context: Dict[str, Any], chat_history: str,
     learning_pace = context.get("learning_pace", "moderate")
     archetype = context.get("primary_archetype", "")
     
-    # Build strengths/weaknesses section
+    # Helper function to check if context is relevant to the question
+    def is_context_relevant(question_lower: str) -> bool:
+        """Check if user is asking about their history/materials"""
+        relevance_keywords = [
+            'my notes', 'my flashcards', 'my quizzes', 'my materials',
+            'what have i', 'what did i', 'my history', 'my progress',
+            'my weak', 'my strong', 'struggling with', 'reviewed',
+            'studied before', 'learned about', 'my topics'
+        ]
+        return any(keyword in question_lower for keyword in relevance_keywords)
+    
+    question_lower = question.lower()
+    include_history = is_context_relevant(question_lower)
+    
+    # Build strengths/weaknesses section - ONLY if relevant
     weak_areas = context.get("weak_areas", [])
     strong_areas = context.get("strong_areas", [])
     weaknesses_from_mastery = context.get("weaknesses_from_mastery", [])
@@ -706,32 +840,32 @@ def build_enhanced_chat_prompt(user, context: Dict[str, Any], chat_history: str,
     struggling_cards = context.get("struggling_cards", [])
     
     strengths_text = ""
-    if strong_areas or strengths_from_mastery:
+    if include_history and (strong_areas or strengths_from_mastery):
         all_strengths = strong_areas + strengths_from_mastery
         strengths_text = f"\n{first_name}'s STRENGTHS: {', '.join(all_strengths[:5])}"
     
     weaknesses_text = ""
-    if weak_areas or weaknesses_from_mastery:
+    if include_history and (weak_areas or weaknesses_from_mastery):
         all_weaknesses = weak_areas + weaknesses_from_mastery
         weaknesses_text = f"\n{first_name}'s AREAS NEEDING WORK: {', '.join(all_weaknesses[:5])}"
     
     struggling_text = ""
-    if struggling_cards:
+    if include_history and struggling_cards:
         cards_info = [f"'{c['question'][:50]}...' ({c['accuracy']}% accuracy)" for c in struggling_cards[:3]]
         struggling_text = f"\nFlashcards they struggle with: {'; '.join(cards_info)}"
     
-    # Build study materials section
+    # Build study materials section - ONLY if relevant
     notes_summary = context.get("notes_summary", "")
     flashcard_summary = context.get("flashcard_summary", "")
     quiz_summary = context.get("quiz_summary", "")
     recent_topics = context.get("recent_topics", [])
     
     materials_text = ""
-    if notes_summary or flashcard_summary or quiz_summary:
+    if include_history and (notes_summary or flashcard_summary or quiz_summary):
         materials_text = f"\n\nSTUDY MATERIALS:\n{notes_summary}\n{flashcard_summary}\n{quiz_summary}"
     
     topics_text = ""
-    if recent_topics:
+    if include_history and recent_topics:
         topics_text = f"\nRecent topics studied: {', '.join(recent_topics[:7])}"
     
     # Build analytics section
@@ -740,13 +874,13 @@ def build_enhanced_chat_prompt(user, context: Dict[str, Any], chat_history: str,
     accuracy = context.get("accuracy", 0)
     
     analytics_text = ""
-    if day_streak or total_hours:
+    if include_history and (day_streak or total_hours):
         analytics_text = f"\n\nLEARNING PROGRESS: {day_streak} day streak, {total_hours} hours studied, {accuracy}% accuracy"
     
-    # NEW: Include full content context if available
+    # NEW: Include full content context if available AND relevant
     full_content_context = context.get("full_content_context", "")
     content_context_section = ""
-    if full_content_context:
+    if include_history and full_content_context:
         content_context_section = f"""
 
 ## USER'S RELEVANT CONTENT
@@ -757,13 +891,13 @@ The following is content from the user's notes, flashcards, or quizzes that may 
 When answering, reference this content specifically if relevant. If the user asks about their notes/flashcards/quizzes, 
 use this information to give a detailed, personalized response."""
     
-    # NEW: Include available content for navigation suggestions
+    # NEW: Include available content for navigation suggestions - ONLY if relevant
     notes_full = context.get("notes_full", [])
     flashcards_full = context.get("flashcards_full", [])
     quizzes_full = context.get("quizzes_full", [])
     
     available_content = ""
-    if notes_full or flashcards_full or quizzes_full:
+    if include_history and (notes_full or flashcards_full or quizzes_full):
         content_parts = []
         if notes_full:
             note_list = ", ".join([f"'{n['title']}'" for n in notes_full[:5]])
@@ -776,6 +910,17 @@ use this information to give a detailed, personalized response."""
             content_parts.append(f"Quizzes: {quiz_list}")
         
         available_content = f"\n\nAVAILABLE STUDY MATERIALS:\n" + "\n".join(content_parts)
+    
+    # Build context-aware instructions
+    context_instructions = ""
+    if include_history:
+        context_instructions = """
+7. When they ask about their content (notes, flashcards, quizzes), reference the specific content provided above
+8. Suggest relevant study materials from their collection when appropriate"""
+    else:
+        context_instructions = """
+7. Focus on explaining the topic clearly and comprehensively
+8. Only mention their study history if directly relevant to understanding the current topic"""
     
     prompt = f"""You are an expert AI tutor and learning companion for {first_name}. You have comprehensive knowledge of their learning journey.
 
@@ -798,14 +943,13 @@ use this information to give a detailed, personalized response."""
 {content_context_section}
 
 ## YOUR APPROACH
-1. Be personal - use their name, reference their specific subjects and materials
+1. Be personal - use their name, reference their specific subjects when relevant
 2. Be adaptive - match their learning style ({learning_style}) and pace ({learning_pace})
 3. Be aware - if they ask about a weak area, provide extra support and scaffolding
-4. Be supportive - provide encouragement and celebrate their {day_streak} day streak!
+4. Be supportive - provide encouragement when appropriate
 5. Be interactive - ask follow-up questions, suggest creating flashcards for new concepts
 6. Be comprehensive - explain thoroughly with step-by-step breakdowns when needed
-7. When they ask about their content (notes, flashcards, quizzes), reference the specific content provided above
-8. Suggest relevant study materials from their collection when appropriate
+{context_instructions}
 
 ## MATHEMATICAL NOTATION
 - Use $...$ for inline math: "The derivative $f'(x) = 2x$ shows..."
@@ -817,6 +961,6 @@ use this information to give a detailed, personalized response."""
 ## CURRENT QUESTION
 {question}
 
-Provide a helpful, personalized, and educational response. If this relates to an area they struggle with, be extra supportive. If it's a strength, challenge them to think deeper. If they ask about their notes/flashcards/quizzes, give specific information from the content provided."""
+Provide a helpful, personalized, and educational response. Focus on answering the question directly and clearly. Only reference their study history if it's directly relevant to the current question."""
 
     return prompt
