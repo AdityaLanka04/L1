@@ -474,12 +474,41 @@ Provide a helpful, educational response. Be interactive and engaging. Reference 
             ])
             sections.append(f"Recent conversation:\n{conv}")
         
+        # ==================== WEAK CONCEPTS (HIGH PRIORITY) ====================
+        # Add weak concepts from state (passed from ask_simple)
+        weak_concepts = context.get("weak_concepts", [])
+        if weak_concepts:
+            weak_info = "\n".join([
+                f"- {wc.get('topic', 'Unknown')}: {wc.get('accuracy', 0)}% accuracy, "
+                f"{wc.get('incorrect_count', 0)} wrong answers, "
+                f"priority {wc.get('priority', 0)}/10"
+                for wc in weak_concepts[:5]
+            ])
+            sections.append(f"⚠️ STUDENT'S WEAK AREAS (provide extra support on these):\n{weak_info}")
+        
+        # Also check user_weaknesses format (from comprehensive context)
+        user_weaknesses = context.get("user_weaknesses", [])
+        if user_weaknesses and not weak_concepts:
+            weakness_list = [f"{w.get('topic', 'Unknown')} ({w.get('mastery', 0)}%)" for w in user_weaknesses[:3]]
+            sections.append(f"⚠️ Areas to focus on: {', '.join(weakness_list)}")
+        
+        # Topics needing review
+        topics_needing_review = context.get("topics_needing_review", [])
+        if topics_needing_review:
+            sections.append(f"📚 Topics needing review: {', '.join(topics_needing_review[:5])}")
+        
+        # ==================== RAG CONTEXT (USER'S CONTENT) ====================
+        rag_context = context.get("rag_context", "")
+        rag_count = context.get("rag_results_count", 0)
+        if rag_context and rag_count > 0:
+            sections.append(f"📖 Relevant content from student's materials ({rag_count} items):\n{rag_context[:800]}...")
+        
         # Knowledge context
         topics = context.get("topics_of_interest", [])[:5]
         if topics:
             sections.append(f"Student's recent topics: {', '.join(topics)}")
         
-        # Struggled concepts
+        # Struggled concepts (from memory)
         struggled = context.get("struggled_concepts", [])[:3]
         if struggled:
             sections.append(f"Areas needing attention: {', '.join(struggled)}")
@@ -489,11 +518,6 @@ Provide a helpful, educational response. Be interactive and engaging. Reference 
         if user_strengths:
             strength_list = [f"{s.get('topic', 'Unknown')} ({s.get('mastery', 0)}%)" for s in user_strengths[:3]]
             sections.append(f"Student's strengths: {', '.join(strength_list)}")
-        
-        user_weaknesses = context.get("user_weaknesses", [])
-        if user_weaknesses:
-            weakness_list = [f"{w.get('topic', 'Unknown')} ({w.get('mastery', 0)}%)" for w in user_weaknesses[:3]]
-            sections.append(f"Areas to focus on: {', '.join(weakness_list)}")
         
         # Notes context
         notes_ctx = context.get("notes_context", {})
@@ -668,7 +692,21 @@ class ChatAgent(BaseAgent):
         user_id = state.get("user_id")
         user_input = state.get("user_input", "")
         
-        if user_id and user_input:
+        # Convert user_id to integer if it's an email/username
+        user_id_int = None
+        if user_id:
+            try:
+                user_id_int = int(user_id)
+            except (ValueError, TypeError):
+                # It's an email or username, need to look it up
+                # Try to get from agent_api's helper function
+                try:
+                    from .agent_api import get_user_id_from_identifier
+                    user_id_int = get_user_id_from_identifier(user_id)
+                except Exception:
+                    pass
+        
+        if user_id_int and user_input:
             try:
                 from .rag.user_rag_manager import get_user_rag_manager
                 user_rag = get_user_rag_manager()
@@ -678,7 +716,7 @@ class ChatAgent(BaseAgent):
                     
                     # Retrieve from user's personal knowledge base
                     rag_results = await user_rag.retrieve_for_user(
-                        user_id=str(user_id),
+                        user_id=str(user_id_int),  # Use integer user_id
                         query=user_input,
                         top_k=5,  # Get top 5 most relevant items
                         content_types=["note", "flashcard", "chat", "question_bank"]
@@ -705,8 +743,13 @@ class ChatAgent(BaseAgent):
                     
             except Exception as e:
                 logger.error(f"❌ RAG retrieval failed: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
                 state["rag_context"] = ""
                 state["rag_results_count"] = 0
+        else:
+            if not user_id_int:
+                logger.warning(f"⚠️ Could not convert user_id '{user_id}' to integer for RAG retrieval")
         
         return state
     
@@ -970,6 +1013,8 @@ class ChatAgent(BaseAgent):
             # RAG context - user's relevant content
             "rag_context": state.get("rag_context", ""),
             "rag_results_count": state.get("rag_results_count", 0),
+            # WEAK CONCEPTS - from ask_simple endpoint
+            "weak_concepts": state.get("weak_concepts", []),
         }
         
         # Use enhanced prompt if available, otherwise use standard generation
@@ -1216,6 +1261,13 @@ Return ONLY a JSON array of strings, nothing else:
             "has_previous_sessions": state.get("_has_previous_sessions", False),
             "session_history_summary": state.get("_session_history_summary", ""),
             "timestamp": datetime.utcnow().isoformat(),
+            
+            # RAG metadata
+            "rag_results_count": state.get("rag_results_count", 0),
+            "rag_context_available": bool(state.get("rag_context")),
+            
+            # Confusion indicators
+            "confusion_indicators": state.get("confusion_indicators", []),
             
             # Advanced AI metadata
             "advanced_ai": {

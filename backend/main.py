@@ -1594,7 +1594,7 @@ async def ask_simple(
             
             # Build state for Chat Agent
             agent_state = {
-                "user_id": user_id,
+                "user_id": str(user.id),  # Use integer user_id, converted to string
                 "user_input": question,
                 "session_id": str(chat_id_int) if chat_id_int else f"chat_{user.id}_{datetime.now().timestamp()}",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -1619,7 +1619,7 @@ async def ask_simple(
                 "user_preferences": {
                     "name": user.first_name or "Student",
                     "learning_style": user.learning_style or "Mixed",
-                    "difficulty_level": user.difficulty_level or "intermediate",
+                    "difficulty_level": getattr(user, "difficulty_level", "intermediate"),
                     "field_of_study": user.field_of_study or "General",
                     "weak_areas": [wc["topic"] for wc in weak_concepts_context[:5]],
                 }
