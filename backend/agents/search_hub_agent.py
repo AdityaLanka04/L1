@@ -1486,13 +1486,73 @@ class SearchHubAgent(BaseAgent):
         return state
     
     async def _search_content(self, state: SearchHubState) -> SearchHubState:
-        """Search for content"""
+        """Search for content using RAG for semantic search"""
         query = state.get("extracted_topic") or state.get("user_input", "")
         user_id = state.get("user_id")
         action = state.get("detected_action")
         
         state["execution_path"].append("searchhub:search")
         
+        # ==================== RAG-POWERED SEARCH ====================
+        # Use RAG for intelligent semantic search
+        try:
+            from .rag.user_rag_manager import get_user_rag_manager
+            user_rag = get_user_rag_manager()
+            
+            if user_rag:
+                logger.info(f"🔍 SearchHub using RAG for semantic search: '{query}'")
+                
+                # Determine content types to search
+                content_types = None
+                if action == SearchHubAction.SEARCH_NOTES.value:
+                    content_types = ["note"]
+                elif action == SearchHubAction.SEARCH_FLASHCARDS.value:
+                    content_types = ["flashcard"]
+                elif action == SearchHubAction.SEARCH_QUESTIONS.value:
+                    content_types = ["question_bank"]
+                # If no specific type, search all
+                
+                # Retrieve from user's personal knowledge base using RAG
+                rag_results = await user_rag.retrieve_for_user(
+                    user_id=str(user_id),
+                    query=query,
+                    top_k=20,  # Get more results for search
+                    content_types=content_types
+                )
+                
+                if rag_results:
+                    # Format RAG results for SearchHub response
+                    formatted_results = []
+                    for r in rag_results:
+                        formatted_results.append({
+                            "id": r.get("id", ""),
+                            "content": r.get("content", ""),
+                            "score": r.get("score", 0),
+                            "type": r.get("metadata", {}).get("type", "content"),
+                            "title": r.get("metadata", {}).get("title", ""),
+                            "metadata": r.get("metadata", {})
+                        })
+                    
+                    state["search_results"] = formatted_results
+                    state["search_query"] = query
+                    state["response_data"] = {
+                        "results": formatted_results,
+                        "total": len(formatted_results),
+                        "query": query,
+                        "search_method": "rag_semantic"
+                    }
+                    
+                    logger.info(f"✅ RAG search found {len(formatted_results)} results")
+                    return state
+                else:
+                    logger.info("ℹ️ RAG search returned no results")
+            else:
+                logger.warning("⚠️ User RAG Manager not available, falling back to standard search")
+                
+        except Exception as e:
+            logger.error(f"❌ RAG search failed: {e}, falling back to standard search")
+        
+        # ==================== FALLBACK TO STANDARD SEARCH ====================
         if not self.content_searcher:
             state["errors"] = ["Search not available"]
             return state

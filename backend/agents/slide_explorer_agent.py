@@ -161,7 +161,7 @@ class SlideExplorerAgent(BaseAgent):
         return state
     
     async def _load_context(self, state: SlideExplorerAgentState) -> SlideExplorerAgentState:
-        """Load context from memory"""
+        """Load context from memory and RAG"""
         user_id = state.get("user_id")
         
         if self.memory_manager and user_id:
@@ -175,6 +175,44 @@ class SlideExplorerAgent(BaseAgent):
             except Exception as e:
                 logger.error(f"Context load failed: {e}")
                 state["memory_context"] = {}
+        
+        # ==================== RAG RETRIEVAL ====================
+        # Retrieve relevant user content for slide analysis
+        if user_id and state.get("slide_content"):
+            try:
+                from .rag.user_rag_manager import get_user_rag_manager
+                user_rag = get_user_rag_manager()
+                
+                if user_rag:
+                    # Use slide content as query to find related materials
+                    query = state.get("slide_content", "")[:500]
+                    logger.info(f"🔍 Retrieving relevant content from user's RAG for slide analysis")
+                    
+                    rag_results = await user_rag.retrieve_for_user(
+                        user_id=str(user_id),
+                        query=query,
+                        top_k=5,
+                        content_types=["note", "flashcard"]
+                    )
+                    
+                    if rag_results:
+                        rag_context_parts = []
+                        for r in rag_results:
+                            content_text = r.get("content", "")[:300]
+                            content_type = r.get("metadata", {}).get("type", "content")
+                            rag_context_parts.append(f"[{content_type}] {content_text}")
+                        
+                        state["rag_context"] = "\n\n".join(rag_context_parts)
+                        state["rag_results_count"] = len(rag_results)
+                        logger.info(f"✅ RAG retrieved {len(rag_results)} related items for slide analysis")
+                    else:
+                        state["rag_context"] = ""
+                        state["rag_results_count"] = 0
+                        
+            except Exception as e:
+                logger.error(f"❌ RAG retrieval failed: {e}")
+                state["rag_context"] = ""
+                state["rag_results_count"] = 0
         
         state["execution_path"].append("se:context")
         return state

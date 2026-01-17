@@ -251,3 +251,244 @@ async def list_search_modes():
             }
         ]
     }
+
+
+# ==================== User-Specific RAG Endpoints ====================
+
+class UserRAGIndexRequest(BaseModel):
+    """Request to index content for a specific user"""
+    user_id: str = Field(..., description="User ID")
+    content_type: str = Field(..., description="Type: notes, flashcards, chats, questions")
+    items: List[Dict[str, Any]] = Field(..., description="Items to index")
+
+
+class UserRAGRetrieveRequest(BaseModel):
+    """Request to retrieve from user's personal RAG"""
+    user_id: str = Field(..., description="User ID")
+    query: str = Field(..., description="Search query")
+    top_k: int = Field(10, ge=1, le=20, description="Number of results")
+    content_types: Optional[List[str]] = Field(None, description="Filter by content types")
+
+
+class UserRAGFeedbackRequest(BaseModel):
+    """Feedback on retrieved content for learning"""
+    user_id: str = Field(..., description="User ID")
+    query: str = Field(..., description="Original query")
+    retrieved_items: List[str] = Field(..., description="IDs of retrieved items")
+    relevant_items: Optional[List[str]] = Field(None, description="IDs of relevant items")
+    needed_more_context: bool = Field(False, description="User needed more context")
+    too_much_context: bool = Field(False, description="Too much context provided")
+    helpful_content_types: Optional[List[str]] = Field(None, description="Content types that were helpful")
+
+
+@router.post("/user/index")
+async def index_user_content(request: UserRAGIndexRequest):
+    """
+    Index content for a specific user's personal RAG.
+    Builds their personalized knowledge base.
+    """
+    from .user_rag_manager import get_user_rag_manager
+    
+    user_rag = get_user_rag_manager()
+    if not user_rag:
+        raise HTTPException(status_code=503, detail="User RAG Manager not initialized")
+    
+    success = await user_rag.index_user_content(
+        user_id=request.user_id,
+        content_type=request.content_type,
+        items=request.items
+    )
+    
+    return {
+        "status": "success" if success else "failed",
+        "user_id": request.user_id,
+        "content_type": request.content_type,
+        "indexed_count": len(request.items)
+    }
+
+
+@router.post("/user/retrieve")
+async def retrieve_user_content(request: UserRAGRetrieveRequest):
+    """
+    Retrieve content from user's personal RAG.
+    Uses their indexed content and learned preferences.
+    """
+    from .user_rag_manager import get_user_rag_manager
+    
+    user_rag = get_user_rag_manager()
+    if not user_rag:
+        raise HTTPException(status_code=503, detail="User RAG Manager not initialized")
+    
+    results = await user_rag.retrieve_for_user(
+        user_id=request.user_id,
+        query=request.query,
+        top_k=request.top_k,
+        content_types=request.content_types
+    )
+    
+    return {
+        "user_id": request.user_id,
+        "query": request.query,
+        "results": results,
+        "total": len(results)
+    }
+
+
+@router.post("/user/feedback")
+async def submit_user_feedback(request: UserRAGFeedbackRequest):
+    """
+    Submit feedback on retrieved content.
+    Helps the system learn user preferences.
+    """
+    from .user_rag_manager import get_user_rag_manager
+    
+    user_rag = get_user_rag_manager()
+    if not user_rag:
+        raise HTTPException(status_code=503, detail="User RAG Manager not initialized")
+    
+    await user_rag.learn_from_feedback(
+        user_id=request.user_id,
+        query=request.query,
+        retrieved_items=request.retrieved_items,
+        feedback={
+            "relevant_items": request.relevant_items,
+            "needed_more_context": request.needed_more_context,
+            "too_much_context": request.too_much_context,
+            "helpful_content_types": request.helpful_content_types
+        }
+    )
+    
+    return {
+        "status": "feedback_recorded",
+        "user_id": request.user_id
+    }
+
+
+@router.post("/user/auto-index/{user_id}")
+async def auto_index_user_activity(user_id: str):
+    """
+    Automatically index user's recent activity.
+    Keeps their personal RAG up-to-date.
+    """
+    from .user_rag_manager import get_user_rag_manager
+    
+    user_rag = get_user_rag_manager()
+    if not user_rag:
+        raise HTTPException(status_code=503, detail="User RAG Manager not initialized")
+    
+    await user_rag.auto_index_user_activity(user_id)
+    
+    return {
+        "status": "auto_indexed",
+        "user_id": user_id
+    }
+
+
+@router.get("/user/stats/{user_id}")
+async def get_user_rag_stats(user_id: str):
+    """Get statistics about user's personal RAG"""
+    from .user_rag_manager import get_user_rag_manager
+    
+    user_rag = get_user_rag_manager()
+    if not user_rag:
+        raise HTTPException(status_code=503, detail="User RAG Manager not initialized")
+    
+    stats = user_rag.get_user_stats(user_id)
+    
+    return {
+        "user_id": user_id,
+        **stats
+    }
+
+
+@router.delete("/user/clear/{user_id}")
+async def clear_user_rag_data(user_id: str):
+    """Clear all RAG data for a user (GDPR compliance)"""
+    from .user_rag_manager import get_user_rag_manager
+    
+    user_rag = get_user_rag_manager()
+    if not user_rag:
+        raise HTTPException(status_code=503, detail="User RAG Manager not initialized")
+    
+    await user_rag.clear_user_data(user_id)
+    
+    return {
+        "status": "cleared",
+        "user_id": user_id
+    }
+
+
+# ==================== Auto-Indexer Endpoints ====================
+
+@router.post("/auto-indexer/trigger/{user_id}")
+async def trigger_manual_indexing(user_id: str):
+    """
+    Manually trigger indexing for a specific user.
+    Useful for immediate indexing after user creates content.
+    """
+    from .auto_indexer import get_auto_indexer
+    
+    auto_indexer = get_auto_indexer()
+    if not auto_indexer:
+        raise HTTPException(status_code=503, detail="Auto-Indexer not initialized")
+    
+    success = await auto_indexer.index_user_now(user_id)
+    
+    return {
+        "status": "success" if success else "failed",
+        "user_id": user_id,
+        "message": "Content indexed successfully" if success else "Indexing failed"
+    }
+
+
+@router.get("/auto-indexer/status")
+async def get_auto_indexer_status():
+    """Get the status of the auto-indexer"""
+    from .auto_indexer import get_auto_indexer
+    
+    auto_indexer = get_auto_indexer()
+    if not auto_indexer:
+        return {
+            "status": "not_initialized",
+            "is_running": False
+        }
+    
+    return {
+        "status": "initialized",
+        "is_running": auto_indexer.is_running,
+        "interval_minutes": auto_indexer.interval_minutes
+    }
+
+
+@router.post("/auto-indexer/start")
+async def start_auto_indexer():
+    """Start the auto-indexer if it's stopped"""
+    from .auto_indexer import get_auto_indexer
+    
+    auto_indexer = get_auto_indexer()
+    if not auto_indexer:
+        raise HTTPException(status_code=503, detail="Auto-Indexer not initialized")
+    
+    await auto_indexer.start()
+    
+    return {
+        "status": "started",
+        "message": "Auto-indexer is now running"
+    }
+
+
+@router.post("/auto-indexer/stop")
+async def stop_auto_indexer():
+    """Stop the auto-indexer"""
+    from .auto_indexer import get_auto_indexer
+    
+    auto_indexer = get_auto_indexer()
+    if not auto_indexer:
+        raise HTTPException(status_code=503, detail="Auto-Indexer not initialized")
+    
+    await auto_indexer.stop()
+    
+    return {
+        "status": "stopped",
+        "message": "Auto-indexer has been stopped"
+    }

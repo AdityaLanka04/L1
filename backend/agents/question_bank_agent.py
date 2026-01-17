@@ -279,6 +279,7 @@ class QuestionBankAgent(BaseAgent):
         """
         NEW: Retrieve relevant context using the RAG system.
         This enhances question generation with related content from notes, flashcards, etc.
+        Uses User-Specific RAG for personalized retrieval.
         """
         user_id = state.get("user_id")
         content = state.get("content", "")
@@ -317,8 +318,51 @@ class QuestionBankAgent(BaseAgent):
             
             rag_query = " | ".join(rag_query_parts)
             
-            # Use Agentic RAG for intelligent retrieval
-            logger.info(f"Retrieving RAG context for query: {rag_query[:100]}...")
+            # Try User-Specific RAG first (personalized retrieval)
+            try:
+                from .rag.user_rag_manager import get_user_rag_manager
+                user_rag = get_user_rag_manager()
+                
+                if user_rag:
+                    logger.info(f"Using User-Specific RAG for user {user_id}")
+                    
+                    # Retrieve from user's personal knowledge base
+                    user_results = await user_rag.retrieve_for_user(
+                        user_id=user_id,
+                        query=rag_query,
+                        top_k=10,
+                        content_types=["note", "flashcard", "chat", "question_bank"]  # Added question_bank
+                    )
+                    
+                    if user_results:
+                        # Build context from user's personal content
+                        context_parts = []
+                        for r in user_results[:7]:
+                            content_text = r.get("content", "")[:500]
+                            source = r.get("source", "user_content")
+                            context_parts.append(f"[{source}] {content_text}")
+                        
+                        state["rag_context"] = "\n\n".join(context_parts)
+                        logger.info(f"User RAG retrieved: {len(user_results)} items from personal knowledge base")
+                        
+                        # Get related concepts from metadata
+                        related_concepts = set()
+                        for r in user_results:
+                            metadata = r.get("metadata", {})
+                            if metadata.get("related_concepts"):
+                                related_concepts.update(metadata["related_concepts"])
+                        state["rag_related_concepts"] = list(related_concepts)[:10]
+                        
+                        # Successfully used user RAG, return early
+                        return state
+                    else:
+                        logger.info("User RAG returned no results, falling back to global RAG")
+                        
+            except Exception as e:
+                logger.warning(f"User RAG retrieval failed, falling back to global RAG: {e}")
+            
+            # Fallback to global Agentic RAG if user RAG unavailable or returned no results
+            logger.info(f"Using global Agentic RAG for query: {rag_query[:100]}...")
             
             rag_result = await self.rag_system.retrieve(
                 query=rag_query,
@@ -361,7 +405,7 @@ class QuestionBankAgent(BaseAgent):
                 state["rag_context"] = "\n\n".join(context_parts)
                 state["rag_related_concepts"] = list(related_concepts)[:10]
                 
-                logger.info(f"RAG context retrieved: {len(context_parts)} items, {len(related_concepts)} related concepts")
+                logger.info(f"Global RAG context retrieved: {len(context_parts)} items, {len(related_concepts)} related concepts")
             
             # Try to get learning path from GraphRAG if available
             if self.rag_system.graph_rag and topics:
@@ -791,7 +835,7 @@ Return ONLY valid JSON array."""
         return state
     
     async def _save_questions(self, state: QuestionBankAgentState) -> QuestionBankAgentState:
-        """STEP 5: Save questions to database"""
+        """STEP 5: Save questions to database and trigger RAG indexing"""
         questions = state.get("validated_questions", [])
         user_id = state.get("user_id")
         title = state.get("title", "Generated Questions")
@@ -868,6 +912,31 @@ Return ONLY valid JSON array."""
             
             session.commit()
             logger.info(f"Saved {len(questions)} questions to set {set_id}")
+            
+            # Trigger RAG indexing for the new question set
+            try:
+                from .rag.content_hooks import trigger_question_set_index
+                
+                # Get the created_at timestamp
+                get_timestamp = text("SELECT created_at FROM question_sets WHERE id = :set_id")
+                result = session.execute(get_timestamp, {"set_id": set_id})
+                created_at = result.scalar()
+                
+                # Trigger indexing
+                await trigger_question_set_index(
+                    user_id=user_id,
+                    question_set={
+                        "id": set_id,
+                        "title": title,
+                        "description": f"Generated from {source_type}",
+                        "source_type": source_type,
+                        "created_at": created_at
+                    },
+                    questions=questions
+                )
+                logger.info(f"✅ Triggered RAG indexing for question set {set_id}")
+            except Exception as e:
+                logger.warning(f"Failed to trigger RAG indexing: {e}")
             
             state["response_data"] = {
                 "action": state.get("action"),

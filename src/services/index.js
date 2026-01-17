@@ -13,6 +13,7 @@ export { default as memoryService, MemoryService } from './memoryService';
 export { default as noteAgentService, NoteAgentService } from './noteAgentService';
 export { default as questionBankAgentService, QuestionBankAgentService } from './questionBankAgentService';
 export { default as quizAgentService, QuizAgentService } from './quizAgentService';
+export { default as ragService, RAGService } from './ragService';
 export { default as searchHubAgentService, SearchHubAgentService } from './searchHubAgentService';
 export { default as slideExplorerAgentService, SlideExplorerAgentService } from './slideExplorerAgentService';
 

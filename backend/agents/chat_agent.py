@@ -663,6 +663,51 @@ class ChatAgent(BaseAgent):
         else:
             logger.warning("⚠️ No memory manager available")
         
+        # ==================== RAG RETRIEVAL ====================
+        # Retrieve relevant user content (notes, flashcards, chats, questions)
+        user_id = state.get("user_id")
+        user_input = state.get("user_input", "")
+        
+        if user_id and user_input:
+            try:
+                from .rag.user_rag_manager import get_user_rag_manager
+                user_rag = get_user_rag_manager()
+                
+                if user_rag:
+                    logger.info(f"🔍 Retrieving relevant content from user's RAG for chat context")
+                    
+                    # Retrieve from user's personal knowledge base
+                    rag_results = await user_rag.retrieve_for_user(
+                        user_id=str(user_id),
+                        query=user_input,
+                        top_k=5,  # Get top 5 most relevant items
+                        content_types=["note", "flashcard", "chat", "question_bank"]
+                    )
+                    
+                    if rag_results:
+                        # Build context from retrieved content
+                        rag_context_parts = []
+                        for r in rag_results:
+                            content_text = r.get("content", "")[:300]  # Limit to 300 chars
+                            content_type = r.get("metadata", {}).get("type", "content")
+                            rag_context_parts.append(f"[{content_type}] {content_text}")
+                        
+                        state["rag_context"] = "\n\n".join(rag_context_parts)
+                        state["rag_results_count"] = len(rag_results)
+                        
+                        logger.info(f"✅ RAG retrieved {len(rag_results)} relevant items from user's content")
+                    else:
+                        logger.info("ℹ️ No relevant content found in user's RAG")
+                        state["rag_context"] = ""
+                        state["rag_results_count"] = 0
+                else:
+                    logger.warning("⚠️ User RAG Manager not available")
+                    
+            except Exception as e:
+                logger.error(f"❌ RAG retrieval failed: {e}")
+                state["rag_context"] = ""
+                state["rag_results_count"] = 0
+        
         return state
     
     async def _analyze_input(self, state: ChatAgentState) -> ChatAgentState:
@@ -922,6 +967,9 @@ class ChatAgent(BaseAgent):
             "engagement_level": state.get("_engagement_level", 0.5),
             "tone_adaptation": state.get("_tone_adaptation", {}),
             "content_adaptation": state.get("_content_adaptation", {}),
+            # RAG context - user's relevant content
+            "rag_context": state.get("rag_context", ""),
+            "rag_results_count": state.get("rag_results_count", 0),
         }
         
         # Use enhanced prompt if available, otherwise use standard generation

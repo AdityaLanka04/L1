@@ -1004,7 +1004,7 @@ class QuizAgent(BaseAgent):
         return state
     
     async def _load_context(self, state: QuizAgentState) -> QuizAgentState:
-        """Load context from memory and knowledge graph"""
+        """Load context from memory, knowledge graph, and RAG"""
         user_id = state.get("user_id")
         session_id = state.get("session_id", "default")
         topic = state.get("topic", "")
@@ -1043,6 +1043,42 @@ class QuizAgent(BaseAgent):
                 state["memory_context"]["related_concepts"] = related
             except Exception as e:
                 logger.debug(f"KG lookup failed: {e}")
+        
+        # ==================== RAG RETRIEVAL ====================
+        # Retrieve relevant user content for quiz generation
+        if user_id and topic:
+            try:
+                from .rag.user_rag_manager import get_user_rag_manager
+                user_rag = get_user_rag_manager()
+                
+                if user_rag:
+                    logger.info(f"🔍 Retrieving relevant content from user's RAG for quiz generation")
+                    
+                    rag_results = await user_rag.retrieve_for_user(
+                        user_id=str(user_id),
+                        query=topic,
+                        top_k=10,
+                        content_types=["note", "flashcard", "chat", "question_bank"]
+                    )
+                    
+                    if rag_results:
+                        rag_context_parts = []
+                        for r in rag_results:
+                            content_text = r.get("content", "")[:400]
+                            content_type = r.get("metadata", {}).get("type", "content")
+                            rag_context_parts.append(f"[{content_type}] {content_text}")
+                        
+                        state["rag_context"] = "\n\n".join(rag_context_parts)
+                        state["rag_results_count"] = len(rag_results)
+                        logger.info(f"✅ RAG retrieved {len(rag_results)} relevant items for quiz generation")
+                    else:
+                        state["rag_context"] = ""
+                        state["rag_results_count"] = 0
+                        
+            except Exception as e:
+                logger.error(f"❌ RAG retrieval failed: {e}")
+                state["rag_context"] = ""
+                state["rag_results_count"] = 0
         
         state["execution_path"].append("quiz:context")
         return state

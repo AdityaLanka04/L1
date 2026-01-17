@@ -680,7 +680,7 @@ class FlashcardAgent(BaseAgent):
         return state
     
     async def _load_context(self, state: FlashcardAgentState) -> FlashcardAgentState:
-        """Load context from memory and knowledge graph"""
+        """Load context from memory, knowledge graph, and RAG"""
         user_id = state.get("user_id")
         session_id = state.get("session_id", "default")
         topic = state.get("topic", "")
@@ -715,6 +715,48 @@ class FlashcardAgent(BaseAgent):
             except Exception as e:
                 logger.debug(f"KG lookup failed: {e}")
         
+        # ==================== RAG RETRIEVAL ====================
+        # Retrieve relevant user content for flashcard generation
+        if user_id and topic:
+            try:
+                from .rag.user_rag_manager import get_user_rag_manager
+                user_rag = get_user_rag_manager()
+                
+                if user_rag:
+                    logger.info(f"🔍 Retrieving relevant content from user's RAG for flashcard generation")
+                    
+                    # Retrieve from user's personal knowledge base
+                    rag_results = await user_rag.retrieve_for_user(
+                        user_id=str(user_id),
+                        query=topic,
+                        top_k=10,
+                        content_types=["note", "flashcard", "chat", "question_bank"]
+                    )
+                    
+                    if rag_results:
+                        # Build context from retrieved content
+                        rag_context_parts = []
+                        for r in rag_results:
+                            content_text = r.get("content", "")[:400]
+                            content_type = r.get("metadata", {}).get("type", "content")
+                            rag_context_parts.append(f"[{content_type}] {content_text}")
+                        
+                        state["rag_context"] = "\n\n".join(rag_context_parts)
+                        state["rag_results_count"] = len(rag_results)
+                        
+                        logger.info(f"✅ RAG retrieved {len(rag_results)} relevant items for flashcard generation")
+                    else:
+                        logger.info("ℹ️ No relevant content found in user's RAG")
+                        state["rag_context"] = ""
+                        state["rag_results_count"] = 0
+                else:
+                    logger.warning("⚠️ User RAG Manager not available")
+                    
+            except Exception as e:
+                logger.error(f"❌ RAG retrieval failed: {e}")
+                state["rag_context"] = ""
+                state["rag_results_count"] = 0
+        
         state["execution_path"].append("flashcard:context")
         return state
     
@@ -741,7 +783,7 @@ class FlashcardAgent(BaseAgent):
         return state
     
     async def _generate_cards(self, state: FlashcardAgentState) -> FlashcardAgentState:
-        """Generate flashcards"""
+        """Generate flashcards using RAG context"""
         topic = state.get("topic", "")
         content = state.get("source_content", "")
         count = state.get("card_count", 10)
@@ -760,9 +802,15 @@ class FlashcardAgent(BaseAgent):
             if weak:
                 context_parts.append(f"Focus on: {', '.join(weak[:3])}")
         
+        # Add RAG context if available
+        rag_context = state.get("rag_context", "")
+        if rag_context:
+            context_parts.append(f"\nUser's relevant content:\n{rag_context[:1000]}")  # Limit to 1000 chars
+            logger.info(f"📚 Using RAG context ({state.get('rag_results_count', 0)} items) for flashcard generation")
+        
         context = "\n".join(context_parts)
         
-        # Generate cards with depth level
+        # Generate cards with depth level and RAG context
         if content:
             cards = self.generator.generate_from_content(content, count, difficulty, depth_level)
         else:
@@ -775,11 +823,12 @@ class FlashcardAgent(BaseAgent):
             "count": len(cards),
             "topic": topic,
             "difficulty": difficulty,
-            "depth_level": depth_level
+            "depth_level": depth_level,
+            "used_rag_context": bool(rag_context)
         }
         
         state["execution_path"].append("flashcard:generate")
-        logger.info(f"Generated {len(cards)} flashcards on '{topic}'")
+        logger.info(f"Generated {len(cards)} flashcards on '{topic}' (RAG: {bool(rag_context)})")
         
         return state
     

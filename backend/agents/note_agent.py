@@ -730,7 +730,7 @@ class NoteAgent(BaseAgent):
         return state
     
     async def _load_context(self, state: NoteAgentState) -> NoteAgentState:
-        """Load context from memory and knowledge graph"""
+        """Load context from memory, knowledge graph, and RAG"""
         user_id = state.get("user_id")
         session_id = state.get("session_id", "default")
         topic = state.get("topic", "")
@@ -766,6 +766,43 @@ class NoteAgent(BaseAgent):
             except Exception as e:
                 logger.debug(f"KG lookup failed: {e}")
                 state["key_concepts"] = []
+        
+        # ==================== RAG RETRIEVAL ====================
+        # Retrieve relevant user content for note generation/improvement
+        if user_id and (topic or content):
+            try:
+                from .rag.user_rag_manager import get_user_rag_manager
+                user_rag = get_user_rag_manager()
+                
+                if user_rag:
+                    query = topic or content[:300]
+                    logger.info(f"🔍 Retrieving relevant content from user's RAG for note generation")
+                    
+                    rag_results = await user_rag.retrieve_for_user(
+                        user_id=str(user_id),
+                        query=query,
+                        top_k=8,
+                        content_types=["note", "flashcard", "chat"]
+                    )
+                    
+                    if rag_results:
+                        rag_context_parts = []
+                        for r in rag_results:
+                            content_text = r.get("content", "")[:350]
+                            content_type = r.get("metadata", {}).get("type", "content")
+                            rag_context_parts.append(f"[{content_type}] {content_text}")
+                        
+                        state["rag_context"] = "\n\n".join(rag_context_parts)
+                        state["rag_results_count"] = len(rag_results)
+                        logger.info(f"✅ RAG retrieved {len(rag_results)} relevant items for note generation")
+                    else:
+                        state["rag_context"] = ""
+                        state["rag_results_count"] = 0
+                        
+            except Exception as e:
+                logger.error(f"❌ RAG retrieval failed: {e}")
+                state["rag_context"] = ""
+                state["rag_results_count"] = 0
         
         state["execution_path"].append("note:context")
         return state

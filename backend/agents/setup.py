@@ -99,6 +99,7 @@ async def setup_agent_system(
     # Initialize Advanced RAG System
     try:
         from agents.rag.rag_api import initialize_rag_system
+        from agents.rag.user_rag_manager import initialize_user_rag_manager
         
         # Try to load embedding model for semantic search
         embedding_model = None
@@ -109,6 +110,7 @@ async def setup_agent_system(
         except Exception as e:
             logger.warning(f"Embedding model not loaded: {e}")
         
+        # Initialize global RAG system
         await initialize_rag_system(
             ai_client=ai_client,
             knowledge_graph=knowledge_graph,
@@ -116,6 +118,44 @@ async def setup_agent_system(
             embedding_model=embedding_model
         )
         logger.info("✅ Advanced RAG System initialized (hybrid search, re-ranking, GraphRAG, agentic)")
+        
+        # Initialize User-Specific RAG Manager
+        if vector_store and embedding_model:
+            # Get ChromaDB client from collection
+            chroma_client_for_user_rag = chroma_client if 'chroma_client' in locals() else None
+            
+            user_rag_manager = await initialize_user_rag_manager(
+                vector_store=chroma_client_for_user_rag,
+                embedding_model=embedding_model,
+                ai_client=ai_client,
+                knowledge_graph=knowledge_graph,
+                db_session_factory=db_session_factory
+            )
+            logger.info("✅ User-Specific RAG Manager initialized (per-user learning)")
+            
+            # Initialize Auto-Indexer for background content indexing
+            try:
+                from agents.rag.auto_indexer import initialize_auto_indexer
+                await initialize_auto_indexer(
+                    user_rag_manager=user_rag_manager,
+                    db_session_factory=db_session_factory,
+                    interval_minutes=30,  # Run every 30 minutes
+                    auto_start=True  # Start immediately
+                )
+                logger.info("✅ Auto-Indexer started (indexes user content every 30 minutes)")
+            except Exception as e:
+                logger.warning(f"Auto-Indexer initialization failed: {e}")
+            
+            # Initialize Content Hooks for real-time indexing
+            try:
+                from agents.rag.content_hooks import initialize_content_hooks
+                initialize_content_hooks(user_rag_manager=user_rag_manager)
+                logger.info("✅ Content Hooks initialized (real-time indexing on content creation)")
+            except Exception as e:
+                logger.warning(f"Content Hooks initialization failed: {e}")
+        else:
+            logger.warning("⚠️ User RAG Manager not initialized - missing vector store or embedding model")
+            
     except Exception as e:
         logger.warning(f"Advanced RAG initialization failed: {e}")
     
