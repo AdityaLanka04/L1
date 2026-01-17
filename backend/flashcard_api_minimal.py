@@ -198,6 +198,8 @@ async def review_card(payload: CardReview, db: Session = Depends(get_db)):
     """
     
     try:
+        user = get_user(db, payload.user_id)
+        
         # Update card in database
         card = db.query(models.Flashcard).filter(
             models.Flashcard.id == int(payload.card_id)
@@ -272,6 +274,45 @@ async def review_card(payload: CardReview, db: Session = Depends(get_db)):
         
     except Exception as e:
         logger.error(f"Review error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class StudySessionComplete(BaseModel):
+    user_id: str
+    set_id: int
+    cards_studied: int
+    correct_answers: int
+    session_duration: int  # in seconds
+
+
+@router.post("/complete-session")
+async def complete_study_session(payload: StudySessionComplete, db: Session = Depends(get_db)):
+    """Save completed study session for analytics"""
+    
+    try:
+        user = get_user(db, payload.user_id)
+        
+        # Create study session record
+        session = models.FlashcardStudySession(
+            set_id=payload.set_id,
+            user_id=user.id,
+            cards_studied=payload.cards_studied,
+            correct_answers=payload.correct_answers,
+            session_duration=payload.session_duration,
+            session_date=datetime.utcnow()
+        )
+        db.add(session)
+        db.commit()
+        
+        logger.info(f"Saved study session for user {user.id}: {payload.cards_studied} cards, {payload.correct_answers} correct")
+        
+        return {
+            "success": True,
+            "session_id": session.id
+        }
+        
+    except Exception as e:
+        logger.error(f"Error saving study session: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -3718,26 +3718,26 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
             
-            # Get user's answer history
-            sessions = db.query(models.StudySession).filter(
-                models.StudySession.user_id == user.id
-            ).order_by(models.StudySession.created_at.desc()).limit(20).all()
+            # Get user's answer history from solo quizzes
+            quizzes = db.query(models.SoloQuiz).filter(
+                models.SoloQuiz.user_id == user.id,
+                models.SoloQuiz.completed == True
+            ).order_by(models.SoloQuiz.completed_at.desc()).limit(20).all()
             
             performance_data = []
-            for session in sessions:
-                answers = db.query(models.UserAnswer).filter(
-                    models.UserAnswer.study_session_id == session.id
+            for quiz in quizzes:
+                questions = db.query(models.SoloQuizQuestion).filter(
+                    models.SoloQuizQuestion.quiz_id == quiz.id
                 ).all()
                 
-                for answer in answers:
-                    question = db.query(models.Question).filter(
-                        models.Question.id == answer.question_id
-                    ).first()
+                for question in questions:
+                    # Skip if no user answer recorded
+                    if question.user_answer is None:
+                        continue
                     
-                    if question:
-                        performance_data.append({
-                            "topic": question.topic,
-                            "difficulty": question.difficulty,
+                    performance_data.append({
+                        "topic": quiz.topic or "General",
+                        "difficulty": quiz.difficulty or "medium",
                             "question_type": question.question_type,
                             "is_correct": answer.is_correct,
                             "time_taken": answer.time_taken_seconds
@@ -3784,29 +3784,29 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             if not user:
                 raise HTTPException(status_code=404, detail="User not found")
             
-            # Get weakness analysis
-            sessions = db.query(models.StudySession).filter(
-                models.StudySession.user_id == user.id
-            ).order_by(models.StudySession.created_at.desc()).limit(20).all()
+            # Get weakness analysis from solo quizzes
+            quizzes = db.query(models.SoloQuiz).filter(
+                models.SoloQuiz.user_id == user.id,
+                models.SoloQuiz.completed == True
+            ).order_by(models.SoloQuiz.completed_at.desc()).limit(20).all()
             
             performance_data = []
-            for session in sessions:
-                answers = db.query(models.UserAnswer).filter(
-                    models.UserAnswer.study_session_id == session.id
+            for quiz in quizzes:
+                questions = db.query(models.SoloQuizQuestion).filter(
+                    models.SoloQuizQuestion.quiz_id == quiz.id
                 ).all()
                 
-                for answer in answers:
-                    question = db.query(models.Question).filter(
-                        models.Question.id == answer.question_id
-                    ).first()
+                for question in questions:
+                    # Skip if no user answer recorded
+                    if question.user_answer is None:
+                        continue
                     
-                    if question:
-                        performance_data.append({
-                            "topic": question.topic,
-                            "difficulty": question.difficulty,
-                            "question_type": question.question_type,
-                            "is_correct": answer.is_correct
-                        })
+                    performance_data.append({
+                        'topic': quiz.topic or 'General',
+                        'difficulty': quiz.difficulty or 'medium',
+                        'correct': question.is_correct,
+                        'question_text': question.question_text
+                    })
             
             weakness_analysis = await agents["adaptive_generator"].analyze_weaknesses(performance_data) if performance_data else {}
             

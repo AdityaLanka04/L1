@@ -16,6 +16,7 @@ const Analytics = () => {
   const userName = localStorage.getItem('username');
   
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
   const [timeRange, setTimeRange] = useState('week');
   const [chartType, setChartType] = useState('bar');
   const [selectedMetrics, setSelectedMetrics] = useState(['points', 'ai_chats', 'notes', 'flashcards', 'quizzes']);
@@ -26,6 +27,11 @@ const Analytics = () => {
   const [gamificationStats, setGamificationStats] = useState({});
   const [historicalData, setHistoricalData] = useState([]);
   const [periodStats, setPeriodStats] = useState({ totalPoints: 0, totalActivities: 0 });
+  
+  // Weak areas state
+  const [weakAreasData, setWeakAreasData] = useState(null);
+  const [weakAreasLoading, setWeakAreasLoading] = useState(false);
+  const [weakAreasFilter, setWeakAreasFilter] = useState('all'); // 'all', 'critical', 'needs_practice', 'improving'
 
   const tokens = selectedTheme?.tokens || {};
   const accent = tokens['--accent'] || '#D7B38C';
@@ -60,6 +66,35 @@ const Analytics = () => {
       setLoading(false);
     }
   };
+
+  const loadWeakAreas = async () => {
+    setWeakAreasLoading(true);
+    try {
+      console.log('Loading weak areas for user:', userName);
+      const response = await fetch(`${API_URL}/study_insights/strengths_weaknesses?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      console.log('Weak areas response status:', response.status);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Weak areas data:', data);
+        setWeakAreasData(data);
+      } else {
+        const errorText = await response.text();
+        console.error('Weak areas error response:', errorText);
+      }
+    } catch (error) {
+      console.error('Error loading weak areas:', error);
+    } finally {
+      setWeakAreasLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'weak-areas' && !weakAreasData) {
+      loadWeakAreas();
+    }
+  }, [activeTab]);
 
   const loadWeeklyProgress = async () => {
     try {
@@ -197,6 +232,27 @@ const Analytics = () => {
       </header>
 
       <div className="analytics-container">
+        {/* Tab Navigation */}
+        <div className="analytics-tabs">
+          <button 
+            className={`analytics-tab ${activeTab === 'overview' ? 'active' : ''}`}
+            onClick={() => setActiveTab('overview')}
+          >
+            <Activity size={16} />
+            OVERVIEW
+          </button>
+          <button 
+            className={`analytics-tab ${activeTab === 'weak-areas' ? 'active' : ''}`}
+            onClick={() => setActiveTab('weak-areas')}
+          >
+            <Target size={16} />
+            WEAK AREAS
+          </button>
+        </div>
+
+        {/* Overview Tab Content */}
+        {activeTab === 'overview' && (
+          <>
         {/* Summary Cards */}
         <div className="analytics-summary-cards">
           <div className="analytics-card analytics-card-accent">
@@ -511,6 +567,207 @@ const Analytics = () => {
             <div className="analytics-point-item"><span>Study 1 Hour</span><span>+50</span></div>
           </div>
         </div>
+        </>
+        )}
+
+        {/* Weak Areas Tab Content */}
+        {activeTab === 'weak-areas' && (
+          <div className="weak-areas-content">
+            {weakAreasLoading ? (
+              <div className="weak-areas-loading">
+                <div className="loading-spinner"></div>
+                <p>Analyzing your performance...</p>
+              </div>
+            ) : weakAreasData ? (
+              <>
+                {/* Summary Stats */}
+                <div className="weak-areas-summary">
+                  <div 
+                    className={`weak-summary-card critical ${weakAreasFilter === 'critical' ? 'active' : ''}`}
+                    onClick={() => setWeakAreasFilter(weakAreasFilter === 'critical' ? 'all' : 'critical')}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <span className="weak-summary-value">{weakAreasData.summary?.critical_count || 0}</span>
+                    <span className="weak-summary-label">CRITICAL</span>
+                  </div>
+                  <div 
+                    className={`weak-summary-card needs-practice ${weakAreasFilter === 'needs_practice' ? 'active' : ''}`}
+                    onClick={() => setWeakAreasFilter(weakAreasFilter === 'needs_practice' ? 'all' : 'needs_practice')}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <span className="weak-summary-value">{weakAreasData.summary?.needs_practice_count || 0}</span>
+                    <span className="weak-summary-label">NEEDS PRACTICE</span>
+                  </div>
+                  <div 
+                    className={`weak-summary-card improving ${weakAreasFilter === 'improving' ? 'active' : ''}`}
+                    onClick={() => setWeakAreasFilter(weakAreasFilter === 'improving' ? 'all' : 'improving')}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <span className="weak-summary-value">{weakAreasData.summary?.improving_count || 0}</span>
+                    <span className="weak-summary-label">IMPROVING</span>
+                  </div>
+                  <div 
+                    className={`weak-summary-card strong ${weakAreasFilter === 'all' ? 'active' : ''}`}
+                    onClick={() => setWeakAreasFilter('all')}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <span className="weak-summary-value">{weakAreasData.summary?.strong_count || 0}</span>
+                    <span className="weak-summary-label">ALL</span>
+                  </div>
+                </div>
+
+                {/* Critical Areas */}
+                {(weakAreasFilter === 'all' || weakAreasFilter === 'critical') && weakAreasData.weak_areas?.critical?.length > 0 && (
+                  <div className="weak-areas-section">
+                    <h2 className="weak-section-title">CRITICAL AREAS</h2>
+                    <div className="weak-areas-grid">
+                      {weakAreasData.weak_areas.critical.map((area, idx) => (
+                        <div key={idx} className="weak-area-card critical">
+                          <div className="weak-card-header">
+                            <h3 className="weak-card-topic">{area.topic}</h3>
+                            <span className="weak-card-severity">{area.severity_score}</span>
+                          </div>
+                          <div className="weak-card-accuracy">
+                            <span className="weak-accuracy-label">ACCURACY</span>
+                            <span className="weak-accuracy-value">{area.accuracy}%</span>
+                          </div>
+                          <div className="weak-card-sources">
+                            {area.sources?.includes('quiz') && <span className="weak-source-badge quiz">QUIZ</span>}
+                            {area.sources?.includes('flashcard') && <span className="weak-source-badge flashcard">FLASHCARD</span>}
+                            {area.sources?.includes('chat') && <span className="weak-source-badge chat">CHAT</span>}
+                          </div>
+                          <div className="weak-card-stats">
+                            <div className="weak-stat">
+                              <span className="weak-stat-label">Total</span>
+                              <span className="weak-stat-value">{area.total_attempts}</span>
+                            </div>
+                            <div className="weak-stat">
+                              <span className="weak-stat-label">Wrong</span>
+                              <span className="weak-stat-value">{area.total_wrong}</span>
+                            </div>
+                          </div>
+                          <button 
+                            className="weak-practice-btn"
+                            onClick={() => navigate('/ai-chat', { state: { initialMessage: `Help me practice ${area.topic}` }})}
+                          >
+                            PRACTICE NOW
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Needs Practice */}
+                {(weakAreasFilter === 'all' || weakAreasFilter === 'needs_practice') && weakAreasData.weak_areas?.needs_practice?.length > 0 && (
+                  <div className="weak-areas-section">
+                    <h2 className="weak-section-title">NEEDS PRACTICE</h2>
+                    <div className="weak-areas-grid">
+                      {weakAreasData.weak_areas.needs_practice.map((area, idx) => (
+                        <div key={idx} className="weak-area-card needs-practice">
+                          <div className="weak-card-header">
+                            <h3 className="weak-card-topic">{area.topic}</h3>
+                            <span className="weak-card-severity">{area.severity_score}</span>
+                          </div>
+                          <div className="weak-card-accuracy">
+                            <span className="weak-accuracy-label">ACCURACY</span>
+                            <span className="weak-accuracy-value">{area.accuracy}%</span>
+                          </div>
+                          <div className="weak-card-sources">
+                            {area.sources?.includes('quiz') && <span className="weak-source-badge quiz">QUIZ</span>}
+                            {area.sources?.includes('flashcard') && <span className="weak-source-badge flashcard">FLASHCARD</span>}
+                            {area.sources?.includes('chat') && <span className="weak-source-badge chat">CHAT</span>}
+                          </div>
+                          <div className="weak-card-stats">
+                            <div className="weak-stat">
+                              <span className="weak-stat-label">Total</span>
+                              <span className="weak-stat-value">{area.total_attempts}</span>
+                            </div>
+                            <div className="weak-stat">
+                              <span className="weak-stat-label">Wrong</span>
+                              <span className="weak-stat-value">{area.total_wrong}</span>
+                            </div>
+                          </div>
+                          <button 
+                            className="weak-practice-btn"
+                            onClick={() => navigate('/ai-chat', { state: { initialMessage: `Help me practice ${area.topic}` }})}
+                          >
+                            PRACTICE NOW
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Improving */}
+                {(weakAreasFilter === 'all' || weakAreasFilter === 'improving') && weakAreasData.weak_areas?.improving?.length > 0 && (
+                  <div className="weak-areas-section">
+                    <h2 className="weak-section-title">IMPROVING</h2>
+                    <div className="weak-areas-grid">
+                      {weakAreasData.weak_areas.improving.map((area, idx) => (
+                        <div key={idx} className="weak-area-card improving">
+                          <div className="weak-card-header">
+                            <h3 className="weak-card-topic">{area.topic}</h3>
+                            <span className="weak-card-severity">{area.severity_score}</span>
+                          </div>
+                          <div className="weak-card-accuracy">
+                            <span className="weak-accuracy-label">ACCURACY</span>
+                            <span className="weak-accuracy-value">{area.accuracy}%</span>
+                          </div>
+                          <div className="weak-card-sources">
+                            {area.sources?.includes('quiz') && <span className="weak-source-badge quiz">QUIZ</span>}
+                            {area.sources?.includes('flashcard') && <span className="weak-source-badge flashcard">FLASHCARD</span>}
+                            {area.sources?.includes('chat') && <span className="weak-source-badge chat">CHAT</span>}
+                          </div>
+                          <div className="weak-card-stats">
+                            <div className="weak-stat">
+                              <span className="weak-stat-label">Total</span>
+                              <span className="weak-stat-value">{area.total_attempts}</span>
+                            </div>
+                            <div className="weak-stat">
+                              <span className="weak-stat-label">Wrong</span>
+                              <span className="weak-stat-value">{area.total_wrong}</span>
+                            </div>
+                          </div>
+                          <button 
+                            className="weak-practice-btn"
+                            onClick={() => navigate('/ai-chat', { state: { initialMessage: `Help me practice ${area.topic}` }})}
+                          >
+                            PRACTICE NOW
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Empty State */}
+                {weakAreasFilter === 'all' && !weakAreasData.weak_areas?.critical?.length && 
+                 !weakAreasData.weak_areas?.needs_practice?.length && 
+                 !weakAreasData.weak_areas?.improving?.length && (
+                  <div className="weak-areas-empty">
+                    <Trophy size={64} />
+                    <h3>No Weak Areas Detected!</h3>
+                    <p>You're doing great! Keep up the excellent work.</p>
+                    <button className="weak-empty-btn" onClick={() => navigate('/ai-chat')}>
+                      START LEARNING
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="weak-areas-empty">
+                <Target size={64} />
+                <h3>No Data Available</h3>
+                <p>Start learning to see your weak areas analysis.</p>
+                <button className="weak-empty-btn" onClick={() => navigate('/ai-chat')}>
+                  START LEARNING
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

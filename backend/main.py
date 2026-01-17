@@ -13042,90 +13042,22 @@ async def get_strengths_weaknesses(
     user_id: str = Query(...),
     db: Session = Depends(get_db)
 ):
-    """Get user's strengths and weaknesses based on all learning data"""
+    """Get user's comprehensive strengths and weaknesses from ALL learning sources"""
     try:
+        from comprehensive_weakness_analyzer import get_comprehensive_weakness_analysis
+        
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # Get topic mastery data
-        mastery_data = db.query(models.TopicMastery).filter(
-            models.TopicMastery.user_id == user.id
-        ).all()
+        # Use the comprehensive analyzer
+        result = get_comprehensive_weakness_analysis(db, user.id, models)
+        return result
         
-        strengths = []
-        weaknesses = []
-        
-        for m in mastery_data:
-            topic_info = {
-                "topic": m.topic_name,
-                "mastery_level": round(m.mastery_level * 100, 1),
-                "times_studied": m.times_studied,
-                "last_studied": m.last_studied.isoformat() if m.last_studied else None
-            }
-            
-            if m.mastery_level >= 0.7:
-                strengths.append(topic_info)
-            elif m.mastery_level < 0.5:
-                weaknesses.append(topic_info)
-        
-        # Sort by mastery level
-        strengths.sort(key=lambda x: x["mastery_level"], reverse=True)
-        weaknesses.sort(key=lambda x: x["mastery_level"])
-        
-        # Get quiz performance data
-        quiz_performance = db.query(models.UserPerformanceMetrics).filter(
-            models.UserPerformanceMetrics.user_id == user.id
-        ).all()
-        
-        quiz_weak_topics = []
-        quiz_strong_topics = []
-        
-        for p in quiz_performance:
-            if p.accuracy_rate < 60:
-                quiz_weak_topics.append({
-                    "topic": p.topic_name,
-                    "accuracy": round(p.accuracy_rate, 1),
-                    "questions_attempted": p.total_questions
-                })
-            elif p.accuracy_rate >= 80:
-                quiz_strong_topics.append({
-                    "topic": p.topic_name,
-                    "accuracy": round(p.accuracy_rate, 1),
-                    "questions_attempted": p.total_questions
-                })
-        
-        # Get flashcard weak cards
-        weak_flashcards = db.query(models.Flashcard).join(
-            models.FlashcardSet
-        ).filter(
-            models.FlashcardSet.user_id == user.id,
-            models.Flashcard.marked_for_review == True
-        ).all()
-        
-        flashcard_weaknesses = []
-        for card in weak_flashcards[:10]:
-            flashcard_weaknesses.append({
-                "question": card.question[:100],
-                "set_id": card.set_id,
-                "times_reviewed": card.times_reviewed,
-                "correct_rate": round((card.correct_count / max(card.times_reviewed, 1)) * 100, 1)
-            })
-        
-        return {
-            "status": "success",
-            "strengths": {
-                "topics": strengths[:10],
-                "quiz_topics": quiz_strong_topics[:5]
-            },
-            "weaknesses": {
-                "topics": weaknesses[:10],
-                "quiz_topics": quiz_weak_topics[:5],
-                "flashcards": flashcard_weaknesses
-            }
-        }
     except Exception as e:
-        logger.error(f"Error getting strengths/weaknesses: {str(e)}")
+        logger.error(f"Error getting comprehensive strengths/weaknesses: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
