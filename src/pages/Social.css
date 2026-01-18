@@ -298,7 +298,8 @@
   font-size: 18px;
   font-weight: 700;
   color: var(--sh-text-primary);
-  letter-spacing: -0.3px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
   transition: var(--sh-transition);
 }
 
@@ -358,6 +359,7 @@
   font-weight: 900;
   color: var(--sh-bg-primary) !important;
   letter-spacing: -2px;
+  text-transform: none;
   text-shadow: 0 4px 20px rgba(0,0,0,0.2);
 }
 

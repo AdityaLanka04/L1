@@ -295,10 +295,11 @@ const PlaylistCard = ({ playlist, onClick }) => {
         <h3 className="card-title">{playlist.title}</h3>
         <p className="card-description">{playlist.description}</p>
         
+        {playlist.category && (
         <div className="card-tags">
           <span className="tag category-tag">{playlist.category}</span>
-          <span className="tag difficulty-tag">{playlist.difficulty_level}</span>
         </div>
+        )}
 
         <div className="card-stats">
           <div className="stat">

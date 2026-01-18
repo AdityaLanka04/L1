@@ -2258,7 +2258,10 @@ const Flashcards = () => {
                                   autoFocus
                                 />
                               ) : (
-                                <h2 className="fc-thumbnail-title">{set.title.replace(/^(AI Generated:\s*|Flashcards:\s*)/i, '')}</h2>
+                                <>
+                                  <h2 className="fc-thumbnail-title">{set.title.replace(/^(AI Generated:\s*|Flashcards:\s*)/i, '')}</h2>
+                                  <div className="fc-thumbnail-card-count">{set.card_count} CARDS</div>
+                                </>
                               )}
                             </div>
                             <button 
@@ -2285,10 +2288,6 @@ const Flashcards = () => {
                           {/* Content Section */}
                           <div className="fc-set-content-new">
                             <div className="fc-set-meta-new">
-                              <div className="fc-meta-item-new">
-                                <span className="fc-meta-label">Cards:</span>
-                                <span className="fc-meta-value">{set.card_count}</span>
-                              </div>
                             </div>
                             
                             <div className="fc-mastery-section">
