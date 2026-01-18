@@ -106,6 +106,14 @@ const PlaylistsPage = () => {
           <p className="hub-header-subtitle">LEARNING PLAYLISTS</p>
         </div>
         <div className="hub-header-right">
+          <button 
+            className="hub-nav-btn create-playlist-btn" 
+            onClick={() => setShowCreateModal(true)}
+            title="Create new playlist"
+          >
+            <Plus size={16} />
+            <span>Create Playlist</span>
+          </button>
           <button className="hub-nav-btn hub-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
             <span>Dashboard</span>
             <ChevronRight size={14} />
@@ -201,50 +209,25 @@ const PlaylistsPage = () => {
 
         {/* Main Content */}
         <main className="playlists-main">
-          <div className="content-header">
-            <div className="view-info">
-              <h2 className="view-title">
-                {view === 'discover' && 'Discover Playlists'}
-                {view === 'following' && 'Following'}
-                {view === 'my-playlists' && 'My Playlists'}
-              </h2>
-              <p className="view-subtitle">
-                {view === 'discover' && 'Explore curated learning paths from the community'}
-                {view === 'following' && 'Playlists you\'re following'}
-                {view === 'my-playlists' && 'Your created playlists'}
-              </p>
-            </div>
-            <button 
-              className="convert-btn"
-              onClick={() => setShowImportExport(true)}
-              title="Convert playlists"
-            >
-              <Zap size={18} />
-              <span>Convert</span>
-            </button>
-          </div>
-
           <div className="content-body">
             {loading ? (
               <div className="loading-container">
-                <div className="loading-spinner"></div>
-                <p>Loading playlists...</p>
+                <div className="fc-spinner">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+                <p>LOADING PLAYLISTS...</p>
               </div>
             ) : playlists.length === 0 ? (
               <div className="empty-container">
                 <BookOpen size={56} />
-                <h3>No playlists found</h3>
+                <h3>NO PLAYLISTS FOUND</h3>
                 <p>
                   {view === 'my-playlists' 
-                    ? 'Create your first playlist to get started'
-                    : 'Try adjusting your filters or search'}
+                    ? 'CREATE YOUR FIRST PLAYLIST TO GET STARTED'
+                    : 'TRY ADJUSTING YOUR FILTERS OR SEARCH'}
                 </p>
-                {view === 'my-playlists' && (
-                  <button className="empty-action-btn" onClick={() => setShowCreateModal(true)}>
-                    <Plus size={18} />
-                    Create Playlist
-                  </button>
-                )}
               </div>
             ) : (
               <div className="playlists-grid">
@@ -364,12 +347,16 @@ const CreatePlaylistModal = ({ onClose, onCreate, categories, difficulties, cove
     estimated_hours: '',
     is_public: true,
     is_collaborative: false,
-    cover_color: coverColors[0],
+    cover_color: '#D7B38C',
     tags: [],
     items: []
   });
 
   const [tagInput, setTagInput] = useState('');
+  const [isPickingColor, setIsPickingColor] = useState(false);
+  const [hue, setHue] = useState(30);
+  const [saturation, setSaturation] = useState(50);
+  const [brightness, setBrightness] = useState(70);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -393,11 +380,47 @@ const CreatePlaylistModal = ({ onClose, onCreate, categories, difficulties, cove
     }));
   };
 
+  // Convert HSL to Hex
+  const hslToHex = (h, s, l) => {
+    l /= 100;
+    const a = s * Math.min(l, 1 - l) / 100;
+    const f = n => {
+      const k = (n + h / 30) % 12;
+      const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+      return Math.round(255 * color).toString(16).padStart(2, '0');
+    };
+    return `#${f(0)}${f(8)}${f(4)}`;
+  };
+
+  // Update color when sliders change
+  const updateColor = (newHue, newSat, newBright) => {
+    const hexColor = hslToHex(newHue, newSat, newBright);
+    setFormData(prev => ({ ...prev, cover_color: hexColor }));
+  };
+
+  const handleHueChange = (e) => {
+    const newHue = parseInt(e.target.value);
+    setHue(newHue);
+    updateColor(newHue, saturation, brightness);
+  };
+
+  const handleSaturationChange = (e) => {
+    const newSat = parseInt(e.target.value);
+    setSaturation(newSat);
+    updateColor(hue, newSat, brightness);
+  };
+
+  const handleBrightnessChange = (e) => {
+    const newBright = parseInt(e.target.value);
+    setBrightness(newBright);
+    updateColor(hue, saturation, newBright);
+  };
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Create New Playlist</h2>
+          <h2>Create Playlist</h2>
           <button className="close-btn" onClick={onClose}>×</button>
         </div>
 
@@ -423,47 +446,90 @@ const CreatePlaylistModal = ({ onClose, onCreate, categories, difficulties, cove
             />
           </div>
 
-          <div className="form-row">
-            <div className="form-field">
-              <label>Category</label>
-              <select
-                value={formData.category}
-                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-              >
-                <option value="">Select category</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-field">
-              <label>Difficulty</label>
-              <select
-                value={formData.difficulty_level}
-                onChange={(e) => setFormData(prev => ({ ...prev, difficulty_level: e.target.value }))}
-              >
-                {difficulties.map(diff => (
-                  <option key={diff} value={diff}>
-                    {diff.charAt(0).toUpperCase() + diff.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="form-field">
+            <label>Category</label>
+            <select
+              value={formData.category}
+              onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+            >
+              <option value="">Select category</option>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
           </div>
 
           <div className="form-field">
             <label>Cover Color</label>
-            <div className="color-grid">
-              {coverColors.map(color => (
-                <button
-                  key={color}
-                  type="button"
-                  className={`color-option ${formData.cover_color === color ? 'selected' : ''}`}
-                  style={{ backgroundColor: color }}
-                  onClick={() => setFormData(prev => ({ ...prev, cover_color: color }))}
-                />
-              ))}
+            <div className="color-picker-container">
+              <div 
+                className="color-preview" 
+                style={{ backgroundColor: formData.cover_color }}
+                onClick={() => setIsPickingColor(!isPickingColor)}
+              >
+                <span className="color-hex">{formData.cover_color}</span>
+              </div>
+              {isPickingColor && (
+                <div className="gradient-picker-sliders">
+                  <div className="slider-group">
+                    <label className="slider-label">HUE</label>
+                    <div className="slider-container hue-slider">
+                      <input
+                        type="range"
+                        min="0"
+                        max="360"
+                        value={hue}
+                        onChange={handleHueChange}
+                        className="color-slider"
+                      />
+                      <div className="slider-track hue-track"></div>
+                    </div>
+                  </div>
+                  <div className="slider-group">
+                    <label className="slider-label">SATURATION</label>
+                    <div className="slider-container sat-slider">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={saturation}
+                        onChange={handleSaturationChange}
+                        className="color-slider"
+                      />
+                      <div 
+                        className="slider-track sat-track"
+                        style={{ 
+                          background: `linear-gradient(to right, 
+                            hsl(${hue}, 0%, ${brightness}%), 
+                            hsl(${hue}, 100%, ${brightness}%))`
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="slider-group">
+                    <label className="slider-label">BRIGHTNESS</label>
+                    <div className="slider-container bright-slider">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={brightness}
+                        onChange={handleBrightnessChange}
+                        className="color-slider"
+                      />
+                      <div 
+                        className="slider-track bright-track"
+                        style={{ 
+                          background: `linear-gradient(to right, 
+                            hsl(${hue}, ${saturation}%, 0%), 
+                            hsl(${hue}, ${saturation}%, 50%), 
+                            hsl(${hue}, ${saturation}%, 100%))`
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

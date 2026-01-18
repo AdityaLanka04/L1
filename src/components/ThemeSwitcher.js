@@ -268,6 +268,34 @@ const ThemeSwitcher = () => {
     return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.3;
   };
 
+  // Helper to convert hex to rgba with opacity
+  const hexToRgba = (hex, opacity) => {
+    if (!hex) return `rgba(0, 0, 0, ${opacity})`;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  };
+
+  // Helper to lighten a color by a percentage
+  const lightenColor = (hex, percent) => {
+    if (!hex) return '#000000';
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    
+    const newR = Math.min(255, Math.round(r + (255 - r) * (percent / 100)));
+    const newG = Math.min(255, Math.round(g + (255 - g) * (percent / 100)));
+    const newB = Math.min(255, Math.round(b + (255 - b) * (percent / 100)));
+    
+    return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+  };
+
+  // Get background color for preview (lightened primary for dark themes)
+  const getPreviewBgColor = () => {
+    return isColorDark(primaryColor) ? lightenColor(primaryColor, 8) : primaryColor;
+  };
+
   // Determine text color for preview based on primary brightness
   const getPreviewTextColor = () => {
     return isColorDark(primaryColor) ? '#EAECEF' : '#1a1a1a';
@@ -399,8 +427,16 @@ const ThemeSwitcher = () => {
                   <span className="ts-label">LIVE PREVIEW</span>
                   <div 
                     className="ts-preview-card"
-                    style={{ background: primaryColor }}
+                    style={{ 
+                      background: getPreviewBgColor()
+                    }}
                   >
+                    <div 
+                      className="ts-preview-glow" 
+                      style={{ 
+                        background: `radial-gradient(ellipse at 50% 0%, ${hexToRgba(accentColor, 0.15)} 0%, transparent 70%)` 
+                      }}
+                    ></div>
                     <div className="ts-preview-header" style={{ borderColor: accentColor }}>
                       <div className="ts-preview-dots">
                         <span style={{ background: accentColor }}></span>
