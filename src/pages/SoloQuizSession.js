@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Target, Trophy, CheckCircle, XCircle, Loader, Lightbulb, RefreshCw, AlertCircle } from 'lucide-react';
+import { Clock, Target, Trophy, CheckCircle, XCircle, Loader, Lightbulb, RefreshCw, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import './QuizBattleSession.css';
 import quizAgentService from '../services/quizAgentService';
 
@@ -15,12 +15,17 @@ const SoloQuizSession = () => {
   const [userAnswers, setUserAnswers] = useState({});
   const [score, setScore] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(0);
+  const [timeElapsed, setTimeElapsed] = useState(0);
   const [loading, setLoading] = useState(true);
   const [grading, setGrading] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [results, setResults] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [startTime, setStartTime] = useState(null);
+  const [quizMode, setQuizMode] = useState('standard');
+  const [timingMode, setTimingMode] = useState('timed');
+  const [showInstantFeedback, setShowInstantFeedback] = useState(false);
+  const [instantFeedbackCorrect, setInstantFeedbackCorrect] = useState(false);
 
   // Load quiz from sessionStorage
   useEffect(() => {
@@ -29,7 +34,16 @@ const SoloQuizSession = () => {
       const data = JSON.parse(storedData);
       setQuizData(data);
       setQuestions(data.questions || []);
-      setTimeRemaining((data.questions?.length || 10) * 60); // 1 min per question
+      setQuizMode(data.quizMode || 'standard');
+      setTimingMode(data.timingMode || 'timed');
+      
+      // Set up timer based on timing mode
+      if (data.timingMode === 'timed') {
+        setTimeRemaining((data.questions?.length || 10) * 60); // 1 min per question
+      } else if (data.timingMode === 'stopwatch') {
+        setTimeElapsed(0);
+      }
+      
       setStartTime(Date.now());
       setLoading(false);
     } else {
@@ -39,56 +53,197 @@ const SoloQuizSession = () => {
 
   // Timer
   useEffect(() => {
-    if (timeRemaining > 0 && !showResult && !loading) {
+    if (showResult || loading) return;
+    
+    if (timingMode === 'timed' && timeRemaining > 0) {
       const timer = setTimeout(() => {
         setTimeRemaining(prev => prev - 1);
       }, 1000);
       return () => clearTimeout(timer);
-    } else if (timeRemaining === 0 && questions.length > 0 && !showResult) {
+    } else if (timingMode === 'timed' && timeRemaining === 0 && questions.length > 0) {
       handleSubmitQuiz();
+    } else if (timingMode === 'stopwatch') {
+      const timer = setTimeout(() => {
+        setTimeElapsed(prev => prev + 1);
+      }, 1000);
+      return () => clearTimeout(timer);
     }
-  }, [timeRemaining, showResult, loading, questions.length]);
+  }, [timeRemaining, timeElapsed, showResult, loading, questions.length, timingMode]);
 
   const handleAnswerSelect = (answerIndex) => {
-    if (selectedAnswer !== null) return;
+    // For instant feedback mode, show feedback immediately
+    if (quizMode === 'sequential-instant') {
+      const currentQuestion = questions[currentQuestionIndex];
+      const questionId = String(currentQuestion.id ?? currentQuestionIndex);
+      
+      // Determine answer value
+      let answerValue;
+      if (currentQuestion.question_type === 'multiple_choice') {
+        answerValue = String.fromCharCode(65 + answerIndex);
+      } else if (currentQuestion.question_type === 'true_false') {
+        answerValue = answerIndex === 0 ? 'true' : 'false';
+      } else {
+        answerValue = String(answerIndex);
+      }
+      
+      // Check if correct
+      const correctAnswer = String(currentQuestion.correct_answer || '').toLowerCase();
+      const isCorrect = answerValue.toLowerCase() === correctAnswer || 
+                        answerValue.toLowerCase() === correctAnswer.charAt(0);
+      
+      setSelectedAnswer(answerIndex);
+      setShowInstantFeedback(true);
+      setInstantFeedbackCorrect(isCorrect);
+      
+      // Store answer
+      setUserAnswers(prev => ({
+        ...prev,
+        [questionId]: answerValue
+      }));
+      
+      if (isCorrect) {
+        setScore(prev => prev + 1);
+      }
+      
+      // Auto-advance after 1.5 seconds
+      setTimeout(() => {
+        setShowInstantFeedback(false);
+        if (currentQuestionIndex < questions.length - 1) {
+          setCurrentQuestionIndex(prev => prev + 1);
+          setSelectedAnswer(null);
+        } else {
+          handleSubmitQuiz();
+        }
+      }, 1500);
+    } else {
+      // For other modes, just highlight the selection
+      setSelectedAnswer(answerIndex);
+    }
+  };
+
+  const handleNext = () => {
+    // In standard mode, allow navigation without answer
+    if (quizMode === 'standard') {
+      // Store answer if one was selected (but don't calculate score)
+      if (selectedAnswer !== null) {
+        const currentQuestion = questions[currentQuestionIndex];
+        const questionId = String(currentQuestion.id ?? currentQuestionIndex);
+        
+        let answerValue;
+        if (currentQuestion.question_type === 'multiple_choice') {
+          answerValue = String.fromCharCode(65 + selectedAnswer);
+        } else if (currentQuestion.question_type === 'true_false') {
+          answerValue = selectedAnswer === 0 ? 'true' : 'false';
+        } else {
+          answerValue = String(selectedAnswer);
+        }
+        
+        setUserAnswers(prev => ({
+          ...prev,
+          [questionId]: answerValue
+        }));
+        
+        // Don't calculate score in standard mode - wait until submission
+      }
+      
+      // Move to next question
+      if (currentQuestionIndex < questions.length - 1) {
+        setCurrentQuestionIndex(prev => prev + 1);
+        setSelectedAnswer(null);
+      }
+      return;
+    }
+    
+    // For sequential modes, require answer
+    if (selectedAnswer === null) return;
     
     const currentQuestion = questions[currentQuestionIndex];
     const questionId = String(currentQuestion.id ?? currentQuestionIndex);
     
-    // Store answer based on question type
-    let answerValue;
-    if (currentQuestion.question_type === 'multiple_choice') {
-      answerValue = String.fromCharCode(65 + answerIndex); // A, B, C, D
-    } else if (currentQuestion.question_type === 'true_false') {
-      answerValue = answerIndex === 0 ? 'true' : 'false';
-    } else {
-      answerValue = String(answerIndex);
-    }
-    
-    setSelectedAnswer(answerIndex);
-    setUserAnswers(prev => ({
-      ...prev,
-      [questionId]: answerValue
-    }));
-
-    // Check if correct for immediate feedback
-    const correctAnswer = String(currentQuestion.correct_answer || '').toLowerCase();
-    const isCorrect = answerValue.toLowerCase() === correctAnswer || 
-                      answerValue.toLowerCase() === correctAnswer.charAt(0);
-    
-    if (isCorrect) {
-      setScore(prev => prev + 1);
-    }
-
-    // Auto-advance after delay
-    setTimeout(() => {
-      if (currentQuestionIndex < questions.length - 1) {
-        setCurrentQuestionIndex(prev => prev + 1);
-        setSelectedAnswer(null);
+    // For sequential and standard modes (not instant feedback)
+    if (quizMode !== 'sequential-instant') {
+      // Store answer based on question type
+      let answerValue;
+      if (currentQuestion.question_type === 'multiple_choice') {
+        answerValue = String.fromCharCode(65 + selectedAnswer);
+      } else if (currentQuestion.question_type === 'true_false') {
+        answerValue = selectedAnswer === 0 ? 'true' : 'false';
       } else {
-        handleSubmitQuiz();
+        answerValue = String(selectedAnswer);
       }
-    }, 1500);
+      
+      setUserAnswers(prev => ({
+        ...prev,
+        [questionId]: answerValue
+      }));
+
+      // Check if correct
+      const correctAnswer = String(currentQuestion.correct_answer || '').toLowerCase();
+      const isCorrect = answerValue.toLowerCase() === correctAnswer || 
+                        answerValue.toLowerCase() === correctAnswer.charAt(0);
+      
+      if (isCorrect) {
+        setScore(prev => prev + 1);
+      }
+    }
+
+    // Move to next question or submit
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
+      setSelectedAnswer(null);
+    } else {
+      handleSubmitQuiz();
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(prev => prev - 1);
+      // In standard mode, restore previous answer if exists
+      if (quizMode === 'standard') {
+        const prevQuestion = questions[currentQuestionIndex - 1];
+        const prevQuestionId = String(prevQuestion?.id ?? (currentQuestionIndex - 1));
+        if (userAnswers[prevQuestionId]) {
+          const prevAnswer = userAnswers[prevQuestionId];
+          // Convert answer back to index
+          if (prevQuestion.question_type === 'multiple_choice') {
+            setSelectedAnswer(prevAnswer.charCodeAt(0) - 65);
+          } else if (prevQuestion.question_type === 'true_false') {
+            setSelectedAnswer(prevAnswer === 'true' ? 0 : 1);
+          }
+        } else {
+          setSelectedAnswer(null);
+        }
+      } else {
+        setSelectedAnswer(null);
+      }
+    }
+  };
+
+  const handleQuestionJump = (index) => {
+    if (quizMode === 'standard') {
+      setCurrentQuestionIndex(index);
+      // Restore answer if exists
+      const question = questions[index];
+      const questionId = String(question?.id ?? index);
+      if (userAnswers[questionId]) {
+        const answer = userAnswers[questionId];
+        if (question.question_type === 'multiple_choice') {
+          setSelectedAnswer(answer.charCodeAt(0) - 65);
+        } else if (question.question_type === 'true_false') {
+          setSelectedAnswer(answer === 'true' ? 0 : 1);
+        }
+      } else {
+        setSelectedAnswer(null);
+      }
+    }
+  };
+
+  const handleSubmitFromStandard = () => {
+    // For standard mode, allow submission anytime
+    if (quizMode === 'standard') {
+      handleSubmitQuiz();
+    }
   };
 
   const handleSubmitQuiz = async () => {
@@ -313,27 +468,14 @@ const SoloQuizSession = () => {
     options = ['True', 'False'];
   }
 
+  // Check if current question has been answered
+  const currentQuestionId = String(currentQuestion?.id ?? currentQuestionIndex);
+  const hasAnswered = userAnswers.hasOwnProperty(currentQuestionId);
+
   return (
     <div className="battle-session-page">
       <div className="session-header">
-        <div className="session-info">
-          <div className="info-item">
-            <Target size={16} />
-            <span>{quizData?.topic || 'Quiz'}</span>
-          </div>
-          <div className="info-item">
-            <span className="question-counter">
-              Question {currentQuestionIndex + 1} of {questions.length}
-            </span>
-          </div>
-        </div>
-        
-        <div className="session-timer">
-          <Clock size={20} />
-          <span className={timeRemaining < 60 ? 'time-warning' : ''}>
-            {formatTime(timeRemaining)}
-          </span>
-        </div>
+        <h1 className="session-title">{quizData?.topic || 'QUIZ'}</h1>
       </div>
 
       <div className="progress-bar">
@@ -352,9 +494,6 @@ const SoloQuizSession = () => {
               </span>
             </div>
             <h2 className="question-text">{currentQuestion?.question_text}</h2>
-            {currentQuestion?.topic && (
-              <p className="question-topic">Topic: {currentQuestion.topic}</p>
-            )}
           </div>
 
           <div className="answers-grid">
@@ -362,34 +501,105 @@ const SoloQuizSession = () => {
               const isSelected = selectedAnswer === index;
               const optionText = typeof option === 'string' ? option.replace(/^[A-D]\)\s*/, '') : option;
               
-              // Show correct/incorrect after selection
-              let showCorrect = false;
-              let showIncorrect = false;
-              if (selectedAnswer !== null) {
-                const correctAnswer = String(currentQuestion?.correct_answer || '').toLowerCase();
-                const selectedLetter = String.fromCharCode(65 + index).toLowerCase();
-                showCorrect = selectedLetter === correctAnswer || correctAnswer.startsWith(selectedLetter);
-                showIncorrect = isSelected && !showCorrect;
+              // Show correct/incorrect in instant feedback mode
+              let feedbackClass = '';
+              if (quizMode === 'sequential-instant' && showInstantFeedback && isSelected) {
+                feedbackClass = instantFeedbackCorrect ? 'correct' : 'incorrect';
               }
 
               return (
                 <button
                   key={index}
-                  className={`answer-option ${isSelected ? 'selected' : ''} ${showCorrect ? 'correct' : ''} ${showIncorrect ? 'incorrect' : ''}`}
+                  className={`answer-option ${isSelected ? 'selected' : ''} ${feedbackClass}`}
                   onClick={() => handleAnswerSelect(index)}
-                  disabled={selectedAnswer !== null}
+                  disabled={quizMode === 'sequential-instant' && showInstantFeedback}
                 >
                   <span className="option-letter">{String.fromCharCode(65 + index)}</span>
                   <span className="option-text">{optionText}</span>
-                  {showCorrect && <CheckCircle size={20} className="option-icon" />}
-                  {showIncorrect && <XCircle size={20} className="option-icon" />}
+                  {quizMode === 'sequential-instant' && showInstantFeedback && isSelected && (
+                    instantFeedbackCorrect ? 
+                      <CheckCircle size={20} className="option-icon" /> : 
+                      <XCircle size={20} className="option-icon" />
+                  )}
                 </button>
               );
             })}
           </div>
+
+          <div className="question-navigation">
+            {quizMode === 'standard' ? (
+              <>
+                <button 
+                  className="nav-btn prev-btn" 
+                  onClick={handlePrevious}
+                  disabled={currentQuestionIndex === 0}
+                >
+                  <ChevronLeft size={20} />
+                  <span>PREVIOUS</span>
+                </button>
+                <button 
+                  className="nav-btn next-btn" 
+                  onClick={handleNext}
+                  disabled={currentQuestionIndex === questions.length - 1}
+                >
+                  <span>NEXT</span>
+                  <ChevronRight size={20} />
+                </button>
+              </>
+            ) : quizMode === 'sequential-instant' ? (
+              <div className="instant-feedback-info">
+                {showInstantFeedback ? (
+                  <span className={instantFeedbackCorrect ? 'feedback-correct' : 'feedback-incorrect'}>
+                    {instantFeedbackCorrect ? '✓ Correct! Moving to next...' : '✗ Incorrect. Moving to next...'}
+                  </span>
+                ) : (
+                  <span className="feedback-hint">Select an answer to see instant feedback</span>
+                )}
+              </div>
+            ) : (
+              <>
+                <button 
+                  className="nav-btn prev-btn" 
+                  onClick={handlePrevious}
+                  disabled={currentQuestionIndex === 0}
+                >
+                  <ChevronLeft size={20} />
+                  <span>PREVIOUS</span>
+                </button>
+                <button 
+                  className="nav-btn next-btn" 
+                  onClick={handleNext}
+                  disabled={selectedAnswer === null}
+                >
+                  <span>{currentQuestionIndex === questions.length - 1 ? 'SUBMIT' : 'NEXT'}</span>
+                  <ChevronRight size={20} />
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="battle-sidebar">
+          <div className="sidebar-meta">
+            {timingMode === 'timed' && (
+              <div className="session-timer">
+                <Clock size={18} />
+                <span className={timeRemaining < 60 ? 'time-warning' : ''}>
+                  {formatTime(timeRemaining)}
+                </span>
+              </div>
+            )}
+            {timingMode === 'stopwatch' && (
+              <div className="session-timer">
+                <Clock size={18} />
+                <span>{formatTime(timeElapsed)}</span>
+              </div>
+            )}
+            <div className="session-question-count">
+              <span>Question {currentQuestionIndex + 1} of {questions.length}</span>
+            </div>
+          </div>
+
           <div className="score-display">
             <Trophy size={24} />
             <div className="score-info">
@@ -401,20 +611,49 @@ const SoloQuizSession = () => {
           <div className="questions-overview">
             <h3>Progress</h3>
             <div className="question-dots">
-              {questions.map((_, index) => (
-                <div
-                  key={index}
-                  className={`question-dot ${
-                    index < currentQuestionIndex ? 'answered' : 
-                    index === currentQuestionIndex ? 'current' : 
-                    'upcoming'
-                  }`}
-                >
-                  {index + 1}
-                </div>
-              ))}
+              {questions.map((_, index) => {
+                const questionId = String(questions[index]?.id ?? index);
+                const isAnswered = userAnswers.hasOwnProperty(questionId);
+                const isCurrent = index === currentQuestionIndex;
+                
+                // Check if answer was correct (only show in non-standard modes)
+                let isCorrect = false;
+                if (isAnswered && quizMode !== 'standard') {
+                  const q = questions[index];
+                  const userAns = userAnswers[questionId];
+                  const correctAns = String(q.correct_answer || '').toLowerCase();
+                  isCorrect = userAns.toLowerCase() === correctAns || 
+                             userAns.toLowerCase() === correctAns.charAt(0);
+                }
+
+                return (
+                  <div
+                    key={index}
+                    className={`question-dot ${
+                      isCurrent ? 'current' : 
+                      isAnswered ? (quizMode === 'standard' ? 'answered' : (isCorrect ? 'answered-correct' : 'answered-incorrect')) : 
+                      'upcoming'
+                    } ${quizMode === 'standard' ? 'clickable' : ''}`}
+                    onClick={() => quizMode === 'standard' && handleQuestionJump(index)}
+                    style={{ cursor: quizMode === 'standard' ? 'pointer' : 'default' }}
+                  >
+                    {index + 1}
+                  </div>
+                );
+              })}
             </div>
           </div>
+
+          {quizMode === 'standard' && (
+            <button 
+              className="sidebar-submit-btn" 
+              onClick={handleSubmitFromStandard}
+              disabled={Object.keys(userAnswers).length === 0}
+            >
+              <CheckCircle size={18} />
+              <span>SUBMIT QUIZ</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -307,7 +307,7 @@ const Social = () => {
       id: 'friends',
       size: 'medium-horizontal',
       icon: Users,
-      title: 'FRIENDS & REQUESTS',
+      title: 'Friends & Requests',
       subtitle: 'MANAGE CONNECTIONS',
       onClick: () => navigate('/friends'),
       className: 'friends-card'
@@ -316,7 +316,7 @@ const Social = () => {
       id: 'activity',
       size: 'medium-horizontal',
       icon: Activity,
-      title: 'ACTIVITY FEED',
+      title: 'Activity Feed',
       subtitle: 'FRIEND UPDATES',
       onClick: () => navigate('/activity-feed'),
       className: 'activity-card'
@@ -325,7 +325,7 @@ const Social = () => {
       id: 'playlists',
       size: 'tall',
       icon: BookOpen,
-      title: 'LEARNING PLAYLISTS',
+      title: 'Learning Playlists',
       subtitle: 'CURATED PATHS',
       onClick: () => navigate('/playlists'),
       className: 'playlists-card'
@@ -334,7 +334,7 @@ const Social = () => {
       id: 'games',
       size: 'small',
       icon: Gamepad2,
-      title: 'GAMES',
+      title: 'Games',
       subtitle: 'PLAY & COMPETE',
       onClick: () => navigate('/games'),
       className: 'games-card'
@@ -343,7 +343,7 @@ const Social = () => {
       id: 'quiz',
       size: 'small',
       icon: MessageSquare,
-      title: 'QUIZ',
+      title: 'Quiz',
       subtitle: 'SOLO & 1V1',
       onClick: () => navigate('/quiz-hub'),
       className: 'quiz-card'
@@ -352,7 +352,7 @@ const Social = () => {
       id: 'shared',
       size: 'small',
       icon: Share2,
-      title: 'SHARED',
+      title: 'Shared',
       subtitle: 'LEARNING CONTENT',
       onClick: () => setActiveTab('shared'),
       className: 'shared-card'
@@ -361,7 +361,7 @@ const Social = () => {
       id: 'leaderboards',
       size: 'large-horizontal',
       icon: TrendingUp,
-      title: 'GLOBAL LEADERBOARDS',
+      title: 'Global Leaderboards',
       subtitle: 'TOP PERFORMERS',
       onClick: () => navigate('/leaderboards'),
       className: 'leaderboards-card'

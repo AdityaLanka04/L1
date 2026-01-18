@@ -295,12 +295,13 @@
 }
 
 .bento-card-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--sh-text-primary);
-  letter-spacing: 2px;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
   transition: var(--sh-transition);
+  margin: 0;
 }
 
 .bento-card:hover .bento-card-title {
@@ -309,11 +310,12 @@
 
 .bento-card-subtitle {
   font-size: 10px;
-  font-weight: 700;
-  color: var(--sh-accent);
+  font-weight: 600;
+  color: color-mix(in srgb, var(--sh-accent) 70%, var(--sh-text-primary));
   letter-spacing: 2px;
   text-transform: uppercase;
-  opacity: 0.8;
+  opacity: 1;
+  margin: 0;
 }
 
 .bento-card-description {

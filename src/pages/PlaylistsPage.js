@@ -15,6 +15,7 @@ const PlaylistsPage = () => {
   const [view, setView] = useState('discover');
   const [playlists, setPlaylists] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterDifficulty, setFilterDifficulty] = useState('');
@@ -35,7 +36,18 @@ const PlaylistsPage = () => {
 
   useEffect(() => {
     fetchPlaylists();
-  }, [view, filterCategory, filterDifficulty, searchQuery]);
+  }, [view, filterCategory, searchQuery]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showCategoryDropdown && !event.target.closest('.custom-dropdown')) {
+        setShowCategoryDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showCategoryDropdown]);
 
   const fetchPlaylists = async () => {
     setLoading(true);
@@ -49,7 +61,6 @@ const PlaylistsPage = () => {
       }
       
       if (filterCategory) url += `category=${filterCategory}&`;
-      if (filterDifficulty) url += `difficulty=${filterDifficulty}&`;
       if (searchQuery) url += `search=${encodeURIComponent(searchQuery)}&`;
 
       const response = await fetch(url, {
@@ -91,10 +102,9 @@ const PlaylistsPage = () => {
 
   const clearFilters = () => {
     setFilterCategory('');
-    setFilterDifficulty('');
   };
 
-  const hasActiveFilters = filterCategory || filterDifficulty;
+  const hasActiveFilters = filterCategory;
 
   return (
     <div className="playlists-container">
@@ -160,42 +170,54 @@ const PlaylistsPage = () => {
           <div className="sidebar-divider"></div>
 
           <div className="sidebar-section">
-            <div className="sidebar-heading-row">
-              <h3 className="sidebar-heading">Filters</h3>
-              {hasActiveFilters && (
-                <button className="clear-btn" onClick={clearFilters}>
-                  <X size={14} />
-                  Clear
+            <div className="filter-item">
+              <div className="filter-header">
+                <label>Category</label>
+                {hasActiveFilters && (
+                  <button className="clear-btn-inline" onClick={clearFilters}>
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+              <div className="custom-dropdown">
+                <button 
+                  className="dropdown-trigger"
+                  onClick={() => {
+                    console.log('Dropdown clicked, current state:', showCategoryDropdown);
+                    setShowCategoryDropdown(!showCategoryDropdown);
+                  }}
+                >
+                  <span>{filterCategory || 'All Categories'}</span>
+                  <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+                    <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
                 </button>
-              )}
-            </div>
-            
-            <div className="filter-item">
-              <label>Category</label>
-              <select 
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-              >
-                <option value="">All Categories</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="filter-item">
-              <label>Difficulty</label>
-              <select 
-                value={filterDifficulty}
-                onChange={(e) => setFilterDifficulty(e.target.value)}
-              >
-                <option value="">All Levels</option>
-                {difficulties.map(diff => (
-                  <option key={diff} value={diff}>
-                    {diff.charAt(0).toUpperCase() + diff.slice(1)}
-                  </option>
-                ))}
-              </select>
+                {showCategoryDropdown && (
+                  <div className="dropdown-menu" style={{ display: 'block', position: 'absolute' }}>
+                    <div 
+                      className={`dropdown-item ${!filterCategory ? 'active' : ''}`}
+                      onClick={() => {
+                        setFilterCategory('');
+                        setShowCategoryDropdown(false);
+                      }}
+                    >
+                      All Categories
+                    </div>
+                    {categories.map(cat => (
+                      <div
+                        key={cat}
+                        className={`dropdown-item ${filterCategory === cat ? 'active' : ''}`}
+                        onClick={() => {
+                          setFilterCategory(cat);
+                          setShowCategoryDropdown(false);
+                        }}
+                      >
+                        {cat}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -304,7 +326,7 @@ const PlaylistCard = ({ playlist, onClick }) => {
         <div className="card-stats">
           <div className="stat">
             <BookOpen size={14} />
-            <span>{playlist.items?.length || 0}</span>
+            <span>{playlist.item_count || playlist.items?.length || 0}</span>
           </div>
           <div className="stat">
             <Users size={14} />

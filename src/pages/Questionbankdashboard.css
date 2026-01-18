@@ -95,6 +95,61 @@
   margin: 0;
 }
 
+.qbd-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.qbd-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 20px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  height: 38px;
+  min-width: 120px;
+  white-space: nowrap;
+}
+
+.qbd-nav-btn-accent {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black));
+  color: var(--bg-primary);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+[data-theme-mode="light"] .qbd-nav-btn-accent {
+  color: white;
+}
+
+[data-theme-mode="dark"] .qbd-nav-btn-accent {
+  color: var(--bg-primary);
+}
+
+.qbd-nav-btn-accent:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.qbd-nav-btn-ghost {
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.qbd-nav-btn-ghost:hover {
+  background: var(--bg-elevated);
+  color: var(--accent);
+}
+
 [data-theme-mode="dark"] .qbd-header-title {
   color: var(--accent) !important;
 }

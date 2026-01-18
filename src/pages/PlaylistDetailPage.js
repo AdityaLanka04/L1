@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Plus, Edit3, Trash2, Check, Users, Clock, BookOpen,
+  Plus, Trash2, Check, Users, Clock, BookOpen, X,
   FileText, MessageSquare, ExternalLink, Youtube, FileUp, Link as LinkIcon,
-  ChevronDown, ChevronUp, Share2, Heart, Lock, Globe, GraduationCap
+  ChevronDown, ChevronUp, ChevronRight, Share2, Heart, Lock, Globe, GraduationCap
 } from 'lucide-react';
 import './PlaylistDetailPage.css';
 import { API_URL } from '../config';
@@ -163,8 +163,8 @@ const PlaylistDetailPage = () => {
       <div className="detail-error">
         <h2>Playlist not found</h2>
         <button onClick={() => navigate('/playlists')} className="error-back-btn">
-          <ArrowLeft size={18} />
-          Back to Playlists
+          <span>Back to Playlists</span>
+          <ChevronRight size={18} />
         </button>
       </div>
     );
@@ -180,21 +180,9 @@ const PlaylistDetailPage = () => {
       {/* Top Bar */}
       <div className="detail-topbar">
         <div className="topbar-left">
-          <button className="back-button" onClick={() => navigate('/playlists')}>
-            <ArrowLeft size={18} />
-            <span>Back</span>
-          </button>
-          <div className="topbar-divider"></div>
-          <div className="breadcrumb">
-            <span className="breadcrumb-link" onClick={() => navigate('/playlists')}>
-              Playlists
-            </span>
-            <span className="breadcrumb-separator">/</span>
-            <span className="breadcrumb-current">{playlist.title}</span>
-          </div>
         </div>
 
-        <div className="topbar-actions">
+        <div className="topbar-right">
           {playlist.is_owner ? (
             <>
               <button className="action-button primary" onClick={() => setShowAddItemModal(true)}>
@@ -202,32 +190,38 @@ const PlaylistDetailPage = () => {
                 <span>Add Item</span>
               </button>
               <button className="action-button secondary">
-                <Edit3 size={18} />
+                <Share2 size={18} />
               </button>
             </>
           ) : (
-            <button 
-              className={`action-button ${isFollowing ? 'following' : 'primary'}`}
-              onClick={handleFollowToggle}
-              disabled={followLoading}
-            >
-              {followLoading ? (
-                'Loading...'
-              ) : isFollowing ? (
-                <>
-                  <Check size={18} />
-                  <span>Following</span>
-                </>
-              ) : (
-                <>
-                  <Heart size={18} />
-                  <span>Follow</span>
-                </>
-              )}
-            </button>
+            <>
+              <button 
+                className={`action-button ${isFollowing ? 'following' : 'primary'}`}
+                onClick={handleFollowToggle}
+                disabled={followLoading}
+              >
+                {followLoading ? (
+                  'Loading...'
+                ) : isFollowing ? (
+                  <>
+                    <Check size={18} />
+                    <span>Following</span>
+                  </>
+                ) : (
+                  <>
+                    <Heart size={18} />
+                    <span>Follow</span>
+                  </>
+                )}
+              </button>
+              <button className="action-button secondary">
+                <Share2 size={18} />
+              </button>
+            </>
           )}
-          <button className="action-button secondary">
-            <Share2 size={18} />
+          <button className="back-button" onClick={() => navigate('/playlists')}>
+            <span>Playlists</span>
+            <ChevronRight size={14} />
           </button>
         </div>
       </div>
@@ -249,8 +243,9 @@ const PlaylistDetailPage = () => {
               {playlist.is_public ? <Globe size={12} /> : <Lock size={12} />}
               {playlist.is_public ? 'Public' : 'Private'}
             </span>
-            <span className="meta-badge category">{playlist.category}</span>
-            <span className="meta-badge difficulty">{playlist.difficulty_level}</span>
+            {playlist.category && (
+              <span className="meta-badge category">{playlist.category}</span>
+            )}
           </div>
 
           <h1 className="header-title">{playlist.title}</h1>
@@ -401,12 +396,6 @@ const PlaylistDetailPage = () => {
                 ? 'Start adding items to your playlist'
                 : 'This playlist is empty'}
             </p>
-            {playlist.is_owner && (
-              <button className="empty-btn" onClick={() => setShowAddItemModal(true)}>
-                <Plus size={18} />
-                Add First Item
-              </button>
-            )}
           </div>
         )}
       </div>
@@ -482,7 +471,7 @@ const ViewItemModal = ({ item, content, onClose }) => {
   );
 };
 
-// ==================== ADD ITEM MODAL ====================
+// ==================== ADD ITEM MODAL - FULL PAGE DESIGN ====================
 
 const AddItemModal = ({ onClose, onAdd }) => {
   const token = localStorage.getItem('token');
@@ -492,18 +481,22 @@ const AddItemModal = ({ onClose, onAdd }) => {
     title: '',
     url: '',
     description: '',
-    duration_minutes: '',
     is_required: true,
     notes: '',
-    item_id: null
+    item_id: null,
+    platform: ''
   });
 
   const [userNotes, setUserNotes] = useState([]);
   const [userChats, setUserChats] = useState([]);
+  const [userQuizzes, setUserQuizzes] = useState([]);
+  const [userFlashcards, setUserFlashcards] = useState([]);
   const [loadingResources, setLoadingResources] = useState(false);
+  const [addedItems, setAddedItems] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (itemType === 'note' || itemType === 'chat') {
+    if (['note', 'chat', 'quiz', 'flashcard'].includes(itemType)) {
       fetchUserResources();
     }
   }, [itemType]);
@@ -527,6 +520,22 @@ const AddItemModal = ({ onClose, onAdd }) => {
           const data = await response.json();
           setUserChats(Array.isArray(data) ? data : (data.sessions || []));
         }
+      } else if (itemType === 'quiz') {
+        const response = await fetch(`${API_URL}/get_question_sets?user_id=${userName}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUserQuizzes(Array.isArray(data) ? data : (data.question_sets || []));
+        }
+      } else if (itemType === 'flashcard') {
+        const response = await fetch(`${API_URL}/get_flashcard_history?user_id=${userName}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUserFlashcards(Array.isArray(data) ? data : (data.flashcard_history || []));
+        }
       }
     } catch (error) {
           } finally {
@@ -534,13 +543,62 @@ const AddItemModal = ({ onClose, onAdd }) => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleAddToQueue = (e) => {
     e.preventDefault();
-    onAdd({
+    const newItem = {
       item_type: itemType,
       ...formData,
-      duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : null
+      tempId: Date.now()
+    };
+    setAddedItems(prev => [...prev, newItem]);
+    
+    // Reset form
+    setFormData({
+      title: '',
+      url: '',
+      description: '',
+      is_required: true,
+      notes: '',
+      item_id: null,
+      platform: ''
     });
+  };
+
+  const handleAddAndClose = async (e) => {
+    e.preventDefault();
+    const newItem = {
+      item_type: itemType,
+      ...formData
+    };
+    
+    setIsSubmitting(true);
+    try {
+      await onAdd(newItem);
+      onClose();
+    } catch (error) {
+          } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRemoveFromQueue = (tempId) => {
+    setAddedItems(prev => prev.filter(item => item.tempId !== tempId));
+  };
+
+  const handleSubmitAll = async () => {
+    if (addedItems.length === 0) return;
+    
+    setIsSubmitting(true);
+    try {
+      for (const item of addedItems) {
+        const { tempId, ...itemData } = item;
+        await onAdd(itemData);
+      }
+      onClose();
+    } catch (error) {
+          } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleResourceSelect = (resourceId, resourceTitle) => {
@@ -555,172 +613,272 @@ const AddItemModal = ({ onClose, onAdd }) => {
     { value: 'external_link', label: 'Link', icon: LinkIcon },
     { value: 'youtube', label: 'YouTube', icon: Youtube },
     { value: 'pdf', label: 'PDF', icon: FileUp },
-    { value: 'course', label: 'Course', icon: GraduationCap },
     { value: 'note', label: 'Note', icon: FileText },
     { value: 'chat', label: 'Chat', icon: MessageSquare },
-    { value: 'article', label: 'Article', icon: BookOpen }
+    { value: 'quiz', label: 'Quiz', icon: BookOpen },
+    { value: 'flashcard', label: 'Flashcard', icon: BookOpen }
   ];
 
+  const getItemIcon = (type) => {
+    const typeObj = itemTypes.find(t => t.value === type);
+    return typeObj ? typeObj.icon : BookOpen;
+  };
+
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-box add-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Add Item to Playlist</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
+    <div className="add-item-fullpage">
+      <div className="add-item-header">
+        <div className="add-item-header-left">
+          <p className="add-item-subtitle">ADD ITEMS TO PLAYLIST</p>
         </div>
+        <div className="add-item-header-right">
+          <button className="add-item-close-btn" onClick={onClose}>
+            <X size={18} />
+            <span>Close</span>
+          </button>
+        </div>
+      </div>
 
-        <form onSubmit={handleSubmit} className="modal-form">
-          <div className="form-field">
-            <label>Item Type</label>
-            <div className="type-selector">
-              {itemTypes.map(type => {
-                const Icon = type.icon;
-                return (
-                  <button
-                    key={type.value}
-                    type="button"
-                    className={`type-option ${itemType === type.value ? 'active' : ''}`}
-                    onClick={() => {
-                      setItemType(type.value);
-                      setFormData({
-                        title: '',
-                        url: '',
-                        description: '',
-                        duration_minutes: '',
-                        is_required: true,
-                        notes: '',
-                        item_id: null
-                      });
-                    }}
-                  >
-                    <Icon size={18} />
-                    <span>{type.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+      <div className="add-item-body">
+        <div className="add-item-main">
+          <div className="add-item-form-section">
+            <h2 className="section-heading">Item Details</h2>
+            
+            <form onSubmit={handleAddToQueue} className="add-item-form">
+              <div className="form-field">
+                <label>Item Type</label>
+                <div className="type-selector-grid">
+                  {itemTypes.map(type => {
+                    const Icon = type.icon;
+                    return (
+                      <button
+                        key={type.value}
+                        type="button"
+                        className={`type-option-btn ${itemType === type.value ? 'active' : ''}`}
+                        onClick={() => {
+                          setItemType(type.value);
+                          setFormData({
+                            title: '',
+                            url: '',
+                            description: '',
+                            is_required: true,
+                            notes: '',
+                            item_id: null,
+                            platform: ''
+                          });
+                        }}
+                      >
+                        <Icon size={20} />
+                        <span>{type.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-          {(itemType === 'note' || itemType === 'chat') && (
-            <div className="form-field">
-              <label>Select {itemType === 'note' ? 'Note' : 'Chat'}</label>
-              {loadingResources ? (
-                <div className="loading-text">Loading...</div>
-              ) : (
-                <div className="resource-selector">
-                  {itemType === 'note' && userNotes.map(note => (
-                    <div
-                      key={note.id}
-                      className={`resource-option ${formData.item_id === note.id ? 'selected' : ''}`}
-                      onClick={() => handleResourceSelect(note.id, note.title)}
-                    >
-                      <FileText size={16} />
-                      <span>{note.title}</span>
-                      {formData.item_id === note.id && <Check size={16} />}
-                    </div>
-                  ))}
-                  {itemType === 'chat' && userChats.map(chat => (
-                    <div
-                      key={chat.id}
-                      className={`resource-option ${formData.item_id === chat.id ? 'selected' : ''}`}
-                      onClick={() => handleResourceSelect(chat.id, chat.title)}
-                    >
-                      <MessageSquare size={16} />
-                      <span>{chat.title}</span>
-                      {formData.item_id === chat.id && <Check size={16} />}
-                    </div>
-                  ))}
-                  {((itemType === 'note' && userNotes.length === 0) || 
-                    (itemType === 'chat' && userChats.length === 0)) && (
-                    <div className="no-resources">
-                      No {itemType === 'note' ? 'notes' : 'chats'} found
+              {(itemType === 'note' || itemType === 'chat' || itemType === 'quiz' || itemType === 'flashcard') && (
+                <div className="form-field">
+                  <label>Select {itemType === 'flashcard' ? 'Flashcard Set' : itemType === 'quiz' ? 'Quiz' : itemType === 'note' ? 'Note' : 'Chat'}</label>
+                  {loadingResources ? (
+                    <div className="loading-text">Loading...</div>
+                  ) : (
+                    <div className="resource-selector-list">
+                      {itemType === 'note' && userNotes.map(note => (
+                        <div
+                          key={note.id}
+                          className={`resource-option-item ${formData.item_id === note.id ? 'selected' : ''}`}
+                          onClick={() => handleResourceSelect(note.id, note.title)}
+                        >
+                          <FileText size={18} />
+                          <span>{note.title}</span>
+                          {formData.item_id === note.id && <Check size={18} />}
+                        </div>
+                      ))}
+                      {itemType === 'chat' && userChats.map(chat => (
+                        <div
+                          key={chat.id}
+                          className={`resource-option-item ${formData.item_id === chat.id ? 'selected' : ''}`}
+                          onClick={() => handleResourceSelect(chat.id, chat.title)}
+                        >
+                          <MessageSquare size={18} />
+                          <span>{chat.title}</span>
+                          {formData.item_id === chat.id && <Check size={18} />}
+                        </div>
+                      ))}
+                      {itemType === 'quiz' && userQuizzes.map(quiz => (
+                        <div
+                          key={quiz.id}
+                          className={`resource-option-item ${formData.item_id === quiz.id ? 'selected' : ''}`}
+                          onClick={() => handleResourceSelect(quiz.id, quiz.title || quiz.name)}
+                        >
+                          <BookOpen size={18} />
+                          <span>{quiz.title || quiz.name}</span>
+                          {formData.item_id === quiz.id && <Check size={18} />}
+                        </div>
+                      ))}
+                      {itemType === 'flashcard' && userFlashcards.map(flashcard => {
+                        // Clean up the title: remove "Flashcards:", "AI Generated", " : ", and capitalize first letter
+                        let cleanTitle = (flashcard.title || flashcard.name || '')
+                          .replace(/^(Flashcards?:\s*|AI Generated\s*|ai generated\s*)/gi, '')
+                          .replace(/^\s*:\s*/, '')
+                          .trim();
+                        cleanTitle = cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1);
+                        
+                        return (
+                          <div
+                            key={flashcard.id}
+                            className={`resource-option-item ${formData.item_id === flashcard.id ? 'selected' : ''}`}
+                            onClick={() => handleResourceSelect(flashcard.id, cleanTitle)}
+                          >
+                            <BookOpen size={18} />
+                            <span>{cleanTitle}</span>
+                            {formData.item_id === flashcard.id && <Check size={18} />}
+                          </div>
+                        );
+                      })}
+
+                      {((itemType === 'note' && userNotes.length === 0) || 
+                        (itemType === 'chat' && userChats.length === 0) ||
+                        (itemType === 'quiz' && userQuizzes.length === 0) ||
+                        (itemType === 'flashcard' && userFlashcards.length === 0)) && (
+                        <div className="no-resources">
+                          No {itemType === 'flashcard' ? 'flashcard sets' : itemType === 'quiz' ? 'quizzes' : itemType === 'note' ? 'notes' : 'chats'} found
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               )}
-            </div>
-          )}
 
-          {itemType !== 'note' && itemType !== 'chat' && (
-            <div className="form-field">
-              <label>Title</label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder={itemType === 'course' ? 'e.g., Machine Learning Specialization' : 'Enter title'}
-                required
-              />
-            </div>
-          )}
+              {itemType !== 'note' && itemType !== 'chat' && itemType !== 'quiz' && itemType !== 'flashcard' && (
+                <div className="form-field">
+                  <label>Title</label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder={itemType === 'course' ? 'e.g., Machine Learning Specialization' : 'Enter title'}
+                    required
+                  />
+                </div>
+              )}
 
-          {(itemType === 'external_link' || itemType === 'youtube' || itemType === 'pdf' || 
-            itemType === 'article' || itemType === 'course') && (
-            <div className="form-field">
-              <label>URL</label>
-              <input
-                type="url"
-                value={formData.url}
-                onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
-                placeholder={itemType === 'course' ? 'https://www.coursera.org/learn/...' : 'https://...'}
-                required
-              />
-            </div>
-          )}
+              {(itemType === 'external_link' || itemType === 'youtube' || itemType === 'pdf' || 
+                itemType === 'article' || itemType === 'course') && (
+                <div className="form-field">
+                  <label>URL</label>
+                  <input
+                    type="url"
+                    value={formData.url}
+                    onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                    placeholder={itemType === 'course' ? 'https://www.coursera.org/learn/...' : 'https://...'}
+                    required
+                  />
+                </div>
+              )}
 
-          {itemType === 'course' && (
-            <div className="form-field">
-              <label>Platform (Optional)</label>
-              <select
-                value={formData.platform || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, platform: e.target.value }))}
+              {itemType === 'course' && (
+                <div className="form-field">
+                  <label>Platform (Optional)</label>
+                  <select
+                    value={formData.platform || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, platform: e.target.value }))}
+                  >
+                    <option value="">Select platform</option>
+                    <option value="Coursera">Coursera</option>
+                    <option value="edX">edX</option>
+                    <option value="Udemy">Udemy</option>
+                    <option value="Udacity">Udacity</option>
+                    <option value="Khan Academy">Khan Academy</option>
+                    <option value="LinkedIn Learning">LinkedIn Learning</option>
+                    <option value="Pluralsight">Pluralsight</option>
+                    <option value="Skillshare">Skillshare</option>
+                    <option value="FreeCodeCamp">FreeCodeCamp</option>
+                    <option value="MIT OpenCourseWare">MIT OpenCourseWare</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              )}
+
+              <div className="form-field">
+                <label>Description (Optional)</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Add a description..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="form-actions">
+                <button type="submit" className="add-to-queue-btn">
+                  <Plus size={18} />
+                  <span>Add to Queue</span>
+                </button>
+                <button type="button" className="done-btn" onClick={handleAddAndClose} disabled={isSubmitting}>
+                  <Check size={18} />
+                  <span>{isSubmitting ? 'Adding...' : 'Done'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div className="add-item-sidebar">
+          <div className="queue-section">
+            <div className="queue-header">
+              <h2 className="section-heading">Queue</h2>
+              <span className="queue-count">{addedItems.length} items</span>
+            </div>
+
+            {addedItems.length === 0 ? (
+              <div className="queue-empty">
+                <BookOpen size={48} />
+                <p>No items in queue</p>
+                <span>Add items to see them here</span>
+              </div>
+            ) : (
+              <div className="queue-list">
+                {addedItems.map((item) => {
+                  const ItemIcon = getItemIcon(item.item_type);
+                  return (
+                    <div key={item.tempId} className="queue-item">
+                      <div className="queue-item-icon">
+                        <ItemIcon size={18} />
+                      </div>
+                      <div className="queue-item-info">
+                        <div className="queue-item-title">{item.title}</div>
+                        <div className="queue-item-type">{item.item_type.replace('_', ' ')}</div>
+                      </div>
+                      <button
+                        className="queue-item-remove"
+                        onClick={() => handleRemoveFromQueue(item.tempId)}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {addedItems.length > 0 && (
+              <button 
+                className="submit-all-btn" 
+                onClick={handleSubmitAll}
+                disabled={isSubmitting}
               >
-                <option value="">Select platform</option>
-                <option value="Coursera">Coursera</option>
-                <option value="edX">edX</option>
-                <option value="Udemy">Udemy</option>
-                <option value="Udacity">Udacity</option>
-                <option value="Khan Academy">Khan Academy</option>
-                <option value="LinkedIn Learning">LinkedIn Learning</option>
-                <option value="Pluralsight">Pluralsight</option>
-                <option value="Skillshare">Skillshare</option>
-                <option value="FreeCodeCamp">FreeCodeCamp</option>
-                <option value="MIT OpenCourseWare">MIT OpenCourseWare</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-          )}
-
-          <div className="form-field">
-            <label>Description (Optional)</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Add a description..."
-              rows={3}
-            />
+                {isSubmitting ? (
+                  'Adding Items...'
+                ) : (
+                  <>
+                    <Check size={18} />
+                    <span>Add {addedItems.length} Item{addedItems.length > 1 ? 's' : ''} to Playlist</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
-
-          <div className="form-field">
-            <label>Duration (minutes)</label>
-            <input
-              type="number"
-              value={formData.duration_minutes}
-              onChange={(e) => setFormData(prev => ({ ...prev, duration_minutes: e.target.value }))}
-              placeholder="30"
-              min="0"
-            />
-          </div>
-
-          <div className="modal-footer">
-            <button type="button" className="btn-secondary" onClick={onClose}>
-              Cancel
-            </button>
-            <button type="submit" className="btn-primary">
-              Add Item
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   );

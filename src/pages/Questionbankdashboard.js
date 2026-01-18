@@ -5,7 +5,7 @@ import {
   Plus, Play, Trash2, TrendingUp, Target, Brain, Zap, Award, 
   CheckCircle, XCircle, Loader, Clock, FileUp, BookOpen, PieChart, ChevronLeft,
   Download, FileDown, Eye, Edit3, RefreshCw, Layers, AlertTriangle, 
-  Star, GitMerge, Wand2, List, ChevronDown, ChevronUp, X, Save
+  Star, GitMerge, Wand2, List, ChevronDown, ChevronUp, X, Save, ChevronRight
 } from 'lucide-react';
 import './Questionbankdashboard.css';
 import './QuestionbankConvert.css';
@@ -2626,8 +2626,24 @@ const QuestionBankDashboard = () => {
         <div className="qbd-header-left">
           <h1 className="qbd-header-title" onClick={() => navigate('/dashboard')}>cerbyl</h1>
           <div className="qbd-header-divider"></div>
-          <p className="qbd-header-subtitle">QUESTION BANK</p>
+          <p className="qbd-header-subtitle">QUIZ HUB</p>
         </div>
+        <nav className="qbd-header-right">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowImportExport(true);
+            }} 
+            className="qbd-nav-btn qbd-nav-btn-accent"
+          >
+            <Zap size={16} />
+            <span>Convert</span>
+          </button>
+          <button className="qbd-nav-btn qbd-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            <span>Dashboard</span>
+            <ChevronRight size={14} />
+          </button>
+        </nav>
       </header>
 
       {/* Sidebar and Content */}
