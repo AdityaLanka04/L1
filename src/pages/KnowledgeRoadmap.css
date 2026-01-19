@@ -65,6 +65,19 @@
   display: none;
 }
 
+/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
+[data-theme-mode="dark"] .kr-header {
+  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+[data-theme-mode="light"] .kr-header {
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
 .kr-header-left,
 .kr-header-right {
   display: flex;
@@ -1511,4 +1524,17 @@
 .kr-modal-btn.primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px color-mix(in srgb, var(--kr-accent) 50%, transparent);
+}
+
+
+/* Enhanced Header with Gradients */
+[data-theme-mode="dark"] .roadmap-header {
+  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5) !important;
+  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
+}
+
+[data-theme-mode="light"] .roadmap-header {
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05) !important;
 }

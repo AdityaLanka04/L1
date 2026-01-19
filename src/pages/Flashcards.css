@@ -120,11 +120,11 @@
   transition: width 0.3s ease;
 }
 
-/* Sidebar Enhanced Styling with Accent Color Gradients */
+/* Sidebar Enhanced Styling with Accent Color Gradients - MATCHING CONCEPT WEB */
 [data-theme-mode="dark"] .fc-sidebar {
   background: linear-gradient(180deg, 
-    color-mix(in srgb, var(--accent) 15%, var(--bg-secondary)) 0%, 
-    color-mix(in srgb, var(--accent) 8%, var(--bg-secondary)) 100%) !important;
+    color-mix(in srgb, var(--accent) 15%, #000000) 0%, 
+    color-mix(in srgb, var(--accent) 8%, #000000) 100%) !important;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
 }
 
@@ -3785,19 +3785,7 @@
   width: 100%;
 }
 
-/* Subtle Pulse for Active Elements */
-@keyframes pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent);
-  }
-  50% {
-    box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 0%, transparent);
-  }
-}
-
-.fc-nav-item.active {
-  animation: pulse 2s infinite;
-}
+/* Removed Pulse Animation - No pulsing for active elements */
 
 /* Enhanced Stat Cards */
 .fc-stat-card {

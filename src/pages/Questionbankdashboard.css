@@ -59,6 +59,19 @@
   z-index: 100;
 }
 
+/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
+[data-theme-mode="dark"] .qbd-header {
+  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+[data-theme-mode="light"] .qbd-header {
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
 .qbd-header-left {
   display: flex;
   align-items: center;
@@ -183,8 +196,8 @@
 /* Sidebar Enhanced Styling with Accent Color Gradients - Matching Flashcards */
 [data-theme-mode="dark"] .qbd-sidebar {
   background: linear-gradient(180deg, 
-    color-mix(in srgb, var(--accent) 15%, var(--bg-secondary)) 0%, 
-    color-mix(in srgb, var(--accent) 8%, var(--bg-secondary)) 100%) !important;
+    color-mix(in srgb, var(--accent) 15%, #000000) 0%, 
+    color-mix(in srgb, var(--accent) 8%, #000000) 100%) !important;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
 }
 

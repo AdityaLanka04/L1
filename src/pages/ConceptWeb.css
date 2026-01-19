@@ -2635,3 +2635,686 @@
 }
 
 /* ==================== END OF FILE ==================== */
+
+
+/* ==================== ENHANCED GRADIENTS & STYLING (AI CHAT STYLE) ==================== */
+
+/* Advanced Gradient Backgrounds */
+[data-theme-mode="dark"] .concept-web-page {
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%) !important;
+}
+
+[data-theme-mode="light"] .concept-web-page {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 50%, #ffffff 100%) !important;
+}
+
+/* Enhanced Header with Gradients */
+[data-theme-mode="dark"] .cw-header {
+  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5) !important;
+  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
+}
+
+[data-theme-mode="light"] .cw-header {
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Sidebar Enhanced Styling with Gradients */
+[data-theme-mode="dark"] .cw-sidebar {
+  background: linear-gradient(180deg, 
+    color-mix(in srgb, var(--accent) 15%, #000000) 0%, 
+    color-mix(in srgb, var(--accent) 8%, #000000) 100%) !important;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+[data-theme-mode="light"] .cw-sidebar {
+  background: linear-gradient(180deg, 
+    color-mix(in srgb, var(--accent) 15%, #ffffff) 0%, 
+    color-mix(in srgb, var(--accent) 25%, #ffffff) 50%, 
+    color-mix(in srgb, var(--accent) 18%, #ffffff) 100%) !important;
+  box-shadow: 4px 0 20px color-mix(in srgb, var(--accent) 20%, transparent) !important;
+}
+
+/* All Buttons with Gradients */
+.cw-btn-primary,
+.cw-nav-btn.create-playlist-btn,
+.cw-detail-action-btn,
+.cw-step-action,
+.cw-resource-action-btn.primary {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
+  color: white !important;
+  border: none !important;
+}
+
+.cw-btn-primary:hover,
+.cw-nav-btn.create-playlist-btn:hover,
+.cw-detail-action-btn:hover,
+.cw-step-action:hover,
+.cw-resource-action-btn.primary:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 40%, transparent) !important;
+}
+
+/* Icon Buttons with Gradients */
+.cw-path-icon,
+.cw-suggestion-icon,
+.cw-resource-concept-icon,
+.cw-card-icon {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
+}
+
+/* All Headings - Capital Inter Font */
+.cw-logo,
+.cw-subtitle,
+.cw-paths-title,
+.cw-resources-title,
+.cw-analytics-title,
+.cw-suggestions-title,
+.cw-path-name,
+.cw-resource-concept-name,
+.cw-card-title,
+.cw-detail-title,
+.cw-modal-title,
+.cw-empty-title,
+.cw-nav-text,
+.sidebar-heading,
+.cw-detail-section-title,
+.legend-title,
+.cw-form-label,
+.cw-stat-label,
+.cw-card-stat-label,
+.cw-detail-stat-label,
+.cw-path-stat,
+.cw-resource-type-badge,
+.cw-filter-btn,
+.cw-nav-btn,
+.cw-btn,
+.cw-step-title,
+.cw-suggestion-title,
+.cw-resource-title {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  font-weight: 700 !important;
+}
+
+/* Specific heading sizes with proper spacing */
+.cw-paths-title,
+.cw-resources-title {
+  letter-spacing: -0.5px !important;
+}
+
+.cw-subtitle,
+.legend-title,
+.cw-form-label,
+.cw-stat-label,
+.cw-card-stat-label,
+.cw-detail-stat-label,
+.cw-resource-type-badge {
+  letter-spacing: 2px !important;
+  font-size: 11px !important;
+}
+
+.cw-nav-text,
+.sidebar-heading {
+  letter-spacing: 1px !important;
+}
+
+/* Cards with Gradients */
+[data-theme-mode="dark"] .cw-card,
+[data-theme-mode="dark"] .cw-path-card,
+[data-theme-mode="dark"] .cw-resource-card,
+[data-theme-mode="dark"] .cw-suggestion-card {
+  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  border: 1px solid rgba(215, 179, 140, 0.1) !important;
+}
+
+[data-theme-mode="light"] .cw-card,
+[data-theme-mode="light"] .cw-path-card,
+[data-theme-mode="light"] .cw-resource-card,
+[data-theme-mode="light"] .cw-suggestion-card {
+  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%) !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Detail Panel with Gradients */
+[data-theme-mode="dark"] .cw-detail-panel {
+  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  border-left: 1px solid rgba(215, 179, 140, 0.2) !important;
+}
+
+[data-theme-mode="light"] .cw-detail-panel {
+  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%) !important;
+}
+
+/* Analytics Panel with Gradients */
+[data-theme-mode="dark"] .cw-analytics-panel {
+  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  border: 1px solid rgba(215, 179, 140, 0.2) !important;
+}
+
+[data-theme-mode="light"] .cw-analytics-panel {
+  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%) !important;
+}
+
+/* Modal with Gradients */
+[data-theme-mode="dark"] .cw-modal {
+  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  border: 1px solid rgba(215, 179, 140, 0.2) !important;
+}
+
+[data-theme-mode="light"] .cw-modal {
+  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%) !important;
+}
+
+/* Tooltip with Gradients */
+[data-theme-mode="dark"] .hover-tooltip-ethereal {
+  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  border: 1px solid rgba(215, 179, 140, 0.2) !important;
+}
+
+[data-theme-mode="light"] .hover-tooltip-ethereal {
+  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%) !important;
+}
+
+/* Network Controls with Gradients */
+[data-theme-mode="dark"] .network-controls-ethereal > div,
+[data-theme-mode="dark"] .color-legend-ethereal {
+  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  border: 1px solid rgba(215, 179, 140, 0.2) !important;
+}
+
+[data-theme-mode="light"] .network-controls-ethereal > div,
+[data-theme-mode="light"] .color-legend-ethereal {
+  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%) !important;
+}
+
+/* Input Fields with Gradients */
+[data-theme-mode="dark"] .cw-form-input,
+[data-theme-mode="dark"] .cw-form-textarea,
+[data-theme-mode="dark"] .cw-form-select,
+[data-theme-mode="dark"] .cw-search input {
+  background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  border: 1px solid rgba(215, 179, 140, 0.2) !important;
+}
+
+[data-theme-mode="light"] .cw-form-input,
+[data-theme-mode="light"] .cw-form-textarea,
+[data-theme-mode="light"] .cw-form-select,
+[data-theme-mode="light"] .cw-search input {
+  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%) !important;
+}
+
+/* Hover Effects with Gradient Overlays */
+.cw-card::before,
+.cw-path-card::before,
+.cw-resource-card::before,
+.cw-suggestion-card::before,
+.cw-nav-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--accent), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.cw-card:hover::before,
+.cw-path-card:hover::before,
+.cw-resource-card:hover::before,
+.cw-suggestion-card:hover::before,
+.cw-nav-item:hover::before {
+  opacity: 0.05;
+}
+
+/* Progress Bars with Gradients */
+.cw-mastery-fill,
+.cw-timeline-progress-fill,
+.circle {
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
+}
+
+/* Accent Text with Gradient */
+.cw-logo,
+.cw-paths-title,
+.cw-resources-title,
+.cw-analytics-title,
+.cw-suggestions-title {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+/* Button Hover Glow Effects */
+.cw-btn-primary::before,
+.cw-step-action::before,
+.cw-resource-action-btn.primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+  border-radius: inherit;
+}
+
+.cw-btn-primary:hover::before,
+.cw-step-action:hover::before,
+.cw-resource-action-btn.primary:hover::before {
+  opacity: 1;
+}
+
+/* Ensure all buttons have relative positioning for pseudo-elements */
+.cw-btn-primary,
+.cw-step-action,
+.cw-resource-action-btn.primary,
+.cw-card,
+.cw-path-card,
+.cw-resource-card,
+.cw-suggestion-card,
+.cw-nav-item {
+  position: relative;
+}
+
+/* Ambient Background Glow */
+[data-theme-mode="dark"] .concept-web-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle at 20% 50%, rgba(215, 179, 140, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(215, 179, 140, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, rgba(215, 179, 140, 0.02) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+[data-theme-mode="light"] .concept-web-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle at 20% 50%, rgba(0, 0, 0, 0.02) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(0, 0, 0, 0.02) 0%, transparent 50%),
+    radial-gradient(circle at 40% 20%, rgba(0, 0, 0, 0.01) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Ensure content is above ambient glow */
+.cw-layout,
+.cw-header {
+  position: relative;
+  z-index: 1;
+}
+
+/* Enhanced Scrollbar */
+[data-theme-mode="dark"] ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
+}
+
+/* ==================== END OF ENHANCED GRADIENTS ==================== */
+
+
+/* ==================== ROUNDED CORNERS & TEXT FIXES ==================== */
+
+/* Remove the force boxy design - add rounded corners everywhere */
+.concept-web-page *,
+.concept-web-page *::before,
+.concept-web-page *::after {
+  border-radius: 8px !important;
+}
+
+/* Specific rounded corners for different elements */
+.cw-header {
+  border-radius: 0 !important;
+}
+
+.cw-sidebar {
+  border-radius: 0 !important;
+}
+
+.cw-main {
+  border-radius: 0 !important;
+}
+
+.cw-btn,
+.cw-icon-btn,
+.cw-nav-item,
+.cw-card,
+.cw-path-card,
+.cw-resource-card,
+.cw-suggestion-card,
+.cw-modal,
+.cw-detail-panel,
+.cw-analytics-panel,
+.cw-form-input,
+.cw-form-textarea,
+.cw-form-select,
+.cw-search,
+.zoom-btn,
+.color-legend-ethereal,
+.network-controls-ethereal > div,
+.cw-filter-btn,
+.cw-resource-action-btn,
+.cw-step-action,
+.cw-path-icon,
+.cw-suggestion-icon,
+.cw-resource-concept-icon,
+.cw-card-icon,
+.cw-mastery-bar,
+.cw-mastery-fill,
+.hover-tooltip-ethereal,
+.cw-resource-type-badge,
+.cw-card-category,
+.cw-detail-stat,
+.cw-analytics-card,
+.cw-path-step,
+.cw-step-indicator {
+  border-radius: 8px !important;
+}
+
+/* Smaller border radius for badges and small elements */
+.cw-resource-type-badge,
+.cw-card-category,
+.cw-resource-difficulty,
+.legend-color {
+  border-radius: 4px !important;
+}
+
+/* Circular elements */
+.cw-path-progress-circle,
+.cw-step-indicator,
+.legend-color,
+.cw-timeline-dot {
+  border-radius: 50% !important;
+}
+
+/* Fix sidebar text to match Flashcards */
+.cw-nav-text {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+}
+
+.cw-nav-icon {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+/* Fix logo to be lowercase */
+.cw-logo {
+  text-transform: lowercase !important;
+  font-size: 20px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.5px !important;
+}
+
+/* Fix subtitle */
+.cw-subtitle {
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  letter-spacing: 1.5px !important;
+  text-transform: uppercase !important;
+}
+
+/* Reduce header stats size */
+.cw-stat-mini {
+  gap: 2px !important;
+}
+
+.cw-stat-value {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+}
+
+.cw-stat-label {
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+}
+
+/* Fix nav button size */
+.cw-nav-btn {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 1px !important;
+  padding: 8px 16px !important;
+  height: 36px !important;
+}
+
+.cw-nav-btn svg {
+  width: 12px !important;
+  height: 12px !important;
+}
+
+/* Fix sidebar heading */
+.sidebar-heading,
+.cw-detail-section-title,
+.legend-title {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1.5px !important;
+  text-transform: uppercase !important;
+}
+
+/* Fix card titles */
+.cw-card-title {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: uppercase !important;
+}
+
+.cw-card-category {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+}
+
+/* Fix path and resource titles */
+.cw-path-name,
+.cw-resource-concept-name {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: uppercase !important;
+}
+
+.cw-paths-title,
+.cw-resources-title,
+.cw-analytics-title {
+  font-size: 24px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.3px !important;
+  text-transform: uppercase !important;
+}
+
+.cw-paths-subtitle,
+.cw-resources-subtitle {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: none !important;
+}
+
+/* Fix button text */
+.cw-btn,
+.cw-filter-btn,
+.cw-resource-action-btn,
+.cw-step-action,
+.cw-detail-action-btn {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+}
+
+/* Fix form labels */
+.cw-form-label {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1.5px !important;
+  text-transform: uppercase !important;
+}
+
+/* Fix stat labels */
+.cw-card-stat-label,
+.cw-detail-stat-label,
+.cw-analytics-label,
+.cw-mastery-label {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+}
+
+/* Fix resource type badge */
+.cw-resource-type-badge {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+}
+
+/* Fix step title */
+.cw-step-title {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: uppercase !important;
+}
+
+/* Fix suggestion title */
+.cw-suggestion-title {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: uppercase !important;
+}
+
+/* Fix resource title */
+.cw-resource-title {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: uppercase !important;
+}
+
+/* Fix detail title */
+.cw-detail-title {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: uppercase !important;
+}
+
+.cw-detail-category {
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  letter-spacing: 1.5px !important;
+  text-transform: uppercase !important;
+}
+
+/* Fix modal title */
+.cw-modal-title {
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: uppercase !important;
+}
+
+/* Fix empty state title */
+.cw-empty-title {
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: uppercase !important;
+}
+
+/* Fix tooltip text */
+.tooltip-header h4 {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: uppercase !important;
+}
+
+.tooltip-category {
+  font-size: 9px !important;
+  font-weight: 600 !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+}
+
+.tooltip-stat-label {
+  font-size: 8px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+}
+
+/* Fix zoom controls */
+.zoom-level {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+}
+
+.zoom-hint,
+.control-hint {
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: none !important;
+}
+
+/* Fix legend items */
+.legend-item {
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: none !important;
+}
+
+/* Fix path stat */
+.cw-path-stat {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: none !important;
+}
+
+/* Fix resource meta */
+.cw-resource-author,
+.cw-resource-duration {
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: none !important;
+}
+
+/* Fix descriptions to be normal case */
+.cw-card-description,
+.cw-path-description,
+.cw-resource-description,
+.cw-suggestion-reason,
+.cw-step-description,
+.cw-detail-description,
+.cw-empty-text,
+.cw-loading-text,
+.tooltip-description,
+.cw-form-hint {
+  text-transform: none !important;
+  letter-spacing: 0.2px !important;
+  font-weight: 400 !important;
+}
+
+/* ==================== END OF ROUNDED CORNERS & TEXT FIXES ==================== */

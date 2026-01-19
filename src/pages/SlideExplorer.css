@@ -1,13 +1,6 @@
 /* Slide Explorer - Flashcards Style Layout */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* ==================== FORCE BOXY DESIGN ==================== */
-.se-page *,
-.se-page *::before,
-.se-page *::after {
-  border-radius: 0 !important;
-}
-
 /* CSS Variables - Matching Flashcards */
 .se-page {
   --se-bg-primary: var(--bg);
@@ -64,6 +57,19 @@
   flex-shrink: 0;
   width: 100%;
   z-index: 100;
+}
+
+/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
+[data-theme-mode="dark"] .se-header {
+  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+[data-theme-mode="light"] .se-header {
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .se-header-left {
@@ -150,11 +156,11 @@
   flex-shrink: 0;
 }
 
-/* Sidebar Enhanced Styling with Accent Color Gradients */
+/* Sidebar Enhanced Styling with Accent Color Gradients - MATCHING FLASHCARDS */
 [data-theme-mode="dark"] .se-sidebar {
   background: linear-gradient(180deg, 
-    color-mix(in srgb, var(--accent) 15%, var(--bg-secondary)) 0%, 
-    color-mix(in srgb, var(--accent) 8%, var(--bg-secondary)) 100%) !important;
+    color-mix(in srgb, var(--accent) 15%, #000000) 0%, 
+    color-mix(in srgb, var(--accent) 8%, #000000) 100%) !important;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
 }
 
