@@ -22,7 +22,7 @@ class SlideExplorerAgentService {
     };
 
     try {
-      console.log('📡 Slide Explorer Request:', url);
+      console.log('Slide Explorer Request:', url);
       const response = await fetch(url, { 
         ...defaultOptions, 
         ...options,
@@ -33,7 +33,7 @@ class SlideExplorerAgentService {
       });
       
       if (response.status === 401) {
-        console.warn('🔒 Token expired');
+        console.warn('Token expired');
         localStorage.removeItem('token');
         window.location.href = '/login';
         throw new Error('Session expired');
@@ -46,7 +46,7 @@ class SlideExplorerAgentService {
       
       return await response.json();
     } catch (error) {
-      console.error(`❌ Slide Explorer API Error: ${error.message}`);
+      console.error(`Slide Explorer API Error: ${error.message}`);
       throw error;
     }
   }

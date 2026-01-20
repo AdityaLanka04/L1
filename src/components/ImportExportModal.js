@@ -478,9 +478,27 @@ const ImportExportModal = ({
                   Close
                 </button>
                 {result.success && result.type === 'import' && (
-                  <button className="iem-btn iem-btn-primary" onClick={resetModal}>
-                    Convert More
-                  </button>
+                  <>
+                    <button className="iem-btn iem-btn-secondary" onClick={resetModal}>
+                      Convert More
+                    </button>
+                    <button 
+                      className="iem-btn iem-btn-primary" 
+                      onClick={() => {
+                        handleClose();
+                        // Navigate to the appropriate page based on destination type
+                        if (onSuccess) {
+                          onSuccess({
+                            ...result.details,
+                            destinationType: destinationType,
+                            shouldNavigate: true
+                          });
+                        }
+                      }}
+                    >
+                      View {destinationType === 'flashcards' ? 'Flashcards' : destinationType === 'questions' ? 'Questions' : 'Note'} <ArrowRight size={16} />
+                    </button>
+                  </>
                 )}
               </div>
             </div>

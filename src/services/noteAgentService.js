@@ -1,20 +1,21 @@
 /**
  * Note Agent Service
- * Provides API calls to the agentic note system
+ * Frontend service for interacting with the Note Agent API
+ * Provides AI-powered note generation, improvement, and analysis
  */
 
-import { API_URL } from '../config';
+import { API_URL, getAuthToken } from '../config';
 
 class NoteAgentService {
   constructor() {
-    this.baseUrl = `${API_URL}/agents/notes`;
+    this.baseUrl = `${API_URL}/api/agents/notes`;
   }
 
   /**
-   * Get auth headers
+   * Get headers with authentication
    */
   getHeaders() {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     return {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`
@@ -32,12 +33,12 @@ class NoteAgentService {
         body: JSON.stringify({
           user_id: params.userId,
           action: action,
-          content: params.content,
-          topic: params.topic,
+          content: params.content || null,
+          topic: params.topic || null,
           tone: params.tone || 'professional',
           depth: params.depth || 'standard',
-          context: params.context,
-          session_id: params.sessionId
+          context: params.context || null,
+          session_id: params.sessionId || null
         })
       });
 
@@ -45,74 +46,66 @@ class NoteAgentService {
         throw new Error(`Note agent request failed: ${response.status}`);
       }
 
-      const data = await response.json();
-      return {
-        success: data.success,
-        content: data.content,
-        response: data.response,
-        analysis: data.analysis,
-        suggestions: data.suggestions,
-        concepts: data.concepts,
-        wordCount: data.word_count,
-        metadata: data.metadata
-      };
+      return await response.json();
     } catch (error) {
-            throw error;
+      console.error('Note agent invoke error:', error);
+      throw error;
     }
   }
 
   /**
-   * Generate new content from a topic
+   * Generate new note content on a topic
    */
   async generate(userId, topic, options = {}) {
     return this.invoke('generate', {
       userId,
       topic,
-      tone: options.tone,
-      depth: options.depth,
+      tone: options.tone || 'professional',
+      depth: options.depth || 'standard',
       context: options.context,
       sessionId: options.sessionId
     });
   }
 
   /**
-   * Improve existing text
+   * Improve existing note content
    */
   async improve(userId, content, options = {}) {
     return this.invoke('improve', {
       userId,
       content,
-      tone: options.tone,
+      tone: options.tone || 'professional',
       sessionId: options.sessionId
     });
   }
 
   /**
-   * Expand text with more details
+   * Expand note content with more details
    */
   async expand(userId, content, options = {}) {
     return this.invoke('expand', {
       userId,
       content,
-      tone: options.tone,
-      depth: options.depth,
+      depth: options.depth || 'detailed',
+      context: options.context,
       sessionId: options.sessionId
     });
   }
 
   /**
-   * Simplify complex text
+   * Simplify note content
    */
   async simplify(userId, content, options = {}) {
     return this.invoke('simplify', {
       userId,
       content,
+      depth: options.depth || 'basic',
       sessionId: options.sessionId
     });
   }
 
   /**
-   * Summarize content
+   * Summarize note content
    */
   async summarize(userId, content, options = {}) {
     return this.invoke('summarize', {
@@ -123,27 +116,25 @@ class NoteAgentService {
   }
 
   /**
-   * Continue writing from where text ends
+   * Continue writing from existing content
    */
   async continue(userId, content, options = {}) {
     return this.invoke('continue', {
       userId,
       content,
-      tone: options.tone,
+      tone: options.tone || 'professional',
       sessionId: options.sessionId
     });
   }
 
   /**
-   * Explain a concept
+   * Explain concepts in the note
    */
-  async explain(userId, topic, options = {}) {
+  async explain(userId, content, options = {}) {
     return this.invoke('explain', {
       userId,
-      topic,
-      tone: options.tone,
-      depth: options.depth,
-      context: options.context,
+      content,
+      depth: options.depth || 'standard',
       sessionId: options.sessionId
     });
   }
@@ -160,7 +151,7 @@ class NoteAgentService {
   }
 
   /**
-   * Fix grammar and spelling
+   * Check grammar and spelling
    */
   async grammar(userId, content, options = {}) {
     return this.invoke('grammar', {
@@ -171,9 +162,9 @@ class NoteAgentService {
   }
 
   /**
-   * Change the writing tone
+   * Change tone of the content
    */
-  async toneChange(userId, content, tone, options = {}) {
+  async changeTone(userId, content, tone, options = {}) {
     return this.invoke('tone_change', {
       userId,
       content,
@@ -183,20 +174,19 @@ class NoteAgentService {
   }
 
   /**
-   * Create an outline for a topic
+   * Generate outline from topic or content
    */
-  async outline(userId, topic, options = {}) {
+  async outline(userId, topicOrContent, options = {}) {
     return this.invoke('outline', {
       userId,
-      topic,
-      depth: options.depth,
-      context: options.context,
+      topic: options.isTopic ? topicOrContent : null,
+      content: options.isTopic ? null : topicOrContent,
       sessionId: options.sessionId
     });
   }
 
   /**
-   * Organize and restructure content
+   * Organize and structure content
    */
   async organize(userId, content, options = {}) {
     return this.invoke('organize', {
@@ -207,7 +197,7 @@ class NoteAgentService {
   }
 
   /**
-   * Analyze content for insights
+   * Analyze note content
    */
   async analyze(userId, content, options = {}) {
     return this.invoke('analyze', {
@@ -218,7 +208,7 @@ class NoteAgentService {
   }
 
   /**
-   * Get improvement suggestions
+   * Get suggestions for improving content
    */
   async suggest(userId, content, options = {}) {
     return this.invoke('suggest', {
@@ -229,9 +219,9 @@ class NoteAgentService {
   }
 
   /**
-   * Explain code snippets
+   * Explain code snippets in notes
    */
-  async codeExplain(userId, content, options = {}) {
+  async explainCode(userId, content, options = {}) {
     return this.invoke('code_explain', {
       userId,
       content,
@@ -240,54 +230,65 @@ class NoteAgentService {
   }
 
   /**
-   * Get available actions
-   */
-  async getActions() {
-    try {
-      const response = await fetch(`${this.baseUrl}/actions`, {
-        headers: this.getHeaders()
-      });
-      if (!response.ok) throw new Error('Failed to get actions');
-      return await response.json();
-    } catch (error) {
-            return { actions: [] };
-    }
-  }
-
-  /**
    * Get available tones
    */
   async getTones() {
     try {
       const response = await fetch(`${this.baseUrl}/tones`, {
+        method: 'GET',
         headers: this.getHeaders()
       });
-      if (!response.ok) throw new Error('Failed to get tones');
+
+      if (!response.ok) {
+        throw new Error(`Failed to get tones: ${response.status}`);
+      }
+
       return await response.json();
     } catch (error) {
-            return { tones: [] };
+      console.error('Get tones error:', error);
+      // Return default tones if API fails
+      return {
+        tones: [
+          { name: 'professional', description: 'Formal and business-like' },
+          { name: 'casual', description: 'Relaxed and conversational' },
+          { name: 'academic', description: 'Scholarly and precise' },
+          { name: 'creative', description: 'Imaginative and expressive' },
+          { name: 'technical', description: 'Detailed and specific' }
+        ]
+      };
     }
   }
 
   /**
    * Get available depth levels
    */
-  async getDepths() {
+  async getDepthLevels() {
     try {
       const response = await fetch(`${this.baseUrl}/depths`, {
+        method: 'GET',
         headers: this.getHeaders()
       });
-      if (!response.ok) throw new Error('Failed to get depths');
+
+      if (!response.ok) {
+        throw new Error(`Failed to get depth levels: ${response.status}`);
+      }
+
       return await response.json();
     } catch (error) {
-            return { depths: [] };
+      console.error('Get depth levels error:', error);
+      // Return default depths if API fails
+      return {
+        depths: [
+          { name: 'basic', description: 'Simple overview' },
+          { name: 'standard', description: 'Balanced detail' },
+          { name: 'detailed', description: 'Comprehensive coverage' },
+          { name: 'expert', description: 'Advanced and thorough' }
+        ]
+      };
     }
   }
 }
 
-// Export singleton instance
 const noteAgentService = new NoteAgentService();
 export default noteAgentService;
-
-// Also export the class for testing
 export { NoteAgentService };

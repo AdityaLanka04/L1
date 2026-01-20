@@ -1,14 +1,14 @@
 /**
  * Knowledge Graph Service
  * Frontend service for interacting with the Knowledge Graph API
- * Provides concept mastery tracking, learning paths, and knowledge gap detection
+ * Provides concept relationships, mastery tracking, and learning paths
  */
 
 import { API_URL, getAuthToken } from '../config';
 
 class KnowledgeGraphService {
   constructor() {
-    this.baseUrl = `${API_URL}/agents/knowledge-graph`;
+    this.baseUrl = `${API_URL}/api/agents/knowledge-graph`;
   }
 
   /**
@@ -21,6 +21,8 @@ class KnowledgeGraphService {
       'Authorization': `Bearer ${token}`
     };
   }
+
+  // ==================== SYSTEM STATUS ====================
 
   /**
    * Get knowledge graph connection status
@@ -42,6 +44,8 @@ class KnowledgeGraphService {
       throw error;
     }
   }
+
+  // ==================== USER INITIALIZATION ====================
 
   /**
    * Initialize a user in the knowledge graph
@@ -65,20 +69,20 @@ class KnowledgeGraphService {
     }
   }
 
+  // ==================== CONCEPT INTERACTIONS ====================
+
   /**
-   * Record a concept interaction (for tracking mastery)
+   * Record a concept interaction (study, review, etc.)
    */
-  async recordConceptInteraction(userId, concept, correct, source = 'flashcard', difficulty = 0.5, responseTimeMs = null) {
+  async recordConceptInteraction(userId, concept, interactionType, performance = null) {
     try {
       const response = await fetch(`${this.baseUrl}/user/${userId}/concept-interaction`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
           concept,
-          correct,
-          source,
-          difficulty,
-          response_time_ms: responseTimeMs
+          interaction_type: interactionType, // 'study', 'review', 'quiz', 'flashcard'
+          performance: performance // 0.0 - 1.0 or null
         })
       });
 
@@ -93,10 +97,12 @@ class KnowledgeGraphService {
     }
   }
 
+  // ==================== USER MASTERY ====================
+
   /**
    * Get all concept mastery data for a user
    */
-  async getConceptMastery(userId, limit = 50) {
+  async getUserMastery(userId, limit = 50) {
     try {
       const response = await fetch(`${this.baseUrl}/user/${userId}/mastery?limit=${limit}`, {
         method: 'GET',
@@ -104,18 +110,18 @@ class KnowledgeGraphService {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to get mastery: ${response.status}`);
+        throw new Error(`Failed to get user mastery: ${response.status}`);
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Get concept mastery error:', error);
+      console.error('Get user mastery error:', error);
       throw error;
     }
   }
 
   /**
-   * Get concepts where user needs improvement
+   * Get user's weak concepts
    */
   async getWeakConcepts(userId, threshold = 0.5, limit = 10) {
     try {
@@ -139,7 +145,7 @@ class KnowledgeGraphService {
   }
 
   /**
-   * Get concepts where user excels
+   * Get user's strong concepts
    */
   async getStrongConcepts(userId, threshold = 0.7, limit = 10) {
     try {
@@ -183,6 +189,8 @@ class KnowledgeGraphService {
     }
   }
 
+  // ==================== LEARNING PATHS ====================
+
   /**
    * Get personalized learning path for a topic
    */
@@ -208,7 +216,7 @@ class KnowledgeGraphService {
   }
 
   /**
-   * Find knowledge gaps based on current knowledge
+   * Find concepts user should learn based on current knowledge
    */
   async getKnowledgeGaps(userId, limit = 10) {
     try {
@@ -227,30 +235,6 @@ class KnowledgeGraphService {
       return await response.json();
     } catch (error) {
       console.error('Get knowledge gaps error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get comprehensive learning analytics
-   */
-  async getLearningAnalytics(userId, days = 30) {
-    try {
-      const response = await fetch(
-        `${this.baseUrl}/user/${userId}/analytics?days=${days}`,
-        {
-          method: 'GET',
-          headers: this.getHeaders()
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to get analytics: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Get learning analytics error:', error);
       throw error;
     }
   }
@@ -279,23 +263,47 @@ class KnowledgeGraphService {
     }
   }
 
+  // ==================== ANALYTICS ====================
+
   /**
-   * Add a concept with relationships to the knowledge graph
+   * Get comprehensive learning analytics
    */
-  async addConcept(concept, options = {}) {
+  async getLearningAnalytics(userId, days = 30) {
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/user/${userId}/analytics?days=${days}`,
+        {
+          method: 'GET',
+          headers: this.getHeaders()
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to get learning analytics: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Get learning analytics error:', error);
+      throw error;
+    }
+  }
+
+  // ==================== CONCEPT MANAGEMENT ====================
+
+  /**
+   * Add a new concept to the knowledge graph
+   */
+  async addConcept(concept, domain = null, description = null, prerequisites = []) {
     try {
       const response = await fetch(`${this.baseUrl}/concept`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
           concept,
-          domain: options.domain || null,
-          description: options.description || null,
-          difficulty: options.difficulty || 0.5,
-          keywords: options.keywords || null,
-          prerequisites: options.prerequisites || null,
-          related_concepts: options.relatedConcepts || null,
-          topic: options.topic || null
+          domain,
+          description,
+          prerequisites
         })
       });
 
@@ -311,19 +319,22 @@ class KnowledgeGraphService {
   }
 
   /**
-   * Get concepts related to a given concept
+   * Get related concepts
    */
-  async getRelatedConcepts(concept, userId = null, limit = 10) {
+  async getRelatedConcepts(concept, relationshipType = null, limit = 10) {
     try {
-      let url = `${this.baseUrl}/concept/${encodeURIComponent(concept)}/related?limit=${limit}`;
-      if (userId) {
-        url += `&user_id=${userId}`;
+      const params = new URLSearchParams({ limit: limit.toString() });
+      if (relationshipType) {
+        params.append('relationship_type', relationshipType);
       }
 
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: this.getHeaders()
-      });
+      const response = await fetch(
+        `${this.baseUrl}/concept/${encodeURIComponent(concept)}/related?${params}`,
+        {
+          method: 'GET',
+          headers: this.getHeaders()
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`Failed to get related concepts: ${response.status}`);
@@ -333,6 +344,97 @@ class KnowledgeGraphService {
     } catch (error) {
       console.error('Get related concepts error:', error);
       throw error;
+    }
+  }
+
+  // ==================== CONVENIENCE METHODS ====================
+
+  /**
+   * Record a flashcard review
+   */
+  async recordFlashcardReview(userId, concept, correct) {
+    return this.recordConceptInteraction(
+      userId,
+      concept,
+      'flashcard',
+      correct ? 1.0 : 0.0
+    );
+  }
+
+  /**
+   * Record a quiz result
+   */
+  async recordQuizResult(userId, concept, score) {
+    return this.recordConceptInteraction(
+      userId,
+      concept,
+      'quiz',
+      score
+    );
+  }
+
+  /**
+   * Record studying a concept
+   */
+  async recordStudy(userId, concept) {
+    return this.recordConceptInteraction(
+      userId,
+      concept,
+      'study',
+      null
+    );
+  }
+
+  /**
+   * Get comprehensive user learning data
+   */
+  async getUserLearningData(userId) {
+    try {
+      const [mastery, weakConcepts, strongConcepts, domainMastery, gaps, recommendations, analytics] = 
+        await Promise.all([
+          this.getUserMastery(userId, 50).catch(() => null),
+          this.getWeakConcepts(userId).catch(() => null),
+          this.getStrongConcepts(userId).catch(() => null),
+          this.getDomainMastery(userId).catch(() => null),
+          this.getKnowledgeGaps(userId).catch(() => null),
+          this.getRecommendedTopics(userId).catch(() => null),
+          this.getLearningAnalytics(userId).catch(() => null)
+        ]);
+
+      return {
+        mastery,
+        weakConcepts,
+        strongConcepts,
+        domainMastery,
+        knowledgeGaps: gaps,
+        recommendedTopics: recommendations,
+        analytics,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Get user learning data error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Health check
+   */
+  async healthCheck() {
+    try {
+      const status = await this.getStatus();
+      return {
+        healthy: status.connected === true,
+        database: status.database || 'unknown',
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('KG health check failed:', error);
+      return {
+        healthy: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      };
     }
   }
 }

@@ -186,7 +186,7 @@ class SlideExplorerAgent(BaseAgent):
                 if user_rag:
                     # Use slide content as query to find related materials
                     query = state.get("slide_content", "")[:500]
-                    logger.info(f"🔍 Retrieving relevant content from user's RAG for slide analysis")
+                    logger.info(f"Retrieving relevant content from user's RAG for slide analysis")
                     
                     rag_results = await user_rag.retrieve_for_user(
                         user_id=str(user_id),
@@ -204,13 +204,13 @@ class SlideExplorerAgent(BaseAgent):
                         
                         state["rag_context"] = "\n\n".join(rag_context_parts)
                         state["rag_results_count"] = len(rag_results)
-                        logger.info(f"✅ RAG retrieved {len(rag_results)} related items for slide analysis")
+                        logger.info(f"RAG retrieved {len(rag_results)} related items for slide analysis")
                     else:
                         state["rag_context"] = ""
                         state["rag_results_count"] = 0
                         
             except Exception as e:
-                logger.error(f"❌ RAG retrieval failed: {e}")
+                logger.error(f"RAG retrieval failed: {e}")
                 state["rag_context"] = ""
                 state["rag_results_count"] = 0
         

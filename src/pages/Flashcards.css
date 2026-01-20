@@ -829,6 +829,56 @@
   animation: cardShake 0.5s ease-in-out;
 }
 
+/* Load More Button */
+.fc-load-more-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+  padding: 20px 0;
+}
+
+.fc-load-more-btn {
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fc-spinner-small {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.fc-spinner-small span {
+  width: 6px;
+  height: 6px;
+  background: var(--fc-accent);
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.fc-spinner-small span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.fc-spinner-small span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
 @keyframes cardShake {
   0%, 100% {
     transform: translate(0, 0) rotate(0deg);
@@ -1940,6 +1990,30 @@
   overflow: hidden !important;
   text-align: center;
   padding: 8px;
+}
+
+/* Edited Badge */
+.fc-edited-badge {
+  display: block;
+  margin-top: 12px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(215, 179, 140, 0.25);
+  color: var(--fc-accent);
+  border-radius: 4px;
+  cursor: help;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+[data-theme-mode="light"] .fc-edited-badge {
+  background: rgba(255, 255, 255, 0.4);
+  color: white;
+  font-weight: 800;
 }
 
 /* Scrollbar removed - no scrolling allowed */
@@ -4921,7 +4995,7 @@
 /* Section Header Text */
 .fc-section-header-text {
   width: 100%;
-  padding: 0 0 32px 0;
+  padding: 40px 0 32px 0;
   text-align: center;
 }
 
@@ -5555,6 +5629,17 @@
   color: var(--fc-success);
 }
 
+.fc-badge-edited {
+  background: rgba(215, 179, 140, 0.15);
+  color: var(--fc-accent);
+  cursor: help;
+}
+
+[data-theme-mode="light"] .fc-badge-edited {
+  background: rgba(215, 179, 140, 0.25);
+  color: #8B6F47;
+}
+
 .fc-edit-delete-btn {
   width: 36px;
   height: 36px;
@@ -5676,5 +5761,131 @@
   .fc-edit-title-input {
     max-width: 200px;
     font-size: 16px;
+  }
+}
+
+/* ==================== LAZY LOADING STYLES ==================== */
+
+/* Loading More Indicator */
+.fc-loading-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 20px;
+  gap: 12px;
+  opacity: 0.8;
+}
+
+.fc-loading-more p {
+  font-size: 13px;
+  color: var(--fc-text-muted);
+  font-weight: 500;
+}
+
+/* Small Spinner for Load More */
+.fc-spinner-small {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+}
+
+.fc-spinner-small span {
+  width: 8px;
+  height: 8px;
+  background: var(--fc-accent);
+  border-radius: 50%;
+  animation: fc-bounce 1.4s infinite ease-in-out both;
+}
+
+.fc-spinner-small span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.fc-spinner-small span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.fc-spinner-small span:nth-child(3) {
+  animation-delay: 0s;
+}
+
+/* End of List Indicator */
+.fc-end-of-list {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  margin-top: 20px;
+}
+
+.fc-end-of-list p {
+  font-size: 13px;
+  color: var(--fc-text-muted);
+  font-weight: 500;
+  opacity: 0.6;
+  text-align: center;
+}
+
+/* Load More Sentinel (invisible trigger) */
+.fc-load-more-sentinel {
+  height: 20px;
+  margin: 20px 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* Smooth fade-in for newly loaded cards */
+@keyframes fc-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fc-set-card-new {
+  animation: fc-fade-in-up 0.4s ease-out;
+}
+
+/* Stagger animation for multiple cards loading at once */
+.fc-grid .fc-set-card-new:nth-child(n+1) {
+  animation-delay: 0s;
+}
+
+.fc-grid .fc-set-card-new:nth-child(n+2) {
+  animation-delay: 0.05s;
+}
+
+.fc-grid .fc-set-card-new:nth-child(n+3) {
+  animation-delay: 0.1s;
+}
+
+.fc-grid .fc-set-card-new:nth-child(n+4) {
+  animation-delay: 0.15s;
+}
+
+/* Performance optimization: Use will-change for smooth scrolling */
+.fc-main {
+  will-change: scroll-position;
+}
+
+.fc-grid {
+  will-change: contents;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .fc-set-card-new {
+    animation: none;
+  }
+  
+  .fc-spinner span,
+  .fc-spinner-small span {
+    animation: none;
   }
 }

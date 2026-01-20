@@ -22,6 +22,12 @@ const Flashcards = () => {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [currentSetInfo, setCurrentSetInfo] = useState(null);
   
+  // Lazy loading state
+  const [hasMoreSets, setHasMoreSets] = useState(true);
+  const [currentOffset, setCurrentOffset] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const SETS_PER_PAGE = 20;
+  
   // Card navigation
   const [currentCard, setCurrentCard] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -152,25 +158,58 @@ const Flashcards = () => {
           }
   }, [userName]);
 
-  const loadFlashcardHistory = useCallback(async () => {
+  const loadFlashcardHistory = useCallback(async (reset = false) => {
     if (!userName) return;
-    setLoadingHistory(true);
+    
+    // Prevent duplicate loading
+    if (loadingHistory || isLoadingMore) return;
+    
+    // If we're resetting, use initial load state, otherwise use "load more" state
+    if (reset) {
+      setLoadingHistory(true);
+      setCurrentOffset(0);
+      setHasMoreSets(true);
+    } else {
+      // Don't load more if we already know there's no more data
+      if (!hasMoreSets) return;
+      setIsLoadingMore(true);
+    }
+    
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/get_flashcard_history?user_id=${userName}&limit=50`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const offset = reset ? 0 : currentOffset;
+      const response = await fetch(
+        `${API_URL}/get_flashcard_history?user_id=${userName}&limit=${SETS_PER_PAGE}&offset=${offset}`, 
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+      
       if (response.ok) {
         const data = await response.json();
-        setFlashcardHistory(Array.isArray(data.flashcard_history) ? data.flashcard_history : []);
+        const newSets = Array.isArray(data.flashcard_history) ? data.flashcard_history : [];
+        
+        if (reset) {
+          // Replace all sets on reset
+          setFlashcardHistory(newSets);
+        } else {
+          // Append new sets for lazy loading
+          setFlashcardHistory(prev => [...prev, ...newSets]);
+        }
+        
+        // Update pagination state
+        setHasMoreSets(data.has_more || false);
+        setCurrentOffset(offset + newSets.length);
       } else {
-        setFlashcardHistory([]);
+        setFlashcardHistory(reset ? [] : flashcardHistory);
       }
     } catch (error) {
-            setFlashcardHistory([]);
+      setFlashcardHistory(reset ? [] : flashcardHistory);
+    } finally {
+      setLoadingHistory(false);
+      setIsLoadingMore(false);
     }
-    setLoadingHistory(false);
-  }, [userName]);
+  }, [userName, currentOffset, hasMoreSets, loadingHistory, isLoadingMore, flashcardHistory]);
 
   const loadFlashcardStats = useCallback(async () => {
     if (!userName) return;
@@ -540,7 +579,7 @@ const Flashcards = () => {
       setCustomCards([{ question: '', answer: '' }]);
       setCustomSetTitle('');
       setCurrentCard(0);
-      loadFlashcardHistory();
+      loadFlashcardHistory(true); // Reset pagination after create
       loadFlashcardStats();
     } catch (error) {
       showPopup('Error', 'Failed to save flashcards');
@@ -581,6 +620,7 @@ const Flashcards = () => {
   const updateEditingCard = (index, field, value) => {
     const updated = [...editingCards];
     updated[index][field] = value;
+    updated[index].wasModified = true; // Track that this card was changed
     setEditingCards(updated);
   };
 
@@ -642,8 +682,8 @@ const Flashcards = () => {
               difficulty: card.difficulty || 'medium'
             })
           });
-        } else if (!card.isNew && !card.isDeleted && card.id) {
-          // Update existing card
+        } else if (!card.isNew && !card.isDeleted && card.id && card.wasModified) {
+          // Update existing card ONLY if it was actually modified
           await fetch(`${API_URL}/flashcards/cards/${card.id}`, {
             method: 'PUT',
             headers: {
@@ -663,7 +703,7 @@ const Flashcards = () => {
       setEditMode(false);
       setEditingCards([]);
       setCurrentCard(0);
-      loadFlashcardHistory();
+      loadFlashcardHistory(true); // Reset pagination after edit
     } catch (error) {
       showPopup('Error', 'Failed to save changes');
     }
@@ -732,7 +772,7 @@ const Flashcards = () => {
       if (response.ok) {
         const data = await response.json();
         showPopup('Copied Successfully', `"${data.title}" has been added to your flashcard sets.`);
-        loadFlashcardHistory();
+        loadFlashcardHistory(true); // Reset pagination after copy
       }
     } catch (error) {
       showPopup('Error', 'Failed to copy flashcard set');
@@ -815,7 +855,7 @@ const Flashcards = () => {
   useEffect(() => {
     if (userName) {
       loadChatSessions();
-      loadFlashcardHistory();
+      loadFlashcardHistory(true); // Reset and load initial data
       loadFlashcardStats();
       loadReviewCards();
       
@@ -833,7 +873,7 @@ const Flashcards = () => {
         setActivePanel('cards');
       }
     }
-  }, [userName, location.search, loadChatSessions, loadFlashcardHistory, loadFlashcardStats, loadReviewCards, loadFlashcardSetByCode]);
+  }, [userName, location.search, loadChatSessions, loadFlashcardStats, loadReviewCards, loadFlashcardSetByCode]);
 
   useEffect(() => {
     const savedStreak = localStorage.getItem('flashcardStreak');
@@ -865,6 +905,36 @@ const Flashcards = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Infinite scroll observer for lazy loading
+  useEffect(() => {
+    if (activePanel !== 'cards') return;
+    
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const target = entries[0];
+        if (target.isIntersecting && hasMoreSets && !loadingHistory && !isLoadingMore) {
+          loadFlashcardHistory(false); // Load more without reset
+        }
+      },
+      {
+        root: null,
+        rootMargin: '200px', // Start loading 200px before reaching the bottom
+        threshold: 0.1
+      }
+    );
+
+    const sentinel = document.querySelector('.fc-load-more-sentinel');
+    if (sentinel) {
+      observer.observe(sentinel);
+    }
+
+    return () => {
+      if (sentinel) {
+        observer.unobserve(sentinel);
+      }
+    };
+  }, [activePanel, hasMoreSets, loadingHistory, isLoadingMore, loadFlashcardHistory]);
 
 
   // Helper functions
@@ -1038,7 +1108,7 @@ const Flashcards = () => {
               cardCount: cards.length
             });
             
-            loadFlashcardHistory();
+            loadFlashcardHistory(true); // Reset pagination after generation
             loadFlashcardStats();
             gamificationService.trackFlashcardSet(userName, cards.length);
             
@@ -1117,7 +1187,7 @@ const Flashcards = () => {
           setTitle: data.set_title,
           cardCount: data.flashcards.length
         });
-        loadFlashcardHistory();
+        loadFlashcardHistory(true); // Reset pagination after generation
         loadFlashcardStats();
         gamificationService.trackFlashcardSet(userName, data.flashcards.length);
         
@@ -1217,7 +1287,7 @@ const Flashcards = () => {
       });
       if (response.ok) {
         showPopup('Deleted Successfully', 'The flashcard set has been removed.');
-        loadFlashcardHistory();
+        loadFlashcardHistory(true); // Reset pagination after delete
         loadFlashcardStats();
         if (currentSetInfo && currentSetInfo.setId === setId) {
           setFlashcards([]);
@@ -1245,7 +1315,7 @@ const Flashcards = () => {
         body: JSON.stringify({ set_id: setId, title: editingTitle.trim(), description: '' })
       });
       if (response.ok) {
-        loadFlashcardHistory();
+        loadFlashcardHistory(true); // Reset pagination after rename
         showPopup('Renamed Successfully', 'The flashcard set has been renamed.');
       }
     } catch (error) {
@@ -1374,7 +1444,7 @@ const Flashcards = () => {
     setMcqOptions([]);
     
     // Reload flashcard history to update mastery percentages
-    loadFlashcardHistory();
+    loadFlashcardHistory(true); // Reset pagination after study
     
     // Clear URL parameters
     window.history.replaceState({}, '', '/flashcards');
@@ -1457,7 +1527,7 @@ const Flashcards = () => {
           });
         }
 
-        loadFlashcardHistory();
+        loadFlashcardHistory(true); // Reset pagination after auto-save
         loadFlashcardStats();
       } catch (error) {
         // Silent fail for auto-save
@@ -1675,6 +1745,9 @@ const Flashcards = () => {
                     {currentEditCard?.isNew && (
                       <span className="fc-edit-badge fc-badge-new">NEW</span>
                     )}
+                    {currentEditCard?.is_edited && !currentEditCard?.isNew && (
+                      <span className="fc-edit-badge fc-badge-edited" title={`Edited ${currentEditCard?.edited_at ? new Date(currentEditCard.edited_at).toLocaleString() : ''}`}>EDITED</span>
+                    )}
                     <button 
                       className="fc-edit-delete-btn"
                       onClick={() => {
@@ -1821,7 +1894,14 @@ const Flashcards = () => {
                 <div className="fc-study-card-inner">
                   <div className="fc-study-card-front">
                     <div className="fc-study-badge">Question</div>
-                    <div className="fc-study-card-text">{previewCards[currentCard]?.question}</div>
+                    <div className="fc-study-card-text">
+                      {previewCards[currentCard]?.question}
+                    </div>
+                    {previewCards[currentCard]?.is_edited && (
+                      <div className="fc-edited-badge" title={`Edited ${previewCards[currentCard]?.edited_at ? new Date(previewCards[currentCard].edited_at).toLocaleString() : ''}`}>
+                        EDITED
+                      </div>
+                    )}
                     <div className="fc-study-hint">Click to flip</div>
                   </div>
                   <div className="fc-study-card-back">
@@ -2140,7 +2220,10 @@ const Flashcards = () => {
                     </div>
                   )}
                 </div>
-                <button className="fc-btn fc-btn-secondary" onClick={() => { loadFlashcardHistory(); loadFlashcardStats(); }}>
+                <button className="fc-btn fc-btn-secondary" onClick={() => { 
+                  loadFlashcardHistory(true); // Reset pagination
+                  loadFlashcardStats(); 
+                }}>
                   {Icons.refresh}
                 </button>
               </>
@@ -2217,7 +2300,7 @@ const Flashcards = () => {
                   <p>{flashcardHistory.length} {flashcardHistory.length === 1 ? 'SET' : 'SETS'} • {flashcardStats?.total_cards || 0} CARDS TOTAL</p>
                 </div>
                 
-                {loadingHistory ? (
+                {loadingHistory && flashcardHistory.length === 0 ? (
                   <div className="fc-loading">
                     <div className="fc-spinner">
                       <span></span>
@@ -2236,94 +2319,118 @@ const Flashcards = () => {
                     </button>
                   </div>
                 ) : (
-                  <div className={`fc-grid ${isRearranging ? 'fc-grid-rearranging' : ''}`}>
-                    {getFilteredAndSortedSets().map((set, index) => {
-                      const mastery = getMasteryLevel(set.accuracy_percentage || 0);
-                      // Generate different colors for each set
-                      const colors = [
-                        '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
-                        '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788'
-                      ];
-                      const cardColor = colors[index % colors.length];
-                      
-                      return (
-                        <div key={set.id} className="fc-set-card-new">
-                          {/* Colored Thumbnail with Title */}
-                          <div className="fc-set-thumbnail" style={{ background: `linear-gradient(135deg, ${cardColor} 0%, ${cardColor}dd 100%)` }}>
-                            <div className="fc-set-thumbnail-content">
-                              {editingSetId === set.id ? (
-                                <input
-                                  type="text"
-                                  className="fc-input-title-thumb"
-                                  value={editingTitle}
-                                  onChange={(e) => setEditingTitle(e.target.value)}
-                                  onKeyDown={(e) => e.key === 'Enter' && handleRenameSubmit(set.id)}
-                                  onBlur={() => handleRenameSubmit(set.id)}
-                                  autoFocus
-                                />
-                              ) : (
-                                <>
-                                  <h2 className="fc-thumbnail-title">{set.title.replace(/^(AI Generated:\s*|Flashcards:\s*)/i, '')}</h2>
-                                  <div className="fc-thumbnail-card-count">{set.card_count} CARDS</div>
-                                </>
-                              )}
-                            </div>
-                            <button 
-                              className="fc-delete-btn-thumb" 
-                              onClick={() => deleteFlashcardSet(set.id)} 
-                              style={{ 
-                                background: 'rgba(0, 0, 0, 0.3)',
-                                borderColor: 'rgba(0, 0, 0, 0.5)',
-                                color: 'white'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.6)';
-                                e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.8)';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.3)';
-                                e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.5)';
-                              }}
-                            >
-                              {Icons.trash}
-                            </button>
-                          </div>
-
-                          {/* Content Section */}
-                          <div className="fc-set-content-new">
-                            <div className="fc-set-meta-new">
-                            </div>
-                            
-                            <div className="fc-mastery-section">
-                              <div className="fc-mastery-info">
-                                <span className="fc-mastery-label">Mastery:</span>
-                                <span className="fc-mastery-value" style={{ color: mastery.color }}>{mastery.level}</span>
+                  <>
+                    <div className={`fc-grid ${isRearranging ? 'fc-grid-rearranging' : ''}`}>
+                      {getFilteredAndSortedSets().map((set, index) => {
+                        const mastery = getMasteryLevel(set.accuracy_percentage || 0);
+                        // Generate different colors for each set
+                        const colors = [
+                          '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
+                          '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788'
+                        ];
+                        const cardColor = colors[index % colors.length];
+                        
+                        return (
+                          <div key={set.id} className="fc-set-card-new">
+                            {/* Colored Thumbnail with Title */}
+                            <div className="fc-set-thumbnail" style={{ background: `linear-gradient(135deg, ${cardColor} 0%, ${cardColor}dd 100%)` }}>
+                              <div className="fc-set-thumbnail-content">
+                                {editingSetId === set.id ? (
+                                  <input
+                                    type="text"
+                                    className="fc-input-title-thumb"
+                                    value={editingTitle}
+                                    onChange={(e) => setEditingTitle(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleRenameSubmit(set.id)}
+                                    onBlur={() => handleRenameSubmit(set.id)}
+                                    autoFocus
+                                  />
+                                ) : (
+                                  <>
+                                    <h2 className="fc-thumbnail-title">{set.title.replace(/^(AI Generated:\s*|Flashcards:\s*)/i, '')}</h2>
+                                    <div className="fc-thumbnail-card-count">{set.card_count} CARDS</div>
+                                  </>
+                                )}
                               </div>
-                              <div className="fc-set-progress-new">
-                                <div className="fc-set-progress-fill-new" style={{ width: `${set.accuracy_percentage || 0}%`, background: mastery.color }} />
-                              </div>
-                              <span className="fc-mastery-percentage">{set.accuracy_percentage || 0}%</span>
+                              <button 
+                                className="fc-delete-btn-thumb" 
+                                onClick={() => deleteFlashcardSet(set.id)} 
+                                style={{ 
+                                  background: 'rgba(0, 0, 0, 0.3)',
+                                  borderColor: 'rgba(0, 0, 0, 0.5)',
+                                  color: 'white'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = 'rgba(0, 0, 0, 0.6)';
+                                  e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.8)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = 'rgba(0, 0, 0, 0.3)';
+                                  e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.5)';
+                                }}
+                              >
+                                {Icons.trash}
+                              </button>
                             </div>
-                            
-                            <p className="fc-set-date-new">Created: {formatDate(set.created_at)}</p>
-                          </div>
 
-                          {/* Actions */}
-                          <div className="fc-set-actions-new">
-                            <button className="fc-action-btn-new fc-action-edit" onClick={() => enterEditMode(set.id)}>
-                              <span>EDIT</span>
-                            </button>
-                            <button className="fc-action-btn-new fc-action-preview" onClick={() => loadFlashcardSet(set.id, 'preview')}>
-                              <span>PREVIEW</span>
-                            </button>
-                            <button className="fc-action-btn-new fc-action-study" onClick={() => loadFlashcardSet(set.id, 'study')}>
-                              <span>STUDY</span>
-                            </button>
+                            {/* Content Section */}
+                            <div className="fc-set-content-new">
+                              <div className="fc-set-meta-new">
+                              </div>
+                              
+                              <div className="fc-mastery-section">
+                                <div className="fc-mastery-info">
+                                  <span className="fc-mastery-label">Mastery:</span>
+                                  <span className="fc-mastery-value" style={{ color: mastery.color }}>{mastery.level}</span>
+                                </div>
+                                <div className="fc-set-progress-new">
+                                  <div className="fc-set-progress-fill-new" style={{ width: `${set.accuracy_percentage || 0}%`, background: mastery.color }} />
+                                </div>
+                                <span className="fc-mastery-percentage">{set.accuracy_percentage || 0}%</span>
+                              </div>
+                              
+                              <p className="fc-set-date-new">Created: {formatDate(set.created_at)}</p>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="fc-set-actions-new">
+                              <button className="fc-action-btn-new fc-action-edit" onClick={() => enterEditMode(set.id)}>
+                                <span>EDIT</span>
+                              </button>
+                              <button className="fc-action-btn-new fc-action-preview" onClick={() => loadFlashcardSet(set.id, 'preview')}>
+                                <span>PREVIEW</span>
+                              </button>
+                              <button className="fc-action-btn-new fc-action-study" onClick={() => loadFlashcardSet(set.id, 'study')}>
+                                <span>STUDY</span>
+                              </button>
+                            </div>
                           </div>
+                        );
+                      })}
+                    </div>
+                    
+                    {/* Infinite scroll sentinel */}
+                    <div className="fc-load-more-sentinel" style={{ height: '20px', margin: '20px 0' }} />
+                    
+                    {/* Loading more indicator */}
+                    {isLoadingMore && (
+                      <div className="fc-loading-more">
+                        <div className="fc-spinner-small">
+                          <span></span>
+                          <span></span>
+                          <span></span>
                         </div>
-                      );
-                    })}
-                  </div>
+                        <p>Loading more sets...</p>
+                      </div>
+                    )}
+                    
+                    {/* End of list indicator */}
+                    {!hasMoreSets && flashcardHistory.length > 0 && (
+                      <div className="fc-end-of-list">
+                        <p>You've reached the end of your flashcard sets</p>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </>
@@ -2923,8 +3030,25 @@ const Flashcards = () => {
         mode="import"
         sourceType="flashcards"
         onSuccess={(result) => {
-          showPopup("Converted Successfully", "Your flashcards have been converted.");
-          loadFlashcardHistory();
+          if (result.shouldNavigate) {
+            // Navigate based on destination type
+            if (result.destinationType === 'questions') {
+              // Navigate to question bank
+              navigate('/question-bank');
+            } else if (result.destinationType === 'notes') {
+              // Navigate to the created note
+              if (result.note_id) {
+                navigate(`/notes/${result.note_id}`);
+              } else {
+                navigate('/notes');
+              }
+            } else {
+              loadFlashcardHistory(true);
+            }
+          } else {
+            showPopup("Converted Successfully", "Your flashcards have been converted.");
+            loadFlashcardHistory(true); // Reset pagination after conversion
+          }
         }}
       />
     </div>

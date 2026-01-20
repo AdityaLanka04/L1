@@ -376,6 +376,12 @@ class ChatUpdateFolder(BaseModel):
     chat_id: int
     folder_id: Optional[int] = None
 
+class FlashcardReviewRequest(BaseModel):
+    user_id: str
+    card_id: str
+    was_correct: bool
+    mode: str = "preview"
+
 class GenerateChatTitleRequest(BaseModel):
     chat_id: int
     user_id: str
@@ -3471,7 +3477,9 @@ def get_flashcards_in_set(set_id: int = Query(...), db: Session = Depends(get_db
                     "difficulty": card.difficulty or "medium",
                     "times_reviewed": card.times_reviewed or 0,
                     "correct_count": card.correct_count or 0,
-                    "marked_for_review": card.marked_for_review if hasattr(card, 'marked_for_review') else False
+                    "marked_for_review": bool(card.marked_for_review) if hasattr(card, 'marked_for_review') else False,
+                    "is_edited": bool(card.is_edited) if hasattr(card, 'is_edited') and card.is_edited else False,
+                    "edited_at": card.edited_at.isoformat() if hasattr(card, 'edited_at') and card.edited_at else None
                 }
                 for card in flashcards
             ]
@@ -3485,23 +3493,37 @@ def get_flashcards_in_set(set_id: int = Query(...), db: Session = Depends(get_db
 
 @app.get("/get_flashcard_history")
 @app.get("/api/get_flashcard_history")
-def get_flashcard_history(user_id: str = Query(...), limit: int = Query(50), db: Session = Depends(get_db)):
-    """Get flashcard sets with mastery for a user
+def get_flashcard_history(
+    user_id: str = Query(...), 
+    limit: int = Query(20), 
+    offset: int = Query(0),
+    db: Session = Depends(get_db)
+):
+    """Get flashcard sets with mastery for a user (with pagination)
     
     Mastery calculation:
     - Each card that was answered correctly (not marked_for_review) = 10%
     - Each card that was only previewed (marked_for_review or never in study) = 5%
     - Max mastery = 100%
+    
+    Pagination:
+    - limit: Number of sets to return (default: 20)
+    - offset: Number of sets to skip (default: 0)
     """
     try:
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # Get all flashcard sets for the user
+        # Get total count for pagination
+        total_count = db.query(func.count(models.FlashcardSet.id)).filter(
+            models.FlashcardSet.user_id == user.id
+        ).scalar() or 0
+        
+        # Get flashcard sets with pagination
         flashcard_sets = db.query(models.FlashcardSet).filter(
             models.FlashcardSet.user_id == user.id
-        ).order_by(models.FlashcardSet.created_at.desc()).limit(limit).all()
+        ).order_by(models.FlashcardSet.created_at.desc()).limit(limit).offset(offset).all()
         
         result = []
         for fs in flashcard_sets:
@@ -3544,12 +3566,24 @@ def get_flashcard_history(user_id: str = Query(...), limit: int = Query(50), db:
                 "updated_at": fs.updated_at.isoformat() + 'Z' if fs.updated_at else None
             })
         
-        logger.info(f"Retrieved {len(result)} flashcard sets for user {user.email}")
-        return {"flashcard_history": result}
+        logger.info(f"Retrieved {len(result)} flashcard sets for user {user.email} (offset: {offset}, limit: {limit})")
+        return {
+            "flashcard_history": result,
+            "total_count": total_count,
+            "has_more": (offset + len(result)) < total_count,
+            "offset": offset,
+            "limit": limit
+        }
         
     except Exception as e:
         logger.error(f"Error getting flashcard history: {str(e)}", exc_info=True)
-        return {"flashcard_history": []}
+        return {
+            "flashcard_history": [],
+            "total_count": 0,
+            "has_more": False,
+            "offset": 0,
+            "limit": limit
+        }
 
 
 @app.get("/get_flashcard_statistics")
@@ -3610,13 +3644,13 @@ def get_flashcards_for_review(user_id: str = Query(None), db: Session = Depends(
     """Get flashcards that need review"""
     try:
         if not user_id:
-            return {"cards": [], "count": 0}
+            return {"total_cards": 0, "sets": []}
             
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
-            return {"cards": [], "count": 0}
+            return {"total_cards": 0, "sets": []}
         
-        # Get cards marked for review or with low accuracy
+        # Get cards marked for review
         cards = db.query(models.Flashcard).join(
             models.FlashcardSet, models.Flashcard.set_id == models.FlashcardSet.id
         ).filter(
@@ -3624,22 +3658,37 @@ def get_flashcards_for_review(user_id: str = Query(None), db: Session = Depends(
             models.Flashcard.marked_for_review == True
         ).all()
         
-        result = []
+        # Group cards by set
+        sets_dict = {}
         for card in cards:
-            result.append({
+            set_id = card.set_id
+            if set_id not in sets_dict:
+                flashcard_set = db.query(models.FlashcardSet).filter(
+                    models.FlashcardSet.id == set_id
+                ).first()
+                sets_dict[set_id] = {
+                    "set_id": set_id,
+                    "set_title": flashcard_set.title if flashcard_set else "Unknown Set",
+                    "cards": []
+                }
+            
+            sets_dict[set_id]["cards"].append({
                 "id": card.id,
-                "set_id": card.set_id,
                 "question": card.question,
                 "answer": card.answer,
+                "difficulty": card.difficulty or "medium",
                 "times_reviewed": card.times_reviewed or 0,
                 "correct_count": card.correct_count or 0
             })
         
-        return {"cards": result, "count": len(result)}
+        sets_list = list(sets_dict.values())
+        total_cards = len(cards)
+        
+        return {"total_cards": total_cards, "sets": sets_list}
         
     except Exception as e:
         logger.error(f"Error getting flashcards for review: {str(e)}", exc_info=True)
-        return {"cards": [], "count": 0}
+        return {"total_cards": 0, "sets": []}
 
 
 @app.post("/generate_flashcards")
@@ -3777,6 +3826,93 @@ Generate educational flashcards covering the main topics discussed. Return ONLY 
         raise
     except Exception as e:
         logger.error(f"Error generating flashcards: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== FLASHCARD REVIEW ENDPOINTS ====================
+
+@app.post("/api/mark_flashcard_for_review")
+async def mark_flashcard_for_review(
+    flashcard_id: str = Form(...),
+    marked: str = Form("true"),
+    db: Session = Depends(get_db)
+):
+    """Mark a flashcard for review (needs review)"""
+    try:
+        flashcard = db.query(models.Flashcard).filter(
+            models.Flashcard.id == int(flashcard_id)
+        ).first()
+        
+        if not flashcard:
+            raise HTTPException(status_code=404, detail="Flashcard not found")
+        
+        # Update marked_for_review status
+        flashcard.marked_for_review = marked.lower() == "true"
+        db.commit()
+        
+        return {
+            "success": True,
+            "flashcard_id": flashcard_id,
+            "marked_for_review": flashcard.marked_for_review
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error marking flashcard for review: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/flashcards/review")
+async def update_flashcard_review(
+    request: FlashcardReviewRequest,
+    db: Session = Depends(get_db)
+):
+    """Update flashcard review statistics after answering"""
+    try:
+        flashcard = db.query(models.Flashcard).filter(
+            models.Flashcard.id == int(request.card_id)
+        ).first()
+        
+        if not flashcard:
+            raise HTTPException(status_code=404, detail="Flashcard not found")
+        
+        # Update review statistics
+        flashcard.times_reviewed = (flashcard.times_reviewed or 0) + 1
+        flashcard.last_reviewed = datetime.now(timezone.utc)
+        
+        # Update correct count if answered correctly
+        if request.was_correct:
+            flashcard.correct_count = (flashcard.correct_count or 0) + 1
+            
+            # If in study mode and correct, unmark for review
+            if request.mode == "study" and flashcard.marked_for_review:
+                flashcard.marked_for_review = False
+        else:
+            # If incorrect, mark for review
+            flashcard.marked_for_review = True
+        
+        db.commit()
+        
+        # Calculate accuracy
+        accuracy = 0
+        if flashcard.times_reviewed > 0:
+            accuracy = (flashcard.correct_count / flashcard.times_reviewed) * 100
+        
+        return {
+            "success": True,
+            "flashcard_id": request.card_id,
+            "times_reviewed": flashcard.times_reviewed,
+            "correct_count": flashcard.correct_count,
+            "accuracy": round(accuracy, 1),
+            "marked_for_review": flashcard.marked_for_review,
+            "last_reviewed": flashcard.last_reviewed.isoformat() if flashcard.last_reviewed else None
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating flashcard review: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -18356,74 +18492,6 @@ async def get_personalized_prompts(
         return {
             "prompts": []
         }
-
-
-@app.post("/api/get_flashcards_for_review")
-async def get_flashcards_for_review(
-    user_id: str = Form(...),
-    filter: str = Form("needs_review"),  # "needs_review", "marked_for_review", "all"
-    db: Session = Depends(get_db)
-):
-    """
-    Get flashcards that need review based on user's performance
-    """
-    try:
-        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
-        if not user:
-            return {"flashcards": [], "set_id": None}
-        
-        # Get flashcards based on filter
-        query_builder = db.query(models.Flashcard).join(
-            models.FlashcardSet
-        ).filter(
-            models.FlashcardSet.user_id == user.id
-        )
-        
-        if filter == "marked_for_review":
-            query_builder = query_builder.filter(models.Flashcard.marked_for_review == True)
-        elif filter == "needs_review":
-            # Get cards with low accuracy or not reviewed recently
-            query_builder = query_builder.filter(
-                or_(
-                    models.Flashcard.times_reviewed == 0,
-                    and_(
-                        models.Flashcard.times_reviewed > 0,
-                        (models.Flashcard.correct_count * 100.0 / models.Flashcard.times_reviewed) < 70
-                    )
-                )
-            )
-        
-        flashcards = query_builder.limit(50).all()
-        
-        if flashcards:
-            # Group by set and return the set with most cards needing review
-            set_counts = {}
-            for card in flashcards:
-                set_counts[card.set_id] = set_counts.get(card.set_id, 0) + 1
-            
-            best_set_id = max(set_counts, key=set_counts.get)
-            
-            return {
-                "set_id": best_set_id,
-                "flashcards": [
-                    {
-                        "id": card.id,
-                        "question": card.question,
-                        "answer": card.answer,
-                        "difficulty": card.difficulty,
-                        "times_reviewed": card.times_reviewed,
-                        "correct_count": card.correct_count
-                    }
-                    for card in flashcards if card.set_id == best_set_id
-                ],
-                "total_cards_needing_review": len(flashcards)
-            }
-        
-        return {"flashcards": [], "set_id": None, "total_cards_needing_review": 0}
-        
-    except Exception as e:
-        logger.error(f"Error getting flashcards for review: {str(e)}")
-        return {"flashcards": [], "set_id": None, "error": str(e)}
 
 
 @app.post("/api/get_weak_areas")

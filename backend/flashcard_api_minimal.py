@@ -469,7 +469,9 @@ async def get_set_cards(set_id: int, db: Session = Depends(get_db)):
                 "id": c.id,
                 "question": c.question,
                 "answer": c.answer,
-                "difficulty": c.difficulty
+                "difficulty": c.difficulty,
+                "is_edited": bool(c.is_edited) if hasattr(c, 'is_edited') and c.is_edited else False,
+                "edited_at": c.edited_at.isoformat() if hasattr(c, 'edited_at') and c.edited_at else None
             }
             for c in flashcard_set.flashcards
         ]
@@ -529,7 +531,9 @@ async def get_set_by_code(share_code: str, db: Session = Depends(get_db)):
                 "difficulty": c.difficulty,
                 "times_reviewed": c.times_reviewed or 0,
                 "correct_count": c.correct_count or 0,
-                "marked_for_review": c.marked_for_review or False
+                "marked_for_review": c.marked_for_review or False,
+                "is_edited": bool(c.is_edited) if hasattr(c, 'is_edited') and c.is_edited else False,
+                "edited_at": c.edited_at.isoformat() if hasattr(c, 'edited_at') and c.edited_at else None
             }
             for c in cards
         ]
@@ -825,13 +829,17 @@ async def update_card(card_id: int, payload: CardUpdate, db: Session = Depends(g
     card.question = payload.question
     card.answer = payload.answer
     card.difficulty = payload.difficulty
+    card.is_edited = True  # Mark as edited
+    card.edited_at = datetime.utcnow()  # Track when edited
     card.updated_at = datetime.utcnow()
     
     db.commit()
     
     return {
         "success": True,
-        "card_id": card.id
+        "card_id": card.id,
+        "is_edited": True,
+        "edited_at": card.edited_at.isoformat()
     }
 
 

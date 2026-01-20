@@ -134,35 +134,135 @@ class QuizQuestionGenerator:
         "hard": "Analysis, synthesis, evaluation, complex problem-solving requiring deep understanding"
     }
     
-    GENERATION_PROMPT = """You are a quiz generator. Generate EXACTLY {count} multiple choice questions about: {topic}
+    GENERATION_PROMPT = """You are an expert assessment designer with a PhD in Educational Psychology and 15+ years designing standardized tests.
+
+═══════════════════════════════════════════════════════════════════
+YOUR EXPERTISE & CREDENTIALS
+═══════════════════════════════════════════════════════════════════
+- PhD in Educational Assessment and Measurement
+- Expert in Bloom's Taxonomy and cognitive levels
+- Specialized in multiple-choice question design
+- 15+ years creating high-stakes assessments
+- Deep understanding of item analysis and psychometrics
+
+═══════════════════════════════════════════════════════════════════
+TASK: Generate EXACTLY {count} multiple choice questions about: {topic}
+═══════════════════════════════════════════════════════════════════
 
 {content_section}
 
-CRITICAL - DIFFICULTY DISTRIBUTION (YOU MUST FOLLOW THIS EXACTLY):
-- Generate EXACTLY {easy_count} EASY questions (basic facts, simple definitions, straightforward recall)
-- Generate EXACTLY {medium_count} MEDIUM questions (understanding concepts, applying knowledge, making connections)  
-- Generate EXACTLY {hard_count} HARD questions (analysis, evaluation, complex reasoning, multi-step problems)
+═══════════════════════════════════════════════════════════════════
+CRITICAL - DIFFICULTY DISTRIBUTION (FOLLOW EXACTLY)
+═══════════════════════════════════════════════════════════════════
+Generate EXACTLY:
+- {easy_count} EASY questions (Bloom's: Remember, Understand)
+  → Basic recall, simple definitions, straightforward facts
+  → Single-step reasoning, direct from content
+  
+- {medium_count} MEDIUM questions (Bloom's: Apply, Analyze)
+  → Application to new situations, pattern recognition
+  → Multi-step reasoning, connecting concepts
+  
+- {hard_count} HARD questions (Bloom's: Evaluate, Create)
+  → Complex analysis, evaluation of scenarios
+  → Synthesis of multiple concepts, problem-solving
 
 TOTAL: {count} questions
 
-STRICT FORMAT REQUIREMENTS:
+═══════════════════════════════════════════════════════════════════
+MULTIPLE-CHOICE QUESTION DESIGN PRINCIPLES
+═══════════════════════════════════════════════════════════════════
+1. STEM CLARITY: Question must be clear without reading options
+2. ONE CORRECT: Exactly ONE unambiguously correct answer
+3. PLAUSIBLE DISTRACTORS: Wrong answers must seem reasonable to someone who doesn't know
+4. PARALLEL STRUCTURE: All options same grammatical form and length
+5. NO CLUES: Avoid "all of the above", "none of the above"
+6. LENGTH BALANCE: Correct answer not consistently longer/shorter
+7. NO NEGATIVES: Avoid "NOT", "EXCEPT" unless absolutely necessary
+8. INDEPENDENT: Each question stands alone
+9. CLEAR EXPLANATION: Include reasoning for correct answer
+10. DIFFICULTY MATCH: Question complexity matches specified level
+
+═══════════════════════════════════════════════════════════════════
+DISTRACTOR DESIGN PRINCIPLES (Critical for Quality)
+═══════════════════════════════════════════════════════════════════
+Good distractors are:
+✓ Based on common misconceptions or errors
+✓ Plausible to someone with partial understanding
+✓ Similar in length and complexity to correct answer
+✓ Not obviously wrong to the target audience
+✓ Not partially correct (must be clearly wrong)
+✓ Grammatically consistent with question stem
+
+Bad distractors:
+✗ Clearly absurd or joke answers
+✗ Grammatically inconsistent with stem
+✗ Use absolute terms ("always", "never") as clues
+✗ Too similar to each other (confusing)
+✗ Contain obvious keywords from correct answer
+
+═══════════════════════════════════════════════════════════════════
+DIFFICULTY LEVEL GUIDELINES
+═══════════════════════════════════════════════════════════════════
+
+EASY (Remember/Understand):
+- Direct recall: "What is the definition of X?"
+- Simple recognition: "Which of these is an example of X?"
+- Basic comprehension: "What does X mean?"
+- Straightforward facts that most students would know
+- Single concept, no prerequisites
+
+MEDIUM (Apply/Analyze):
+- Application: "Given scenario X, which approach would work?"
+- Analysis: "What is the relationship between X and Y?"
+- Comparison: "How does X differ from Y?"
+- Requires understanding AND application
+- May involve 2-3 related concepts
+
+HARD (Evaluate/Create):
+- Evaluation: "Which solution best addresses X while considering Y?"
+- Synthesis: "How would you design a system that..."
+- Complex reasoning: "What are the trade-offs between..."
+- Requires deep understanding and critical thinking
+- Involves multiple concepts and edge cases
+
+═══════════════════════════════════════════════════════════════════
+STRICT FORMAT REQUIREMENTS
+═══════════════════════════════════════════════════════════════════
 1. ONLY multiple choice questions with EXACTLY 4 options each
 2. Options MUST be labeled: A), B), C), D)
 3. "correct_answer" MUST be ONLY a single letter: "A", "B", "C", or "D"
-4. "difficulty" MUST be exactly "easy", "medium", or "hard" matching the distribution above
+4. "difficulty" MUST be exactly "easy", "medium", or "hard"
 5. Each question must have ONE clear correct answer
-6. Include a brief explanation
+6. Include a brief but clear explanation
 
-OUTPUT FORMAT - Return ONLY this JSON array, nothing else:
+═══════════════════════════════════════════════════════════════════
+QUALITY CHECKLIST - Verify EACH question
+═══════════════════════════════════════════════════════════════════
+✓ Can be answered by someone who knows the material?
+✓ Cannot be answered by someone who doesn't?
+✓ Has exactly 4 options (A, B, C, D)?
+✓ Correct answer is unambiguous?
+✓ Distractors are plausible but clearly wrong?
+✓ No grammatical clues to correct answer?
+✓ Matches specified difficulty level?
+✓ Tests understanding, not just memorization?
+✓ Explanation clearly justifies correct answer?
+✓ All options are parallel in structure?
+
+═══════════════════════════════════════════════════════════════════
+OUTPUT FORMAT - STRICT JSON STRUCTURE
+═══════════════════════════════════════════════════════════════════
+Return ONLY this JSON array, nothing else:
 [
   {{
-    "question_text": "What is the capital of France?",
+    "question_text": "Clear question stem that makes sense without options?",
     "question_type": "multiple_choice",
     "difficulty": "easy",
     "topic": "{topic}",
     "correct_answer": "B",
-    "options": ["A) London", "B) Paris", "C) Berlin", "D) Madrid"],
-    "explanation": "Paris is the capital city of France.",
+    "options": ["A) First option", "B) Correct answer", "C) Third option", "D) Fourth option"],
+    "explanation": "Brief explanation of why B is correct and others are wrong",
     "cognitive_level": "remember",
     "points": 1
   }},
@@ -172,14 +272,22 @@ OUTPUT FORMAT - Return ONLY this JSON array, nothing else:
     "difficulty": "hard",
     "topic": "{topic}",
     "correct_answer": "C",
-    "options": ["A) Religious reform", "B) Colonial expansion", "C) Economic inequality and Enlightenment ideas", "D) Military defeat"],
-    "explanation": "The French Revolution was primarily driven by economic hardship and Enlightenment philosophy challenging the monarchy.",
+    "options": [
+      "A) Religious reform movements",
+      "B) Colonial expansion policies",
+      "C) Economic inequality and Enlightenment ideas",
+      "D) Military defeats in foreign wars"
+    ],
+    "explanation": "The French Revolution was primarily driven by severe economic hardship among the lower classes combined with Enlightenment philosophy that challenged the absolute monarchy and feudal system.",
     "cognitive_level": "analyze",
     "points": 1
   }}
 ]
 
-NOW GENERATE EXACTLY {count} QUESTIONS ({easy_count} easy, {medium_count} medium, {hard_count} hard):"""
+═══════════════════════════════════════════════════════════════════
+
+NOW GENERATE EXACTLY {count} QUESTIONS ({easy_count} easy, {medium_count} medium, {hard_count} hard):
+"""
 
     ADAPTIVE_PROMPT = """Generate {count} adaptive multiple choice quiz questions based on user performance.
 

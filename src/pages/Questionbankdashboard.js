@@ -2672,8 +2672,29 @@ const QuestionBankDashboard = () => {
         mode="import"
         sourceType="questions"
         onSuccess={(result) => {
-          alert("Successfully converted questions!");
-          fetchQuestionSets();
+          if (result.shouldNavigate) {
+            // Navigate based on destination type
+            if (result.destinationType === 'flashcards') {
+              // Navigate to flashcards with the set ID
+              if (result.set_id) {
+                navigate(`/flashcards?set_id=${result.set_id}&mode=preview`);
+              } else {
+                navigate('/flashcards');
+              }
+            } else if (result.destinationType === 'notes') {
+              // Navigate to the created note
+              if (result.note_id) {
+                navigate(`/notes/${result.note_id}`);
+              } else {
+                navigate('/notes');
+              }
+            } else {
+              fetchQuestionSets();
+            }
+          } else {
+            alert("Successfully converted questions!");
+            fetchQuestionSets();
+          }
         }}
       />
       

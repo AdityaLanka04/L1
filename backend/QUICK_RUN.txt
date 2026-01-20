@@ -1,0 +1,34 @@
+═══════════════════════════════════════════════════════════
+  QUICK RUN COMMANDS - Copy and paste into your terminal
+═══════════════════════════════════════════════════════════
+
+1. Navigate to backend directory:
+   cd backend
+
+2. Run the seeding script (choose one):
+
+   Option A - Using bash script:
+   ./run_seed_flashcards.sh
+
+   Option B - Using Python directly:
+   python seed_flashcards.py
+
+   Option C - For a specific user:
+   python seed_flashcards.py --user-id 2
+
+3. After running, the flashcards will automatically appear in your UI!
+   - Go to: http://localhost:3000/flashcards
+   - Look for: "Comprehensive Study Collection - 100 Cards"
+   - Click to start studying!
+
+═══════════════════════════════════════════════════════════
+  WHAT YOU'LL SEE IN THE UI
+═══════════════════════════════════════════════════════════
+
+✅ A new flashcard set with 100 cards
+✅ Organized by category (CS, Math, Science, History, Geography)
+✅ Different difficulty levels (easy, medium, hard)
+✅ Ready for study sessions
+✅ Tracks your progress and mastery
+
+═══════════════════════════════════════════════════════════

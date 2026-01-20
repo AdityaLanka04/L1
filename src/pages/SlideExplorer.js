@@ -124,7 +124,7 @@ const SlideExplorer = () => {
       setActiveTab('viewer');
 
       // First try the agent for enhanced analysis
-      console.log('🚀 Calling Slide Explorer Agent with:', { userId, slideContent: slide.extracted_text || slide.title });
+      console.log('Calling Slide Explorer Agent with:', { userId, slideContent: slide.extracted_text || slide.title });
       try {
         const agentResponse = await slideExplorerAgentService.analyzeSlide({
           userId,
@@ -133,12 +133,12 @@ const SlideExplorer = () => {
           sessionId: `slide_analysis_${userId}_${Date.now()}`
         });
         
-        console.log('✅ Agent response:', agentResponse);
+        console.log('Agent response:', agentResponse);
         if (agentResponse.success) {
-          console.log('✅ Slide Explorer Agent analysis:', agentResponse.analysis);
+          console.log('Slide Explorer Agent analysis:', agentResponse.analysis);
         }
       } catch (agentError) {
-        console.error('❌ Agent analysis error:', agentError);
+        console.error('Agent analysis error:', agentError);
         // Continue with standard analysis even if agent fails
       }
 
@@ -374,7 +374,7 @@ const SlideExplorer = () => {
                           )}
                           {currentSlide.estimated_study_time && (
                             <span className="se-study-time-badge">
-                              ⏱️ {currentSlide.estimated_study_time}
+                              {currentSlide.estimated_study_time}
                             </span>
                           )}
                         </div>

@@ -356,6 +356,8 @@ class Flashcard(Base):
     correct_count = Column(Integer, default=0)
     last_reviewed = Column(DateTime, nullable=True)
     marked_for_review = Column(Boolean, default=False)  # Track "I don't know this" cards
+    is_edited = Column(Boolean, default=False)  # Track if card was manually edited
+    edited_at = Column(DateTime, nullable=True)  # When the card was last edited
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

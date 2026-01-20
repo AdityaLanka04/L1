@@ -202,82 +202,344 @@ class SpacedRepetitionEngine:
 class FlashcardGenerator:
     """Generates high-quality flashcards using AI"""
     
-    # Depth level descriptions for prompt customization
-    DEPTH_DESCRIPTIONS = {
-        "surface": {
-            "description": "Basic recall and simple definitions",
-            "question_style": "simple, direct questions testing basic recall",
-            "answer_style": "brief, 1-2 sentence answers with key facts only",
-            "focus": "terminology, basic definitions, simple facts"
+    # Difficulty level descriptions for even more specificity
+    DIFFICULTY_DESCRIPTIONS = {
+        "easy": {
+            "description": "EASY - Beginner/Introductory Level",
+            "cognitive_level": "Remember and Understand (Bloom's Taxonomy Level 1-2)",
+            "target_audience": "Complete beginners, first-time learners, students just introduced to the topic",
+            "question_complexity": "Single-concept questions with NO prerequisites. Use common vocabulary, avoid jargon unless defining it",
+            "answer_complexity": "Straightforward answers with NO assumed knowledge. Explain like teaching a 10-year-old",
+            "examples": "What is a variable? | What does 'print' do in Python? | What is the internet?",
+            "avoid": "Avoid: technical jargon, multi-step reasoning, prerequisites, advanced terminology"
         },
-        "standard": {
-            "description": "Balanced understanding and application",
-            "question_style": "clear questions testing understanding and basic application",
-            "answer_style": "concise 2-3 sentence answers with explanations",
-            "focus": "concepts, relationships, and practical understanding"
+        "medium": {
+            "description": "MEDIUM - Intermediate/Practical Level",
+            "cognitive_level": "Apply and Analyze (Bloom's Taxonomy Level 3-4)",
+            "target_audience": "Students with basic foundation, ready to apply concepts and solve problems",
+            "question_complexity": "Multi-concept questions requiring basic prerequisites. Use standard technical vocabulary. May involve simple problem-solving",
+            "answer_complexity": "Answers assume basic knowledge. Include practical context and simple examples. Can use technical terms with brief clarification",
+            "examples": "How do you iterate through a dictionary in Python? | What's the difference between == and === in JavaScript? | When should you use a try-catch block?",
+            "avoid": "Avoid: overly simple definitions (too easy), complex algorithms (too hard), advanced optimization techniques"
         },
-        "deep": {
-            "description": "Advanced analysis and synthesis",
-            "question_style": "thought-provoking questions requiring analysis, comparison, or synthesis",
-            "answer_style": "detailed 3-5 sentence answers with reasoning and examples",
-            "focus": "underlying principles, edge cases, connections between concepts, and real-world applications"
+        "hard": {
+            "description": "HARD - Advanced/Expert Level",
+            "cognitive_level": "Evaluate and Create (Bloom's Taxonomy Level 5-6)",
+            "target_audience": "Advanced students, professionals, those preparing for technical interviews or deep understanding",
+            "question_complexity": "Complex multi-concept questions requiring strong prerequisites. Use advanced technical vocabulary. Involve design decisions, trade-offs, or optimization",
+            "answer_complexity": "Answers assume solid foundation. Include edge cases, performance considerations, and real-world implications. Use precise technical language",
+            "examples": "Explain the time complexity of quicksort in worst-case vs average-case | How does Python's GIL affect multi-threading? | Design a distributed cache with consistency guarantees",
+            "avoid": "Avoid: basic definitions, simple recall, questions that don't require deep understanding"
         }
     }
     
-    GENERATION_PROMPT = """Generate {count} high-quality flashcards about: {topic}
+    # Depth level descriptions for prompt customization
+    DEPTH_DESCRIPTIONS = {
+        "surface": {
+            "description": "SURFACE LEVEL - Basic Recognition & Simple Recall",
+            "question_style": "SIMPLE, DIRECT questions that test RECOGNITION and BASIC RECALL ONLY. Use 'What is...?', 'Define...', 'Name...', 'List...' formats. NO analysis, NO application, NO 'why' or 'how' questions",
+            "answer_style": "BRIEF 1-2 sentence answers with ONLY the essential fact or definition. NO explanations, NO examples, NO context. Just the core information",
+            "focus": "Pure terminology, basic definitions, simple facts, names, dates, formulas (without derivation)",
+            "examples": "What is photosynthesis? | Define recursion | Name the three types of loops | What does HTTP stand for?",
+            "avoid": "Avoid: explanations, reasoning, applications, comparisons, analysis, 'why' questions"
+        },
+        "standard": {
+            "description": "STANDARD LEVEL - Understanding & Basic Application",
+            "question_style": "CLEAR questions testing UNDERSTANDING and BASIC APPLICATION. Mix 'What...?', 'How...?', 'Why...?', 'When would you...?' formats. Require explanation but not deep analysis",
+            "answer_style": "CONCISE 2-4 sentence answers with brief explanations and ONE simple example. Include the 'what' AND 'why' but keep it practical",
+            "focus": "Concepts with explanations, cause-and-effect relationships, basic problem-solving, when/where to apply concepts, simple comparisons",
+            "examples": "How does a for loop work? | Why is encapsulation important? | When would you use a hash table? | Explain the difference between GET and POST",
+            "avoid": "Avoid: overly simple definitions (too surface), complex multi-step analysis (too deep), edge cases, advanced optimizations"
+        },
+        "deep": {
+            "description": "DEEP LEVEL - Critical Thinking, Analysis & Synthesis",
+            "question_style": "THOUGHT-PROVOKING questions requiring ANALYSIS, COMPARISON, EVALUATION, or SYNTHESIS. Use 'Compare...', 'Analyze...', 'Evaluate...', 'What are the trade-offs...?', 'How would you design...?' formats. Require critical thinking",
+            "answer_style": "DETAILED 4-6 sentence answers with REASONING, MULTIPLE EXAMPLES, trade-offs, and real-world context. Explain the 'why behind the why' and discuss implications",
+            "focus": "Underlying principles, design patterns, trade-offs and limitations, edge cases, performance implications, real-world applications, connections between multiple concepts, problem-solving strategies",
+            "examples": "Compare quicksort vs mergesort - when would you choose each? | Analyze the trade-offs of microservices architecture | Evaluate different caching strategies for a high-traffic API | How would you design a rate limiter?",
+            "avoid": "Avoid: simple definitions, basic recall, surface-level explanations without depth"
+        }
+    }
+    
+    # Difficulty level descriptions for even more specificity
+    DIFFICULTY_DESCRIPTIONS = {
+        "easy": {
+            "description": "EASY - Beginner/Introductory Level",
+            "cognitive_level": "Remember and Understand (Bloom's Taxonomy Level 1-2)",
+            "target_audience": "Complete beginners, first-time learners, students just introduced to the topic",
+            "question_complexity": "Single-concept questions with NO prerequisites. Use common vocabulary, avoid jargon unless defining it",
+            "answer_complexity": "Straightforward answers with NO assumed knowledge. Explain like teaching a 10-year-old",
+            "examples": "What is a variable? | What does 'print' do in Python? | What is the internet?",
+            "avoid": "Avoid: technical jargon, multi-step reasoning, prerequisites, advanced terminology"
+        },
+        "medium": {
+            "description": "MEDIUM - Intermediate/Practical Level",
+            "cognitive_level": "Apply and Analyze (Bloom's Taxonomy Level 3-4)",
+            "target_audience": "Students with basic foundation, ready to apply concepts and solve problems",
+            "question_complexity": "Multi-concept questions requiring basic prerequisites. Use standard technical vocabulary. May involve simple problem-solving",
+            "answer_complexity": "Answers assume basic knowledge. Include practical context and simple examples. Can use technical terms with brief clarification",
+            "examples": "How do you iterate through a dictionary in Python? | What's the difference between == and === in JavaScript? | When should you use a try-catch block?",
+            "avoid": "Avoid: overly simple definitions (too easy), complex algorithms (too hard), advanced optimization techniques"
+        },
+        "hard": {
+            "description": "HARD - Advanced/Expert Level",
+            "cognitive_level": "Evaluate and Create (Bloom's Taxonomy Level 5-6)",
+            "target_audience": "Advanced students, professionals, those preparing for technical interviews or deep understanding",
+            "question_complexity": "Complex multi-concept questions requiring strong prerequisites. Use advanced technical vocabulary. Involve design decisions, trade-offs, or optimization",
+            "answer_complexity": "Answers assume solid foundation. Include edge cases, performance considerations, and real-world implications. Use precise technical language",
+            "examples": "Explain the time complexity of quicksort in worst-case vs average-case | How does Python's GIL affect multi-threading? | Design a distributed cache with consistency guarantees",
+            "avoid": "Avoid: basic definitions, simple recall, questions that don't require deep understanding"
+        }
+    }
+    
+    GENERATION_PROMPT = """You are an expert educational content creator specializing in spaced repetition and active recall learning.
 
-Difficulty level: {difficulty}
-Depth level: {depth} - {depth_description}
+═══════════════════════════════════════════════════════════════════
+YOUR EXPERTISE & ROLE
+═══════════════════════════════════════════════════════════════════
+- 10+ years creating effective learning materials using cognitive science principles
+- Expert in memory techniques, active recall, and spaced repetition
+- Skilled in Bloom's Taxonomy and educational psychology
+- Specialized in creating atomic, testable flashcards
 
-DEPTH REQUIREMENTS:
-- Question style: {question_style}
-- Answer style: {answer_style}
-- Focus on: {focus}
+═══════════════════════════════════════════════════════════════════
+TASK: Generate {count} high-quality flashcards about: {topic}
+═══════════════════════════════════════════════════════════════════
+
+═══════════════════════════════════════════════════════════════════
+DIFFICULTY LEVEL: {difficulty} - {difficulty_description}
+═══════════════════════════════════════════════════════════════════
+Cognitive Level: {difficulty_cognitive}
+Target Audience: {difficulty_audience}
+Question Complexity: {difficulty_question_complexity}
+Answer Complexity: {difficulty_answer_complexity}
+
+DIFFICULTY EXAMPLES:
+{difficulty_examples}
+
+AVOID FOR THIS DIFFICULTY:
+{difficulty_avoid}
+
+═══════════════════════════════════════════════════════════════════
+DEPTH LEVEL: {depth} - {depth_description}
+═══════════════════════════════════════════════════════════════════
+Question Style: {question_style}
+Answer Style: {answer_style}
+Focus Areas: {focus}
+
+DEPTH EXAMPLES:
+{depth_examples}
+
+AVOID FOR THIS DEPTH:
+{depth_avoid}
+
+═══════════════════════════════════════════════════════════════════
+ADDITIONAL CONTEXT:
 {context}
 
-RULES:
-1. Questions should be clear, specific, and testable
-2. Match the depth level requirements exactly
-3. Cover key concepts progressively
-4. Avoid redundancy
-5. For {depth} depth: {depth_specific_rule}
-6. Include 3 plausible but incorrect answers (wrong_options) for MCQ study mode
+═══════════════════════════════════════════════════════════════════
+CRITICAL FLASHCARD DESIGN PRINCIPLES - FOLLOW EXACTLY
+═══════════════════════════════════════════════════════════════════
+1. ATOMIC PRINCIPLE: Each card tests ONE concept only (not multiple concepts)
+2. CLARITY: Questions must be unambiguous, specific, and self-contained
+3. CONCISENESS: Answers should be brief but complete (max 400 characters)
+4. TESTABILITY: Must be objectively verifiable - no opinion-based questions
+5. DIFFICULTY MATCH: {difficulty_specific_rule}
+6. DEPTH MATCH: {depth_specific_rule}
+7. PROGRESSION: Start foundational, build to advanced within {difficulty} level
+8. NO REPETITION: Each card must test a DISTINCT concept
+9. INCLUDE DISTRACTORS: Provide 3 plausible wrong answers for MCQ study mode
+10. CONCEPT TAGGING: Tag each card with its main concept for organization
+11. ACTIVE VOICE: Use active voice in questions
+12. NO LISTS: Avoid "list all..." questions (violates atomic principle)
+13. CONTEXT CLUES: Include necessary context in the question itself
 
-Return ONLY valid JSON:
+═══════════════════════════════════════════════════════════════════
+QUALITY CHECKLIST - Verify EACH card before including
+═══════════════════════════════════════════════════════════════════
+✓ Can be answered in 5-10 seconds by someone who knows the material?
+✓ Has exactly ONE correct answer (no ambiguity)?
+✓ Tests ONE concept only (atomic)?
+✓ Avoids "list" or "enumerate" questions?
+✓ Uses active voice and clear language?
+✓ Matches specified difficulty level?
+✓ Matches specified depth level?
+✓ Includes context if needed to understand the question?
+✓ Answer is concise but complete?
+✓ Wrong options are plausible but clearly incorrect?
+
+═══════════════════════════════════════════════════════════════════
+DISTRACTOR DESIGN (wrong_options)
+═══════════════════════════════════════════════════════════════════
+Good distractors are:
+✓ Based on common misconceptions or errors
+✓ Plausible to someone who doesn't fully understand
+✓ Similar in length and format to correct answer
+✓ Not obviously wrong or absurd
+✓ Not partially correct (must be clearly wrong)
+
+Bad distractors:
+✗ Joke answers or clearly absurd options
+✗ Grammatically inconsistent with question
+✗ Use absolute terms ("always", "never") as clues
+✗ Too similar to each other
+
+═══════════════════════════════════════════════════════════════════
+OUTPUT FORMAT - STRICT JSON STRUCTURE
+═══════════════════════════════════════════════════════════════════
+Return ONLY valid JSON (no markdown, no explanation, no extra text):
 {{
   "flashcards": [
-    {{"question": "...", "answer": "...", "difficulty": "{difficulty}", "concept": "main concept", "wrong_options": ["wrong1", "wrong2", "wrong3"]}},
-    ...
+    {{
+      "question": "Clear, specific question testing ONE concept?",
+      "answer": "Concise, complete answer (max 400 chars)",
+      "difficulty": "{difficulty}",
+      "concept": "Main concept being tested",
+      "wrong_options": ["Plausible wrong answer 1", "Plausible wrong 2", "Plausible wrong 3"],
+      "explanation": "Brief explanation of why the answer is correct (optional)"
+    }}
   ]
-}}"""
+}}
 
-    CONTENT_PROMPT = """Extract {count} flashcards from this content:
+═══════════════════════════════════════════════════════════════════
+EXAMPLES OF EXCELLENT FLASHCARDS
+═══════════════════════════════════════════════════════════════════
 
-CONTENT:
+EASY Example (Remember/Understand):
+{{
+  "question": "What is the capital of France?",
+  "answer": "Paris",
+  "difficulty": "easy",
+  "concept": "European Geography",
+  "wrong_options": ["London", "Berlin", "Madrid"],
+  "explanation": "Paris has been the capital of France since 987 AD"
+}}
+
+MEDIUM Example (Apply/Analyze):
+{{
+  "question": "In Python, what is the key difference between a for loop and a while loop?",
+  "answer": "A for loop iterates over a sequence, while a while loop continues until a condition becomes false",
+  "difficulty": "medium",
+  "concept": "Python Control Flow",
+  "wrong_options": [
+    "For loops are faster than while loops",
+    "While loops can't use break statements",
+    "For loops can only iterate over lists"
+  ],
+  "explanation": "For loops are designed for iterating over collections, while loops for condition-based iteration"
+}}
+
+HARD Example (Evaluate/Create):
+{{
+  "question": "What is the time complexity of quicksort in the worst case, and when does this occur?",
+  "answer": "O(n²) when the pivot is consistently the smallest or largest element, creating maximally unbalanced partitions",
+  "difficulty": "hard",
+  "concept": "Algorithm Analysis",
+  "wrong_options": [
+    "O(n log n) in all cases due to divide-and-conquer",
+    "O(n) when the array is already sorted",
+    "O(log n) with random pivot selection"
+  ],
+  "explanation": "Worst case happens with poor pivot choices causing unbalanced partitions, degrading to O(n²)"
+}}
+
+═══════════════════════════════════════════════════════════════════
+
+NOW GENERATE EXACTLY {count} FLASHCARDS following ALL principles above:
+"""
+
+    CONTENT_PROMPT = """You are an expert educational content creator specializing in extracting key learning points from source material.
+
+═══════════════════════════════════════════════════════════════════
+YOUR EXPERTISE & ROLE
+═══════════════════════════════════════════════════════════════════
+- Expert in content analysis and knowledge extraction
+- Skilled in identifying key concepts and learning objectives
+- Specialized in creating effective study materials from source content
+- 10+ years experience in educational content design
+
+═══════════════════════════════════════════════════════════════════
+TASK: Extract {count} flashcards from this content
+═══════════════════════════════════════════════════════════════════
+
+SOURCE CONTENT:
 {content}
 
-Difficulty: {difficulty}
-Depth level: {depth} - {depth_description}
+═══════════════════════════════════════════════════════════════════
+DIFFICULTY LEVEL: {difficulty} - {difficulty_description}
+═══════════════════════════════════════════════════════════════════
+Cognitive Level: {difficulty_cognitive}
+Target Audience: {difficulty_audience}
+Question Complexity: {difficulty_question_complexity}
+Answer Complexity: {difficulty_answer_complexity}
 
-DEPTH REQUIREMENTS:
-- Question style: {question_style}
-- Answer style: {answer_style}
-- Focus on: {focus}
+═══════════════════════════════════════════════════════════════════
+DEPTH LEVEL: {depth} - {depth_description}
+═══════════════════════════════════════════════════════════════════
+Question Style: {question_style}
+Answer Style: {answer_style}
+Focus Areas: {focus}
 
-RULES:
-1. Focus on key facts, definitions, and concepts
-2. Match the depth level requirements exactly
-3. Answers must be accurate to the source
-4. For {depth} depth: {depth_specific_rule}
-5. Include 3 plausible but incorrect answers (wrong_options) for MCQ study mode
+═══════════════════════════════════════════════════════════════════
+CRITICAL EXTRACTION PRINCIPLES - FOLLOW EXACTLY
+═══════════════════════════════════════════════════════════════════
+1. FIDELITY: Extract ONLY information present in the source content above
+2. NO HALLUCINATION: Do NOT add information not in the source
+3. ACCURACY: Answers must be ACCURATE to the source material
+4. KEY CONCEPTS: Focus on the most important concepts and facts
+5. DIFFICULTY MATCH: {difficulty_specific_rule}
+6. DEPTH MATCH: {depth_specific_rule}
+7. ATOMIC: Each card tests ONE concept from the content
+8. COVERAGE: Distribute cards across different sections of content
+9. PRIORITY: Extract most important information first
+10. CONTEXT: Include necessary context from source in questions
+11. DISTRACTORS: Create wrong_options based on related content (not random)
+12. VERIFICATION: Double-check each answer against source content
 
-Return ONLY valid JSON:
+═══════════════════════════════════════════════════════════════════
+EXTRACTION STRATEGY
+═══════════════════════════════════════════════════════════════════
+1. READ: Carefully read the entire source content
+2. IDENTIFY: Identify key concepts, facts, and relationships
+3. PRIORITIZE: Rank concepts by importance and relevance
+4. FORMULATE: Create clear questions that test understanding
+5. VERIFY: Ensure answers are accurate to source
+6. DIVERSIFY: Cover different aspects of the content
+7. CONTEXTUALIZE: Add context where needed for clarity
+
+═══════════════════════════════════════════════════════════════════
+QUALITY CHECKLIST - Verify EACH card
+═══════════════════════════════════════════════════════════════════
+✓ Information is present in source content?
+✓ Answer is accurate to source (not paraphrased incorrectly)?
+✓ Question is clear without reading source?
+✓ Tests important concept (not trivial detail)?
+✓ Matches specified difficulty level?
+✓ Matches specified depth level?
+✓ Wrong options are based on related content?
+✓ No hallucinated information added?
+
+═══════════════════════════════════════════════════════════════════
+OUTPUT FORMAT - STRICT JSON STRUCTURE
+═══════════════════════════════════════════════════════════════════
+Return ONLY valid JSON (no markdown, no explanation, no extra text):
 {{
   "flashcards": [
-    {{"question": "...", "answer": "...", "difficulty": "{difficulty}", "concept": "main concept", "wrong_options": ["wrong1", "wrong2", "wrong3"]}},
-    ...
+    {{
+      "question": "Clear question based on source content?",
+      "answer": "Accurate answer from source (max 400 chars)",
+      "difficulty": "{difficulty}",
+      "concept": "Main concept from source",
+      "wrong_options": ["Wrong based on related content", "Plausible wrong 2", "Plausible wrong 3"],
+      "explanation": "Brief explanation with reference to source"
+    }}
   ]
-}}"""
+}}
+
+═══════════════════════════════════════════════════════════════════
+
+NOW EXTRACT EXACTLY {count} FLASHCARDS from the source content above:
+"""
 
     IMPROVE_PROMPT = """Improve this flashcard:
 
@@ -296,11 +558,47 @@ Return improved version as JSON:
     def _get_depth_specific_rule(self, depth: str) -> str:
         """Get depth-specific generation rule"""
         rules = {
-            "surface": "Keep questions simple - test recognition and basic recall only",
-            "standard": "Balance recall with understanding - include 'why' and 'how' questions",
-            "deep": "Challenge critical thinking - include analysis, comparison, and application questions"
+            "surface": "SURFACE LEVEL RULE: Questions MUST be simple recognition/recall ONLY. Use 'What is...?', 'Define...', 'Name...'. Answers MUST be 1-2 sentences with NO explanations or examples. Test ONLY memorization",
+            "standard": "STANDARD LEVEL RULE: Questions MUST test understanding AND basic application. Include 'How...?', 'Why...?', 'When...?' questions. Answers MUST explain the concept with ONE simple example. Balance recall with comprehension",
+            "deep": "DEEP LEVEL RULE: Questions MUST require critical thinking, analysis, or synthesis. Use 'Compare...', 'Analyze...', 'Evaluate...', 'Design...'. Answers MUST include reasoning, trade-offs, multiple examples, and real-world implications. Challenge advanced understanding"
         }
         return rules.get(depth, rules["standard"])
+    
+    def _get_difficulty_specific_rule(self, difficulty: str) -> str:
+        """Get difficulty-specific generation rule"""
+        rules = {
+            "easy": "EASY DIFFICULTY RULE: NO prerequisites required. Use simple vocabulary. Explain like teaching a complete beginner. Single-concept questions only. Avoid all jargon unless defining it",
+            "medium": "MEDIUM DIFFICULTY RULE: Assume basic foundation. Use standard technical vocabulary. Multi-concept questions OK. Include practical problem-solving. Can reference common patterns/practices",
+            "hard": "HARD DIFFICULTY RULE: Assume strong foundation. Use advanced technical vocabulary. Complex multi-concept questions. Include edge cases, optimizations, design decisions, and trade-offs. Challenge expert-level understanding"
+        }
+        return rules.get(difficulty, rules["medium"])
+    
+    def _get_difficulty_info(self, difficulty: str) -> Dict[str, str]:
+        """Get all difficulty-related information for prompts"""
+        diff_info = self.DIFFICULTY_DESCRIPTIONS.get(difficulty, self.DIFFICULTY_DESCRIPTIONS["medium"])
+        return {
+            "difficulty_description": diff_info["description"],
+            "difficulty_cognitive": diff_info["cognitive_level"],
+            "difficulty_audience": diff_info["target_audience"],
+            "difficulty_question_complexity": diff_info["question_complexity"],
+            "difficulty_answer_complexity": diff_info["answer_complexity"],
+            "difficulty_examples": diff_info["examples"],
+            "difficulty_avoid": diff_info["avoid"],
+            "difficulty_specific_rule": self._get_difficulty_specific_rule(difficulty)
+        }
+    
+    def _get_depth_info(self, depth: str) -> Dict[str, str]:
+        """Get all depth-related information for prompts"""
+        depth_info = self.DEPTH_DESCRIPTIONS.get(depth, self.DEPTH_DESCRIPTIONS["standard"])
+        return {
+            "depth_description": depth_info["description"],
+            "question_style": depth_info["question_style"],
+            "answer_style": depth_info["answer_style"],
+            "focus": depth_info["focus"],
+            "depth_examples": depth_info.get("examples", ""),
+            "depth_avoid": depth_info.get("avoid", ""),
+            "depth_specific_rule": self._get_depth_specific_rule(depth)
+        }
     
     def generate_from_topic(
         self,
@@ -311,21 +609,20 @@ Return improved version as JSON:
         context: str = ""
     ) -> List[Dict[str, str]]:
         """Generate flashcards from a topic with depth customization"""
-        context_str = f"\nAdditional context: {context}" if context else ""
+        context_str = f"\nAdditional context: {context}" if context else "\nNo additional context provided."
         
-        depth_info = self.DEPTH_DESCRIPTIONS.get(depth, self.DEPTH_DESCRIPTIONS["standard"])
+        # Get all difficulty and depth information
+        diff_info = self._get_difficulty_info(difficulty)
+        depth_info = self._get_depth_info(depth)
         
         prompt = self.GENERATION_PROMPT.format(
             count=count,
             topic=topic,
             difficulty=difficulty,
             depth=depth,
-            depth_description=depth_info["description"],
-            question_style=depth_info["question_style"],
-            answer_style=depth_info["answer_style"],
-            focus=depth_info["focus"],
-            depth_specific_rule=self._get_depth_specific_rule(depth),
-            context=context_str
+            context=context_str,
+            **diff_info,
+            **depth_info
         )
         
         return self._generate_and_parse(prompt, count)
@@ -338,18 +635,17 @@ Return improved version as JSON:
         depth: str = "standard"
     ) -> List[Dict[str, str]]:
         """Generate flashcards from content/text with depth customization"""
-        depth_info = self.DEPTH_DESCRIPTIONS.get(depth, self.DEPTH_DESCRIPTIONS["standard"])
+        # Get all difficulty and depth information
+        diff_info = self._get_difficulty_info(difficulty)
+        depth_info = self._get_depth_info(depth)
         
         prompt = self.CONTENT_PROMPT.format(
             count=count,
             content=content[:3000],
             difficulty=difficulty,
             depth=depth,
-            depth_description=depth_info["description"],
-            question_style=depth_info["question_style"],
-            answer_style=depth_info["answer_style"],
-            focus=depth_info["focus"],
-            depth_specific_rule=self._get_depth_specific_rule(depth)
+            **diff_info,
+            **depth_info
         )
         
         return self._generate_and_parse(prompt, count)

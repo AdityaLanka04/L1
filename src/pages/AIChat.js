@@ -1371,6 +1371,46 @@ const AIChat = ({ sharedMode = false }) => {
 
     return parts.map((part, index) => {
       if (part.type === 'text') {
+        // Check if content has suggestion patterns like "A)", "B)", "C)"
+        const suggestionRegex = /^([A-Z])\)\s+(.+)$/gm;
+        const hasSuggestions = suggestionRegex.test(part.content);
+        
+        if (hasSuggestions) {
+          // Split by lines and render suggestions as clickable
+          const lines = part.content.split('\n');
+          return (
+            <div key={index}>
+              {lines.map((line, lineIndex) => {
+                const suggestionMatch = line.match(/^([A-Z])\)\s+(.+)$/);
+                if (suggestionMatch) {
+                  const [, letter, text] = suggestionMatch;
+                  return (
+                    <div
+                      key={lineIndex}
+                      className="ac-suggestion-item"
+                      onClick={() => {
+                        setInputMessage(text);
+                        // Optionally auto-send
+                        // handleSendMessage(text);
+                      }}
+                    >
+                      <span className="ac-suggestion-letter">{letter})</span>
+                      <span className="ac-suggestion-text">{text}</span>
+                    </div>
+                  );
+                } else if (line.trim()) {
+                  // Regular text line
+                  const htmlContent = renderMarkdown(line);
+                  return <MathRenderer key={lineIndex} content={htmlContent || `<p>${line}</p>`} />;
+                } else {
+                  return <br key={lineIndex} />;
+                }
+              })}
+            </div>
+          );
+        }
+        
+        // Regular text without suggestions
         const htmlContent = renderMarkdown(part.content);
         const finalContent = htmlContent && htmlContent.trim() ? htmlContent : `<p>${part.content}</p>`;
         return <MathRenderer key={index} content={finalContent} />;

@@ -852,6 +852,62 @@ html:has(.ai-chat-page) {
   word-wrap: break-word;
 }
 
+/* Clickable Suggestions */
+.ac-suggestion-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  margin: 8px 0;
+  background: var(--ac-bg-secondary);
+  border: 1px solid var(--ac-border-subtle);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ac-suggestion-item:hover {
+  background: var(--ac-bg-tertiary);
+  border-color: var(--ac-accent);
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(215, 179, 140, 0.2);
+}
+
+.ac-suggestion-letter {
+  font-weight: 700;
+  color: var(--ac-accent);
+  font-size: 15px;
+  flex-shrink: 0;
+  min-width: 24px;
+}
+
+.ac-suggestion-text {
+  color: var(--ac-text-primary);
+  font-size: 14px;
+  line-height: 1.5;
+  flex: 1;
+}
+
+[data-theme-mode="dark"] .ac-suggestion-item {
+  background: rgba(215, 179, 140, 0.05);
+  border-color: rgba(215, 179, 140, 0.15);
+}
+
+[data-theme-mode="dark"] .ac-suggestion-item:hover {
+  background: rgba(215, 179, 140, 0.1);
+  border-color: var(--ac-accent);
+}
+
+[data-theme-mode="light"] .ac-suggestion-item {
+  background: rgba(215, 179, 140, 0.08);
+  border-color: rgba(215, 179, 140, 0.2);
+}
+
+[data-theme-mode="light"] .ac-suggestion-item:hover {
+  background: rgba(215, 179, 140, 0.15);
+  border-color: var(--ac-accent);
+}
+
 .ac-message-meta {
   display: flex;
   align-items: center;

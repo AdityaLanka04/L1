@@ -3671,8 +3671,30 @@ const NotesRedesign = ({ sharedMode = false }) => {
         mode="import"
         sourceType="notes"
         onSuccess={(result) => {
-          showPopup("Success", `Successfully converted notes!`);
-          loadNotes();
+          if (result.shouldNavigate) {
+            // Navigate based on destination type
+            if (result.destinationType === 'flashcards') {
+              // Navigate to flashcards with the set ID
+              if (result.set_id) {
+                navigate(`/flashcards?set_id=${result.set_id}&mode=preview`);
+              } else {
+                navigate('/flashcards');
+              }
+            } else if (result.destinationType === 'questions') {
+              // Navigate to question bank
+              navigate('/question-bank');
+            } else if (result.destinationType === 'notes') {
+              // Navigate to the created note
+              if (result.note_id) {
+                navigate(`/notes/${result.note_id}`);
+              } else {
+                loadNotes();
+              }
+            }
+          } else {
+            showPopup("Success", `Successfully converted notes!`);
+            loadNotes();
+          }
         }}
       />
     </div>

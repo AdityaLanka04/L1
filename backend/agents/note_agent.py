@@ -142,112 +142,239 @@ class NoteContentGenerator:
     
     # Action-specific prompts
     ACTION_PROMPTS = {
-        "generate": """Write a detailed, comprehensive article explaining this topic in depth.
+        "generate": """You are an expert educational content writer creating comprehensive study materials.
 
-Topic: {content}
+═══════════════════════════════════════════════════════════════════
+YOUR EXPERTISE
+═══════════════════════════════════════════════════════════════════
+- Professional educational content creator with 15+ years experience
+- Expert in information architecture and learning design
+- Skilled in writing for different audiences and purposes
+- Specialized in creating engaging, effective study materials
+
+═══════════════════════════════════════════════════════════════════
+TASK: Write a detailed, comprehensive article about: {content}
+═══════════════════════════════════════════════════════════════════
 Depth: {depth} - {depth_description}
 Tone: {tone}
 {context_section}
 
-Write a complete article with:
-1. An introduction paragraph explaining what the topic is
-2. 2-3 body paragraphs with detailed explanations, examples, and facts
-3. A conclusion paragraph
+═══════════════════════════════════════════════════════════════════
+WRITING PRINCIPLES
+═══════════════════════════════════════════════════════════════════
+1. CLARITY: Every sentence should be clear and purposeful
+2. STRUCTURE: Use logical organization with clear hierarchy
+3. ENGAGEMENT: Make content interesting and relevant
+4. COMPLETENESS: Cover all important aspects
+5. ACCURACY: Ensure factual correctness
+6. EXAMPLES: Include concrete, practical examples
+7. FORMATTING: Use HTML for structure and emphasis
 
-{depth_instruction}
-Use HTML formatting (<h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>).
-Start writing now:""",
+═══════════════════════════════════════════════════════════════════
+REQUIRED STRUCTURE
+═══════════════════════════════════════════════════════════════════
+1. INTRODUCTION (1 paragraph)
+   - What is this topic?
+   - Why is it important?
+   - What will be covered?
 
-        "continue": """Continue writing this text naturally and coherently.
+2. MAIN CONTENT (2-3 sections with <h2> headings)
+   - Detailed explanations
+   - Concrete examples
+   - Key facts and concepts
+   - Practical applications
 
-RULES:
-- Match the existing style and tone ({tone})
-- Continue logically from where it ends
-- Add 2-3 more sentences or paragraphs
-- Do NOT repeat what's already written
-- {depth_instruction}
+3. CONCLUSION (1 paragraph)
+   - Summary of key points
+   - Takeaways
+   - Next steps or further learning
 
-Text to continue:
+═══════════════════════════════════════════════════════════════════
+DEPTH INSTRUCTION: {depth_instruction}
+═══════════════════════════════════════════════════════════════════
+
+Use HTML formatting: <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>
+
+NOW WRITE THE ARTICLE:""",
+
+        "continue": """You are an expert writer continuing an existing piece of content.
+
+═══════════════════════════════════════════════════════════════════
+TASK: Continue writing this text naturally and coherently
+═══════════════════════════════════════════════════════════════════
+
+CRITICAL RULES:
+1. MATCH STYLE: Continue in the exact same style and tone ({tone})
+2. LOGICAL FLOW: Continue logically from where it ends
+3. ADD VALUE: Add 2-3 more sentences or paragraphs with new information
+4. NO REPETITION: Do NOT repeat what's already written
+5. MAINTAIN QUALITY: {depth_instruction}
+6. NATURAL TRANSITION: Flow smoothly from existing content
+
+═══════════════════════════════════════════════════════════════════
+EXISTING TEXT:
 {content}
+═══════════════════════════════════════════════════════════════════
 
-Continue writing:""",
+CONTINUE WRITING (pick up where it left off):""",
 
-        "improve": """Improve and enhance this text while keeping the same meaning.
+        "improve": """You are an expert editor improving written content while preserving its meaning.
 
-RULES:
-- Make it more clear and {tone}
-- Fix awkward phrasing
-- Improve word choice
-- Keep the same structure and meaning
-- Do NOT add new information
-- Use HTML formatting where appropriate
+═══════════════════════════════════════════════════════════════════
+TASK: Improve and enhance this text
+═══════════════════════════════════════════════════════════════════
 
-Original text:
+IMPROVEMENT GOALS:
+1. CLARITY: Make it more clear and {tone}
+2. FLOW: Improve sentence flow and transitions
+3. WORD CHOICE: Use more precise, effective vocabulary
+4. STRUCTURE: Enhance organization and readability
+5. GRAMMAR: Fix any grammatical issues
+6. FORMATTING: Use HTML formatting where appropriate
+
+CRITICAL CONSTRAINTS:
+✗ Do NOT change the meaning
+✗ Do NOT add new information
+✗ Do NOT remove important content
+✓ Keep the same structure and key points
+✓ Preserve all facts and data
+
+═══════════════════════════════════════════════════════════════════
+ORIGINAL TEXT:
 {content}
+═══════════════════════════════════════════════════════════════════
 
-Improved version:""",
+IMPROVED VERSION:""",
 
-        "simplify": """Simplify this text to make it easier to understand.
+        "simplify": """You are an expert at making complex content accessible to general audiences.
 
-RULES:
-- Use simpler words and shorter sentences
-- Explain technical terms
-- Break down complex ideas
-- Keep all important information
-- Make it accessible to a general audience
-- Use HTML formatting for structure
+═══════════════════════════════════════════════════════════════════
+TASK: Simplify this text to make it easier to understand
+═══════════════════════════════════════════════════════════════════
 
-Text to simplify:
+SIMPLIFICATION STRATEGIES:
+1. VOCABULARY: Use simpler, more common words
+2. SENTENCES: Break long sentences into shorter ones
+3. JARGON: Explain or replace technical terms
+4. CONCEPTS: Break down complex ideas into simple parts
+5. EXAMPLES: Add relatable examples
+6. STRUCTURE: Use clear formatting with headings and lists
+
+MAINTAIN:
+✓ All important information
+✓ Factual accuracy
+✓ Key concepts
+✓ Logical flow
+
+TARGET AUDIENCE: General audience with no prior knowledge
+
+═══════════════════════════════════════════════════════════════════
+TEXT TO SIMPLIFY:
 {content}
+═══════════════════════════════════════════════════════════════════
 
-Simplified version:""",
+SIMPLIFIED VERSION:""",
 
-        "expand": """Expand this text with more details, examples, and explanations.
+        "expand": """You are an expert content developer adding depth and detail to existing content.
 
-RULES:
-- Add relevant details and context
-- Include practical examples
-- Explain concepts more thoroughly
-- Increase depth without redundancy
-- Maintain the {tone} tone
-- {depth_instruction}
-- Use HTML formatting
+═══════════════════════════════════════════════════════════════════
+TASK: Expand this text with more details, examples, and explanations
+═══════════════════════════════════════════════════════════════════
 
-Text to expand:
+EXPANSION STRATEGIES:
+1. DETAILS: Add relevant details and context
+2. EXAMPLES: Include practical, concrete examples
+3. EXPLANATIONS: Explain concepts more thoroughly
+4. CONNECTIONS: Show relationships to other concepts
+5. APPLICATIONS: Discuss real-world applications
+6. DEPTH: {depth_instruction}
+
+MAINTAIN:
+✓ Original meaning and structure
+✓ {tone} tone
+✓ Logical organization
+✓ Factual accuracy
+
+AVOID:
+✗ Redundancy or repetition
+✗ Tangential information
+✗ Unnecessary complexity
+
+═══════════════════════════════════════════════════════════════════
+TEXT TO EXPAND:
 {content}
+═══════════════════════════════════════════════════════════════════
 
-Expanded version:""",
+EXPANDED VERSION:""",
 
-        "summarize": """Create a concise summary of this text.
+        "summarize": """You are an expert at distilling complex content into concise summaries.
 
-RULES:
-- Extract only the most important points
-- Keep it brief but complete
-- Maintain key information
-- Use clear, simple language
-- Use HTML formatting (<h2>Summary</h2>, <ul>, <li>)
+═══════════════════════════════════════════════════════════════════
+TASK: Create a concise summary of this text
+═══════════════════════════════════════════════════════════════════
 
-Text to summarize:
+SUMMARIZATION PRINCIPLES:
+1. EXTRACT: Identify the most important points
+2. CONDENSE: Keep it brief but complete
+3. PRESERVE: Maintain key information and facts
+4. CLARIFY: Use clear, simple language
+5. ORGANIZE: Structure with headings and bullet points
+
+SUMMARY STRUCTURE:
+<h2>Summary</h2>
+<ul>
+  <li>Key point 1</li>
+  <li>Key point 2</li>
+  <li>Key point 3</li>
+</ul>
+
+QUALITY CRITERIA:
+✓ Captures main ideas
+✓ Omits minor details
+✓ Maintains accuracy
+✓ Is self-contained
+✓ Uses clear language
+
+═══════════════════════════════════════════════════════════════════
+TEXT TO SUMMARIZE:
 {content}
+═══════════════════════════════════════════════════════════════════
 
-Summary:""",
+SUMMARY:""",
 
-        "explain": """Explain this concept clearly for someone learning about it.
+        "explain": """You are an expert educator explaining concepts clearly to learners.
 
+═══════════════════════════════════════════════════════════════════
+TASK: Explain this concept clearly for someone learning about it
+═══════════════════════════════════════════════════════════════════
 Concept: {content}
 Level: {depth}
 Tone: {tone}
 {context_section}
 
-RULES:
-- Start with a clear definition
-- Explain why it's important
-- Provide practical examples
-- Connect to related concepts
-- {depth_instruction}
-- Use HTML formatting
+═══════════════════════════════════════════════════════════════════
+EXPLANATION STRUCTURE
+═══════════════════════════════════════════════════════════════════
+1. DEFINITION: Start with a clear, simple definition
+2. IMPORTANCE: Explain why it matters
+3. HOW IT WORKS: Describe the mechanism or process
+4. EXAMPLES: Provide concrete, practical examples
+5. CONNECTIONS: Relate to other concepts
+6. APPLICATIONS: Show real-world uses
+7. COMMON MISCONCEPTIONS: Address typical misunderstandings
 
-Explanation:""",
+═══════════════════════════════════════════════════════════════════
+TEACHING PRINCIPLES
+═══════════════════════════════════════════════════════════════════
+- Start simple, build complexity
+- Use analogies and metaphors
+- Provide multiple representations
+- Check understanding points
+- {depth_instruction}
+
+Use HTML formatting: <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>
+
+EXPLANATION:""",
 
         "key_points": """Extract the key points from this content.
 
