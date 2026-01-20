@@ -31,7 +31,10 @@ const QuizHub = () => {
       {/* Header */}
       <header className="qh-header">
         <div className="qh-header-left">
-          <h1 className="qh-logo" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <h1 className="qh-logo" onClick={() => navigate('/dashboard')}>
+            <div className="qh-logo-img" />
+            cerbyl
+          </h1>
           <div className="qh-header-divider"></div>
           <span className="qh-subtitle">QUIZ HUB</span>
         </div>

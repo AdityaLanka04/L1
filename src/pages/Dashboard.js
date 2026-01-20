@@ -20,15 +20,14 @@ import logo from '../assets/logo.svg';
 // Default layout configuration (same as CustomizeDashboard)
 const DEFAULT_LAYOUT_WIDGETS = [
   { id: 'ai-tutor', col: 1, row: 1, cols: 1, rows: 3, color: null, size: 'M' },
-  { id: 'hero', col: 2, row: 1, cols: 2, rows: 3, color: null, size: 'M' },
+  { id: 'learning-hub-grid', col: 2, row: 1, cols: 2, rows: 3, color: null, size: 'L' },
   { id: 'social-hub', col: 4, row: 1, cols: 1, rows: 2, color: null, size: 'M' },
+  { id: 'activity', col: 4, row: 3, cols: 1, rows: 2, color: null, size: 'M' },
+  { id: 'concept-web', col: 4, row: 5, cols: 1, rows: 1, color: null, size: 'S' },
   { id: 'streak', col: 1, row: 4, cols: 1, rows: 2, color: null, size: 'M' },
   { id: 'notes', col: 2, row: 4, cols: 1, rows: 2, color: null, size: 'M' },
   { id: 'flashcards', col: 3, row: 4, cols: 1, rows: 2, color: null, size: 'M' },
-  { id: 'learning-hub', col: 4, row: 3, cols: 1, rows: 3, color: null, size: 'L' },
-  { id: 'activity', col: 1, row: 6, cols: 1, rows: 1, color: null, size: 'S' },
-  { id: 'concept-web', col: 2, row: 6, cols: 1, rows: 1, color: null, size: 'S' },
-  { id: 'heatmap', col: 1, row: 7, cols: 4, rows: 2, color: null, size: 'L' }
+  { id: 'heatmap', col: 1, row: 6, cols: 4, rows: 2, color: null, size: 'L' }
 ];
 
 const Dashboard = () => {
@@ -118,10 +117,18 @@ const Dashboard = () => {
 
     // Load saved dashboard layout from localStorage
     try {
+      const LAYOUT_VERSION = '2.1'; // Increment this to force layout reset
+      const savedVersion = localStorage.getItem('dashboardLayoutVersion');
       const layoutName = localStorage.getItem('currentLayoutName') || 'Default';
       
+      // Force reset to new layout if version changed
+      if (savedVersion !== LAYOUT_VERSION) {
+        localStorage.setItem('dashboardLayoutVersion', LAYOUT_VERSION);
+        localStorage.setItem('currentLayoutName', 'Default');
+        setDashboardLayout(DEFAULT_LAYOUT_WIDGETS);
+      }
       // For Default layout, always use the hardcoded DEFAULT_LAYOUT_WIDGETS
-      if (layoutName === 'Default') {
+      else if (layoutName === 'Default') {
         setDashboardLayout(DEFAULT_LAYOUT_WIDGETS);
       } else {
         const savedLayout = localStorage.getItem('currentDashboardLayout');
@@ -958,18 +965,36 @@ const Dashboard = () => {
         </div>
         )}
 
-        {getWidgetConfig('hero') && (
-        <div className="ds-hero" style={{ 
-          ...getWidgetStyle('hero'),
-          '--dashboard-accent': getWidgetColor('hero'),
-          '--dashboard-accent-hover': getWidgetColor('hero'),
+        {getWidgetConfig('learning-hub-grid') && (
+        <div className="ds-learning-hub-grid" style={{ 
+          ...getWidgetStyle('learning-hub-grid'),
+          '--dashboard-accent': getWidgetColor('learning-hub-grid'),
           '--dashboard-bg-primary': bgPrimary
         }}>
-          <div className="ds-hero-content">
-            <img src={logo} alt="Cerbyl" className="ds-hero-logo" />
-            <div className="ds-hero-text-group">
-              <span className="ds-hero-brand-text">cerbyl</span>
-              <span className="ds-hero-tagline">Learn. Practice. Grow.</span>
+          <div className="ds-learning-hub-header">
+            <h2 className="ds-learning-hub-title">Learning Hub</h2>
+            <p className="ds-learning-hub-subtitle">ACCELERATE YOUR LEARNING</p>
+          </div>
+          <div className="ds-learning-hub-grid-items">
+            <div className="ds-learning-hub-grid-item" onClick={() => navigate('/knowledge-roadmap')}>
+              <Target size={32} strokeWidth={1.5} />
+              <h3>Roadmap</h3>
+              <p>Concept maps</p>
+            </div>
+            <div className="ds-learning-hub-grid-item" onClick={() => navigate('/question-bank')}>
+              <HelpCircle size={32} strokeWidth={1.5} />
+              <h3>Questions</h3>
+              <p>Practice bank</p>
+            </div>
+            <div className="ds-learning-hub-grid-item" onClick={() => navigate('/slide-explorer')}>
+              <Layers size={32} strokeWidth={1.5} />
+              <h3>Slides</h3>
+              <p>AI analysis</p>
+            </div>
+            <div className="ds-learning-hub-grid-item" onClick={() => navigate('/study-insights')}>
+              <Sparkles size={32} strokeWidth={1.5} />
+              <h3>Insights</h3>
+              <p>AI patterns</p>
             </div>
           </div>
         </div>
@@ -990,12 +1015,12 @@ const Dashboard = () => {
         )}
 
         {getWidgetConfig('concept-web') && (
-        <div className="ds-card ds-stats-prompts" onClick={navigateToConcepts} style={getWidgetStyle('concept-web')}>
+        <div className="ds-card ds-feature ds-concept-web" onClick={navigateToConcepts} style={getWidgetStyle('concept-web')}>
           <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('concept-web'), 0.1)} 0%, transparent 70%)` }}></div>
           <ChevronRight className="ds-card-click-indicator" size={20} style={{ color: getWidgetColor('concept-web') }} />
           <div className="ds-feature-content">
             <div className="ds-feature-icon" style={{ background: `linear-gradient(135deg, ${getWidgetColor('concept-web')} 0%, ${getWidgetColor('concept-web')} 100%)`, boxShadow: `0 6px 20px ${rgbaFromHex(getWidgetColor('concept-web'), 0.3)}` }}>
-              <Network size={18} />
+              <Network size={24} />
             </div>
             <h3 className="ds-feature-title">Concept Web</h3>
             <p className="ds-feature-description">
@@ -1191,13 +1216,12 @@ const Dashboard = () => {
           <ChevronRight className="ds-card-click-indicator" size={20} style={{ color: getWidgetColor('activity') }} />
           <div className="ds-feature-content">
             <div className="ds-feature-icon" style={{ background: `linear-gradient(135deg, ${getWidgetColor('activity')} 0%, ${getWidgetColor('activity')} 100%)`, boxShadow: `0 6px 20px ${rgbaFromHex(getWidgetColor('activity'), 0.3)}` }}>
-              <Clock size={18} />
+              <CalendarIcon size={24} />
             </div>
-            <h3 className="ds-feature-title">Activity</h3>
+            <h3 className="ds-feature-title">Activity Timeline</h3>
             <p className="ds-feature-description">
-              Track your learning journey over time.
+              Calendar & Reminders
             </p>
-            <div className="ds-feature-stat">{stats.minutes || 0} mins</div>
           </div>
         </div>
         )}

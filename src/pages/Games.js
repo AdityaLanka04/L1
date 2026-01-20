@@ -308,7 +308,10 @@ const Games = () => {
     <div className="games-page">
       <header className="hub-header">
         <div className="hub-header-left">
-          <h1 className="hub-logo">cerbyl</h1>
+          <h1 className="hub-logo">
+            <div className="hub-logo-img" />
+            cerbyl
+          </h1>
           <div className="hub-header-divider"></div>
           <p className="hub-header-subtitle">GAMES & CHALLENGES</p>
         </div>

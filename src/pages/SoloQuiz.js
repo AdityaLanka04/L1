@@ -103,7 +103,10 @@ const SoloQuiz = () => {
     <div className="sq-page">
       <header className="sq-header">
         <div className="sq-header-left">
-          <h1 className="sq-logo" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <h1 className="sq-logo" onClick={() => navigate('/dashboard')}>
+            <div className="sq-logo-img" />
+            cerbyl
+          </h1>
           <div className="sq-header-divider"></div>
           <span className="sq-subtitle">AI QUIZ</span>
         </div>

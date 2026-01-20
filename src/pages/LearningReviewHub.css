@@ -78,7 +78,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 40px;
+  padding: 0 40px;
+  height: 70px;
+  min-height: 70px;
+  max-height: 70px;
   background: color-mix(in srgb, var(--bg-primary, var(--bg-primary)) 80%, transparent);
   backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
@@ -91,6 +94,9 @@
 }
 
 .lrh-logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 24px;
   font-weight: 800;
   color: var(--accent);
@@ -100,9 +106,24 @@
   position: relative;
 }
 
+.lrh-logo-img {
+  height: 60px;
+  width: 60px;
+  -webkit-mask: url('../assets/logo.svg') no-repeat center;
+  mask: url('../assets/logo.svg') no-repeat center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  background-color: var(--accent);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .lrh-logo:hover {
   transform: translateY(-2px);
   text-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.lrh-logo:hover .lrh-logo-img {
+  transform: scale(1.1);
 }
 
 .lrh-header-divider {

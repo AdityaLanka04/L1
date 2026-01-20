@@ -305,7 +305,10 @@ function Login() {
             <div className="lg-brand-circle"></div>
             <div className="lg-brand-bar-bottom"></div>
             <div className="lg-brand-text-overlay">
-              <div className="lg-brand-name">cerbyl</div>
+              <div className="lg-brand-name">
+                <img src="/logo.svg" alt="" style={{ height: '32px', marginRight: '10px', verticalAlign: 'middle', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+                cerbyl
+              </div>
               <div className="lg-brand-tagline">Learning, Unified</div>
             </div>
           </div>

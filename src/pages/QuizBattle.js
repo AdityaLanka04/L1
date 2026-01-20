@@ -257,7 +257,10 @@ const QuizBattle = () => {
     <div className="qb-page">
       <header className="qb-header">
         <div className="qb-header-left">
-          <h1 className="qb-logo" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <h1 className="qb-logo" onClick={() => navigate('/dashboard')}>
+            <div className="qb-logo-img" />
+            cerbyl
+          </h1>
           <div className="qb-header-divider"></div>
           <span className="qb-subtitle">QUIZ BATTLES</span>
         </div>

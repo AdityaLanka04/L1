@@ -823,7 +823,10 @@ const CustomizeDashboard = () => {
       {/* Header - Profile Style */}
       <header className="cd-header">
         <div className="cd-header-left">
-          <span className="cd-logo" onClick={goBack}>cerbyl</span>
+          <span className="cd-logo" onClick={goBack}>
+            <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+            cerbyl
+          </span>
           <div className="cd-header-divider"></div>
           <span className="cd-subtitle">Customize Dashboard</span>
           {hasUnsavedChanges && <span className="cd-unsaved-badge">Unsaved</span>}

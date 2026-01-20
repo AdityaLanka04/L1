@@ -1771,7 +1771,10 @@ const ActivityTimeline = () => {
       {/* Top Navigation Bar */}
       <header className="at-profile-header">
         <div className="at-profile-header-left">
-          <h1 className="at-profile-logo" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <h1 className="at-profile-logo" onClick={() => navigate('/dashboard')}>
+            <div className="at-profile-logo-img" />
+            cerbyl
+          </h1>
           <div className="at-profile-header-divider"></div>
           <span className="at-profile-subtitle">calendar & timeline</span>
         </div>

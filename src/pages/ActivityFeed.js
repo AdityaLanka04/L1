@@ -82,7 +82,10 @@ const ActivityFeed = () => {
     <div className="feed-page">
       <header className="hub-header">
         <div className="hub-header-left">
-          <h1 className="hub-logo">cerbyl</h1>
+          <h1 className="hub-logo">
+            <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+            cerbyl
+          </h1>
           <div className="hub-header-divider"></div>
           <p className="hub-header-subtitle">ACTIVITY FEED</p>
         </div>

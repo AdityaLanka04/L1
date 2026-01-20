@@ -211,7 +211,10 @@ const SlideExplorer = () => {
       {/* Header - Full Width */}
       <header className="se-header">
         <div className="se-header-left">
-          <h1 className="se-header-title" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <h1 className="se-header-title" onClick={() => navigate('/dashboard')}>
+            <div className="se-logo-img" />
+            cerbyl
+          </h1>
           <div className="se-header-divider"></div>
           <p className="se-header-subtitle">SLIDE EXPLORER</p>
         </div>

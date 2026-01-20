@@ -47,7 +47,8 @@
 .qbd-header {
   height: 70px;
   min-height: 70px;
-  padding: 20px 40px;
+  max-height: 70px;
+  padding: 0 40px;
   background: color-mix(in srgb, var(--qbd-bg-primary) 80%, transparent);
   backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
@@ -63,22 +64,36 @@
 [data-theme-mode="dark"] .qbd-header {
   background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
 }
 
 [data-theme-mode="light"] .qbd-header {
   background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
 
 .qbd-header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 6px;
+}
+
+.qbd-logo-img {
+  height: 60px;
+  width: 60px;
+  -webkit-mask: url('../assets/logo.svg') no-repeat center;
+  mask: url('../assets/logo.svg') no-repeat center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  background-color: var(--accent);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .qbd-header-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 24px;
   font-weight: 800;
   color: var(--accent);
@@ -93,10 +108,15 @@
   text-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
+.qbd-header-title:hover .qbd-logo-img {
+  transform: scale(1.1);
+}
+
 .qbd-header-divider {
   width: 1px;
   height: 20px;
   background: color-mix(in srgb, var(--accent) 30%, transparent);
+  margin-left: 10px;
 }
 
 .qbd-header-subtitle {

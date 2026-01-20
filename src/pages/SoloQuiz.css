@@ -73,6 +73,9 @@
 }
 
 .sq-logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 24px;
   font-weight: 800;
   color: var(--sq-accent);
@@ -82,9 +85,24 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.sq-logo-img {
+  height: 40px;
+  width: 40px;
+  -webkit-mask: url('../assets/logo.svg') no-repeat center;
+  mask: url('../assets/logo.svg') no-repeat center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  background-color: var(--sq-accent);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .sq-logo:hover {
   transform: translateY(-2px);
   text-shadow: 0 4px 20px color-mix(in srgb, var(--sq-accent) 50%, transparent);
+}
+
+.sq-logo:hover .sq-logo-img {
+  transform: scale(1.1);
 }
 
 .sq-header-divider {

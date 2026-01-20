@@ -760,6 +760,170 @@ body {
   50% { transform: translateY(-12px); }
 }
 
+/* ==================== LEARNING HUB GRID ==================== */
+.ds-learning-hub-grid {
+  grid-column: 2 / 4;
+  grid-row: 1 / 4;
+  background: linear-gradient(135deg, var(--dashboard-accent) 0%, rgba(from var(--dashboard-accent) r g b / 0.85) 100%);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 435px;
+  position: relative;
+  overflow: hidden;
+}
+
+.ds-learning-hub-grid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse 100% 100% at 0% 0%, rgba(255,255,255,0.15) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 80% at 100% 100%, rgba(0,0,0,0.15) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.ds-learning-hub-header {
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.ds-learning-hub-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--dashboard-bg-primary);
+  margin: 0 0 8px 0;
+  letter-spacing: -0.5px;
+}
+
+.ds-learning-hub-subtitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dashboard-bg-primary);
+  opacity: 0.8;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.ds-learning-hub-grid-items {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 16px;
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+
+.ds-learning-hub-grid-item {
+  background: rgba(from var(--dashboard-bg-primary) r g b / 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(from var(--dashboard-bg-primary) r g b / 0.2);
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.ds-learning-hub-grid-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.ds-learning-hub-grid-item:hover {
+  transform: translateY(-4px);
+  background: rgba(from var(--dashboard-bg-primary) r g b / 0.25);
+  border-color: rgba(from var(--dashboard-bg-primary) r g b / 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.ds-learning-hub-grid-item:hover::before {
+  opacity: 1;
+}
+
+.ds-learning-hub-grid-item svg {
+  color: var(--dashboard-bg-primary);
+  flex-shrink: 0;
+}
+
+.ds-learning-hub-grid-item h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--dashboard-bg-primary);
+  margin: 0;
+}
+
+.ds-learning-hub-grid-item p {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--dashboard-bg-primary);
+  opacity: 0.8;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ==================== LEARNING SQUARES (OLD - KEEP FOR BACKWARDS COMPATIBILITY) ==================== */
+.ds-learning-square {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  min-height: 140px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ds-learning-square:hover {
+  transform: translateY(-4px);
+}
+
+.ds-square-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.ds-square-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  transition: all 0.3s ease;
+}
+
+.ds-learning-square:hover .ds-square-title {
+  color: var(--dashboard-accent);
+}
+
+.ds-square-desc {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 .ds-icon-top {
   grid-column: 4;
   grid-row: 1 / 3;
@@ -935,17 +1099,26 @@ body {
 
 .ds-notes {
   grid-column: 2;
-  grid-row: 4 / 6;
+  grid-row: 3 / 5;
+  min-height: 280px;
 }
 
 .ds-flashcards {
   grid-column: 3;
-  grid-row: 4 / 6;
+  grid-row: 3 / 5;
+  min-height: 280px;
 }
 
 .ds-activity {
-  grid-column: 1;
-  grid-row: 6;
+  grid-column: 4;
+  grid-row: 3 / 5;
+  min-height: 280px;
+}
+
+.ds-concept-web {
+  grid-column: 4;
+  grid-row: 5;
+  min-height: 140px;
 }
 
 .ds-feature-content {
@@ -1009,38 +1182,64 @@ body {
   letter-spacing: 0.5px;
 }
 
-/* Compact mode for Activity widget (small size) */
+/* Medium mode for Activity widget */
 .ds-activity .ds-feature-content {
-  padding: 8px;
-  gap: 2px;
+  padding: 24px;
+  gap: 16px;
 }
 
 .ds-activity .ds-feature-icon {
-  width: 32px;
-  height: 32px;
-  margin-bottom: 6px;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 12px;
 }
 
 .ds-activity .ds-feature-icon svg {
-  width: 14px;
-  height: 14px;
+  width: 24px;
+  height: 24px;
 }
 
 .ds-activity .ds-feature-title {
-  font-size: 13px;
-  margin-bottom: 2px;
+  font-size: 18px;
+  margin-bottom: 8px;
 }
 
 .ds-activity .ds-feature-description {
-  display: none;
+  display: block;
 }
 
 .ds-activity .ds-feature-stat {
-  font-size: 10px;
-  margin-top: 4px;
+  font-size: 14px;
+  margin-top: 8px;
 }
 
-/* Compact mode for Concept Web widget (small size) */
+/* Small mode for Concept Web widget */
+.ds-concept-web .ds-feature-content {
+  padding: 16px;
+  gap: 8px;
+}
+
+.ds-concept-web .ds-feature-icon {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 8px;
+}
+
+.ds-concept-web .ds-feature-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.ds-concept-web .ds-feature-title {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.ds-concept-web .ds-feature-description {
+  font-size: 9px;
+}
+
+/* Compact mode for Concept Web widget (small size) - REMOVED */
 .ds-stats-prompts .ds-feature-content {
   padding: 8px;
   gap: 2px;
@@ -1130,10 +1329,11 @@ body {
 
 .ds-templates {
   grid-column: 4;
-  grid-row: 3 / 6;
+  grid-row: 3 / 5;
   padding: 24px;
   display: flex;
   flex-direction: column;
+  min-height: 280px;
 }
 
 .ds-templates-content {

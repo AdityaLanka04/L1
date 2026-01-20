@@ -145,7 +145,10 @@ const Challenges = () => {
     <div className="challenges-page">
       <header className="challenges-header">
         <div className="challenges-header-left">
-          <h1 className="challenges-logo">cerbyl</h1>
+          <h1 className="challenges-logo">
+            <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+            cerbyl
+          </h1>
           <span className="challenges-subtitle">CHALLENGES</span>
         </div>
         <div className="challenges-header-right">

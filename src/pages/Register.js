@@ -268,7 +268,10 @@ function Register() {
             <div className="rg-brand-circle"></div>
             <div className="rg-brand-bar-bottom"></div>
             <div className="rg-brand-text-overlay">
-              <div className="rg-brand-name">cerbyl</div>
+              <div className="rg-brand-name">
+                <img src="/logo.svg" alt="" style={{ height: '32px', marginRight: '10px', verticalAlign: 'middle', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+                cerbyl
+              </div>
               <div className="rg-brand-tagline">Learning, Unified</div>
             </div>
           </div>

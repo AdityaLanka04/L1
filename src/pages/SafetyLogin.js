@@ -51,7 +51,10 @@ const SafetyLogin = () => {
     <div className="safety-login">
       <div className="safety-login-container">
         <div className="login-box">
-          <h1 className="safety-title">cerbyl</h1>
+          <h1 className="safety-title">
+            <img src="/logo.svg" alt="" style={{ height: '28px', marginRight: '10px', verticalAlign: 'middle', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+            cerbyl
+          </h1>
           <p className="safety-subtitle">SAFETY VERIFICATION</p>
         
           

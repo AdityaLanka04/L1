@@ -2408,7 +2408,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
               <ArrowLeft size={18} />
             </button>
           )}
-          <h1 className="nr-header-title" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <h1 className="nr-header-title" onClick={() => navigate('/dashboard')}>
+            <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+            cerbyl
+          </h1>
           <div className="nr-header-divider"></div>
           <p className="nr-header-subtitle">NOTES EDITOR</p>
           {isSharedContent && <span className="shared-badge">SHARED</span>}

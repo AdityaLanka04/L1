@@ -1459,7 +1459,10 @@ const SearchHub = () => {
 
               <div className="logo-search-container">
                 <div className="giant-logo">
-                  <span className="logo-text">cerbyl</span>
+                  <span className="logo-text">
+                    <img src="/logo.svg" alt="" style={{ height: '48px', marginRight: '12px', verticalAlign: 'middle', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+                    cerbyl
+                  </span>
                   <div className="search-box-wrapper">
                     <form onSubmit={(e) => { e.preventDefault(); handleSearch(); }} className={`search-box-cutout ${showAutocomplete && autocompleteResults.length > 0 ? 'dropdown-open' : ''}`}>
                       <input

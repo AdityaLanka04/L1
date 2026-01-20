@@ -34,7 +34,10 @@ const NotesHub = () => {
       {/* Header */}
       <header className="nh-header">
         <div className="nh-header-left">
-          <h1 className="nh-logo" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <h1 className="nh-logo" onClick={() => navigate('/dashboard')}>
+            <div className="nh-logo-img" />
+            cerbyl
+          </h1>
           <div className="nh-header-divider"></div>
           <span className="nh-subtitle">STUDY NOTES</span>
         </div>

@@ -124,7 +124,10 @@ const SharedContent = () => {
     <div className="shared-content-page">
       <header className="shared-header">
         <div className="shared-header-left">
-          <h1 className="shared-logo">cerbyl</h1>
+          <h1 className="shared-logo">
+            <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+            cerbyl
+          </h1>
           <span className="shared-subtitle">SHARED WITH ME</span>
         </div>
         <div className="shared-header-right">

@@ -79,7 +79,10 @@ const LearningReviewHub = () => {
       {/* Header */}
       <header className="lrh-header">
         <div className="lrh-header-left">
-          <h1 className="lrh-logo" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <h1 className="lrh-logo" onClick={() => navigate('/dashboard')}>
+            <div className="lrh-logo-img" />
+            cerbyl
+          </h1>
           <div className="lrh-header-divider"></div>
           <span className="lrh-subtitle">LEARNING HUB</span>
         </div>

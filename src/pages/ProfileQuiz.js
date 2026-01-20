@@ -597,7 +597,10 @@ const ProfileQuiz = () => {
           </div>
 
           <div className="bento-box bento-text-large">
-            <h1 className="bento-large-title">welcome to cerbyl</h1>
+            <h1 className="bento-large-title">
+              <img src="/logo.svg" alt="" style={{ height: '40px', marginRight: '12px', verticalAlign: 'middle', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+              welcome to cerbyl
+            </h1>
           </div>
 
           <div className="bento-box bento-quote-top">

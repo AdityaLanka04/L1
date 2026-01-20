@@ -351,7 +351,10 @@ const Profile = () => {
       <div className="profile-container">
         <header className="profile-header">
           <div className="profile-header-left">
-            <h1 className="profile-logo" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+            <h1 className="profile-logo" onClick={() => navigate('/dashboard')}>
+              <div className="profile-logo-img" />
+              cerbyl
+            </h1>
             <div className="profile-header-divider"></div>
             <span className="profile-subtitle">Profile</span>
           </div>

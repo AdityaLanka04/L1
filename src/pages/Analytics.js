@@ -215,7 +215,10 @@ const Analytics = () => {
       {/* Standardized Header - Exact copy from Profile */}
       <header className="analytics-header">
         <div className="analytics-header-left">
-          <h1 className="analytics-logo" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <h1 className="analytics-logo" onClick={() => navigate('/dashboard')}>
+            <div className="analytics-logo-img" />
+            cerbyl
+          </h1>
           <div className="analytics-header-divider"></div>
           <span className="analytics-subtitle">Analytics</span>
         </div>

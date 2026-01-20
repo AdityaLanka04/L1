@@ -113,7 +113,10 @@ const Statistics = () => {
             <span>BACK</span>
           </button>
           <div className="st-header-title-group">
-            <h1 className="st-logo">cerbyl</h1>
+            <h1 className="st-logo">
+              <div className="st-logo-img" />
+              cerbyl
+            </h1>
             <span className="st-subtitle">STATISTICS</span>
           </div>
         </div>

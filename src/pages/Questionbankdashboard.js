@@ -2624,7 +2624,10 @@ const QuestionBankDashboard = () => {
       {/* Header - Full Width */}
       <header className="qbd-header">
         <div className="qbd-header-left">
-          <h1 className="qbd-header-title" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <h1 className="qbd-header-title" onClick={() => navigate('/dashboard')}>
+            <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+            cerbyl
+          </h1>
           <div className="qbd-header-divider"></div>
           <p className="qbd-header-subtitle">QUIZ HUB</p>
         </div>

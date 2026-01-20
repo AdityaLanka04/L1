@@ -1653,7 +1653,10 @@ const AIChat = ({ sharedMode = false }) => {
       {/* Header */}
       <header className="ac-header">
         <div className="ac-header-left">
-          <h1 className="ac-logo" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <h1 className="ac-logo" onClick={() => navigate('/dashboard')}>
+            <div className="ac-logo-img" />
+            cerbyl
+          </h1>
           <div className="ac-header-divider"></div>
           <span className="ac-subtitle">AI Chat</span>
         </div>

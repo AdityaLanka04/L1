@@ -883,7 +883,10 @@ const ConceptWeb = () => {
       {/* Header */}
       <header className="cw-header">
         <div className="cw-header-left">
-          <h1 className="cw-logo" onClick={() => navigate('/dashboard')}>cerbyl</h1>
+          <h1 className="cw-logo" onClick={() => navigate('/dashboard')}>
+            <div className="cw-logo-img" />
+            cerbyl
+          </h1>
           <div className="cw-header-divider"></div>
           <span className="cw-subtitle">CONCEPT WEB</span>
         </div>

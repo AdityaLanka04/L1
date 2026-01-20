@@ -38,6 +38,9 @@
 }
 
 .analytics-logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 24px;
   font-weight: 800;
   color: var(--accent);
@@ -46,9 +49,24 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.analytics-logo-img {
+  height: 40px;
+  width: 40px;
+  -webkit-mask: url('../assets/logo.svg') no-repeat center;
+  mask: url('../assets/logo.svg') no-repeat center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  background-color: var(--accent);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .analytics-logo:hover {
   transform: translateY(-2px);
   text-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.analytics-logo:hover .analytics-logo-img {
+  transform: scale(1.1);
 }
 
 .analytics-header-divider {
