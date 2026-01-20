@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './SafetyLogin.css';
-
 const SafetyLogin = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-
   // 20 Default Demo Accounts
   const demoAccounts = [
     { username: 'demo_student1', password: 'BrainWave2024!', name: 'Alex Chen' },
@@ -15,16 +13,13 @@ const SafetyLogin = () => {
     { username: 'demo_student3', password: 'Study@456', name: 'Michael Brown' },
     
   ];
-
   const handleLogin = (e) => {
     e.preventDefault();
     setError('');
-
     // Check if credentials match any demo account
     const validAccount = demoAccounts.find(
       account => account.username === username && account.password === password
     );
-
     if (validAccount) {
       // Store demo session
       sessionStorage.setItem('demoUser', JSON.stringify({
@@ -46,7 +41,6 @@ const SafetyLogin = () => {
       setError('Invalid credentials. Please try again.');
     }
   };
-
   return (
     <div className="safety-login">
       <div className="safety-login-container">
@@ -68,7 +62,6 @@ const SafetyLogin = () => {
                 required
               />
             </div>
-
             <div className="form-group">
               <input
                 type="password"
@@ -78,9 +71,7 @@ const SafetyLogin = () => {
                 required
               />
             </div>
-
             {error && <div className="error-message">{error}</div>}
-
             <button type="submit" className="login-button">
               Enter
             </button>
@@ -90,5 +81,4 @@ const SafetyLogin = () => {
     </div>
   );
 };
-
 export default SafetyLogin;

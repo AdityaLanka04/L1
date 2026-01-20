@@ -1,13 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
-
 /* ==================== FORCE BOXY DESIGN ==================== */
 .safety-login *,
 .safety-login *::before,
 .safety-login *::after {
   border-radius: 0 !important;
 }
-
 .safety-login {
   width: 100vw;
   height: 100vh;
@@ -22,14 +20,12 @@
   justify-content: center;
   overflow: hidden;
 }
-
 [data-theme-mode="light"] .safety-login {
   background-color: var(--bg-primary, #ffffff);
   background-image: 
     linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)),
     url("https://www.transparenttextures.com/patterns/subtle-white-feathers.png");
 }
-
 .safety-login-container {
   width: 100%;
   height: 100%;
@@ -38,7 +34,6 @@
   justify-content: center;
   padding: 20px;
 }
-
 .login-box {
   width: 100%;
   max-width: 450px;
@@ -51,12 +46,10 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   animation: fadeInUp 0.6s ease-out;
 }
-
 [data-theme-mode="light"] .login-box {
   background: color-mix(in srgb, var(--bg-primary, #fff) 90%, transparent);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
-
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -67,7 +60,6 @@
     transform: translateY(0);
   }
 }
-
 .safety-title {
   font-size: 64px;
   font-weight: 800;
@@ -78,7 +70,6 @@
   text-transform: lowercase;
   font-family: 'Inter', sans-serif;
 }
-
 .safety-subtitle {
   font-size: 13px;
   font-weight: 400;
@@ -87,18 +78,15 @@
   margin-bottom: 40px;
   text-transform: uppercase;
 }
-
 .login-form {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
-
 .form-group {
   position: relative;
   width: 100%;
 }
-
 .form-group input {
   width: 100%;
   padding: 16px 20px;
@@ -113,30 +101,25 @@
   transition: all 0.3s ease;
   outline: none;
 }
-
 .form-group input::placeholder {
   color: color-mix(in srgb, var(--accent, #D7B38C) 50%, transparent);
   font-size: 14px;
   letter-spacing: 0.5px;
   font-weight: 400;
 }
-
 .form-group input:focus {
   border-color: var(--accent, #D7B38C);
   background: color-mix(in srgb, var(--bg-primary, #000) 60%, transparent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #D7B38C) 10%, transparent);
   color: var(--text-primary, #FFFFFF);
 }
-
 [data-theme-mode="light"] .form-group input {
   background: color-mix(in srgb, var(--bg-secondary, #f5f5f5) 80%, transparent);
   border-color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
-
 [data-theme-mode="light"] .form-group input:focus {
   background: #fff;
 }
-
 .error-message {
   color: #ff6b6b;
   font-size: 13px;
@@ -148,7 +131,6 @@
   border-radius: 6px;
   margin-top: -8px;
 }
-
 .login-button {
   width: 100%;
   padding: 16px;
@@ -165,106 +147,87 @@
   transition: all 0.3s ease;
   margin-top: 8px;
 }
-
 .login-button:hover {
   background: color-mix(in srgb, var(--accent, #D7B38C) 25%, transparent);
   border-color: var(--accent, #D7B38C);
   transform: translateY(-2px);
   box-shadow: 0 6px 20px color-mix(in srgb, var(--accent, #D7B38C) 20%, transparent);
 }
-
 [data-theme-mode="light"] .login-button {
   background: var(--accent);
   color: var(--bg-primary, #fff);
   border-color: var(--accent);
 }
-
 [data-theme-mode="light"] .login-button:hover {
   opacity: 0.9;
 }
-
 .login-button:active {
   transform: translateY(0);
 }
-
 /* Responsive Design */
 @media (max-width: 768px) {
   .login-box {
     max-width: 400px;
     padding: 50px 40px;
   }
-
   .safety-title {
     font-size: 52px;
   }
-
   .safety-subtitle {
     font-size: 12px;
     letter-spacing: 2.5px;
   }
-
   .form-group input {
     padding: 14px 18px;
     font-size: 14px;
     color: #FFFFFF;
     font-weight: 500;
   }
-
   .login-button {
     padding: 14px;
     font-size: 13px;
   }
 }
-
 @media (max-width: 480px) {
   .login-box {
     max-width: 340px;
     padding: 40px 30px;
   }
-
   .safety-title {
     font-size: 44px;
   }
-
   .safety-subtitle {
     font-size: 11px;
     letter-spacing: 2px;
     margin-bottom: 32px;
   }
-
   .form-group input {
     padding: 13px 16px;
     font-size: 14px;
     color: #FFFFFF;
     font-weight: 500;
   }
-
   .form-group input::placeholder {
     font-size: 13px;
   }
-
   .login-button {
     padding: 13px;
     font-size: 12px;
     letter-spacing: 1.5px;
   }
-
   .error-message {
     font-size: 12px;
     padding: 10px;
   }
 }
-
 @media (max-width: 360px) {
   .login-box {
     max-width: 300px;
     padding: 35px 25px;
   }
-
   .safety-title {
     font-size: 38px;
   }
-
   .safety-subtitle {
     font-size: 10px;
   }
