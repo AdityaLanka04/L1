@@ -349,10 +349,10 @@ const MyNotes = () => {
       {/* Header - Full Width */}
       <header className="mn-header">
         <div className="mn-header-left">
-          <h1 className="mn-header-title" onClick={() => navigate('/dashboard')}>
-            <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+          <div className="mn-header-title" onClick={() => navigate('/dashboard')}>
+            <div className="mn-logo-img"></div>
             cerbyl
-          </h1>
+          </div>
           <div className="mn-header-divider"></div>
           <p className="mn-header-subtitle">MY NOTES</p>
         </div>
@@ -537,31 +537,36 @@ const MyNotes = () => {
                     {note.is_favorite && (
                       <div className="nt-favorite-badge"><Star size={14} /></div>
                     )}
-                    <div className="nt-note-card-header">
-                      <h3 className="nt-note-title">{note.title || 'Untitled'}</h3>
-                      <div className="nt-note-actions">
-                        <button
-                          className="nt-note-action-btn"
-                          onClick={(e) => { e.stopPropagation(); setNoteToMove(note); setShowMoveModal(true); }}
-                          title="Move to folder"
-                        >
-                          <Folder size={14} />
-                        </button>
-                        <button
-                          className="nt-note-action-btn delete"
-                          onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }}
-                          title="Delete"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
+                    <div className="nt-note-card-cover">
+                      <FileText className="nt-note-cover-icon" size={48} />
                     </div>
-                    <div className="nt-note-preview">{extractPreview(note.content)}</div>
-                    <div className="nt-note-footer">
-                      <span className="nt-note-date">
-                        <Clock size={12} />
-                        {formatDate(note.updated_at)}
-                      </span>
+                    <div className="nt-note-card-content">
+                      <div className="nt-note-card-header">
+                        <h3 className="nt-note-title">{note.title || 'Untitled'}</h3>
+                        <div className="nt-note-actions">
+                          <button
+                            className="nt-note-action-btn"
+                            onClick={(e) => { e.stopPropagation(); setNoteToMove(note); setShowMoveModal(true); }}
+                            title="Move to folder"
+                          >
+                            <Folder size={14} />
+                          </button>
+                          <button
+                            className="nt-note-action-btn delete"
+                            onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }}
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="nt-note-preview">{extractPreview(note.content)}</div>
+                      <div className="nt-note-footer">
+                        <span className="nt-note-date">
+                          <Clock size={12} />
+                          {formatDate(note.updated_at)}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}

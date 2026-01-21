@@ -7,7 +7,7 @@ from datetime import datetime
 def add_edited_columns():
     """Add is_edited and edited_at columns to flashcards table"""
     
-    db_path = "backend/brainwave_tutor.db"
+    db_path = "brainwave_tutor.db"
     
     try:
         conn = sqlite3.connect(db_path)

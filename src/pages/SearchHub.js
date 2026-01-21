@@ -21,6 +21,7 @@ const SearchHub = () => {
   const [creatingMessage, setCreatingMessage] = useState('');
   
   const [personalizedPrompts, setPersonalizedPrompts] = useState([]);
+  const [isLoadingPrompts, setIsLoadingPrompts] = useState(true);
   const [showFollowUp, setShowFollowUp] = useState(false);
   const [followUpContext, setFollowUpContext] = useState(null);
   
@@ -67,6 +68,7 @@ const SearchHub = () => {
         { text: 'what are my weak areas', reason: 'Identify gaps', priority: 'high' },
       ];
       setPersonalizedPrompts(defaultPrompts);
+      setIsLoadingPrompts(false);
     }
 
     if (searchInputRef.current) {
@@ -155,6 +157,7 @@ const SearchHub = () => {
   };
 
   const loadPersonalizedPrompts = async (username) => {
+    setIsLoadingPrompts(true);
     try {
       const token = localStorage.getItem('token');
       const formData = new FormData();
@@ -291,6 +294,8 @@ const SearchHub = () => {
         { text: 'create flashcards to study', reason: 'Build study materials', priority: 'high' },
         { text: 'what are my weak areas', reason: 'Identify gaps', priority: 'high' },
       ]);
+    } finally {
+      setIsLoadingPrompts(false);
     }
   };
 
@@ -1409,23 +1414,32 @@ const SearchHub = () => {
 
       <main className="search-hub-content">
         {!searchResults && !isSearching && !isCreating ? (
-          <div className="hero-section">
-            <div className="geometric-background">
-              <div className="brain-circle brain-circle-1"></div>
-              <div className="brain-circle brain-circle-2"></div>
-              <div className="brain-circle brain-circle-3"></div>
-              <div className="neural-path neural-path-1"></div>
-              <div className="neural-path neural-path-2"></div>
-              <div className="neural-path neural-path-3"></div>
+          isLoadingPrompts ? (
+            <div className="initial-loader">
+              <div className="pulse-loader">
+                <div className="pulse-block pulse-block-1"></div>
+                <div className="pulse-block pulse-block-2"></div>
+                <div className="pulse-block pulse-block-3"></div>
+              </div>
             </div>
+          ) : (
+            <div className="hero-section">
+              <div className="geometric-background">
+                <div className="brain-circle brain-circle-1"></div>
+                <div className="brain-circle brain-circle-2"></div>
+                <div className="brain-circle brain-circle-3"></div>
+                <div className="neural-path neural-path-1"></div>
+                <div className="neural-path neural-path-2"></div>
+                <div className="neural-path neural-path-3"></div>
+              </div>
 
-            <div className="hero-content">
-              {personalizedPrompts.length > 0 && (
-                <div className="recommendations-section">
-                  <h2 className="recommendations-title">RECOMMENDATIONS</h2>
+              <div className="hero-content">
+                {personalizedPrompts.length > 0 && (
+                  <div className="recommendations-section">
+                    <h2 className="recommendations-title">RECOMMENDATIONS</h2>
 
-                  <div className="recommendations-grid">
-                    {personalizedPrompts.map((prompt, index) => {
+                    <div className="recommendations-grid">
+                      {personalizedPrompts.map((prompt, index) => {
                       const icons = {
                         high: <Brain className="rec-icon" />,
                         medium: <Target className="rec-icon" />,
@@ -1455,9 +1469,9 @@ const SearchHub = () => {
                     })}
                   </div>
                 </div>
-              )}
+                )}
 
-              <div className="logo-search-container">
+                <div className="logo-search-container">
                 <div className="giant-logo">
                   <span className="logo-text">
                     <img src="/logo.svg" alt="" style={{ height: '48px', marginRight: '12px', verticalAlign: 'middle', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
@@ -1593,6 +1607,7 @@ const SearchHub = () => {
               )}
             </div>
           </div>
+          )
         ) : isCreating ? (
           <div className="creating-content">
             <div className="creating-content-container">

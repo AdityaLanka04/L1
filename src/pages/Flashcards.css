@@ -2685,7 +2685,6 @@
   color: white !important;
   text-align: center !important;
   line-height: 1.2 !important;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
   overflow: hidden !important;
   display: -webkit-box !important;
   -webkit-line-clamp: 2 !important;
@@ -2701,7 +2700,6 @@
   letter-spacing: 2px !important;
   text-transform: uppercase !important;
   color: rgba(255, 255, 255, 0.8) !important;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
   margin: 0 !important;
   margin-top: 6px !important;
 }

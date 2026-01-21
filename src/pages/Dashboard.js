@@ -30,6 +30,34 @@ const DEFAULT_LAYOUT_WIDGETS = [
   { id: 'heatmap', col: 1, row: 6, cols: 4, rows: 2, color: null, size: 'L' }
 ];
 
+// Random greeting messages
+const GREETING_MESSAGES = [
+  "Ready to Learn?",
+  "Let's Get Started",
+  "Time to Shine",
+  "Your Learning Journey",
+  "Explore & Discover",
+  "Knowledge Awaits",
+  "Start Something New",
+  "Level Up Today",
+  "Master New Skills",
+  "Unlock Your Potential",
+  "Learn Something Amazing",
+  "Your Study Hub",
+  "Dive Into Learning",
+  "Expand Your Mind",
+  "Build Your Future",
+  "Grow Every Day",
+  "Challenge Yourself",
+  "Discover More",
+  "Keep Learning",
+  "Stay Curious"
+];
+
+const getRandomGreeting = () => {
+  return GREETING_MESSAGES[Math.floor(Math.random() * GREETING_MESSAGES.length)];
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { selectedTheme } = useTheme();
@@ -971,8 +999,11 @@ const Dashboard = () => {
           '--dashboard-accent': getWidgetColor('learning-hub-grid'),
           '--dashboard-bg-primary': bgPrimary
         }}>
+          <div className="ds-card-glow" style={{ background: `radial-gradient(ellipse at 50% 0%, ${rgbaFromHex(getWidgetColor('learning-hub-grid'), 0.1)} 0%, transparent 70%)` }}></div>
           <div className="ds-learning-hub-header">
-            <h2 className="ds-learning-hub-title">Learning Hub</h2>
+            <h2 className="ds-learning-hub-title">
+              {displayName}, {getRandomGreeting()}
+            </h2>
             <p className="ds-learning-hub-subtitle">ACCELERATE YOUR LEARNING</p>
           </div>
           <div className="ds-learning-hub-grid-items">

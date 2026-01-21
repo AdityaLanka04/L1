@@ -685,6 +685,7 @@
   overflow: visible;
   background: color-mix(in srgb, var(--accent-primary) 12%, var(--bg-primary));
   box-shadow: 0 4px 12px color-mix(in srgb, var(--accent-primary) 15%, transparent);
+  padding-bottom: 8px;
 }
 
 .at-week-view-header {
@@ -835,6 +836,8 @@
   flex: 1;
   overflow: hidden;
   background: transparent;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
 }
 
 .at-week-view-timeline {
@@ -845,6 +848,7 @@
   flex-shrink: 0;
   background: color-mix(in srgb, var(--accent-primary) 8%, var(--bg-secondary));
   border-right: 1px solid color-mix(in srgb, var(--accent-primary) 20%, var(--border-primary));
+  border-bottom-left-radius: 12px;
 }
 
 .at-week-view-corner {
@@ -876,6 +880,7 @@
 
 .at-week-day-column:last-child {
   border-right: none;
+  border-bottom-right-radius: 12px;
 }
 
 .at-week-day-column.today {
@@ -1172,6 +1177,7 @@
   overflow: hidden;
   background: color-mix(in srgb, var(--accent-primary) 12%, var(--bg-primary));
   box-shadow: 0 4px 12px color-mix(in srgb, var(--accent-primary) 15%, transparent);
+  padding-bottom: 8px;
 }
 
 .at-month-view-header {
@@ -1231,6 +1237,8 @@
   grid-template-columns: repeat(7, 1fr);
   flex: 1;
   overflow: hidden;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
 }
 
 .at-month-weekday-header {
@@ -1261,6 +1269,24 @@
   cursor: pointer;
   transition: background-color var(--transition-base);
   overflow: hidden;
+}
+
+/* Remove right border from last column */
+.at-month-day-cell:nth-child(7n) {
+  border-right: none;
+}
+
+/* Remove bottom border from last row and add rounded corners */
+.at-month-day-cell:nth-last-child(-n+7) {
+  border-bottom: none;
+}
+
+.at-month-day-cell:nth-last-child(7) {
+  border-bottom-left-radius: 12px;
+}
+
+.at-month-day-cell:last-child {
+  border-bottom-right-radius: 12px;
 }
 
 .at-month-day-cell:hover {
