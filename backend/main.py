@@ -13249,6 +13249,271 @@ async def clear_all_notifications(
 
 # ==================== STUDY INSIGHTS ENDPOINTS ====================
 
+@app.get("/api/study_insights/comprehensive")
+async def get_comprehensive_insights(
+    user_id: str = Query(...),
+    time_range: str = Query("overall", regex="^(session|overall)$"),
+    db: Session = Depends(get_db)
+):
+    """Get comprehensive insights from ALL sources: chat, flashcards, quizzes, notes, weak areas
+    
+    Args:
+        user_id: User identifier
+        time_range: 'session' for current session only, 'overall' for all-time stats
+    """
+    try:
+        from study_session_analyzer import get_study_session_analyzer
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get time ranges
+        now = datetime.now(timezone.utc)
+        week_ago = now - timedelta(days=7)
+        
+        # Determine time filter based on time_range parameter
+        if time_range == "session":
+            # Session mode: last 4 hours or since login (whichever is more recent)
+            max_session_window = now - timedelta(hours=4)
+            if user.last_login:
+                login_time = user.last_login
+                # Ensure both datetimes are timezone-aware for comparison
+                if hasattr(login_time, 'tzinfo') and login_time.tzinfo is None:
+                    login_time = login_time.replace(tzinfo=timezone.utc)
+                if hasattr(max_session_window, 'tzinfo') and max_session_window.tzinfo is None:
+                    max_session_window = max_session_window.replace(tzinfo=timezone.utc)
+                time_filter = max(login_time, max_session_window)
+            else:
+                time_filter = max_session_window
+        else:
+            # Overall mode: no time filter (all-time)
+            time_filter = None
+        
+        # 1. CHAT ACTIVITY & SESSION DATA
+        analyzer = get_study_session_analyzer(db, user.id, unified_ai)
+        session_summary = analyzer.generate_session_summary()
+        ai_summary = await analyzer.generate_ai_summary()
+        
+        # 2. FLASHCARD PERFORMANCE
+        flashcard_sets = db.query(models.FlashcardSet).filter(
+            models.FlashcardSet.user_id == user.id
+        ).all()
+        
+        total_flashcards = 0
+        reviewed_flashcards = 0
+        mastered_flashcards = 0
+        struggling_flashcards = []
+        
+        for fset in flashcard_sets:
+            cards = db.query(models.Flashcard).filter(
+                models.Flashcard.set_id == fset.id
+            ).all()
+            total_flashcards += len(cards)
+            
+            for card in cards:
+                if card.times_reviewed and card.times_reviewed > 0:
+                    reviewed_flashcards += 1
+                    accuracy = (card.correct_count / card.times_reviewed * 100) if card.times_reviewed > 0 else 0
+                    
+                    if accuracy >= 80 and card.times_reviewed >= 3:
+                        mastered_flashcards += 1
+                    elif accuracy < 50 and card.times_reviewed >= 2:
+                        struggling_flashcards.append({
+                            "question": card.question[:100],
+                            "set_name": fset.title,
+                            "accuracy": round(accuracy, 1),
+                            "times_reviewed": card.times_reviewed
+                        })
+        
+        # 3. QUIZ/TEST PERFORMANCE
+        quiz_query = db.query(models.SoloQuiz).filter(
+            models.SoloQuiz.user_id == user.id,
+            models.SoloQuiz.completed == True
+        )
+        
+        # Apply time filter for session mode
+        if time_filter:
+            quiz_query = quiz_query.filter(models.SoloQuiz.completed_at >= time_filter)
+        
+        solo_quizzes = quiz_query.order_by(models.SoloQuiz.completed_at.desc()).limit(20).all()
+        
+        quiz_stats = {
+            "total_quizzes": len(solo_quizzes),
+            "average_score": 0,
+            "recent_quizzes": [],
+            "by_difficulty": {"easy": [], "intermediate": [], "hard": []}
+        }
+        
+        if solo_quizzes:
+            scores = [q.score for q in solo_quizzes if q.score is not None]
+            quiz_stats["average_score"] = round(sum(scores) / len(scores), 1) if scores else 0
+            
+            for quiz in solo_quizzes[:10]:
+                quiz_data = {
+                    "title": quiz.title,
+                    "score": quiz.score,
+                    "difficulty": quiz.difficulty,
+                    "question_count": quiz.question_count,
+                    "completed_at": quiz.completed_at.isoformat() if quiz.completed_at else None
+                }
+                quiz_stats["recent_quizzes"].append(quiz_data)
+                
+                if quiz.difficulty in quiz_stats["by_difficulty"]:
+                    quiz_stats["by_difficulty"][quiz.difficulty].append(quiz.score)
+        
+        # Calculate average by difficulty
+        for diff in quiz_stats["by_difficulty"]:
+            scores = quiz_stats["by_difficulty"][diff]
+            quiz_stats["by_difficulty"][diff] = {
+                "count": len(scores),
+                "average": round(sum(scores) / len(scores), 1) if scores else 0
+            }
+        
+        # 4. WEAK AREAS (from master agent tracking)
+        weak_areas = db.query(models.UserWeakArea).filter(
+            models.UserWeakArea.user_id == user.id,
+            models.UserWeakArea.status != "mastered"
+        ).order_by(
+            models.UserWeakArea.priority.desc(),
+            models.UserWeakArea.weakness_score.desc()
+        ).limit(10).all()
+        
+        weak_areas_data = [{
+            "topic": wa.topic,
+            "subtopic": wa.subtopic,
+            "accuracy": round(wa.accuracy, 1),
+            "weakness_score": round(wa.weakness_score, 1),
+            "total_questions": wa.total_questions,
+            "incorrect_count": wa.incorrect_count,
+            "priority": wa.priority,
+            "status": wa.status,
+            "last_practiced": wa.last_practiced.isoformat() if wa.last_practiced else None
+        } for wa in weak_areas]
+        
+        # 5. QUESTION BANK PERFORMANCE
+        question_sets = db.query(models.QuestionSet).filter(
+            models.QuestionSet.user_id == user.id
+        ).all()
+        
+        question_bank_stats = {
+            "total_sets": len(question_sets),
+            "total_questions": 0,
+            "completed_questions": 0,
+            "average_accuracy": 0
+        }
+        
+        all_accuracies = []
+        for qset in question_sets:
+            questions = db.query(models.Question).filter(
+                models.Question.question_set_id == qset.id
+            ).all()
+            question_bank_stats["total_questions"] += len(questions)
+            
+            for q in questions:
+                if hasattr(q, 'times_attempted') and q.times_attempted and q.times_attempted > 0:
+                    question_bank_stats["completed_questions"] += 1
+                    if hasattr(q, 'times_correct'):
+                        accuracy = (q.times_correct / q.times_attempted * 100) if q.times_attempted > 0 else 0
+                        all_accuracies.append(accuracy)
+        
+        if all_accuracies:
+            question_bank_stats["average_accuracy"] = round(sum(all_accuracies) / len(all_accuracies), 1)
+        
+        # 6. NOTES ACTIVITY
+        notes_count = db.query(func.count(models.Note.id)).filter(
+            models.Note.user_id == user.id
+        ).scalar() or 0
+        
+        recent_notes = db.query(models.Note).filter(
+            models.Note.user_id == user.id
+        ).order_by(models.Note.updated_at.desc()).limit(5).all()
+        
+        notes_data = {
+            "total_notes": notes_count,
+            "recent_notes": [{
+                "id": note.id,
+                "title": note.title,
+                "updated_at": note.updated_at.isoformat() if note.updated_at else None
+            } for note in recent_notes]
+        }
+        
+        # 7. TIME SPENT & ACTIVITY
+        stats = db.query(models.UserGamificationStats).filter(
+            models.UserGamificationStats.user_id == user.id
+        ).first()
+        
+        time_stats = {
+            "total_study_minutes": getattr(stats, 'total_study_minutes', 0) if stats else 0,
+            "weekly_study_minutes": getattr(stats, 'weekly_study_minutes', 0) if stats else 0,
+            "day_streak": calculate_day_streak(db, user.id),
+            "total_points": getattr(stats, 'total_points', 0) if stats else 0
+        }
+        
+        # 8. RECENT ACTIVITY BREAKDOWN
+        activity_query = db.query(models.PointTransaction).filter(
+            models.PointTransaction.user_id == user.id
+        )
+        
+        # Apply time filter
+        if time_filter:
+            activity_query = activity_query.filter(models.PointTransaction.created_at >= time_filter)
+        else:
+            # For overall, still limit to last week for activity breakdown
+            activity_query = activity_query.filter(models.PointTransaction.created_at >= week_ago)
+        
+        recent_activities = activity_query.order_by(
+            models.PointTransaction.created_at.desc()
+        ).limit(100).all()
+        
+        activity_breakdown = {
+            "ai_chats": 0,
+            "flashcards_reviewed": 0,
+            "quizzes_completed": 0,
+            "notes_created": 0,
+            "questions_answered": 0
+        }
+        
+        for activity in recent_activities:
+            if activity.activity_type == "ai_chat":
+                activity_breakdown["ai_chats"] += 1
+            elif activity.activity_type in ["flashcard_reviewed", "flashcard_mastered"]:
+                activity_breakdown["flashcards_reviewed"] += 1
+            elif activity.activity_type in ["quiz_completed", "solo_quiz"]:
+                activity_breakdown["quizzes_completed"] += 1
+            elif activity.activity_type == "note_created":
+                activity_breakdown["notes_created"] += 1
+            elif activity.activity_type == "question_answered":
+                activity_breakdown["questions_answered"] += 1
+        
+        return {
+            "status": "success",
+            "time_range": time_range,
+            "time_filter_start": time_filter.isoformat() if time_filter else None,
+            "user_name": user.first_name or user.username,
+            "ai_summary": ai_summary,
+            "session_data": session_summary,
+            "flashcards": {
+                "total": total_flashcards,
+                "reviewed": reviewed_flashcards,
+                "mastered": mastered_flashcards,
+                "mastery_rate": round((mastered_flashcards / total_flashcards * 100), 1) if total_flashcards > 0 else 0,
+                "struggling": struggling_flashcards[:5]
+            },
+            "quizzes": quiz_stats,
+            "weak_areas": weak_areas_data,
+            "question_bank": question_bank_stats,
+            "notes": notes_data,
+            "time_stats": time_stats,
+            "activity_breakdown": activity_breakdown
+        }
+        
+    except Exception as e:
+        logger.error(f"Comprehensive insights error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/study_insights/session_summary")
 async def get_study_session_summary(
     user_id: str = Query(...),
