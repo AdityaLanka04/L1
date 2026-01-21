@@ -79,7 +79,7 @@
 .kr-header-right {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 16px;
 }
 
 .kr-logo-img {
@@ -118,7 +118,6 @@
   width: 1px;
   height: 20px;
   background: color-mix(in srgb, var(--kr-accent) 30%, transparent);
-  margin-left: 10px;
 }
 
 .kr-page-title {

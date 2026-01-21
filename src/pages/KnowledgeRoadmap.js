@@ -1451,10 +1451,10 @@ User question: ${messageText}`);
     <div className="kr-page">
       <header className="kr-header">
         <div className="kr-header-left">
-          <span className="kr-brand">
-            <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+          <div className="kr-brand">
+            <div className="kr-logo-img"></div>
             cerbyl
-          </span>
+          </div>
           <div className="kr-header-divider"></div>
           <span className="kr-page-title">KNOWLEDGE ROADMAP</span>
         </div>

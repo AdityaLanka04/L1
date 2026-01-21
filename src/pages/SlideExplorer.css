@@ -76,7 +76,7 @@
 .se-header-left {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 16px;
 }
 
 .se-logo-img {
@@ -116,7 +116,6 @@
   width: 1px;
   height: 20px;
   background: color-mix(in srgb, var(--accent) 30%, transparent);
-  margin-left: 10px;
 }
 
 .se-header-subtitle {

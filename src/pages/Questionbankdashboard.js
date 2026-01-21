@@ -1860,99 +1860,79 @@ const QuestionBankDashboard = () => {
               <div 
                 key={set.id} 
                 className={`qbd-set-card ${isSelected ? 'selected' : ''}`}
-                onClick={() => toggleSetSelection(set.id)}
+                onClick={() => startStudySession(set.id)}
               >
-                {/* Selection Check Indicator */}
-                <div className="qbd-source-check">
-                  {isSelected && <CheckCircle size={20} />}
-                </div>
-                
-                <div className="qbd-set-header">
-                  <div className="qbd-set-icon">
-                    <FileText size={28} />
+                {/* Cover Area with Icon */}
+                <div className="qbd-set-card-cover">
+                  <div className="qbd-set-cover-icon">
+                    <Brain size={80} />
                   </div>
-                  <div className="qbd-set-header-actions">
-                    <button 
-                      className="qbd-set-export"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openExportModal(set.id);
-                      }}
-                      title="Export as PDF"
-                      disabled={exportingPdf === set.id}
-                    >
-                      {exportingPdf === set.id ? (
-                        <Loader className="qbd-spin" size={16} />
-                      ) : (
-                        <FileDown size={16} />
-                      )}
-                    </button>
-                    <button 
-                      className="qbd-set-delete"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteQuestionSet(set.id);
-                      }}
-                      title="Delete question set"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
+                  <button 
+                    className="qbd-set-delete"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteQuestionSet(set.id);
+                    }}
+                    title="Delete question set"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
 
+                {/* Content Section */}
                 <div className="qbd-set-content">
                   <h3>{set.title}</h3>
-                  <p>{set.description}</p>
+                  <p>{set.description || 'No description'}</p>
                   
-                  <div className="qbd-set-stats">
-                    <div className="qbd-stat-item">
-                      <FileText size={16} />
-                      <span>{set.total_questions} questions</span>
-                    </div>
-                    <div className="qbd-stat-item">
-                      <Target size={16} />
-                      <span>Best: {set.best_score}%</span>
-                    </div>
-                    <div className="qbd-stat-item">
-                      <TrendingUp size={16} />
-                      <span>{set.attempts} attempts</span>
-                    </div>
-                  </div>
-
                   <div className="qbd-set-meta">
                     <span className="qbd-source-badge">{set.source_type}</span>
                     <span className="qbd-date-badge">
                       {new Date(set.created_at).toLocaleDateString()}
                     </span>
                   </div>
-                </div>
 
-                <div className="qbd-set-actions">
-                  <button 
-                    className="qbd-set-study-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      startStudySession(set.id);
-                    }}
-                  >
-                    <Play size={18} />
-                    <span>Start Practice</span>
-                  </button>
-                  <button 
-                    className="qbd-set-export-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openExportModal(set.id);
-                    }}
-                    disabled={exportingPdf === set.id}
-                  >
-                    {exportingPdf === set.id ? (
-                      <Loader className="qbd-spin" size={16} />
-                    ) : (
-                      <Download size={16} />
-                    )}
-                    <span>Export PDF</span>
-                  </button>
+                  <div className="qbd-set-stats">
+                    <div className="qbd-stat-item">
+                      <FileText size={14} />
+                      <span>{set.total_questions} questions</span>
+                    </div>
+                    <div className="qbd-stat-item">
+                      <Target size={14} />
+                      <span>Best: {set.best_score}%</span>
+                    </div>
+                    <div className="qbd-stat-item">
+                      <TrendingUp size={14} />
+                      <span>{set.attempts} attempts</span>
+                    </div>
+                  </div>
+
+                  <div className="qbd-set-actions">
+                    <button 
+                      className="qbd-set-study-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startStudySession(set.id);
+                      }}
+                    >
+                      <Play size={16} />
+                      <span>Study</span>
+                    </button>
+                    <button 
+                      className="qbd-set-export"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openExportModal(set.id);
+                      }}
+                      disabled={exportingPdf === set.id}
+                    >
+                      {exportingPdf === set.id ? (
+                        <Loader className="qbd-spin" size={16} />
+                      ) : (
+                        <Download size={16} />
+                      )}
+                      <span>Export</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -2624,10 +2604,10 @@ const QuestionBankDashboard = () => {
       {/* Header - Full Width */}
       <header className="qbd-header">
         <div className="qbd-header-left">
-          <h1 className="qbd-header-title" onClick={() => navigate('/dashboard')}>
-            <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+          <div className="qbd-header-title" onClick={() => navigate('/dashboard')}>
+            <div className="qbd-logo-img"></div>
             cerbyl
-          </h1>
+          </div>
           <div className="qbd-header-divider"></div>
           <p className="qbd-header-subtitle">QUIZ HUB</p>
         </div>
