@@ -229,43 +229,11 @@ const Dashboard = () => {
         if (!isFirstTimeUser && showStudyInsights) {
           fetchPersonalizedWelcome(welcomeName);
         } else if (!isFirstTimeUser && !showStudyInsights) {
-          // Show simple welcome without study insights
-          const welcomeNotif = {
-            id: `welcome-${Date.now()}`,
-            title: 'Welcome Back!',
-            message: `Ready to continue learning, ${welcomeName}?`,
-            type: 'welcome',
-            notification_type: 'welcome',
-            created_at: new Date().toISOString()
-          };
-          
-          setTimeout(() => {
-            setSlideNotifQueue(prev => {
-              if (!prev.some(n => n.type === 'welcome')) {
-                return [...prev, welcomeNotif];
-              }
-              return prev;
-            });
-          }, 1500);
+          // Show simple welcome without study insights - create in database
+          createWelcomeNotification(welcomeName, 'Welcome Back!', `Ready to continue learning, ${welcomeName}?`);
         } else {
-          // For first-time users, show simple welcome
-          const welcomeNotif = {
-            id: `welcome-${Date.now()}`,
-            title: 'Welcome!',
-            message: `Let's get started with your learning journey, ${welcomeName}!`,
-            type: 'welcome',
-            notification_type: 'welcome',
-            created_at: new Date().toISOString()
-          };
-          
-          setTimeout(() => {
-            setSlideNotifQueue(prev => {
-              if (!prev.some(n => n.type === 'welcome')) {
-                return [...prev, welcomeNotif];
-              }
-              return prev;
-            });
-          }, 3000);
+          // For first-time users, show simple welcome - create in database
+          createWelcomeNotification(welcomeName, 'Welcome!', `Let's get started with your learning journey, ${welcomeName}!`);
         }
       }
     }
@@ -303,71 +271,97 @@ const Dashboard = () => {
   const fetchPersonalizedWelcome = async (displayName) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/study_insights/welcome_notification?user_id=${userName}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      
+      // First, create the notification in the database
+      const createResponse = await fetch(`${API_URL}/create_notification`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          title: 'Welcome Back!',
+          message: `Ready to continue learning, ${displayName}?`,
+          notification_type: 'welcome'
+        })
+      });
+      
+      if (createResponse.ok) {
+        const createData = await createResponse.json();
+        console.log('✅ Welcome notification created in DB:', createData);
+        
+        // Now fetch study insights if available
+        const insightsResponse = await fetch(`${API_URL}/study_insights/welcome_notification?user_id=${userName}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (insightsResponse.ok) {
+          const insightsData = await insightsResponse.json();
+          const notifData = insightsData.notification;
+          
+          if (notifData.has_insights) {
+            // Update the notification with insights
+            await fetch(`${API_URL}/create_notification`, {
+              method: 'POST',
+              headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                user_id: userName,
+                title: notifData.title || 'Study Insights',
+                message: notifData.message,
+                notification_type: 'study_insights'
+              })
+            });
+          }
+        }
+        
+        // Trigger a notification poll to show the new notification
+        setTimeout(() => {
+          if (notificationPollRef.current) {
+            clearInterval(notificationPollRef.current);
+          }
+          startNotificationPolling();
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('❌ Error creating welcome notification:', error);
+      // Fallback: create simple notification
+      createWelcomeNotification(displayName, 'Welcome Back!', `Ready to continue learning, ${displayName}?`);
+    }
+  };
+
+  const createWelcomeNotification = async (displayName, title, message) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/create_notification`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          title: title,
+          message: message,
+          notification_type: 'welcome'
+        })
       });
       
       if (response.ok) {
-        const data = await response.json();
-        const notifData = data.notification;
-        
-        const welcomeNotif = {
-          id: `welcome-${Date.now()}`,
-          title: notifData.title || 'Welcome Back!',
-          message: notifData.message || `Ready to continue learning, ${displayName}?`,
-          type: 'welcome',
-          notification_type: notifData.has_insights ? 'study_insights' : 'welcome',
-          has_insights: notifData.has_insights,
-          created_at: new Date().toISOString()
-        };
-        
+        console.log('✅ Welcome notification created');
+        // Trigger notification poll
         setTimeout(() => {
-          setSlideNotifQueue(prev => {
-            if (!prev.some(n => n.type === 'welcome')) {
-              return [...prev, welcomeNotif];
-            }
-            return prev;
-          });
-        }, 1500);
-      } else {
-        // Fallback to simple welcome
-        const welcomeNotif = {
-          id: `welcome-${Date.now()}`,
-          title: 'Welcome Back!',
-          message: `Ready to continue learning, ${displayName}?`,
-          type: 'welcome',
-          notification_type: 'welcome',
-          created_at: new Date().toISOString()
-        };
-        
-        setTimeout(() => {
-          setSlideNotifQueue(prev => {
-            if (!prev.some(n => n.type === 'welcome')) {
-              return [...prev, welcomeNotif];
-            }
-            return prev;
-          });
-        }, 1500);
+          if (notificationPollRef.current) {
+            clearInterval(notificationPollRef.current);
+          }
+          startNotificationPolling();
+        }, 1000);
       }
     } catch (error) {
-      // Fallback to simple welcome on error
-      const welcomeNotif = {
-        id: `welcome-${Date.now()}`,
-        title: 'Welcome Back!',
-        message: `Ready to continue learning, ${displayName}?`,
-        type: 'welcome',
-        notification_type: 'welcome',
-        created_at: new Date().toISOString()
-      };
-      
-      setTimeout(() => {
-        setSlideNotifQueue(prev => {
-          if (!prev.some(n => n.type === 'welcome')) {
-            return [...prev, welcomeNotif];
-          }
-          return prev;
-        });
-      }, 1500);
+      console.error('❌ Error creating welcome notification:', error);
     }
   };
 
@@ -501,7 +495,8 @@ const Dashboard = () => {
         const token = localStorage.getItem('token');
         const now = Date.now();
         
-        if (now - lastNotificationCheckRef.current < 10000) {
+        // Throttle to prevent too frequent requests (5 seconds minimum)
+        if (now - lastNotificationCheckRef.current < 5000) {
           return;
         }
         lastNotificationCheckRef.current = now;
@@ -514,21 +509,28 @@ const Dashboard = () => {
           const data = await response.json();
           const notifs = data.notifications || [];
           
+          console.log('📬 Fetched notifications:', notifs.length, notifs);
+          
           setNotifications(notifs);
           setUnreadCount(notifs.filter(n => !n.is_read).length);
 
+          // Find new unread notifications that haven't been shown yet
           const newNotifs = notifs.filter(notif => 
             !lastNotificationIds.has(notif.id) && !notif.is_read
           );
+
+          console.log('🆕 New notifications to show:', newNotifs.length, newNotifs);
 
           if (newNotifs.length > 0) {
             const newSlideNotifs = newNotifs.map(notif => ({
               id: notif.id,
               title: notif.title,
               message: notif.message,
-              type: notif.notification_type || 'general',
+              notification_type: notif.notification_type || 'general',
               created_at: notif.created_at
             }));
+            
+            console.log('🎯 Adding to slide queue:', newSlideNotifs);
             
             setSlideNotifQueue(prev => [...prev, ...newSlideNotifs]);
             setLastNotificationIds(prev => {
@@ -537,15 +539,25 @@ const Dashboard = () => {
               return updated;
             });
           }
+        } else {
+          console.error('❌ Failed to fetch notifications:', response.status, response.statusText);
         }
-      } catch (error) {}
+      } catch (error) {
+        console.error('❌ Error polling notifications:', error);
+      }
     };
 
+    // Poll immediately on start
     pollNotifications();
-    notificationPollRef.current = setInterval(pollNotifications, 120000);
+    
+    // Then poll every 30 seconds (more frequent for better UX)
+    notificationPollRef.current = setInterval(pollNotifications, 30000);
+    
+    console.log('✅ Notification polling started');
   };
 
   const removeSlideNotification = (notifId) => {
+    console.log('🗑️ Removing slide notification:', notifId);
     setSlideNotifQueue(prev => prev.filter(n => n.id !== notifId));
     markNotificationAsRead(notifId);
   };
@@ -553,6 +565,7 @@ const Dashboard = () => {
   const markNotificationAsRead = async (notifId) => {
     try {
       const token = localStorage.getItem('token');
+      console.log('✅ Marking notification as read:', notifId);
       const response = await fetch(`${API_URL}/mark_notification_read/${notifId}`, {
         method: 'PUT',
         headers: {
@@ -883,12 +896,15 @@ const Dashboard = () => {
 
   return (
     <div className={`ds-page ${isLoaded ? 'ds-loaded' : ''}`} data-theme-mode={themeMode}>
-      {slideNotifQueue.length > 0 && (
+      {slideNotifQueue.length > 0 && slideNotifQueue.map((notif, index) => (
         <SlideNotification
-          notification={slideNotifQueue[0]}
-          onClose={() => removeSlideNotification(slideNotifQueue[0].id)}
+          key={notif.id}
+          notification={notif}
+          onClose={() => removeSlideNotification(notif.id)}
+          onMarkRead={markNotificationAsRead}
+          style={{ top: `${80 + (index * 120)}px` }}
         />
-      )}
+      ))}
       
       {showTour && (
         <HelpTour onClose={closeTour} onComplete={completeTour} />
@@ -917,51 +933,59 @@ const Dashboard = () => {
               </button>
               
               {showNotifications && (
-                <div className="ds-notif-panel" onClick={(e) => e.stopPropagation()}>
-                  <div className="ds-notif-panel-header">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <Bell size={18} />
-                      <h3>Notifications</h3>
-                    </div>
-                    <button className="ds-notif-close-btn" onClick={() => setShowNotifications(false)}>×</button>
-                  </div>
-                  <div className="ds-notif-panel-content">
-                    {notifications.length === 0 ? (
-                      <div className="ds-no-notifications-placeholder">
-                        <Bell size={48} />
-                        <p>No notifications yet</p>
+                <>
+                  {/* Backdrop blur overlay */}
+                  <div 
+                    className="ds-notif-backdrop" 
+                    onClick={() => setShowNotifications(false)}
+                  />
+                  
+                  <div className="ds-notif-panel" onClick={(e) => e.stopPropagation()}>
+                    <div className="ds-notif-panel-header">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Bell size={18} />
+                        <h3>Notifications</h3>
                       </div>
-                    ) : (
-                      notifications.map(notification => (
-                        <div 
-                          key={notification.id} 
-                          className={`ds-notif-item ${!notification.is_read ? 'ds-notif-unread' : ''}`}
-                          onClick={() => markNotificationAsRead(notification.id)}
-                        >
-                          <div className="ds-notif-icon">
-                            <Sparkles size={20} />
-                          </div>
-                          <div className="ds-notif-body">
-                            <div className="ds-notif-header-row">
-                              <span className="ds-notif-from">{notification.title}</span>
-                              <button 
-                                className="ds-notif-delete" 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteNotification(notification.id);
-                                }}
-                              >
-                                ×
-                              </button>
-                            </div>
-                            <p className="ds-notif-text">{notification.message}</p>
-                            <span className="ds-notif-time">{getRelativeTime(notification.created_at)}</span>
-                          </div>
+                      <button className="ds-notif-close-btn" onClick={() => setShowNotifications(false)}>×</button>
+                    </div>
+                    <div className="ds-notif-panel-content">
+                      {notifications.length === 0 ? (
+                        <div className="ds-no-notifications-placeholder">
+                          <Bell size={48} />
+                          <p>No notifications yet</p>
                         </div>
-                      ))
-                    )}
+                      ) : (
+                        notifications.map(notification => (
+                          <div 
+                            key={notification.id} 
+                            className={`ds-notif-item ${!notification.is_read ? 'ds-notif-unread' : ''}`}
+                            onClick={() => markNotificationAsRead(notification.id)}
+                          >
+                            <div className="ds-notif-icon">
+                              <Sparkles size={20} />
+                            </div>
+                            <div className="ds-notif-body">
+                              <div className="ds-notif-header-row">
+                                <span className="ds-notif-from">{notification.title}</span>
+                                <button 
+                                  className="ds-notif-delete" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteNotification(notification.id);
+                                  }}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                              <p className="ds-notif-text">{notification.message}</p>
+                              <span className="ds-notif-time">{getRelativeTime(notification.created_at)}</span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
-                </div>
+                </>
               )}
             </div>
             
