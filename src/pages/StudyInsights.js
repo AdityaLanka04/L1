@@ -7,12 +7,9 @@ const StudyInsights = () => {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
-  const [aiSummary, setAiSummary] = useState('');
-  const [generatedQuestions, setGeneratedQuestions] = useState([]);
-  const [generatedFlashcards, setGeneratedFlashcards] = useState([]);
-  const [mainTopic, setMainTopic] = useState('');
-  const [hasSessionData, setHasSessionData] = useState(false);
-  const [userQuestions, setUserQuestions] = useState([]);
+  const [insights, setInsights] = useState(null);
+  const [error, setError] = useState(null);
+  const [timeRange, setTimeRange] = useState('overall'); // 'session' or 'overall'
 
   const userName = localStorage.getItem('username');
   const token = localStorage.getItem('token');
@@ -23,151 +20,49 @@ const StudyInsights = () => {
       return;
     }
     
-    // Check if study insights is enabled - check localStorage first
+    // Check if study insights is enabled
     const profile = localStorage.getItem('userProfile');
-        if (profile) {
+    if (profile) {
       try {
         const parsed = JSON.parse(profile);
-                // Check if explicitly set to false (not just undefined)
         if (parsed.showStudyInsights === false) {
-                    // Study insights is disabled, redirect to dashboard
           navigate('/dashboard', { replace: true });
           return;
         }
-      } catch (e) {
-              }
+      } catch (e) {}
     }
     
-    loadInsights();
-  }, []);
+    loadComprehensiveInsights();
+  }, [timeRange]); // Reload when timeRange changes
 
-  const loadInsights = async () => {
+  const loadComprehensiveInsights = async () => {
     setLoading(true);
+    setError(null);
 
     try {
-      // Get session summary
-      const summaryRes = await fetch(`${API_URL}/study_insights/session_summary?user_id=${userName}`, {
+      console.log('Fetching insights from:', `${API_URL}/study_insights/comprehensive?user_id=${userName}&time_range=${timeRange}`);
+      
+      const response = await fetch(`${API_URL}/study_insights/comprehensive?user_id=${userName}&time_range=${timeRange}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (summaryRes.ok) {
-        const data = await summaryRes.json();
-        const summary = data.summary;
-        
-        // Check if there's actual session data
-        const topics = summary?.specific_topics || [];
-        const messageCount = summary?.summary?.chat_messages || 0;
-        const questions = summary?.user_questions || [];
-        
-                
-        setUserQuestions(questions);
-        
-        if (messageCount > 0 && topics.length > 0) {
-          setHasSessionData(true);
-          setMainTopic(topics[0].name);
-          
-          // Get AI summary and generate content in parallel, wait for all
-          const [aiRes, questionsData, flashcardsData] = await Promise.all([
-            fetch(`${API_URL}/study_insights/ai_summary?user_id=${userName}`, {
-              headers: { Authorization: `Bearer ${token}` },
-            }),
-            fetch(`${API_URL}/study_insights/generate_content`, {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                user_id: userName,
-                content_type: 'quiz',
-                topic: topics[0].name,
-                count: 2,
-                context: questions.slice(0, 5).join('\n'),
-              }),
-            }),
-            fetch(`${API_URL}/study_insights/generate_content`, {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                user_id: userName,
-                content_type: 'flashcards',
-                topic: topics[0].name,
-                count: 3,
-                context: questions.slice(0, 5).join('\n'),
-              }),
-            }),
-          ]);
-
-          if (aiRes.ok) {
-            const aiData = await aiRes.json();
-            setAiSummary(aiData.summary);
-          }
-          
-          if (questionsData.ok) {
-            const qData = await questionsData.json();
-            setGeneratedQuestions(qData.content || []);
-          }
-          
-          if (flashcardsData.ok) {
-            const fData = await flashcardsData.json();
-            setGeneratedFlashcards(fData.content || []);
-          }
-        } else {
-          setHasSessionData(false);
-          setUserQuestions([]); // Clear user questions when no session data
-          setAiSummary('No study activity detected in this session. Start chatting with the AI tutor to see your insights here.');
-        }
-      }
-    } catch (err) {
-          } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleQuestionClick = (question) => {
-    navigate('/ai-chat', {
-      state: { initialMessage: `Help me solve this: ${question.question}` },
-    });
-  };
-
-  const handleFlashcardClick = async () => {
-    if (generatedFlashcards.length === 0) return;
-    
-    try {
-      const response = await fetch(`${API_URL}/flashcard_sets`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_id: userName,
-          title: `${mainTopic} - Practice`,
-          description: `Generated from study insights`,
-          flashcards: generatedFlashcards.map((card) => ({
-            question: card.question,
-            answer: card.answer,
-            difficulty: card.difficulty || 'medium',
-          })),
-        }),
-      });
+      console.log('Response status:', response.status);
 
       if (response.ok) {
         const data = await response.json();
-        navigate(`/flashcards?set_id=${data.set_id}`);
+        console.log('Insights data:', data);
+        setInsights(data);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error response:', errorData);
+        setError(errorData.detail || `Error: ${response.status}`);
       }
     } catch (err) {
-            navigate('/flashcards');
+      console.error('Error loading insights:', err);
+      setError(err.message || 'Failed to load insights');
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const handleTopicPractice = (topicName) => {
-    navigate('/ai-chat', {
-      state: { initialMessage: `Give me practice problems for ${topicName}` },
-    });
   };
 
   const getDisplayName = () => {
@@ -189,7 +84,7 @@ const StudyInsights = () => {
     return (
       <div className="study-insights-page">
         <div className="insights-loading">
-          <span className="loading-text">ANALYZING YOUR STUDY SESSION</span>
+          <span className="loading-text">ANALYZING YOUR STUDY DATA</span>
           <div className="insights-spinner">
             <div className="spinner-cube"></div>
             <div className="spinner-cube"></div>
@@ -200,19 +95,45 @@ const StudyInsights = () => {
     );
   }
 
-  // Truncate long questions for display
-  const truncateQuestion = (q, maxLen = 60) => {
-    if (q.length <= maxLen) return q;
-    return q.substring(0, maxLen) + '...';
-  };
+  if (!insights) {
+    return (
+      <div className="study-insights-page">
+        <div className="insights-error">
+          <p>Unable to load insights</p>
+          {error && <p style={{ color: '#ef4444', fontSize: '14px', marginTop: '10px' }}>{error}</p>}
+          <button onClick={loadComprehensiveInsights} style={{ marginRight: '10px' }}>Retry</button>
+          <button onClick={() => navigate('/dashboard')}>Back to Dashboard</button>
+        </div>
+      </div>
+    );
+  }
+
+  const hasData = insights.activity_breakdown && 
+    (insights.activity_breakdown.ai_chats > 0 || 
+     insights.activity_breakdown.quizzes_completed > 0 ||
+     insights.activity_breakdown.flashcards_reviewed > 0);
 
   return (
     <div className="study-insights-page">
       <header className="insights-header">
         <div className="header-content">
           <span className="header-username">{getDisplayName()}</span>
-          <h1 className="header-title">study insights</h1>
+          <h1 className="header-title">comprehensive insights</h1>
           <div className="header-right">
+            <div className="time-range-toggle">
+              <button 
+                className={`toggle-btn ${timeRange === 'session' ? 'active' : ''}`}
+                onClick={() => setTimeRange('session')}
+              >
+                THIS SESSION
+              </button>
+              <button 
+                className={`toggle-btn ${timeRange === 'overall' ? 'active' : ''}`}
+                onClick={() => setTimeRange('overall')}
+              >
+                OVERALL
+              </button>
+            </div>
             <button className="header-btn secondary" onClick={() => navigate('/search-hub')}>
               SEARCH HUB
             </button>
@@ -225,81 +146,260 @@ const StudyInsights = () => {
 
       <main className="insights-main">
         <div className="bento-grid">
-          {/* Session Summary */}
+          {/* AI Summary - Full width */}
           <div className="bento-item bento-summary">
-            <h2 className="bento-title">SESSION SUMMARY</h2>
-            <p className="summary-text">{aiSummary}</p>
+            <h2 className="bento-title">AI SUMMARY</h2>
+            <p className="summary-text">{insights.ai_summary}</p>
           </div>
 
-          {/* Practice Questions - always show */}
-          <div className="bento-item bento-questions">
-            <h2 className="bento-title">PRACTICE QUESTIONS</h2>
-            {generatedQuestions.length > 0 ? (
-              <div className="questions-list">
-                {generatedQuestions.map((q, idx) => (
-                  <div key={idx} className="question-card" onClick={() => handleQuestionClick(q)}>
-                    <span className="question-num">{idx + 1}</span>
-                    <p className="question-text">{q.question}</p>
+          {/* Time & Activity Stats */}
+          <div className="bento-item bento-time-stats">
+            <h2 className="bento-title">STUDY TIME</h2>
+            <div className="stats-grid">
+              <div className="stat-item">
+                <div className="stat-value">{insights.time_stats?.weekly_study_minutes || 0}</div>
+                <div className="stat-label">Minutes This Week</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-value">{insights.time_stats?.day_streak || 0}</div>
+                <div className="stat-label">Day Streak</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-value">{insights.time_stats?.total_points || 0}</div>
+                <div className="stat-label">Total Points</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Activity Breakdown */}
+          <div className="bento-item bento-activity">
+            <h2 className="bento-title">WEEKLY ACTIVITY</h2>
+            <div className="activity-list">
+              <div className="activity-row">
+                <span className="activity-label">AI Chats</span>
+                <span className="activity-value">{insights.activity_breakdown?.ai_chats || 0}</span>
+              </div>
+              <div className="activity-row">
+                <span className="activity-label">Quizzes Completed</span>
+                <span className="activity-value">{insights.activity_breakdown?.quizzes_completed || 0}</span>
+              </div>
+              <div className="activity-row">
+                <span className="activity-label">Flashcards Reviewed</span>
+                <span className="activity-value">{insights.activity_breakdown?.flashcards_reviewed || 0}</span>
+              </div>
+              <div className="activity-row">
+                <span className="activity-label">Questions Answered</span>
+                <span className="activity-value">{insights.activity_breakdown?.questions_answered || 0}</span>
+              </div>
+              <div className="activity-row">
+                <span className="activity-label">Notes Created</span>
+                <span className="activity-value">{insights.activity_breakdown?.notes_created || 0}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quiz Performance */}
+          <div className="bento-item bento-quiz-performance">
+            <h2 className="bento-title">QUIZ PERFORMANCE</h2>
+            {insights.quizzes?.total_quizzes > 0 ? (
+              <>
+                <div className="quiz-summary">
+                  <div className="quiz-stat-large">
+                    <div className="quiz-score">{insights.quizzes.average_score}%</div>
+                    <div className="quiz-label">Average Score</div>
+                  </div>
+                  <div className="quiz-stat-small">
+                    <div className="quiz-count">{insights.quizzes.total_quizzes}</div>
+                    <div className="quiz-label">Quizzes Taken</div>
+                  </div>
+                </div>
+                <div className="difficulty-breakdown">
+                  <div className="diff-item">
+                    <span className="diff-label">Easy</span>
+                    <span className="diff-score">{insights.quizzes.by_difficulty?.easy?.average || 0}%</span>
+                  </div>
+                  <div className="diff-item">
+                    <span className="diff-label">Medium</span>
+                    <span className="diff-score">{insights.quizzes.by_difficulty?.intermediate?.average || 0}%</span>
+                  </div>
+                  <div className="diff-item">
+                    <span className="diff-label">Hard</span>
+                    <span className="diff-score">{insights.quizzes.by_difficulty?.hard?.average || 0}%</span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="empty-state">
+                <p className="empty-text">No quizzes completed yet</p>
+                <button className="start-btn-small" onClick={() => navigate('/quiz-hub')}>
+                  Take a Quiz
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Flashcard Performance */}
+          <div className="bento-item bento-flashcard-performance">
+            <h2 className="bento-title">FLASHCARD MASTERY</h2>
+            {insights.flashcards?.total > 0 ? (
+              <>
+                <div className="flashcard-stats">
+                  <div className="fc-stat">
+                    <div className="fc-value">{insights.flashcards.total}</div>
+                    <div className="fc-label">Total Cards</div>
+                  </div>
+                  <div className="fc-stat">
+                    <div className="fc-value">{insights.flashcards.mastered}</div>
+                    <div className="fc-label">Mastered</div>
+                  </div>
+                  <div className="fc-stat">
+                    <div className="fc-value">{insights.flashcards.mastery_rate}%</div>
+                    <div className="fc-label">Mastery Rate</div>
+                  </div>
+                </div>
+                {insights.flashcards.struggling && insights.flashcards.struggling.length > 0 && (
+                  <div className="struggling-cards">
+                    <div className="struggling-title">Needs Practice:</div>
+                    {insights.flashcards.struggling.slice(0, 3).map((card, idx) => (
+                      <div key={idx} className="struggling-card">
+                        <div className="card-question">{card.question}</div>
+                        <div className="card-accuracy">{card.accuracy}% accuracy</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="empty-state">
+                <p className="empty-text">No flashcards created yet</p>
+                <button className="start-btn-small" onClick={() => navigate('/flashcards')}>
+                  Create Flashcards
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Weak Areas */}
+          <div className="bento-item bento-weak-areas">
+            <h2 className="bento-title">WEAK AREAS TO IMPROVE</h2>
+            {insights.weak_areas && insights.weak_areas.length > 0 ? (
+              <div className="weak-areas-list">
+                {insights.weak_areas.slice(0, 5).map((area, idx) => (
+                  <div key={idx} className="weak-area-row">
+                    <div className="weak-area-info">
+                      <div className="weak-area-topic">{area.topic}</div>
+                      {area.subtopic && <div className="weak-area-subtopic">{area.subtopic}</div>}
+                    </div>
+                    <div className="weak-area-stats">
+                      <div className="weak-area-accuracy" style={{
+                        color: area.accuracy < 50 ? '#ef4444' : area.accuracy < 70 ? '#f59e0b' : '#10b981'
+                      }}>
+                        {area.accuracy}%
+                      </div>
+                      <div className="weak-area-priority">
+                        Priority: {area.priority}/10
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
             ) : (
               <div className="empty-state">
-                <p className="empty-text">No practice questions available</p>
-                <p className="empty-hint">Start a study session to generate questions</p>
+                <p className="empty-text">No weak areas identified yet</p>
+                <p className="empty-hint">Complete quizzes to track your progress</p>
               </div>
             )}
           </div>
 
-          {/* Flashcards - always show */}
-          <div
-            className="bento-item bento-flashcards-container"
-            onClick={generatedFlashcards.length > 0 ? handleFlashcardClick : undefined}
-            style={{ cursor: generatedFlashcards.length > 0 ? 'pointer' : 'default' }}
-          >
-            <h2 className="bento-title">{mainTopic ? `${mainTopic.toUpperCase()} FLASHCARDS` : 'FLASHCARDS'}</h2>
-            {generatedFlashcards.length > 0 ? (
-              <>
-                <div className="flashcard-deck">
-                  <div className="flashcard-stack">
-                    {generatedFlashcards.slice(0, 3).map((card, idx) => (
-                      <div key={idx} className="flashcard-card">
-                        <p className="flashcard-front">{card.question}</p>
+          {/* Recent Quizzes */}
+          {insights.quizzes?.recent_quizzes && insights.quizzes.recent_quizzes.length > 0 && (
+            <div className="bento-item bento-recent-quizzes">
+              <h2 className="bento-title">RECENT QUIZ RESULTS</h2>
+              <div className="recent-quizzes-list">
+                {insights.quizzes.recent_quizzes.slice(0, 5).map((quiz, idx) => (
+                  <div key={idx} className="recent-quiz-row">
+                    <div className="quiz-info">
+                      <div className="quiz-title">{quiz.title}</div>
+                      <div className="quiz-meta">
+                        {quiz.difficulty} • {quiz.question_count} questions
                       </div>
-                    ))}
-                  </div>
-                  <div className="flashcard-count">{generatedFlashcards.length} cards</div>
-                </div>
-                <span className="flashcard-cta">CLICK TO STUDY SET</span>
-              </>
-            ) : (
-              <div className="empty-state">
-                <p className="empty-text">No flashcards available</p>
-                <p className="empty-hint">Start a study session to generate flashcards</p>
-              </div>
-            )}
-          </div>
-
-          {/* Questions Asked - only show if we have session data */}
-          {hasSessionData && userQuestions.length > 0 && (
-            <div className="bento-item bento-problems">
-              <h2 className="bento-title">YOU ASKED</h2>
-              <div className="problems-list">
-                {userQuestions.slice(0, 6).map((question, idx) => (
-                  <div key={idx} className="problem-row" onClick={() => handleTopicPractice(question)}>
-                    <span className="problem-text">{truncateQuestion(question)}</span>
+                    </div>
+                    <div className="quiz-score-badge" style={{
+                      backgroundColor: quiz.score >= 80 ? '#10b981' : quiz.score >= 60 ? '#f59e0b' : '#ef4444'
+                    }}>
+                      {quiz.score}%
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Empty state CTA when no session data */}
-          {!hasSessionData && (
+          {/* Question Bank Stats */}
+          <div className="bento-item bento-question-bank">
+            <h2 className="bento-title">QUESTION BANK</h2>
+            {insights.question_bank?.total_questions > 0 ? (
+              <div className="qb-stats">
+                <div className="qb-stat">
+                  <div className="qb-value">{insights.question_bank.total_questions}</div>
+                  <div className="qb-label">Total Questions</div>
+                </div>
+                <div className="qb-stat">
+                  <div className="qb-value">{insights.question_bank.completed_questions}</div>
+                  <div className="qb-label">Completed</div>
+                </div>
+                <div className="qb-stat">
+                  <div className="qb-value">{insights.question_bank.average_accuracy}%</div>
+                  <div className="qb-label">Accuracy</div>
+                </div>
+              </div>
+            ) : (
+              <div className="empty-state">
+                <p className="empty-text">No question sets yet</p>
+                <button className="start-btn-small" onClick={() => navigate('/question-bank')}>
+                  Create Questions
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Topics Studied */}
+          {insights.session_data?.specific_topics && insights.session_data.specific_topics.length > 0 && (
+            <div className="bento-item bento-topics">
+              <h2 className="bento-title">TOPICS STUDIED</h2>
+              <div className="topics-list">
+                {insights.session_data.specific_topics.slice(0, 6).map((topic, idx) => (
+                  <div key={idx} className="topic-row" onClick={() => navigate('/ai-chat', {
+                    state: { initialMessage: `Help me practice ${topic.name}` }
+                  })}>
+                    <span className="topic-name">{topic.name}</span>
+                    <span className="topic-count">{topic.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Recent Notes */}
+          {insights.notes?.recent_notes && insights.notes.recent_notes.length > 0 && (
+            <div className="bento-item bento-recent-notes">
+              <h2 className="bento-title">RECENT NOTES</h2>
+              <div className="notes-list">
+                {insights.notes.recent_notes.map((note) => (
+                  <div key={note.id} className="note-row" onClick={() => navigate(`/notes-redesign?note_id=${note.id}`)}>
+                    <span className="note-title">{note.title}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Empty state when no data */}
+          {!hasData && (
             <div className="bento-item bento-empty">
               <h2 className="bento-title">GET STARTED</h2>
               <p className="empty-text">
-                Start a conversation with the AI tutor to see your study insights here.
+                Start studying to see your comprehensive insights here.
               </p>
               <button className="start-btn" onClick={() => navigate('/ai-chat')}>
                 START STUDYING

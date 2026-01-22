@@ -9,6 +9,8 @@
   background: var(--bg-primary);
   color: var(--text-primary);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 [data-theme-mode="dark"] .study-insights-page {
@@ -136,8 +138,45 @@
 .study-insights-page .header-right {
   display: flex;
   gap: 12px;
+  align-items: center;
   justify-self: end;
 }
+
+.study-insights-page .time-range-toggle {
+  display: flex;
+  gap: 0;
+  background: var(--bg-secondary);
+  border: 2px solid var(--accent);
+  overflow: hidden;
+}
+
+.study-insights-page .toggle-btn {
+  padding: 8px 16px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  border-right: 1px solid var(--accent);
+}
+
+.study-insights-page .toggle-btn:last-child {
+  border-right: none;
+}
+
+.study-insights-page .toggle-btn.active {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+.study-insights-page .toggle-btn:hover:not(.active) {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
 
 .study-insights-page .header-btn {
   padding: 8px 16px;
@@ -180,13 +219,13 @@
 
 .study-insights-page .bento-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-auto-rows: minmax(160px, auto);
+  grid-template-columns: repeat(6, 1fr);
+  grid-auto-rows: minmax(140px, auto);
   gap: 16px;
 }
 
 /* ============================================
-   BENTO ITEMS
+   BENTO ITEMS - ORGANIZED LAYOUT
 ============================================ */
 
 .study-insights-page .bento-item {
@@ -213,9 +252,9 @@
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
-/* Summary - Spans 2 columns */
+/* ROW 1: AI Summary (full width) */
 .study-insights-page .bento-summary {
-  grid-column: span 2;
+  grid-column: span 6;
   grid-row: span 1;
   background: var(--accent);
 }
@@ -235,10 +274,60 @@
   flex: 1;
 }
 
-/* Questions - Spans 2 columns, 2 rows */
-.study-insights-page .bento-questions {
-  grid-column: span 2;
+/* ROW 2: Time Stats + Activity Breakdown */
+.study-insights-page .bento-time-stats {
+  grid-column: span 3;
+  grid-row: span 1;
+}
+
+.study-insights-page .bento-activity {
+  grid-column: span 3;
+  grid-row: span 1;
+}
+
+/* ROW 3: Quiz Performance + Flashcard Performance */
+.study-insights-page .bento-quiz-performance {
+  grid-column: span 3;
   grid-row: span 2;
+}
+
+.study-insights-page .bento-flashcard-performance {
+  grid-column: span 3;
+  grid-row: span 2;
+}
+
+/* ROW 4: Weak Areas (full width) */
+.study-insights-page .bento-weak-areas {
+  grid-column: span 6;
+  grid-row: span 1;
+}
+
+/* ROW 5: Recent Quizzes + Question Bank */
+.study-insights-page .bento-recent-quizzes {
+  grid-column: span 4;
+  grid-row: span 1;
+}
+
+.study-insights-page .bento-question-bank {
+  grid-column: span 2;
+  grid-row: span 1;
+}
+
+/* ROW 6: Topics + Recent Notes */
+.study-insights-page .bento-topics {
+  grid-column: span 3;
+  grid-row: span 1;
+}
+
+.study-insights-page .bento-recent-notes {
+  grid-column: span 3;
+  grid-row: span 1;
+}
+
+/* Empty state */
+.study-insights-page .bento-empty {
+  grid-column: span 6;
+  grid-row: span 1;
 }
 
 .study-insights-page .questions-list {
@@ -639,6 +728,20 @@
     justify-self: center;
   }
   
+  .study-insights-page .header-right {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .study-insights-page .time-range-toggle {
+    width: 100%;
+    order: -1;
+  }
+  
+  .study-insights-page .toggle-btn {
+    flex: 1;
+  }
+  
   .study-insights-page .insights-main {
     padding: 20px 16px;
   }
@@ -678,3 +781,570 @@
   }
 }
 
+
+
+/* ============================================
+   NEW COMPREHENSIVE INSIGHTS STYLES
+============================================ */
+
+/* Time Stats */
+.study-insights-page .bento-time-stats {
+  grid-column: span 2;
+  grid-row: span 1;
+}
+
+.study-insights-page .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.study-insights-page .stat-item {
+  text-align: center;
+  padding: 12px;
+  background: var(--bg-primary);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.study-insights-page .stat-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.study-insights-page .stat-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Activity Breakdown */
+.study-insights-page .bento-activity {
+  grid-column: span 2;
+  grid-row: span 1;
+}
+
+.study-insights-page .activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.study-insights-page .activity-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.study-insights-page .activity-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.study-insights-page .activity-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  padding: 4px 12px;
+  border-radius: 4px;
+}
+
+/* Quiz Performance */
+.study-insights-page .bento-quiz-performance {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+.study-insights-page .quiz-summary {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 20px;
+  background: var(--bg-primary);
+  border: 2px solid var(--accent);
+}
+
+.study-insights-page .quiz-stat-large {
+  flex: 1;
+  text-align: center;
+}
+
+.study-insights-page .quiz-score {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.study-insights-page .quiz-stat-small {
+  text-align: center;
+  padding-left: 20px;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.study-insights-page .quiz-count {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.study-insights-page .quiz-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+
+.study-insights-page .difficulty-breakdown {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.study-insights-page .diff-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  background: var(--bg-primary);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.study-insights-page .diff-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.study-insights-page .diff-score {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* Flashcard Performance */
+.study-insights-page .bento-flashcard-performance {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+.study-insights-page .flashcard-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.study-insights-page .fc-stat {
+  text-align: center;
+  padding: 16px;
+  background: var(--bg-primary);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.study-insights-page .fc-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.study-insights-page .fc-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.study-insights-page .struggling-cards {
+  padding: 12px;
+  background: var(--bg-primary);
+  border: 1px solid color-mix(in srgb, #ef4444 30%, transparent);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.study-insights-page .struggling-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #ef4444;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+
+.study-insights-page .struggling-card {
+  padding: 8px;
+  margin-bottom: 8px;
+  background: color-mix(in srgb, #ef4444 5%, transparent);
+  border-left: 3px solid #ef4444;
+}
+
+.study-insights-page .struggling-card:last-child {
+  margin-bottom: 0;
+}
+
+.study-insights-page .card-question {
+  font-size: 12px;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.study-insights-page .card-accuracy {
+  font-size: 10px;
+  font-weight: 600;
+  color: #ef4444;
+}
+
+/* Weak Areas */
+.study-insights-page .bento-weak-areas {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+.study-insights-page .weak-areas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.study-insights-page .weak-area-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: var(--bg-primary);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  transition: all 0.2s ease;
+}
+
+.study-insights-page .weak-area-row:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, var(--bg-primary));
+}
+
+.study-insights-page .weak-area-info {
+  flex: 1;
+}
+
+.study-insights-page .weak-area-topic {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.study-insights-page .weak-area-subtopic {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.study-insights-page .weak-area-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.study-insights-page .weak-area-accuracy {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.study-insights-page .weak-area-priority {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+/* Recent Quizzes */
+.study-insights-page .bento-recent-quizzes {
+  grid-column: span 2;
+  grid-row: span 1;
+}
+
+.study-insights-page .recent-quizzes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.study-insights-page .recent-quiz-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.study-insights-page .quiz-info {
+  flex: 1;
+}
+
+.study-insights-page .quiz-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.study-insights-page .quiz-meta {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.study-insights-page .quiz-score-badge {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: white;
+}
+
+/* Question Bank */
+.study-insights-page .bento-question-bank {
+  grid-column: span 2;
+  grid-row: span 1;
+}
+
+.study-insights-page .qb-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.study-insights-page .qb-stat {
+  text-align: center;
+  padding: 16px;
+  background: var(--bg-primary);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.study-insights-page .qb-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.study-insights-page .qb-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Recent Notes */
+.study-insights-page .bento-recent-notes {
+  grid-column: span 3;
+  grid-row: span 1;
+}
+
+.study-insights-page .notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.study-insights-page .note-row {
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 40px;
+}
+
+.study-insights-page .note-row:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, var(--bg-primary));
+}
+
+.study-insights-page .note-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+/* Small buttons */
+.study-insights-page .start-btn-small {
+  margin-top: 12px;
+  padding: 8px 16px;
+  background: var(--accent);
+  color: var(--bg-primary);
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.study-insights-page .start-btn-small:hover {
+  opacity: 0.9;
+}
+
+/* Error state */
+.study-insights-page .insights-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 20px;
+  padding: 40px;
+}
+
+.study-insights-page .insights-error p {
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.study-insights-page .insights-error button {
+  padding: 12px 24px;
+  background: var(--accent);
+  color: var(--bg-primary);
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+/* Responsive adjustments for comprehensive insights */
+@media (max-width: 1200px) {
+  .study-insights-page .bento-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .study-insights-page .bento-summary {
+    grid-column: span 4;
+  }
+  
+  .study-insights-page .bento-time-stats,
+  .study-insights-page .bento-activity {
+    grid-column: span 2;
+  }
+  
+  .study-insights-page .bento-quiz-performance,
+  .study-insights-page .bento-flashcard-performance {
+    grid-column: span 2;
+  }
+  
+  .study-insights-page .bento-weak-areas {
+    grid-column: span 4;
+  }
+  
+  .study-insights-page .bento-recent-quizzes {
+    grid-column: span 3;
+  }
+  
+  .study-insights-page .bento-question-bank {
+    grid-column: span 1;
+  }
+  
+  .study-insights-page .bento-topics,
+  .study-insights-page .bento-recent-notes {
+    grid-column: span 2;
+  }
+  
+  .study-insights-page .bento-empty {
+    grid-column: span 4;
+  }
+}
+
+@media (max-width: 768px) {
+  .study-insights-page .bento-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .study-insights-page .bento-summary,
+  .study-insights-page .bento-time-stats,
+  .study-insights-page .bento-activity,
+  .study-insights-page .bento-quiz-performance,
+  .study-insights-page .bento-flashcard-performance,
+  .study-insights-page .bento-weak-areas,
+  .study-insights-page .bento-recent-quizzes,
+  .study-insights-page .bento-question-bank,
+  .study-insights-page .bento-topics,
+  .study-insights-page .bento-recent-notes,
+  .study-insights-page .bento-empty {
+    grid-column: span 1;
+  }
+  
+  .study-insights-page .stats-grid,
+  .study-insights-page .flashcard-stats,
+  .study-insights-page .difficulty-breakdown,
+  .study-insights-page .qb-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .study-insights-page .quiz-summary {
+    flex-direction: column;
+  }
+  
+  .study-insights-page .quiz-stat-small {
+    border-left: none;
+    border-top: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    padding-left: 0;
+    padding-top: 20px;
+  }
+}
+
+
+/* Custom scrollbar for overflow sections */
+.study-insights-page .struggling-cards::-webkit-scrollbar,
+.study-insights-page .notes-list::-webkit-scrollbar,
+.study-insights-page .weak-areas-list::-webkit-scrollbar,
+.study-insights-page .recent-quizzes-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.study-insights-page .struggling-cards::-webkit-scrollbar-track,
+.study-insights-page .notes-list::-webkit-scrollbar-track,
+.study-insights-page .weak-areas-list::-webkit-scrollbar-track,
+.study-insights-page .recent-quizzes-list::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+.study-insights-page .struggling-cards::-webkit-scrollbar-thumb,
+.study-insights-page .notes-list::-webkit-scrollbar-thumb,
+.study-insights-page .weak-areas-list::-webkit-scrollbar-thumb,
+.study-insights-page .recent-quizzes-list::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+}
+
+.study-insights-page .struggling-cards::-webkit-scrollbar-thumb:hover,
+.study-insights-page .notes-list::-webkit-scrollbar-thumb:hover,
+.study-insights-page .weak-areas-list::-webkit-scrollbar-thumb:hover,
+.study-insights-page .recent-quizzes-list::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--accent) 80%, #000);
+}
