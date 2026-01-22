@@ -277,6 +277,29 @@ const Dashboard = () => {
     };
   }, [userName]);
 
+  // Click outside handler for notifications
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showNotifications) {
+        const notifPanel = document.querySelector('.ds-notif-panel');
+        const notifButton = document.querySelector('.ds-notif-bell-btn');
+        
+        if (notifPanel && !notifPanel.contains(event.target) && 
+            notifButton && !notifButton.contains(event.target)) {
+          setShowNotifications(false);
+        }
+      }
+    };
+
+    if (showNotifications) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showNotifications]);
+
   const fetchPersonalizedWelcome = async (displayName) => {
     try {
       const token = localStorage.getItem('token');
@@ -894,24 +917,42 @@ const Dashboard = () => {
               </button>
               
               {showNotifications && (
-                <div className="ds-notif-panel">
+                <div className="ds-notif-panel" onClick={(e) => e.stopPropagation()}>
                   <div className="ds-notif-panel-header">
-                    <h3>Notifications</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <Bell size={18} />
+                      <h3>Notifications</h3>
+                    </div>
                     <button className="ds-notif-close-btn" onClick={() => setShowNotifications(false)}>×</button>
                   </div>
                   <div className="ds-notif-panel-content">
                     {notifications.length === 0 ? (
                       <div className="ds-no-notifications-placeholder">
-                        <Bell size={32} opacity={0.3} />
+                        <Bell size={48} />
                         <p>No notifications yet</p>
                       </div>
                     ) : (
                       notifications.map(notification => (
-                        <div key={notification.id} className={`ds-notif-item ${!notification.is_read ? 'ds-notif-unread' : ''}`}>
+                        <div 
+                          key={notification.id} 
+                          className={`ds-notif-item ${!notification.is_read ? 'ds-notif-unread' : ''}`}
+                          onClick={() => markNotificationAsRead(notification.id)}
+                        >
+                          <div className="ds-notif-icon">
+                            <Sparkles size={20} />
+                          </div>
                           <div className="ds-notif-body">
                             <div className="ds-notif-header-row">
                               <span className="ds-notif-from">{notification.title}</span>
-                              <button className="ds-notif-delete" onClick={() => deleteNotification(notification.id)}>×</button>
+                              <button 
+                                className="ds-notif-delete" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteNotification(notification.id);
+                                }}
+                              >
+                                ×
+                              </button>
                             </div>
                             <p className="ds-notif-text">{notification.message}</p>
                             <span className="ds-notif-time">{getRelativeTime(notification.created_at)}</span>

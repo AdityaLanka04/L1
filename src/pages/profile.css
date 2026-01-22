@@ -162,7 +162,9 @@
 .profile-nav-btn-ghost:hover {
   opacity: 1;
   color: var(--accent);
-  transform: translateX(-2px);
+  background: transparent;
+  text-shadow: 0 0 20px color-mix(in srgb, var(--accent) 50%, transparent);
+  transform: none;
 }
 
 .profile-save-status {
@@ -832,26 +834,27 @@
 }
 
 /* Navigation Buttons */
-[data-theme-mode="light"] .profile-nav-btn,
+[data-theme-mode="light"] .profile-nav-btn-ghost,
 [data-theme-mode="light"] .profile-back-btn {
-  background: white !important;
-  border-color: rgba(0, 0, 0, 0.2) !important;
+  background: transparent !important;
+  border: none !important;
   color: #1a1a1a !important;
 }
 
-[data-theme-mode="light"] .profile-nav-btn:hover,
+[data-theme-mode="light"] .profile-nav-btn-ghost:hover,
 [data-theme-mode="light"] .profile-back-btn:hover {
-  background: #f8f9fa !important;
-  border-color: var(--accent) !important;
+  background: transparent !important;
+  border: none !important;
   color: var(--accent) !important;
+  text-shadow: 0 0 20px color-mix(in srgb, var(--accent) 50%, transparent) !important;
 }
 
-[data-theme-mode="light"] .profile-nav-btn svg,
+[data-theme-mode="light"] .profile-nav-btn-ghost svg,
 [data-theme-mode="light"] .profile-back-btn svg {
   color: #1a1a1a !important;
 }
 
-[data-theme-mode="light"] .profile-nav-btn:hover svg,
+[data-theme-mode="light"] .profile-nav-btn-ghost:hover svg,
 [data-theme-mode="light"] .profile-back-btn:hover svg {
   color: var(--accent) !important;
 }
@@ -1511,22 +1514,21 @@
     color-mix(in srgb, var(--accent) 15%, white) 100%) !important;
 }
 
-/* Navigation buttons with accent */
-[data-theme-mode="light"] .profile-nav-btn {
-  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
-  color: white !important;
+/* Navigation buttons - ghost style (transparent) */
+[data-theme-mode="light"] .profile-nav-btn-ghost {
+  background: transparent !important;
+  color: #1a1a1a !important;
   border: none !important;
 }
 
-[data-theme-mode="light"] .profile-nav-btn svg {
-  color: white !important;
+[data-theme-mode="light"] .profile-nav-btn-ghost svg {
+  color: #1a1a1a !important;
 }
 
-[data-theme-mode="light"] .profile-nav-btn:hover {
-  background: linear-gradient(135deg, 
-    color-mix(in srgb, var(--accent) 90%, black), 
-    color-mix(in srgb, var(--accent) 75%, black)) !important;
-  color: white !important;
+[data-theme-mode="light"] .profile-nav-btn-ghost:hover {
+  background: transparent !important;
+  color: var(--accent) !important;
+  text-shadow: 0 0 20px color-mix(in srgb, var(--accent) 50%, transparent) !important;
 }
 
 /* Back button with accent outline */
