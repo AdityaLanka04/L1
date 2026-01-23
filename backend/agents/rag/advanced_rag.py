@@ -7,6 +7,10 @@ Features:
 2. Re-ranking - Cross-encoder models for improved relevance scoring
 3. GraphRAG - Knowledge graph-enhanced retrieval
 4. Agentic RAG - Agents autonomously decide retrieval strategy
+5. Query Enhancement - Query rewriting, expansion, and decomposition
+6. Contextual Compression - Intelligent context pruning
+7. Parent-Child Retrieval - Hierarchical document retrieval
+8. Metadata Filtering - Advanced filtering and routing
 """
 
 import logging
@@ -31,6 +35,16 @@ class SearchMode(str, Enum):
     AGENTIC = "agentic"         # Agent-decided strategy
 
 
+class QueryType(str, Enum):
+    """Types of queries for different handling"""
+    FACTUAL = "factual"         # Simple fact lookup
+    CONCEPTUAL = "conceptual"   # Understanding concepts
+    PROCEDURAL = "procedural"   # How-to questions
+    COMPARATIVE = "comparative" # Comparing things
+    ANALYTICAL = "analytical"   # Deep analysis
+    MULTI_HOP = "multi_hop"     # Requires multiple retrievals
+
+
 @dataclass
 class RAGResult:
     """Result from RAG retrieval"""
@@ -48,6 +62,11 @@ class RAGResult:
     graph_context: List[str] = field(default_factory=list)
     related_concepts: List[str] = field(default_factory=list)
     
+    # Parent-child info
+    parent_id: Optional[str] = None
+    child_ids: List[str] = field(default_factory=list)
+    chunk_index: int = 0
+    
     def to_dict(self) -> Dict[str, Any]:
         return {
             "id": self.id,
@@ -56,8 +75,632 @@ class RAGResult:
             "source": self.source,
             "metadata": self.metadata,
             "graph_context": self.graph_context,
-            "related_concepts": self.related_concepts
+            "related_concepts": self.related_concepts,
+            "parent_id": self.parent_id,
+            "chunk_index": self.chunk_index
         }
+
+
+# ==================== Query Enhancement ====================
+
+class QueryEnhancer:
+    """
+    Enhances queries through rewriting, expansion, and decomposition.
+    Improves retrieval quality by making queries more effective.
+    """
+    
+    def __init__(self, ai_client=None):
+        self.ai_client = ai_client
+        
+        # Common query patterns
+        self.expansion_terms = {
+            "ml": ["machine learning", "ML", "artificial intelligence"],
+            "ai": ["artificial intelligence", "AI", "machine learning"],
+            "db": ["database", "DB", "data storage"],
+            "api": ["API", "application programming interface", "web service"],
+        }
+    
+    async def enhance_query(
+        self,
+        query: str,
+        query_type: QueryType = None,
+        user_context: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """
+        Enhance query with multiple techniques.
+        
+        Returns:
+            Dict with original, rewritten, expanded, and sub-queries
+        """
+        user_context = user_context or {}
+        
+        # Detect query type if not provided
+        if not query_type:
+            query_type = self._detect_query_type(query)
+        
+        # Generate enhancements
+        rewritten = await self._rewrite_query(query, query_type)
+        expanded = self._expand_query(query, user_context)
+        sub_queries = await self._decompose_query(query, query_type)
+        
+        return {
+            "original": query,
+            "rewritten": rewritten,
+            "expanded": expanded,
+            "sub_queries": sub_queries,
+            "query_type": query_type.value,
+            "all_queries": [query, rewritten] + expanded + sub_queries
+        }
+    
+    def _detect_query_type(self, query: str) -> QueryType:
+        """Detect the type of query"""
+        query_lower = query.lower()
+        
+        # Multi-hop indicators
+        if any(word in query_lower for word in ["and then", "after that", "followed by", "relationship between"]):
+            return QueryType.MULTI_HOP
+        
+        # Comparative indicators
+        if any(word in query_lower for word in ["compare", "difference", "versus", "vs", "better than"]):
+            return QueryType.COMPARATIVE
+        
+        # Procedural indicators
+        if any(word in query_lower for word in ["how to", "steps to", "process of", "way to"]):
+            return QueryType.PROCEDURAL
+        
+        # Analytical indicators
+        if any(word in query_lower for word in ["why", "analyze", "evaluate", "assess", "impact of"]):
+            return QueryType.ANALYTICAL
+        
+        # Conceptual indicators
+        if any(word in query_lower for word in ["what is", "explain", "concept of", "meaning of"]):
+            return QueryType.CONCEPTUAL
+        
+        # Default to factual
+        return QueryType.FACTUAL
+    
+    async def _rewrite_query(self, query: str, query_type: QueryType) -> str:
+        """Rewrite query for better retrieval"""
+        if not self.ai_client:
+            return query
+        
+        prompt = f"""Rewrite this search query to be more effective for document retrieval.
+
+Original query: {query}
+Query type: {query_type.value}
+
+Rules:
+- Make it more specific and clear
+- Add relevant technical terms
+- Remove ambiguity
+- Keep it concise (max 20 words)
+- Focus on key concepts
+
+Return ONLY the rewritten query, nothing else."""
+
+        try:
+            rewritten = self.ai_client.generate(prompt, max_tokens=100, temperature=0.3)
+            return rewritten.strip().strip('"').strip("'")
+        except Exception as e:
+            logger.error(f"Query rewriting failed: {e}")
+            return query
+    
+    def _expand_query(
+        self,
+        query: str,
+        user_context: Dict[str, Any]
+    ) -> List[str]:
+        """Expand query with synonyms and related terms"""
+        expanded = []
+        query_lower = query.lower()
+        
+        # Add acronym expansions
+        for acronym, expansions in self.expansion_terms.items():
+            if acronym in query_lower:
+                for expansion in expansions:
+                    if expansion.lower() not in query_lower:
+                        expanded_query = query_lower.replace(acronym, expansion)
+                        expanded.append(expanded_query)
+        
+        # Add user's weak areas if relevant
+        weak_areas = user_context.get("weak_topics", [])
+        for weak in weak_areas[:3]:
+            if weak.lower() in query_lower:
+                expanded.append(f"{query} {weak} fundamentals")
+        
+        # Add domain-specific terms
+        topics = user_context.get("topics_of_interest", [])
+        if topics:
+            main_topic = topics[0]
+            if main_topic.lower() not in query_lower:
+                expanded.append(f"{query} in {main_topic}")
+        
+        return expanded[:3]  # Limit to 3 expansions
+    
+    async def _decompose_query(
+        self,
+        query: str,
+        query_type: QueryType
+    ) -> List[str]:
+        """Decompose complex queries into sub-queries"""
+        # Only decompose multi-hop and analytical queries
+        if query_type not in [QueryType.MULTI_HOP, QueryType.ANALYTICAL, QueryType.COMPARATIVE]:
+            return []
+        
+        if not self.ai_client:
+            return []
+        
+        prompt = f"""Break down this complex query into 2-3 simpler sub-queries.
+
+Query: {query}
+Type: {query_type.value}
+
+Return ONLY a JSON array of sub-queries:
+["sub-query 1", "sub-query 2", "sub-query 3"]"""
+
+        try:
+            response = self.ai_client.generate(prompt, max_tokens=200, temperature=0.3)
+            
+            # Parse JSON
+            json_match = re.search(r'\[.*?\]', response, re.DOTALL)
+            if json_match:
+                sub_queries = json.loads(json_match.group())
+                return sub_queries[:3]
+        except Exception as e:
+            logger.error(f"Query decomposition failed: {e}")
+        
+        return []
+
+
+# ==================== Contextual Compression ====================
+
+class ContextualCompressor:
+    """
+    Compresses retrieved context to reduce tokens while preserving relevance.
+    Uses extractive and abstractive compression techniques.
+    """
+    
+    def __init__(self, ai_client=None):
+        self.ai_client = ai_client
+    
+    def compress_results(
+        self,
+        results: List[RAGResult],
+        query: str,
+        max_length: int = 2000,
+        compression_ratio: float = 0.5
+    ) -> List[RAGResult]:
+        """
+        Compress results to fit within token budget.
+        
+        Args:
+            results: Retrieved results
+            query: Original query
+            max_length: Maximum total character length
+            compression_ratio: Target compression (0.5 = 50% reduction)
+        
+        Returns:
+            Compressed results
+        """
+        if not results:
+            return results
+        
+        # Calculate current length
+        current_length = sum(len(r.content) for r in results)
+        
+        if current_length <= max_length:
+            return results
+        
+        # Apply compression
+        compressed = []
+        for result in results:
+            compressed_content = self._compress_single(
+                result.content,
+                query,
+                compression_ratio
+            )
+            
+            compressed_result = RAGResult(
+                id=result.id,
+                content=compressed_content,
+                score=result.score,
+                source=result.source,
+                metadata={**result.metadata, "compressed": True},
+                original_score=result.original_score,
+                rerank_score=result.rerank_score,
+                graph_context=result.graph_context,
+                related_concepts=result.related_concepts
+            )
+            compressed.append(compressed_result)
+        
+        # Trim if still too long
+        total_length = 0
+        final_results = []
+        for result in compressed:
+            if total_length + len(result.content) > max_length:
+                break
+            final_results.append(result)
+            total_length += len(result.content)
+        
+        logger.info(f"Compressed {len(results)} results from {current_length} to {total_length} chars")
+        return final_results
+    
+    def _compress_single(
+        self,
+        content: str,
+        query: str,
+        compression_ratio: float
+    ) -> str:
+        """Compress a single piece of content"""
+        # Extractive compression: keep query-relevant sentences
+        sentences = self._split_sentences(content)
+        
+        if len(sentences) <= 2:
+            return content
+        
+        # Score sentences by relevance
+        scored_sentences = []
+        query_words = set(query.lower().split())
+        
+        for sent in sentences:
+            sent_words = set(sent.lower().split())
+            overlap = len(query_words & sent_words)
+            score = overlap / max(len(query_words), 1)
+            scored_sentences.append((sent, score))
+        
+        # Sort by score and keep top sentences
+        scored_sentences.sort(key=lambda x: x[1], reverse=True)
+        target_count = max(2, int(len(sentences) * compression_ratio))
+        
+        # Keep sentences in original order
+        kept_sentences = [s for s, _ in scored_sentences[:target_count]]
+        kept_indices = [sentences.index(s) for s in kept_sentences]
+        kept_indices.sort()
+        
+        compressed = " ".join([sentences[i] for i in kept_indices])
+        return compressed
+    
+    def _split_sentences(self, text: str) -> List[str]:
+        """Split text into sentences"""
+        # Simple sentence splitting
+        sentences = re.split(r'[.!?]+', text)
+        return [s.strip() for s in sentences if s.strip()]
+    
+    async def compress_with_ai(
+        self,
+        content: str,
+        query: str,
+        max_tokens: int = 500
+    ) -> str:
+        """Use AI for abstractive compression"""
+        if not self.ai_client:
+            return content[:max_tokens * 4]  # Rough char estimate
+        
+        prompt = f"""Compress this content to focus on information relevant to the query.
+
+Query: {query}
+
+Content:
+{content[:3000]}
+
+Rules:
+- Keep ONLY information relevant to the query
+- Remove redundant or tangential information
+- Preserve key facts and details
+- Maximum {max_tokens} tokens
+- Maintain coherence
+
+Compressed version:"""
+
+        try:
+            compressed = self.ai_client.generate(
+                prompt,
+                max_tokens=max_tokens,
+                temperature=0.3
+            )
+            return compressed.strip()
+        except Exception as e:
+            logger.error(f"AI compression failed: {e}")
+            return self._compress_single(content, query, 0.5)
+
+
+# ==================== Parent-Child Retrieval ====================
+
+class ParentChildRetriever:
+    """
+    Implements parent-child document retrieval.
+    Retrieves small chunks but returns larger parent context.
+    """
+    
+    def __init__(self, vector_store=None, embedding_model=None):
+        self.vector_store = vector_store
+        self.embedding_model = embedding_model
+        
+        # Storage for parent-child relationships
+        self.parent_store: Dict[str, str] = {}  # child_id -> parent_content
+        self.child_store: Dict[str, List[str]] = {}  # parent_id -> [child_ids]
+    
+    def index_with_hierarchy(
+        self,
+        documents: List[Dict[str, Any]],
+        chunk_size: int = 200,
+        parent_chunk_size: int = 1000
+    ):
+        """
+        Index documents with parent-child hierarchy.
+        
+        Args:
+            documents: List of documents to index
+            chunk_size: Size of child chunks (for retrieval)
+            parent_chunk_size: Size of parent chunks (for context)
+        """
+        for doc in documents:
+            content = doc.get("content", "")
+            doc_id = doc.get("id", hashlib.sha256(content.encode()).hexdigest()[:16])
+            
+            # Create parent chunks
+            parent_chunks = self._chunk_text(content, parent_chunk_size)
+            
+            for parent_idx, parent_chunk in enumerate(parent_chunks):
+                parent_id = f"{doc_id}_parent_{parent_idx}"
+                
+                # Create child chunks from parent
+                child_chunks = self._chunk_text(parent_chunk, chunk_size)
+                child_ids = []
+                
+                for child_idx, child_chunk in enumerate(child_chunks):
+                    child_id = f"{parent_id}_child_{child_idx}"
+                    child_ids.append(child_id)
+                    
+                    # Store relationship
+                    self.parent_store[child_id] = parent_chunk
+                    
+                    # Index child chunk for retrieval
+                    if self.vector_store and self.embedding_model:
+                        try:
+                            embedding = self.embedding_model.encode(child_chunk)
+                            self.vector_store.add(
+                                ids=[child_id],
+                                embeddings=[embedding.tolist()],
+                                documents=[child_chunk],
+                                metadatas=[{
+                                    **doc.get("metadata", {}),
+                                    "parent_id": parent_id,
+                                    "chunk_index": child_idx,
+                                    "is_child": True
+                                }]
+                            )
+                        except Exception as e:
+                            logger.error(f"Failed to index child chunk: {e}")
+                
+                # Store children for parent
+                self.child_store[parent_id] = child_ids
+        
+        logger.info(f"Indexed {len(documents)} documents with parent-child hierarchy")
+    
+    async def retrieve_with_parents(
+        self,
+        query: str,
+        top_k: int = 5
+    ) -> List[RAGResult]:
+        """
+        Retrieve child chunks but return parent context.
+        """
+        if not self.vector_store:
+            return []
+        
+        try:
+            # Query for child chunks
+            result = self.vector_store.query(
+                query_texts=[query],
+                n_results=top_k * 2,  # Get more children
+                where={"is_child": True}
+            )
+            
+            if not result or not result.get("documents"):
+                return []
+            
+            # Get unique parents
+            seen_parents = set()
+            results = []
+            
+            docs = result["documents"][0]
+            ids = result.get("ids", [[]])[0]
+            distances = result.get("distances", [[]])[0]
+            metadatas = result.get("metadatas", [[]])[0]
+            
+            for i, child_id in enumerate(ids):
+                if child_id not in self.parent_store:
+                    continue
+                
+                parent_content = self.parent_store[child_id]
+                parent_id = metadatas[i].get("parent_id", "")
+                
+                # Skip if we already have this parent
+                if parent_id in seen_parents:
+                    continue
+                
+                seen_parents.add(parent_id)
+                
+                # Create result with parent content
+                score = 1.0 / (1.0 + distances[i]) if i < len(distances) else 0.5
+                
+                results.append(RAGResult(
+                    id=parent_id,
+                    content=parent_content,
+                    score=score,
+                    source="parent_child",
+                    metadata={
+                        **metadatas[i],
+                        "child_match": docs[i][:100],  # Show what matched
+                        "retrieval_method": "parent_child"
+                    },
+                    parent_id=None,
+                    child_ids=self.child_store.get(parent_id, []),
+                    chunk_index=metadatas[i].get("chunk_index", 0)
+                ))
+                
+                if len(results) >= top_k:
+                    break
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"Parent-child retrieval failed: {e}")
+            return []
+    
+    def _chunk_text(self, text: str, chunk_size: int) -> List[str]:
+        """Chunk text into pieces of approximately chunk_size characters"""
+        if len(text) <= chunk_size:
+            return [text]
+        
+        chunks = []
+        sentences = re.split(r'[.!?]+', text)
+        
+        current_chunk = ""
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+            
+            if len(current_chunk) + len(sentence) > chunk_size and current_chunk:
+                chunks.append(current_chunk.strip())
+                current_chunk = sentence
+            else:
+                current_chunk += " " + sentence if current_chunk else sentence
+        
+        if current_chunk:
+            chunks.append(current_chunk.strip())
+        
+        return chunks
+
+
+# ==================== Metadata Filtering ====================
+
+class MetadataFilter:
+    """
+    Advanced metadata filtering and routing for retrieval.
+    """
+    
+    def __init__(self):
+        self.filter_rules: Dict[str, Any] = {}
+    
+    def build_filter(
+        self,
+        user_context: Dict[str, Any] = None,
+        query_type: QueryType = None,
+        content_types: List[str] = None,
+        difficulty_level: str = None,
+        topics: List[str] = None,
+        date_range: Tuple[datetime, datetime] = None
+    ) -> Dict[str, Any]:
+        """
+        Build metadata filter based on context.
+        
+        Returns:
+            Filter dict compatible with vector store
+        """
+        filters = {}
+        
+        # Content type filtering
+        if content_types:
+            filters["type"] = {"$in": content_types}
+        
+        # Difficulty filtering
+        if difficulty_level:
+            filters["difficulty"] = difficulty_level
+        elif user_context:
+            user_level = user_context.get("difficulty_level", "intermediate")
+            filters["difficulty"] = {"$in": [user_level, self._get_adjacent_level(user_level)]}
+        
+        # Topic filtering
+        if topics:
+            filters["topic"] = {"$in": topics}
+        elif user_context:
+            user_topics = user_context.get("topics_of_interest", [])
+            if user_topics:
+                filters["topic"] = {"$in": user_topics[:5]}
+        
+        # Date range filtering
+        if date_range:
+            start, end = date_range
+            filters["created_at"] = {
+                "$gte": start.isoformat(),
+                "$lte": end.isoformat()
+            }
+        
+        # Query type specific filtering
+        if query_type == QueryType.PROCEDURAL:
+            filters["content_format"] = {"$in": ["tutorial", "guide", "how-to"]}
+        elif query_type == QueryType.CONCEPTUAL:
+            filters["content_format"] = {"$in": ["explanation", "definition", "concept"]}
+        
+        return filters if filters else None
+    
+    def _get_adjacent_level(self, level: str) -> str:
+        """Get adjacent difficulty level for broader search"""
+        levels = ["beginner", "easy", "intermediate", "medium", "advanced", "hard", "expert"]
+        try:
+            idx = levels.index(level.lower())
+            if idx < len(levels) - 1:
+                return levels[idx + 1]
+        except ValueError:
+            pass
+        return "intermediate"
+    
+    def route_by_metadata(
+        self,
+        query: str,
+        user_context: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
+        """
+        Route query to appropriate content sources based on metadata.
+        
+        Returns:
+            Routing decision with filters and priorities
+        """
+        routing = {
+            "primary_sources": [],
+            "secondary_sources": [],
+            "filters": {},
+            "boost_fields": []
+        }
+        
+        query_lower = query.lower()
+        
+        # Determine primary sources
+        if any(word in query_lower for word in ["note", "my notes", "i wrote"]):
+            routing["primary_sources"].append("notes")
+            routing["boost_fields"].append("user_created")
+        
+        if any(word in query_lower for word in ["flashcard", "card", "memorize"]):
+            routing["primary_sources"].append("flashcards")
+        
+        if any(word in query_lower for word in ["quiz", "test", "question"]):
+            routing["primary_sources"].append("quizzes")
+        
+        if any(word in query_lower for word in ["slide", "presentation", "lecture"]):
+            routing["primary_sources"].append("slides")
+        
+        # If no specific source, use all
+        if not routing["primary_sources"]:
+            routing["primary_sources"] = ["notes", "flashcards", "quizzes", "slides"]
+        
+        # Build filters
+        routing["filters"] = self.build_filter(user_context=user_context)
+        
+        # Boost recent content
+        routing["boost_fields"].append("recency")
+        
+        # Boost content user struggled with
+        if user_context and user_context.get("weak_topics"):
+            routing["boost_fields"].append("weak_topic_match")
+        
+        return routing
+
+
+# ==================== Original Classes Continue ====================
+
 
 
 class BM25:
@@ -909,6 +1552,10 @@ class AdvancedRAGSystem:
     - Re-ranking
     - GraphRAG
     - Agentic RAG
+    - Query enhancement (rewriting, expansion, decomposition)
+    - Contextual compression
+    - Parent-child retrieval
+    - Metadata filtering
     """
     
     def __init__(
@@ -923,7 +1570,7 @@ class AdvancedRAGSystem:
         self.vector_store = vector_store
         self.embedding_model = embedding_model
         
-        # Initialize components
+        # Initialize core components
         self.hybrid_search = HybridSearchEngine(
             vector_store=vector_store,
             embedding_model=embedding_model
@@ -940,6 +1587,15 @@ class AdvancedRAGSystem:
             reranker=self.reranker
         )
         
+        # Initialize new enhancement components
+        self.query_enhancer = QueryEnhancer(ai_client=ai_client)
+        self.compressor = ContextualCompressor(ai_client=ai_client)
+        self.parent_child = ParentChildRetriever(
+            vector_store=vector_store,
+            embedding_model=embedding_model
+        )
+        self.metadata_filter = MetadataFilter()
+        
         # Cache for frequently accessed content
         self._cache: Dict[str, Tuple[List[RAGResult], datetime]] = {}
         self._cache_ttl = 300  # 5 minutes
@@ -951,10 +1607,14 @@ class AdvancedRAGSystem:
         mode: SearchMode = SearchMode.AGENTIC,
         top_k: int = 10,
         use_cache: bool = True,
-        context: Dict[str, Any] = None
+        context: Dict[str, Any] = None,
+        enhance_query: bool = True,
+        compress_results: bool = True,
+        use_parent_child: bool = False,
+        max_context_length: int = 2000
     ) -> Dict[str, Any]:
         """
-        Main retrieval method.
+        Main retrieval method with all enhancements.
         
         Args:
             query: Search query
@@ -963,28 +1623,72 @@ class AdvancedRAGSystem:
             top_k: Number of results
             use_cache: Whether to use caching
             context: Additional context for retrieval
+            enhance_query: Apply query enhancement
+            compress_results: Apply contextual compression
+            use_parent_child: Use parent-child retrieval
+            max_context_length: Maximum context length for compression
         
         Returns:
             Dict with results and metadata
         """
+        context = context or {}
+        
         # Check cache
-        cache_key = f"{query}:{user_id}:{mode.value}"
+        cache_key = f"{query}:{user_id}:{mode.value}:{use_parent_child}"
         if use_cache and cache_key in self._cache:
             cached_results, cached_time = self._cache[cache_key]
             if (datetime.utcnow() - cached_time).seconds < self._cache_ttl:
+                logger.info(f"Cache hit for query: {query[:50]}")
                 return {
                     "results": cached_results,
                     "from_cache": True,
                     "mode": mode.value
                 }
         
-        # Perform retrieval based on mode
-        if mode == SearchMode.AGENTIC:
-            result = await self.agentic_rag.retrieve(query, user_id, context)
-            results = result["results"]
+        # Step 1: Query Enhancement
+        enhanced_queries = None
+        if enhance_query:
+            try:
+                enhanced_queries = await self.query_enhancer.enhance_query(
+                    query,
+                    user_context=context
+                )
+                logger.info(f"Enhanced query: {enhanced_queries.get('rewritten', query)[:50]}")
+            except Exception as e:
+                logger.error(f"Query enhancement failed: {e}")
+        
+        # Step 2: Build metadata filters
+        metadata_filters = self.metadata_filter.build_filter(
+            user_context=context,
+            query_type=QueryType(enhanced_queries["query_type"]) if enhanced_queries else None
+        )
+        
+        # Step 3: Retrieve based on mode
+        if use_parent_child:
+            # Use parent-child retrieval
+            results = await self.parent_child.retrieve_with_parents(query, top_k)
+            metadata = {"mode": "parent_child"}
+        
+        elif mode == SearchMode.AGENTIC:
+            # Use agentic RAG with enhanced queries
+            queries_to_try = [query]
+            if enhanced_queries:
+                queries_to_try = enhanced_queries.get("all_queries", [query])[:3]
+            
+            all_results = []
+            for q in queries_to_try:
+                result = await self.agentic_rag.retrieve(q, user_id, context)
+                all_results.extend(result["results"])
+            
+            # Deduplicate and re-rank
+            results = self._deduplicate_results(all_results)
+            if self.reranker:
+                results = self.reranker.rerank(query, results, top_k)
+            
             metadata = {
-                "strategy": result["strategy"],
-                "followup_performed": result["followup_performed"]
+                "strategy": "agentic_enhanced",
+                "queries_used": len(queries_to_try),
+                "enhanced": enhanced_queries is not None
             }
         
         elif mode == SearchMode.GRAPH and self.graph_rag:
@@ -992,13 +1696,33 @@ class AdvancedRAGSystem:
             metadata = {"mode": "graph"}
         
         else:
-            results = await self.hybrid_search.search(query, top_k, mode=mode)
+            # Hybrid search with filters
+            results = await self.hybrid_search.search(
+                query,
+                top_k * 2,  # Get more for re-ranking
+                mode=mode,
+                filters=metadata_filters
+            )
             
             # Apply re-ranking
             if self.reranker:
                 results = self.reranker.rerank(query, results, top_k)
             
-            metadata = {"mode": mode.value}
+            metadata = {"mode": mode.value, "filtered": metadata_filters is not None}
+        
+        # Step 4: Contextual Compression
+        if compress_results and results:
+            try:
+                results = self.compressor.compress_results(
+                    results,
+                    query,
+                    max_length=max_context_length,
+                    compression_ratio=0.6
+                )
+                metadata["compressed"] = True
+            except Exception as e:
+                logger.error(f"Compression failed: {e}")
+                metadata["compressed"] = False
         
         # Cache results
         if use_cache:
@@ -1008,15 +1732,42 @@ class AdvancedRAGSystem:
             "results": results,
             "from_cache": False,
             "total": len(results),
+            "enhanced_query": enhanced_queries,
             **metadata
         }
+    
+    def _deduplicate_results(self, results: List[RAGResult]) -> List[RAGResult]:
+        """Remove duplicate results based on content similarity"""
+        if not results:
+            return results
+        
+        unique = []
+        seen_content = set()
+        
+        for result in results:
+            # Create content hash
+            content_hash = hashlib.sha256(result.content[:200].encode()).hexdigest()[:16]
+            
+            if content_hash not in seen_content:
+                seen_content.add(content_hash)
+                unique.append(result)
+        
+        return unique
     
     def index_content(
         self,
         content_type: str,
-        items: List[Dict[str, Any]]
+        items: List[Dict[str, Any]],
+        use_parent_child: bool = False
     ):
-        """Index content for retrieval"""
+        """
+        Index content for retrieval.
+        
+        Args:
+            content_type: Type of content (notes, flashcards, etc.)
+            items: List of items to index
+            use_parent_child: Whether to use parent-child indexing
+        """
         documents = []
         
         for item in items:
@@ -1026,58 +1777,78 @@ class AdvancedRAGSystem:
                 "metadata": {
                     "type": content_type,
                     "title": item.get("title", ""),
-                    **{k: v for k, v in item.items() if k not in ["content", "text"]}
+                    "difficulty": item.get("difficulty", "intermediate"),
+                    "topic": item.get("topic", ""),
+                    "created_at": item.get("created_at", datetime.utcnow().isoformat()),
+                    **{k: v for k, v in item.items() if k not in ["content", "text", "id"]}
                 }
             }
             documents.append(doc)
         
-        self.hybrid_search.index_documents(documents)
-        logger.info(f"Indexed {len(documents)} {content_type} items")
+        if use_parent_child:
+            # Use hierarchical indexing
+            self.parent_child.index_with_hierarchy(documents)
+        else:
+            # Standard indexing
+            self.hybrid_search.index_documents(documents)
+        
+        logger.info(f"Indexed {len(documents)} {content_type} items (parent_child={use_parent_child})")
     
     async def get_context_for_query(
         self,
         query: str,
         user_id: str = None,
-        max_context_length: int = 2000
+        max_context_length: int = 2000,
+        enhance: bool = True
     ) -> str:
         """
         Get formatted context string for LLM prompts.
+        Includes query enhancement and compression.
         """
-        result = await self.retrieve(query, user_id, mode=SearchMode.AGENTIC)
+        result = await self.retrieve(
+            query,
+            user_id,
+            mode=SearchMode.AGENTIC,
+            enhance_query=enhance,
+            compress_results=True,
+            max_context_length=max_context_length
+        )
         
         context_parts = []
-        current_length = 0
         
         for r in result["results"]:
-            content = r.content[:500]  # Limit individual result length
-            
-            if current_length + len(content) > max_context_length:
-                break
-            
-            context_parts.append(f"[{r.source}] {content}")
-            current_length += len(content)
+            source_label = r.metadata.get("title", r.source)
+            context_parts.append(f"[{source_label}]\n{r.content}")
         
-        return "\n\n".join(context_parts)
+        return "\n\n---\n\n".join(context_parts)
     
     async def get_learning_context(
         self,
         query: str,
-        user_id: str
+        user_id: str,
+        user_context: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """
         Get comprehensive learning context combining RAG and graph.
+        Uses all enhancement features.
         """
-        # Get RAG results
-        rag_result = await self.retrieve(query, user_id, mode=SearchMode.AGENTIC)
+        # Get enhanced RAG results
+        rag_result = await self.retrieve(
+            query,
+            user_id,
+            mode=SearchMode.AGENTIC,
+            context=user_context,
+            enhance_query=True,
+            compress_results=True,
+            max_context_length=3000
+        )
         
         # Get graph context if available
         graph_context = {}
         if self.graph_rag:
             try:
-                # Extract concepts
                 concepts = await self.graph_rag._extract_concepts(query)
                 
-                # Get learning path for main concept
                 if concepts:
                     learning_path = await self.graph_rag.get_learning_path(
                         concepts[0], user_id
@@ -1094,14 +1865,18 @@ class AdvancedRAGSystem:
             "retrieved_content": [r.to_dict() for r in rag_result["results"]],
             "graph_context": graph_context,
             "retrieval_metadata": {
-                "mode": rag_result.get("strategy", {}).get("method", "unknown"),
-                "total_results": rag_result.get("total", 0)
-            }
+                "mode": rag_result.get("strategy", "unknown"),
+                "total_results": rag_result.get("total", 0),
+                "enhanced": rag_result.get("enhanced", False),
+                "compressed": rag_result.get("compressed", False)
+            },
+            "enhanced_query": rag_result.get("enhanced_query")
         }
     
     def clear_cache(self):
         """Clear the result cache"""
         self._cache.clear()
+        logger.info("RAG cache cleared")
     
     def get_stats(self) -> Dict[str, Any]:
         """Get system statistics"""
@@ -1109,5 +1884,8 @@ class AdvancedRAGSystem:
             "cache_size": len(self._cache),
             "agentic_decisions": len(self.agentic_rag._decision_history),
             "reranker_available": self.reranker.model is not None,
-            "graph_rag_available": self.graph_rag is not None
+            "graph_rag_available": self.graph_rag is not None,
+            "query_enhancer_available": self.query_enhancer.ai_client is not None,
+            "compressor_available": self.compressor.ai_client is not None,
+            "parent_child_indexed": len(self.parent_child.parent_store)
         }

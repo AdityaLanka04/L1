@@ -276,6 +276,10 @@ register_question_bank_api(app, unified_ai, get_db)
 
 register_adaptive_learning_api(app, unified_ai)
 
+# Register Enhanced RAG API
+from rag_api import register_rag_api
+register_rag_api(app)
+
 # Register AI Chat Agent
 from ai_chat_integration import register_ai_chat_agent
 register_ai_chat_agent(app)
@@ -790,6 +794,41 @@ async def fix_database_sequences():
     except Exception as e:
         logger.warning(f" Agent system initialization failed (non-critical): {e}")
         logger.info("   App will continue without agent system")
+    
+    # Initialize Enhanced RAG System
+    try:
+        from agents.rag.rag_helper import initialize_rag_system
+        from agents.rag.user_rag_manager import get_user_rag_manager
+        
+        # Get user RAG manager (has vector store and embedding model)
+        user_rag = get_user_rag_manager()
+        
+        # Get knowledge graph if available
+        knowledge_graph = None
+        try:
+            from knowledge_graph.user_knowledge_graph import get_user_knowledge_graph
+            knowledge_graph = get_user_knowledge_graph()
+        except Exception as kg_error:
+            logger.warning(f"Knowledge graph not available: {kg_error}")
+        
+        # Initialize enhanced RAG system
+        rag_system = initialize_rag_system(
+            ai_client=unified_ai,
+            knowledge_graph=knowledge_graph,
+            vector_store=user_rag.collection if user_rag else None,
+            embedding_model=user_rag.embedding_model if user_rag else None
+        )
+        
+        logger.info("✅ Enhanced RAG system initialized with:")
+        logger.info("   - Query enhancement (rewriting, expansion)")
+        logger.info("   - Contextual compression")
+        logger.info("   - Parent-child retrieval")
+        logger.info("   - Metadata filtering")
+        logger.info("   - Agentic search strategy")
+        
+    except Exception as e:
+        logger.warning(f"⚠️ Enhanced RAG initialization failed (non-critical): {e}")
+        logger.info("   App will continue with basic RAG functionality")
 
 @app.get("/api/fix-reminder-timezones")
 async def fix_reminder_timezones(user_id: str = Query(...), db: Session = Depends(get_db)):

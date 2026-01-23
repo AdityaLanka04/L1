@@ -840,8 +840,8 @@ class ChatAgent(BaseAgent):
         else:
             logger.warning("⚠️ No memory manager available")
         
-        # ==================== RAG RETRIEVAL ====================
-        # Retrieve relevant user content (notes, flashcards, chats, questions)
+        # ==================== ENHANCED RAG RETRIEVAL ====================
+        # Retrieve relevant user content with query enhancement and compression
         user_id = state.get("user_id")
         user_input = state.get("user_input", "")
         
@@ -852,7 +852,6 @@ class ChatAgent(BaseAgent):
                 user_id_int = int(user_id)
             except (ValueError, TypeError):
                 # It's an email or username, need to look it up
-                # Try to get from agent_api's helper function
                 try:
                     from .agent_api import get_user_id_from_identifier
                     user_id_int = get_user_id_from_identifier(user_id)
@@ -861,43 +860,82 @@ class ChatAgent(BaseAgent):
         
         if user_id_int and user_input:
             try:
-                from .rag.user_rag_manager import get_user_rag_manager
-                user_rag = get_user_rag_manager()
+                # Try enhanced RAG first
+                from .rag.rag_helper import get_rag_system, smart_retrieve
+                rag_system = get_rag_system()
                 
-                if user_rag:
-                    logger.info(f"🔍 Retrieving relevant content from user's RAG for chat context")
+                if rag_system:
+                    logger.info(f"🔍 Using ENHANCED RAG for chat context")
                     
-                    # Retrieve from user's personal knowledge base
-                    rag_results = await user_rag.retrieve_for_user(
-                        user_id=str(user_id_int),  # Use integer user_id
+                    # Build user context for personalized retrieval
+                    user_context = {
+                        "weak_topics": state.get("knowledge_gaps", []),
+                        "topics_of_interest": state.get("related_concepts", []),
+                        "difficulty_level": state.get("user_preferences", {}).get("difficulty_level", "intermediate")
+                    }
+                    
+                    # Use smart retrieve with all enhancements
+                    rag_result = await smart_retrieve(
                         query=user_input,
-                        top_k=5,  # Get top 5 most relevant items
-                        content_types=["note", "flashcard", "chat", "question_bank"]
+                        user_id=str(user_id_int),
+                        user_context=user_context,
+                        top_k=5,
+                        max_context_length=1500  # Compressed context
                     )
                     
-                    if rag_results:
-                        # Build context from retrieved content
+                    if rag_result and rag_result.get("results"):
+                        # Build context from enhanced results
                         rag_context_parts = []
-                        for r in rag_results:
-                            content_text = r.get("content", "")[:300]  # Limit to 300 chars
-                            content_type = r.get("metadata", {}).get("type", "content")
-                            rag_context_parts.append(f"[{content_type}] {content_text}")
+                        for r in rag_result["results"]:
+                            content_text = r.content[:300]
+                            source = r.metadata.get("title", r.source)
+                            rag_context_parts.append(f"[{source}] {content_text}")
                         
                         state["rag_context"] = "\n\n".join(rag_context_parts)
-                        state["rag_results_count"] = len(rag_results)
+                        state["rag_results_count"] = len(rag_result["results"])
+                        state["rag_enhanced"] = rag_result.get("metadata", {}).get("enhanced", False)
+                        state["rag_compressed"] = rag_result.get("metadata", {}).get("compressed", False)
                         
-                        logger.info(f"✅ RAG retrieved {len(rag_results)} relevant items from user's content")
+                        logger.info(f"✅ Enhanced RAG retrieved {len(rag_result['results'])} items")
+                        logger.info(f"   Enhanced: {state['rag_enhanced']}, Compressed: {state['rag_compressed']}")
                     else:
-                        logger.info("ℹ️ No relevant content found in user's RAG")
+                        logger.info("ℹ️ No relevant content found in enhanced RAG")
                         state["rag_context"] = ""
                         state["rag_results_count"] = 0
                 else:
-                    logger.warning("⚠️ User RAG Manager not available")
+                    # Fallback to basic RAG
+                    logger.info("⚠️ Enhanced RAG not available, using basic RAG")
+                    from .rag.user_rag_manager import get_user_rag_manager
+                    user_rag = get_user_rag_manager()
+                    
+                    if user_rag:
+                        rag_results = await user_rag.retrieve_for_user(
+                            user_id=str(user_id_int),
+                            query=user_input,
+                            top_k=5,
+                            content_types=["note", "flashcard", "chat", "question_bank"]
+                        )
+                        
+                        if rag_results:
+                            rag_context_parts = []
+                            for r in rag_results:
+                                content_text = r.get("content", "")[:300]
+                                content_type = r.get("metadata", {}).get("type", "content")
+                                rag_context_parts.append(f"[{content_type}] {content_text}")
+                            
+                            state["rag_context"] = "\n\n".join(rag_context_parts)
+                            state["rag_results_count"] = len(rag_results)
+                            logger.info(f"✅ Basic RAG retrieved {len(rag_results)} items")
+                        else:
+                            state["rag_context"] = ""
+                            state["rag_results_count"] = 0
                     
             except Exception as e:
                 logger.error(f"❌ RAG retrieval failed: {e}")
                 import traceback
                 logger.error(traceback.format_exc())
+                state["rag_context"] = ""
+                state["rag_results_count"] = 0
                 state["rag_context"] = ""
                 state["rag_results_count"] = 0
         else:

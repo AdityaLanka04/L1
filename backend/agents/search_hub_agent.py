@@ -1500,7 +1500,80 @@ class SearchHubAgent(BaseAgent):
             user_rag = get_user_rag_manager()
             
             if user_rag:
-                logger.info(f"🔍 SearchHub using RAG for semantic search: '{query}'")
+                logger.info(f"🔍 SearchHub using ENHANCED RAG for semantic search: '{query}'")
+                
+                # Try enhanced RAG first
+                try:
+                    from .rag.rag_helper import get_rag_system, smart_retrieve
+                    rag_system = get_rag_system()
+                    
+                    if rag_system:
+                        logger.info("✨ Using Enhanced RAG with query enhancement and compression")
+                        
+                        # Build user context for personalized search
+                        user_context = {
+                            "weak_topics": state.get("weak_areas", {}).get("weak_concepts", []),
+                            "topics_of_interest": state.get("user_preferences", {}).get("favorite_subjects", []),
+                            "difficulty_level": state.get("user_preferences", {}).get("difficulty_level", "intermediate")
+                        }
+                        
+                        # Determine content types to search
+                        content_types = None
+                        if action == SearchHubAction.SEARCH_NOTES.value:
+                            content_types = ["notes"]
+                        elif action == SearchHubAction.SEARCH_FLASHCARDS.value:
+                            content_types = ["flashcards"]
+                        elif action == SearchHubAction.SEARCH_QUESTIONS.value:
+                            content_types = ["question_bank"]
+                        
+                        # Add content type filter to user context
+                        if content_types:
+                            user_context["content_types"] = content_types
+                        
+                        # Use smart retrieve with all enhancements
+                        rag_result = await smart_retrieve(
+                            query=query,
+                            user_id=str(user_id),
+                            user_context=user_context,
+                            top_k=20,  # Get more results for search
+                            max_context_length=5000  # Allow more results
+                        )
+                        
+                        if rag_result and rag_result.get("results"):
+                            # Format enhanced RAG results
+                            formatted_results = []
+                            for r in rag_result["results"]:
+                                formatted_results.append({
+                                    "id": r.id,
+                                    "content": r.content,
+                                    "score": r.score,
+                                    "type": r.metadata.get("type", "content"),
+                                    "title": r.metadata.get("title", ""),
+                                    "metadata": r.metadata,
+                                    "enhanced": True
+                                })
+                            
+                            state["search_results"] = formatted_results
+                            state["search_query"] = query
+                            state["response_data"] = {
+                                "results": formatted_results,
+                                "total": len(formatted_results),
+                                "query": query,
+                                "search_method": "enhanced_rag",
+                                "enhanced": rag_result.get("metadata", {}).get("enhanced", False),
+                                "compressed": rag_result.get("metadata", {}).get("compressed", False),
+                                "enhanced_query": rag_result.get("enhanced_query")
+                            }
+                            
+                            logger.info(f"✅ Enhanced RAG search found {len(formatted_results)} results")
+                            logger.info(f"   Query enhanced: {state['response_data'].get('enhanced', False)}")
+                            return state
+                    
+                except Exception as e:
+                    logger.warning(f"⚠️ Enhanced RAG failed, falling back to basic RAG: {e}")
+                
+                # Fallback to basic RAG
+                logger.info("Using basic RAG")
                 
                 # Determine content types to search
                 content_types = None
@@ -1510,13 +1583,12 @@ class SearchHubAgent(BaseAgent):
                     content_types = ["flashcard"]
                 elif action == SearchHubAction.SEARCH_QUESTIONS.value:
                     content_types = ["question_bank"]
-                # If no specific type, search all
                 
-                # Retrieve from user's personal knowledge base using RAG
+                # Retrieve from user's personal knowledge base using basic RAG
                 rag_results = await user_rag.retrieve_for_user(
                     user_id=str(user_id),
                     query=query,
-                    top_k=20,  # Get more results for search
+                    top_k=20,
                     content_types=content_types
                 )
                 
@@ -1542,7 +1614,7 @@ class SearchHubAgent(BaseAgent):
                         "search_method": "rag_semantic"
                     }
                     
-                    logger.info(f"✅ RAG search found {len(formatted_results)} results")
+                    logger.info(f"✅ Basic RAG search found {len(formatted_results)} results")
                     return state
                 else:
                     logger.info("ℹ️ RAG search returned no results")

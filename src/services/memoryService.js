@@ -1,14 +1,14 @@
 /**
- * Memory Service
- * Frontend service for interacting with the Enhanced Memory System API
- * Provides episodic, semantic, and procedural memory management
+ * Memory Management Service
+ * Frontend service for interacting with the Memory API
+ * Provides user memory context, summaries, and statistics
  */
 
 import { API_URL, getAuthToken } from '../config';
 
 class MemoryService {
   constructor() {
-    this.baseUrl = `${API_URL}/api/memory`;
+    this.baseUrl = `${API_URL}/api/agents/memory`;
   }
 
   /**
@@ -22,277 +22,52 @@ class MemoryService {
     };
   }
 
-  // ==================== MEMORY STORAGE ====================
-
   /**
-   * Store a new memory
+   * Get user memory context
    */
-  async store(userId, content, memoryType, options = {}) {
+  async getUserContext(userId, limit = 10) {
     try {
-      const response = await fetch(`${this.baseUrl}/store`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({
-          user_id: userId,
-          content: content,
-          memory_type: memoryType, // conversation, flashcard, quiz, note, learning_event
-          tags: options.tags || [],
-          metadata: options.metadata || {},
-          importance: options.importance || 0.5,
-          session_id: options.sessionId || null
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to store memory: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Store memory error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Recall memories based on query
-   */
-  async recall(userId, query, options = {}) {
-    try {
-      const response = await fetch(`${this.baseUrl}/recall`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({
-          user_id: userId,
-          query: query,
-          memory_types: options.memoryTypes || null,
-          limit: options.limit || 10,
-          min_relevance: options.minRelevance || 0.5,
-          time_range: options.timeRange || null
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to recall memories: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Recall memory error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get context for an agent
-   */
-  async getContext(userId, agentType, query, options = {}) {
-    try {
-      const response = await fetch(`${this.baseUrl}/context`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({
-          user_id: userId,
-          agent_type: agentType,
-          query: query,
-          session_id: options.sessionId || null
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to get context: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Get context error:', error);
-      throw error;
-    }
-  }
-
-  // ==================== CONVERSATION MEMORY ====================
-
-  /**
-   * Remember a conversation
-   */
-  async rememberConversation(userId, userMessage, aiResponse, options = {}) {
-    try {
-      const response = await fetch(`${this.baseUrl}/conversation`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({
-          user_id: userId,
-          user_message: userMessage,
-          ai_response: aiResponse,
-          session_id: options.sessionId || null,
-          agent_type: options.agentType || 'chat',
-          topics: options.topics || []
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to remember conversation: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Remember conversation error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get conversation history
-   */
-  async getConversationHistory(userId, options = {}) {
-    try {
-      const params = new URLSearchParams({
-        user_id: userId,
-        limit: options.limit || 20
-      });
-
-      if (options.sessionId) {
-        params.append('session_id', options.sessionId);
-      }
-
-      const response = await fetch(`${this.baseUrl}/conversations?${params}`, {
+      const response = await fetch(`${this.baseUrl}/context/${userId}?limit=${limit}`, {
         method: 'GET',
         headers: this.getHeaders()
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to get conversation history: ${response.status}`);
+        throw new Error(`Failed to get user context: ${response.status}`);
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Get conversation history error:', error);
-      throw error;
-    }
-  }
-
-  // ==================== LEARNING EVENTS ====================
-
-  /**
-   * Record a learning event
-   */
-  async recordLearningEvent(userId, eventType, eventData, options = {}) {
-    try {
-      const response = await fetch(`${this.baseUrl}/learning-event`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({
-          user_id: userId,
-          event_type: eventType, // flashcard_review, quiz_completed, note_created, etc.
-          event_data: eventData,
-          topics: options.topics || [],
-          performance: options.performance || null
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to record learning event: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Record learning event error:', error);
+      console.error('Get user context error:', error);
       throw error;
     }
   }
 
   /**
-   * Get learning history
+   * Get user memory summary
    */
-  async getLearningHistory(userId, options = {}) {
+  async getUserSummary(userId, days = 30) {
     try {
-      const params = new URLSearchParams({
-        user_id: userId,
-        limit: options.limit || 50
-      });
-
-      if (options.eventType) {
-        params.append('event_type', options.eventType);
-      }
-
-      if (options.startDate) {
-        params.append('start_date', options.startDate);
-      }
-
-      if (options.endDate) {
-        params.append('end_date', options.endDate);
-      }
-
-      const response = await fetch(`${this.baseUrl}/learning-history?${params}`, {
+      const response = await fetch(`${this.baseUrl}/summary/${userId}?days=${days}`, {
         method: 'GET',
         headers: this.getHeaders()
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to get learning history: ${response.status}`);
+        throw new Error(`Failed to get user summary: ${response.status}`);
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Get learning history error:', error);
-      throw error;
-    }
-  }
-
-  // ==================== USER PREFERENCES ====================
-
-  /**
-   * Learn from user interaction
-   */
-  async learnFromInteraction(userId, interactionData) {
-    try {
-      const response = await fetch(`${this.baseUrl}/learn`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({
-          user_id: userId,
-          interaction_data: interactionData
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to learn from interaction: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Learn from interaction error:', error);
+      console.error('Get user summary error:', error);
       throw error;
     }
   }
 
   /**
-   * Get learned user preferences
+   * Get user memory statistics
    */
-  async getUserPreferences(userId) {
-    try {
-      const response = await fetch(`${this.baseUrl}/preferences/${userId}`, {
-        method: 'GET',
-        headers: this.getHeaders()
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to get user preferences: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Get user preferences error:', error);
-      throw error;
-    }
-  }
-
-  // ==================== MEMORY STATISTICS ====================
-
-  /**
-   * Get memory statistics for a user
-   */
-  async getStats(userId) {
+  async getUserStats(userId) {
     try {
       const response = await fetch(`${this.baseUrl}/stats/${userId}`, {
         method: 'GET',
@@ -300,202 +75,200 @@ class MemoryService {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to get memory stats: ${response.status}`);
+        throw new Error(`Failed to get user stats: ${response.status}`);
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Get memory stats error:', error);
+      console.error('Get user stats error:', error);
       throw error;
     }
   }
 
   /**
-   * Get memory system status
+   * Store something to remember
    */
-  async getSystemStatus() {
+  async remember(userId, content, type = 'note', metadata = {}) {
     try {
-      const response = await fetch(`${this.baseUrl}/status`, {
+      const response = await fetch(`${this.baseUrl}/remember`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          user_id: userId,
+          content,
+          type,
+          metadata,
+          timestamp: new Date().toISOString()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to remember: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Remember error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Search user memories
+   */
+  async searchMemories(userId, query, limit = 10) {
+    try {
+      const response = await fetch(`${this.baseUrl}/search`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          user_id: userId,
+          query,
+          limit
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to search memories: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Search memories error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update memory importance
+   */
+  async updateMemoryImportance(memoryId, importance) {
+    try {
+      const response = await fetch(`${this.baseUrl}/importance/${memoryId}`, {
+        method: 'PUT',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ importance })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update importance: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Update importance error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get memory insights
+   */
+  async getMemoryInsights(userId, days = 7) {
+    try {
+      const response = await fetch(`${this.baseUrl}/insights/${userId}?days=${days}`, {
         method: 'GET',
         headers: this.getHeaders()
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to get system status: ${response.status}`);
+        throw new Error(`Failed to get insights: ${response.status}`);
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Get system status error:', error);
+      console.error('Get insights error:', error);
       throw error;
     }
   }
 
-  // ==================== MEMORY MANAGEMENT ====================
-
   /**
-   * Consolidate memories (move short-term to long-term)
+   * Consolidate user memories
    */
-  async consolidate(userId) {
+  async consolidateMemories(userId, options = {}) {
     try {
       const response = await fetch(`${this.baseUrl}/consolidate/${userId}`, {
         method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify(options)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to consolidate: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Consolidate error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get memory timeline
+   */
+  async getMemoryTimeline(userId, startDate = null, endDate = null) {
+    try {
+      const params = new URLSearchParams();
+      if (startDate) params.append('start_date', startDate);
+      if (endDate) params.append('end_date', endDate);
+
+      const response = await fetch(`${this.baseUrl}/timeline/${userId}?${params}`, {
+        method: 'GET',
         headers: this.getHeaders()
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to consolidate memories: ${response.status}`);
+        throw new Error(`Failed to get timeline: ${response.status}`);
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Consolidate memories error:', error);
+      console.error('Get timeline error:', error);
       throw error;
     }
   }
 
   /**
-   * Forget old or irrelevant memories
+   * Delete a memory
    */
-  async forget(userId, options = {}) {
+  async deleteMemory(memoryId) {
     try {
-      const response = await fetch(`${this.baseUrl}/forget/${userId}`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({
-          older_than_days: options.olderThanDays || 90,
-          min_importance: options.minImportance || 0.3
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to forget memories: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Forget memories error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Clear all memories for a user (GDPR compliance)
-   */
-  async clearAll(userId) {
-    try {
-      const response = await fetch(`${this.baseUrl}/clear/${userId}`, {
+      const response = await fetch(`${this.baseUrl}/memory/${memoryId}`, {
         method: 'DELETE',
         headers: this.getHeaders()
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to clear memories: ${response.status}`);
+        throw new Error(`Failed to delete memory: ${response.status}`);
       }
 
       return await response.json();
     } catch (error) {
-      console.error('Clear memories error:', error);
+      console.error('Delete memory error:', error);
       throw error;
     }
   }
 
-  // ==================== CONVENIENCE METHODS ====================
-
   /**
-   * Store conversation memory
+   * Get memory patterns
    */
-  async storeConversation(userId, userMessage, aiResponse, topics = [], sessionId = null) {
-    return this.store(userId, `User: ${userMessage}\nAI: ${aiResponse}`, 'conversation', {
-      tags: topics,
-      metadata: { user_message: userMessage, ai_response: aiResponse },
-      sessionId
-    });
-  }
+  async getMemoryPatterns(userId, patternType = 'study') {
+    try {
+      const response = await fetch(`${this.baseUrl}/patterns/${userId}?type=${patternType}`, {
+        method: 'GET',
+        headers: this.getHeaders()
+      });
 
-  /**
-   * Store flashcard review memory
-   */
-  async storeFlashcardReview(userId, cardId, correct, concept, sessionId = null) {
-    return this.store(userId, `Reviewed flashcard: ${concept}`, 'flashcard', {
-      tags: [concept],
-      metadata: { card_id: cardId, correct, concept },
-      importance: correct ? 0.3 : 0.7, // Wrong answers are more important to remember
-      sessionId
-    });
-  }
+      if (!response.ok) {
+        throw new Error(`Failed to get patterns: ${response.status}`);
+      }
 
-  /**
-   * Store quiz result memory
-   */
-  async storeQuizResult(userId, quizId, score, topics = [], sessionId = null) {
-    return this.store(userId, `Completed quiz with score: ${score}`, 'quiz', {
-      tags: topics,
-      metadata: { quiz_id: quizId, score },
-      importance: score < 0.6 ? 0.8 : 0.5, // Low scores are more important
-      sessionId
-    });
-  }
-
-  /**
-   * Store note creation memory
-   */
-  async storeNoteCreation(userId, noteId, title, topics = [], sessionId = null) {
-    return this.store(userId, `Created note: ${title}`, 'note', {
-      tags: topics,
-      metadata: { note_id: noteId, title },
-      importance: 0.4,
-      sessionId
-    });
-  }
-
-  /**
-   * Get recent memories
-   */
-  async getRecent(userId, limit = 20) {
-    return this.recall(userId, '', { limit, minRelevance: 0 });
-  }
-
-  /**
-   * Search memories by topic
-   */
-  async searchByTopic(userId, topic, limit = 10) {
-    return this.recall(userId, topic, { limit });
-  }
-
-  /**
-   * Get memories by type
-   */
-  async getByType(userId, memoryType, limit = 20) {
-    return this.recall(userId, '', { memoryTypes: [memoryType], limit, minRelevance: 0 });
-  }
-
-  /**
-   * Get conversation memories
-   */
-  async getConversations(userId, limit = 20) {
-    return this.getByType(userId, 'conversation', limit);
-  }
-
-  /**
-   * Get flashcard memories
-   */
-  async getFlashcards(userId, limit = 20) {
-    return this.getByType(userId, 'flashcard', limit);
-  }
-
-  /**
-   * Get quiz memories
-   */
-  async getQuizzes(userId, limit = 20) {
-    return this.getByType(userId, 'quiz', limit);
-  }
-
-  /**
-   * Get note memories
-   */
-  async getNotes(userId, limit = 20) {
-    return this.getByType(userId, 'note', limit);
+      return await response.json();
+    } catch (error) {
+      console.error('Get patterns error:', error);
+      throw error;
+    }
   }
 
   /**
@@ -503,14 +276,23 @@ class MemoryService {
    */
   async healthCheck() {
     try {
-      const status = await this.getSystemStatus();
+      const response = await fetch(`${this.baseUrl}/health`, {
+        method: 'GET',
+        headers: this.getHeaders()
+      });
+
+      if (!response.ok) {
+        throw new Error(`Health check failed: ${response.status}`);
+      }
+
+      const data = await response.json();
       return {
-        healthy: status.status === 'healthy',
-        memoryCount: status.total_memories || 0,
+        healthy: data.status === 'healthy',
+        database: data.database || 'unknown',
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error('Memory health check failed:', error);
+      console.error('Memory service health check failed:', error);
       return {
         healthy: false,
         error: error.message,

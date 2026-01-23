@@ -3416,6 +3416,165 @@ async def list_conversion_options():
     }
 
 
+# ==================== Conversion Agent API Endpoints ====================
+
+class ConversionRequest(BaseModel):
+    """Request for the conversion agent"""
+    user_id: str
+    action: str  # notes_to_flashcards, notes_to_questions, etc.
+    source_ids: List[int]
+    card_count: Optional[int] = 10
+    question_count: Optional[int] = 10
+    difficulty: str = "medium"
+    format_style: str = "structured"
+    session_id: Optional[str] = None
+
+
+class ConversionResponse(BaseModel):
+    """Response from the conversion agent"""
+    success: bool
+    action: str
+    message: str
+    generated_content: Optional[Dict[str, Any]] = None
+    content_id: Optional[int] = None
+    execution_time_ms: float = 0.0
+    metadata: Dict[str, Any] = {}
+
+
+@router.post("/conversion", response_model=ConversionResponse)
+async def conversion_invoke(request: ConversionRequest):
+    """
+    Main conversion endpoint - Convert between content types
+    """
+    import time
+    start_time = time.time()
+    
+    conversion_agent = get_conversion_agent()
+    
+    state = {
+        "user_id": request.user_id,
+        "session_id": request.session_id or f"conversion_{request.user_id}_{datetime.utcnow().timestamp()}",
+        "action": request.action,
+        "source_ids": request.source_ids,
+        "card_count": request.card_count,
+        "question_count": request.question_count,
+        "difficulty": request.difficulty,
+        "format_style": request.format_style,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    
+    try:
+        result = await conversion_agent.invoke(state)
+        
+        execution_time = (time.time() - start_time) * 1000
+        
+        return ConversionResponse(
+            success=result.success,
+            action=request.action,
+            message=result.response,
+            generated_content=result.metadata.get("generated_content"),
+            content_id=result.metadata.get("content_id"),
+            execution_time_ms=execution_time,
+            metadata=result.metadata
+        )
+        
+    except Exception as e:
+        logger.error(f"Conversion agent error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/conversion/notes-to-flashcards")
+async def convert_notes_to_flashcards(
+    user_id: str = Body(...),
+    note_ids: List[int] = Body(...),
+    card_count: int = Body(10),
+    difficulty: str = Body("medium"),
+    session_id: Optional[str] = Body(None)
+):
+    """Convert notes to flashcards"""
+    return await conversion_invoke(ConversionRequest(
+        user_id=user_id,
+        action="notes_to_flashcards",
+        source_ids=note_ids,
+        card_count=card_count,
+        difficulty=difficulty,
+        session_id=session_id
+    ))
+
+
+@router.post("/conversion/notes-to-questions")
+async def convert_notes_to_questions(
+    user_id: str = Body(...),
+    note_ids: List[int] = Body(...),
+    question_count: int = Body(10),
+    difficulty: str = Body("medium"),
+    session_id: Optional[str] = Body(None)
+):
+    """Convert notes to questions"""
+    return await conversion_invoke(ConversionRequest(
+        user_id=user_id,
+        action="notes_to_questions",
+        source_ids=note_ids,
+        question_count=question_count,
+        difficulty=difficulty,
+        session_id=session_id
+    ))
+
+
+@router.post("/conversion/flashcards-to-notes")
+async def convert_flashcards_to_notes(
+    user_id: str = Body(...),
+    set_ids: List[int] = Body(...),
+    format_style: str = Body("structured"),
+    session_id: Optional[str] = Body(None)
+):
+    """Convert flashcards to notes"""
+    return await conversion_invoke(ConversionRequest(
+        user_id=user_id,
+        action="flashcards_to_notes",
+        source_ids=set_ids,
+        format_style=format_style,
+        session_id=session_id
+    ))
+
+
+@router.post("/conversion/chat-to-notes")
+async def convert_chat_to_notes(
+    user_id: str = Body(...),
+    chat_ids: List[int] = Body(...),
+    format_style: str = Body("summary"),
+    session_id: Optional[str] = Body(None)
+):
+    """Convert chat sessions to notes"""
+    return await conversion_invoke(ConversionRequest(
+        user_id=user_id,
+        action="chat_to_notes",
+        source_ids=chat_ids,
+        format_style=format_style,
+        session_id=session_id
+    ))
+
+
+@router.get("/conversion/options")
+async def list_conversion_options():
+    """List all available conversion options"""
+    return {
+        "conversions": [
+            {"source": "notes", "destinations": ["flashcards", "questions"]},
+            {"source": "flashcards", "destinations": ["notes", "questions", "csv"]},
+            {"source": "questions", "destinations": ["flashcards", "notes", "pdf"]},
+            {"source": "media", "destinations": ["questions"]},
+            {"source": "playlist", "destinations": ["notes", "flashcards"]},
+            {"source": "chat", "destinations": ["notes"]}
+        ],
+        "options": {
+            "difficulty": ["easy", "medium", "hard"],
+            "format_style": ["structured", "qa", "summary"],
+            "depth_level": ["surface", "standard", "deep"]
+        }
+    }
+
+
 @router.get("/test/conversion")
 async def test_conversion_agent():
     """Test Conversion Agent"""

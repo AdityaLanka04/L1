@@ -18,7 +18,7 @@ from .advanced_rag import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/rag", tags=["rag"])
+router = APIRouter(prefix="/api/agents/rag", tags=["rag"])
 
 # Global RAG system instance
 _rag_system: Optional[AdvancedRAGSystem] = None

@@ -1,10 +1,8 @@
-/**
- * Services Index
- * Central export for all agent services
- */
-
 // Agent Services
+export { default as agentSystemService, AgentSystemService } from './agentSystemService';
+export { default as analyticsService } from './analyticsService';
 export { default as chatAgentService, ChatAgentService } from './chatAgentService';
+export { default as collaborationService } from './collaborationService';
 export { default as conversionAgentService, ConversionAgentService } from './conversionAgentService';
 export { default as flashcardAgentService, FlashcardAgentService } from './flashcardAgentService';
 export { default as knowledgeGraphService, KnowledgeGraphService } from './knowledgeGraphService';
