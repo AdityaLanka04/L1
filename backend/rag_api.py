@@ -10,7 +10,6 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from database import get_db
-from auth import get_current_user
 from agents.rag.rag_helper import (
     get_rag_system,
     smart_retrieve,
@@ -46,7 +45,7 @@ class IndexRequest(BaseModel):
 @router.post("/search")
 async def search_content(
     request: SearchRequest,
-    current_user: Dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """
     Smart search across user's content with all RAG enhancements.
@@ -58,7 +57,8 @@ async def search_content(
     - Re-ranking
     """
     try:
-        user_id = str(current_user["id"])
+        # Get user_id from request or use anonymous
+        user_id = request.user_context.get("user_id") if request.user_context else "anonymous"
         
         results = await smart_retrieve(
             query=request.query,
@@ -89,14 +89,14 @@ async def search_content(
 async def get_context(
     query: str = Query(..., description="Search query"),
     max_length: int = Query(2000, description="Maximum context length"),
-    current_user: Dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """
     Get formatted context string for a query.
     Useful for building prompts with relevant context.
     """
     try:
-        user_id = str(current_user["id"])
+        user_id = "anonymous"  # Can be enhanced with auth later
         
         context = await get_context_string(
             query=query,
@@ -118,7 +118,6 @@ async def get_context(
 @router.get("/learning-context")
 async def get_learning_ctx(
     query: str = Query(..., description="Learning query"),
-    current_user: Dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -129,7 +128,7 @@ async def get_learning_ctx(
     - Enhanced query information
     """
     try:
-        user_id = str(current_user["id"])
+        user_id = "anonymous"  # Can be enhanced with auth later
         
         # Build user context from database
         user_context = await _build_user_context(user_id, db)
@@ -153,7 +152,7 @@ async def get_learning_ctx(
 @router.post("/index")
 async def index_content(
     request: IndexRequest,
-    current_user: Dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """
     Index user content for retrieval.
@@ -161,7 +160,7 @@ async def index_content(
     Content types: notes, flashcards, quizzes, slides
     """
     try:
-        user_id = str(current_user["id"])
+        user_id = "anonymous"  # Can be enhanced with auth later
         
         # Add user_id to each item
         for item in request.items:
@@ -186,7 +185,7 @@ async def index_content(
 
 @router.get("/stats")
 async def get_stats(
-    current_user: Dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """
     Get RAG system statistics.
@@ -206,7 +205,7 @@ async def get_stats(
 
 @router.post("/clear-cache")
 async def clear_cache(
-    current_user: Dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """
     Clear the RAG result cache.

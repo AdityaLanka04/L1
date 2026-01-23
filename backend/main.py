@@ -994,10 +994,10 @@ class RegisterPayload(BaseModel):
     email: EmailStr
     username: str
     password: str
-    age: int | None = None
-    field_of_study: str | None = None
-    learning_style: str | None = None
-    school_university: str | None = None
+    age: Optional[int] = None
+    field_of_study: Optional[str] = None
+    learning_style: Optional[str] = None
+    school_university: Optional[str] = None
 
 
 # -----------------------------
