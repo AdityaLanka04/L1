@@ -70,7 +70,7 @@ html:has(.ai-chat-page) {
   max-height: 70px;
   background: color-mix(in srgb, var(--bg-primary, var(--bg-primary)) 80%, transparent);
   backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+  border-bottom: 1px solid var(--accent);
 }
 
 .ac-header-left {
@@ -458,7 +458,7 @@ html:has(.ai-chat-page) {
   background: linear-gradient(135deg, var(--ac-accent), var(--ac-accent-dark));
   border: none;
   border-radius: 8px;
-  color: #ffffff;
+  color: var(--bg-primary);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 2px;
@@ -1498,16 +1498,21 @@ html:has(.ai-chat-page) {
 }
 
 .ac-modal h3 {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 800;
   color: var(--ac-text-primary);
-  margin-bottom: 8px;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-family: 'Inter', sans-serif;
 }
 
 .ac-modal p {
   font-size: 14px;
   color: var(--ac-text-muted);
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  line-height: 1.6;
+  font-family: 'Inter', sans-serif;
 }
 
 .ac-modal-actions {
@@ -5739,7 +5744,7 @@ button:focus-visible {
 
 /* Ensure KaTeX renders properly in chat messages */
 .ac-message-content .katex {
-  font-size: 1.3em !important;
+  font-size: 1em !important;
   color: var(--ac-accent) !important;
 }
 
@@ -5749,31 +5754,31 @@ button:focus-visible {
 
 .ac-message-content .katex-display {
   display: block !important;
-  margin: 2em 0 !important;
+  margin: 1.5em 0 !important;
   overflow-x: auto;
   text-align: center;
-  padding: 1.5em 1em;
-  background: rgba(215, 179, 140, 0.08);
-  border-radius: 12px;
-  border: 1px solid rgba(215, 179, 140, 0.15);
+  padding: 0.5em 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  border: none !important;
 }
 
 .ac-message-content .katex-display > .katex {
-  font-size: 2.2em !important;
+  font-size: 1.3em !important;
   color: var(--ac-accent) !important;
-  font-weight: 500;
+  font-weight: 400 !important;
 }
 
 /* Inline math in messages */
 .ac-message-content p .katex {
-  font-size: 1.3em !important;
+  font-size: 1em !important;
   vertical-align: middle;
-  padding: 0 0.15em;
+  padding: 0 0.1em;
 }
 
 /* Ensure proper line height for lines with inline math */
 .ac-message-content p:has(.katex) {
-  line-height: 2.2;
+  line-height: 1.9;
 }
 
 /* Math symbols styling */
@@ -5858,7 +5863,7 @@ button:focus-visible {
 
 /* Make display math more prominent */
 .ac-message-content .katex-display .katex {
-  font-weight: 500;
+  font-weight: 400 !important;
 }
 
 /* Ensure all math elements inherit accent color */

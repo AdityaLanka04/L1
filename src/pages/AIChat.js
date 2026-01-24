@@ -106,6 +106,7 @@ const AIChat = ({ sharedMode = false }) => {
   
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const sidebarNavRef = useRef(null);
   const fileInputRef = useRef(null);
   const isLoadingRef = useRef(false);
   const justSentMessageRef = useRef(false);  // Flag to prevent reload after sending
@@ -119,6 +120,24 @@ const AIChat = ({ sharedMode = false }) => {
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [chatMessageCounts, setChatMessageCounts] = useState({});
+
+  // Helper to check if a chat session should be displayed
+  const shouldDisplayChat = (session) => {
+    // Always show chats that are not "New Chat"
+    if (session.title !== 'New Chat') return true;
+    
+    // For "New Chat", only show if it's the active chat OR if it has messages
+    if (session.id === activeChatId) return true;
+    
+    // Check if we have message count cached
+    if (chatMessageCounts[session.id] !== undefined) {
+      return chatMessageCounts[session.id] > 0;
+    }
+    
+    // Default to hiding if we don't know yet
+    return false;
+  };
 
   const greetings = [
     "Welcome back! How can I help you today?",
@@ -423,12 +442,33 @@ const AIChat = ({ sharedMode = false }) => {
           }
   };
 
-  const handleNewChat = async () => {
-    await cleanupEmptyNewChats();
-    const newChatId = await createNewChat();
-    if (newChatId) {
+  const handleNewChat = () => {
+    // Scroll sidebar to top
+    if (sidebarNavRef.current) {
+      sidebarNavRef.current.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+    
+    // Scroll messages to top
+    scrollToTop();
+    
+    // Find any existing "New Chat" session
+    const existingNewChat = chatSessions.find(chat => chat.title === 'New Chat');
+    
+    if (existingNewChat) {
+      // Navigate to existing "New Chat"
       isLoadingRef.current = false;
-      navigate(`/ai-chat/${newChatId}`);
+      navigate(`/ai-chat/${existingNewChat.id}`);
+    } else {
+      // Create new chat only if no "New Chat" exists
+      createNewChat().then(newChatId => {
+        if (newChatId) {
+          isLoadingRef.current = false;
+          navigate(`/ai-chat/${newChatId}`);
+        }
+      });
     }
   };
 
@@ -761,15 +801,38 @@ const AIChat = ({ sharedMode = false }) => {
 
     try {
       const token = localStorage.getItem('token');
+      
+      if (!token) {
+        alert('Authentication required. Please log in again.');
+        return;
+      }
+      
       const response = await fetch(`${API_URL}/delete_chat_session/${chatToDelete.id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
 
+      if (response.status === 401) {
+        alert('Session expired. Please log in again.');
+        localStorage.removeItem('token');
+        navigate('/login');
+        return;
+      }
+
       if (response.ok) {
+        // Remove from local state first
+        const wasActivChat = activeChatId === chatToDelete.id;
         setChatSessions(prev => prev.filter(chat => chat.id !== chatToDelete.id));
         
-        if (activeChatId === chatToDelete.id) {
+        // Close modal
+        setShowDeleteConfirmation(false);
+        setChatToDelete(null);
+        
+        // Navigate if we deleted the active chat
+        if (wasActivChat) {
           const remainingChats = chatSessions.filter(chat => chat.id !== chatToDelete.id);
           if (remainingChats.length > 0) {
             isLoadingRef.current = false;
@@ -779,12 +842,15 @@ const AIChat = ({ sharedMode = false }) => {
             navigate('/ai-chat');
           }
         }
-        
-        setShowDeleteConfirmation(false);
-        setChatToDelete(null);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Failed to delete chat:', errorData);
+        alert(`Failed to delete conversation: ${errorData.detail || 'Unknown error'}`);
       }
     } catch (error) {
-          }
+      console.error('Error deleting chat:', error);
+      alert('Error deleting conversation. Please check your connection and try again.');
+    }
   };
 
   const rateResponse = async (messageId, rating) => {
@@ -1605,7 +1671,18 @@ const AIChat = ({ sharedMode = false }) => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+    
+    // Update message count for current chat if it's "New Chat"
+    if (activeChatId) {
+      const currentChat = chatSessions.find(chat => chat.id === activeChatId);
+      if (currentChat && currentChat.title === 'New Chat') {
+        setChatMessageCounts(prev => ({
+          ...prev,
+          [activeChatId]: messages.length
+        }));
+      }
+    }
+  }, [messages, activeChatId, chatSessions]);
 
   useEffect(() => {
     if (selectedTheme && selectedTheme.tokens) {
@@ -1629,6 +1706,51 @@ const AIChat = ({ sharedMode = false }) => {
       };
     }
   }, [messages]); // Re-run when messages change
+
+  // Cleanup empty "New Chat" sessions on unmount (when leaving the page)
+  useEffect(() => {
+    return () => {
+      // Cleanup when component unmounts
+      cleanupEmptyNewChats();
+    };
+  }, []);
+
+  // Fetch message counts for "New Chat" sessions to determine visibility
+  useEffect(() => {
+    const fetchMessageCounts = async () => {
+      const newChatSessions = chatSessions.filter(chat => chat.title === 'New Chat');
+      
+      if (newChatSessions.length === 0) return;
+      
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      
+      const counts = {};
+      
+      for (const chat of newChatSessions) {
+        try {
+          const response = await fetch(`${API_URL}/get_chat_messages?chat_id=${chat.id}`, {
+            method: 'GET',
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const msgs = await response.json();
+            counts[chat.id] = msgs.length;
+          }
+        } catch (error) {
+          // Silently fail for individual chats
+        }
+      }
+      
+      setChatMessageCounts(prev => ({ ...prev, ...counts }));
+    };
+    
+    fetchMessageCounts();
+  }, [chatSessions]);
 
   // Icons matching Flashcards
   const Icons = {
@@ -1698,7 +1820,7 @@ const AIChat = ({ sharedMode = false }) => {
             </div>
           </div>
 
-          <nav className="ac-sidebar-nav">
+          <nav className="ac-sidebar-nav" ref={sidebarNavRef}>
             {/* Folders Section */}
             <div className="ac-folders-section">
               <div className="ac-folders-header">
@@ -1785,6 +1907,7 @@ const AIChat = ({ sharedMode = false }) => {
                       searchQuery.trim() === '' || 
                       session.title.toLowerCase().includes(searchQuery.toLowerCase())
                     )
+                    .filter(session => shouldDisplayChat(session))
                     .map(session => (
                       <div
                         key={session.id}
@@ -2260,14 +2383,17 @@ const AIChat = ({ sharedMode = false }) => {
       {showDeleteConfirmation && (
         <div className="ac-modal-overlay">
           <div className="ac-modal">
-            <h3>Delete Conversation</h3>
+            <h3>DELETE CONVERSATION</h3>
             <p>
               Are you sure you want to delete "{chatToDelete?.title}"? This action cannot be undone.
             </p>
             <div className="ac-modal-actions">
               <button
                 className="ac-modal-btn cancel"
-                onClick={() => setShowDeleteConfirmation(false)}
+                onClick={() => {
+                  setShowDeleteConfirmation(false);
+                  setChatToDelete(null);
+                }}
               >
                 Cancel
               </button>
