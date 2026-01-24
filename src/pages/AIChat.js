@@ -1658,7 +1658,7 @@ const AIChat = ({ sharedMode = false }) => {
             cerbyl
           </h1>
           <div className="ac-header-divider"></div>
-          <span className="ac-subtitle">AI Chat</span>
+          <span className="ac-subtitle">AI CHAT</span>
         </div>
         <nav className="ac-header-right">
           <button className="ac-nav-btn ac-nav-btn-ghost" onClick={() => navigate('/dashboard')}>

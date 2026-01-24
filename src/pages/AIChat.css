@@ -64,27 +64,13 @@ html:has(.ai-chat-page) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 40px;
+  padding: 0 60px !important;
   height: 70px;
   min-height: 70px;
   max-height: 70px;
-  background: color-mix(in srgb, var(--ac-bg-primary) 80%, transparent);
+  background: color-mix(in srgb, var(--bg-primary, var(--bg-primary)) 80%, transparent);
   backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
-  flex-shrink: 0;
-}
-
-/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
-[data-theme-mode="dark"] .ac-header {
-  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
-}
-
-[data-theme-mode="light"] .ac-header {
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
 
 .ac-header-left {
@@ -99,7 +85,7 @@ html:has(.ai-chat-page) {
   gap: 6px;
   font-size: 24px;
   font-weight: 800;
-  color: var(--ac-accent);
+  color: var(--accent);
   letter-spacing: -1px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -135,7 +121,7 @@ html:has(.ai-chat-page) {
 .ac-subtitle {
   font-size: 11px;
   font-weight: 600;
-  color: color-mix(in srgb, var(--accent) 70%, var(--ac-text-primary));
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary, #fff));
   letter-spacing: 2px;
   text-transform: uppercase;
 }
@@ -170,21 +156,42 @@ html:has(.ai-chat-page) {
 .ac-nav-btn-ghost {
   background: transparent;
   border: none;
-  color: var(--ac-text-primary);
+  color: var(--text-primary, #fff);
   opacity: 0.7;
 }
 
 .ac-nav-btn-ghost:hover {
   opacity: 1;
-  color: var(--ac-accent);
+  color: var(--accent);
+}
+
+.ac-nav-btn-outline {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--accent);
+}
+
+.ac-nav-btn-outline:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-primary, var(--bg-primary));
+}
+
+/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
+[data-theme-mode="dark"] .ac-header {
+  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
 }
 
 [data-theme-mode="light"] .ac-header {
-  background: color-mix(in srgb, var(--ac-bg-primary) 90%, transparent);
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
 
 [data-theme-mode="light"] .ac-nav-btn-ghost {
-  color: var(--ac-text-primary);
+  color: var(--text-primary, #1a1a2e);
 }
 
 /* Light mode - white background */
@@ -298,60 +305,8 @@ html:has(.ai-chat-page) {
   color: var(--ac-bg-primary) !important;
 }
 
+/* Sidebar header is hidden - using main header instead */
 .ac-sidebar-header {
-  display: none;
-}
-
-.ac-logo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-}
-
-.ac-logo-icon {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, var(--ac-accent), var(--ac-accent-dark));
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ac-bg-primary);
-}
-
-.ac-logo-icon svg {
-  width: 22px;
-  height: 22px;
-}
-
-.ac-logo-text {
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--ac-text-primary);
-  position: relative;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: 'Inter', sans-serif;
-  letter-spacing: -0.5px;
-}
-
-.ac-logo-text::after {
-  content: '';
-  position: absolute;
-  bottom: -4px;
-  left: 0;
-  width: 0;
-  height: 2px;
-  background: var(--ac-accent);
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-
-.ac-logo:hover .ac-logo-text::after {
-  width: 100%;
-}
-
-.ac-sidebar.collapsed .ac-logo-text {
   display: none;
 }
 
@@ -1955,7 +1910,7 @@ html:has(.ai-chat-page) {
   }
   
   .ac-header {
-    padding: 0 16px;
+    padding: 0 24px !important;
   }
   
   .ac-content {
@@ -2230,39 +2185,6 @@ sub {
   box-shadow: 4px 0 20px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-/* Enhanced Logo Styling */
-.ac-logo {
-  position: relative;
-  padding: 8px 12px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.ac-logo::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, var(--ac-accent), transparent);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.ac-logo:hover::before {
-  opacity: 0;
-}
-
-.ac-logo-text {
-  position: relative;
-  z-index: 1;
-  background: linear-gradient(135deg, var(--ac-accent), var(--ac-accent-dark));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-[data-theme-mode="dark"] .ac-logo-text {
-  text-shadow: 0 0 20px rgba(215, 179, 140, 0.3);
-}
-
 /* Enhanced Navigation Items */
 .ac-nav-item {
   position: relative;
@@ -2327,18 +2249,6 @@ sub {
 
 .ac-session-item.active {
   background: rgba(215, 179, 140, 0.15);
-}
-
-/* Enhanced Header */
-[data-theme-mode="dark"] .ac-header {
-  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid rgba(215, 179, 140, 0.2);
-}
-
-[data-theme-mode="light"] .ac-header {
-  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
 }
 
 /* Enhanced Show Sidebar Button */
@@ -3525,22 +3435,6 @@ sub {
 /* Enhanced Section Titles */
 .ac-nav-section-title {
   position: relative;
-}
-
-/* Enhanced Sidebar Header */
-.ac-sidebar-header {
-  position: relative;
-}
-
-.ac-sidebar-header::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 20px;
-  right: 20px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--ac-accent), transparent);
-  opacity: 0.3;
 }
 
 /* Enhanced Sidebar Footer */
@@ -5065,34 +4959,6 @@ button:focus-visible {
     rgba(20, 20, 22, 0.98) 0%, 
     rgba(15, 15, 17, 0.98) 100%) !important;
   border-right: 1px solid color-mix(in srgb, var(--ac-accent) 25%, transparent) !important;
-}
-
-/* Sidebar Header - Clean & Modern */
-.ac-sidebar-header {
-  padding: 20px 16px !important;
-  background: transparent !important;
-  border-bottom: 1px solid color-mix(in srgb, var(--ac-accent) 15%, transparent) !important;
-  position: relative;
-}
-
-.ac-sidebar-header::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 16px;
-  right: 16px;
-  height: 1px;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    color-mix(in srgb, var(--ac-accent) 30%, transparent) 50%, 
-    transparent 100%);
-}
-
-/* Logo Enhancement */
-.ac-logo-text {
-  color: var(--ac-accent) !important;
-  font-weight: 700 !important;
-  font-size: 22px !important;
 }
 
 /* New Chat Button - Premium Style */
