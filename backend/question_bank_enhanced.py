@@ -3217,6 +3217,21 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             
             score = int((earned_points / total_points) * 100) if total_points > 0 else 0
             
+            # ADAPTIVE LEARNING: Process each answer with adaptive engine
+            from adaptive_learning_integration import get_adaptive_integration
+            adaptive_integration = get_adaptive_integration()
+            
+            for i, question in enumerate(questions):
+                user_answer = request.answers.get(str(question.id))
+                if user_answer:
+                    is_correct = user_answer.strip().lower() == question.correct_answer.strip().lower()
+                    response_time = request.time_taken_seconds / len(questions) if request.time_taken_seconds else 30
+                    
+                    # Process with adaptive engine
+                    adaptive_integration.process_question_bank_answer(
+                        db, user.id, question.id, is_correct, response_time
+                    )
+            
             session_record = models.QuestionSession(
                 user_id=user.id,
                 question_set_id=request.question_set_id,
@@ -3251,6 +3266,9 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             
             adaptation = agents["adaptive_difficulty"].analyze_performance(history_data)
             
+            # ADAPTIVE LEARNING: Get real-time recommendations
+            adaptive_recommendations = adaptive_integration.get_session_recommendations(user.id)
+            
             # Track weak areas from wrong answers
             await _update_weak_areas(db, user.id, results, models)
             
@@ -3263,7 +3281,13 @@ def register_question_bank_api(app, unified_ai, get_db_func):
                 "earned_points": earned_points,
                 "total_points": total_points,
                 "details": results,
-                "adaptation": adaptation
+                "adaptation": adaptation,
+                # ADAPTIVE LEARNING: Include adaptive feedback
+                "adaptive_feedback": {
+                    "cognitive_load": adaptive_recommendations.get('cognitive_load'),
+                    "recommendations": adaptive_recommendations.get('recommendations', []),
+                    "performance_trend": adaptive_recommendations.get('performance_trend')
+                } if adaptive_recommendations and 'error' not in adaptive_recommendations else None
             }
             
         except Exception as e:

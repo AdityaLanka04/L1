@@ -44,6 +44,24 @@ class TutorModeRequest(BaseModel):
     question: str
 
 
+class StartSessionRequest(BaseModel):
+    user_id: str
+    topic: str
+
+
+class QuestionResponseRequest(BaseModel):
+    user_id: str
+    question_id: Optional[int] = None
+    topic: str
+    is_correct: bool
+    response_time: float  # seconds
+    difficulty: Optional[str] = None
+
+
+class EndSessionRequest(BaseModel):
+    user_id: str
+
+
 def register_adaptive_learning_api(app, unified_ai: UnifiedAIClient):
     """Register all adaptive learning API endpoints"""
     
@@ -441,6 +459,203 @@ def register_adaptive_learning_api(app, unified_ai: UnifiedAIClient):
             }
         except Exception as e:
             logger.error(f"Error finding complementary learners: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.get("/api/adaptive/comprehensive-recommendations")
+    async def get_comprehensive_recommendations(
+        user_id: str = Query(...),
+        db: Session = Depends(get_db)
+    ):
+        """Get all personalized recommendations in one call"""
+        try:
+            user = db.query(models.User).filter(
+                (models.User.username == user_id) | (models.User.email == user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            engine = get_adaptive_engine()
+            recommendations = engine.get_personalized_recommendations(db, user.id)
+            
+            return {
+                "status": "success",
+                "recommendations": recommendations,
+                "generated_at": datetime.now().isoformat()
+            }
+        except Exception as e:
+            logger.error(f"Error getting recommendations: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    # NEW: Real-time adaptive session endpoints
+    @app.post("/api/adaptive/session/start")
+    async def start_adaptive_session(
+        request: StartSessionRequest,
+        db: Session = Depends(get_db)
+    ):
+        """Start a new adaptive learning session with real-time monitoring"""
+        try:
+            user = db.query(models.User).filter(
+                (models.User.username == request.user_id) | (models.User.email == request.user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            engine = get_adaptive_engine()
+            session_data = engine.start_adaptive_session(db, user.id, request.topic)
+            
+            return {
+                "status": "success",
+                "session": session_data,
+                "message": "Adaptive session started with real-time monitoring"
+            }
+        except Exception as e:
+            logger.error(f"Error starting adaptive session: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/adaptive/session/response")
+    async def process_question_response(
+        request: QuestionResponseRequest,
+        db: Session = Depends(get_db)
+    ):
+        """Process question response with real-time adaptation"""
+        try:
+            user = db.query(models.User).filter(
+                (models.User.username == request.user_id) | (models.User.email == request.user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            engine = get_adaptive_engine()
+            
+            question_data = {
+                'is_correct': request.is_correct,
+                'response_time': request.response_time,
+                'difficulty': request.difficulty,
+                'topic': request.topic,
+                'question_id': request.question_id
+            }
+            
+            result = engine.process_question_response(db, user.id, question_data)
+            
+            return {
+                "status": "success",
+                "result": result,
+                "message": "Response processed with real-time adaptation"
+            }
+        except Exception as e:
+            logger.error(f"Error processing question response: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.get("/api/adaptive/session/recommendations")
+    async def get_real_time_recommendations(
+        user_id: str = Query(...),
+        db: Session = Depends(get_db)
+    ):
+        """Get real-time recommendations during active session"""
+        try:
+            user = db.query(models.User).filter(
+                (models.User.username == user_id) | (models.User.email == user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            engine = get_adaptive_engine()
+            recommendations = engine.get_real_time_recommendations(user.id)
+            
+            return {
+                "status": "success",
+                "recommendations": recommendations
+            }
+        except Exception as e:
+            logger.error(f"Error getting real-time recommendations: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.get("/api/adaptive/session/metrics")
+    async def get_session_metrics(
+        user_id: str = Query(...),
+        db: Session = Depends(get_db)
+    ):
+        """Get current session metrics"""
+        try:
+            user = db.query(models.User).filter(
+                (models.User.username == user_id) | (models.User.email == user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            engine = get_adaptive_engine()
+            metrics = engine.session_adapter.get_session_metrics(user.id)
+            
+            return {
+                "status": "success",
+                "metrics": metrics
+            }
+        except Exception as e:
+            logger.error(f"Error getting session metrics: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.post("/api/adaptive/session/end")
+    async def end_adaptive_session(
+        request: EndSessionRequest,
+        db: Session = Depends(get_db)
+    ):
+        """End adaptive session and get summary"""
+        try:
+            user = db.query(models.User).filter(
+                (models.User.username == request.user_id) | (models.User.email == request.user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            engine = get_adaptive_engine()
+            summary = engine.end_adaptive_session(db, user.id)
+            
+            return {
+                "status": "success",
+                "summary": summary,
+                "message": "Session ended successfully"
+            }
+        except Exception as e:
+            logger.error(f"Error ending session: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    @app.get("/api/adaptive/cognitive-load")
+    async def assess_cognitive_load(
+        user_id: str = Query(...),
+        db: Session = Depends(get_db)
+    ):
+        """Assess current cognitive load during session"""
+        try:
+            user = db.query(models.User).filter(
+                (models.User.username == user_id) | (models.User.email == user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            engine = get_adaptive_engine()
+            
+            if user.id not in engine.session_adapter.session_data:
+                return {
+                    "status": "error",
+                    "message": "No active session found"
+                }
+            
+            session_state = engine.session_adapter.session_data[user.id]
+            assessment = engine.cognitive_monitor.assess_cognitive_load(session_state)
+            
+            return {
+                "status": "success",
+                "assessment": assessment
+            }
+        except Exception as e:
+            logger.error(f"Error assessing cognitive load: {e}")
             raise HTTPException(status_code=500, detail=str(e))
     
     @app.get("/api/adaptive/comprehensive-recommendations")

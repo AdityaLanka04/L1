@@ -367,16 +367,33 @@ const Flashcards = () => {
           user_id: userName,
           card_id: cardId.toString(),
           was_correct: wasCorrect,
-          mode: mode
+          mode: mode,
+          response_time: 5.0 // Default response time
         })
       });
       
       const result = await response.json();
       if (result.success) {
-              }
+        // ADAPTIVE LEARNING: Show adaptive feedback if available
+        if (result.adaptive_feedback) {
+          const feedback = result.adaptive_feedback;
+          
+          // Show cognitive load warning if high
+          if (feedback.cognitive_load === 'high' || feedback.cognitive_load === 'very_high' || feedback.cognitive_load === 'overload') {
+            const recommendations = feedback.recommendations?.slice(0, 2).join('. ') || 'Consider taking a break';
+            showPopup('Cognitive Load Alert', `Your cognitive load is ${feedback.cognitive_load}. ${recommendations}`);
+          }
+          
+          // Show difficulty adaptation
+          if (feedback.current_difficulty && mode === 'study') {
+            console.log(`Adaptive difficulty adjusted to: ${feedback.current_difficulty}`);
+          }
+        }
+      }
       return result;
     } catch (error) {
-          }
+      console.error('Error updating card mastery:', error);
+    }
   };
 
   const endAgentSession = async () => {
