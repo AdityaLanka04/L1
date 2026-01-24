@@ -116,6 +116,7 @@
   background: transparent;
   color: var(--accent);
   border: 2px solid var(--accent);
+  border-radius: 8px !important;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
@@ -181,6 +182,7 @@
   background: transparent;
   color: var(--accent);
   border: 2px solid var(--accent);
+  border-radius: 8px !important;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
@@ -321,6 +323,7 @@
   background: linear-gradient(145deg, var(--bg-secondary) 0%, color-mix(in srgb, var(--bg-secondary) 95%, var(--accent)) 100%);
   backdrop-filter: blur(30px) saturate(200%);
   border: 1px solid var(--accent);
+  border-radius: 12px !important;
   padding: 11px;
   min-width: 320px;
   max-width: 345px;
@@ -413,6 +416,7 @@
 .search-hub-page .theme-option {
   padding: 8px 5px;
   border: 1px solid transparent;
+  border-radius: 8px !important;
   cursor: pointer;
   font-size: 9px;
   font-weight: 800;
@@ -518,6 +522,7 @@
   width: 8px;
   height: 8px;
   border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
@@ -725,7 +730,7 @@
   border: 3px solid var(--accent);
   background: var(--bg-primary);
   overflow: visible;
-  border-radius: 8px;
+  border-radius: 8px !important;
 }
 
 .search-hub-page .search-box-cutout.dropdown-open {
@@ -746,7 +751,7 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  border-radius: 5px 0 0 5px;
+  border-radius: 5px 0 0 5px !important;
 }
 
 .search-hub-page .hero-search-input::placeholder {
@@ -771,7 +776,7 @@
   transition: all 0.3s ease;
   color: var(--accent);
   flex-shrink: 0;
-  border-radius: 0 5px 5px 0;
+  border-radius: 0 5px 5px 0 !important;
   margin: 0;
   padding: 0;
 }
@@ -871,7 +876,7 @@
   overflow-x: hidden;
   box-shadow: none;
   z-index: 10000;
-  border-radius: 0 0 8px 8px;
+  border-radius: 0 0 8px 8px !important;
 }
 
 .search-hub-page .autocomplete-dropdown::-webkit-scrollbar {
@@ -884,7 +889,7 @@
 
 .search-hub-page .autocomplete-dropdown::-webkit-scrollbar-thumb {
   background: var(--accent);
-  border-radius: 0;
+  border-radius: 8px !important;
 }
 
 .search-hub-page .autocomplete-dropdown::-webkit-scrollbar-thumb:hover {
@@ -897,6 +902,7 @@
   background: transparent;
   border: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -938,6 +944,7 @@
   right: 0;
   background: var(--bg-secondary);
   border: 3px solid var(--accent);
+  border-radius: 12px !important;
   max-height: 300px;
   overflow-y: auto;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -950,6 +957,7 @@
   background: transparent;
   border: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1195,7 +1203,7 @@
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0 !important;
+  border-radius: 8px !important;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1235,7 +1243,7 @@
   background: var(--accent);
   animation: pulseGrow 1.5s ease-in-out infinite;
   box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 50%, transparent);
-  border-radius: 0 !important;
+  border-radius: 8px !important;
 }
 
 .search-hub-page .pulse-square.pulse-1 {
@@ -1328,6 +1336,7 @@
   background: transparent;
   color: var(--accent);
   border: 2px solid var(--accent);
+  border-radius: 8px !important;
   cursor: pointer;
   font-size: 11px;
   font-weight: 800;
@@ -1391,6 +1400,7 @@
   background: transparent;
   color: var(--accent);
   border: 2px solid var(--accent);
+  border-radius: 8px !important;
   cursor: pointer;
   font-size: 11px;
   font-weight: 800;
@@ -1463,6 +1473,7 @@
 .search-hub-page .filters-panel {
   background: var(--bg-secondary);
   border: 3px solid var(--accent);
+  border-radius: 12px !important;
   padding: 24px;
   margin-bottom: 32px;
   display: grid;
@@ -1491,6 +1502,7 @@
   background: var(--bg-primary);
   color: var(--text-primary);
   border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px !important;
   font-size: 14px;
   font-weight: 500;
   transition: all 0.3s ease;
@@ -1509,6 +1521,7 @@
   background: var(--accent);
   color: var(--bg-primary);
   border: 3px solid var(--accent);
+  border-radius: 8px !important;
   cursor: pointer;
   font-size: 13px;
   font-weight: 800;
@@ -1535,6 +1548,7 @@
     var(--bg-secondary) 100%);
   border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
   border-left: 6px solid var(--accent);
+  border-radius: 12px !important;
   padding: 48px;
   margin-bottom: 48px;
   animation: fadeInUp 0.5s ease-out;
@@ -1615,6 +1629,7 @@
   background: var(--accent);
   color: var(--bg-primary);
   border: 3px solid var(--accent);
+  border-radius: 8px !important;
   cursor: pointer;
   font-size: 13px;
   font-weight: 900;
@@ -1676,6 +1691,7 @@
 .search-hub-page .login-modal-content {
   background: var(--bg-secondary);
   border: 3px solid var(--accent);
+  border-radius: 12px !important;
   padding: 48px;
   max-width: 500px;
   width: 90%;
@@ -1724,6 +1740,7 @@
   background: var(--accent);
   color: var(--bg-primary);
   border: none;
+  border-radius: 8px !important;
   cursor: pointer;
   font-size: 13px;
   font-weight: 800;
@@ -1742,6 +1759,7 @@
   background: transparent;
   color: var(--accent);
   border: 2px solid var(--accent);
+  border-radius: 8px !important;
 }
 
 .search-hub-page .login-modal-btn.secondary:hover {
@@ -1853,6 +1871,7 @@
     var(--bg-secondary) 100%);
   border: 2px solid color-mix(in srgb, var(--accent) 20%, transparent);
   border-left: 5px solid var(--accent);
+  border-radius: 12px !important;
   padding: 28px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2115,6 +2134,7 @@
   padding: 6px 12px;
   background: transparent;
   border: 1px solid var(--accent);
+  border-radius: 8px !important;
   color: var(--accent);
   cursor: pointer;
   font-size: 11px;
@@ -2174,6 +2194,7 @@
   padding: 10px 16px;
   background: transparent;
   border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px !important;
   color: var(--text-primary);
   cursor: pointer;
   font-size: 13px;
@@ -2213,6 +2234,7 @@
     color-mix(in srgb, var(--accent) 10%, var(--bg-secondary)) 0%,
     var(--bg-secondary) 100%);
   border: 5px solid var(--accent);
+  border-radius: 16px !important;
   color: var(--accent);
   animation: iconFloat 3s ease-in-out infinite;
   box-shadow: 
@@ -2309,7 +2331,7 @@
     color-mix(in srgb, var(--accent) 10%, var(--bg-secondary)) 0%,
     var(--bg-secondary) 100%);
   border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
-  border-radius: 0 !important;
+  border-radius: 12px !important;
   padding: 40px 28px;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
