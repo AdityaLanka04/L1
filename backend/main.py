@@ -3955,14 +3955,30 @@ async def update_flashcard_review(
     request: FlashcardReviewRequest,
     db: Session = Depends(get_db)
 ):
-    """Update flashcard review statistics after answering"""
+    """Update flashcard review statistics after answering with adaptive learning"""
     try:
+        from adaptive_learning_integration import get_adaptive_integration
+        
         flashcard = db.query(models.Flashcard).filter(
             models.Flashcard.id == int(request.card_id)
         ).first()
         
         if not flashcard:
             raise HTTPException(status_code=404, detail="Flashcard not found")
+        
+        # Get user
+        user = get_user_by_username(db, request.user_id) or get_user_by_email(db, request.user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # ADAPTIVE LEARNING: Process response with adaptive engine
+        adaptive_integration = get_adaptive_integration()
+        quality = 'easy' if request.was_correct else 'again'
+        response_time = getattr(request, 'response_time', 5.0)
+        
+        adaptive_result = adaptive_integration.process_flashcard_response(
+            db, user.id, int(request.card_id), quality, response_time
+        )
         
         # Update review statistics
         flashcard.times_reviewed = (flashcard.times_reviewed or 0) + 1
@@ -3993,7 +4009,13 @@ async def update_flashcard_review(
             "correct_count": flashcard.correct_count,
             "accuracy": round(accuracy, 1),
             "marked_for_review": flashcard.marked_for_review,
-            "last_reviewed": flashcard.last_reviewed.isoformat() if flashcard.last_reviewed else None
+            "last_reviewed": flashcard.last_reviewed.isoformat() if flashcard.last_reviewed else None,
+            # ADAPTIVE LEARNING: Include adaptive feedback
+            "adaptive_feedback": {
+                "current_difficulty": adaptive_result.get('adaptation', {}).get('current_difficulty'),
+                "cognitive_load": adaptive_result.get('cognitive_assessment', {}).get('load_level'),
+                "recommendations": adaptive_result.get('cognitive_assessment', {}).get('recommendations', [])
+            } if 'adaptation' in adaptive_result else None
         }
         
     except HTTPException:

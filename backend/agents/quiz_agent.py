@@ -1252,11 +1252,61 @@ class QuizAgent(BaseAgent):
         return state
     
     async def _generate_adaptive(self, state: QuizAgentState) -> QuizAgentState:
-        """Generate adaptive questions based on user performance"""
+        """Generate adaptive questions based on user performance with real-time adaptation"""
+        from adaptive_learning_integration import get_adaptive_integration
+        
         topic = state.get("topic", "")
         content = state.get("source_content", "")
         count = state.get("question_count", 10)
+        user_id = state.get("user_id", "")
         
+        # Get user from database
+        from database import get_db
+        db = next(get_db())
+        
+        try:
+            from models import User
+            user = db.query(User).filter(
+                (User.username == user_id) | (User.email == user_id)
+            ).first()
+            
+            if user:
+                # ADAPTIVE LEARNING: Use new adaptive engine
+                adaptive_integration = get_adaptive_integration()
+                adaptive_questions = adaptive_integration.get_adaptive_questions(
+                    db, user.id, topic, count
+                )
+                
+                if 'questions' in adaptive_questions and adaptive_questions['questions']:
+                    # Use adaptively sequenced questions
+                    questions = adaptive_questions['questions']
+                    
+                    # Add IDs
+                    for i, q in enumerate(questions):
+                        q["id"] = i
+                    
+                    state["generated_questions"] = questions
+                    state["response_data"] = {
+                        "action": "adaptive",
+                        "questions": questions,
+                        "count": len(questions),
+                        "topic": topic,
+                        "adaptive_config": {
+                            "strategy": adaptive_questions.get('strategy'),
+                            "rationale": adaptive_questions.get('rationale')
+                        }
+                    }
+                    
+                    state["execution_path"].append("quiz:adaptive_v2")
+                    logger.info(f"Generated {len(questions)} adaptive questions using new engine")
+                    
+                    return state
+        except Exception as e:
+            logger.error(f"Error using adaptive engine: {e}")
+        finally:
+            db.close()
+        
+        # Fallback to original adaptive logic
         # Get adaptive difficulty recommendation
         past_performance = state.get("past_performance", [])
         adaptive_config = self.analyzer.get_adaptive_difficulty(past_performance)

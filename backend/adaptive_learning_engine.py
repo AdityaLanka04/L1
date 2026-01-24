@@ -1,6 +1,7 @@
 """
 Advanced Adaptive Learning & Personalization Engine for SearchHub
 Implements intelligent difficulty adjustment, learning style detection, and personalized curriculum
+Enhanced with real-time adaptation, cognitive load monitoring, and personalized question sequencing
 """
 
 import numpy as np
@@ -11,8 +12,483 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 import models
 import logging
+from collections import deque
 
 logger = logging.getLogger(__name__)
+
+
+class RealTimeSessionAdapter:
+    """Real-time adaptation during active learning sessions"""
+    
+    def __init__(self):
+        self.session_data = {}  # user_id -> session state
+        self.adaptation_threshold = 3  # Questions before adapting
+        
+    def start_session(self, user_id: int, initial_difficulty: str = 'intermediate'):
+        """Initialize a new learning session"""
+        self.session_data[user_id] = {
+            'start_time': datetime.now(timezone.utc),
+            'current_difficulty': initial_difficulty,
+            'question_history': deque(maxlen=10),
+            'response_times': deque(maxlen=10),
+            'accuracy_streak': 0,
+            'struggle_count': 0,
+            'cognitive_load': 0.5,
+            'engagement_score': 1.0,
+            'last_adaptation': datetime.now(timezone.utc),
+            'total_questions': 0,
+            'correct_answers': 0
+        }
+        logger.info(f"Started adaptive session for user {user_id} at {initial_difficulty} level")
+        
+    def record_question_response(self, user_id: int, question_data: Dict[str, Any]):
+        """Record real-time question response and adapt immediately"""
+        if user_id not in self.session_data:
+            self.start_session(user_id)
+            
+        session = self.session_data[user_id]
+        
+        # Record response
+        is_correct = question_data.get('is_correct', False)
+        response_time = question_data.get('response_time', 30)
+        difficulty = question_data.get('difficulty', session['current_difficulty'])
+        
+        session['question_history'].append({
+            'correct': is_correct,
+            'time': response_time,
+            'difficulty': difficulty,
+            'timestamp': datetime.now(timezone.utc)
+        })
+        session['response_times'].append(response_time)
+        session['total_questions'] += 1
+        
+        if is_correct:
+            session['correct_answers'] += 1
+            session['accuracy_streak'] += 1
+            session['struggle_count'] = 0
+        else:
+            session['accuracy_streak'] = 0
+            session['struggle_count'] += 1
+            
+        # Update cognitive load
+        session['cognitive_load'] = self._calculate_cognitive_load(session)
+        
+        # Real-time adaptation decision
+        adaptation = self._should_adapt_now(session)
+        if adaptation['should_adapt']:
+            session['current_difficulty'] = adaptation['new_difficulty']
+            session['last_adaptation'] = datetime.now(timezone.utc)
+            logger.info(f"Real-time adaptation for user {user_id}: {adaptation['reason']}")
+            
+        return {
+            'current_difficulty': session['current_difficulty'],
+            'cognitive_load': session['cognitive_load'],
+            'adaptation_made': adaptation['should_adapt'],
+            'recommendation': adaptation.get('reason', 'Continue at current level')
+        }
+    
+    def _calculate_cognitive_load(self, session: Dict) -> float:
+        """Calculate current cognitive load (0-1 scale)"""
+        if len(session['question_history']) < 2:
+            return 0.5
+            
+        recent = list(session['question_history'])[-5:]
+        
+        # Factors affecting cognitive load
+        avg_response_time = np.mean([q['time'] for q in recent])
+        accuracy_rate = np.mean([q['correct'] for q in recent])
+        time_variance = np.std([q['time'] for q in recent]) if len(recent) > 1 else 0
+        
+        # High response time + low accuracy = high cognitive load
+        time_factor = min(avg_response_time / 60.0, 1.0)  # Normalize to 60 seconds
+        accuracy_factor = 1.0 - accuracy_rate
+        variance_factor = min(time_variance / 30.0, 1.0)  # High variance = struggling
+        
+        cognitive_load = (time_factor * 0.4 + accuracy_factor * 0.4 + variance_factor * 0.2)
+        
+        return np.clip(cognitive_load, 0.0, 1.0)
+    
+    def _should_adapt_now(self, session: Dict) -> Dict[str, Any]:
+        """Determine if difficulty should be adapted in real-time"""
+        if len(session['question_history']) < self.adaptation_threshold:
+            return {'should_adapt': False}
+            
+        difficulty_levels = ['beginner', 'intermediate', 'advanced', 'expert']
+        current_idx = difficulty_levels.index(session['current_difficulty'])
+        
+        # Check for rapid success (increase difficulty)
+        if session['accuracy_streak'] >= 4 and session['cognitive_load'] < 0.4:
+            if current_idx < len(difficulty_levels) - 1:
+                return {
+                    'should_adapt': True,
+                    'new_difficulty': difficulty_levels[current_idx + 1],
+                    'reason': 'High accuracy streak with low cognitive load - increasing challenge'
+                }
+        
+        # Check for struggle (decrease difficulty)
+        if session['struggle_count'] >= 3 or session['cognitive_load'] > 0.75:
+            if current_idx > 0:
+                return {
+                    'should_adapt': True,
+                    'new_difficulty': difficulty_levels[current_idx - 1],
+                    'reason': 'High cognitive load detected - reducing difficulty'
+                }
+        
+        # Check for optimal challenge zone (maintain)
+        recent_accuracy = np.mean([q['correct'] for q in list(session['question_history'])[-5:]])
+        if 0.6 <= recent_accuracy <= 0.8 and 0.4 <= session['cognitive_load'] <= 0.6:
+            return {
+                'should_adapt': False,
+                'reason': 'Optimal challenge zone - maintaining current difficulty'
+            }
+            
+        return {'should_adapt': False}
+    
+    def get_session_metrics(self, user_id: int) -> Dict[str, Any]:
+        """Get current session metrics"""
+        if user_id not in self.session_data:
+            return {}
+            
+        session = self.session_data[user_id]
+        duration = (datetime.now(timezone.utc) - session['start_time']).total_seconds() / 60
+        
+        return {
+            'duration_minutes': duration,
+            'total_questions': session['total_questions'],
+            'accuracy_rate': session['correct_answers'] / max(session['total_questions'], 1),
+            'current_difficulty': session['current_difficulty'],
+            'cognitive_load': session['cognitive_load'],
+            'accuracy_streak': session['accuracy_streak'],
+            'avg_response_time': np.mean(list(session['response_times'])) if session['response_times'] else 0,
+            'engagement_score': session['engagement_score']
+        }
+    
+    def end_session(self, user_id: int) -> Dict[str, Any]:
+        """End session and return summary"""
+        metrics = self.get_session_metrics(user_id)
+        if user_id in self.session_data:
+            del self.session_data[user_id]
+        return metrics
+
+
+class CognitiveLoadMonitor:
+    """Monitor and manage cognitive load during learning"""
+    
+    def __init__(self):
+        self.load_thresholds = {
+            'low': 0.3,
+            'optimal': 0.6,
+            'high': 0.8,
+            'overload': 0.9
+        }
+        
+    def assess_cognitive_load(self, session_data: Dict) -> Dict[str, Any]:
+        """Comprehensive cognitive load assessment"""
+        indicators = {
+            'response_time': self._analyze_response_times(session_data),
+            'accuracy_pattern': self._analyze_accuracy_pattern(session_data),
+            'hesitation': self._detect_hesitation(session_data),
+            'error_rate': self._calculate_error_rate(session_data),
+            'time_on_task': self._analyze_time_on_task(session_data)
+        }
+        
+        # Weighted cognitive load score
+        load_score = (
+            indicators['response_time'] * 0.25 +
+            indicators['accuracy_pattern'] * 0.25 +
+            indicators['hesitation'] * 0.20 +
+            indicators['error_rate'] * 0.20 +
+            indicators['time_on_task'] * 0.10
+        )
+        
+        load_level = self._categorize_load(load_score)
+        
+        return {
+            'load_score': load_score,
+            'load_level': load_level,
+            'indicators': indicators,
+            'recommendations': self._get_load_recommendations(load_level, indicators),
+            'intervention_needed': load_score > self.load_thresholds['high']
+        }
+    
+    def _analyze_response_times(self, session_data: Dict) -> float:
+        """Analyze response time patterns"""
+        if 'response_times' not in session_data or not session_data['response_times']:
+            return 0.5
+            
+        times = list(session_data['response_times'])
+        avg_time = np.mean(times)
+        
+        # Longer times indicate higher cognitive load
+        return min(avg_time / 60.0, 1.0)
+    
+    def _analyze_accuracy_pattern(self, session_data: Dict) -> float:
+        """Analyze accuracy patterns for cognitive load"""
+        if 'question_history' not in session_data or not session_data['question_history']:
+            return 0.5
+            
+        recent = list(session_data['question_history'])[-5:]
+        accuracy = np.mean([q['correct'] for q in recent])
+        
+        # Lower accuracy = higher cognitive load
+        return 1.0 - accuracy
+    
+    def _detect_hesitation(self, session_data: Dict) -> float:
+        """Detect hesitation patterns (variance in response times)"""
+        if 'response_times' not in session_data or len(session_data['response_times']) < 3:
+            return 0.5
+            
+        times = list(session_data['response_times'])
+        variance = np.std(times)
+        
+        # High variance indicates uncertainty/hesitation
+        return min(variance / 30.0, 1.0)
+    
+    def _calculate_error_rate(self, session_data: Dict) -> float:
+        """Calculate recent error rate"""
+        if 'question_history' not in session_data or not session_data['question_history']:
+            return 0.5
+            
+        recent = list(session_data['question_history'])[-5:]
+        error_rate = 1.0 - np.mean([q['correct'] for q in recent])
+        
+        return error_rate
+    
+    def _analyze_time_on_task(self, session_data: Dict) -> float:
+        """Analyze total time on task for fatigue"""
+        if 'start_time' not in session_data:
+            return 0.5
+            
+        duration_minutes = (datetime.now(timezone.utc) - session_data['start_time']).total_seconds() / 60
+        
+        # Cognitive load increases with session length
+        if duration_minutes < 20:
+            return 0.3
+        elif duration_minutes < 45:
+            return 0.5
+        elif duration_minutes < 90:
+            return 0.7
+        else:
+            return 0.9
+    
+    def _categorize_load(self, load_score: float) -> str:
+        """Categorize cognitive load level"""
+        if load_score < self.load_thresholds['low']:
+            return 'under-challenged'
+        elif load_score < self.load_thresholds['optimal']:
+            return 'optimal'
+        elif load_score < self.load_thresholds['high']:
+            return 'high'
+        elif load_score < self.load_thresholds['overload']:
+            return 'very_high'
+        else:
+            return 'overload'
+    
+    def _get_load_recommendations(self, load_level: str, indicators: Dict) -> List[str]:
+        """Get recommendations based on cognitive load"""
+        recommendations = []
+        
+        if load_level == 'under-challenged':
+            recommendations.append("Increase difficulty to maintain engagement")
+            recommendations.append("Introduce more complex problems")
+            
+        elif load_level == 'optimal':
+            recommendations.append("Maintain current difficulty level")
+            recommendations.append("Continue with current pace")
+            
+        elif load_level == 'high':
+            recommendations.append("Consider taking a short break")
+            recommendations.append("Review recent concepts before continuing")
+            
+        elif load_level in ['very_high', 'overload']:
+            recommendations.append("Take a 10-15 minute break immediately")
+            recommendations.append("Reduce difficulty level")
+            recommendations.append("Review fundamentals")
+            recommendations.append("Consider ending session if fatigue persists")
+            
+        # Specific recommendations based on indicators
+        if indicators.get('hesitation', 0) > 0.7:
+            recommendations.append("High uncertainty detected - provide more examples")
+            
+        if indicators.get('error_rate', 0) > 0.6:
+            recommendations.append("High error rate - review previous material")
+            
+        return recommendations
+
+
+class PersonalizedQuestionSequencer:
+    """Intelligent question sequencing based on user state"""
+    
+    def __init__(self):
+        self.sequencing_strategies = {
+            'scaffolding': self._scaffolding_sequence,
+            'spaced_repetition': self._spaced_repetition_sequence,
+            'interleaving': self._interleaving_sequence,
+            'adaptive_challenge': self._adaptive_challenge_sequence
+        }
+        
+    def generate_question_sequence(
+        self, 
+        db: Session, 
+        user_id: int, 
+        topic: str,
+        session_state: Dict,
+        num_questions: int = 10
+    ) -> List[Dict[str, Any]]:
+        """Generate personalized question sequence"""
+        
+        # Determine optimal strategy based on user state
+        strategy = self._select_strategy(session_state)
+        
+        # Get available questions
+        available_questions = self._get_available_questions(db, user_id, topic)
+        
+        # Apply sequencing strategy
+        sequence = self.sequencing_strategies[strategy](
+            available_questions,
+            session_state,
+            num_questions
+        )
+        
+        return {
+            'questions': sequence,
+            'strategy': strategy,
+            'rationale': self._get_strategy_rationale(strategy, session_state)
+        }
+    
+    def _select_strategy(self, session_state: Dict) -> str:
+        """Select optimal sequencing strategy"""
+        cognitive_load = session_state.get('cognitive_load', 0.5)
+        accuracy_rate = session_state.get('correct_answers', 0) / max(session_state.get('total_questions', 1), 1)
+        
+        # High cognitive load -> scaffolding
+        if cognitive_load > 0.7:
+            return 'scaffolding'
+        
+        # Low accuracy -> spaced repetition
+        if accuracy_rate < 0.6:
+            return 'spaced_repetition'
+        
+        # High performance -> adaptive challenge
+        if accuracy_rate > 0.8 and cognitive_load < 0.5:
+            return 'adaptive_challenge'
+        
+        # Default -> interleaving
+        return 'interleaving'
+    
+    def _scaffolding_sequence(
+        self, 
+        questions: List[Dict], 
+        session_state: Dict, 
+        num: int
+    ) -> List[Dict]:
+        """Build from simple to complex gradually"""
+        # Sort by difficulty
+        sorted_questions = sorted(questions, key=lambda q: q.get('difficulty_score', 0.5))
+        
+        # Start with easier questions, gradually increase
+        sequence = []
+        step_size = len(sorted_questions) // num if sorted_questions else 1
+        
+        for i in range(num):
+            idx = min(i * step_size, len(sorted_questions) - 1)
+            if idx < len(sorted_questions):
+                sequence.append(sorted_questions[idx])
+                
+        return sequence
+    
+    def _spaced_repetition_sequence(
+        self, 
+        questions: List[Dict], 
+        session_state: Dict, 
+        num: int
+    ) -> List[Dict]:
+        """Prioritize questions needing review"""
+        # Sort by last_seen and mastery level
+        sorted_questions = sorted(
+            questions,
+            key=lambda q: (
+                q.get('mastery_level', 0.5),
+                -(q.get('days_since_seen', 999))
+            )
+        )
+        
+        return sorted_questions[:num]
+    
+    def _interleaving_sequence(
+        self, 
+        questions: List[Dict], 
+        session_state: Dict, 
+        num: int
+    ) -> List[Dict]:
+        """Mix different topics and difficulty levels"""
+        if not questions:
+            return []
+            
+        # Group by subtopic
+        by_subtopic = {}
+        for q in questions:
+            subtopic = q.get('subtopic', 'general')
+            if subtopic not in by_subtopic:
+                by_subtopic[subtopic] = []
+            by_subtopic[subtopic].append(q)
+        
+        # Interleave questions from different subtopics
+        sequence = []
+        subtopics = list(by_subtopic.keys())
+        idx = 0
+        
+        while len(sequence) < num and any(by_subtopic.values()):
+            subtopic = subtopics[idx % len(subtopics)]
+            if by_subtopic[subtopic]:
+                sequence.append(by_subtopic[subtopic].pop(0))
+            idx += 1
+            
+        return sequence
+    
+    def _adaptive_challenge_sequence(
+        self, 
+        questions: List[Dict], 
+        session_state: Dict, 
+        num: int
+    ) -> List[Dict]:
+        """Progressively challenging sequence"""
+        # Sort by difficulty, prioritize harder questions
+        sorted_questions = sorted(
+            questions,
+            key=lambda q: q.get('difficulty_score', 0.5),
+            reverse=True
+        )
+        
+        # Mix in some medium difficulty to avoid overload
+        hard = [q for q in sorted_questions if q.get('difficulty_score', 0.5) > 0.7]
+        medium = [q for q in sorted_questions if 0.4 <= q.get('difficulty_score', 0.5) <= 0.7]
+        
+        # 70% hard, 30% medium
+        sequence = []
+        hard_count = int(num * 0.7)
+        medium_count = num - hard_count
+        
+        sequence.extend(hard[:hard_count])
+        sequence.extend(medium[:medium_count])
+        
+        return sequence[:num]
+    
+    def _get_available_questions(self, db: Session, user_id: int, topic: str) -> List[Dict]:
+        """Get available questions for the topic"""
+        # This would query your question bank
+        # Placeholder implementation
+        return []
+    
+    def _get_strategy_rationale(self, strategy: str, session_state: Dict) -> str:
+        """Explain why this strategy was chosen"""
+        rationales = {
+            'scaffolding': "Building confidence with gradual difficulty increase due to high cognitive load",
+            'spaced_repetition': "Reinforcing weak areas with strategic review",
+            'interleaving': "Mixing topics to enhance retention and transfer",
+            'adaptive_challenge': "Maximizing growth with challenging problems based on strong performance"
+        }
+        return rationales.get(strategy, "Optimizing learning based on current performance")
 
 
 class DifficultyAdapter:
@@ -861,6 +1337,11 @@ class AdaptiveLearningEngine:
         self.predictive_engine = PredictiveAIEngine()
         self.tutor_modes = AITutorModes()
         self.collab_matcher = CollaborativeLearningMatcher()
+        
+        # NEW: Real-time adaptation components
+        self.session_adapter = RealTimeSessionAdapter()
+        self.cognitive_monitor = CognitiveLoadMonitor()
+        self.question_sequencer = PersonalizedQuestionSequencer()
     
     def get_personalized_recommendations(self, db: Session, user_id: int) -> Dict[str, Any]:
         """Get comprehensive personalized recommendations"""
@@ -888,6 +1369,238 @@ class AdaptiveLearningEngine:
             'analogies': self.content_transformer.create_analogies(topic),
             'interactive_elements': self.content_transformer.make_interactive(content)
         }
+    
+    # NEW: Real-time session management methods
+    def start_adaptive_session(self, db: Session, user_id: int, topic: str) -> Dict[str, Any]:
+        """Start a new adaptive learning session with real-time monitoring"""
+        # Get user's baseline difficulty
+        initial_difficulty = self.difficulty_adapter.calculate_current_level(db, user_id)
+        
+        # Initialize session
+        self.session_adapter.start_session(user_id, initial_difficulty)
+        
+        # Get initial question sequence
+        session_state = self.session_adapter.session_data[user_id]
+        question_sequence = self.question_sequencer.generate_question_sequence(
+            db, user_id, topic, session_state, num_questions=10
+        )
+        
+        return {
+            'session_id': f"{user_id}_{datetime.now(timezone.utc).timestamp()}",
+            'initial_difficulty': initial_difficulty,
+            'question_sequence': question_sequence,
+            'cognitive_load': session_state['cognitive_load'],
+            'message': 'Adaptive session started with personalized question sequence'
+        }
+    
+    def process_question_response(
+        self, 
+        db: Session, 
+        user_id: int, 
+        question_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Process question response with real-time adaptation"""
+        # Record response and get adaptation
+        adaptation_result = self.session_adapter.record_question_response(user_id, question_data)
+        
+        # Get current session state
+        session_state = self.session_adapter.session_data.get(user_id, {})
+        
+        # Assess cognitive load
+        cognitive_assessment = self.cognitive_monitor.assess_cognitive_load(session_state)
+        
+        # Update session with cognitive load assessment
+        if user_id in self.session_adapter.session_data:
+            self.session_adapter.session_data[user_id]['cognitive_load'] = cognitive_assessment['load_score']
+        
+        # Determine next question
+        next_question = None
+        if not cognitive_assessment['intervention_needed']:
+            # Generate next question based on current state
+            sequence = self.question_sequencer.generate_question_sequence(
+                db, user_id, question_data.get('topic', ''), session_state, num_questions=1
+            )
+            next_question = sequence['questions'][0] if sequence['questions'] else None
+        
+        return {
+            'adaptation': adaptation_result,
+            'cognitive_assessment': cognitive_assessment,
+            'next_question': next_question,
+            'session_metrics': self.session_adapter.get_session_metrics(user_id),
+            'should_continue': not cognitive_assessment['intervention_needed']
+        }
+    
+    def get_real_time_recommendations(self, user_id: int) -> Dict[str, Any]:
+        """Get real-time recommendations during active session"""
+        if user_id not in self.session_adapter.session_data:
+            return {'error': 'No active session'}
+        
+        session_state = self.session_adapter.session_data[user_id]
+        cognitive_assessment = self.cognitive_monitor.assess_cognitive_load(session_state)
+        
+        recommendations = {
+            'cognitive_load': cognitive_assessment['load_level'],
+            'recommendations': cognitive_assessment['recommendations'],
+            'current_difficulty': session_state['current_difficulty'],
+            'performance_trend': self._analyze_performance_trend(session_state),
+            'suggested_actions': []
+        }
+        
+        # Add specific action suggestions
+        if cognitive_assessment['load_score'] > 0.8:
+            recommendations['suggested_actions'].append({
+                'action': 'take_break',
+                'duration_minutes': 10,
+                'reason': 'High cognitive load detected'
+            })
+        
+        if session_state['accuracy_streak'] >= 5:
+            recommendations['suggested_actions'].append({
+                'action': 'increase_difficulty',
+                'reason': 'Strong performance - ready for more challenge'
+            })
+        
+        if session_state['struggle_count'] >= 3:
+            recommendations['suggested_actions'].append({
+                'action': 'review_concepts',
+                'reason': 'Multiple incorrect answers - review recommended'
+            })
+        
+        return recommendations
+    
+    def _analyze_performance_trend(self, session_state: Dict) -> str:
+        """Analyze performance trend in current session"""
+        if len(session_state['question_history']) < 3:
+            return 'insufficient_data'
+        
+        recent = list(session_state['question_history'])[-5:]
+        accuracy_trend = [q['correct'] for q in recent]
+        
+        # Calculate trend
+        if len(accuracy_trend) >= 3:
+            first_half = np.mean(accuracy_trend[:len(accuracy_trend)//2])
+            second_half = np.mean(accuracy_trend[len(accuracy_trend)//2:])
+            
+            if second_half > first_half + 0.2:
+                return 'improving'
+            elif second_half < first_half - 0.2:
+                return 'declining'
+        
+        return 'stable'
+    
+    def end_adaptive_session(self, db: Session, user_id: int) -> Dict[str, Any]:
+        """End adaptive session and save results"""
+        session_summary = self.session_adapter.end_session(user_id)
+        
+        # Update user's learning metrics in database
+        if session_summary:
+            self._save_session_to_db(db, user_id, session_summary)
+        
+        return {
+            'session_summary': session_summary,
+            'achievements': self._calculate_session_achievements(session_summary),
+            'next_session_recommendations': self._get_next_session_recommendations(db, user_id, session_summary)
+        }
+    
+    def _save_session_to_db(self, db: Session, user_id: int, session_summary: Dict):
+        """Save session data to database"""
+        try:
+            # Update daily metrics
+            today = datetime.now(timezone.utc).date()
+            metrics = db.query(models.DailyLearningMetrics).filter(
+                and_(
+                    models.DailyLearningMetrics.user_id == user_id,
+                    models.DailyLearningMetrics.date == today
+                )
+            ).first()
+            
+            if not metrics:
+                metrics = models.DailyLearningMetrics(
+                    user_id=user_id,
+                    date=today,
+                    time_spent_minutes=0,
+                    questions_answered=0,
+                    accuracy_rate=0.0,
+                    engagement_score=0.0
+                )
+                db.add(metrics)
+            
+            # Update metrics
+            metrics.time_spent_minutes += session_summary.get('duration_minutes', 0)
+            metrics.questions_answered += session_summary.get('total_questions', 0)
+            
+            # Recalculate accuracy rate
+            total_correct = metrics.accuracy_rate * (metrics.questions_answered - session_summary.get('total_questions', 0))
+            total_correct += session_summary.get('total_questions', 0) * session_summary.get('accuracy_rate', 0)
+            metrics.accuracy_rate = total_correct / max(metrics.questions_answered, 1)
+            
+            metrics.engagement_score = session_summary.get('engagement_score', 0.5)
+            
+            db.commit()
+            logger.info(f"Saved session data for user {user_id}")
+        except Exception as e:
+            logger.error(f"Error saving session data: {e}")
+            db.rollback()
+    
+    def _calculate_session_achievements(self, session_summary: Dict) -> List[Dict[str, Any]]:
+        """Calculate achievements earned during session"""
+        achievements = []
+        
+        if session_summary.get('accuracy_rate', 0) >= 0.9:
+            achievements.append({
+                'type': 'high_accuracy',
+                'title': 'Accuracy Master',
+                'description': 'Achieved 90%+ accuracy in session'
+            })
+        
+        if session_summary.get('accuracy_streak', 0) >= 10:
+            achievements.append({
+                'type': 'streak',
+                'title': 'Perfect Streak',
+                'description': f"Answered {session_summary['accuracy_streak']} questions correctly in a row"
+            })
+        
+        if session_summary.get('duration_minutes', 0) >= 45:
+            achievements.append({
+                'type': 'endurance',
+                'title': 'Focused Learner',
+                'description': 'Maintained focus for 45+ minutes'
+            })
+        
+        return achievements
+    
+    def _get_next_session_recommendations(
+        self, 
+        db: Session, 
+        user_id: int, 
+        session_summary: Dict
+    ) -> Dict[str, Any]:
+        """Get recommendations for next session"""
+        recommendations = {
+            'suggested_topics': [],
+            'difficulty_level': session_summary.get('current_difficulty', 'intermediate'),
+            'optimal_duration': 30,
+            'focus_areas': []
+        }
+        
+        # Suggest topics based on performance
+        if session_summary.get('accuracy_rate', 0) < 0.6:
+            recommendations['focus_areas'].append('Review current topic fundamentals')
+            recommendations['suggested_topics'].append('Prerequisite concepts')
+        else:
+            recommendations['focus_areas'].append('Advance to next topic')
+            recommendations['suggested_topics'].append('Related advanced concepts')
+        
+        # Suggest optimal duration based on cognitive load
+        avg_load = session_summary.get('cognitive_load', 0.5)
+        if avg_load > 0.7:
+            recommendations['optimal_duration'] = 20
+            recommendations['focus_areas'].append('Shorter sessions recommended')
+        elif avg_load < 0.4:
+            recommendations['optimal_duration'] = 45
+            recommendations['focus_areas'].append('Can handle longer sessions')
+        
+        return recommendations
 
 
 # Export main engine
