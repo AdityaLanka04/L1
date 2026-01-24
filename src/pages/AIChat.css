@@ -5867,3 +5867,147 @@ button:focus-visible {
 .ac-empty-center .ac-input-wrapper {
   width: 100% !important;
 }
+
+
+/* ==================== ENHANCED LATEX/KATEX STYLING ==================== */
+
+/* Ensure KaTeX renders properly in chat messages */
+.ac-message-content .katex {
+  font-size: 1.3em !important;
+  color: var(--ac-accent) !important;
+}
+
+.ac-message-content .katex * {
+  color: var(--ac-accent) !important;
+}
+
+.ac-message-content .katex-display {
+  display: block !important;
+  margin: 2em 0 !important;
+  overflow-x: auto;
+  text-align: center;
+  padding: 1.5em 1em;
+  background: rgba(215, 179, 140, 0.08);
+  border-radius: 12px;
+  border: 1px solid rgba(215, 179, 140, 0.15);
+}
+
+.ac-message-content .katex-display > .katex {
+  font-size: 2.2em !important;
+  color: var(--ac-accent) !important;
+  font-weight: 500;
+}
+
+/* Inline math in messages */
+.ac-message-content p .katex {
+  font-size: 1.3em !important;
+  vertical-align: middle;
+  padding: 0 0.15em;
+}
+
+/* Ensure proper line height for lines with inline math */
+.ac-message-content p:has(.katex) {
+  line-height: 2.2;
+}
+
+/* Math symbols styling */
+.ac-message-content .math-symbol {
+  font-size: 1.3em;
+  color: var(--ac-accent);
+  font-weight: 500;
+  display: inline-block;
+  transition: all 0.3s;
+}
+
+.ac-message-content .math-symbol:hover {
+  transform: scale(1.15);
+  text-shadow: 0 0 10px var(--ac-accent);
+}
+
+/* Fraction lines */
+.ac-message-content .katex .frac-line {
+  border-bottom-color: var(--ac-accent) !important;
+  background-color: var(--ac-accent) !important;
+}
+
+/* Square root styling */
+.ac-message-content .katex .sqrt > .root {
+  color: var(--ac-accent) !important;
+}
+
+.ac-message-content .katex .sqrt-sign {
+  border-color: var(--ac-accent) !important;
+}
+
+/* Integral and sum symbols */
+.ac-message-content .katex .op-symbol {
+  color: var(--ac-accent) !important;
+}
+
+.ac-message-content .katex .op-limits {
+  color: var(--ac-accent) !important;
+}
+
+/* Parentheses and brackets */
+.ac-message-content .katex .delimsizing {
+  color: var(--ac-accent) !important;
+}
+
+.ac-message-content .katex .delim-size1,
+.ac-message-content .katex .delim-size2,
+.ac-message-content .katex .delim-size3,
+.ac-message-content .katex .delim-size4 {
+  color: var(--ac-accent) !important;
+}
+
+/* Ensure proper spacing around display math */
+.ac-message-content p + .katex-display {
+  margin-top: 1.5em;
+}
+
+.ac-message-content .katex-display + p {
+  margin-top: 1.5em;
+}
+
+/* Light mode adjustments */
+[data-theme-mode="light"] .ac-message-content .katex,
+[data-theme-mode="light"] .ac-message-content .katex * {
+  color: var(--ac-accent) !important;
+}
+
+/* Scrollbar for long equations */
+.ac-message-content .katex-display::-webkit-scrollbar {
+  height: 6px;
+}
+
+.ac-message-content .katex-display::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.ac-message-content .katex-display::-webkit-scrollbar-thumb {
+  background: var(--ac-accent);
+  border-radius: 3px;
+}
+
+/* Make display math more prominent */
+.ac-message-content .katex-display .katex {
+  font-weight: 500;
+}
+
+/* Ensure all math elements inherit accent color */
+.ac-message-content .katex .base {
+  color: var(--ac-accent) !important;
+}
+
+.ac-message-content .katex .mord,
+.ac-message-content .katex .mop,
+.ac-message-content .katex .mbin,
+.ac-message-content .katex .mrel,
+.ac-message-content .katex .mopen,
+.ac-message-content .katex .mclose,
+.ac-message-content .katex .mpunct,
+.ac-message-content .katex .minner,
+.ac-message-content .katex .msupsub {
+  color: var(--ac-accent) !important;
+}

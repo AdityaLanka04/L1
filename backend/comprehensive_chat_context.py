@@ -10,6 +10,7 @@ import re
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
+from latex_instructions import get_latex_instructions
 
 logger = logging.getLogger(__name__)
 
@@ -951,10 +952,7 @@ use this information to give a detailed, personalized response."""
 6. Be comprehensive - explain thoroughly with step-by-step breakdowns when needed
 {context_instructions}
 
-## MATHEMATICAL NOTATION
-- Use $...$ for inline math: "The derivative $f'(x) = 2x$ shows..."
-- Use $...$ for display equations
-- Only wrap actual math in LaTeX, not regular text
+{get_latex_instructions("short")}
 
 {chat_history}
 

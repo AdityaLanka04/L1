@@ -70,12 +70,12 @@
 }
 
 .math-content .katex {
-  font-size: 1.1em;
-  color: var(--accent);
+  font-size: 1.3em !important;
+  color: var(--accent) !important;
 }
 
 .math-content .katex * {
-  color: inherit;
+  color: var(--accent) !important;
 }
 
 .math-content .katex .mord,
@@ -85,8 +85,9 @@
 .math-content .katex .mopen,
 .math-content .katex .mclose,
 .math-content .katex .mpunct,
-.math-content .katex .minner {
-  color: var(--accent);
+.math-content .katex .minner,
+.math-content .katex .msupsub {
+  color: var(--accent) !important;
 }
 
 .math-content .katex .mfrac .frac-line {
@@ -104,14 +105,20 @@
 }
 
 .math-content .katex-display {
-  display: block;
-  margin: 1em 0;
+  display: block !important;
+  margin: 2em 0 !important;
   overflow-x: auto;
   text-align: center;
+  padding: 1.5em 1em;
+  background: rgba(215, 179, 140, 0.08);
+  border-radius: 12px;
+  border: 1px solid rgba(215, 179, 140, 0.15);
 }
 
 .math-content .katex-display > .katex {
-  font-size: 1.3em;
+  font-size: 2.2em !important;
+  color: var(--accent) !important;
+  font-weight: 500;
 }
 
 .math-content .katex-display::-webkit-scrollbar {
@@ -133,20 +140,22 @@
 }
 
 .math-inline .katex {
-  font-size: 1.1em;
-  color: var(--accent);
+  font-size: 1.25em !important;
+  color: var(--accent) !important;
+  vertical-align: middle;
 }
 
 .math-block {
   display: block;
-  margin: 1em 0;
+  margin: 1.2em 0;
   text-align: center;
   overflow-x: auto;
+  padding: 0.5em 0;
 }
 
 .math-block .katex {
-  font-size: 1.3em;
-  color: var(--accent);
+  font-size: 1.5em !important;
+  color: var(--accent) !important;
 }
 
 [data-theme-mode="light"] .math-content {
@@ -176,4 +185,92 @@
   .math-content .katex-display > .katex {
     font-size: 1.15em;
   }
+}
+
+
+/* Enhanced LaTeX Styling for Better Visual Appearance */
+.math-content .katex .base {
+  color: var(--accent) !important;
+}
+
+.math-content .katex .mord.text {
+  color: var(--accent) !important;
+}
+
+.math-content .katex .mspace {
+  color: var(--accent) !important;
+}
+
+/* Fraction lines */
+.math-content .katex .frac-line {
+  border-bottom-color: var(--accent) !important;
+  background-color: var(--accent) !important;
+}
+
+/* Square root styling */
+.math-content .katex .sqrt > .root {
+  color: var(--accent) !important;
+}
+
+.math-content .katex .sqrt-sign {
+  border-color: var(--accent) !important;
+}
+
+/* Integral and sum symbols */
+.math-content .katex .op-symbol {
+  color: var(--accent) !important;
+}
+
+.math-content .katex .op-limits {
+  color: var(--accent) !important;
+}
+
+/* Parentheses and brackets */
+.math-content .katex .delimsizing {
+  color: var(--accent) !important;
+}
+
+.math-content .katex .delim-size1,
+.math-content .katex .delim-size2,
+.math-content .katex .delim-size3,
+.math-content .katex .delim-size4 {
+  color: var(--accent) !important;
+}
+
+/* Ensure all math elements inherit accent color */
+.math-content .katex * {
+  color: var(--accent) !important;
+}
+
+/* Display math gets extra emphasis */
+.math-content .katex-display .katex {
+  color: var(--accent) !important;
+  font-weight: 500;
+}
+
+/* Light mode adjustments */
+[data-theme-mode="light"] .math-content .katex,
+[data-theme-mode="light"] .math-content .katex * {
+  color: var(--accent) !important;
+}
+
+/* Ensure proper spacing around display math */
+.math-content p + .katex-display {
+  margin-top: 1.5em;
+}
+
+.math-content .katex-display + p {
+  margin-top: 1.5em;
+}
+
+/* Make inline math slightly larger and more prominent */
+.math-content p .katex {
+  font-size: 1.3em !important;
+  vertical-align: middle;
+  padding: 0 0.15em;
+}
+
+/* Ensure proper line height for lines with inline math */
+.math-content p:has(.katex) {
+  line-height: 2.2;
 }

@@ -530,9 +530,9 @@ def build_user_profile_dict(user, comprehensive_profile=None) -> Dict[str, Any]:
     
     return profile
 
-MATHEMATICAL_FORMATTING_INSTRUCTIONS = """
-Use LaTeX: inline $x$, display $$x$$
-"""
+from latex_instructions import get_latex_instructions
+
+MATHEMATICAL_FORMATTING_INSTRUCTIONS = get_latex_instructions("short")
 
 # Then define the function ONCE (around line 648)
 async def generate_ai_response(prompt: str, user_profile: Dict[str, Any]) -> str:
@@ -1825,6 +1825,30 @@ async def ask_simple(
         
         print(f"✅ ASK_SIMPLE completed successfully with Chat Agent + RAG")
         
+        # Apply math formatting to response before returning
+        from math_processor import format_math_response
+        from force_latex_converter import force_convert_to_latex
+        
+        # Log original response
+        print(f"📐 Original response length: {len(response)} chars")
+        print(f"📐 Has $$ delimiters: {'$$' in response}")
+        print(f"📐 Has $ delimiters: {'$' in response and '$$' not in response}")
+        
+        # First apply standard math processing
+        response_before = response
+        response = format_math_response(response)
+        if response != response_before:
+            print(f"📐 Math processor made changes")
+        
+        # Then FORCE convert any remaining plain text math to LaTeX
+        response_before = response
+        response = force_convert_to_latex(response)
+        if response != response_before:
+            print(f"📐 Force converter made changes")
+        
+        print(f"📐 Final response has $$ delimiters: {'$$' in response}")
+        print(f"📐 Final response has $ delimiters: {'$' in response}")
+        
         return {
             "answer": response,
             "ai_confidence": 0.9,
@@ -2127,6 +2151,30 @@ Current Question: {question}"""
                 db.rollback()
         else:
             print(f" No chat_id_int, cannot save message")
+        
+        # Apply math formatting to response before returning
+        from math_processor import format_math_response
+        from force_latex_converter import force_convert_to_latex
+        
+        # Log original response
+        print(f"📐 [FILES] Original response length: {len(response)} chars")
+        print(f"📐 [FILES] Has $$ delimiters: {'$$' in response}")
+        print(f"📐 [FILES] Has $ delimiters: {'$' in response and '$$' not in response}")
+        
+        # First apply standard math processing
+        response_before = response
+        response = format_math_response(response)
+        if response != response_before:
+            print(f"📐 [FILES] Math processor made changes")
+        
+        # Then FORCE convert any remaining plain text math to LaTeX
+        response_before = response
+        response = force_convert_to_latex(response)
+        if response != response_before:
+            print(f"📐 [FILES] Force converter made changes")
+        
+        print(f"📐 [FILES] Final response has $$ delimiters: {'$$' in response}")
+        print(f"📐 [FILES] Final response has $ delimiters: {'$' in response}")
         
         return {
             "answer": response,
