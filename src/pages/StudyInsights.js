@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Search, ChevronRight } from 'lucide-react';
 import './StudyInsights.css';
 import { API_URL } from '../config';
+import logo from '../assets/logo.svg';
 
 const StudyInsights = () => {
   const navigate = useNavigate();
@@ -9,7 +11,7 @@ const StudyInsights = () => {
   const [loading, setLoading] = useState(true);
   const [insights, setInsights] = useState(null);
   const [error, setError] = useState(null);
-  const [timeRange, setTimeRange] = useState('overall'); // 'session' or 'overall'
+  const [timeRange, setTimeRange] = useState('overall');
 
   const userName = localStorage.getItem('username');
   const token = localStorage.getItem('token');
@@ -20,7 +22,6 @@ const StudyInsights = () => {
       return;
     }
     
-    // Check if study insights is enabled
     const profile = localStorage.getItem('userProfile');
     if (profile) {
       try {
@@ -33,32 +34,25 @@ const StudyInsights = () => {
     }
     
     loadComprehensiveInsights();
-  }, [timeRange]); // Reload when timeRange changes
+  }, [timeRange]);
 
   const loadComprehensiveInsights = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      console.log('Fetching insights from:', `${API_URL}/study_insights/comprehensive?user_id=${userName}&time_range=${timeRange}`);
-      
       const response = await fetch(`${API_URL}/study_insights/comprehensive?user_id=${userName}&time_range=${timeRange}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log('Response status:', response.status);
-
       if (response.ok) {
         const data = await response.json();
-        console.log('Insights data:', data);
         setInsights(data);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Error response:', errorData);
         setError(errorData.detail || `Error: ${response.status}`);
       }
     } catch (err) {
-      console.error('Error loading insights:', err);
       setError(err.message || 'Failed to load insights');
     } finally {
       setLoading(false);
@@ -82,13 +76,13 @@ const StudyInsights = () => {
 
   if (loading) {
     return (
-      <div className="study-insights-page">
-        <div className="insights-loading">
-          <span className="loading-text">ANALYZING YOUR STUDY DATA</span>
-          <div className="insights-spinner">
-            <div className="spinner-cube"></div>
-            <div className="spinner-cube"></div>
-            <div className="spinner-cube"></div>
+      <div className="si-page">
+        <div className="si-loading">
+          <span className="si-loading-text">ANALYZING YOUR STUDY DATA</span>
+          <div className="si-spinner">
+            <div className="si-spinner-cube"></div>
+            <div className="si-spinner-cube"></div>
+            <div className="si-spinner-cube"></div>
           </div>
         </div>
       </div>
@@ -97,12 +91,12 @@ const StudyInsights = () => {
 
   if (!insights) {
     return (
-      <div className="study-insights-page">
-        <div className="insights-error">
+      <div className="si-page">
+        <div className="si-error">
           <p>Unable to load insights</p>
-          {error && <p style={{ color: '#ef4444', fontSize: '14px', marginTop: '10px' }}>{error}</p>}
-          <button onClick={loadComprehensiveInsights} style={{ marginRight: '10px' }}>Retry</button>
-          <button onClick={() => navigate('/dashboard')}>Back to Dashboard</button>
+          {error && <p className="si-error-detail">{error}</p>}
+          <button className="si-btn" onClick={loadComprehensiveInsights}>Retry</button>
+          <button className="si-btn" onClick={() => navigate('/dashboard')}>Back to Dashboard</button>
         </div>
       </div>
     );
@@ -114,217 +108,217 @@ const StudyInsights = () => {
      insights.activity_breakdown.flashcards_reviewed > 0);
 
   return (
-    <div className="study-insights-page">
-      <header className="insights-header">
-        <div className="header-content">
-          <span className="header-username">{getDisplayName()}</span>
-          <h1 className="header-title">comprehensive insights</h1>
-          <div className="header-right">
-            <div className="time-range-toggle">
+    <div className="si-page">
+      <header className="si-header">
+        <div className="si-header-content">
+          <div className="si-header-left">
+            <h1 className="si-logo" onClick={() => navigate('/dashboard')}>
+              <img src={logo} alt="Logo" className="si-logo-img" />
+              cerbyl
+            </h1>
+            <div className="si-header-divider"></div>
+            <span className="si-subtitle">STUDY INSIGHTS</span>
+          </div>
+          <nav className="si-header-right">
+            <div className="si-time-toggle">
               <button 
-                className={`toggle-btn ${timeRange === 'session' ? 'active' : ''}`}
+                className={`si-toggle-btn ${timeRange === 'session' ? 'active' : ''}`}
                 onClick={() => setTimeRange('session')}
               >
                 THIS SESSION
               </button>
               <button 
-                className={`toggle-btn ${timeRange === 'overall' ? 'active' : ''}`}
+                className={`si-toggle-btn ${timeRange === 'overall' ? 'active' : ''}`}
                 onClick={() => setTimeRange('overall')}
               >
                 OVERALL
               </button>
             </div>
-            <button className="header-btn secondary" onClick={() => navigate('/search-hub')}>
-              SEARCH HUB
+            <button className="si-nav-btn si-nav-btn-ghost" onClick={() => navigate('/search-hub')}>
+              <Search size={14} />
+              <span>Search Hub</span>
             </button>
-            <button className="header-btn primary" onClick={() => navigate('/dashboard')}>
-              DASHBOARD
+            <button className="si-nav-btn" onClick={() => navigate('/dashboard')}>
+              <span>Dashboard</span>
+              <ChevronRight size={14} />
             </button>
-          </div>
+          </nav>
         </div>
       </header>
 
-      <main className="insights-main">
-        <div className="bento-grid">
-          {/* AI Summary - Full width */}
-          <div className="bento-item bento-summary">
-            <h2 className="bento-title">AI SUMMARY</h2>
-            <p className="summary-text">{insights.ai_summary}</p>
+      <main className="si-main">
+        <div className="si-bento-grid">
+          {/* AI Summary */}
+          <div className="si-bento si-summary">
+            <h2 className="si-bento-title">AI SUMMARY</h2>
+            <p className="si-summary-text">{insights.ai_summary}</p>
           </div>
 
-          {/* Time & Activity Stats */}
-          <div className="bento-item bento-time-stats">
-            <h2 className="bento-title">STUDY TIME</h2>
-            <div className="stats-grid">
-              <div className="stat-item">
-                <div className="stat-value">{insights.time_stats?.weekly_study_minutes || 0}</div>
-                <div className="stat-label">Minutes This Week</div>
+          {/* Time Stats */}
+          <div className="si-bento si-time-stats">
+            <h2 className="si-bento-title">STUDY TIME</h2>
+            <div className="si-stats-grid">
+              <div className="si-stat">
+                <div className="si-stat-value">{insights.time_stats?.weekly_study_minutes || 0}</div>
+                <div className="si-stat-label">Minutes This Week</div>
               </div>
-              <div className="stat-item">
-                <div className="stat-value">{insights.time_stats?.day_streak || 0}</div>
-                <div className="stat-label">Day Streak</div>
+              <div className="si-stat">
+                <div className="si-stat-value">{insights.time_stats?.day_streak || 0}</div>
+                <div className="si-stat-label">Day Streak</div>
               </div>
-              <div className="stat-item">
-                <div className="stat-value">{insights.time_stats?.total_points || 0}</div>
-                <div className="stat-label">Total Points</div>
+              <div className="si-stat">
+                <div className="si-stat-value">{insights.time_stats?.total_points || 0}</div>
+                <div className="si-stat-label">Total Points</div>
               </div>
             </div>
           </div>
 
-          {/* Activity Breakdown */}
-          <div className="bento-item bento-activity">
-            <h2 className="bento-title">WEEKLY ACTIVITY</h2>
-            <div className="activity-list">
-              <div className="activity-row">
-                <span className="activity-label">AI Chats</span>
-                <span className="activity-value">{insights.activity_breakdown?.ai_chats || 0}</span>
+          {/* Activity */}
+          <div className="si-bento si-activity">
+            <h2 className="si-bento-title">WEEKLY ACTIVITY</h2>
+            <div className="si-activity-list">
+              <div className="si-activity-row">
+                <span className="si-activity-label">AI Chats</span>
+                <span className="si-activity-value">{insights.activity_breakdown?.ai_chats || 0}</span>
               </div>
-              <div className="activity-row">
-                <span className="activity-label">Quizzes Completed</span>
-                <span className="activity-value">{insights.activity_breakdown?.quizzes_completed || 0}</span>
+              <div className="si-activity-row">
+                <span className="si-activity-label">Quizzes Completed</span>
+                <span className="si-activity-value">{insights.activity_breakdown?.quizzes_completed || 0}</span>
               </div>
-              <div className="activity-row">
-                <span className="activity-label">Flashcards Reviewed</span>
-                <span className="activity-value">{insights.activity_breakdown?.flashcards_reviewed || 0}</span>
+              <div className="si-activity-row">
+                <span className="si-activity-label">Flashcards Reviewed</span>
+                <span className="si-activity-value">{insights.activity_breakdown?.flashcards_reviewed || 0}</span>
               </div>
-              <div className="activity-row">
-                <span className="activity-label">Questions Answered</span>
-                <span className="activity-value">{insights.activity_breakdown?.questions_answered || 0}</span>
+              <div className="si-activity-row">
+                <span className="si-activity-label">Questions Answered</span>
+                <span className="si-activity-value">{insights.activity_breakdown?.questions_answered || 0}</span>
               </div>
-              <div className="activity-row">
-                <span className="activity-label">Notes Created</span>
-                <span className="activity-value">{insights.activity_breakdown?.notes_created || 0}</span>
+              <div className="si-activity-row">
+                <span className="si-activity-label">Notes Created</span>
+                <span className="si-activity-value">{insights.activity_breakdown?.notes_created || 0}</span>
               </div>
             </div>
           </div>
 
           {/* Quiz Performance */}
-          <div className="bento-item bento-quiz-performance">
-            <h2 className="bento-title">QUIZ PERFORMANCE</h2>
+          <div className="si-bento si-quiz">
+            <h2 className="si-bento-title">QUIZ PERFORMANCE</h2>
             {insights.quizzes?.total_quizzes > 0 ? (
               <>
-                <div className="quiz-summary">
-                  <div className="quiz-stat-large">
-                    <div className="quiz-score">{insights.quizzes.average_score}%</div>
-                    <div className="quiz-label">Average Score</div>
+                <div className="si-quiz-summary">
+                  <div className="si-quiz-main">
+                    <div className="si-quiz-score">{insights.quizzes.average_score}%</div>
+                    <div className="si-quiz-label">Average Score</div>
                   </div>
-                  <div className="quiz-stat-small">
-                    <div className="quiz-count">{insights.quizzes.total_quizzes}</div>
-                    <div className="quiz-label">Quizzes Taken</div>
+                  <div className="si-quiz-side">
+                    <div className="si-quiz-count">{insights.quizzes.total_quizzes}</div>
+                    <div className="si-quiz-label">Quizzes Taken</div>
                   </div>
                 </div>
-                <div className="difficulty-breakdown">
-                  <div className="diff-item">
-                    <span className="diff-label">Easy</span>
-                    <span className="diff-score">{insights.quizzes.by_difficulty?.easy?.average || 0}%</span>
+                <div className="si-diff-grid">
+                  <div className="si-diff">
+                    <span className="si-diff-label">Easy</span>
+                    <span className="si-diff-score">{insights.quizzes.by_difficulty?.easy?.average || 0}%</span>
                   </div>
-                  <div className="diff-item">
-                    <span className="diff-label">Medium</span>
-                    <span className="diff-score">{insights.quizzes.by_difficulty?.intermediate?.average || 0}%</span>
+                  <div className="si-diff">
+                    <span className="si-diff-label">Medium</span>
+                    <span className="si-diff-score">{insights.quizzes.by_difficulty?.intermediate?.average || 0}%</span>
                   </div>
-                  <div className="diff-item">
-                    <span className="diff-label">Hard</span>
-                    <span className="diff-score">{insights.quizzes.by_difficulty?.hard?.average || 0}%</span>
+                  <div className="si-diff">
+                    <span className="si-diff-label">Hard</span>
+                    <span className="si-diff-score">{insights.quizzes.by_difficulty?.hard?.average || 0}%</span>
                   </div>
                 </div>
               </>
             ) : (
-              <div className="empty-state">
-                <p className="empty-text">No quizzes completed yet</p>
-                <button className="start-btn-small" onClick={() => navigate('/quiz-hub')}>
-                  Take a Quiz
-                </button>
+              <div className="si-empty">
+                <p className="si-empty-text">No quizzes completed yet</p>
+                <button className="si-btn-small" onClick={() => navigate('/quiz-hub')}>Take a Quiz</button>
               </div>
             )}
           </div>
 
-          {/* Flashcard Performance */}
-          <div className="bento-item bento-flashcard-performance">
-            <h2 className="bento-title">FLASHCARD MASTERY</h2>
+          {/* Flashcard Mastery */}
+          <div className="si-bento si-flashcards">
+            <h2 className="si-bento-title">FLASHCARD MASTERY</h2>
             {insights.flashcards?.total > 0 ? (
               <>
-                <div className="flashcard-stats">
-                  <div className="fc-stat">
-                    <div className="fc-value">{insights.flashcards.total}</div>
-                    <div className="fc-label">Total Cards</div>
+                <div className="si-fc-stats">
+                  <div className="si-fc-stat">
+                    <div className="si-fc-value">{insights.flashcards.total}</div>
+                    <div className="si-fc-label">Total Cards</div>
                   </div>
-                  <div className="fc-stat">
-                    <div className="fc-value">{insights.flashcards.mastered}</div>
-                    <div className="fc-label">Mastered</div>
+                  <div className="si-fc-stat">
+                    <div className="si-fc-value">{insights.flashcards.mastered}</div>
+                    <div className="si-fc-label">Mastered</div>
                   </div>
-                  <div className="fc-stat">
-                    <div className="fc-value">{insights.flashcards.mastery_rate}%</div>
-                    <div className="fc-label">Mastery Rate</div>
+                  <div className="si-fc-stat">
+                    <div className="si-fc-value">{insights.flashcards.mastery_rate}%</div>
+                    <div className="si-fc-label">Mastery Rate</div>
                   </div>
                 </div>
                 {insights.flashcards.struggling && insights.flashcards.struggling.length > 0 && (
-                  <div className="struggling-cards">
-                    <div className="struggling-title">Needs Practice:</div>
+                  <div className="si-struggling">
+                    <div className="si-struggling-title">Needs Practice:</div>
                     {insights.flashcards.struggling.slice(0, 3).map((card, idx) => (
-                      <div key={idx} className="struggling-card">
-                        <div className="card-question">{card.question}</div>
-                        <div className="card-accuracy">{card.accuracy}% accuracy</div>
+                      <div key={idx} className="si-struggling-card">
+                        <div className="si-card-question">{card.question}</div>
+                        <div className="si-card-accuracy">{card.accuracy}% accuracy</div>
                       </div>
                     ))}
                   </div>
                 )}
               </>
             ) : (
-              <div className="empty-state">
-                <p className="empty-text">No flashcards created yet</p>
-                <button className="start-btn-small" onClick={() => navigate('/flashcards')}>
-                  Create Flashcards
-                </button>
+              <div className="si-empty">
+                <p className="si-empty-text">No flashcards created yet</p>
+                <button className="si-btn-small" onClick={() => navigate('/flashcards')}>Create Flashcards</button>
               </div>
             )}
           </div>
 
           {/* Weak Areas */}
-          <div className="bento-item bento-weak-areas">
-            <h2 className="bento-title">WEAK AREAS TO IMPROVE</h2>
+          <div className="si-bento si-weak">
+            <h2 className="si-bento-title">WEAK AREAS TO IMPROVE</h2>
             {insights.weak_areas && insights.weak_areas.length > 0 ? (
-              <div className="weak-areas-list">
+              <div className="si-weak-list">
                 {insights.weak_areas.slice(0, 5).map((area, idx) => (
-                  <div key={idx} className="weak-area-row">
-                    <div className="weak-area-info">
-                      <div className="weak-area-topic">{area.topic}</div>
-                      {area.subtopic && <div className="weak-area-subtopic">{area.subtopic}</div>}
+                  <div key={idx} className="si-weak-row">
+                    <div className="si-weak-info">
+                      <div className="si-weak-topic">{area.topic}</div>
+                      {area.subtopic && <div className="si-weak-subtopic">{area.subtopic}</div>}
                     </div>
-                    <div className="weak-area-stats">
-                      <div className="weak-area-accuracy" style={{
+                    <div className="si-weak-stats">
+                      <div className="si-weak-accuracy" style={{
                         color: area.accuracy < 50 ? '#ef4444' : area.accuracy < 70 ? '#f59e0b' : '#10b981'
                       }}>
                         {area.accuracy}%
                       </div>
-                      <div className="weak-area-priority">
-                        Priority: {area.priority}/10
-                      </div>
+                      <div className="si-weak-priority">Priority: {area.priority}/10</div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="empty-state">
-                <p className="empty-text">No weak areas identified yet</p>
-                <p className="empty-hint">Complete quizzes to track your progress</p>
+              <div className="si-empty">
+                <p className="si-empty-text">No weak areas identified yet</p>
+                <p className="si-empty-hint">Complete quizzes to track your progress</p>
               </div>
             )}
           </div>
 
           {/* Recent Quizzes */}
           {insights.quizzes?.recent_quizzes && insights.quizzes.recent_quizzes.length > 0 && (
-            <div className="bento-item bento-recent-quizzes">
-              <h2 className="bento-title">RECENT QUIZ RESULTS</h2>
-              <div className="recent-quizzes-list">
+            <div className="si-bento si-recent-quizzes">
+              <h2 className="si-bento-title">RECENT QUIZ RESULTS</h2>
+              <div className="si-quiz-list">
                 {insights.quizzes.recent_quizzes.slice(0, 5).map((quiz, idx) => (
-                  <div key={idx} className="recent-quiz-row">
-                    <div className="quiz-info">
-                      <div className="quiz-title">{quiz.title}</div>
-                      <div className="quiz-meta">
-                        {quiz.difficulty} • {quiz.question_count} questions
-                      </div>
+                  <div key={idx} className="si-quiz-row">
+                    <div className="si-quiz-info">
+                      <div className="si-quiz-title">{quiz.title}</div>
+                      <div className="si-quiz-meta">{quiz.difficulty} • {quiz.question_count} questions</div>
                     </div>
-                    <div className="quiz-score-badge" style={{
+                    <div className="si-quiz-badge" style={{
                       backgroundColor: quiz.score >= 80 ? '#10b981' : quiz.score >= 60 ? '#f59e0b' : '#ef4444'
                     }}>
                       {quiz.score}%
@@ -335,45 +329,43 @@ const StudyInsights = () => {
             </div>
           )}
 
-          {/* Question Bank Stats */}
-          <div className="bento-item bento-question-bank">
-            <h2 className="bento-title">QUESTION BANK</h2>
+          {/* Question Bank */}
+          <div className="si-bento si-qb">
+            <h2 className="si-bento-title">QUESTION BANK</h2>
             {insights.question_bank?.total_questions > 0 ? (
-              <div className="qb-stats">
-                <div className="qb-stat">
-                  <div className="qb-value">{insights.question_bank.total_questions}</div>
-                  <div className="qb-label">Total Questions</div>
+              <div className="si-qb-stats">
+                <div className="si-qb-stat">
+                  <div className="si-qb-value">{insights.question_bank.total_questions}</div>
+                  <div className="si-qb-label">Total Questions</div>
                 </div>
-                <div className="qb-stat">
-                  <div className="qb-value">{insights.question_bank.completed_questions}</div>
-                  <div className="qb-label">Completed</div>
+                <div className="si-qb-stat">
+                  <div className="si-qb-value">{insights.question_bank.completed_questions}</div>
+                  <div className="si-qb-label">Completed</div>
                 </div>
-                <div className="qb-stat">
-                  <div className="qb-value">{insights.question_bank.average_accuracy}%</div>
-                  <div className="qb-label">Accuracy</div>
+                <div className="si-qb-stat">
+                  <div className="si-qb-value">{insights.question_bank.average_accuracy}%</div>
+                  <div className="si-qb-label">Accuracy</div>
                 </div>
               </div>
             ) : (
-              <div className="empty-state">
-                <p className="empty-text">No question sets yet</p>
-                <button className="start-btn-small" onClick={() => navigate('/question-bank')}>
-                  Create Questions
-                </button>
+              <div className="si-empty">
+                <p className="si-empty-text">No question sets yet</p>
+                <button className="si-btn-small" onClick={() => navigate('/question-bank')}>Create Questions</button>
               </div>
             )}
           </div>
 
           {/* Topics Studied */}
           {insights.session_data?.specific_topics && insights.session_data.specific_topics.length > 0 && (
-            <div className="bento-item bento-topics">
-              <h2 className="bento-title">TOPICS STUDIED</h2>
-              <div className="topics-list">
+            <div className="si-bento si-topics">
+              <h2 className="si-bento-title">TOPICS STUDIED</h2>
+              <div className="si-topics-list">
                 {insights.session_data.specific_topics.slice(0, 6).map((topic, idx) => (
-                  <div key={idx} className="topic-row" onClick={() => navigate('/ai-chat', {
+                  <div key={idx} className="si-topic-row" onClick={() => navigate('/ai-chat', {
                     state: { initialMessage: `Help me practice ${topic.name}` }
                   })}>
-                    <span className="topic-name">{topic.name}</span>
-                    <span className="topic-count">{topic.count}</span>
+                    <span className="si-topic-name">{topic.name}</span>
+                    <span className="si-topic-count">{topic.count}</span>
                   </div>
                 ))}
               </div>
@@ -382,28 +374,24 @@ const StudyInsights = () => {
 
           {/* Recent Notes */}
           {insights.notes?.recent_notes && insights.notes.recent_notes.length > 0 && (
-            <div className="bento-item bento-recent-notes">
-              <h2 className="bento-title">RECENT NOTES</h2>
-              <div className="notes-list">
+            <div className="si-bento si-notes">
+              <h2 className="si-bento-title">RECENT NOTES</h2>
+              <div className="si-notes-list">
                 {insights.notes.recent_notes.map((note) => (
-                  <div key={note.id} className="note-row" onClick={() => navigate(`/notes-redesign?note_id=${note.id}`)}>
-                    <span className="note-title">{note.title}</span>
+                  <div key={note.id} className="si-note-row" onClick={() => navigate(`/notes-redesign?note_id=${note.id}`)}>
+                    <span className="si-note-title">{note.title}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Empty state when no data */}
+          {/* Empty State */}
           {!hasData && (
-            <div className="bento-item bento-empty">
-              <h2 className="bento-title">GET STARTED</h2>
-              <p className="empty-text">
-                Start studying to see your comprehensive insights here.
-              </p>
-              <button className="start-btn" onClick={() => navigate('/ai-chat')}>
-                START STUDYING
-              </button>
+            <div className="si-bento si-empty-state">
+              <h2 className="si-bento-title">GET STARTED</h2>
+              <p className="si-empty-text">Start studying to see your comprehensive insights here.</p>
+              <button className="si-btn-large" onClick={() => navigate('/ai-chat')}>START STUDYING</button>
             </div>
           )}
         </div>
