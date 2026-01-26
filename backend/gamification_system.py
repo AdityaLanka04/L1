@@ -160,6 +160,10 @@ def check_and_reset_weekly_stats(stats):
         needs_reset = stats.week_start_date < week_start
     
     if needs_reset:
+        print(f"🔄 WEEKLY RESET: Resetting weekly stats for user {stats.user_id}")
+        print(f"   Previous week start: {stats.week_start_date}")
+        print(f"   New week start: {week_start}")
+        print(f"   Previous weekly_points: {stats.weekly_points}")
         stats.weekly_points = 0
         stats.weekly_ai_chats = 0
         stats.weekly_notes_created = 0
@@ -176,6 +180,9 @@ def check_and_reset_weekly_stats(stats):
         if hasattr(stats, 'weekly_flashcards_mastered'):
             stats.weekly_flashcards_mastered = 0
         stats.week_start_date = datetime.combine(week_start, datetime.min.time()).replace(tzinfo=timezone.utc)
+        print(f"   ✅ Weekly stats reset complete")
+    else:
+        print(f"✓ Weekly stats current for user {stats.user_id} (week_start: {stats.week_start_date}, current_week: {week_start})")
 
 def award_points(db: Session, user_id: int, activity_type: str, metadata: dict = None):
     """
@@ -323,6 +330,12 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
     stats.weekly_points += points_earned
     stats.experience = stats.total_points
     stats.level = calculate_level_from_xp(stats.experience)
+    
+    print(f"💰 POINTS AWARDED: {points_earned} pts for {activity_type}")
+    print(f"   User: {user_id}")
+    print(f"   Total Points: {stats.total_points}")
+    print(f"   Weekly Points: {stats.weekly_points}")
+    print(f"   Level: {stats.level}")
     
     # Check for level up
     if stats.level > old_level:

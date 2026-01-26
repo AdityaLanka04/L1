@@ -34,6 +34,7 @@ import Profile from './pages/profile';
 import ProfileQuiz from './pages/ProfileQuiz';
 import SearchHub from './pages/SearchHub';
 import StudyInsights from './pages/StudyInsights';
+import Weaknesses from './pages/Weaknesses';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
 import SharedItemViewer from './pages/SharedItemViewer';
@@ -82,6 +83,7 @@ function App() {
             <Route path="/profile-quiz" element={<ProtectedRoute><ProfileQuiz /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/study-insights" element={<ProtectedRoute><StudyInsights /></ProtectedRoute>} />
+            <Route path="/weaknesses" element={<ProtectedRoute><Weaknesses /></ProtectedRoute>} />
             <Route path="/ai-chat" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />
             <Route path="/ai-chat/:chatId?" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />
             <Route path="/learning-review" element={<ProtectedRoute><LearningReviewHub /></ProtectedRoute>} />

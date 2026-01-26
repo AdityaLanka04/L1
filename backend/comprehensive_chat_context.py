@@ -7,6 +7,7 @@ Enhanced with full content access and dynamic navigation buttons.
 import json
 import logging
 import re
+import os
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
@@ -551,6 +552,12 @@ async def build_comprehensive_chat_context(db: Session, user, question: str) -> 
     - Content search results for navigation
     - Action buttons for dynamic navigation
     """
+    # CRITICAL DEBUG - FIRST LINE
+    print("\n🚨🚨🚨 BUILD_COMPREHENSIVE_CHAT_CONTEXT CALLED 🚨🚨🚨")
+    print(f"   User: {user.id if hasattr(user, 'id') else 'NO ID'}")
+    print(f"   Question: {question[:50]}...")
+    print("🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨\n")
+    
     import models
     from datetime import timedelta
     
@@ -794,6 +801,57 @@ async def build_comprehensive_chat_context(db: Session, user, question: str) -> 
         
         # Deduplicate recent topics
         context["recent_topics"] = list(set(context["recent_topics"]))[:10]
+        
+        # ============================================================
+        # ADD FORMATTED WEAKNESS ANALYSIS
+        # ============================================================
+        # LOAD FORMATTED WEAKNESS ANALYSIS
+        # ============================================================
+        print("\n" + "="*80)
+        print("🔥 ATTEMPTING TO LOAD FORMATTED WEAKNESS ANALYSIS")
+        print(f"   User ID: {user.id}")
+        print(f"   Question: {question[:100]}")
+        print("="*80)
+        
+        try:
+            import sys
+            print(f"📦 Python path: {sys.path[:3]}")
+            print(f"📂 Current working directory: {os.getcwd()}")
+            
+            from comprehensive_weakness_analyzer import format_weakness_analysis_for_chat
+            
+            print("✅ Import successful - calling format_weakness_analysis_for_chat()")
+            logger.info("Getting formatted weakness analysis for chat context...")
+            
+            formatted_weakness = format_weakness_analysis_for_chat(db, user.id, models)
+            
+            print(f"📊 Got response: {len(formatted_weakness) if formatted_weakness else 0} chars")
+            print(f"📊 First 200 chars: {formatted_weakness[:200] if formatted_weakness else 'NONE'}")
+            
+            if formatted_weakness and len(formatted_weakness) > 50:
+                context["formatted_weakness_analysis"] = formatted_weakness
+                context["has_formatted_weakness"] = True
+                print(f"✅ SUCCESS! Added formatted weakness analysis ({len(formatted_weakness)} chars)")
+                print(f"✅ Context keys now: {list(context.keys())}")
+                logger.info(f"✅ Added formatted weakness analysis ({len(formatted_weakness)} chars)")
+            else:
+                context["has_formatted_weakness"] = False
+                print(f"❌ FAILED: Analysis too short ({len(formatted_weakness) if formatted_weakness else 0} chars)")
+                logger.warning("Formatted weakness analysis too short or empty")
+        except ImportError as ie:
+            print(f"❌ IMPORT ERROR: {str(ie)}")
+            import traceback
+            traceback.print_exc()
+            logger.error(f"Import error for format_weakness_analysis_for_chat: {ie}")
+            context["has_formatted_weakness"] = False
+        except Exception as e:
+            print(f"❌ ERROR: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            logger.error(f"Error getting formatted weakness analysis: {e}")
+            context["has_formatted_weakness"] = False
+        
+        print("="*80 + "\n")
         
         logger.info(f"Built comprehensive context: {len(context['recent_topics'])} topics, "
                    f"content_query={context['content_query_detected']}, "

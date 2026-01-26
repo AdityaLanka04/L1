@@ -1087,9 +1087,9 @@ const Dashboard = () => {
               <h3>Slides</h3>
               <p>AI analysis</p>
             </div>
-            <div className="ds-learning-hub-grid-item" onClick={() => navigate('/study-insights')}>
+            <div className="ds-learning-hub-grid-item" onClick={() => navigate('/weaknesses')}>
               <Sparkles size={32} strokeWidth={1.5} />
-              <h3>Insights</h3>
+              <h3>Weak Areas</h3>
               <p>AI patterns</p>
             </div>
           </div>
@@ -1283,7 +1283,7 @@ const Dashboard = () => {
                   <span className="ds-learning-hub-desc">AI-powered slide analysis</span>
                 </div>
               </div>
-              <div className="ds-learning-hub-item" style={{ color: getWidgetColor('learning-hub') }} onClick={() => navigate('/study-insights')}>
+              <div className="ds-learning-hub-item" style={{ color: getWidgetColor('learning-hub') }} onClick={() => navigate('/weaknesses')}>
                 <ChevronRight size={14} />
                 <div className="ds-learning-hub-item-text">
                   <span className="ds-learning-hub-name">Insights</span>

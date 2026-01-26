@@ -663,6 +663,8 @@ async def chat_with_agent(request: ChatAgentRequest):
         state["user_strengths"] = sw.get("strengths", [])
         state["user_weaknesses"] = sw.get("weaknesses", [])
         state["topics_needing_review"] = sw.get("topics_needing_review", [])
+        # IMPORTANT: Store the full strengths_weaknesses object for formatted responses
+        state["user_strengths_weaknesses"] = sw
         
         # Add study materials context
         state["notes_context"] = comprehensive_context.get("notes_context", {})

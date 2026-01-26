@@ -110,40 +110,38 @@ const StudyInsights = () => {
   return (
     <div className="si-page">
       <header className="si-header">
-        <div className="si-header-content">
-          <div className="si-header-left">
-            <h1 className="si-logo" onClick={() => navigate('/dashboard')}>
-              <img src={logo} alt="Logo" className="si-logo-img" />
-              cerbyl
-            </h1>
-            <div className="si-header-divider"></div>
-            <span className="si-subtitle">STUDY INSIGHTS</span>
-          </div>
-          <nav className="si-header-right">
-            <div className="si-time-toggle">
-              <button 
-                className={`si-toggle-btn ${timeRange === 'session' ? 'active' : ''}`}
-                onClick={() => setTimeRange('session')}
-              >
-                THIS SESSION
-              </button>
-              <button 
-                className={`si-toggle-btn ${timeRange === 'overall' ? 'active' : ''}`}
-                onClick={() => setTimeRange('overall')}
-              >
-                OVERALL
-              </button>
-            </div>
-            <button className="si-nav-btn si-nav-btn-ghost" onClick={() => navigate('/search-hub')}>
-              <Search size={14} />
-              <span>Search Hub</span>
-            </button>
-            <button className="si-nav-btn" onClick={() => navigate('/dashboard')}>
-              <span>Dashboard</span>
-              <ChevronRight size={14} />
-            </button>
-          </nav>
+        <div className="si-header-left">
+          <h1 className="si-logo" onClick={() => navigate('/dashboard')}>
+            <div className="si-logo-img" />
+            cerbyl
+          </h1>
+          <div className="si-header-divider"></div>
+          <span className="si-subtitle">STUDY INSIGHTS</span>
         </div>
+        <nav className="si-header-right">
+          <div className="si-time-toggle">
+            <button 
+              className={`si-toggle-btn ${timeRange === 'session' ? 'active' : ''}`}
+              onClick={() => setTimeRange('session')}
+            >
+              THIS SESSION
+            </button>
+            <button 
+              className={`si-toggle-btn ${timeRange === 'overall' ? 'active' : ''}`}
+              onClick={() => setTimeRange('overall')}
+            >
+              OVERALL
+            </button>
+          </div>
+          <button className="si-nav-btn si-nav-btn-ghost" onClick={() => navigate('/search-hub')}>
+            <Search size={14} />
+            <span>Search Hub</span>
+          </button>
+          <button className="si-nav-btn si-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            <span>Dashboard</span>
+            <ChevronRight size={14} />
+          </button>
+        </nav>
       </header>
 
       <main className="si-main">

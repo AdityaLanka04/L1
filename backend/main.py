@@ -1551,6 +1551,7 @@ async def ask_simple(
     - Weak concepts context for targeted help
     - Comprehensive user context (analytics, strengths, weaknesses)
     - Action buttons for navigation
+    - DIRECT weakness analysis detection (bypasses agent complexity)
     """
     print(f"\n🚀 ASK_SIMPLE CALLED (Chat Agent + RAG)")
     print(f"👤 User: {user_id}, Question: {question[:50]}...")
@@ -1573,6 +1574,143 @@ async def ask_simple(
                 "action_buttons": []
             }
         
+        # ============================================================
+        # DIRECT WEAKNESS QUERY DETECTION - BYPASS AGENT
+        # ============================================================
+        question_lower = question.lower().strip()
+        weakness_keywords = [
+            "my weakness", "my weaknesses", "weak area", "weak areas",
+            "what am i weak", "where am i weak", "struggling with",
+            "what should i improve", "what do i need to work on",
+            "my performance", "analyze my performance", "how am i doing",
+            "what are my weak", "show my weak", "my weak points"
+        ]
+        
+        is_weakness_query = any(keyword in question_lower for keyword in weakness_keywords)
+        
+        if is_weakness_query:
+            print("\n" + "="*80)
+            print("🎯 WEAKNESS QUERY DETECTED - USING DIRECT RESPONSE")
+            print(f"   Question: {question}")
+            print("="*80 + "\n")
+            
+            try:
+                from comprehensive_weakness_analyzer import format_weakness_analysis_for_chat
+                
+                print("📊 Calling format_weakness_analysis_for_chat directly...")
+                formatted_weakness = format_weakness_analysis_for_chat(db, user.id, models)
+                
+                if formatted_weakness and len(formatted_weakness) > 50:
+                    print(f"✅ Got formatted weakness analysis: {len(formatted_weakness)} chars")
+                    
+                    # Get actual analysis data to extract topics
+                    from comprehensive_weakness_analyzer import get_comprehensive_weakness_analysis
+                    analysis_data = get_comprehensive_weakness_analysis(db, user.id, models)
+                    
+                    # Extract critical topics for personalized comment
+                    critical_topics = []
+                    if analysis_data.get("weak_areas", {}).get("critical"):
+                        critical_topics = [t["topic"] for t in analysis_data["weak_areas"]["critical"][:2]]
+                    
+                    # Generate brief AI comment with actual topic names
+                    if critical_topics:
+                        topics_str = " and ".join(critical_topics)
+                        brief_ai_prompt = f"""The student asked about their weaknesses. Their main critical areas are: {topics_str}
+
+Write a BRIEF (2-3 sentences MAX) encouraging comment that:
+1. Acknowledges they're working on {topics_str}
+2. Offers specific help with ONE of these topics
+3. Is warm, supportive, and actionable
+
+Example: "I can see {critical_topics[0]} is your biggest challenge right now. Would you like me to walk you through some practice problems, or would you prefer a detailed explanation of the core concepts?"
+
+Your brief comment:"""
+                    else:
+                        brief_ai_prompt = f"""The student asked: "{question}"
+
+Write a BRIEF (2-3 sentences MAX) encouraging comment about their performance analysis.
+
+Your brief comment:"""
+                    
+                    brief_comment = call_ai(brief_ai_prompt, max_tokens=150, temperature=0.7)
+                    
+                    # Combine: AI comment FIRST, then formatted report
+                    response = f"{brief_comment}\n\n{formatted_weakness}"
+                    
+                    print(f"✅ DIRECT WEAKNESS RESPONSE READY: {len(response)} chars")
+                    
+                    # Save and return immediately
+                    chat_id_int = None
+                    if chat_id:
+                        try:
+                            chat_id_int = int(chat_id)
+                        except:
+                            pass
+                    
+                    if chat_id_int:
+                        try:
+                            print(f"💾 Attempting to save message for chat_id: {chat_id_int}, user_id: {user.id}")
+                            
+                            new_message = models.ChatMessage(
+                                chat_session_id=chat_id_int,
+                                user_id=user.id,
+                                user_message=question,
+                                ai_response=response,
+                                timestamp=datetime.now(timezone.utc)
+                            )
+                            db.add(new_message)
+                            print("✅ Message object created and added to session")
+                            
+                            chat_session = db.query(models.ChatSession).filter(
+                                models.ChatSession.id == chat_id_int
+                            ).first()
+                            if chat_session:
+                                chat_session.updated_at = datetime.now(timezone.utc)
+                                print("✅ Chat session timestamp updated")
+                            
+                            # Award points
+                            from gamification_system import award_points
+                            points_result = award_points(db, user.id, "ai_chat", {"question": question})
+                            print(f"🎯 Points awarded: {points_result}")
+                            
+                            db.commit()
+                            print("✅ Database committed - message saved!")
+                        except Exception as save_error:
+                            print(f"❌ Error saving message: {save_error}")
+                            db.rollback()
+                    
+                    return {
+                        "answer": response,
+                        "ai_confidence": 0.95,
+                        "misconception_detected": False,
+                        "should_request_feedback": False,
+                        "topics_discussed": ["weakness_analysis", "performance"],
+                        "query_type": "weakness_analysis",
+                        "model_used": "direct_weakness_analyzer",
+                        "ai_provider": "Comprehensive Weakness Analyzer",
+                        "action_buttons": [
+                            {
+                                "label": "View Detailed Analysis",
+                                "action": "navigate",
+                                "navigate_to": "/weaknesses",
+                                "icon": "chart"
+                            }
+                        ]
+                    }
+                else:
+                    print(f"❌ Formatted weakness too short: {len(formatted_weakness) if formatted_weakness else 0} chars")
+                    # Fall through to normal processing
+                    
+            except Exception as weakness_error:
+                print(f"❌ Direct weakness analysis failed: {weakness_error}")
+                import traceback
+                traceback.print_exc()
+                # Fall through to normal processing
+        
+        # ============================================================
+        # NORMAL PROCESSING (non-weakness queries)
+        # ============================================================
+        
         # Verify chat belongs to user if chat_id provided
         chat_id_int = None
         if chat_id:
@@ -1584,8 +1722,6 @@ async def ask_simple(
                 ).first()
                 if not chat_session:
                     print(f"⚠️ Chat session {chat_id_int} not found or doesn't belong to user {user.id}")
-                    # Don't create a new session - the frontend should have created it
-                    # Just use the provided chat_id and let the message save handle it
                     print(f"✅ Will use provided chat_id: {chat_id_int}")
             except ValueError as e:
                 print(f"❌ Invalid chat_id format: {str(e)}")
@@ -1627,6 +1763,15 @@ async def ask_simple(
               f"content_query={comprehensive_context.get('content_query_detected', False)}, "
               f"buttons={len(comprehensive_context.get('action_buttons', []))}")
         
+        # DEBUG: Check if formatted weakness was loaded
+        print("\n" + "="*80)
+        print("🔍 CHECKING COMPREHENSIVE CONTEXT FOR FORMATTED WEAKNESS")
+        print(f"   has_formatted_weakness: {comprehensive_context.get('has_formatted_weakness', False)}")
+        print(f"   formatted_weakness_analysis length: {len(comprehensive_context.get('formatted_weakness_analysis', ''))}")
+        if comprehensive_context.get('formatted_weakness_analysis'):
+            print(f"   First 200 chars: {comprehensive_context.get('formatted_weakness_analysis', '')[:200]}")
+        print("="*80 + "\n")
+        
         # ============================================================
         # USE CHAT AGENT WITH RAG FOR RESPONSE GENERATION
         # ============================================================
@@ -1649,6 +1794,12 @@ async def ask_simple(
                 # Add comprehensive context
                 "comprehensive_context": comprehensive_context,
                 
+                # ADD FORMATTED WEAKNESS ANALYSIS
+                "user_strengths_weaknesses": {
+                    "has_formatted": comprehensive_context.get("has_formatted_weakness", False),
+                    "formatted_response": comprehensive_context.get("formatted_weakness_analysis", "")
+                },
+                
                 # Add weak concepts context
                 "weak_concepts": weak_concepts_context,
                 "user_weaknesses": [
@@ -1669,6 +1820,17 @@ async def ask_simple(
                     "weak_areas": [wc["topic"] for wc in weak_concepts_context[:5]],
                 }
             }
+            
+            # DEBUG: Show what we're passing to the agent
+            print("\n" + "="*80)
+            print("🚀 PASSING TO CHAT AGENT:")
+            print(f"   has_formatted: {comprehensive_context.get('has_formatted_weakness', False)}")
+            print(f"   formatted_response length: {len(comprehensive_context.get('formatted_weakness_analysis', ''))}")
+            if comprehensive_context.get('has_formatted_weakness'):
+                print(f"   ✅ Weakness analysis IS available")
+            else:
+                print(f"   ❌ Weakness analysis NOT available")
+            print("="*80 + "\n")
             
             # Invoke Chat Agent (includes RAG retrieval in _load_memory_context)
             result = await chat_agent.invoke(agent_state)
@@ -13692,6 +13854,54 @@ async def get_strengths_weaknesses(
         
     except Exception as e:
         logger.error(f"Error getting comprehensive strengths/weaknesses: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/study_insights/topic_suggestions")
+async def get_topic_suggestions(
+    user_id: str = Query(...),
+    topic: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Get personalized suggestions and tips for a specific weak topic"""
+    try:
+        from comprehensive_weakness_analyzer import generate_topic_suggestions
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        result = generate_topic_suggestions(db, user.id, topic, models, unified_ai)
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error generating topic suggestions: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/study_insights/similar_questions")
+async def get_similar_questions(
+    user_id: str = Query(...),
+    topic: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Find similar questions for practice on a specific weak topic"""
+    try:
+        from comprehensive_weakness_analyzer import find_similar_questions
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        result = find_similar_questions(db, user.id, topic, models)
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error finding similar questions: {str(e)}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

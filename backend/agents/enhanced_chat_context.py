@@ -396,6 +396,32 @@ class EnhancedChatContextProvider:
         """Get user's strengths and weaknesses"""
         import models
         
+        logger.info(f"=== Getting strengths/weaknesses for user {user_id} ===")
+        
+        # Get formatted analysis for chat display
+        try:
+            from comprehensive_weakness_analyzer import format_weakness_analysis_for_chat
+            
+            logger.info("Calling format_weakness_analysis_for_chat...")
+            formatted_analysis = format_weakness_analysis_for_chat(db, user_id, models)
+            
+            if formatted_analysis and len(formatted_analysis) > 50:
+                logger.info(f"✅ Got formatted analysis ({len(formatted_analysis)} chars)")
+                # Return formatted text that can be directly displayed
+                return {
+                    "formatted_response": formatted_analysis,
+                    "has_formatted": True
+                }
+            else:
+                logger.warning(f"Formatted analysis too short or empty: {len(formatted_analysis) if formatted_analysis else 0} chars")
+        except Exception as e:
+            logger.error(f"❌ Error getting formatted weakness analysis: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+        
+        logger.info("Falling back to old method...")
+        
+        # Fallback to old method if formatted analysis fails
         # Get topic mastery
         mastery = db.query(models.TopicMastery).filter(
             models.TopicMastery.user_id == user_id
@@ -436,7 +462,10 @@ class EnhancedChatContextProvider:
             except:
                 pass
         
+        logger.info(f"Fallback method: {len(strengths)} strengths, {len(weaknesses)} weaknesses")
+        
         return {
+            "has_formatted": False,
             "strengths": strengths[:10],
             "weaknesses": weaknesses[:10],
             "self_reported_weak_areas": profile_weak,

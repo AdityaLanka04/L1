@@ -22,10 +22,144 @@
 .games-page {
   min-height: 100vh;
   background: linear-gradient(135deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
-  padding: 20px;
+  padding: 0;
   font-family: 'Inter', sans-serif;
   position: relative;
   overflow-x: hidden;
+}
+
+/* Header Styles - Matching AI Chat */
+.gm-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 60px !important;
+  height: 70px;
+  min-height: 70px;
+  max-height: 70px;
+  background: color-mix(in srgb, var(--bg-primary, var(--bg-primary)) 80%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--accent);
+}
+
+.gm-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.gm-logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: -1px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.gm-logo-img {
+  height: 60px;
+  width: 60px;
+  -webkit-mask: url('../assets/logo.svg') no-repeat center;
+  mask: url('../assets/logo.svg') no-repeat center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  background-color: var(--accent);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gm-logo:hover {
+  transform: translateY(-2px);
+  text-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.gm-logo:hover .gm-logo-img {
+  transform: scale(1.1);
+}
+
+.gm-header-divider {
+  width: 1px;
+  height: 20px;
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.gm-subtitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary, #fff));
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.gm-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gm-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary, #fff);
+  opacity: 0.7;
+}
+
+.gm-nav-btn:hover {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.gm-nav-btn svg {
+  width: 14px !important;
+  height: 14px !important;
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+.gm-nav-btn-ghost {
+  background: transparent;
+  border: none;
+  color: var(--text-primary, #fff);
+  opacity: 0.7;
+}
+
+.gm-nav-btn-ghost:hover {
+  opacity: 1;
+  color: var(--accent);
+}
+
+[data-theme-mode="dark"] .gm-header {
+  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
+}
+
+[data-theme-mode="light"] .gm-header {
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme-mode="light"] .gm-nav-btn-ghost {
+  color: var(--text-primary, #1a1a2e);
 }
 
 .games-page::before {
@@ -141,6 +275,7 @@
   margin: 0 auto;
   position: relative;
   z-index: 1;
+  padding: 40px;
 }
 
 .stats-cards {
@@ -1102,6 +1237,40 @@
   border-radius: 0 !important;
 }
 
+/* Rounded corners for interactive elements */
+.stat-card-main,
+.daily-challenge-banner,
+.section-card,
+.bingo-cell,
+.recent-item,
+.points-item,
+.modal-action-btn,
+.modal-close,
+.daily-challenge-icon,
+.modal-icon-large,
+.daily-challenge-badge,
+.challenge-complete-badge,
+.completion-badge,
+.cell-points,
+.daily-challenge-reward,
+.modal-reward-section,
+.modal-complete-message,
+.modal-progress-section,
+.points-item-note {
+  border-radius: 12px !important;
+}
+
+.level-bar,
+.daily-challenge-progress-bar,
+.progress-bar,
+.modal-progress-bar {
+  border-radius: 4px !important;
+}
+
+.daily-challenge-modal {
+  border-radius: 16px !important;
+}
+
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
@@ -1111,9 +1280,7 @@
   }
 }
 
-.stat-card-main:hover .stat-value {
-  animation: pulse 2s ease-in-out infinite;
-}
+/* Removed pulse animation on hover */
 
 @keyframes shimmer {
   0% {

@@ -211,12 +211,23 @@ const Games = () => {
   };
 
   const isTaskCompleted = (task) => {
-    const statValue = bingoStats[task.stat] || 0;
-        return statValue >= task.target;
+    // Use weeklyProgress instead of bingoStats for accurate data
+    const statValue = weeklyProgress[task.stat] || 0;
+    // Special handling for study_hours
+    if (task.stat === 'study_hours') {
+      const hours = Math.floor(weeklyProgress.study_minutes / 60);
+      return hours >= task.target;
+    }
+    return statValue >= task.target;
   };
 
   const getProgress = (task) => {
-    const statValue = bingoStats[task.stat] || 0;
+    // Use weeklyProgress instead of bingoStats for accurate data
+    let statValue = weeklyProgress[task.stat] || 0;
+    // Special handling for study_hours
+    if (task.stat === 'study_hours') {
+      statValue = Math.floor(weeklyProgress.study_minutes / 60);
+    }
     return Math.min((statValue / task.target) * 100, 100);
   };
 
@@ -306,21 +317,21 @@ const Games = () => {
 
   return (
     <div className="games-page">
-      <header className="hub-header">
-        <div className="hub-header-left">
-          <h1 className="hub-logo">
-            <div className="hub-logo-img" />
+      <header className="gm-header">
+        <div className="gm-header-left">
+          <h1 className="gm-logo" onClick={() => navigate('/dashboard')}>
+            <div className="gm-logo-img" />
             cerbyl
           </h1>
-          <div className="hub-header-divider"></div>
-          <p className="hub-header-subtitle">GAMES & CHALLENGES</p>
+          <div className="gm-header-divider"></div>
+          <span className="gm-subtitle">GAMES & CHALLENGES</span>
         </div>
-        <div className="hub-header-right">
-          <button className="hub-nav-btn hub-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+        <nav className="gm-header-right">
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
             <span>Dashboard</span>
             <ChevronRight size={14} />
           </button>
-        </div>
+        </nav>
       </header>
 
       <div className="games-container">
@@ -399,7 +410,11 @@ const Games = () => {
               {bingoTasks.map((task) => {
                 const completed = isTaskCompleted(task);
                 const progress = getProgress(task);
-                const statValue = bingoStats[task.stat] || 0;
+                // Use weeklyProgress for accurate stat values
+                let statValue = weeklyProgress[task.stat] || 0;
+                if (task.stat === 'study_hours') {
+                  statValue = Math.floor(weeklyProgress.study_minutes / 60);
+                }
 
                 return (
                   <div

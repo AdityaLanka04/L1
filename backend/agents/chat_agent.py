@@ -833,6 +833,40 @@ class ChatAgent(BaseAgent):
         
         state["execution_path"] = ["chat:load_memory"]
         
+        # ==================== LOAD COMPREHENSIVE CONTEXT FROM STATE ====================
+        # Check if comprehensive context was passed from ask_simple endpoint
+        comprehensive_context = state.get("comprehensive_context", {})
+        if comprehensive_context:
+            print("\n" + "="*80)
+            print("🎯 COMPREHENSIVE CONTEXT FOUND IN STATE")
+            print(f"   Keys: {list(comprehensive_context.keys())}")
+            print(f"   has_formatted_weakness: {comprehensive_context.get('has_formatted_weakness', False)}")
+            if comprehensive_context.get('has_formatted_weakness'):
+                formatted_len = len(comprehensive_context.get('formatted_weakness_analysis', ''))
+                print(f"   ✅ Formatted weakness analysis available: {formatted_len} chars")
+                print(f"   First 200 chars: {comprehensive_context.get('formatted_weakness_analysis', '')[:200]}")
+            print("="*80 + "\n")
+            
+            # Extract and use the comprehensive context data
+            state["notes_context"] = comprehensive_context.get("notes_full", {})
+            state["flashcards_context"] = comprehensive_context.get("flashcards_full", {})
+            state["quiz_context"] = comprehensive_context.get("quizzes_full", {})
+            state["user_strengths"] = comprehensive_context.get("strengths_from_mastery", [])
+            state["user_weaknesses"] = comprehensive_context.get("weaknesses_from_mastery", [])
+            state["topics_needing_review"] = comprehensive_context.get("recent_topics", [])
+            
+            # CRITICAL: Pass the formatted weakness analysis to the agent
+            if comprehensive_context.get("has_formatted_weakness"):
+                state["user_strengths_weaknesses"] = {
+                    "has_formatted": True,
+                    "formatted_response": comprehensive_context.get("formatted_weakness_analysis", "")
+                }
+                print("✅ PASSED formatted weakness to agent state")
+            else:
+                print("❌ NO formatted weakness in comprehensive context")
+        else:
+            print("⚠️ NO comprehensive context in state")
+        
         if self.memory_manager:
             try:
                 logger.info(f"🧠 Loading memory context for user {user_id}, session {session_id}")
@@ -1200,6 +1234,97 @@ class ChatAgent(BaseAgent):
         mode = ChatMode(state.get("chat_mode", "tutoring"))
         style = ResponseStyle(state.get("response_style", "conversational"))
         
+        # CRITICAL DEBUG LOGGING
+        print("\n" + "="*80)
+        print("🔥 CHAT AGENT _generate_response CALLED")
+        print(f"📝 User input: {user_input}")
+        print(f"🔑 State keys: {list(state.keys())}")
+        print(f"💪 user_strengths_weaknesses in state: {'user_strengths_weaknesses' in state}")
+        if 'user_strengths_weaknesses' in state:
+            sw = state.get('user_strengths_weaknesses', {})
+            print(f"   - has_formatted: {sw.get('has_formatted')}")
+            print(f"   - formatted_response length: {len(sw.get('formatted_response', ''))}")
+        print("="*80 + "\n")
+        
+        # === CHECK FOR WEAKNESS QUERY ===
+        weakness_keywords = [
+            "my weakness", "my weaknesses", "weak area", "weak areas",
+            "what am i weak", "where am i weak", "struggling with",
+            "what should i improve", "what do i need to work on",
+            "my performance", "analyze my performance", "how am i doing"
+        ]
+        
+        user_input_lower = user_input.lower()
+        is_weakness_query = any(keyword in user_input_lower for keyword in weakness_keywords)
+        
+        print(f"🎯 Is weakness query: {is_weakness_query}")
+        print(f"   Matched keywords: {[kw for kw in weakness_keywords if kw in user_input_lower]}")
+        
+        # === CHECK FOR FEATURE QUERIES ===
+        feature_redirects = {
+            "notes": {
+                "keywords": ["my notes", "show notes", "view notes", "notes page", "note"],
+                "link": "/notes-hub",
+                "name": "Notes Hub"
+            },
+            "flashcards": {
+                "keywords": ["my flashcards", "flashcard", "flash card", "review cards"],
+                "link": "/playlists",
+                "name": "Flashcards"
+            },
+            "quizzes": {
+                "keywords": ["my quizzes", "quiz", "take quiz", "quiz page"],
+                "link": "/quiz-hub",
+                "name": "Quiz Hub"
+            },
+            "analytics": {
+                "keywords": ["my analytics", "my stats", "statistics", "analytics page"],
+                "link": "/analytics",
+                "name": "Analytics"
+            },
+            "games": {
+                "keywords": ["games", "leaderboard", "challenges"],
+                "link": "/games",
+                "name": "Games"
+            }
+        }
+        
+        detected_feature = None
+        for feature, config in feature_redirects.items():
+            if any(keyword in user_input_lower for keyword in config["keywords"]):
+                detected_feature = config
+                break
+        
+        formatted_weakness_data = None
+        if is_weakness_query:
+            print("🎯 WEAKNESS QUERY DETECTED!")
+            logger.info("🎯 Detected weakness analysis query")
+            # Get formatted weakness analysis
+            strengths_weaknesses = state.get("user_strengths_weaknesses", {})
+            
+            print(f"📊 user_strengths_weaknesses: {strengths_weaknesses}")
+            print(f"   Keys: {list(strengths_weaknesses.keys()) if strengths_weaknesses else 'NONE'}")
+            
+            logger.info(f"user_strengths_weaknesses keys: {list(strengths_weaknesses.keys())}")
+            logger.info(f"has_formatted: {strengths_weaknesses.get('has_formatted')}")
+            
+            if strengths_weaknesses.get("has_formatted"):
+                print("✅ HAS FORMATTED DATA!")
+                # Store the formatted data to prepend later
+                formatted_weakness_data = strengths_weaknesses.get("formatted_response", "")
+                if formatted_weakness_data:
+                    print(f"✅ Got formatted weakness data: {len(formatted_weakness_data)} chars")
+                    logger.info(f"✅ Found formatted weakness analysis ({len(formatted_weakness_data)} chars) - will combine with AI response")
+                    # Add the formatted data to context so AI can reference it
+                    state["_weakness_analysis_available"] = True
+                else:
+                    print("❌ has_formatted=True but formatted_response is EMPTY!")
+                    logger.warning("has_formatted=True but formatted_response is empty!")
+            else:
+                print("❌ NO FORMATTED DATA - has_formatted is False or missing")
+                logger.warning("has_formatted is False or missing - formatted analysis not available")
+        
+        # === CONTINUE WITH NORMAL RESPONSE GENERATION ===
         # Use advanced emotional state if available
         advanced_emotion = state.get("_advanced_emotional_state", "neutral")
         emotion = EmotionalState(advanced_emotion) if advanced_emotion in [e.value for e in EmotionalState] else EmotionalState.NEUTRAL
@@ -1235,6 +1360,49 @@ class ChatAgent(BaseAgent):
             "weak_concepts": state.get("weak_concepts", []),
         }
         
+        # If this is a weakness query, add instruction to AI
+        if is_weakness_query and formatted_weakness_data:
+            weakness_instruction = """
+CRITICAL INSTRUCTION: A comprehensive weakness analysis has been provided above with specific data.
+
+Your response MUST:
+1. Be BRIEF and DIRECT - maximum 3-4 sentences
+2. Reference the SPECIFIC topics shown in the analysis above (e.g., "I see you're struggling with Integrals and Dijkstra's Algorithm")
+3. Offer to help with ONE specific topic from the critical areas
+4. DO NOT ask vague questions or beat around the bush
+5. DO NOT repeat any statistics - they're already shown above
+
+Example good response:
+"Based on your performance data, I can see Integrals and Dijkstra's Algorithm are your main challenges right now. Would you like me to explain integration by parts, or would you prefer to work through some Dijkstra's algorithm examples together?"
+
+DO NOT write long paragraphs about learning or ask generic questions. Be specific and actionable.
+"""
+            if context.get("enhanced_system_prompt"):
+                context["enhanced_system_prompt"] += f"\n\n{weakness_instruction}"
+            else:
+                context["enhanced_system_prompt"] = weakness_instruction
+        
+        # If a feature is detected, add redirect instruction
+        if detected_feature:
+            feature_instruction = f"""
+FEATURE DETECTED: The user is asking about {detected_feature['name']}.
+
+Your response MUST:
+1. Briefly acknowledge their request (1 sentence)
+2. Mention that they can access this feature directly
+3. Include this exact markdown link: **[Go to {detected_feature['name']} →]({detected_feature['link']})**
+4. Offer to help with any questions about using that feature
+
+Example:
+"I can help you with your notes! You can view and manage all your notes in the **[Go to Notes Hub →](/notes-hub)**. Would you like me to explain how to organize your notes or search for specific topics?"
+
+Keep it brief and include the link.
+"""
+            if context.get("enhanced_system_prompt"):
+                context["enhanced_system_prompt"] += f"\n\n{feature_instruction}"
+            else:
+                context["enhanced_system_prompt"] = feature_instruction
+        
         # Use enhanced prompt if available, otherwise use standard generation
         if enhanced_prompt:
             context["enhanced_system_prompt"] = enhanced_prompt
@@ -1265,7 +1433,16 @@ class ChatAgent(BaseAgent):
                 reasoning_chain=state.get("reasoning_chain", [])
             )
         
-        state["draft_response"] = response
+        # === COMBINE FORMATTED WEAKNESS DATA WITH AI RESPONSE ===
+        if formatted_weakness_data:
+            # Prepend the formatted analysis before the AI's personalized response
+            combined_response = f"{formatted_weakness_data}\n\n---\n\n{response}"
+            state["draft_response"] = combined_response
+            state["_combined_weakness_response"] = True
+            logger.info("✅ Combined formatted weakness analysis with AI response")
+        else:
+            state["draft_response"] = response
+        
         state["execution_path"].append("chat:generate")
         
         return state
