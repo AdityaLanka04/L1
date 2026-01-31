@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import ReactFlow, {
   Background,
   Controls,
@@ -26,7 +26,7 @@ const CustomNode = ({ data, selected }) => {
           <MapPin size={16} />
         </div>
         <div className="kr-node-text-flow">
-          <h4>{data.label}</h4>
+          <h4 className="kr-node-title-text">{data.label}</h4>
           <p>{data.description}</p>
           {data.isExplored && (
             <span className="kr-explored-badge-flow">
@@ -50,9 +50,10 @@ const CustomNode = ({ data, selected }) => {
             data.onExplore && data.onExplore(data.nodeId); 
           }}
           disabled={data.isExploring || data.isExpanding}
+          title={data.isExploring ? 'Exploring...' : 'Explore this topic'}
         >
-          <Book size={12} />
-          {data.isExploring ? '...' : 'Explore'}
+          <Book size={8} />
+          <span>Learn</span>
         </button>
         {(data.expansionStatus === 'unexpanded' || !data.expansionStatus) && (
           <button 
@@ -62,9 +63,10 @@ const CustomNode = ({ data, selected }) => {
               data.onExpand && data.onExpand(data.nodeId); 
             }}
             disabled={data.isExpanding || data.isExploring}
+            title={data.isExpanding ? 'Expanding...' : 'Expand to show subtopics'}
           >
-            <Plus size={12} />
-            {data.isExpanding ? '...' : 'Expand'}
+            <Plus size={8} />
+            <span>More</span>
           </button>
         )}
         <button 
@@ -75,8 +77,8 @@ const CustomNode = ({ data, selected }) => {
           }}
           title="Add custom child node"
         >
-          <Plus size={12} />
-          Add
+          <Plus size={8} />
+          <span>Add</span>
         </button>
       </div>
       <Handle 
@@ -90,6 +92,7 @@ const CustomNode = ({ data, selected }) => {
 
 const KnowledgeRoadmap = () => {
   const navigate = useNavigate();
+  const { roadmapId } = useParams();
   const token = localStorage.getItem('token');
   const userId = localStorage.getItem('user_id') || localStorage.getItem('username');
 
@@ -250,8 +253,8 @@ const createRoadmapFromChat = async () => {
   const addChildNodeRef = useRef(null);
 
   // Layout constants
-  const HORIZONTAL_SPACING = 280;
-  const VERTICAL_SPACING = 250;
+  const HORIZONTAL_SPACING = 180;
+  const VERTICAL_SPACING = 150;
 
   const nodeTypes = useMemo(() => ({
     custom: CustomNode,
@@ -260,6 +263,13 @@ const createRoadmapFromChat = async () => {
   useEffect(() => {
     fetchRoadmaps();
   }, []);
+
+  // Load roadmap from URL parameter
+  useEffect(() => {
+    if (roadmapId && !currentRoadmap) {
+      viewRoadmap(parseInt(roadmapId));
+    }
+  }, [roadmapId]);
 
   const fetchRoadmaps = async () => {
     try {
@@ -458,8 +468,8 @@ const createRoadmapFromChat = async () => {
                   }
                   
                   // Now add the children
-                  const horizontalSpacing = 280;
-                  const baseVerticalSpacing = 250;
+                  const horizontalSpacing = 180;
+                  const baseVerticalSpacing = 150;
                   const depthMultiplier = 1.2;
                   const verticalSpacing = parentDepth === 0 
                     ? 350 
@@ -618,8 +628,8 @@ const createRoadmapFromChat = async () => {
             }
             
             const childrenCount = data.child_nodes.length;
-            const horizontalSpacing = 280;
-            const baseVerticalSpacing = 250;
+            const horizontalSpacing = 180;
+            const baseVerticalSpacing = 150;
             const depthMultiplier = 1.2;
             const verticalSpacing = parentDepth === 0 
               ? 350 
@@ -850,8 +860,8 @@ const createRoadmapFromChat = async () => {
             return edge !== undefined;
           });
 
-          const horizontalSpacing = 280;
-          const baseVerticalSpacing = 250;
+          const horizontalSpacing = 180;
+          const baseVerticalSpacing = 150;
           const parentDepth = parentNode.data.depth;
           const verticalSpacing = parentDepth === 0 ? 350 : baseVerticalSpacing * Math.pow(1.2, parentDepth);
 
@@ -1116,6 +1126,9 @@ User question: ${messageText}`);
 
   // FIXED: viewRoadmap using saved UI state as source of truth for what user was viewing
   const viewRoadmap = async (roadmapId) => {
+    // Navigate to the roadmap URL
+    navigate(`/knowledge-roadmap/${roadmapId}`);
+    
     try {
       setLoading(true);
       
@@ -1128,13 +1141,17 @@ User question: ${messageText}`);
 
       if (response.ok) {
         const data = await response.json();
-                setCurrentRoadmap(data.roadmap);
+        console.log('📊 Roadmap data received:', data);
+        setCurrentRoadmap(data.roadmap);
         
         // Use nodes_flat from backend response
         const allNodes = data.nodes_flat || [];
-                
+        console.log('📦 Total nodes from backend:', allNodes.length);
+        console.log('🌳 All nodes:', allNodes);
+        
         // Use saved expanded nodes if available, otherwise start with empty (only root visible)
         const savedExpandedNodes = savedState ? new Set(savedState.expandedNodes) : new Set();
+        console.log('💾 Saved expanded nodes:', Array.from(savedExpandedNodes));
         
         // Restore explored nodes cache
         if (savedState && savedState.exploredNodesCache) {
@@ -1159,7 +1176,8 @@ User question: ${messageText}`);
         
         // Find root nodes (no parent)
         const rootNodes = allNodes.filter(node => !node.parent_id);
-                
+        console.log('🌱 Root nodes found:', rootNodes.length, rootNodes);
+        
         // BFS to find visible nodes based on SAVED UI state (not backend expansion_status)
         // A node is visible if:
         // 1. It's a root node, OR
@@ -1178,11 +1196,14 @@ User question: ${messageText}`);
           }
         }
         
+        console.log('👁️ Visible node IDs:', Array.from(visibleNodeIds));
+        
         // Update expandedNodes state to match saved state
         setExpandedNodes(savedExpandedNodes);
         
         // Filter to only visible nodes
         const visibleNodes = allNodes.filter(node => visibleNodeIds.has(node.id));
+        console.log('✅ Visible nodes:', visibleNodes.length, visibleNodes);
                 
         // Group nodes by depth for positioning
         const nodesByDepth = new Map();
@@ -1197,8 +1218,8 @@ User question: ${messageText}`);
         const flowNodes = visibleNodes.map(node => {
           const nodesAtThisDepth = nodesByDepth.get(node.depth_level) || [];
           const indexAtDepth = nodesAtThisDepth.indexOf(node);
-          const horizontalSpacing = 280;
-          const baseVerticalSpacing = 250;
+          const horizontalSpacing = 180;
+          const baseVerticalSpacing = 150;
           const depthMultiplier = 1.2;
           const verticalSpacing = baseVerticalSpacing * Math.pow(depthMultiplier, node.depth_level);
           
@@ -1255,8 +1276,12 @@ User question: ${messageText}`);
 
                 setNodes(flowNodes);
         setEdges(flowEdges);
+        
+        console.log('🎨 Flow nodes created:', flowNodes.length, flowNodes);
+        console.log('🔗 Flow edges created:', flowEdges.length, flowEdges);
       }
     } catch (error) {
+      console.error('❌ Error loading roadmap:', error);
           } finally {
       setLoading(false);
     }
@@ -1451,18 +1476,66 @@ User question: ${messageText}`);
     <div className="kr-page">
       <header className="kr-header">
         <div className="kr-header-left">
-          <div className="kr-brand">
+          <div className="kr-brand" onClick={() => navigate('/dashboard')}>
             <div className="kr-logo-img"></div>
             cerbyl
           </div>
           <div className="kr-header-divider"></div>
-          <span className="kr-page-title">KNOWLEDGE ROADMAP</span>
+          <span className="kr-page-title">Knowledge Roadmap</span>
+          {currentRoadmap && (
+            <>
+              <div className="kr-header-divider"></div>
+              <span className="kr-roadmap-title">{currentRoadmap.title || currentRoadmap.root_topic}</span>
+            </>
+          )}
         </div>
         <div className="kr-header-right">
-          <button className="kr-nav-btn" onClick={() => navigate('/dashboard')}>
-            DASHBOARD
-            <ChevronRight size={14} />
-          </button>
+          {currentRoadmap ? (
+            <>
+              <button className="kr-nav-btn" onClick={() => { 
+                navigate('/knowledge-roadmap');
+                setCurrentRoadmap(null); 
+                setNodes([]); 
+                setEdges([]); 
+                setNodeExplanation(null);
+              }}>
+                Back to Roadmaps
+              </button>
+              {selectedNodeId && (
+                <button 
+                  className="kr-delete-node-btn" 
+                  onClick={deleteSelectedNode}
+                  title="Delete selected node"
+                >
+                  <Trash2 size={16} />
+                  <span>Delete Node</span>
+                </button>
+              )}
+              <button 
+                className="kr-export-btn" 
+                onClick={exportRoadmapToNotes}
+                disabled={exporting}
+                title="Export explored nodes to Notes"
+              >
+                {exporting ? (
+                  <>
+                    <Loader size={16} className="kr-spinner" />
+                    <span>Exporting...</span>
+                  </>
+                ) : (
+                  <>
+                    <FileDown size={16} />
+                    <span>Export</span>
+                  </>
+                )}
+              </button>
+            </>
+          ) : (
+            <button className="kr-nav-btn" onClick={() => navigate('/dashboard')}>
+              Dashboard
+              <ChevronRight size={14} />
+            </button>
+          )}
         </div>
       </header>
 
@@ -1551,55 +1624,6 @@ User question: ${messageText}`);
           </>
         ) : (
           <div className="kr-viewer-fullscreen">
-            <div className="kr-viewer-header-compact">
-              <button className="kr-back-to-list-compact" onClick={() => { 
-                setCurrentRoadmap(null); 
-                setNodes([]); 
-                setEdges([]); 
-                setNodeExplanation(null);
-              }}>
-                ← Back to Roadmaps
-              </button>
-              <div className="kr-viewer-title-section">
-                <h2 className="kr-viewer-title-compact">{currentRoadmap.title || `Exploring ${currentRoadmap.root_topic}`}</h2>
-                <div className="kr-viewer-stats-compact">
-                  <span>{currentRoadmap.total_nodes || nodes.length} nodes</span>
-                  <span>•</span>
-                  <span>Depth: {currentRoadmap.max_depth_reached || 0}</span>
-                </div>
-              </div>
-              <div className="kr-viewer-actions">
-                {selectedNodeId && (
-                  <button 
-                    className="kr-delete-node-btn" 
-                    onClick={deleteSelectedNode}
-                    title="Delete selected node"
-                  >
-                    <Trash2 size={16} />
-                    <span>Delete Node</span>
-                  </button>
-                )}
-                <button 
-                  className="kr-export-btn" 
-                  onClick={exportRoadmapToNotes}
-                  disabled={exporting}
-                  title="Export explored nodes to Notes"
-                >
-                  {exporting ? (
-                    <>
-                      <Loader size={16} className="kr-spinner" />
-                      <span>Exporting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <FileDown size={16} />
-                      <span>Export to Notes</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-
             <div className="kr-flow-wrapper">
               <div className="kr-flow-container-fullscreen">
                 {loading && nodes.length === 0 ? (
@@ -1621,13 +1645,13 @@ User question: ${messageText}`);
                     defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
                     attributionPosition="bottom-left"
                   >
-                    <Background color="var(--kr-border-subtle)" gap={20} />
+                    <Background color="var(--accent)" gap={20} />
                     <Controls />
                     <MiniMap 
                       nodeColor={(node) => {
-                        if (node.data.isExplored) return 'var(--kr-success)';
-                        if (node.data.expansionStatus === 'expanded') return 'var(--kr-accent)';
-                        return 'var(--kr-text-secondary)';
+                        if (node.data.isExplored) return 'var(--success)';
+                        if (node.data.expansionStatus === 'expanded') return 'var(--accent)';
+                        return 'var(--text-secondary)';
                       }}
                       maskColor="rgba(0, 0, 0, 0.6)"
                     />

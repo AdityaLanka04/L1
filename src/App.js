@@ -106,6 +106,7 @@ function App() {
             <Route path="/shared" element={<SharedContent />} />
             <Route path="/shared/:contentType/:contentId" element={<SharedContent />} />
             <Route path="/knowledge-roadmap" element={<ProtectedRoute><KnowledgeRoadmap /></ProtectedRoute>} />
+            <Route path="/knowledge-roadmap/:roadmapId" element={<ProtectedRoute><KnowledgeRoadmap /></ProtectedRoute>} />
             <Route path="/concept-web" element={<ProtectedRoute><ConceptWeb /></ProtectedRoute>} />
             <Route path="/question-bank" element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
             <Route path="/slide-explorer" element={<ProtectedRoute><SlideExplorer /></ProtectedRoute>} />
