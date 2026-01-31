@@ -10,7 +10,7 @@ import './MyNotesSmartFolders.css';
 import './MyNotesChatImport.css';
 import { API_URL } from '../config';
 import Templates from '../components/Templates';
-import SmartFolders from '../components/SmartFolders';
+import ImportExportModal from '../components/ImportExportModal';
 
 const MyNotes = () => {
   const navigate = useNavigate();
@@ -39,7 +39,7 @@ const MyNotes = () => {
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [noteToMove, setNoteToMove] = useState(null);
   const [showTemplates, setShowTemplates] = useState(false);
-  const [showSmartFolders, setShowSmartFolders] = useState(false);
+  const [showConvertModal, setShowConvertModal] = useState(false);
 
   // Icons
   const Icons = {
@@ -179,10 +179,19 @@ const MyNotes = () => {
         { formatStyle: 'structured' }
       );
       
-      if (result.success) {
+      if (result.success && result.result) {
+        const noteResult = result.result;
+        
+        // Refresh notes list
         await loadNotes();
+        
         setShowChatImport(false);
         setSelectedSessions([]);
+        
+        // Navigate to the newly created note in the editor
+        if (noteResult.note_id) {
+          navigate(`/notes/editor/${noteResult.note_id}`);
+        }
       } else {
         throw new Error(result.response || 'Conversion failed');
       }
@@ -385,9 +394,9 @@ const MyNotes = () => {
                 <span className="nt-nav-icon"><Upload size={18} /></span>
                 <span className="nt-nav-text">From Chat</span>
               </button>
-              <button className="nt-nav-item" onClick={() => setShowSmartFolders(true)}>
+              <button className="nt-nav-item" onClick={() => setShowConvertModal(true)}>
                 <span className="nt-nav-icon"><Sparkles size={18} /></span>
-                <span className="nt-nav-text">Smart Folders</span>
+                <span className="nt-nav-text">Convert</span>
               </button>
               <button className="nt-nav-item" onClick={() => navigate('/notes/ai-media')}>
                 <span className="nt-nav-icon"><FileText size={18} /></span>
@@ -685,19 +694,17 @@ const MyNotes = () => {
         </>
       )}
 
-      {/* Smart Folders Modal */}
-      {showSmartFolders && (
-        <>
-          <div className="nt-modal-overlay" style={{ zIndex: 10000 }} onClick={() => setShowSmartFolders(false)} />
-          <SmartFolders
-            notes={notes}
-            onFolderSelect={(filteredNotes, folderName) => {
-                            setShowSmartFolders(false);
-            }}
-            onClose={() => setShowSmartFolders(false)}
-          />
-        </>
-      )}
+      {/* Convert Modal */}
+      <ImportExportModal
+        isOpen={showConvertModal}
+        onClose={() => setShowConvertModal(false)}
+        mode="import"
+        sourceType="notes"
+        onSuccess={(result) => {
+          loadNotes();
+          setShowConvertModal(false);
+        }}
+      />
     </div>
   );
 };

@@ -2372,30 +2372,64 @@
 }
 
 /* ==================== SELECTION STYLING ==================== */
-/* Light mode selection - dark highlight */
+/* Light mode selection - black highlight with white text */
 .quill-editor-enhanced .ql-editor ::selection,
 .block-editor-container ::selection,
-.block-editor-container:not(.dark-mode) ::selection {
-  background: rgba(0, 0, 0, 0.2);
-  color: inherit;
+.block-editor-container:not(.dark-mode) ::selection,
+.note-title-input ::selection,
+input[type="text"]::selection,
+.editable-title ::selection,
+h1.note-title ::selection,
+.title-input ::selection {
+  background: #000000 !important;
+  color: #ffffff !important;
 }
 
 .quill-editor-enhanced .ql-editor ::-moz-selection,
 .block-editor-container ::-moz-selection,
-.block-editor-container:not(.dark-mode) ::-moz-selection {
-  background: rgba(0, 0, 0, 0.2);
-  color: inherit;
+.block-editor-container:not(.dark-mode) ::-moz-selection,
+.note-title-input ::-moz-selection,
+input[type="text"]::-moz-selection,
+.editable-title ::-moz-selection,
+h1.note-title ::-moz-selection,
+.title-input ::-moz-selection {
+  background: #000000 !important;
+  color: #ffffff !important;
 }
 
-/* Dark mode selection - light highlight */
-.block-editor-container.dark-mode ::selection {
-  background: rgba(255, 255, 255, 0.3);
-  color: inherit;
+/* Dark mode selection - white highlight with dark text */
+.block-editor-container.dark-mode ::selection,
+.block-editor-container.dark-mode *::selection,
+.dark-mode .note-title-input ::selection,
+.dark-mode input[type="text"]::selection,
+.dark-mode .editable-title ::selection,
+.dark-mode h1.note-title ::selection,
+.dark-mode .title-input ::selection,
+.dark-mode .ql-editor ::selection,
+.dark-mode p::selection,
+.dark-mode span::selection,
+.dark-mode div::selection {
+  background: #ffffff !important;
+  color: #000000 !important;
+  text-shadow: none !important;
+  -webkit-text-fill-color: #000000 !important;
 }
 
-.block-editor-container.dark-mode ::-moz-selection {
-  background: rgba(255, 255, 255, 0.3);
-  color: inherit;
+.block-editor-container.dark-mode ::-moz-selection,
+.block-editor-container.dark-mode *::-moz-selection,
+.dark-mode .note-title-input ::-moz-selection,
+.dark-mode input[type="text"]::-moz-selection,
+.dark-mode .editable-title ::-moz-selection,
+.dark-mode h1.note-title ::-moz-selection,
+.dark-mode .title-input ::-moz-selection,
+.dark-mode .ql-editor ::-moz-selection,
+.dark-mode p::-moz-selection,
+.dark-mode span::-moz-selection,
+.dark-mode div::-moz-selection {
+  background: #ffffff !important;
+  color: #000000 !important;
+  text-shadow: none !important;
+  -webkit-text-fill-color: #000000 !important;
 }
 
 /* ==================== AI BUTTON FLOATING ==================== */

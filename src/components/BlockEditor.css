@@ -298,13 +298,15 @@
   color: inherit !important;
 }
 
-/* Dark mode selection - light highlight */
+/* Dark mode selection - white highlight with black text */
 .block-editor.dark-mode .block-content::selection,
 .block-editor.dark-mode .block-content *::selection,
 .block-wrapper.dark-mode .block-content::selection,
 .block-wrapper.dark-mode .block-content *::selection {
-  background: rgba(255, 255, 255, 0.35) !important;
-  color: inherit !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  text-shadow: none !important;
+  -webkit-text-fill-color: #000000 !important;
 }
 
 .block-content:empty:before {

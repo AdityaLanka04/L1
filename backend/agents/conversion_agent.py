@@ -325,6 +325,62 @@ class ConversionAgent(BaseAgent):
             checkpointer=checkpointer or MemorySaver()
         )
     
+    def _generate_crisp_title(self, source_content: List[Dict], content_type: str) -> str:
+        """Generate a crisp, efficient title (MAXIMUM 4 words, prefer 2-3 if possible)"""
+        try:
+            # Extract key topics from source content
+            topics = []
+            for item in source_content[:3]:  # Use first 3 items max
+                if 'title' in item:
+                    topics.append(item['title'])
+                if 'content' in item:
+                    # Extract first meaningful sentence
+                    content_preview = item['content'][:200]
+                    topics.append(content_preview)
+            
+            combined_text = " ".join(topics)[:500]  # Limit to 500 chars
+            
+            # Use AI to generate crisp title
+            prompt = f"""Generate a crisp, efficient title for this {content_type} content.
+
+RULES:
+- MAXIMUM 4 words
+- Prefer 2-3 words if possible
+- Focus on the MAIN TOPIC only
+- NO generic words like "Study Guide", "Notes on", "Flashcards about"
+- Be specific and descriptive
+- Use title case
+
+Content preview:
+{combined_text}
+
+Examples of GOOD titles:
+- "Photosynthesis Process"
+- "World War II"
+- "Machine Learning Basics"
+- "Quantum Mechanics Fundamentals"
+
+Generate ONLY the title (no quotes, no explanation):"""
+
+            title = self.ai_client.generate(prompt, max_tokens=20, temperature=0.3)
+            title = title.strip().strip('"').strip("'")
+            
+            # Enforce word limit
+            words = title.split()
+            if len(words) > 4:
+                title = " ".join(words[:4])
+            
+            return title
+            
+        except Exception as e:
+            logger.error(f"Error generating crisp title: {e}")
+            # Fallback to simple extraction
+            if source_content and 'title' in source_content[0]:
+                fallback = source_content[0]['title']
+                words = fallback.split()[:4]
+                return " ".join(words)
+            return "Converted Content"
+    
     def _build_graph(self) -> None:
         """Build the LangGraph state machine"""
         graph = StateGraph(ConversionAgentState)
@@ -817,9 +873,11 @@ class ConversionAgent(BaseAgent):
                 
                 cards = generated.get("cards", [])
                 source_type = state.get("source_type")
+                source_content = state.get("source_content", [])
                 
-                # Create flashcard set
-                set_title = f"Flashcards from {source_type.title()}"
+                # Generate crisp 4-word title using AI
+                set_title = self._generate_crisp_title(source_content, "flashcards")
+                
                 flashcard_set = FlashcardSet(
                     user_id=actual_user_id,
                     title=set_title,
@@ -852,9 +910,11 @@ class ConversionAgent(BaseAgent):
                 
                 questions = generated.get("questions", [])
                 source_type = state.get("source_type")
+                source_content = state.get("source_content", [])
                 
-                # Create question set
-                set_title = f"Questions from {source_type.title()}"
+                # Generate crisp 4-word title using AI
+                set_title = self._generate_crisp_title(source_content, "questions")
+                
                 question_set = QuestionSet(
                     user_id=actual_user_id,
                     title=set_title,
@@ -893,7 +953,10 @@ class ConversionAgent(BaseAgent):
                 from models import Note
                 
                 content = generated.get("content", "")
-                title = generated.get("title", "Converted Notes")
+                source_content = state.get("source_content", [])
+                
+                # Generate crisp 4-word title using AI
+                title = self._generate_crisp_title(source_content, "notes")
                 
                 # Create note
                 note = Note(

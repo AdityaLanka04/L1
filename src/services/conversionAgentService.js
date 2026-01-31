@@ -8,7 +8,8 @@ import { API_URL, getAuthToken } from '../config';
 
 class ConversionAgentService {
   constructor() {
-    this.baseUrl = `${API_URL}/api/agents/convert`;
+    // API_URL already includes /api, so just add the agents/convert path
+    this.baseUrl = `${API_URL}/agents/convert`;
   }
 
   /**
@@ -31,6 +32,170 @@ class ConversionAgentService {
       'Authorization': `Bearer ${token}`
       // Don't set Content-Type for FormData - browser will set it with boundary
     };
+  }
+
+  /**
+   * Generic convert function for backward compatibility
+   * Routes to appropriate conversion method based on sourceType and targetType
+   */
+  async convert(params) {
+    const { 
+      sourceType, 
+      targetType, 
+      destinationType, // Alternative name for targetType
+      userId, 
+      content, 
+      sourceIds,
+      options = {} 
+    } = params;
+
+    // Use targetType or destinationType (for backward compatibility)
+    const target = targetType || destinationType;
+
+    if (!target) {
+      throw new Error('targetType or destinationType is required');
+    }
+
+    // Merge options with top-level params
+    const mergedOptions = {
+      ...options,
+      cardCount: params.cardCount || options.cardCount,
+      questionCount: params.questionCount || options.questionCount,
+      difficulty: params.difficulty || options.difficulty,
+      noteIds: sourceIds || options.noteIds || [],
+      flashcardIds: sourceIds || options.flashcardIds || [],
+      questionIds: sourceIds || options.questionIds || [],
+      formatStyle: params.formatStyle || options.formatStyle,
+      depthLevel: params.depthLevel || options.depthLevel
+    };
+
+    // Route to appropriate conversion method
+    if (sourceType === 'notes' && target === 'flashcards') {
+      return this.convertNotesToFlashcards({
+        userId,
+        notesContent: content,
+        noteIds: mergedOptions.noteIds,
+        cardCount: mergedOptions.cardCount || 10,
+        difficulty: mergedOptions.difficulty || 'medium',
+        includeDefinitions: mergedOptions.includeDefinitions,
+        includeExamples: mergedOptions.includeExamples,
+        sessionId: mergedOptions.sessionId
+      });
+    }
+
+    if (sourceType === 'notes' && target === 'questions') {
+      return this.convertNotesToQuestions({
+        userId,
+        notesContent: content,
+        noteIds: mergedOptions.noteIds,
+        questionCount: mergedOptions.questionCount || 5,
+        questionTypes: mergedOptions.questionTypes || ['multiple_choice'],
+        difficulty: mergedOptions.difficulty || 'medium',
+        sessionId: mergedOptions.sessionId
+      });
+    }
+
+    if (sourceType === 'flashcards' && target === 'notes') {
+      return this.convertFlashcardsToNotes({
+        userId,
+        flashcardIds: mergedOptions.flashcardIds,
+        noteFormat: mergedOptions.noteFormat || 'structured',
+        includeExamples: mergedOptions.includeExamples,
+        sessionId: mergedOptions.sessionId
+      });
+    }
+
+    if (sourceType === 'flashcards' && target === 'questions') {
+      return this.convertFlashcardsToQuestions({
+        userId,
+        flashcardIds: mergedOptions.flashcardIds,
+        questionCount: mergedOptions.questionCount || 5,
+        questionTypes: mergedOptions.questionTypes || ['multiple_choice'],
+        difficulty: mergedOptions.difficulty || 'medium',
+        sessionId: mergedOptions.sessionId
+      });
+    }
+
+    if (sourceType === 'questions' && target === 'flashcards') {
+      return this.convertQuestionsToFlashcards({
+        userId,
+        questionIds: mergedOptions.questionIds,
+        cardCount: mergedOptions.cardCount || 10,
+        includeAnswers: mergedOptions.includeAnswers,
+        includeExplanations: mergedOptions.includeExplanations,
+        sessionId: mergedOptions.sessionId
+      });
+    }
+
+    if (sourceType === 'questions' && target === 'notes') {
+      return this.convertQuestionsToNotes({
+        userId,
+        questionIds: mergedOptions.questionIds,
+        noteFormat: mergedOptions.noteFormat || 'study_guide',
+        includeAnswers: mergedOptions.includeAnswers,
+        includeExplanations: mergedOptions.includeExplanations,
+        sessionId: mergedOptions.sessionId
+      });
+    }
+
+    if (sourceType === 'chat' && target === 'notes') {
+      return this.convertChatToNotes({
+        userId,
+        chatHistory: content,
+        chatId: mergedOptions.chatId,
+        noteFormat: mergedOptions.noteFormat || 'summary',
+        includeQuestions: mergedOptions.includeQuestions,
+        sessionId: mergedOptions.sessionId
+      });
+    }
+
+    if (sourceType === 'playlist' && target === 'notes') {
+      return this.convertPlaylistToNotes({
+        userId,
+        playlistUrl: content,
+        playlistItems: mergedOptions.playlistItems || [],
+        noteFormat: mergedOptions.noteFormat || 'structured',
+        includeTimestamps: mergedOptions.includeTimestamps,
+        sessionId: mergedOptions.sessionId
+      });
+    }
+
+    if (sourceType === 'playlist' && target === 'flashcards') {
+      return this.convertPlaylistToFlashcards({
+        userId,
+        playlistUrl: content,
+        playlistItems: mergedOptions.playlistItems || [],
+        cardCount: mergedOptions.cardCount || 10,
+        difficulty: mergedOptions.difficulty || 'medium',
+        includeDefinitions: mergedOptions.includeDefinitions,
+        sessionId: mergedOptions.sessionId
+      });
+    }
+
+    // Handle export formats
+    if (target === 'csv' && sourceType === 'flashcards') {
+      return this.exportFlashcardsToCSV({
+        userId,
+        flashcardIds: mergedOptions.flashcardIds,
+        includeMetadata: mergedOptions.includeMetadata,
+        delimiter: mergedOptions.delimiter,
+        sessionId: mergedOptions.sessionId
+      });
+    }
+
+    if (target === 'pdf' && sourceType === 'questions') {
+      return this.exportQuestionsToPDF({
+        userId,
+        questionIds: mergedOptions.questionIds,
+        includeAnswers: mergedOptions.includeAnswers,
+        includeExplanations: mergedOptions.includeExplanations,
+        title: mergedOptions.title,
+        format: mergedOptions.format,
+        sessionId: mergedOptions.sessionId
+      });
+    }
+
+    throw new Error(`Unsupported conversion: ${sourceType} to ${target}`);
   }
 
   /**
@@ -332,6 +497,38 @@ class ConversionAgentService {
       return await response.json();
     } catch (error) {
       console.error('Convert chat to notes error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Helper method: Convert chat sessions to notes (backward compatibility)
+   * @param {string} userId - User ID
+   * @param {Array} sessionIds - Array of chat session IDs
+   * @param {Object} options - Conversion options
+   */
+  async chatToNotes(userId, sessionIds, options = {}) {
+    try {
+      // Call the backend endpoint directly with session IDs
+      const response = await fetch(`${this.baseUrl}/chat-to-notes`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          user_id: userId,
+          session_ids: sessionIds,
+          format_style: options.formatStyle || 'structured',
+          session_id: options.sessionId || null
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Failed to convert chat to notes: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Chat to notes helper error:', error);
       throw error;
     }
   }
