@@ -50,7 +50,7 @@
   backdrop-filter: blur(20px);
 }
 
-/* Accent glow at top */
+/* Accent line at top */
 .slide-notif-card::before {
   content: '';
   position: absolute;
@@ -62,13 +62,9 @@
     var(--accent) 0%, 
     color-mix(in srgb, var(--accent) 70%, transparent) 50%,
     transparent 100%);
-  animation: notifGlow 3s ease-in-out infinite;
 }
 
-@keyframes notifGlow {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
-}
+/* Removed glow animation */
 
 .slide-notif-card:hover {
   transform: translateY(-4px) scale(1.02);

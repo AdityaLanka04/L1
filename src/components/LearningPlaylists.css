@@ -67,7 +67,6 @@
 
 .create-playlist-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 30px var(--glow);
   background: var(--accent-hover);
 }
 
@@ -205,7 +204,6 @@
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 5%, var(--panel) 95%);
   transform: translateY(-4px);
-  box-shadow: 0 0 30px var(--glow);
 }
 
 .create-playlist-card-icon {
@@ -270,7 +268,6 @@
 
 .playlist-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 0 30px var(--glow);
   border-color: var(--accent);
 }
 
@@ -438,7 +435,6 @@
 
 .playlist-action-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 20px var(--glow);
 }
 
 .playlist-tags {
@@ -572,7 +568,6 @@
 
 .detail-action-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 30px var(--glow);
 }
 
 .playlist-detail-stats {
@@ -678,7 +673,6 @@
 
 .playlist-item:hover {
   border-color: var(--accent);
-  box-shadow: 0 0 20px var(--glow);
 }
 
 .playlist-item.completed {
@@ -840,7 +834,6 @@
 
 .item-link:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 20px var(--glow);
 }
 
 .empty-items {
@@ -1006,7 +999,7 @@
 }
 
 .add-tag-btn:hover {
-  box-shadow: 0 0 20px var(--glow);
+  box-shadow: none;
 }
 
 .tags-list {
@@ -1085,5 +1078,4 @@
 .btn-secondary:hover,
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 30px var(--glow);
 }

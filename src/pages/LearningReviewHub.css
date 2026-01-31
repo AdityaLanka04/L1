@@ -259,6 +259,7 @@
 }
 
 .lrh-card-glow {
+  display: none;
   position: absolute;
   inset: -1px;
   background: linear-gradient(135deg, 

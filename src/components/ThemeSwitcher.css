@@ -228,7 +228,6 @@
 .ts-preset-btn.active {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 10%, var(--bg-primary));
-  box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .ts-preset-colors {
@@ -402,6 +401,7 @@
 }
 
 .ts-preview-glow {
+  display: none;
   position: absolute;
   top: -1px;
   left: -1px;

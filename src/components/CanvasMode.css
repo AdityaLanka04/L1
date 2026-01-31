@@ -15,14 +15,12 @@
   --text-primary: #EAECEF;
   --text-secondary: #B8C0CC;
   --accent: #D7B38C;
-  --glow: rgba(215, 179, 140, 0.35);
   --success: #10B981;
   --warning: #F59E0B;
   --danger: #EF4444;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 20px var(--glow);
   --hover-bg: rgba(255, 255, 255, 0.05);
 }
 
@@ -580,14 +578,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-lg), 0 0 20px var(--glow);
+  box-shadow: var(--shadow-lg);
   transition: all 0.3s ease;
   z-index: 1000;
 }
 
 .floating-help-btn:hover {
   transform: scale(1.1);
-  box-shadow: var(--shadow-lg), 0 0 30px var(--glow);
+  box-shadow: var(--shadow-lg);
 }
 
 @media (max-width: 768px) {

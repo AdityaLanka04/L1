@@ -13,7 +13,6 @@
   --sq-accent: var(--accent);
   --sq-accent-light: color-mix(in srgb, var(--sq-accent) 70%, white);
   --sq-accent-dark: color-mix(in srgb, var(--sq-accent) 85%, black);
-  --sq-accent-glow: color-mix(in srgb, var(--sq-accent) 25%, transparent);
   --sq-success: #10b981;
   --sq-warning: #f59e0b;
   --sq-danger: #ef4444;
@@ -299,7 +298,6 @@
 .sq-generator-form .sq-form-group select:focus {
   outline: none;
   border-color: var(--sq-accent);
-  box-shadow: 0 0 0 4px var(--sq-accent-glow);
 }
 
 .sq-generator-form .sq-form-group input::placeholder {
@@ -339,7 +337,6 @@
 .sq-generator-form .sq-form-group select:focus {
   outline: none;
   border-color: var(--sq-accent);
-  box-shadow: 0 0 0 4px var(--sq-accent-glow);
 }
 
 .sq-generator-form .sq-form-group select option {
@@ -435,7 +432,6 @@
 .sq-mode-btn.active {
   border-color: var(--sq-accent);
   background: color-mix(in srgb, var(--sq-accent) 12%, var(--sq-bg-tertiary));
-  box-shadow: 0 0 0 4px var(--sq-accent-glow);
 }
 
 .sq-mode-header {
@@ -492,7 +488,6 @@
 .sq-timing-btn.active {
   border-color: var(--sq-accent);
   background: color-mix(in srgb, var(--sq-accent) 12%, var(--sq-bg-tertiary));
-  box-shadow: 0 0 0 4px var(--sq-accent-glow);
 }
 
 .sq-timing-name {
@@ -535,7 +530,6 @@
   font-family: 'Inter', sans-serif;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 20px var(--sq-accent-glow);
 }
 
 [data-theme-mode="light"] .sq-generator-form .sq-submit-btn {
@@ -555,7 +549,6 @@
 
 .sq-generator-form .sq-submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px var(--sq-accent-glow);
 }
 
 .sq-generator-form .sq-submit-btn:hover:not(:disabled)::before {

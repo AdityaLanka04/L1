@@ -108,7 +108,7 @@ body {
 }
 
 .ds-profile-picture:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 0 20px var(--glow);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
   transform: scale(1.05);
 }
 
@@ -207,7 +207,7 @@ body {
 .ds-customize-btn:hover {
   background: var(--accent);
   color: var(--bg-primary);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 0 20px var(--glow);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
   transform: translateY(-2px);
 }
 
@@ -302,7 +302,6 @@ body {
 .ds-header-left .dashboard-theme-option.active {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 10%, var(--bg-primary));
-  box-shadow: 0 0 20px var(--glow);
 }
 
 .ds-header-left .dashboard-theme-colors {
@@ -722,10 +721,11 @@ body {
 .ds-card:hover {
   transform: translateY(-4px);
   border-color: var(--accent);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3), 0 0 60px var(--glow);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
 }
 
 .ds-card-glow {
+  display: none;
   position: absolute;
   top: -1px;
   left: -1px;
@@ -791,7 +791,6 @@ body {
 
 .ds-card:hover .ds-ai-icon-display {
   transform: scale(1.1);
-  box-shadow: 0 0 60px var(--glow), 0 0 120px color-mix(in srgb, var(--accent) 60%, transparent);
 }
 
 .ds-ai-stats-row {
@@ -847,7 +846,7 @@ body {
 
 .ds-ai-chat-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3), 0 0 30px var(--glow);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
 }
 
 .ds-ai-chat-btn svg {
@@ -960,6 +959,7 @@ body {
 }
 
 .ds-learning-hub-grid .ds-card-glow {
+  display: none;
   position: absolute;
   top: -1px;
   left: -1px;
@@ -1302,7 +1302,7 @@ body {
   color: var(--bg-primary);
   border-color: var(--accent);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 0 0 20px var(--glow);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .ds-analytics-btn:hover span,
@@ -2183,7 +2183,7 @@ body {
 .ds-heatmap-day:hover {
   border: none;
   transform: scale(1.1);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 0 20px var(--glow);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
   z-index: 10;
 }
 
@@ -2308,7 +2308,7 @@ body {
 .ds-customize-btn.active {
   background: var(--accent);
   color: var(--bg-primary);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 0 20px var(--glow);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
 }
 
 .ds-customize-overlay {

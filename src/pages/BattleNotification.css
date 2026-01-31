@@ -15,7 +15,6 @@
   --text-primary: #EAECEF;
   --text-secondary: #B8C0CC;
   --accent: #D7B38C;
-  --glow: rgba(215, 179, 140, 0.35);
   --success: #10B981;
   --warning: #F59E0B;
   --danger: #EF4444;
@@ -66,7 +65,7 @@
   border: 2px solid var(--accent);
   max-width: 480px;
   width: 100%;
-  box-shadow: 0 0 0 1px var(--accent), var(--shadow-xl), 0 0 40px rgba(215, 179, 140, 0.4);
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow-xl);
   position: relative;
   animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   font-family: 'Inter', sans-serif;
@@ -112,10 +111,10 @@
 
 @keyframes pulse {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(215, 179, 140, 0.4);
+    box-shadow: 0 0 0 0 transparent;
   }
   50% {
-    box-shadow: 0 0 0 10px rgba(215, 179, 140, 0);
+    box-shadow: 0 0 0 10px transparent;
   }
 }
 
@@ -290,7 +289,6 @@
 .accept-btn:hover {
   background: color-mix(in srgb, var(--accent) 85%, transparent);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.4);
 }
 
 .accept-btn:active,

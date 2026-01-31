@@ -19,7 +19,6 @@
   --accent: #ff6b6b;
   --accent-light: #ff8787;
   --accent-dark: #e03131;
-  --glow: rgba(255, 107, 107, 0.1);
   --success: #51cf66;
   --warning: #ffd43b;
   --danger: #ff8787;
@@ -257,7 +256,6 @@ body {
 .form-textarea:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--glow);
 }
 
 .form-input::placeholder,
@@ -457,12 +455,12 @@ body {
 
 .upload-zone:hover {
   border-color: var(--accent);
-  background: var(--glow);
+  background: rgba(255, 107, 107, 0.1);
 }
 
 .upload-zone.drag-over {
   border-color: var(--accent);
-  background: var(--glow);
+  background: rgba(255, 107, 107, 0.1);
 }
 
 .upload-icon {
