@@ -346,7 +346,18 @@ Provide a JSON response with:
             }
     
     async def generate_notes_ai(self, transcript: str, analysis: Dict, style: str = "detailed", options: Dict = None) -> Dict:
-        """Generate formatted notes using Groq with optimized prompts for detailed output"""
+        """
+        Generate formatted notes using Groq with style-specific prompts
+        
+        Supported styles:
+        - detailed: Comprehensive detailed notes (default)
+        - bullet_points: Organized bullet point format
+        - mind_map: Hierarchical mind map structure
+        - cornell: Cornell note-taking method
+        - outline: Structured outline format
+        - qa: Question and answer format
+        - summary: Brief summary format
+        """
         try:
             if not self.groq_client:
                 raise ValueError("Groq client not available")
@@ -358,71 +369,27 @@ Provide a JSON response with:
             
             # Calculate word count
             word_count = len(transcript.split())
-            logger.info(f"Transcript word count: {word_count}")
+            logger.info(f"Transcript word count: {word_count}, style: {style}, difficulty: {difficulty}")
             
             # For very long transcripts (>12k words), use chunking with Groq
             if word_count > 12000 and style == "detailed":
                 logger.info("Using chunked processing for long transcript")
                 return await self._generate_notes_chunked_groq(transcript, analysis, difficulty, subject, custom_instructions)
             
-            # Single-pass generation with Groq
-            prompt = f"""You are an expert professor creating comprehensive lecture notes for students.
-
-LECTURE DETAILS:
-- Subject: {subject}
-- Difficulty: {difficulty}
-- Transcript Length: {word_count} words
-{f'- Special Instructions: {custom_instructions}' if custom_instructions else ''}
-
-YOUR TASK:
-Create EXTREMELY DETAILED study notes that cover EVERY important point from this lecture.
-Your notes should be AT LEAST 2500-3500 words and include:
-
-1. COMPREHENSIVE COVERAGE: Don't skip any major topics or concepts
-2. DETAILED EXPLANATIONS: Explain each concept thoroughly (4-6 sentences per concept)
-3. EXAMPLES & CONTEXT: Provide examples, analogies, and real-world applications
-4. STRUCTURED FORMAT: Use clear sections and subsections
-5. KEY TERMS: Highlight and define important terminology
-6. CONNECTIONS: Show how concepts relate to each other
-
-KEY CONCEPTS TO ELABORATE ON:
-{json.dumps(analysis.get('key_concepts', []))}
-
-COMPLETE LECTURE TRANSCRIPT:
-{transcript}
-
-IMPORTANT INSTRUCTIONS:
-1. Base your notes ONLY on the content from the transcript above
-2. Do NOT add information that wasn't mentioned in the lecture
-3. Organize and explain what the lecturer actually said
-4. You can rephrase for clarity, but stay true to the source material
-5. If the lecturer gives examples, include them
-6. If concepts are explained in the video, use those explanations
-
-FORMAT YOUR NOTES AS HTML:
-- Use <h2> for main sections (e.g., "Introduction", "Core Concepts", "Applications")
-- Use <h3> for major topics within sections
-- Use <h4> for subtopics and specific concepts
-- Use <strong> for key terms and important points
-- Use <ul> or <ol> for lists
-- Use <p> for explanatory paragraphs (write MULTIPLE paragraphs per concept)
-- Use <blockquote> for important quotes or key takeaways
-- Use <em> for emphasis
-
-CRITICAL: Make these notes COMPREHENSIVE and DETAILED. Students should be able to study from these notes alone. Do NOT just summarize - EXPAND and EXPLAIN thoroughly.
-
-Return ONLY the HTML content (no markdown code blocks, no ```html tags)."""
-
+            # Get style-specific prompt
+            prompt = self._get_style_prompt(style, transcript, analysis, difficulty, subject, custom_instructions, word_count)
+            system_prompt = self._get_system_prompt(style)
+            
             # Use Groq with maximum output tokens
             rate_limiter.record_groq_call()
             response = self.groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[
-                    {"role": "system", "content": "You are an expert educational content writer who creates thorough, comprehensive study notes. You never summarize - you always expand and explain concepts in detail."},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.7,
-                max_tokens=8000  # Groq allows up to 8k tokens
+                max_tokens=8000
             )
             
             html_content = response.choices[0].message.content
@@ -445,6 +412,387 @@ Return ONLY the HTML content (no markdown code blocks, no ```html tags)."""
                 "success": False,
                 "error": str(e)
             }
+    
+    def _get_system_prompt(self, style: str) -> str:
+        """Get system prompt based on note style"""
+        prompts = {
+            "detailed": "You are an expert educational content writer who creates thorough, comprehensive study notes. You never summarize - you always expand and explain concepts in detail.",
+            "bullet_points": "You are an expert at creating clear, organized bullet point notes that capture key information in a scannable, easy-to-review format.",
+            "mind_map": "You are an expert at creating hierarchical mind maps that show relationships between concepts visually and help students see the big picture.",
+            "cornell": "You are an expert at creating Cornell-style notes with cues, notes, and summaries for effective studying and review.",
+            "outline": "You are an expert at creating structured outlines that organize information hierarchically for clear understanding.",
+            "qa": "You are an expert at creating question-and-answer study materials that help students test their knowledge and prepare for exams.",
+            "summary": "You are an expert at creating concise summaries that capture the essential points while remaining clear and comprehensive."
+        }
+        return prompts.get(style, prompts["detailed"])
+    
+    def _get_style_prompt(self, style: str, transcript: str, analysis: Dict, difficulty: str, subject: str, custom_instructions: str, word_count: int) -> str:
+        """Get style-specific prompt for note generation"""
+        
+        key_concepts = json.dumps(analysis.get('key_concepts', []))
+        
+        # Difficulty-specific instructions
+        difficulty_instructions = {
+            "beginner": "Use simple language, explain all terms, provide many examples, and avoid jargon.",
+            "intermediate": "Balance technical accuracy with clarity, explain complex terms, and provide relevant examples.",
+            "advanced": "Use technical terminology, assume prior knowledge, focus on advanced concepts and nuances."
+        }
+        difficulty_instruction = difficulty_instructions.get(difficulty, difficulty_instructions["intermediate"])
+        
+        if style == "bullet_points":
+            return f"""Create organized BULLET POINT notes from this lecture.
+
+LECTURE DETAILS:
+- Subject: {subject}
+- Difficulty: {difficulty}
+- Transcript Length: {word_count} words
+{f'- Special Instructions: {custom_instructions}' if custom_instructions else ''}
+
+DIFFICULTY LEVEL: {difficulty_instruction}
+
+KEY CONCEPTS TO COVER:
+{key_concepts}
+
+COMPLETE LECTURE TRANSCRIPT:
+{transcript}
+
+CREATE DETAILED BULLET POINT NOTES:
+
+FORMAT REQUIREMENTS:
+- Use <h2> for main topics/sections
+- Use <h3> for subtopics
+- Use <ul> and <li> for bullet points
+- Use nested <ul> for sub-bullets (up to 3 levels deep)
+- Use <strong> for key terms and important concepts
+- Each bullet should be concise but complete (1-2 sentences max)
+- Group related points under appropriate headings
+- Include 4-6 main sections with 5-10 bullets each
+
+STRUCTURE:
+1. <h2>Introduction/Overview</h2> (3-5 bullets summarizing main themes)
+2. <h2>Main Topics</h2> (multiple sections with detailed bullets)
+3. <h2>Key Takeaways</h2> (5-7 bullets with main points)
+
+IMPORTANT: 
+- Base notes ONLY on transcript content
+- Adjust complexity for {difficulty} level
+- Make bullets scannable and easy to review
+
+Return ONLY HTML content (no markdown code blocks)."""
+
+        elif style == "mind_map":
+            return f"""Create a HIERARCHICAL MIND MAP from this lecture.
+
+LECTURE DETAILS:
+- Subject: {subject}
+- Difficulty: {difficulty}
+- Transcript Length: {word_count} words
+{f'- Special Instructions: {custom_instructions}' if custom_instructions else ''}
+
+DIFFICULTY LEVEL: {difficulty_instruction}
+
+KEY CONCEPTS TO MAP:
+{key_concepts}
+
+COMPLETE LECTURE TRANSCRIPT:
+{transcript}
+
+CREATE A MIND MAP STRUCTURE:
+
+FORMAT REQUIREMENTS:
+- Use <div class="mind-map"> as container
+- Use <h2> for the central topic
+- Use <div class="branch"> for main branches (4-6 branches)
+- Use <h3> for branch titles
+- Use <ul> and <li> for sub-branches
+- Use nested <ul> for deeper levels (up to 4 levels)
+- Use <strong> for key concepts
+- Use <em> for connections/relationships
+- Add <span class="connection">→</span> to show relationships between concepts
+
+EXAMPLE STRUCTURE:
+<div class="mind-map">
+  <h2>Central Topic: {subject}</h2>
+  
+  <div class="branch">
+    <h3>Main Branch 1</h3>
+    <ul>
+      <li><strong>Sub-concept</strong>
+        <ul>
+          <li>Detail 1</li>
+          <li>Detail 2</li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+</div>
+
+Create 4-6 main branches with 3-5 sub-concepts each.
+Adjust complexity for {difficulty} level.
+
+IMPORTANT: Base mind map ONLY on transcript content.
+
+Return ONLY HTML content (no markdown code blocks)."""
+
+        elif style == "cornell":
+            return f"""Create CORNELL-STYLE NOTES from this lecture.
+
+LECTURE DETAILS:
+- Subject: {subject}
+- Difficulty: {difficulty}
+- Transcript Length: {word_count} words
+{f'- Special Instructions: {custom_instructions}' if custom_instructions else ''}
+
+DIFFICULTY LEVEL: {difficulty_instruction}
+
+KEY CONCEPTS:
+{key_concepts}
+
+COMPLETE LECTURE TRANSCRIPT:
+{transcript}
+
+CREATE CORNELL NOTES:
+
+FORMAT REQUIREMENTS:
+<div class="cornell-notes">
+  <div class="cornell-header">
+    <h2>{subject} - Lecture Notes</h2>
+    <p>Difficulty: {difficulty.title()}</p>
+  </div>
+  
+  <div class="cornell-row">
+    <div class="cue-column">
+      <h4>Cues/Questions</h4>
+      <ul>
+        <li>Key question about the topic?</li>
+        <li>Important term to remember?</li>
+      </ul>
+    </div>
+    <div class="notes-column">
+      <h3>Topic Name</h3>
+      <p>Detailed notes with explanations adjusted for {difficulty} level...</p>
+      <ul>
+        <li>Supporting point 1</li>
+        <li>Supporting point 2</li>
+      </ul>
+    </div>
+  </div>
+  
+  <div class="cornell-summary">
+    <h4>Summary</h4>
+    <p>Comprehensive summary of all concepts covered...</p>
+  </div>
+</div>
+
+STRUCTURE:
+1. Create 5-8 cornell-row sections for different topics
+2. Cue column (left, 30%): Questions, key terms, prompts for recall
+3. Notes column (right, 70%): Detailed explanations adjusted for {difficulty} level
+4. Summary (bottom): 2-3 paragraph summary of entire lecture
+
+IMPORTANT: Base notes ONLY on transcript content.
+
+Return ONLY HTML content (no markdown code blocks)."""
+
+        elif style == "outline":
+            return f"""Create a STRUCTURED OUTLINE from this lecture.
+
+LECTURE DETAILS:
+- Subject: {subject}
+- Difficulty: {difficulty}
+- Transcript Length: {word_count} words
+{f'- Special Instructions: {custom_instructions}' if custom_instructions else ''}
+
+DIFFICULTY LEVEL: {difficulty_instruction}
+
+KEY CONCEPTS:
+{key_concepts}
+
+COMPLETE LECTURE TRANSCRIPT:
+{transcript}
+
+CREATE A DETAILED OUTLINE:
+
+FORMAT REQUIREMENTS:
+- Use <h2> for main sections (I, II, III, etc.)
+- Use <h3> for subsections (A, B, C, etc.)
+- Use <h4> for sub-subsections (1, 2, 3, etc.)
+- Use <ul> and <li> for points under each section
+- Use <strong> for key terms
+- Include brief explanations (1-2 sentences) for each point
+- Adjust complexity for {difficulty} level
+
+EXAMPLE STRUCTURE:
+<div class="outline-notes">
+  <h1>{subject} - Outline</h1>
+  
+  <h2>I. Introduction</h2>
+  <ul>
+    <li><strong>Main Topic:</strong> Brief explanation</li>
+  </ul>
+  
+  <h2>II. Main Topic</h2>
+  <h3>A. Subtopic</h3>
+  <ul>
+    <li><strong>Concept:</strong> Explanation adjusted for {difficulty} level</li>
+  </ul>
+  <h3>B. Another Subtopic</h3>
+  <h4>1. Detail</h4>
+  <ul>
+    <li>Supporting point</li>
+  </ul>
+</div>
+
+Create 4-6 main sections with 2-4 subsections each.
+
+IMPORTANT: Base outline ONLY on transcript content.
+
+Return ONLY HTML content (no markdown code blocks)."""
+
+        elif style == "qa":
+            return f"""Create QUESTION-AND-ANSWER study notes from this lecture.
+
+LECTURE DETAILS:
+- Subject: {subject}
+- Difficulty: {difficulty}
+- Transcript Length: {word_count} words
+{f'- Special Instructions: {custom_instructions}' if custom_instructions else ''}
+
+DIFFICULTY LEVEL: {difficulty_instruction}
+
+KEY CONCEPTS:
+{key_concepts}
+
+COMPLETE LECTURE TRANSCRIPT:
+{transcript}
+
+CREATE Q&A STUDY NOTES:
+
+FORMAT REQUIREMENTS:
+<div class="qa-notes">
+  <h1>{subject} - Study Questions</h1>
+  
+  <h2>Topic 1: [Topic Name]</h2>
+  
+  <div class="qa-pair">
+    <h3 class="question">Q: What is [concept]?</h3>
+    <div class="answer">
+      <p><strong>A:</strong> Detailed answer adjusted for {difficulty} level...</p>
+      <ul>
+        <li>Key point 1</li>
+        <li>Key point 2</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+QUESTION TYPES TO INCLUDE (adjust difficulty for {difficulty} level):
+- What is...? (definitions)
+- How does...? (processes/mechanisms)
+- Why is...? (reasoning/importance)
+- Compare/contrast... (relationships)
+- What are the applications of...? (practical use)
+- Explain the significance of... (deeper understanding)
+
+Create 15-25 questions total:
+- 4-6 topic sections
+- 3-5 questions per section
+- Mix question types
+- Adjust question complexity for {difficulty} level
+
+IMPORTANT: Base Q&A ONLY on transcript content.
+
+Return ONLY HTML content (no markdown code blocks)."""
+
+        elif style == "summary":
+            return f"""Create a CONCISE SUMMARY of this lecture.
+
+LECTURE DETAILS:
+- Subject: {subject}
+- Difficulty: {difficulty}
+- Transcript Length: {word_count} words
+{f'- Special Instructions: {custom_instructions}' if custom_instructions else ''}
+
+DIFFICULTY LEVEL: {difficulty_instruction}
+
+KEY CONCEPTS:
+{key_concepts}
+
+COMPLETE LECTURE TRANSCRIPT:
+{transcript}
+
+CREATE A SUMMARY:
+
+FORMAT REQUIREMENTS:
+- Use <h2> for main sections
+- Use <p> for paragraphs (2-4 sentences each)
+- Use <ul> for key points lists
+- Use <strong> for important terms
+- Keep it concise but comprehensive
+- Adjust language for {difficulty} level
+
+STRUCTURE:
+1. <h2>Overview</h2> (1-2 paragraphs)
+2. <h2>Key Points</h2> (bullet list of 5-8 main points)
+3. <h2>Main Takeaways</h2> (1-2 paragraphs)
+
+Target length: 300-500 words
+
+IMPORTANT: Base summary ONLY on transcript content.
+
+Return ONLY HTML content (no markdown code blocks)."""
+
+        else:  # detailed (default)
+            return f"""You are an expert professor creating comprehensive lecture notes for students.
+
+LECTURE DETAILS:
+- Subject: {subject}
+- Difficulty: {difficulty}
+- Transcript Length: {word_count} words
+{f'- Special Instructions: {custom_instructions}' if custom_instructions else ''}
+
+DIFFICULTY LEVEL: {difficulty_instruction}
+
+YOUR TASK:
+Create EXTREMELY DETAILED study notes that cover EVERY important point from this lecture.
+Your notes should be AT LEAST 2500-3500 words and include:
+
+1. COMPREHENSIVE COVERAGE: Don't skip any major topics or concepts
+2. DETAILED EXPLANATIONS: Explain each concept thoroughly (4-6 sentences per concept)
+3. EXAMPLES & CONTEXT: Provide examples, analogies, and real-world applications
+4. STRUCTURED FORMAT: Use clear sections and subsections
+5. KEY TERMS: Highlight and define important terminology
+6. CONNECTIONS: Show how concepts relate to each other
+7. DIFFICULTY ADJUSTMENT: {difficulty_instruction}
+
+KEY CONCEPTS TO ELABORATE ON:
+{key_concepts}
+
+COMPLETE LECTURE TRANSCRIPT:
+{transcript}
+
+IMPORTANT INSTRUCTIONS:
+1. Base your notes ONLY on the content from the transcript above
+2. Do NOT add information that wasn't mentioned in the lecture
+3. Organize and explain what the lecturer actually said
+4. You can rephrase for clarity, but stay true to the source material
+5. If the lecturer gives examples, include them
+6. If concepts are explained in the video, use those explanations
+7. Adjust complexity and explanations for {difficulty} level
+
+FORMAT YOUR NOTES AS HTML:
+- Use <h2> for main sections (e.g., "Introduction", "Core Concepts", "Applications")
+- Use <h3> for major topics within sections
+- Use <h4> for subtopics and specific concepts
+- Use <strong> for key terms and important points
+- Use <ul> or <ol> for lists
+- Use <p> for explanatory paragraphs (write MULTIPLE paragraphs per concept)
+- Use <blockquote> for important quotes or key takeaways
+- Use <em> for emphasis
+
+CRITICAL: Make these notes COMPREHENSIVE and DETAILED. Students should be able to study from these notes alone. Do NOT just summarize - EXPAND and EXPLAIN thoroughly.
+
+Return ONLY the HTML content (no markdown code blocks, no ```html tags)."""
     
     async def _generate_notes_chunked_groq(self, transcript: str, analysis: Dict, difficulty: str, subject: str, custom_instructions: str) -> Dict:
         """Generate notes in chunks for very long transcripts using Groq, then combine"""

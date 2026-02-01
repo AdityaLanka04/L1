@@ -815,7 +815,7 @@ async def fix_database_sequences():
         rag_system = initialize_rag_system(
             ai_client=unified_ai,
             knowledge_graph=knowledge_graph,
-            vector_store=user_rag.collection if user_rag else None,
+            vector_store=user_rag.base_vector_store if user_rag else None,
             embedding_model=user_rag.embedding_model if user_rag else None
         )
         
