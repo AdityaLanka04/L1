@@ -470,22 +470,9 @@ body {
   padding: 8px;
 }
 
-/* Custom scrollbar for notifications */
-.ds-notif-panel-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.ds-notif-panel-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.ds-notif-panel-content::-webkit-scrollbar-thumb {
-  background: var(--accent);
-  border-radius: 3px;
-}
-
-.ds-notif-panel-content::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--accent) 120%, white);
+/* Notification panel scrollbar - uses global auto-hiding styles */
+.ds-notif-panel-content {
+  scrollbar-width: thin;
 }
 
 .ds-no-notifications-placeholder {
@@ -1875,6 +1862,7 @@ body {
 .ds-nav-notif-content {
   max-height: 250px;
   overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .ds-nav-no-notifications {
@@ -2075,24 +2063,7 @@ body {
   }
 }
 
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg-primary);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--accent);
-  border-radius: 4px;
-  opacity: 0.5;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  opacity: 1;
-}
+/* Global scrollbar styles removed - using index.css auto-hiding scrollbars */
 
 /* ============================================
    HEATMAP WIDGET
@@ -2159,6 +2130,7 @@ body {
   padding: 2px 0; 
   min-height: 134px; 
   align-items: flex-start;
+  scrollbar-width: thin;
 }
 
 .ds-heatmap-week {
@@ -2344,6 +2316,7 @@ body {
   flex-direction: column;
   height: 100%;
   overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .ds-customize-header {

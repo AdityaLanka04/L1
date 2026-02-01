@@ -33,17 +33,17 @@ const WIDGET_DEFINITIONS = {
     description: 'AI-powered study assistant',
     sizes: { S: { cols: 1, rows: 2 }, M: { cols: 1, rows: 3 }, L: { cols: 1, rows: 4 } },
     defaultSize: 'M',
-    mandatory: true
+    mandatory: false
   },
-  'hero': {
-    id: 'hero',
-    title: 'Hero Banner',
-    icon: Layout,
-    description: 'Main branding section',
+  'learning-hub-grid': {
+    id: 'learning-hub-grid',
+    title: 'Learning Hub',
+    icon: BookOpen,
+    description: 'Learning tools & resources',
     sizes: { S: { cols: 2, rows: 2 }, M: { cols: 2, rows: 3 }, L: { cols: 2, rows: 4 } },
-    defaultSize: 'M',
-    mandatory: true,
-    fixedSize: true
+    defaultSize: 'L',
+    mandatory: false,
+    fixedSize: false
   },
   'social-hub': {
     id: 'social-hub',
@@ -61,7 +61,7 @@ const WIDGET_DEFINITIONS = {
     description: 'Track your progress',
     sizes: { S: { cols: 1, rows: 1, disabled: true }, M: { cols: 1, rows: 2 }, L: { cols: 2, rows: 2 } },
     defaultSize: 'M',
-    mandatory: true,
+    mandatory: false,
     minSize: 'M'
   },
   'notes': {
@@ -82,22 +82,13 @@ const WIDGET_DEFINITIONS = {
     defaultSize: 'M',
     mandatory: false
   },
-  'learning-hub': {
-    id: 'learning-hub',
-    title: 'Learning Hub',
-    icon: BookOpen,
-    description: 'Learning tools & resources',
-    sizes: { S: { cols: 1, rows: 2 }, M: { cols: 2, rows: 2 }, L: { cols: 1, rows: 3 } },
-    defaultSize: 'L',
-    mandatory: false
-  },
   'activity': {
     id: 'activity',
     title: 'Activity',
     icon: Clock,
     description: 'Recent activity timeline',
     sizes: { S: { cols: 1, rows: 1 }, M: { cols: 1, rows: 2 }, L: { cols: 2, rows: 2 } },
-    defaultSize: 'S',
+    defaultSize: 'M',
     mandatory: false
   },
   'concept-web': {
@@ -120,20 +111,19 @@ const WIDGET_DEFINITIONS = {
   }
 };
 
-// Default layout configuration
+// Default layout configuration (matches Dashboard.js DEFAULT_LAYOUT_WIDGETS)
 const DEFAULT_LAYOUT = {
   name: 'Default',
   widgets: [
     { id: 'ai-tutor', col: 1, row: 1, cols: 1, rows: 3, color: null, size: 'M' },
-    { id: 'hero', col: 2, row: 1, cols: 2, rows: 3, color: null, size: 'M' },
+    { id: 'learning-hub-grid', col: 2, row: 1, cols: 2, rows: 3, color: null, size: 'L' },
     { id: 'social-hub', col: 4, row: 1, cols: 1, rows: 2, color: null, size: 'M' },
+    { id: 'activity', col: 4, row: 3, cols: 1, rows: 2, color: null, size: 'M' },
+    { id: 'concept-web', col: 4, row: 5, cols: 1, rows: 1, color: null, size: 'S' },
     { id: 'streak', col: 1, row: 4, cols: 1, rows: 2, color: null, size: 'M' },
     { id: 'notes', col: 2, row: 4, cols: 1, rows: 2, color: null, size: 'M' },
     { id: 'flashcards', col: 3, row: 4, cols: 1, rows: 2, color: null, size: 'M' },
-    { id: 'learning-hub', col: 4, row: 3, cols: 1, rows: 3, color: null, size: 'L' },
-    { id: 'activity', col: 1, row: 6, cols: 1, rows: 1, color: null, size: 'S' },
-    { id: 'concept-web', col: 2, row: 6, cols: 1, rows: 1, color: null, size: 'S' },
-    { id: 'heatmap', col: 1, row: 7, cols: 4, rows: 2, color: null, size: 'L' }
+    { id: 'heatmap', col: 1, row: 6, cols: 4, rows: 2, color: null, size: 'L' }
   ]
 };
 
@@ -150,12 +140,10 @@ const COLOR_PRESETS = [
   { name: 'Pink', value: '#E91E63' }
 ];
 
-// Blank layout for new layouts (only Hero widget)
+// Blank layout for new layouts (completely empty - user can add any widgets they want)
 const BLANK_LAYOUT = {
   name: 'New Layout',
-  widgets: [
-    { id: 'hero', col: 2, row: 1, cols: 2, rows: 3, color: null, size: 'M' }
-  ]
+  widgets: []
 };
 
 const GRID_COLS = 4;
@@ -1115,7 +1103,7 @@ const CustomizeDashboard = () => {
                   }
                 }}
               />
-              <p className="cd-modal-hint">New layouts start with a blank slate (only Hero widget)</p>
+              <p className="cd-modal-hint">New layouts start completely empty - drag widgets from the sidebar to build your custom layout</p>
             </div>
             <div className="cd-modal-footer">
               <button className="cd-modal-cancel" onClick={() => setShowCreateModal(false)}>

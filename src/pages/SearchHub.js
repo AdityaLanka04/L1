@@ -89,54 +89,13 @@ const SearchHub = () => {
   }, []);
 
   useEffect(() => {
-    // Scroll back to top when no search results
-    if (!searchResults && !isSearching && !isCreating) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, [searchResults, isSearching, isCreating]);
-
-  useEffect(() => {
-    // Scroll to show all autocomplete suggestions
-    if (showAutocomplete && autocompleteResults.length > 0) {
-      // Wait for dropdown to render
-      setTimeout(() => {
-        const dropdown = document.querySelector('.autocomplete-dropdown');
-        if (dropdown) {
-          const lastItem = dropdown.lastElementChild;
-          if (lastItem) {
-            // Get position of last item
-            const rect = lastItem.getBoundingClientRect();
-            const absoluteTop = window.pageYOffset + rect.top;
-            const absoluteBottom = window.pageYOffset + rect.bottom;
-            
-            // Scroll to show last item with 10px padding at bottom
-            window.scrollTo({ 
-              top: absoluteBottom - window.innerHeight + 10, 
-              behavior: 'smooth' 
-            });
-          }
-        }
-      }, 200);
-    }
-  }, [showAutocomplete, autocompleteResults]);
-
-  useEffect(() => {
-    // Scroll back to top when autocomplete closes
-    if (!showAutocomplete && !searchResults && !isSearching) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, [showAutocomplete, searchResults, isSearching]);
-
-  useEffect(() => {
     // Close autocomplete when clicking outside
     const handleClickOutside = (e) => {
-      // Check if click is inside the search-box-wrapper (which contains both form and dropdown)
       const searchWrapper = searchInputRef.current?.closest('.search-box-wrapper');
       if (searchWrapper && !searchWrapper.contains(e.target)) {
         setShowAutocomplete(false);
         setShowSuggestions(false);
-        // Scroll back to top when clicking away
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setSelectedAutocompleteIndex(-1);
       }
     };
 
@@ -145,6 +104,31 @@ const SearchHub = () => {
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [showAutocomplete, showSuggestions]);
+
+  useEffect(() => {
+    // Auto-hide scrollbar when not scrolling
+    let scrollTimeout;
+    const pageElement = document.querySelector('.search-hub-page');
+    
+    const handleScroll = () => {
+      if (pageElement) {
+        pageElement.classList.add('is-scrolling');
+        
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+          pageElement.classList.remove('is-scrolling');
+        }, 1000); // Hide scrollbar 1 second after scrolling stops
+      }
+    };
+
+    if (pageElement) {
+      pageElement.addEventListener('scroll', handleScroll);
+      return () => {
+        pageElement.removeEventListener('scroll', handleScroll);
+        clearTimeout(scrollTimeout);
+      };
+    }
+  }, []);
 
   const loadRecentSearches = (username) => {
     const saved = localStorage.getItem(`recentSearches_${username}`);
@@ -172,117 +156,131 @@ const SearchHub = () => {
       if (response.ok) {
         const data = await response.json();
         
-        // Helper function to extract clean topic name (1-2 words)
+        // Helper function to extract clean topic name
         const extractTopicName = (text) => {
           if (!text) return null;
           
-          // Remove common prefixes and clean up
+          // Remove common action words and clean up
           let cleaned = text
             .toLowerCase()
-            .replace(/^(explain|create|what is|tell me about|learn about|study|understand|quiz on|notes on|flashcards on|about)\s+/gi, '')
-            .replace(/\s+(flashcards?|notes?|quiz|roadmap|export)$/gi, '')
+            .replace(/^(explain|create|make|generate|write|what is|tell me about|learn about|study|understand|quiz on|notes on|flashcards on|about|a quiz on|a note on)\s+/gi, '')
+            .replace(/\s+(flashcards?|notes?|quiz|quizzes|roadmap|export|step-by-step)$/gi, '')
             .trim();
           
-          // If still too long or has "create" repeated, try to extract key noun phrase
-          if (cleaned.includes('create') || cleaned.includes('exploring')) {
-            // Extract the main topic after common words
-            const match = cleaned.match(/(?:on|about|exploring)\s+([a-z\s]+?)(?:\s*-|\s*$)/i);
-            if (match && match[1]) {
-              cleaned = match[1].trim();
-            }
+          // Extract topic after "on" or "about"
+          const onMatch = cleaned.match(/(?:on|about)\s+(.+)/i);
+          if (onMatch && onMatch[1]) {
+            cleaned = onMatch[1].trim();
           }
           
-          // Take first 2-3 meaningful words
+          // Take first 2-4 meaningful words for compound topics
           const words = cleaned.split(/\s+/).filter(w => w.length > 2);
           if (words.length === 0) return null;
           
-          // Return up to 3 words for compound topics
-          const topicWords = words.slice(0, 3);
-          return topicWords.join(' ');
+          // Return up to 4 words for compound topics, capitalize properly
+          const topicWords = words.slice(0, 4);
+          return topicWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         };
         
-        // Get user-specific topics from their activity
-        const userTopicPrompts = (data.prompts || []).map(prompt => {
-          const fullText = typeof prompt.text === 'string' ? prompt.text : (prompt.text?.label || '');
-          const cleanTopic = extractTopicName(fullText);
-          
-          console.log('Topic extraction:', { fullText, cleanTopic }); // Debug log
-          
-          return {
-            ...prompt,
-            text: fullText,
-            cleanTopic: cleanTopic,
-            reason: typeof prompt.reason === 'string' ? prompt.reason : (prompt.reason?.label || 'Based on your activity')
-          };
-        }).filter(p => p.cleanTopic); // Only keep prompts with valid topics
+        // Process backend prompts
+        const backendPrompts = (data.prompts || []).map(prompt => ({
+          text: typeof prompt.text === 'string' ? prompt.text : (prompt.text?.label || ''),
+          reason: typeof prompt.reason === 'string' ? prompt.reason : (prompt.reason?.label || 'Based on your activity'),
+          priority: prompt.priority || 'medium',
+          topic: extractTopicName(typeof prompt.text === 'string' ? prompt.text : (prompt.text?.label || ''))
+        })).filter(p => p.text);
         
-        console.log('Filtered topics:', userTopicPrompts); // Debug log
-        
-        // Build recommendations based on available topics
+        // Build smart recommendations
         const recommendations = [];
         
-        // 1. AI Chat - always show
+        // Always include: AI Chat
         recommendations.push({ 
           text: 'chat about any topic', 
           reason: 'AI tutor ready to help', 
           priority: 'high' 
         });
         
-        // 2. Create Notes - use actual topic if available
-        if (userTopicPrompts.length > 0) {
-          const topic = userTopicPrompts[0].cleanTopic;
-          recommendations.push({ 
-            text: `create notes on ${topic}`, 
-            reason: 'From your recent chats', 
-            priority: 'high' 
-          });
-        } else {
-          recommendations.push({ 
-            text: 'create notes on a topic', 
-            reason: 'Start documenting', 
-            priority: 'high' 
+        // Get weak areas first (highest priority)
+        const weakAreaPrompts = backendPrompts.filter(p => 
+          p.text.toLowerCase().includes('weak') || 
+          p.reason.toLowerCase().includes('weak')
+        );
+        
+        if (weakAreaPrompts.length > 0) {
+          recommendations.push({
+            text: weakAreaPrompts[0].text,
+            reason: weakAreaPrompts[0].reason,
+            priority: 'high'
           });
         }
         
-        // 3. Create Flashcards - use actual topic if available
-        if (userTopicPrompts.length > 1) {
-          const topic = userTopicPrompts[1].cleanTopic;
-          recommendations.push({ 
-            text: `create flashcards on ${topic}`, 
-            reason: 'From your recent chats', 
-            priority: 'high' 
-          });
-        } else if (userTopicPrompts.length > 0) {
-          const topic = userTopicPrompts[0].cleanTopic;
-          recommendations.push({ 
-            text: `create flashcards on ${topic}`, 
-            reason: 'From your recent chats', 
-            priority: 'high' 
-          });
-        } else {
-          recommendations.push({ 
-            text: 'create flashcards to study', 
-            reason: 'Build study materials', 
-            priority: 'high' 
+        // Get topic-based prompts (from flashcards, notes, chats)
+        const topicPrompts = backendPrompts.filter(p => 
+          p.topic && 
+          !p.text.toLowerCase().includes('weak') &&
+          !p.text.toLowerCase().includes('review weak')
+        );
+        
+        // Add 2-3 diverse topic prompts
+        const addedTopics = new Set();
+        for (const prompt of topicPrompts) {
+          if (recommendations.length >= 6) break;
+          
+          const topicLower = prompt.topic?.toLowerCase() || '';
+          if (!addedTopics.has(topicLower) && topicLower) {
+            addedTopics.add(topicLower);
+            recommendations.push({
+              text: prompt.text,
+              reason: prompt.reason,
+              priority: prompt.priority
+            });
+          }
+        }
+        
+        // Add review prompt if available
+        const reviewPrompt = backendPrompts.find(p => 
+          p.text.toLowerCase().includes('review') && 
+          !p.text.toLowerCase().includes('weak')
+        );
+        if (reviewPrompt && recommendations.length < 7) {
+          recommendations.push({
+            text: reviewPrompt.text,
+            reason: reviewPrompt.reason,
+            priority: 'medium'
           });
         }
         
-        // 4. Weak Areas - always show
-        recommendations.push({ 
-          text: 'what are my weak areas', 
-          reason: 'Identify gaps', 
-          priority: 'high' 
-        });
+        // Fill remaining slots with generic prompts if needed
+        const genericPrompts = [
+          { text: 'what are my weak areas', reason: 'Identify knowledge gaps', priority: 'high' },
+          { text: 'create flashcards to study', reason: 'Build study materials', priority: 'medium' },
+          { text: 'create notes on a topic', reason: 'Document your learning', priority: 'medium' },
+          { text: 'show my progress', reason: 'Track your journey', priority: 'medium' }
+        ];
         
-        console.log('Final recommendations:', recommendations); // Debug log
-        setPersonalizedPrompts(recommendations);
+        for (const generic of genericPrompts) {
+          if (recommendations.length >= 8) break;
+          
+          // Only add if not already present
+          const alreadyExists = recommendations.some(r => 
+            r.text.toLowerCase() === generic.text.toLowerCase()
+          );
+          
+          if (!alreadyExists) {
+            recommendations.push(generic);
+          }
+        }
+        
+        setPersonalizedPrompts(recommendations.slice(0, 8));
       } else {
         // Fallback to generic prompts
         setPersonalizedPrompts([
           { text: 'chat about any topic', reason: 'AI tutor ready to help', priority: 'high' },
-          { text: 'create notes on a topic', reason: 'Start documenting', priority: 'high' },
+          { text: 'what are my weak areas', reason: 'Identify knowledge gaps', priority: 'high' },
           { text: 'create flashcards to study', reason: 'Build study materials', priority: 'high' },
-          { text: 'what are my weak areas', reason: 'Identify gaps', priority: 'high' },
+          { text: 'create notes on a topic', reason: 'Document your learning', priority: 'high' },
+          { text: 'show my progress', reason: 'Track your journey', priority: 'medium' },
+          { text: 'review flashcards', reason: 'Practice what you learned', priority: 'medium' }
         ]);
       }
     } catch (error) {
@@ -290,9 +288,11 @@ const SearchHub = () => {
       // Fallback to generic prompts
       setPersonalizedPrompts([
         { text: 'chat about any topic', reason: 'AI tutor ready to help', priority: 'high' },
-        { text: 'create notes on a topic', reason: 'Start documenting', priority: 'high' },
+        { text: 'what are my weak areas', reason: 'Identify knowledge gaps', priority: 'high' },
         { text: 'create flashcards to study', reason: 'Build study materials', priority: 'high' },
-        { text: 'what are my weak areas', reason: 'Identify gaps', priority: 'high' },
+        { text: 'create notes on a topic', reason: 'Document your learning', priority: 'high' },
+        { text: 'show my progress', reason: 'Track your journey', priority: 'medium' },
+        { text: 'review flashcards', reason: 'Practice what you learned', priority: 'medium' }
       ]);
     } finally {
       setIsLoadingPrompts(false);
@@ -949,9 +949,9 @@ const SearchHub = () => {
   };
 
   const handleAutocomplete = async (query) => {
-    // If empty query, show all recommendations
+    // If empty query, show personalized recommendations
     if (!query || query.trim() === '') {
-      showAllRecommendations();
+      showPersonalizedRecommendations();
       return;
     }
     
@@ -978,40 +978,54 @@ const SearchHub = () => {
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.suggestions && data.suggestions.length > 0) {
-            // Format NLP suggestions based on detected intent
+            // Format NLP suggestions with smart categorization
             const formattedSuggestions = data.suggestions.map(suggestion => {
               const suggestionLower = suggestion.toLowerCase();
-              let icon = '';
               let type = 'nlp_suggestion';
+              let category = 'AI Suggestion';
               
-              // Detect intent from suggestion text
+              // Intelligent categorization based on intent
               if (suggestionLower.includes('flashcard') || suggestionLower.includes('card')) {
-                icon = '';
                 type = 'create_flashcards';
+                category = 'Create';
               } else if (suggestionLower.includes('note') || suggestionLower.includes('write')) {
-                icon = '';
                 type = 'create_note';
+                category = 'Create';
               } else if (suggestionLower.includes('quiz') || suggestionLower.includes('test')) {
-                icon = '';
                 type = 'create_quiz';
-              } else if (suggestionLower.includes('explain') || suggestionLower.includes('what is')) {
-                icon = '';
+                category = 'Quiz';
+              } else if (suggestionLower.includes('question')) {
+                type = 'create_questions';
+                category = 'Create';
+              } else if (suggestionLower.includes('explain') || suggestionLower.includes('what is') || suggestionLower.includes('how does')) {
                 type = 'explain';
-              } else if (suggestionLower.includes('progress') || suggestionLower.includes('stats')) {
-                icon = '';
+                category = 'Learn';
+              } else if (suggestionLower.includes('progress') || suggestionLower.includes('stats') || suggestionLower.includes('analytics')) {
                 type = 'show_progress';
-              } else if (suggestionLower.includes('weak') || suggestionLower.includes('struggle')) {
-                icon = '';
+                category = 'Progress';
+              } else if (suggestionLower.includes('weak') || suggestionLower.includes('struggle') || suggestionLower.includes('improve')) {
                 type = 'show_weak_areas';
-              } else if (suggestionLower.includes('review') || suggestionLower.includes('study')) {
-                icon = '';
+                category = 'Weak Areas';
+              } else if (suggestionLower.includes('review') || suggestionLower.includes('study') || suggestionLower.includes('practice')) {
                 type = 'review';
-              } else if (suggestionLower.includes('chat') || suggestionLower.includes('talk')) {
-                icon = '';
+                category = 'Review';
+              } else if (suggestionLower.includes('chat') || suggestionLower.includes('talk') || suggestionLower.includes('discuss')) {
                 type = 'chat';
+                category = 'Chat';
+              } else if (suggestionLower.includes('roadmap') || suggestionLower.includes('path')) {
+                type = 'roadmap';
+                category = 'Plan';
+              } else {
+                type = 'nlp_suggestion';
+                category = 'AI';
               }
               
-              return { text: suggestion, type, icon, source: 'nlp' };
+              return { 
+                text: suggestion, 
+                type, 
+                category,
+                source: 'nlp' 
+              };
             });
             
             setAutocompleteResults(formattedSuggestions.slice(0, 8));
@@ -1020,93 +1034,208 @@ const SearchHub = () => {
           }
         }
         
-        // Fallback to legacy autocomplete
-        const formData = new FormData();
-        formData.append('query', query);
-        formData.append('user_id', userName || 'guest');
+        // Fallback: Generate smart suggestions based on query
+        const smartSuggestions = generateSmartSuggestions(query);
+        if (smartSuggestions.length > 0) {
+          setAutocompleteResults(smartSuggestions);
+          setShowAutocomplete(true);
+          return;
+        }
+        
+        // Final fallback: Show filtered recent searches and prompts
+        const queryLower = query.toLowerCase();
+        const filteredRecent = recentSearches
+          .filter(search => search.toLowerCase().includes(queryLower))
+          .slice(0, 3)
+          .map(text => ({ text, type: 'recent', category: 'Recent', source: 'history' }));
+        
+        const filteredPrompts = personalizedPrompts
+          .filter(prompt => prompt.text.toLowerCase().includes(queryLower))
+          .slice(0, 5)
+          .map(prompt => ({ 
+            text: prompt.text, 
+            type: 'suggestion', 
+            category: 'Suggested',
+            source: 'personalized' 
+          }));
 
-        const legacyResponse = await fetch(`${API_URL}/autocomplete`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: formData
-        });
-
-        if (legacyResponse.ok) {
-          const data = await legacyResponse.json();
-          if (data.suggestions && data.suggestions.length > 0) {
-            setAutocompleteResults(data.suggestions.slice(0, 10));
-            setShowAutocomplete(true);
-            return;
-          }
+        const combined = [...filteredRecent, ...filteredPrompts].slice(0, 8);
+        
+        if (combined.length > 0) {
+          setAutocompleteResults(combined);
+          setShowAutocomplete(true);
+        } else {
+          setShowAutocomplete(false);
         }
       } catch (error) {
         console.log('Autocomplete error:', error);
-      }
-
-      // Fallback: Show filtered recent searches and personalized prompts
-      const queryLower = query.toLowerCase();
-      const filteredRecent = recentSearches
-        .filter(search => search.toLowerCase().includes(queryLower))
-        .slice(0, 5)
-        .map(text => ({ text, type: 'recent', icon: '' }));
-      
-      const filteredPrompts = personalizedPrompts
-        .filter(prompt => prompt.text.toLowerCase().includes(queryLower))
-        .slice(0, 5)
-        .map(prompt => ({ text: prompt.text, type: 'suggestion', icon: '' }));
-
-      const combined = [...filteredRecent, ...filteredPrompts].slice(0, 10);
-      
-      if (combined.length > 0) {
-        setAutocompleteResults(combined);
-        setShowAutocomplete(true);
-      } else {
         setShowAutocomplete(false);
       }
-    }, 200); // Reduced debounce for faster response
+    }, 200);
   };
 
-  const showAllRecommendations = async () => {
-    // Try to get NLP-powered suggestions first
+  const generateSmartSuggestions = (query) => {
+    const queryLower = query.toLowerCase();
+    const suggestions = [];
+    
+    // Action-based suggestions
+    if (queryLower.includes('create') || queryLower.includes('make') || queryLower.includes('generate')) {
+      const topic = queryLower.replace(/^(create|make|generate)\s+/i, '').trim();
+      if (topic) {
+        suggestions.push(
+          { text: `create flashcards on ${topic}`, type: 'create_flashcards', category: 'Create', source: 'smart' },
+          { text: `create notes on ${topic}`, type: 'create_note', category: 'Create', source: 'smart' },
+          { text: `create quiz on ${topic}`, type: 'create_quiz', category: 'Quiz', source: 'smart' }
+        );
+      }
+    } else if (queryLower.includes('explain') || queryLower.includes('what is') || queryLower.includes('how')) {
+      const topic = queryLower.replace(/^(explain|what is|how does|how to)\s+/i, '').trim();
+      if (topic) {
+        suggestions.push(
+          { text: `explain ${topic}`, type: 'explain', category: 'Learn', source: 'smart' },
+          { text: `create notes on ${topic}`, type: 'create_note', category: 'Create', source: 'smart' },
+          { text: `chat about ${topic}`, type: 'chat', category: 'Chat', source: 'smart' }
+        );
+      }
+    } else if (queryLower.includes('weak') || queryLower.includes('struggle') || queryLower.includes('improve')) {
+      suggestions.push(
+        { text: 'what are my weak areas', type: 'show_weak_areas', category: 'Weak Areas', source: 'smart' },
+        { text: 'show my progress', type: 'show_progress', category: 'Progress', source: 'smart' },
+        { text: 'review weak flashcards', type: 'review', category: 'Review', source: 'smart' }
+      );
+    } else if (queryLower.includes('progress') || queryLower.includes('stats') || queryLower.includes('how am i')) {
+      suggestions.push(
+        { text: 'show my progress', type: 'show_progress', category: 'Progress', source: 'smart' },
+        { text: 'what are my weak areas', type: 'show_weak_areas', category: 'Weak Areas', source: 'smart' },
+        { text: 'show my achievements', type: 'show_achievements', category: 'Progress', source: 'smart' }
+      );
+    } else {
+      // Topic-based suggestions
+      const topic = query.trim();
+      if (topic.length > 2) {
+        suggestions.push(
+          { text: `create flashcards on ${topic}`, type: 'create_flashcards', category: 'Create', source: 'smart' },
+          { text: `explain ${topic}`, type: 'explain', category: 'Learn', source: 'smart' },
+          { text: `create notes on ${topic}`, type: 'create_note', category: 'Create', source: 'smart' },
+          { text: `quiz me on ${topic}`, type: 'create_quiz', category: 'Quiz', source: 'smart' }
+        );
+      }
+    }
+    
+    return suggestions.slice(0, 6);
+  };
+
+  const showPersonalizedRecommendations = async () => {
+    // Get user's actual topics from backend
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/agents/searchhub/suggestions?query=&user_id=${encodeURIComponent(userName || 'guest')}`, {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` }
+      
+      // First, try to get personalized prompts which contain actual user topics
+      const promptsResponse = await fetch(`${API_URL}/get_personalized_prompts`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: (() => {
+          const formData = new FormData();
+          formData.append('user_id', userName || 'guest');
+          return formData;
+        })()
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.suggestions && data.suggestions.length > 0) {
-          const nlpSuggestions = data.suggestions.map(suggestion => {
-            return { text: suggestion, type: 'nlp_suggestion', icon: '', source: 'nlp' };
-          });
+      if (promptsResponse.ok) {
+        const promptsData = await promptsResponse.json();
+        const userPrompts = promptsData.prompts || [];
+        
+        // Extract actual topics from user prompts
+        const topicSuggestions = [];
+        
+        for (const prompt of userPrompts) {
+          const text = typeof prompt.text === 'string' ? prompt.text : (prompt.text?.label || '');
+          const textLower = text.toLowerCase();
           
-          // Combine with recent searches
-          const recentItems = recentSearches
-            .slice(0, 3)
-            .map(text => ({ text, type: 'recent', icon: '' }));
+          // Extract topic from the prompt text
+          let topic = null;
           
-          const combined = [...recentItems, ...nlpSuggestions].slice(0, 10);
+          // Try to extract topic after "on", "about", "for"
+          const onMatch = text.match(/(?:on|about|for)\s+(.+?)(?:\s*$|flashcards?|notes?|quiz)/i);
+          if (onMatch && onMatch[1]) {
+            topic = onMatch[1].trim();
+          }
+          
+          // If we found a topic, create suggestions for it
+          if (topic && topic.length > 2) {
+            topicSuggestions.push(
+              { text: `create flashcards on ${topic}`, type: 'create_flashcards', category: 'Create', source: 'personalized' },
+              { text: `explain ${topic}`, type: 'explain', category: 'Learn', source: 'personalized' },
+              { text: `quiz me on ${topic}`, type: 'create_quiz', category: 'Quiz', source: 'personalized' }
+            );
+          }
+        }
+        
+        // Add recent searches at the top
+        const recentItems = recentSearches
+          .slice(0, 2)
+          .map(text => ({ text, type: 'recent', category: 'Recent', source: 'history' }));
+        
+        // Add generic helpful suggestions
+        const genericSuggestions = [
+          { text: 'what are my weak areas', type: 'show_weak_areas', category: 'Weak Areas', source: 'generic' },
+          { text: 'show my progress', type: 'show_progress', category: 'Progress', source: 'generic' },
+          { text: 'chat about any topic', type: 'chat', category: 'Chat', source: 'generic' }
+        ];
+        
+        // Combine: recent searches + topic suggestions + generic
+        const combined = [
+          ...recentItems,
+          ...topicSuggestions.slice(0, 4),
+          ...genericSuggestions
+        ].slice(0, 8);
+        
+        if (combined.length > 0) {
           setAutocompleteResults(combined);
           setShowAutocomplete(true);
           return;
         }
       }
     } catch (error) {
-      console.log('NLP suggestions error:', error);
+      console.log('Personalized recommendations error:', error);
     }
     
-    // Fallback: Show recent searches and personalized prompts
+    // Fallback: Show recent searches and personalized prompts as-is
     const recentItems = recentSearches
-      .slice(0, 5)
-      .map(text => ({ text, type: 'recent', icon: '' }));
+      .slice(0, 3)
+      .map(text => ({ text, type: 'recent', category: 'Recent', source: 'history' }));
     
     const promptItems = personalizedPrompts
       .slice(0, 5)
-      .map(prompt => ({ text: prompt.text, type: 'suggestion', icon: '' }));
+      .map(prompt => {
+        const textLower = prompt.text.toLowerCase();
+        let type = 'suggestion';
+        let category = 'Suggested';
+        
+        if (textLower.includes('flashcard')) {
+          type = 'create_flashcards';
+          category = 'Create';
+        } else if (textLower.includes('note')) {
+          type = 'create_note';
+          category = 'Create';
+        } else if (textLower.includes('quiz')) {
+          type = 'create_quiz';
+          category = 'Quiz';
+        } else if (textLower.includes('weak')) {
+          type = 'show_weak_areas';
+          category = 'Weak Areas';
+        } else if (textLower.includes('progress')) {
+          type = 'show_progress';
+          category = 'Progress';
+        } else if (textLower.includes('chat')) {
+          type = 'chat';
+          category = 'Chat';
+        }
+        
+        return { text: prompt.text, type, category, source: 'personalized' };
+      });
 
-    const combined = [...recentItems, ...promptItems].slice(0, 10);
+    const combined = [...recentItems, ...promptItems].slice(0, 8);
     
     if (combined.length > 0) {
       setAutocompleteResults(combined);
@@ -1491,7 +1620,7 @@ const SearchHub = () => {
                           setHasUserInteracted(true);
                           // Show suggestions when clicking on search bar
                           if (!searchQuery || searchQuery.trim() === '') {
-                            showAllRecommendations();
+                            showPersonalizedRecommendations();
                           } else {
                             handleAutocomplete(searchQuery);
                           }
@@ -1500,28 +1629,10 @@ const SearchHub = () => {
                           // Only show suggestions if user has already interacted (clicked)
                           if (hasUserInteracted) {
                             if (!searchQuery || searchQuery.trim() === '') {
-                              showAllRecommendations();
+                              showPersonalizedRecommendations();
                             } else {
                               handleAutocomplete(searchQuery);
                             }
-                          }
-                          
-                          // Scroll down when clicking on search bar
-                          if (showAutocomplete && autocompleteResults.length > 0) {
-                            setTimeout(() => {
-                              const dropdown = document.querySelector('.autocomplete-dropdown');
-                              if (dropdown) {
-                                const lastItem = dropdown.lastElementChild;
-                                if (lastItem) {
-                                  const rect = lastItem.getBoundingClientRect();
-                                  const absoluteBottom = window.pageYOffset + rect.bottom;
-                                  window.scrollTo({ 
-                                    top: absoluteBottom - window.innerHeight + 10, 
-                                    behavior: 'smooth' 
-                                  });
-                                }
-                              }
-                            }, 200);
                           }
                         }}
                         placeholder="Ask me anything... try 'create flashcards on physics'"
@@ -1545,22 +1656,21 @@ const SearchHub = () => {
                               setShowAutocomplete(false);
                             }}
                           >
-                            {suggestion.icon && <span className="suggestion-icon">{suggestion.icon}</span>}
                             <span className="suggestion-text">{suggestion.text}</span>
-                            {suggestion.type && suggestion.type !== 'nlp_suggestion' && (
+                            {suggestion.category && (
                               <span className={`suggestion-type ${suggestion.type}`}>
-                                {suggestion.type === 'recent' ? 'Recent' : 
-                                 suggestion.type === 'create_flashcards' ? 'Create' :
-                                 suggestion.type === 'create_note' ? 'Create' :
-                                 suggestion.type === 'create_quiz' ? 'Quiz' :
-                                 suggestion.type === 'explain' ? 'Learn' :
-                                 suggestion.type === 'show_progress' ? 'Analytics' :
-                                 suggestion.type === 'show_weak_areas' ? 'Analytics' :
-                                 suggestion.type}
+                                {suggestion.category}
                               </span>
                             )}
                           </button>
                         ))}
+                        <div className="autocomplete-footer">
+                          <kbd>↑</kbd><kbd>↓</kbd> Navigate
+                          <span style={{ margin: '0 4px' }}>•</span>
+                          <kbd>Enter</kbd> Select
+                          <span style={{ margin: '0 4px' }}>•</span>
+                          <kbd>Esc</kbd> Close
+                        </div>
                       </div>
                     )}
                   </div>
