@@ -1,31 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ChevronRight, Target, Brain, MessageSquare, BookOpen, 
-  TrendingUp, AlertTriangle, CheckCircle, Lightbulb, 
-  Activity, Zap, X, ArrowRight, Play, RefreshCw
+  ChevronRight, Target, Brain, MessageSquare, 
+  TrendingUp, AlertTriangle, CheckCircle, 
+  Activity, Zap, RefreshCw
 } from 'lucide-react';
 import './Weaknesses.css';
 import { API_URL } from '../config';
-import { useTheme } from '../contexts/ThemeContext';
 
 const Weaknesses = () => {
   const navigate = useNavigate();
-  const { selectedTheme } = useTheme();
   const token = localStorage.getItem('token');
   const userName = localStorage.getItem('username');
   
   const [loading, setLoading] = useState(true);
   const [weakAreasData, setWeakAreasData] = useState(null);
   const [filterCategory, setFilterCategory] = useState('all');
-  const [selectedTopic, setSelectedTopic] = useState(null);
-  const [topicSuggestions, setTopicSuggestions] = useState(null);
-  const [similarQuestions, setSimilarQuestions] = useState(null);
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const [loadingQuestions, setLoadingQuestions] = useState(false);
-
-  const tokens = selectedTheme?.tokens || {};
-  const accent = tokens['--accent'] || '#D7B38C';
 
   useEffect(() => {
     if (!token) {
@@ -52,50 +42,8 @@ const Weaknesses = () => {
     }
   };
 
-  const loadTopicSuggestions = async (topic) => {
-    setLoadingSuggestions(true);
-    try {
-      const response = await fetch(`${API_URL}/study_insights/topic_suggestions?user_id=${userName}&topic=${encodeURIComponent(topic)}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setTopicSuggestions(data);
-      }
-    } catch (error) {
-      console.error('Error loading topic suggestions:', error);
-    } finally {
-      setLoadingSuggestions(false);
-    }
-  };
-
-  const loadSimilarQuestions = async (topic) => {
-    setLoadingQuestions(true);
-    try {
-      const response = await fetch(`${API_URL}/study_insights/similar_questions?user_id=${userName}&topic=${encodeURIComponent(topic)}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setSimilarQuestions(data);
-      }
-    } catch (error) {
-      console.error('Error loading similar questions:', error);
-    } finally {
-      setLoadingQuestions(false);
-    }
-  };
-
   const handleTopicClick = (topic) => {
-    setSelectedTopic(topic);
-    loadTopicSuggestions(topic);
-    loadSimilarQuestions(topic);
-  };
-
-  const closeTopicModal = () => {
-    setSelectedTopic(null);
-    setTopicSuggestions(null);
-    setSimilarQuestions(null);
+    navigate(`/weakness-tips/${encodeURIComponent(topic)}`);
   };
 
   const getFilteredAreas = () => {
@@ -232,30 +180,14 @@ const Weaknesses = () => {
                 <WeaknessCard
                   key={idx}
                   area={area}
+                  index={idx}
                   onClick={() => handleTopicClick(area.topic)}
-                  onPractice={() => navigate('/ai-chat', { state: { initialMessage: `Help me practice ${area.topic}` }})}
                 />
               ))}
             </div>
           )}
         </main>
       </div>
-
-      {/* Topic Detail Modal */}
-      {selectedTopic && (
-        <TopicDetailModal
-          topic={selectedTopic}
-          suggestions={topicSuggestions}
-          questions={similarQuestions}
-          loadingSuggestions={loadingSuggestions}
-          loadingQuestions={loadingQuestions}
-          onClose={closeTopicModal}
-          onPracticeAll={() => {
-            closeTopicModal();
-            navigate('/question-bank', { state: { topic: selectedTopic }});
-          }}
-        />
-      )}
     </div>
   );
 };
@@ -264,7 +196,7 @@ export default Weaknesses;
 
 // ==================== WEAKNESS CARD ====================
 
-const WeaknessCard = ({ area, onClick, onPractice }) => {
+const WeaknessCard = ({ area, onClick }) => {
   const getCategoryColor = (category) => {
     switch(category) {
       case 'critical': return '#ef4444';
@@ -274,20 +206,11 @@ const WeaknessCard = ({ area, onClick, onPractice }) => {
     }
   };
 
-  const getCategoryLabel = (category) => {
-    switch(category) {
-      case 'critical': return 'CRITICAL';
-      case 'needs_practice': return 'NEEDS PRACTICE';
-      case 'improving': return 'IMPROVING';
-      default: return 'WEAK';
-    }
-  };
-
   const categoryColor = getCategoryColor(area.category);
   const hasQuizOrFlashcard = area.sources?.includes('quiz') || area.sources?.includes('flashcard');
 
   return (
-    <div className={`weakness-card ${area.category}`} onClick={onClick}>
+    <div className={`weakness-card ${area.category}`}>
       <div 
         className="card-cover" 
         style={{ 
@@ -297,7 +220,6 @@ const WeaknessCard = ({ area, onClick, onPractice }) => {
         <div className="cover-overlay">
           <Target size={32} strokeWidth={1.5} />
         </div>
-        {/* Source tags in top corner */}
         <div className="card-sources-top">
           {area.sources?.includes('quiz') && <span className="source-badge quiz">QUIZ</span>}
           {area.sources?.includes('flashcard') && <span className="source-badge flashcard">FLASHCARD</span>}
@@ -308,7 +230,6 @@ const WeaknessCard = ({ area, onClick, onPractice }) => {
       <div className="card-content">
         <h3 className="card-title">{area.topic}</h3>
         
-        {/* Subtitle indicators below title */}
         {area.chat_analysis?.is_doubtful && (
           <div className="card-subtitle doubtful">
             <MessageSquare size={12} />
@@ -323,7 +244,6 @@ const WeaknessCard = ({ area, onClick, onPractice }) => {
           </div>
         )}
         
-        {/* Only show accuracy for quiz/flashcard */}
         {hasQuizOrFlashcard && (
           <div className="card-accuracy">
             <span className="accuracy-label">ACCURACY</span>
@@ -331,7 +251,6 @@ const WeaknessCard = ({ area, onClick, onPractice }) => {
           </div>
         )}
 
-        {/* Only show stats for quiz/flashcard */}
         {hasQuizOrFlashcard && (
           <div className="card-stats">
             <div className="stat">
@@ -345,119 +264,11 @@ const WeaknessCard = ({ area, onClick, onPractice }) => {
           </div>
         )}
 
-        <div className="card-actions" onClick={(e) => e.stopPropagation()}>
-          <button className="practice-btn" onClick={onPractice}>
-            <Play size={16} />
-            <span>PRACTICE</span>
+        <div className="card-actions">
+          <button className="analyze-btn" onClick={(e) => { e.stopPropagation(); onClick(); }}>
+            <Target size={16} />
+            <span>ANALYZE</span>
           </button>
-          <button className="tips-btn" onClick={onClick}>
-            <Lightbulb size={16} />
-            <span>TIPS</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ==================== TOPIC DETAIL MODAL ====================
-
-const TopicDetailModal = ({ 
-  topic, 
-  suggestions, 
-  questions, 
-  loadingSuggestions, 
-  loadingQuestions, 
-  onClose, 
-  onPracticeAll 
-}) => {
-  return (
-    <div className="topic-modal-overlay" onClick={onClose}>
-      <div className="topic-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="topic-modal-header">
-          <h2>{topic}</h2>
-          <button className="topic-modal-close" onClick={onClose}>×</button>
-        </div>
-        
-        <div className="topic-modal-content">
-          {/* Suggestions Section */}
-          {loadingSuggestions ? (
-            <div className="topic-modal-loading">
-              <div className="loading-spinner-weak"></div>
-              <p>GENERATING SUGGESTIONS...</p>
-            </div>
-          ) : suggestions?.suggestions?.length > 0 && (
-            <div className="topic-modal-section">
-              <h3><Lightbulb size={18} /> PERSONALIZED SUGGESTIONS</h3>
-              <div className="suggestions-list">
-                {suggestions.suggestions.map((suggestion, idx) => (
-                  <div key={idx} className={`suggestion-card ${suggestion.priority}`}>
-                    <div className="suggestion-header">
-                      <span className="suggestion-title">{suggestion.title}</span>
-                      <span className={`suggestion-priority ${suggestion.priority}`}>{suggestion.priority}</span>
-                    </div>
-                    <p className="suggestion-description">{suggestion.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* Study Tips */}
-          {suggestions?.study_tips?.length > 0 && (
-            <div className="topic-modal-section">
-              <h3><BookOpen size={18} /> STUDY TIPS</h3>
-              <ul className="tips-list">
-                {suggestions.study_tips.map((tip, idx) => (
-                  <li key={idx}>{tip}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-          
-          {/* Similar Questions */}
-          {loadingQuestions ? (
-            <div className="topic-modal-loading">
-              <div className="loading-spinner-weak"></div>
-              <p>FINDING SIMILAR QUESTIONS...</p>
-            </div>
-          ) : questions?.similar_questions?.length > 0 && (
-            <div className="topic-modal-section">
-              <h3><Activity size={18} /> SIMILAR QUESTIONS ({questions.total_found})</h3>
-              <div className="questions-list">
-                {questions.similar_questions.slice(0, 5).map((question, idx) => (
-                  <div key={idx} className="question-card">
-                    <div className="question-header">
-                      <span className="question-number">Q{idx + 1}</span>
-                      <span className={`question-difficulty ${question.difficulty}`}>{question.difficulty}</span>
-                      {question.is_new && <span className="question-new-badge">NEW</span>}
-                    </div>
-                    <p className="question-text">{question.question_text}</p>
-                    {!question.is_new && question.user_answer && (
-                      <div className="question-history">
-                        <span className="question-your-answer">Your answer: {question.user_answer}</span>
-                        <span className="question-correct-answer">Correct: {question.correct_answer}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <button className="practice-all-btn" onClick={onPracticeAll}>
-                <ArrowRight size={18} />
-                <span>PRACTICE ALL QUESTIONS</span>
-              </button>
-            </div>
-          )}
-          
-          {/* Empty state */}
-          {!loadingSuggestions && !loadingQuestions && 
-           !suggestions?.suggestions?.length && 
-           !questions?.similar_questions?.length && (
-            <div className="topic-modal-empty">
-              <Brain size={48} />
-              <p>No additional data available for this topic yet.</p>
-            </div>
-          )}
         </div>
       </div>
     </div>

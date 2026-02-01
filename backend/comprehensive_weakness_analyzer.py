@@ -74,20 +74,39 @@ class TopicClassifier:
     
     @staticmethod
     def extract_core_concept(topic: str) -> str:
-        """Extract the core concept from a topic"""
+        """Extract the core concept from a topic with better filtering"""
         cleaned = TopicClassifier.clean_topic(topic)
         
         if not cleaned:
             return None
         
-        # Skip if too short or generic
-        if len(cleaned) < 3:
+        # Skip if too short (less than 4 characters)
+        if len(cleaned) < 4:
             return None
         
-        # Skip generic terms
-        generic_terms = ['flashcard', 'flashcards', 'question', 'questions', 'problem', 'problems', 
-                        'exercise', 'exercises', 'practice', 'test', 'quiz']
-        if cleaned in generic_terms:
+        # Skip generic/noise terms (expanded list)
+        generic_terms = [
+            'flashcard', 'flashcards', 'question', 'questions', 'problem', 'problems', 
+            'exercise', 'exercises', 'practice', 'test', 'quiz', 'hello', 'hi', 'hey',
+            'thanks', 'thank', 'please', 'help', 'okay', 'yes', 'no', 'maybe',
+            'what', 'when', 'where', 'which', 'who', 'how', 'why', 'can', 'could',
+            'would', 'should', 'will', 'shall', 'may', 'might', 'must',
+            'this', 'that', 'these', 'those', 'here', 'there', 'now', 'then',
+            'good', 'bad', 'nice', 'great', 'awesome', 'cool', 'fine', 'okay',
+            'something', 'anything', 'nothing', 'everything', 'someone', 'anyone',
+            'understand', 'know', 'learn', 'study', 'review', 'explain'
+        ]
+        
+        if cleaned.lower() in generic_terms:
+            return None
+        
+        # Skip if it's just a greeting or common word
+        common_words = ['hello', 'world', 'test', 'example', 'sample', 'demo']
+        if cleaned.lower() in common_words:
+            return None
+        
+        # Skip if it's all uppercase (likely an acronym or noise)
+        if cleaned.isupper() and len(cleaned) < 6:
             return None
         
         # Extract main keyword (usually first significant word)
@@ -96,16 +115,20 @@ class TopicClassifier:
         # Look for known concepts in the taxonomy
         for category, keywords in TopicClassifier.TOPIC_CATEGORIES.items():
             for keyword in keywords:
-                if keyword in cleaned:
+                if keyword in cleaned.lower():
                     return keyword
         
-        # If no match, use the first significant word (length > 3)
+        # If no match, use the first significant word (length > 4)
         for word in words:
-            if len(word) > 3:
-                return word
+            if len(word) > 4 and word.lower() not in generic_terms:
+                return word.lower()
         
-        # Fallback to first word
-        return words[0] if words else None
+        # Fallback: if first word is long enough and not generic
+        if words and len(words[0]) >= 4 and words[0].lower() not in generic_terms:
+            return words[0].lower()
+        
+        # If nothing passes, return None (don't classify)
+        return None
     
     @staticmethod
     def classify_topic(topic: str) -> Tuple[str, str]:

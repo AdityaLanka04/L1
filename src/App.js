@@ -16,6 +16,7 @@ import SoloQuiz from './pages/SoloQuiz';
 import SoloQuizSession from './pages/SoloQuizSession';
 import Analytics from './pages/Analytics';
 import ChallengeSession from './pages/ChallengeSession';
+import Challenges from './pages/Challenges';
 import SharedContent from './pages/SharedContent';
 import KnowledgeRoadmap from './pages/KnowledgeRoadmap';
 import ConceptWeb from './pages/ConceptWeb';
@@ -35,6 +36,8 @@ import ProfileQuiz from './pages/ProfileQuiz';
 import SearchHub from './pages/SearchHub';
 import StudyInsights from './pages/StudyInsights';
 import Weaknesses from './pages/Weaknesses';
+import WeaknessPractice from './pages/WeaknessPractice';
+import WeaknessTips from './pages/WeaknessTips';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
 import SharedItemViewer from './pages/SharedItemViewer';
@@ -84,6 +87,9 @@ function App() {
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/study-insights" element={<ProtectedRoute><StudyInsights /></ProtectedRoute>} />
             <Route path="/weaknesses" element={<ProtectedRoute><Weaknesses /></ProtectedRoute>} />
+            <Route path="/weakness-practice" element={<ProtectedRoute><WeaknessPractice /></ProtectedRoute>} />
+            <Route path="/practice/:id" element={<ProtectedRoute><WeaknessPractice /></ProtectedRoute>} />
+            <Route path="/weakness-tips/:topic" element={<ProtectedRoute><WeaknessTips /></ProtectedRoute>} />
             <Route path="/ai-chat" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />
             <Route path="/ai-chat/:chatId?" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />
             <Route path="/learning-review" element={<ProtectedRoute><LearningReviewHub /></ProtectedRoute>} />
@@ -101,7 +107,7 @@ function App() {
             <Route path="/solo-quiz/:quizId" element={<ProtectedRoute><SoloQuizSession /></ProtectedRoute>} />
             <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
             <Route path="/games" element={<ProtectedRoute><Games /></ProtectedRoute>} />
-            <Route path="/challenges" element={<ProtectedRoute><Games /></ProtectedRoute>} />
+            <Route path="/challenges" element={<ProtectedRoute><Challenges /></ProtectedRoute>} />
             <Route path="/challenge/:challengeId" element={<ProtectedRoute><ChallengeSession /></ProtectedRoute>} />
             <Route path="/shared" element={<SharedContent />} />
             <Route path="/shared/:contentType/:contentId" element={<SharedContent />} />

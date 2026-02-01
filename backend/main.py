@@ -7796,6 +7796,164 @@ async def get_slide_image(slide_id: int, page_number: int, db: Session = Depends
         raise HTTPException(status_code=500, detail=f"Error getting slide image: {str(e)}")
 
 
+@app.post("/api/generate_practice_questions")
+async def generate_practice_questions(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db)
+):
+    """Generate practice questions from any topic or content"""
+    try:
+        user_id = payload.get("user_id")
+        topic = payload.get("topic") or payload.get("content", "")
+        question_count = payload.get("question_count", 10)
+        difficulty_mix = payload.get("difficulty_mix", {"easy": 3, "medium": 5, "hard": 2})
+        question_types = payload.get("question_types", ["multiple_choice"])
+        title = payload.get("title", f"Practice: {topic[:50]}")
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        if not topic:
+            raise HTTPException(status_code=400, detail="Topic or content required")
+        
+        # Build question type instructions
+        type_instructions = []
+        if "multiple_choice" in question_types:
+            type_instructions.append("multiple choice questions with 4 options")
+        if "true_false" in question_types:
+            type_instructions.append("true/false questions")
+        if "short_answer" in question_types:
+            type_instructions.append("short answer questions")
+        
+        type_str = ", ".join(type_instructions) if type_instructions else "multiple choice questions"
+        
+        prompt = f"""Generate {question_count} educational practice questions about: {topic}
+
+**DIFFICULTY DISTRIBUTION**:
+- Easy: {difficulty_mix.get('easy', 3)} questions (basic recall and understanding)
+- Medium: {difficulty_mix.get('medium', 5)} questions (application and analysis)
+- Hard: {difficulty_mix.get('hard', 2)} questions (synthesis and evaluation)
+
+**QUESTION TYPES**: Create {type_str}
+
+**REQUIREMENTS**:
+1. Questions should test understanding of key concepts
+2. Include detailed explanations for each answer
+3. Make questions clear and unambiguous
+4. Ensure correct answers are accurate
+5. For multiple choice, make distractors plausible but clearly wrong
+
+**OUTPUT FORMAT** (JSON array only, no markdown):
+[
+  {{
+    "question_text": "Clear, specific question?",
+    "question_type": "multiple_choice|true_false|short_answer",
+    "correct_answer": "Correct answer (for MC use A/B/C/D, for T/F use true/false)",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "difficulty": "easy|medium|hard",
+    "explanation": "Detailed explanation of why this answer is correct",
+    "topic": "{topic[:100]}"
+  }}
+]
+
+Generate exactly {question_count} high-quality questions now:"""
+
+        chat_completion = groq_client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are an expert educator creating practice questions. Return only valid JSON array."},
+                {"role": "user", "content": prompt}
+            ],
+            model=GROQ_MODEL,
+            temperature=0.7,
+            max_tokens=4000,
+        )
+        
+        response_text = chat_completion.choices[0].message.content
+        response_text = process_math_in_response(response_text)
+        
+        # Extract JSON
+        try:
+            # Remove markdown code blocks if present
+            response_text = re.sub(r'^```(?:json)?\n?', '', response_text, flags=re.MULTILINE)
+            response_text = re.sub(r'\n?```$', '', response_text, flags=re.MULTILINE)
+            
+            json_match = re.search(r'\[.*\]', response_text, re.DOTALL)
+            if json_match:
+                questions_data = json.loads(json_match.group())
+            else:
+                raise ValueError("No JSON array found in response")
+        except Exception as e:
+            logger.error(f"Failed to parse questions: {str(e)}, response: {response_text[:500]}")
+            raise HTTPException(status_code=500, detail="Failed to parse AI response")
+        
+        # Create question set
+        question_set = models.QuestionSet(
+            user_id=user.id,
+            title=title,
+            description=f"Practice questions for {topic[:100]}",
+            source_type="custom",
+            total_questions=len(questions_data)
+        )
+        
+        db.add(question_set)
+        db.commit()
+        db.refresh(question_set)
+        
+        # Add questions
+        for idx, q_data in enumerate(questions_data):
+            question = models.Question(
+                question_set_id=question_set.id,
+                question_text=q_data.get("question_text", ""),
+                question_type=q_data.get("question_type", "multiple_choice"),
+                correct_answer=str(q_data.get("correct_answer", "")),
+                options=json.dumps(q_data.get("options", [])) if q_data.get("options") else None,
+                difficulty=q_data.get("difficulty", "medium"),
+                explanation=q_data.get("explanation", ""),
+                topic=q_data.get("topic", topic[:100]),
+                order_index=idx
+            )
+            db.add(question)
+        
+        db.commit()
+        db.refresh(question_set)
+        
+        # Fetch created questions
+        questions = db.query(models.Question).filter(
+            models.Question.question_set_id == question_set.id
+        ).order_by(models.Question.order_index).all()
+        
+        logger.info(f"Generated {len(questions)} practice questions for user {user.id} on topic: {topic[:50]}")
+        
+        return {
+            "status": "success",
+            "question_set_id": question_set.id,
+            "id": question_set.id,
+            "title": question_set.title,
+            "question_count": len(questions),
+            "questions": [
+                {
+                    "id": q.id,
+                    "question_text": q.question_text,
+                    "question_type": q.question_type,
+                    "difficulty": q.difficulty,
+                    "correct_answer": q.correct_answer,
+                    "options": json.loads(q.options) if q.options else [],
+                    "explanation": q.explanation,
+                    "topic": q.topic
+                }
+                for q in questions
+            ]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating practice questions: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to generate questions: {str(e)}")
+
+
 @app.post("/api/generate_questions")
 async def generate_questions(
     payload: dict = Body(...),
@@ -19526,3 +19684,204 @@ if __name__ == "__main__":
 
 
 
+
+
+# ==================== COMPREHENSIVE WEAKNESS PRACTICE SYSTEM API ====================
+
+from comprehensive_weakness_practice_system import (
+    create_weakness_practice_system,
+    format_practice_summary
+)
+
+# Initialize weakness practice system (will be created per request with proper dependencies)
+def get_weakness_practice_system(db: Session = Depends(get_db)):
+    """Dependency to get weakness practice system"""
+    try:
+        from knowledge_graph import get_knowledge_graph
+        kg_client = asyncio.run(get_knowledge_graph())
+    except:
+        kg_client = None
+    
+    return create_weakness_practice_system(db, models, unified_ai, kg_client)
+
+
+@app.get("/api/weakness-practice/analysis")
+async def get_weakness_analysis(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db),
+    token: str = Depends(verify_token)
+):
+    """Get comprehensive weakness analysis"""
+    try:
+        system = get_weakness_practice_system(db)
+        analysis = await system.get_comprehensive_analysis(int(user_id))
+        return JSONResponse(content=analysis)
+    except Exception as e:
+        logger.error(f"Error in weakness analysis: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "error": str(e)}
+        )
+
+
+@app.post("/api/weakness-practice/start-session")
+async def start_weakness_practice_session(
+    user_id: int = Body(...),
+    topic: str = Body(...),
+    difficulty: str = Body(default="intermediate"),
+    question_count: int = Body(default=10),
+    db: Session = Depends(get_db),
+    token: str = Depends(verify_token)
+):
+    """Start a new practice session"""
+    try:
+        system = get_weakness_practice_system(db)
+        result = await system.start_practice_session(user_id, topic, difficulty, question_count)
+        return JSONResponse(content=result)
+    except Exception as e:
+        logger.error(f"Error starting practice session: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "error": str(e)}
+        )
+
+
+@app.get("/api/weakness-practice/next-question")
+async def get_next_practice_question(
+    session_id: str = Query(...),
+    db: Session = Depends(get_db),
+    token: str = Depends(verify_token)
+):
+    """Get next question in practice session"""
+    try:
+        system = get_weakness_practice_system(db)
+        result = await system.get_next_question(session_id)
+        return JSONResponse(content=result)
+    except Exception as e:
+        logger.error(f"Error getting next question: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "error": str(e)}
+        )
+
+
+@app.post("/api/weakness-practice/submit-answer")
+async def submit_practice_answer(
+    session_id: str = Body(...),
+    question_id: str = Body(...),
+    user_answer: str = Body(...),
+    time_taken: int = Body(...),
+    db: Session = Depends(get_db),
+    token: str = Depends(verify_token)
+):
+    """Submit answer and get feedback"""
+    try:
+        system = get_weakness_practice_system(db)
+        result = system.submit_answer(session_id, question_id, user_answer, time_taken)
+        return JSONResponse(content=result)
+    except Exception as e:
+        logger.error(f"Error submitting answer: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "error": str(e)}
+        )
+
+
+@app.post("/api/weakness-practice/end-session")
+async def end_weakness_practice_session(
+    session_id: str = Body(...),
+    db: Session = Depends(get_db),
+    token: str = Depends(verify_token)
+):
+    """End practice session and get summary"""
+    try:
+        system = get_weakness_practice_system(db)
+        result = system.end_practice_session(session_id)
+        return JSONResponse(content=result)
+    except Exception as e:
+        logger.error(f"Error ending practice session: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "error": str(e)}
+        )
+
+
+@app.get("/api/weakness-practice/mastery-overview")
+async def get_mastery_overview(
+    user_id: int = Query(...),
+    db: Session = Depends(get_db),
+    token: str = Depends(verify_token)
+):
+    """Get mastery overview for user"""
+    try:
+        system = get_weakness_practice_system(db)
+        result = system.get_mastery_overview(user_id)
+        return JSONResponse(content=result)
+    except Exception as e:
+        logger.error(f"Error getting mastery overview: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "error": str(e)}
+        )
+
+
+@app.get("/api/weakness-practice/weekly-progress")
+async def get_weekly_progress(
+    user_id: int = Query(...),
+    db: Session = Depends(get_db),
+    token: str = Depends(verify_token)
+):
+    """Get weekly progress summary"""
+    try:
+        system = get_weakness_practice_system(db)
+        result = system.get_weekly_progress(user_id)
+        return JSONResponse(content=result)
+    except Exception as e:
+        logger.error(f"Error getting weekly progress: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "error": str(e)}
+        )
+
+
+@app.post("/api/weakness-practice/generate-study-plan")
+async def generate_study_plan(
+    user_id: int = Body(...),
+    goal: str = Body(default="improve_weaknesses"),
+    duration_weeks: int = Body(default=4),
+    db: Session = Depends(get_db),
+    token: str = Depends(verify_token)
+):
+    """Generate personalized study plan"""
+    try:
+        system = get_weakness_practice_system(db)
+        result = await system.generate_study_plan(user_id, goal, duration_weeks)
+        return JSONResponse(content=result)
+    except Exception as e:
+        logger.error(f"Error generating study plan: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "error": str(e)}
+        )
+
+
+@app.get("/api/weakness-practice/daily-recommendations")
+async def get_daily_recommendations(
+    user_id: int = Query(...),
+    db: Session = Depends(get_db),
+    token: str = Depends(verify_token)
+):
+    """Get daily study recommendations"""
+    try:
+        system = get_weakness_practice_system(db)
+        result = system.get_daily_recommendations(user_id)
+        return JSONResponse(content=result)
+    except Exception as e:
+        logger.error(f"Error getting daily recommendations: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "error": str(e)}
+        )
+
+
+logger.info("✅ Comprehensive Weakness Practice System API registered")

@@ -2138,3 +2138,77 @@ def get_db():
 if __name__ == "__main__":
     create_tables()
     print(" Database tables created successfully!")
+
+
+# ==================== COMPREHENSIVE WEAKNESS PRACTICE SYSTEM MODELS ====================
+
+class PracticeSession(Base):
+    """Practice session for weakness improvement"""
+    __tablename__ = "practice_sessions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    topic = Column(String, nullable=False)
+    difficulty = Column(String, default="intermediate")
+    target_question_count = Column(Integer, default=10)
+    questions_answered = Column(Integer, default=0)
+    correct_answers = Column(Integer, default=0)
+    accuracy = Column(Float, default=0.0)
+    max_streak = Column(Integer, default=0)
+    avg_response_time = Column(Float, default=0.0)
+    started_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+    status = Column(String, default="active")  # active, completed, abandoned
+    
+    user = relationship("User")
+    answers = relationship("PracticeAnswer", back_populates="session", cascade="all, delete-orphan")
+
+
+class PracticeAnswer(Base):
+    """Individual answer in a practice session"""
+    __tablename__ = "practice_answers"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("practice_sessions.id"), nullable=False)
+    question_text = Column(Text, nullable=False)
+    user_answer = Column(Text, nullable=False)
+    correct_answer = Column(Text, nullable=False)
+    is_correct = Column(Boolean, default=False)
+    time_taken = Column(Integer, default=0)  # seconds
+    answered_at = Column(DateTime, default=datetime.utcnow)
+    
+    session = relationship("PracticeSession", back_populates="answers")
+
+
+class StudyPlan(Base):
+    """Personalized study plan"""
+    __tablename__ = "study_plans"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    goal = Column(String, nullable=False)
+    duration_weeks = Column(Integer, default=4)
+    plan_data = Column(Text, nullable=False)  # JSON string
+    created_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(String, default="active")  # active, completed, abandoned
+    
+    user = relationship("User")
+
+
+class GeneratedQuestion(Base):
+    """AI-generated questions for practice"""
+    __tablename__ = "generated_questions"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    topic = Column(String, nullable=False)
+    subtopic = Column(String, nullable=True)
+    question_text = Column(Text, nullable=False)
+    question_type = Column(String, nullable=False)  # multiple_choice, true_false, short_answer
+    options = Column(Text, nullable=True)  # JSON array for multiple choice
+    correct_answer = Column(Text, nullable=False)
+    explanation = Column(Text, nullable=False)
+    hints = Column(Text, nullable=True)  # JSON array
+    difficulty = Column(String, default="intermediate")
+    generated_at = Column(DateTime, default=datetime.utcnow)
+    times_used = Column(Integer, default=0)
+    avg_accuracy = Column(Float, default=0.0)

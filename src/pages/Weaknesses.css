@@ -509,8 +509,8 @@
   transition: all 0.2s;
   display: flex;
   flex-direction: column;
-  min-height: 480px;
-  max-height: 480px;
+  min-height: 380px;
+  max-height: 380px;
 }
 
 .weakness-card:hover {
@@ -549,7 +549,7 @@
 .card-cover {
   position: relative;
   width: 100%;
-  height: 160px;
+  height: 120px;
   overflow: hidden;
   border-bottom: 1px solid var(--border);
 }
@@ -604,10 +604,10 @@
 }
 
 .card-content {
-  padding: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   flex: 1;
   min-height: 0;
 }
@@ -753,8 +753,7 @@
   padding-top: 8px;
 }
 
-.practice-btn,
-.tips-btn {
+.analyze-btn {
   flex: 1;
   display: flex;
   align-items: center;
@@ -770,37 +769,22 @@
   border: none;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-}
-
-.practice-btn {
   background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black));
   color: var(--bg-primary);
   box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
-[data-theme-mode="light"] .practice-btn {
+[data-theme-mode="light"] .analyze-btn {
   color: white;
 }
 
-[data-theme-mode="dark"] .practice-btn {
+[data-theme-mode="dark"] .analyze-btn {
   color: var(--bg-primary);
 }
 
-.practice-btn:hover {
+.analyze-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 50%, transparent);
-}
-
-.tips-btn {
-  background: transparent;
-  border: 1.5px solid var(--accent);
-  color: var(--accent);
-}
-
-.tips-btn:hover {
-  background: var(--accent);
-  color: var(--bg-primary);
-  transform: translateY(-1px);
 }
 
 /* ==================== TOPIC MODAL ==================== */
