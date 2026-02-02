@@ -856,6 +856,11 @@ async def fix_database_sequences():
         except Exception as e:
             logger.warning(f"Embedding wrapping setup failed: {e}")
         
+        # Update unified_ai to use the newly initialized cache manager
+        global unified_ai
+        unified_ai.cache_manager = cache_manager
+        logger.info("✅ Updated unified_ai to use initialized cache manager")
+        
     except Exception as e:
         import traceback
         logger.error(f"❌ Cache initialization failed: {e}")

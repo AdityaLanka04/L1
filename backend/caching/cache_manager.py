@@ -212,7 +212,8 @@ class CacheManager:
         redis_url: str = None,
         max_memory_size: int = 10000,
         default_ttl: int = 3600,
-        enable_redis: bool = True
+        enable_redis: bool = True,
+        enable_semantic_cache: bool = True
     ):
         self.default_ttl = default_ttl
         
@@ -235,6 +236,16 @@ class CacheManager:
         self.embedding_cache = LRUCache(max_size=5000, default_ttl=7200)
         self.api_response_cache = LRUCache(max_size=1000, default_ttl=60)
         
+        # Semantic cache for AI responses (matches similar queries)
+        self.semantic_cache = None
+        if enable_semantic_cache:
+            try:
+                from caching.semantic_cache import get_semantic_cache
+                self.semantic_cache = get_semantic_cache()
+                logger.info("✅ Semantic cache initialized (matches similar queries)")
+            except Exception as e:
+                logger.warning(f"Semantic cache initialization failed: {e}")
+        
         logger.info("✅ Cache Manager initialized")
     
     def _get_cache_key(self, prefix: str, *args, **kwargs) -> str:
@@ -246,31 +257,43 @@ class CacheManager:
     # ==================== AI Response Caching ====================
     
     def get_ai_response(self, prompt: str, temperature: float, max_tokens: int) -> Optional[str]:
-        """Get cached AI response"""
-        key = self._get_cache_key("ai", prompt, temperature, max_tokens)
+        """Get cached AI response (checks semantic cache first for similar queries)"""
         
-        # Try Redis first
+        # 1. Try semantic cache first (matches similar queries)
+        if self.semantic_cache:
+            result = self.semantic_cache.get(prompt, temperature, max_tokens)
+            if result:
+                return result
+        
+        # 2. Try exact match in Redis
+        key = self._get_cache_key("ai", prompt, temperature, max_tokens)
         if self.redis_cache:
             result = self.redis_cache.get(key)
             if result:
                 logger.debug(f"AI cache hit (Redis): {prompt[:50]}...")
                 return result
         
-        # Fallback to memory
+        # 3. Try exact match in memory
         result = self.ai_response_cache.get(key)
         if result:
             logger.debug(f"AI cache hit (memory): {prompt[:50]}...")
         return result
     
     def set_ai_response(self, prompt: str, temperature: float, max_tokens: int, response: str, ttl: int = None):
-        """Cache AI response"""
+        """Cache AI response (stores in all caches including semantic)"""
         key = self._get_cache_key("ai", prompt, temperature, max_tokens)
         ttl = ttl or self.default_ttl
         
-        # Store in both Redis and memory
+        # Store in Redis
         if self.redis_cache:
             self.redis_cache.set(key, response, ttl)
+        
+        # Store in memory
         self.ai_response_cache.set(key, response, ttl)
+        
+        # Store in semantic cache (for similarity matching)
+        if self.semantic_cache:
+            self.semantic_cache.set(prompt, temperature, max_tokens, response)
         
         logger.debug(f"AI response cached: {prompt[:50]}...")
     
@@ -402,6 +425,7 @@ class CacheManager:
         """Get comprehensive cache statistics"""
         stats = {
             "redis_available": self.redis_cache is not None,
+            "semantic_cache_enabled": self.semantic_cache is not None,
             "memory_cache": self.memory_cache.get_stats(),
             "ai_response_cache": self.ai_response_cache.get_stats(),
             "rag_query_cache": self.rag_query_cache.get_stats(),
@@ -412,6 +436,9 @@ class CacheManager:
         
         if self.redis_cache:
             stats["redis_cache"] = self.redis_cache.get_stats()
+        
+        if self.semantic_cache:
+            stats["semantic_cache"] = self.semantic_cache.get_stats()
         
         return stats
 

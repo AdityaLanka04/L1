@@ -735,12 +735,18 @@ class AIChatAgent:
         }
     
     def _generate_ai_response(self, system_prompt: str, user_message: str) -> str:
-        """Generate AI response using language model"""
-        # Placeholder - integrate with your AI model (Groq, OpenAI, etc.)
+        """Generate AI response using language model with caching"""
         try:
-            # This is where you'd call your AI API
-            # For now, return a template response
-            return f"I understand you're asking about: {user_message[:50]}... Let me help you with that."
+            # Import the cached unified AI client
+            from main import unified_ai
+            
+            # Combine system prompt and user message
+            full_prompt = f"{system_prompt}\n\nStudent: {user_message}\n\nTutor:"
+            
+            # Call AI with caching (unified_ai automatically caches responses)
+            response = unified_ai.generate(full_prompt, max_tokens=2000, temperature=0.7)
+            
+            return response
         except Exception as e:
             logger.error(f"Error generating AI response: {e}")
             return "I'm having trouble processing that. Could you rephrase your question?"
