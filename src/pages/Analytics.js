@@ -188,6 +188,10 @@ const Analytics = () => {
           <span className="analytics-subtitle">Analytics</span>
         </div>
         <nav className="analytics-header-right">
+          <button className="analytics-nav-btn analytics-nav-btn-accent" onClick={() => navigate('/xp-roadmap')}>
+            <Trophy size={16} />
+            <span>XP Roadmap</span>
+          </button>
           <button className="analytics-nav-btn analytics-nav-btn-accent" onClick={exportData}>
             <Download size={16} />
             <span>Export</span>

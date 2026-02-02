@@ -1881,7 +1881,7 @@ const QuestionBankDashboard = () => {
 
                 {/* Content Section */}
                 <div className="qbd-set-content">
-                  <h3>{set.title}</h3>
+                  <h3>{set.title || 'Untitled Quiz'}</h3>
                   <p>{set.description || 'No description'}</p>
                   
                   <div className="qbd-set-meta">
@@ -2386,7 +2386,7 @@ const QuestionBankDashboard = () => {
         <div className="qbd-modal-overlay">
           <div className="qbd-modal" onClick={e => e.stopPropagation()}>
             <div className="qbd-modal-header">
-              <h3>{selectedQuestionSet.title}</h3>
+              <h3>{selectedQuestionSet?.title || 'Quiz Session'}</h3>
               <button className="qbd-modal-close" onClick={() => setShowStudyModal(false)}>×</button>
             </div>
             <div className="qbd-modal-content">
@@ -2401,7 +2401,7 @@ const QuestionBankDashboard = () => {
       <div className="qbd-modal-overlay">
         <div className="qbd-modal" onClick={e => e.stopPropagation()}>
           <div className="qbd-modal-header">
-            <h3>{selectedQuestionSet.title}</h3>
+            <h3>{selectedQuestionSet?.title || 'Quiz Session'}</h3>
             <button className="qbd-modal-close" onClick={() => setShowStudyModal(false)}>×</button>
           </div>
 

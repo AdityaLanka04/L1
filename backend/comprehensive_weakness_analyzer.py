@@ -249,7 +249,7 @@ class ComprehensiveWeaknessAnalyzer:
             ).all()
             
             for wa in weak_areas:
-                topic = wa.topic
+                topic = wa.topic or "Unknown Quiz Topic"
                 weak_area_data[topic] = {
                     "correct": wa.correct_count,
                     "total": wa.total_questions,
@@ -281,7 +281,7 @@ class ComprehensiveWeaknessAnalyzer:
             logger.info(f"Found {len(flashcard_sets)} flashcard sets")
             
             for flashcard_set in flashcard_sets:
-                topic = flashcard_set.title
+                topic = flashcard_set.title or "Untitled Flashcard Set"
                 
                 # Get all cards in this set
                 cards = self.db.query(self.models.Flashcard).filter(
@@ -484,6 +484,9 @@ class ComprehensiveWeaknessAnalyzer:
             list(chat_data.keys())
         ))
         
+        # Filter out None and empty strings
+        all_original_topics = [t for t in all_original_topics if t and str(t).strip()]
+        
         logger.info(f"Classifying {len(all_original_topics)} original topics")
         
         # Group similar topics
@@ -662,7 +665,7 @@ class ComprehensiveWeaknessAnalyzer:
                 category = "strong"
             
             comprehensive_analysis.append({
-                "topic": display_name,  # Use display name
+                "topic": display_name or "Unknown Topic",  # Ensure topic is never empty
                 "accuracy": round(accuracy, 1),
                 "severity_score": severity,
                 "category": category,

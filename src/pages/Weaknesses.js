@@ -217,9 +217,7 @@ const WeaknessCard = ({ area, onClick }) => {
           background: `linear-gradient(135deg, ${categoryColor}22 0%, ${categoryColor}55 100%)`
         }}
       >
-        <div className="cover-overlay">
-          <Target size={32} strokeWidth={1.5} />
-        </div>
+        <h3 className="card-cover-title">{area.topic || 'Unknown Topic'}</h3>
         <div className="card-sources-top">
           {area.sources?.includes('quiz') && <span className="source-badge quiz">QUIZ</span>}
           {area.sources?.includes('flashcard') && <span className="source-badge flashcard">FLASHCARD</span>}
@@ -228,8 +226,6 @@ const WeaknessCard = ({ area, onClick }) => {
       </div>
 
       <div className="card-content">
-        <h3 className="card-title">{area.topic}</h3>
-        
         {area.chat_analysis?.is_doubtful && (
           <div className="card-subtitle doubtful">
             <MessageSquare size={12} />
@@ -245,23 +241,22 @@ const WeaknessCard = ({ area, onClick }) => {
         )}
         
         {hasQuizOrFlashcard && (
-          <div className="card-accuracy">
-            <span className="accuracy-label">ACCURACY</span>
-            <span className="accuracy-value" style={{ color: categoryColor }}>{area.accuracy}%</span>
-          </div>
-        )}
-
-        {hasQuizOrFlashcard && (
-          <div className="card-stats">
-            <div className="stat">
-              <span className="stat-label">Total</span>
-              <span className="stat-value">{area.total_attempts}</span>
+          <>
+            <div className="card-accuracy">
+              <span className="accuracy-label">ACCURACY</span>
+              <span className="accuracy-value" style={{ color: categoryColor }}>{area.accuracy}%</span>
             </div>
-            <div className="stat">
-              <span className="stat-label">Wrong</span>
-              <span className="stat-value">{area.total_wrong}</span>
+            
+            <div className="card-accuracy">
+              <span className="accuracy-label">CORRECT</span>
+              <span className="accuracy-value">{area.total_attempts - area.total_wrong}</span>
             </div>
-          </div>
+            
+            <div className="card-accuracy">
+              <span className="accuracy-label">WRONG</span>
+              <span className="accuracy-value">{area.total_wrong}</span>
+            </div>
+          </>
         )}
 
         <div className="card-actions">

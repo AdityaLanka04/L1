@@ -1284,6 +1284,17 @@ body {
   letter-spacing: 0.5px;
 }
 
+.ds-streak-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.ds-streak-actions .ds-analytics-btn {
+  flex: 1;
+}
+
 .ds-analytics-btn:hover {
   background: var(--accent);
   color: var(--bg-primary);

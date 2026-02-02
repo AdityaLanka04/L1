@@ -13067,6 +13067,37 @@ async def get_gamification_stats(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/xp_roadmap/personalized")
+async def get_personalized_xp_roadmap(
+    user_id: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """Get personalized XP roadmap with topic-based milestones"""
+    try:
+        from xp_roadmap_system import get_personalized_roadmap
+        from gamification_system import get_user_stats
+        
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get user stats
+        user_stats = get_user_stats(db, user.id)
+        
+        # Get personalized roadmap
+        roadmap_data = get_personalized_roadmap(db, user.id)
+        
+        return {
+            "status": "success",
+            "user_stats": user_stats,
+            "roadmap": roadmap_data
+        }
+    
+    except Exception as e:
+        logger.error(f"Error getting personalized roadmap: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/get_dashboard_data")
 async def get_dashboard_data(
     user_id: str = Query(...),

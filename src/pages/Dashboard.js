@@ -5,7 +5,7 @@ import { HelpTour, HelpButton } from './HelpTour';
 import {
   CheckCircle, XCircle, Clock, Plus, Users, Bell, Calendar as CalendarIcon, BookOpen, Zap,
   MessageSquare, HelpCircle, FileText, Network, ChevronRight, Search, User, Home,
-  Brain, Target, Flame, Settings, LogOut, Sparkles, TrendingUp, Layers
+  Brain, Target, Flame, Settings, LogOut, Sparkles, TrendingUp, Layers, Trophy
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { rgbaFromHex } from '../utils/ThemeManager';
@@ -1213,10 +1213,16 @@ const Dashboard = () => {
                 })()}
               </svg>
             </div>
-            <button className="ds-analytics-btn" onClick={() => navigate('/analytics')} style={{ borderColor: getWidgetColor('streak'), color: getWidgetColor('streak') }}>
-              <TrendingUp size={16} />
-              <span>VIEW ANALYTICS</span>
-            </button>
+            <div className="ds-streak-actions">
+              <button className="ds-analytics-btn" onClick={() => navigate('/xp-roadmap')} style={{ borderColor: getWidgetColor('streak'), color: getWidgetColor('streak') }}>
+                <Trophy size={16} />
+                <span>XP ROADMAP</span>
+              </button>
+              <button className="ds-analytics-btn" onClick={() => navigate('/analytics')} style={{ borderColor: getWidgetColor('streak'), color: getWidgetColor('streak') }}>
+                <TrendingUp size={16} />
+                <span>VIEW ANALYTICS</span>
+              </button>
+            </div>
           </div>
         </div>
         )}

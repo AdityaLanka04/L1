@@ -313,7 +313,7 @@ const StudyInsights = () => {
                 {insights.quizzes.recent_quizzes.slice(0, 5).map((quiz, idx) => (
                   <div key={idx} className="si-quiz-row">
                     <div className="si-quiz-info">
-                      <div className="si-quiz-title">{quiz.title}</div>
+                      <div className="si-quiz-title">{quiz.title || 'Untitled Quiz'}</div>
                       <div className="si-quiz-meta">{quiz.difficulty} • {quiz.question_count} questions</div>
                     </div>
                     <div className="si-quiz-badge" style={{

@@ -48,6 +48,7 @@ import CustomizeDashboard from './pages/CustomizeDashboard';
 import Games from './pages/Games';
 import PlaylistDetailPage from './pages/PlaylistDetailPage';
 import PlaylistsPage from './pages/PlaylistsPage';
+import XPRoadmap from './pages/XPRoadmap';
 import ProactiveNotification from './components/ProactiveNotification';
 import ProtectedRoute from './components/ProtectedRoute';
 import SafetyProtectedRoute from './components/SafetyProtectedRoute';
@@ -107,6 +108,7 @@ function App() {
             <Route path="/solo-quiz/:quizId" element={<ProtectedRoute><SoloQuizSession /></ProtectedRoute>} />
             <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
             <Route path="/games" element={<ProtectedRoute><Games /></ProtectedRoute>} />
+            <Route path="/xp-roadmap" element={<ProtectedRoute><XPRoadmap /></ProtectedRoute>} />
             <Route path="/challenges" element={<ProtectedRoute><Challenges /></ProtectedRoute>} />
             <Route path="/challenge/:challengeId" element={<ProtectedRoute><ChallengeSession /></ProtectedRoute>} />
             <Route path="/shared" element={<SharedContent />} />
