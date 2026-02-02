@@ -1,0 +1,9 @@
+# Caching System Dependencies
+
+# Redis support (optional but recommended)
+redis>=5.0.0
+
+# Already included in main requirements.txt:
+# fastapi
+# pydantic
+# sqlalchemy

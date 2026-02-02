@@ -22,7 +22,7 @@ const ActivityTimeline = () => {
   
   // Core view states
   const [viewMode, setViewMode] = useState('calendar');
-  const [calendarViewType, setCalendarViewType] = useState('week'); // 'week' or 'month'
+  const [calendarViewType, setCalendarViewType] = useState('week'); // 'day', 'week' or 'month'
   const [timelineViewType, setTimelineViewType] = useState('list'); // 'list' or 'compact'
   
   // Data states
@@ -877,6 +877,7 @@ const ActivityTimeline = () => {
     const today = new Date();
     setCurrentMonth(today);
     setCurrentWeekStart(getWeekStart(today));
+    setCalendarViewType('day'); // Switch to day view
   };
 
   // Render mini calendar (left sidebar)
@@ -953,9 +954,12 @@ const ActivityTimeline = () => {
           </div>
           
           <div className="at-week-view-actions">
-            <button className="at-view-action-btn" onClick={goToToday}>
-              <CalendarDays size={16} />
-              <span>Today</span>
+            <button 
+              className={`at-toggle-btn ${calendarViewType === 'day' ? 'active' : ''}`}
+              onClick={() => setCalendarViewType('day')}
+            >
+              <Sun size={16} />
+              <span>Day</span>
             </button>
             <button 
               className={`at-toggle-btn ${calendarViewType === 'week' ? 'active' : ''}`}
@@ -1153,6 +1157,224 @@ const ActivityTimeline = () => {
     );
   };
 
+  // Render day view (Today's activities and reminders)
+  const renderDayView = () => {
+    const viewDate = currentMonth; // Use currentMonth as the selected date for day view
+    const { activities: dayActivities, reminders: dayReminders } = getItemsForDay(viewDate);
+    
+    return (
+      <div className="at-week-view-container">
+        <div className="at-week-view-header">
+          <div className="at-week-view-nav">
+            <button className="at-week-nav-btn" onClick={() => {
+              const prevDay = new Date(viewDate);
+              prevDay.setDate(viewDate.getDate() - 1);
+              setCurrentMonth(prevDay);
+            }}>
+              <ChevronLeft size={18} />
+            </button>
+            <div className="at-week-date-range">
+              <h2>
+                {viewDate.toLocaleDateString('en-US', { 
+                  weekday: 'long', 
+                  month: 'long', 
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
+              </h2>
+            </div>
+            <button className="at-week-nav-btn" onClick={() => {
+              const nextDay = new Date(viewDate);
+              nextDay.setDate(viewDate.getDate() + 1);
+              setCurrentMonth(nextDay);
+            }}>
+              <ChevronRight size={18} />
+            </button>
+          </div>
+          
+          <div className="at-week-view-actions">
+            <button 
+              className={`at-toggle-btn ${calendarViewType === 'day' ? 'active' : ''}`}
+              onClick={() => setCalendarViewType('day')}
+            >
+              <Sun size={16} />
+              <span>Day</span>
+            </button>
+            <button 
+              className={`at-toggle-btn ${calendarViewType === 'week' ? 'active' : ''}`}
+              onClick={() => setCalendarViewType('week')}
+            >
+              <Columns size={16} />
+              <span>Week</span>
+            </button>
+            <button 
+              className={`at-toggle-btn ${calendarViewType === 'month' ? 'active' : ''}`}
+              onClick={() => setCalendarViewType('month')}
+            >
+              <Grid size={16} />
+              <span>Month</span>
+            </button>
+            <button 
+              className="at-view-action-btn primary"
+              onClick={() => {
+                resetReminderForm();
+                setShowReminderModal(true);
+              }}
+            >
+              <Plus size={16} />
+              <span>New Reminder</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="at-day-view-content">
+          {/* Reminders Section */}
+          {dayReminders.length > 0 && (
+            <div className="at-day-section">
+              <div className="at-day-section-header">
+                <Bell size={18} />
+                <h3>Reminders & Tasks</h3>
+                <span className="at-day-section-count">{dayReminders.length}</span>
+              </div>
+              <div className="at-day-items-list">
+                {dayReminders.map(reminder => {
+                  const ReminderIcon = reminderTypeIcons[reminder.reminder_type] || Bell;
+                  return (
+                    <div
+                      key={reminder.id}
+                      className={`at-day-reminder-card ${reminder.is_completed ? 'completed' : ''}`}
+                      style={{ borderLeft: `4px solid ${reminder.color}` }}
+                    >
+                      <div className="at-day-reminder-header">
+                        <button
+                          className="at-reminder-checkbox"
+                          onClick={() => toggleReminderComplete(reminder)}
+                        >
+                          {reminder.is_completed ? (
+                            <CheckCircle2 size={20} style={{ color: reminder.color }} />
+                          ) : (
+                            <Circle size={20} style={{ color: reminder.color }} />
+                          )}
+                        </button>
+                        <div className="at-day-reminder-info">
+                          <h4 className={reminder.is_completed ? 'completed-text' : ''}>
+                            {reminder.title}
+                          </h4>
+                          {reminder.reminder_date && (
+                            <div className="at-day-reminder-time">
+                              <Clock size={14} />
+                              {new Date(reminder.reminder_date).toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: !preferences.timeFormat24h
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        <div className="at-day-reminder-actions">
+                          {reminder.priority !== 'none' && (
+                            <span 
+                              className="at-reminder-priority-badge"
+                              style={{ color: priorityConfig[reminder.priority].color }}
+                            >
+                              {priorityConfig[reminder.priority].markers}
+                            </span>
+                          )}
+                          <button
+                            className="at-reminder-flag-btn"
+                            onClick={() => toggleReminderFlag(reminder)}
+                          >
+                            <Flag 
+                              size={16} 
+                              fill={reminder.is_flagged ? 'var(--accent-danger)' : 'none'}
+                              color={reminder.is_flagged ? 'var(--accent-danger)' : 'var(--text-tertiary)'}
+                            />
+                          </button>
+                          <button
+                            className="at-reminder-edit-btn"
+                            onClick={() => openEditReminder(reminder)}
+                          >
+                            <Edit3 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                      {reminder.description && (
+                        <p className="at-day-reminder-description">{reminder.description}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Activities Section */}
+          {dayActivities.length > 0 && (
+            <div className="at-day-section">
+              <div className="at-day-section-header">
+                <Activity size={18} />
+                <h3>Activities</h3>
+                <span className="at-day-section-count">{dayActivities.length}</span>
+              </div>
+              <div className="at-day-items-list">
+                {dayActivities.map(activity => {
+                  const ActivityIcon = activity.type === 'note' ? FileText :
+                                      activity.type === 'flashcard' ? BookOpen :
+                                      activity.type === 'chat' ? MessageSquare :
+                                      activity.type === 'quiz' ? Award : FileText;
+                  
+                  return (
+                    <div
+                      key={activity.id}
+                      className="at-day-activity-card"
+                      style={{ borderLeft: `4px solid ${activity.color}` }}
+                      onClick={() => handleActivityClick(activity)}
+                    >
+                      <div className="at-day-activity-icon" style={{ background: `${activity.color}30` }}>
+                        <ActivityIcon size={18} style={{ color: activity.color }} />
+                      </div>
+                      <div className="at-day-activity-info">
+                        <h4>{activity.title}</h4>
+                        <p className="at-day-activity-content">{activity.content}</p>
+                        <div className="at-day-activity-time">
+                          <Clock size={14} />
+                          {activity.timestamp.toLocaleTimeString('en-US', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: !preferences.timeFormat24h
+                          })}
+                        </div>
+                      </div>
+                      <div className="at-day-activity-type">
+                        {activity.type}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {dayReminders.length === 0 && dayActivities.length === 0 && (
+            <div className="at-day-empty-state">
+              <Sun size={48} />
+              <h3>Nothing scheduled for this day</h3>
+              <p>No activities or reminders found.</p>
+              <button 
+                className="at-view-action-btn primary"
+                onClick={() => setShowReminderModal(true)}
+              >
+                <Plus size={16} />
+                <span>Add Reminder</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   // Render month view
   const renderMonthView = () => {
     const days = getDaysInMonth(currentMonth);
@@ -1174,6 +1396,13 @@ const ActivityTimeline = () => {
           </div>
           
           <div className="at-month-view-actions">
+            <button 
+              className={`at-toggle-btn ${calendarViewType === 'day' ? 'active' : ''}`}
+              onClick={() => setCalendarViewType('day')}
+            >
+              <Sun size={16} />
+              <span>Day</span>
+            </button>
             <button 
               className={`at-toggle-btn ${calendarViewType === 'week' ? 'active' : ''}`}
               onClick={() => setCalendarViewType('week')}
@@ -1906,6 +2135,7 @@ const ActivityTimeline = () => {
               {viewMode === 'timeline' && renderTimeline()}
               {viewMode === 'calendar' && (
                 <>
+                  {calendarViewType === 'day' && renderDayView()}
                   {calendarViewType === 'week' && renderWeekView()}
                   {calendarViewType === 'month' && renderMonthView()}
                 </>

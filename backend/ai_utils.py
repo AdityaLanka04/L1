@@ -1,11 +1,24 @@
 ﻿"""
 Unified AI utilities for Gemini (primary) and Groq (fallback)
+With integrated caching system
 """
 import logging
 import json
 from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+# Import cache manager
+try:
+    from caching.cache_manager import get_cache_manager
+    CACHE_AVAILABLE = True
+except ImportError:
+    try:
+        from caching import get_cache_manager
+        CACHE_AVAILABLE = True
+    except ImportError:
+        CACHE_AVAILABLE = False
+        logger.warning("Cache manager not available")
 
 class UnifiedAIClient:
     """Unified client that uses Gemini as primary, Groq as fallback"""
@@ -16,6 +29,11 @@ class UnifiedAIClient:
         self.gemini_model = gemini_model
         self.groq_model = groq_model
         self.gemini_api_key = gemini_api_key
+        
+        # Initialize cache manager
+        self.cache_manager = get_cache_manager() if CACHE_AVAILABLE else None
+        if self.cache_manager:
+            logger.info("✅ AI client using cache manager")
         
         # Create the actual Gemini model instance
         if gemini_client:
@@ -45,6 +63,7 @@ class UnifiedAIClient:
     def generate(self, prompt: str, max_tokens: int = 2000, temperature: float = 0.7) -> str:
         """
         Generate AI response with Gemini as primary, Groq as fallback
+        Includes intelligent caching to reduce token usage
         
         Args:
             prompt: The prompt to send
@@ -54,6 +73,13 @@ class UnifiedAIClient:
         Returns:
             AI response text
         """
+        # Check cache first
+        if self.cache_manager:
+            cached_response = self.cache_manager.get_ai_response(prompt, temperature, max_tokens)
+            if cached_response:
+                logger.info(f"✅ AI cache hit - saved tokens!")
+                return cached_response
+        
         try:
             if self.primary_ai == "gemini" and self.gemini_api_key:
                 logger.info(f" Calling Gemini REST API directly...")
@@ -87,6 +113,11 @@ class UnifiedAIClient:
                                 if 'candidates' in data and len(data['candidates']) > 0:
                                     text = data['candidates'][0]['content']['parts'][0]['text']
                                     logger.info(f" Gemini REST response received: {len(text)} chars")
+                                    
+                                    # Cache the response
+                                    if self.cache_manager:
+                                        self.cache_manager.set_ai_response(prompt, temperature, max_tokens, text)
+                                    
                                     return text
                                 else:
                                     logger.error(f" Gemini response has no candidates: {data}")
@@ -130,7 +161,13 @@ class UnifiedAIClient:
                     max_tokens=max_tokens
                 )
                 logger.info(f" Groq response received")
-                return response.choices[0].message.content.strip()
+                result = response.choices[0].message.content.strip()
+                
+                # Cache the response
+                if self.cache_manager:
+                    self.cache_manager.set_ai_response(prompt, temperature, max_tokens, result)
+                
+                return result
             else:
                 logger.error(" No AI client available!")
                 raise Exception("No AI client available")
@@ -147,7 +184,13 @@ class UnifiedAIClient:
                         max_tokens=max_tokens
                     )
                     logger.info(" Groq fallback successful")
-                    return response.choices[0].message.content.strip()
+                    result = response.choices[0].message.content.strip()
+                    
+                    # Cache the fallback response
+                    if self.cache_manager:
+                        self.cache_manager.set_ai_response(prompt, temperature, max_tokens, result)
+                    
+                    return result
                 except Exception as groq_error:
                     logger.error(f" Groq fallback also failed: {groq_error}")
                     raise

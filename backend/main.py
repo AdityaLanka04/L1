@@ -206,6 +206,73 @@ app.add_middleware(
 ph = PasswordHasher()
 security = HTTPBearer()
 
+# ==================== CACHE API ENDPOINTS ====================
+# These must be defined early, right after app creation
+
+@app.get("/api/test/hello")
+async def test_hello_endpoint():
+    """Test endpoint to verify routes work"""
+    return {"message": "Hello! Routes are working!", "status": "success"}
+
+@app.get("/api/cache/health")
+async def cache_health_endpoint():
+    """Check cache system health"""
+    try:
+        from caching.cache_manager import get_cache_manager
+        cache_manager = get_cache_manager()
+        if not cache_manager:
+            return {"status": "unavailable", "message": "Cache not initialized"}
+        
+        stats = cache_manager.get_stats()
+        return {
+            "status": "healthy",
+            "redis_available": stats.get("redis_available", False),
+            "cache_available": True
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/api/cache/stats")
+async def cache_stats_endpoint():
+    """Get cache statistics"""
+    try:
+        from caching.cache_manager import get_cache_manager
+        cache_manager = get_cache_manager()
+        if not cache_manager:
+            return {"cache_available": False}
+        
+        stats = cache_manager.get_stats()
+        total_hits = sum(s.get("hits", 0) for s in stats.values() if isinstance(s, dict))
+        total_misses = sum(s.get("misses", 0) for s in stats.values() if isinstance(s, dict))
+        total_requests = total_hits + total_misses
+        hit_rate = (total_hits / total_requests * 100) if total_requests > 0 else 0
+        
+        return {
+            "cache_available": True,
+            "overall_metrics": {
+                "total_hits": total_hits,
+                "total_misses": total_misses,
+                "hit_rate_percent": round(hit_rate, 2)
+            },
+            "cache_details": stats
+        }
+    except Exception as e:
+        return {"cache_available": False, "error": str(e)}
+
+@app.post("/api/cache/clear")
+async def cache_clear_endpoint(cache_type: str = "all"):
+    """Clear cache"""
+    try:
+        from caching.cache_manager import get_cache_manager
+        cache_manager = get_cache_manager()
+        if cache_type == "all":
+            cache_manager.clear_all()
+        return {"message": f"{cache_type} cache cleared"}
+    except Exception as e:
+        return {"error": str(e)}
+
+# ==================== END CACHE API ENDPOINTS ====================
+
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-key-change-this-in-production")
 ALGORITHM = "HS256"
@@ -279,6 +346,8 @@ register_adaptive_learning_api(app, unified_ai)
 # Register Enhanced RAG API
 from rag_api import register_rag_api
 register_rag_api(app)
+
+# NOTE: Cache Statistics API routes are defined early in the file (after app creation)
 
 # Register AI Chat Agent
 from ai_chat_integration import register_ai_chat_agent
@@ -428,10 +497,24 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def get_user_by_username(db, username: str):
-    return db.query(models.User).filter(models.User.username == username).first()
+    """Get user by username with caching"""
+    try:
+        from caching.db_cache import get_cached_user_profile
+        # Try to get from cache by username lookup
+        user = db.query(models.User).filter(models.User.username == username).first()
+        return user
+    except:
+        return db.query(models.User).filter(models.User.username == username).first()
 
 def get_user_by_email(db, email: str):
-    return db.query(models.User).filter(models.User.email == email).first()
+    """Get user by email with caching"""
+    try:
+        from caching.db_cache import get_cached_user_profile
+        # Try to get from cache by email lookup
+        user = db.query(models.User).filter(models.User.email == email).first()
+        return user
+    except:
+        return db.query(models.User).filter(models.User.email == email).first()
 
 def get_comprehensive_profile_safe(db: Session, user_id: int):
     """Safely get comprehensive profile, returns None if schema mismatch"""
@@ -730,6 +813,55 @@ def health_check():
 @app.on_event("startup")
 async def fix_database_sequences():
     """Automatically fix PostgreSQL sequences and initialize agent system on startup"""
+    
+    logger.info("=" * 50)
+    logger.info("🚀 STARTUP EVENT TRIGGERED")
+    logger.info("=" * 50)
+    
+    # ==================== Initialize Caching System ====================
+    logger.info("📦 Initializing caching system...")
+    try:
+        from caching import initialize_cache_manager
+        import os
+        
+        redis_url = os.getenv("REDIS_URL")
+        enable_redis = os.getenv("ENABLE_REDIS_CACHE", "true").lower() == "true"
+        
+        logger.info(f"   Redis URL: {redis_url if redis_url else 'Not set'}")
+        logger.info(f"   Redis enabled: {enable_redis}")
+        
+        cache_manager = initialize_cache_manager(
+            redis_url=redis_url,
+            max_memory_size=10000,
+            default_ttl=3600,
+            enable_redis=enable_redis
+        )
+        
+        logger.info("✅ Cache Manager initialized")
+        logger.info(f"   - Redis: {'Enabled' if cache_manager.redis_cache else 'Disabled (using memory only)'}")
+        logger.info("   - AI Response Cache: Enabled")
+        logger.info("   - RAG Query Cache: Enabled")
+        logger.info("   - Database Query Cache: Enabled")
+        logger.info("   - Embedding Cache: Enabled")
+        logger.info("   - API Response Cache: Enabled")
+        
+        # NOTE: Cache Statistics API routes are registered at module level (lines 286-370)
+        # No need to register them here during startup
+        
+        # Wrap embedding models with caching
+        try:
+            from caching.wrap_embeddings import wrap_all_embedding_models
+            # Delay wrapping until after RAG initialization
+            logger.info("   - Embedding model wrapping scheduled")
+        except Exception as e:
+            logger.warning(f"Embedding wrapping setup failed: {e}")
+        
+    except Exception as e:
+        import traceback
+        logger.error(f"❌ Cache initialization failed: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        logger.info("   App will continue without caching")
+    
     # Only run for PostgreSQL, not SQLite
     if "postgres" not in DATABASE_URL:
         pass  # SQLite doesn't need sequence fixes
@@ -825,6 +957,13 @@ async def fix_database_sequences():
         logger.info("   - Parent-child retrieval")
         logger.info("   - Metadata filtering")
         logger.info("   - Agentic search strategy")
+        
+        # Wrap embedding models with caching after RAG initialization
+        try:
+            from caching.wrap_embeddings import wrap_all_embedding_models
+            wrap_all_embedding_models()
+        except Exception as wrap_error:
+            logger.warning(f"Embedding model wrapping failed (non-critical): {wrap_error}")
         
     except Exception as e:
         logger.warning(f"⚠️ Enhanced RAG initialization failed (non-critical): {e}")
@@ -1047,6 +1186,27 @@ async def register(payload: RegisterPayload, db: Session = Depends(get_db)):
             db.add(user_stats)
             db.commit()
 
+            # --- initialize knowledge graph ---
+            try:
+                from agents.agent_api import get_user_kg
+                user_kg = get_user_kg()
+                logger.info(f"🔍 Attempting KG initialization for new user {db_user.id}, KG available: {user_kg is not None}")
+                if user_kg:
+                    kg_user_data = {
+                        "username": db_user.username,
+                        "learning_style": db_user.learning_style or "mixed",
+                        "difficulty_level": "intermediate"
+                    }
+                    result = await user_kg.initialize_user(db_user.id, kg_user_data)
+                    logger.info(f"✅ Knowledge graph initialized for user {db_user.id} - Result: {result}")
+                else:
+                    logger.warning(f"⚠️ Knowledge graph not available for user {db_user.id}")
+            except Exception as kg_error:
+                logger.error(f"❌ Failed to initialize knowledge graph for user {db_user.id}: {kg_error}")
+                import traceback
+                traceback.print_exc()
+                # Don't fail registration if KG init fails
+
             logger.info(f" User {payload.username} registered successfully")
             return {"message": "User registered successfully"}
             
@@ -1081,7 +1241,7 @@ async def register(payload: RegisterPayload, db: Session = Depends(get_db)):
     raise HTTPException(status_code=500, detail="Registration failed after retries")
 
 @app.post("/api/token", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect username or password")
@@ -1089,6 +1249,35 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     # Update last_login for session tracking (use naive datetime for SQLite)
     user.last_login = datetime.utcnow()
     db.commit()
+    
+    # Warm cache for this user
+    try:
+        from caching.db_cache import warm_user_cache
+        warm_user_cache(db, user.id)
+        logger.info(f"✅ Cache warmed for user {user.id}")
+    except Exception as cache_error:
+        logger.warning(f"Cache warming failed (non-critical): {cache_error}")
+    
+    # --- ensure knowledge graph is initialized ---
+    try:
+        from agents.agent_api import get_user_kg
+        user_kg = get_user_kg()
+        logger.info(f"🔍 Attempting KG initialization for user {user.id}, KG available: {user_kg is not None}")
+        if user_kg:
+            kg_user_data = {
+                "username": user.username,
+                "learning_style": user.learning_style or "mixed",
+                "difficulty_level": "intermediate"
+            }
+            result = await user_kg.initialize_user(user.id, kg_user_data)
+            logger.info(f"✅ Knowledge graph ensured for user {user.id} - Result: {result}")
+        else:
+            logger.warning(f"⚠️ Knowledge graph not available for user {user.id}")
+    except Exception as kg_error:
+        logger.error(f"❌ Failed to ensure knowledge graph for user {user.id}: {kg_error}")
+        import traceback
+        traceback.print_exc()
+        # Don't fail login if KG init fails
     
     access_token = create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
@@ -1099,6 +1288,35 @@ async def login_form(username: str = Form(...), password: str = Form(...), db: S
     if not user:
         raise HTTPException(status_code=401, detail="Incorrect username or password")
     
+    # Warm cache for this user
+    try:
+        from caching.db_cache import warm_user_cache
+        warm_user_cache(db, user.id)
+        logger.info(f"✅ Cache warmed for user {user.id}")
+    except Exception as cache_error:
+        logger.warning(f"Cache warming failed (non-critical): {cache_error}")
+    
+    # --- ensure knowledge graph is initialized ---
+    try:
+        from agents.agent_api import get_user_kg
+        user_kg = get_user_kg()
+        logger.info(f"🔍 Attempting KG initialization for user {user.id}, KG available: {user_kg is not None}")
+        if user_kg:
+            kg_user_data = {
+                "username": user.username,
+                "learning_style": user.learning_style or "mixed",
+                "difficulty_level": "intermediate"
+            }
+            result = await user_kg.initialize_user(user.id, kg_user_data)
+            logger.info(f"✅ Knowledge graph ensured for user {user.id} - Result: {result}")
+        else:
+            logger.warning(f"⚠️ Knowledge graph not available for user {user.id}")
+    except Exception as kg_error:
+        logger.error(f"❌ Failed to ensure knowledge graph for user {user.id}: {kg_error}")
+        import traceback
+        traceback.print_exc()
+        # Don't fail login if KG init fails
+    
     # Update last_login for session tracking (use naive datetime for SQLite)
     user.last_login = datetime.utcnow()
     db.commit()
@@ -1107,7 +1325,7 @@ async def login_form(username: str = Form(...), password: str = Form(...), db: S
     return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/api/google-auth")
-def google_auth(auth_data: GoogleAuth, db: Session = Depends(get_db)):
+async def google_auth(auth_data: GoogleAuth, db: Session = Depends(get_db)):
     try:
         try:
             url = f"https://oauth2.googleapis.com/tokeninfo?id_token={auth_data.token}"
@@ -1139,10 +1357,50 @@ def google_auth(auth_data: GoogleAuth, db: Session = Depends(get_db)):
             user_stats = models.UserStats(user_id=user.id)
             db.add(user_stats)
             db.commit()
+            
+            # --- initialize knowledge graph for new Google user ---
+            try:
+                from agents.agent_api import get_user_kg
+                user_kg = get_user_kg()
+                logger.info(f"🔍 Attempting KG initialization for new Google user {user.id}, KG available: {user_kg is not None}")
+                if user_kg:
+                    kg_user_data = {
+                        "username": user.username,
+                        "learning_style": "mixed",
+                        "difficulty_level": "intermediate"
+                    }
+                    result = await user_kg.initialize_user(user.id, kg_user_data)
+                    logger.info(f"✅ Knowledge graph initialized for Google user {user.id} - Result: {result}")
+                else:
+                    logger.warning(f"⚠️ Knowledge graph not available for Google user {user.id}")
+            except Exception as kg_error:
+                logger.error(f"❌ Failed to initialize knowledge graph for Google user {user.id}: {kg_error}")
+                import traceback
+                traceback.print_exc()
         else:
             # Update last_login for existing user (use naive datetime for SQLite)
             user.last_login = datetime.utcnow()
             db.commit()
+            
+            # --- ensure knowledge graph is initialized for existing user ---
+            try:
+                from agents.agent_api import get_user_kg
+                user_kg = get_user_kg()
+                logger.info(f"🔍 Attempting KG initialization for existing Google user {user.id}, KG available: {user_kg is not None}")
+                if user_kg:
+                    kg_user_data = {
+                        "username": user.username,
+                        "learning_style": user.learning_style or "mixed",
+                        "difficulty_level": "intermediate"
+                    }
+                    result = await user_kg.initialize_user(user.id, kg_user_data)
+                    logger.info(f"✅ Knowledge graph ensured for Google user {user.id} - Result: {result}")
+                else:
+                    logger.warning(f"⚠️ Knowledge graph not available for Google user {user.id}")
+            except Exception as kg_error:
+                logger.error(f"❌ Failed to ensure knowledge graph for Google user {user.id}: {kg_error}")
+                import traceback
+                traceback.print_exc()
         
         access_token = create_access_token(data={"sub": user.username})
         
@@ -4159,6 +4417,24 @@ async def update_flashcard_review(
         
         db.commit()
         
+        # --- KNOWLEDGE GRAPH: Record concept interaction ---
+        try:
+            from agents.agent_api import get_user_kg
+            user_kg = get_user_kg()
+            if user_kg and flashcard.front:
+                # Extract concept from flashcard front text (first few words)
+                concept = flashcard.front[:50].strip()
+                await user_kg.record_concept_interaction(
+                    user_id=user.id,
+                    concept=concept,
+                    correct=request.was_correct,
+                    source="flashcard",
+                    difficulty=adaptive_result.get('adaptation', {}).get('current_difficulty', 0.5) if 'adaptation' in adaptive_result else 0.5
+                )
+                logger.info(f"📊 KG: Recorded flashcard interaction for user {user.id}, concept: {concept[:30]}...")
+        except Exception as kg_error:
+            logger.warning(f"⚠️ Failed to record KG interaction: {kg_error}")
+        
         # Calculate accuracy
         accuracy = 0
         if flashcard.times_reviewed > 0:
@@ -4673,6 +4949,15 @@ def update_note(note_data: NoteUpdate, db: Session = Depends(get_db)):
         
         db.commit()
         db.refresh(note)
+        
+        # Invalidate cache after note update
+        try:
+            from caching.db_cache import invalidate_user_cache, invalidate_content_cache
+            invalidate_user_cache(note.user_id)
+            invalidate_content_cache("note", note.id)
+            logger.info(f"✅ Cache invalidated for note {note.id}")
+        except Exception as cache_error:
+            logger.warning(f"Cache invalidation failed (non-critical): {cache_error}")
         
         logger.info(f"Note {note.id} updated successfully")
         
@@ -6890,6 +7175,46 @@ async def firebase_authentication(request: Request, db: Session = Depends(get_db
                 
                 db.commit()
                 logger.info(f" New user created via Firebase: {email}")
+                
+                # --- initialize knowledge graph for new Firebase user ---
+                try:
+                    from agents.agent_api import get_user_kg
+                    user_kg = get_user_kg()
+                    logger.info(f"🔍 Attempting KG initialization for new Firebase user {user.id}, KG available: {user_kg is not None}")
+                    if user_kg:
+                        kg_user_data = {
+                            "username": user.username,
+                            "learning_style": "mixed",
+                            "difficulty_level": "intermediate"
+                        }
+                        result = await user_kg.initialize_user(user.id, kg_user_data)
+                        logger.info(f"✅ Knowledge graph initialized for Firebase user {user.id} - Result: {result}")
+                    else:
+                        logger.warning(f"⚠️ Knowledge graph not available for Firebase user {user.id}")
+                except Exception as kg_error:
+                    logger.error(f"❌ Failed to initialize knowledge graph for Firebase user {user.id}: {kg_error}")
+                    import traceback
+                    traceback.print_exc()
+            else:
+                # --- ensure knowledge graph is initialized for existing Firebase user ---
+                try:
+                    from agents.agent_api import get_user_kg
+                    user_kg = get_user_kg()
+                    logger.info(f"🔍 Attempting KG initialization for existing Firebase user {user.id}, KG available: {user_kg is not None}")
+                    if user_kg:
+                        kg_user_data = {
+                            "username": user.username,
+                            "learning_style": user.learning_style or "mixed",
+                            "difficulty_level": "intermediate"
+                        }
+                        result = await user_kg.initialize_user(user.id, kg_user_data)
+                        logger.info(f"✅ Knowledge graph ensured for Firebase user {user.id} - Result: {result}")
+                    else:
+                        logger.warning(f"⚠️ Knowledge graph not available for Firebase user {user.id}")
+                except Exception as kg_error:
+                    logger.error(f"❌ Failed to ensure knowledge graph for Firebase user {user.id}: {kg_error}")
+                    import traceback
+                    traceback.print_exc()
 
             access_token = create_access_token(
                 data={"sub": user.username, "user_id": user.id}
@@ -10071,6 +10396,14 @@ async def update_comprehensive_profile(
         comprehensive_profile.updated_at = datetime.now(timezone.utc)
 
         db.commit()
+        
+        # Invalidate user cache after profile update
+        try:
+            from caching.db_cache import invalidate_user_cache
+            invalidate_user_cache(user.id)
+            logger.info(f"✅ Cache invalidated for user {user.id}")
+        except Exception as cache_error:
+            logger.warning(f"Cache invalidation failed (non-critical): {cache_error}")
 
         return {
             "status": "success",
@@ -12838,6 +13171,28 @@ async def complete_solo_quiz(
         
         db.commit()
         logger.info(f"Quiz saved successfully")
+        
+        # --- KNOWLEDGE GRAPH: Record quiz concept interactions ---
+        try:
+            from agents.agent_api import get_user_kg
+            user_kg = get_user_kg()
+            if user_kg and answers:
+                for answer in answers:
+                    question_text = answer.get('question', '')
+                    is_correct = answer.get('is_correct', False)
+                    # Extract concept from question (first 50 chars)
+                    concept = question_text[:50].strip() if question_text else f"Quiz_{quiz.topic}"
+                    
+                    await user_kg.record_concept_interaction(
+                        user_id=current_user.id,
+                        concept=concept,
+                        correct=is_correct,
+                        source="quiz",
+                        difficulty=0.3 if quiz.difficulty == "easy" else 0.5 if quiz.difficulty == "medium" else 0.7
+                    )
+                logger.info(f"📊 KG: Recorded {len(answers)} quiz interactions for user {current_user.id}")
+        except Exception as kg_error:
+            logger.warning(f"⚠️ Failed to record KG quiz interactions: {kg_error}")
         
         # Award gamification points using the new formula
         from gamification_system import award_points, calculate_solo_quiz_points

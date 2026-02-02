@@ -1057,6 +1057,25 @@ async def get_knowledge_graph_status():
     }
 
 
+@router.get("/knowledge-graph/user/{user_id}/exists")
+async def check_user_in_kg(user_id: str):
+    """Check if a user exists in the knowledge graph"""
+    user_kg = get_user_kg()
+    if not user_kg:
+        return {"exists": False, "kg_available": False}
+    
+    try:
+        profile = await user_kg.get_user_profile(int(user_id))
+        return {
+            "exists": bool(profile),
+            "kg_available": True,
+            "profile": profile if profile else None
+        }
+    except Exception as e:
+        logger.error(f"User check error: {e}")
+        return {"exists": False, "kg_available": True, "error": str(e)}
+
+
 @router.post("/knowledge-graph/user/{user_id}/initialize")
 async def initialize_user_in_kg(user_id: str, user_data: Dict[str, Any] = Body(None)):
     """Initialize a user in the knowledge graph"""
