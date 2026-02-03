@@ -358,6 +358,11 @@ logger.info(" AI Chat Agent registered successfully")
 register_agent_routes(app)
 logger.info(" LangGraph Agent routes registered")
 
+# Register Learning Paths API
+from learning_paths_api import register_learning_paths_api
+register_learning_paths_api(app, unified_ai)
+logger.info(" Learning Paths API registered")
+
 class Token(BaseModel):
     access_token: str
     token_type: str

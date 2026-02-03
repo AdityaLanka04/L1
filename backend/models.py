@@ -11,6 +11,7 @@ from pydantic import BaseModel
 import os
 
 from question_bank_models import create_question_bank_models
+from learning_paths_models import create_learning_paths_models
 
 # ==================== DATABASE CONFIG ====================
 
@@ -19,6 +20,7 @@ engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} i
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()  
 UploadedDocument, QuestionSet, Question, QuestionSession, UserPerformanceMetrics = create_question_bank_models(Base)
+LearningPath, LearningPathNode, LearningPathProgress, LearningNodeProgress = create_learning_paths_models(Base)
 
 
 
@@ -74,6 +76,9 @@ class User(Base):
     performance_metrics = relationship("UserPerformanceMetrics", back_populates="user")
     gamification_stats = relationship("UserGamificationStats", back_populates="user", uselist=False)
     media_files = relationship("MediaFile", back_populates="user")
+    learning_paths = relationship("LearningPath", backref="user")
+    learning_path_progress = relationship("LearningPathProgress", backref="user")
+    learning_node_progress = relationship("LearningNodeProgress", backref="user")
 
 
 class ChatSession(Base):

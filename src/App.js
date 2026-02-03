@@ -49,6 +49,8 @@ import Games from './pages/Games';
 import PlaylistDetailPage from './pages/PlaylistDetailPage';
 import PlaylistsPage from './pages/PlaylistsPage';
 import XPRoadmap from './pages/XPRoadmap';
+import LearningPaths from './pages/LearningPaths';
+import LearningPathDetail from './pages/LearningPathDetail';
 import ProactiveNotification from './components/ProactiveNotification';
 import ProtectedRoute from './components/ProtectedRoute';
 import SafetyProtectedRoute from './components/SafetyProtectedRoute';
@@ -116,6 +118,8 @@ function App() {
             <Route path="/knowledge-roadmap" element={<ProtectedRoute><KnowledgeRoadmap /></ProtectedRoute>} />
             <Route path="/knowledge-roadmap/:roadmapId" element={<ProtectedRoute><KnowledgeRoadmap /></ProtectedRoute>} />
             <Route path="/concept-web" element={<ProtectedRoute><ConceptWeb /></ProtectedRoute>} />
+            <Route path="/learning-paths" element={<ProtectedRoute><LearningPaths /></ProtectedRoute>} />
+            <Route path="/learning-paths/:pathId" element={<ProtectedRoute><LearningPathDetail /></ProtectedRoute>} />
             <Route path="/question-bank" element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
             <Route path="/slide-explorer" element={<ProtectedRoute><SlideExplorer /></ProtectedRoute>} />
             <Route path="/statistics" element={<ProtectedRoute><Statistics /></ProtectedRoute>} />

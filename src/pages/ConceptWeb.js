@@ -149,21 +149,11 @@ const ConceptWeb = () => {
   };
 
   const loadLearningPaths = async (username) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/get_learning_paths?user_id=${username}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setLearningPaths(data.paths || []);
-        setPathProgress(data.progress || {});
-        setSuggestedNextTopics(data.suggested_next || []);
-      }
-    } catch (error) {
-      console.error('Failed to load learning paths:', error);
-    }
+    // Learning paths now handled by dedicated page at /learning-paths
+    // No need to load here anymore
+    setLearningPaths([]);
+    setPathProgress({});
+    setSuggestedNextTopics([]);
   };
 
 
@@ -926,7 +916,7 @@ const ConceptWeb = () => {
               <span className="cw-nav-icon">{Icons.grid}</span>
               <span className="cw-nav-text">Grid View</span>
             </button>
-            <button className={`cw-nav-item ${viewMode === 'paths' ? 'active' : ''}`} onClick={() => setViewMode('paths')}>
+            <button className={`cw-nav-item ${viewMode === 'paths' ? 'active' : ''}`} onClick={() => navigate('/learning-paths')}>
               <span className="cw-nav-icon">{Icons.paths}</span>
               <span className="cw-nav-text">Learning Paths</span>
             </button>

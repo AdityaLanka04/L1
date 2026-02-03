@@ -22,6 +22,7 @@ POINT_VALUES = {
     "battle_loss": 2,       # Battle loss (participation)
     "flashcard_reviewed": 1, # Review a flashcard
     "flashcard_mastered": 5, # Master a flashcard
+    "learning_path_node": 0, # Learning path node (XP from node reward)
 }
 
 # ==================== SOLO QUIZ POINT FORMULA ====================
@@ -285,6 +286,13 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
     elif activity_type == "battle_loss":
         points_earned = POINT_VALUES["battle_loss"]
         description = "Participated in Battle"
+    
+    elif activity_type == "learning_path_node":
+        # Learning path node completion - XP from node reward
+        xp = metadata.get("xp", 50)
+        points_earned = xp
+        node_id = metadata.get("node_id", "unknown")
+        description = f"Completed Learning Path Node (+{xp} XP)"
     
     elif activity_type == "solo_quiz":
         # Use the new formula for solo quiz points
