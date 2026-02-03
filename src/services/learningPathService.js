@@ -247,6 +247,32 @@ class LearningPathService {
       throw error;
     }
   }
+
+  /**
+   * Generate content for a node activity (notes, flashcards, quiz, chat)
+   */
+  async generateNodeContent(pathId, nodeId, activityType, count = null) {
+    try {
+      const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/generate-content`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          activity_type: activityType,
+          count
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to generate content');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Generate content error:', error);
+      throw error;
+    }
+  }
 }
 
 export default new LearningPathService();

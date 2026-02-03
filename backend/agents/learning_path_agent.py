@@ -44,6 +44,8 @@ class LearningPathAgent:
             return self.complete_node(context.get("node_id"), user_id, context, db)
         elif action == "evaluate_node":
             return self.evaluate_node_completion(context.get("node_id"), user_id, db)
+        elif action == "generate_content":
+            return self.generate_node_content(context, db)
         else:
             return {"error": f"Unknown action: {action}"}
     
@@ -610,3 +612,191 @@ Requirements:
                 }
             ]
         })
+    
+    def generate_node_content(self, context: Dict[str, Any], db: Session) -> Dict[str, Any]:
+        """Generate content for a specific node activity"""
+        activity_type = context.get("activity_type")
+        node_title = context.get("node_title")
+        node_description = context.get("node_description")
+        objectives = context.get("objectives", [])
+        path_topic = context.get("path_topic")
+        difficulty = context.get("difficulty", "intermediate")
+        count = context.get("count")
+        
+        logger.info(f"Generating {activity_type} content for node: {node_title}")
+        
+        if activity_type == "notes":
+            return self._generate_notes(node_title, node_description, objectives, path_topic, difficulty)
+        elif activity_type == "flashcards":
+            return self._generate_flashcards(node_title, objectives, path_topic, difficulty, count or 10)
+        elif activity_type == "quiz":
+            return self._generate_quiz(node_title, objectives, path_topic, difficulty, count or 5)
+        elif activity_type == "chat":
+            return self._generate_chat_prompt(node_title, objectives, path_topic)
+        else:
+            return {"error": f"Unknown activity type: {activity_type}"}
+    
+    def _generate_notes(self, title: str, description: str, objectives: List[str], topic: str, difficulty: str) -> Dict[str, Any]:
+        """Generate study notes for a node"""
+        objectives_text = "\n".join([f"- {obj}" for obj in objectives])
+        
+        prompt = f"""Generate comprehensive study notes for learning about: {title}
+
+Topic Context: {topic}
+Description: {description}
+Difficulty Level: {difficulty}
+
+Learning Objectives:
+{objectives_text}
+
+Create detailed, well-structured notes that:
+1. Explain key concepts clearly
+2. Include examples and analogies
+3. Break down complex ideas
+4. Highlight important points
+5. Are appropriate for {difficulty} level learners
+
+Format the notes in markdown with clear sections and bullet points.
+Return ONLY the markdown content, no JSON."""
+        
+        try:
+            notes_content = self._call_ai(prompt)
+            return {
+                "success": True,
+                "content_type": "notes",
+                "content": notes_content,
+                "title": title
+            }
+        except Exception as e:
+            logger.error(f"Error generating notes: {e}")
+            return {"error": str(e)}
+    
+    def _generate_flashcards(self, title: str, objectives: List[str], topic: str, difficulty: str, count: int) -> Dict[str, Any]:
+        """Generate flashcards for a node"""
+        objectives_text = "\n".join([f"- {obj}" for obj in objectives])
+        
+        prompt = f"""Generate {count} flashcards for learning: {title}
+
+Topic Context: {topic}
+Difficulty Level: {difficulty}
+
+Learning Objectives:
+{objectives_text}
+
+Create flashcards that:
+1. Cover key concepts and terminology
+2. Are clear and concise
+3. Test understanding, not just memorization
+4. Progress from basic to advanced
+5. Are appropriate for {difficulty} level
+
+Return ONLY valid JSON in this format:
+{{
+  "flashcards": [
+    {{
+      "question": "Front of card (question or term)",
+      "answer": "Back of card (answer or definition)",
+      "difficulty": "easy|medium|hard"
+    }}
+  ]
+}}"""
+        
+        try:
+            response = self._call_ai(prompt)
+            # Parse JSON response
+            json_start = response.find('{')
+            json_end = response.rfind('}') + 1
+            if json_start != -1 and json_end > 0:
+                data = json.loads(response[json_start:json_end])
+                return {
+                    "success": True,
+                    "content_type": "flashcards",
+                    "flashcards": data.get("flashcards", []),
+                    "count": len(data.get("flashcards", []))
+                }
+            else:
+                raise ValueError("No JSON found in response")
+        except Exception as e:
+            logger.error(f"Error generating flashcards: {e}")
+            return {"error": str(e)}
+    
+    def _generate_quiz(self, title: str, objectives: List[str], topic: str, difficulty: str, count: int) -> Dict[str, Any]:
+        """Generate quiz questions for a node"""
+        objectives_text = "\n".join([f"- {obj}" for obj in objectives])
+        
+        prompt = f"""Generate {count} multiple-choice quiz questions for: {title}
+
+Topic Context: {topic}
+Difficulty Level: {difficulty}
+
+Learning Objectives:
+{objectives_text}
+
+Create quiz questions that:
+1. Test understanding of key concepts
+2. Have 4 answer options each
+3. Include one correct answer
+4. Have plausible distractors
+5. Are appropriate for {difficulty} level
+
+Return ONLY valid JSON in this format:
+{{
+  "questions": [
+    {{
+      "question": "Question text",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correct_answer": 0,
+      "explanation": "Why this answer is correct"
+    }}
+  ]
+}}"""
+        
+        try:
+            response = self._call_ai(prompt)
+            # Parse JSON response
+            json_start = response.find('{')
+            json_end = response.rfind('}') + 1
+            if json_start != -1 and json_end > 0:
+                data = json.loads(response[json_start:json_end])
+                return {
+                    "success": True,
+                    "content_type": "quiz",
+                    "questions": data.get("questions", []),
+                    "count": len(data.get("questions", []))
+                }
+            else:
+                raise ValueError("No JSON found in response")
+        except Exception as e:
+            logger.error(f"Error generating quiz: {e}")
+            return {"error": str(e)}
+    
+    def _generate_chat_prompt(self, title: str, objectives: List[str], topic: str) -> Dict[str, Any]:
+        """Generate a chat discussion prompt for a node"""
+        objectives_text = "\n".join([f"- {obj}" for obj in objectives])
+        
+        prompt = f"""Generate an engaging discussion prompt for: {title}
+
+Topic Context: {topic}
+
+Learning Objectives:
+{objectives_text}
+
+Create a thought-provoking prompt that:
+1. Encourages reflection on the learned material
+2. Connects concepts to real-world applications
+3. Promotes deeper understanding
+4. Is open-ended and discussion-worthy
+
+Return ONLY the prompt text, no JSON."""
+        
+        try:
+            chat_prompt = self._call_ai(prompt)
+            return {
+                "success": True,
+                "content_type": "chat",
+                "prompt": chat_prompt,
+                "title": f"Discuss: {title}"
+            }
+        except Exception as e:
+            logger.error(f"Error generating chat prompt: {e}")
+            return {"error": str(e)}

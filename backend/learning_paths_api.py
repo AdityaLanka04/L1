@@ -91,6 +91,10 @@ class UpdateProgressRequest(BaseModel):
     completed: bool
     metadata: Optional[Dict[str, Any]] = {}
 
+class GenerateContentRequest(BaseModel):
+    activity_type: str  # notes, flashcards, quiz, chat
+    count: Optional[int] = None  # For flashcards/quiz question count
+
 # ==================== ENDPOINTS ====================
 
 @router.post("/generate")
@@ -438,6 +442,65 @@ async def delete_learning_path(
         raise
     except Exception as e:
         logger.error(f"Error deleting path: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{path_id}/nodes/{node_id}/generate-content")
+async def generate_node_content(
+    path_id: str,
+    node_id: str,
+    request: GenerateContentRequest,
+    username: str = Depends(verify_token),
+    db: Session = Depends(get_db)
+):
+    """Generate content (notes, flashcards, quiz) for a specific node"""
+    try:
+        user_id = get_user_id_from_username(username, db)
+        
+        # Get the node
+        node = db.query(models.LearningPathNode).filter(
+            models.LearningPathNode.id == node_id,
+            models.LearningPathNode.path_id == path_id
+        ).first()
+        
+        if not node:
+            raise HTTPException(status_code=404, detail="Node not found")
+        
+        # Get the path for context
+        path = db.query(models.LearningPath).filter(
+            models.LearningPath.id == path_id,
+            models.LearningPath.user_id == user_id
+        ).first()
+        
+        if not path:
+            raise HTTPException(status_code=404, detail="Path not found")
+        
+        # Generate content based on activity type
+        agent = get_learning_path_agent()
+        
+        context = {
+            "action": "generate_content",
+            "user_id": user_id,
+            "node_id": node_id,
+            "activity_type": request.activity_type,
+            "count": request.count,
+            "node_title": node.title,
+            "node_description": node.description,
+            "objectives": node.objectives,
+            "path_topic": path.topic_prompt,
+            "difficulty": path.difficulty
+        }
+        
+        result = agent.process("", context, db)
+        
+        if "error" in result:
+            raise HTTPException(status_code=400, detail=result["error"])
+        
+        return result
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating content: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 def register_learning_paths_api(app, unified_ai=None):

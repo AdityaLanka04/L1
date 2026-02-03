@@ -909,6 +909,64 @@ const Flashcards = () => {
     }
   }, []);
 
+  // Handle generated flashcards from Learning Path
+  useEffect(() => {
+    const generatedFlashcards = location.state?.generatedFlashcards;
+    
+    if (generatedFlashcards && userName) {
+      const createGeneratedFlashcards = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const formData = new FormData();
+          formData.append('user_id', userName);
+          formData.append('action', 'save');
+          formData.append('set_title', generatedFlashcards.title);
+          formData.append('cards', JSON.stringify(generatedFlashcards.cards));
+          formData.append('is_public', 'false');
+          
+          const response = await fetch(`${API_URL}/flashcard_agent/`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            
+            // Set the flashcards and show them
+            setFlashcards(generatedFlashcards.cards);
+            setCurrentCard(0);
+            setIsFlipped(false);
+            
+            setCurrentSetInfo({
+              saved: true,
+              setId: data.set_id || data.data?.set_id,
+              shareCode: data.share_code || data.data?.share_code,
+              setTitle: generatedFlashcards.title,
+              cardCount: generatedFlashcards.cards.length
+            });
+            
+            // Auto-open preview mode
+            const shuffledCards = studySettings.shuffle ? [...generatedFlashcards.cards].sort(() => Math.random() - 0.5) : generatedFlashcards.cards;
+            setShuffledCards(shuffledCards);
+            setPreviewMode(true);
+            
+            loadFlashcardHistory(true);
+            loadFlashcardStats();
+            
+            // Clear the state
+            navigate('/flashcards', { replace: true, state: {} });
+          }
+        } catch (error) {
+          console.error('Error creating generated flashcards:', error);
+          showPopup('Error', 'Failed to create flashcards from learning path');
+        }
+      };
+      
+      createGeneratedFlashcards();
+    }
+  }, [location.state, userName, navigate, studySettings.shuffle]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Loader, Lock, CheckCircle, Circle, Play, Award,
   Clock, Target, BookOpen, MessageCircle, FileText, Brain,
-  ChevronRight, Sparkles, TrendingUp, Star, Zap
+  ChevronRight, Sparkles, Zap
 } from 'lucide-react';
 import learningPathService from '../services/learningPathService';
 import './LearningPathDetail.css';
@@ -88,6 +88,100 @@ const LearningPathDetail = () => {
     }
   };
 
+  const handleActivityClick = async (activity) => {
+    if (!selectedNode || actionLoading) return;
+
+    try {
+      setActionLoading(true);
+
+      const count = activity.count || activity.question_count || null;
+      const response = await learningPathService.generateNodeContent(
+        pathId,
+        selectedNode.id,
+        activity.type,
+        count
+      );
+
+      if (response.error) {
+        alert('Failed to generate content: ' + response.error);
+        return;
+      }
+
+      // Mark activity as started in progress
+      await learningPathService.updateNodeProgress(
+        pathId,
+        selectedNode.id,
+        activity.type,
+        false, // Not completed yet, just started
+        { started_at: new Date().toISOString() }
+      );
+
+      // Route to appropriate page based on activity type
+      switch (activity.type) {
+        case 'notes':
+          // Navigate to notes page with generated content
+          // The notes page should handle this in a useEffect checking location.state
+          navigate('/notes/my-notes', {
+            state: {
+              generatedNote: {
+                title: `${path.title} - ${selectedNode.title}`,
+                content: response.content,
+                fromLearningPath: true
+              }
+            }
+          });
+          break;
+
+        case 'flashcards':
+          // Navigate to flashcards page with generated cards
+          // The flashcards page should handle this in a useEffect checking location.state
+          navigate('/flashcards', {
+            state: {
+              generatedFlashcards: {
+                title: `${path.title} - ${selectedNode.title}`,
+                cards: response.flashcards,
+                fromLearningPath: true
+              }
+            }
+          });
+          break;
+
+        case 'quiz':
+          // Navigate to question bank with generated questions
+          // The question bank page should handle this in a useEffect checking location.state
+          navigate('/question-bank', {
+            state: {
+              generatedQuestions: {
+                title: `${path.title} - ${selectedNode.title}`,
+                questions: response.questions,
+                fromLearningPath: true
+              }
+            }
+          });
+          break;
+
+        case 'chat':
+          // Navigate to AI chat with discussion prompt
+          // AI Chat already handles location.state.initialMessage
+          navigate('/ai-chat', {
+            state: {
+              initialMessage: `${response.prompt}\n\n[Context: Learning Path "${path.title}" - Node "${selectedNode.title}"]`
+            }
+          });
+          break;
+
+        default:
+          alert('Unknown activity type');
+      }
+
+    } catch (error) {
+      console.error('Error generating content:', error);
+      alert('Failed to generate content: ' + error.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const getNodeStatusIcon = (status) => {
     switch (status) {
       case 'completed':
@@ -129,6 +223,17 @@ const LearningPathDetail = () => {
 
   return (
     <div className="lpd-container">
+      {/* Loading Overlay */}
+      {actionLoading && (
+        <div className="lpd-loading-overlay">
+          <div className="lpd-loading-content">
+            <Loader className="lpd-spinner" size={48} />
+            <h3>Generating Content...</h3>
+            <p>Creating personalized learning materials for you</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="lpd-header">
         <button className="lpd-back-btn" onClick={() => navigate('/learning-paths')}>
@@ -281,7 +386,11 @@ const LearningPathDetail = () => {
                 </h3>
                 <div className="lpd-activities-list">
                   {selectedNode.content_plan?.map((activity, i) => (
-                    <div key={i} className="lpd-activity-card">
+                    <div 
+                      key={i} 
+                      className="lpd-activity-card lpd-activity-clickable"
+                      onClick={() => handleActivityClick(activity)}
+                    >
                       <div className="lpd-activity-icon">
                         {getActivityIcon(activity.type)}
                       </div>
@@ -295,6 +404,7 @@ const LearningPathDetail = () => {
                           <span className="lpd-activity-meta">{activity.question_count} questions</span>
                         )}
                       </div>
+                      <ChevronRight size={18} className="lpd-activity-arrow" />
                     </div>
                   ))}
                 </div>

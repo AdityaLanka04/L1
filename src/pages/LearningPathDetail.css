@@ -451,9 +451,26 @@
   transition: all 0.2s;
 }
 
-.lpd-activity-card:hover {
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+.lpd-activity-card.lpd-activity-clickable {
+  cursor: pointer;
+  position: relative;
+}
+
+.lpd-activity-card.lpd-activity-clickable:hover {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
   border-color: var(--accent);
+  transform: translateX(4px);
+}
+
+.lpd-activity-arrow {
+  color: var(--accent);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.lpd-activity-card.lpd-activity-clickable:hover .lpd-activity-arrow {
+  opacity: 1;
 }
 
 .lpd-activity-icon {
@@ -625,4 +642,42 @@
   .lpd-actions {
     flex-direction: column;
   }
+}
+
+/* Loading Overlay */
+.lpd-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.lpd-loading-content {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 3rem;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+}
+
+.lpd-loading-content h3 {
+  margin: 1rem 0 0.5rem 0;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.lpd-loading-content p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
 }

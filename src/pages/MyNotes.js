@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Plus, Search, Star, Clock, Folder, Trash2, Upload, FolderPlus, 
   Grid, List as ListIcon, Layout, Sparkles, ChevronLeft, ChevronRight,
@@ -14,6 +14,7 @@ import ImportExportModal from '../components/ImportExportModal';
 
 const MyNotes = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const userName = localStorage.getItem('username');
 
   // Sidebar state
@@ -53,6 +54,44 @@ const MyNotes = () => {
     loadFolders();
     loadChatSessions();
   }, []);
+
+  // Handle generated note from Learning Path
+  useEffect(() => {
+    const generatedNote = location.state?.generatedNote;
+    
+    if (generatedNote && userName) {
+      // Auto-create note with generated content
+      const createGeneratedNote = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch(`${API_URL}/create_note`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              user_id: userName,
+              title: generatedNote.title,
+              content: generatedNote.content,
+              folder_id: null
+            })
+          });
+
+          if (response.ok) {
+            const newNote = await response.json();
+            // Clear the state and navigate to the editor
+            navigate(`/notes/editor/${newNote.id}`, { replace: true });
+          }
+        } catch (error) {
+          console.error('Error creating generated note:', error);
+          alert('Failed to create note from learning path');
+        }
+      };
+
+      createGeneratedNote();
+    }
+  }, [location.state, userName, navigate]);
 
   const loadNotes = async () => {
     setLoading(true);

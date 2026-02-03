@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, Upload, MessageSquare, Sparkles, FileText, BarChart3, 
   Plus, Play, Trash2, TrendingUp, Target, Brain, Zap, Award, 
@@ -14,6 +14,7 @@ import ImportExportModal from '../components/ImportExportModal';
 import questionBankAgentService from '../services/questionBankAgentService';
 const QuestionBankDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const token = localStorage.getItem('token');
   const userId = localStorage.getItem('user_id') || localStorage.getItem('username');
 
@@ -188,6 +189,64 @@ const QuestionBankDashboard = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeView]);
+
+  // Handle generated questions from Learning Path
+  useEffect(() => {
+    const generatedQuestions = location.state?.generatedQuestions;
+    
+    if (generatedQuestions && userId) {
+      const createGeneratedQuestionSet = async () => {
+        try {
+          setLoading(true);
+          
+          const response = await fetch(`${API_URL}/qb/save_question_set`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              user_id: userId,
+              title: generatedQuestions.title,
+              questions: generatedQuestions.questions,
+              source: 'learning_path'
+            })
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            
+            // Refresh question sets
+            await fetchQuestionSets();
+            
+            // Navigate to the new set in study mode
+            const newSet = {
+              id: data.set_id,
+              title: generatedQuestions.title,
+              questions: generatedQuestions.questions
+            };
+            
+            setSelectedQuestionSet(newSet);
+            setShowStudyModal(true);
+            setCurrentQuestion(0);
+            setUserAnswers({});
+            setShowResults(false);
+            setSessionStartTime(Date.now());
+            
+            // Clear the state
+            navigate('/question-bank', { replace: true, state: {} });
+          }
+        } catch (error) {
+          console.error('Error creating generated question set:', error);
+          alert('Failed to create question set from learning path');
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      createGeneratedQuestionSet();
+    }
+  }, [location.state, userId, token, navigate]);
 
   const fetchQuestionSets = async () => {
     try {
