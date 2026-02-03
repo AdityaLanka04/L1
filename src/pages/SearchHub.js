@@ -1911,9 +1911,9 @@ const SearchHub = () => {
                                 {formatDate(result.created_at)}
                               </span>
                             )}
-                            {result.source_type && (
+                            {result.source_type && result.source_type !== 'ai_generated' && (
                               <span className="result-source">
-                                {result.source_type === 'ai_generated' ? '🤖 AI Generated' : '✍️ Manual'}
+                                ✍️ Manual
                               </span>
                             )}
                             {result.is_public !== undefined && (

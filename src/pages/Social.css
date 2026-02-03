@@ -178,7 +178,7 @@
   height: 38px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 19px;
   color: var(--text-primary);
   font-size: 11px;
   font-weight: 600;
@@ -237,7 +237,7 @@
   transition: var(--sh-transition);
   position: relative;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: 20px;
   border: 1px solid var(--border);
 }
 
@@ -552,7 +552,7 @@
   padding: 12px 24px;
   background: transparent;
   border: none;
-  border-radius: 8px;
+  border-radius: 20px;
   color: var(--text-primary);
   opacity: 0.7;
   font-size: 11px;
@@ -650,7 +650,7 @@
   height: 52px;
   background: var(--sh-bg-secondary);
   border: 1px solid var(--sh-border-subtle);
-  border-radius: 12px;
+  border-radius: 26px;
   margin-bottom: 32px;
   transition: var(--sh-transition);
   position: relative;
@@ -704,91 +704,180 @@
   color: var(--sh-text-secondary);
 }
 
-/* ==================== USER CARDS - PREMIUM DESIGN ==================== */
+/* ==================== USER CARDS - VINTAGE AESTHETIC REDESIGN ==================== */
 .users-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
 }
 
 .user-card {
-  background: var(--sh-bg-card);
-  border: 1px solid var(--sh-border-subtle);
-  border-radius: 16px;
-  padding: 24px;
-  transition: var(--sh-transition);
+  background: linear-gradient(145deg, 
+    color-mix(in srgb, var(--sh-accent) 3%, var(--sh-bg-card)) 0%,
+    var(--sh-bg-card) 50%,
+    color-mix(in srgb, var(--sh-accent) 5%, var(--sh-bg-card)) 100%);
+  border: 2px solid color-mix(in srgb, var(--sh-accent) 25%, transparent);
+  border-radius: 32px;
+  padding: 0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
+/* Vintage paper texture overlay */
 .user-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.01) 2px,
+      rgba(255, 255, 255, 0.01) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.01) 2px,
+      rgba(255, 255, 255, 0.01) 4px
+    );
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+/* Decorative corner ornaments */
+.user-card::after {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--sh-accent), var(--sh-accent-2), var(--sh-accent));
+  height: 4px;
+  background: transparent;
   opacity: 0;
-  transition: var(--sh-transition);
-}
-
-.user-card::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -50%;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle, var(--sh-accent-glow) 0%, transparent 70%);
-  opacity: 0;
-  transition: var(--sh-transition);
-  pointer-events: none;
+  transition: opacity 0.4s ease;
 }
 
 .user-card:hover {
   border-color: var(--sh-accent);
-  transform: translateY(-4px);
+  transform: translateY(-8px) scale(1.02);
   box-shadow: 
-    0 12px 40px rgba(0, 0, 0, 0.2),
-    0 0 30px var(--sh-accent-glow);
-}
-
-.user-card:hover::before {
-  opacity: 1;
+    0 20px 60px rgba(0, 0, 0, 0.25),
+    0 0 40px var(--sh-accent-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .user-card:hover::after {
-  opacity: 0.3;
+  opacity: 0;
 }
 
+/* Card header with decorative banner */
 .user-card-header {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 20px;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 0;
+  padding: 32px 24px 24px;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--sh-accent) 12%, var(--sh-bg-tertiary)) 0%,
+    color-mix(in srgb, var(--sh-accent) 5%, var(--sh-bg-card)) 100%);
+  border-bottom: 2px solid color-mix(in srgb, var(--sh-accent) 20%, transparent);
+  position: relative;
 }
 
-/* Avatar with glow ring */
+/* Decorative top border pattern */
+.user-card-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 2px;
+  background: transparent;
+  opacity: 0;
+}
+
+/* Decorative corner flourishes */
+.user-card-header::after {
+  content: '✦';
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: var(--sh-accent);
+  opacity: 0.6;
+}
+
+/* Avatar with vintage frame */
 .user-avatar {
-  width: 56px;
-  height: 56px;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
-  border: 3px solid var(--sh-accent);
-  transition: var(--sh-transition);
+  border: 4px solid var(--sh-accent);
+  box-shadow: 
+    0 0 0 2px var(--sh-bg-card),
+    0 0 0 4px color-mix(in srgb, var(--sh-accent) 40%, transparent),
+    0 8px 24px rgba(0, 0, 0, 0.2);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  margin-bottom: 16px;
+}
+
+/* Rotating decorative ring */
+.user-avatar::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    var(--sh-accent) 90deg,
+    transparent 180deg,
+    var(--sh-accent) 270deg,
+    transparent 360deg
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  animation: rotate-ring 4s linear infinite;
+  animation-play-state: paused;
+}
+
+.user-card:hover .user-avatar::before {
+  opacity: 0.6;
+  animation-play-state: running;
+}
+
+@keyframes rotate-ring {
+  to { transform: rotate(360deg); }
 }
 
 .user-card:hover .user-avatar {
-  box-shadow: 0 0 30px var(--sh-accent-glow-strong);
-  transform: scale(1.05);
+  transform: scale(1.08);
+  box-shadow: 
+    0 0 0 2px var(--sh-bg-card),
+    0 0 0 4px var(--sh-accent),
+    0 0 30px var(--sh-accent-glow-strong),
+    0 12px 32px rgba(0, 0, 0, 0.3);
 }
 
 .user-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  position: relative;
+  z-index: 1;
 }
 
 .user-avatar-placeholder {
@@ -799,129 +888,237 @@
   justify-content: center;
   background: linear-gradient(135deg, var(--sh-accent) 0%, var(--sh-accent-2) 100%);
   color: var(--sh-bg-primary);
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 36px;
+  font-weight: 800;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 1;
 }
 
+/* User info section */
 .user-info {
   flex: 1;
   min-width: 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .user-name {
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 800;
   color: var(--sh-text-primary);
-  margin: 0 0 4px 0;
-  transition: var(--sh-transition);
+  margin: 0;
+  transition: all 0.3s ease;
+  letter-spacing: -0.5px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .user-card:hover .user-name {
   color: var(--sh-accent);
+  text-shadow: 0 0 20px var(--sh-accent-glow);
 }
 
 .user-username {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--sh-text-secondary);
   margin: 0;
+  font-weight: 500;
+  opacity: 0.8;
 }
 
 .user-field {
   font-size: 12px;
   color: var(--sh-accent);
-  margin: 6px 0 0 0;
-  font-weight: 600;
-}
-
-/* Subject tags */
-.user-subjects h4 {
-  font-size: 10px;
+  margin: 4px 0 0 0;
   font-weight: 700;
-  color: var(--sh-text-secondary);
   text-transform: uppercase;
   letter-spacing: 1px;
-  margin: 0 0 12px 0;
+  padding: 6px 16px;
+  background: var(--sh-accent-glow);
+  border-radius: 32px;
+  display: inline-block;
+  border: 1px solid color-mix(in srgb, var(--sh-accent) 30%, transparent);
+}
+
+/* Action button positioned at top right */
+.user-card-header > button,
+.user-card-header > span,
+.user-card-header > .request-actions {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+/* Subject tags with vintage style */
+.user-subjects {
+  padding: 20px 24px;
+  background: var(--sh-bg-card);
+}
+
+.user-subjects h4 {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--sh-accent);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin: 0 0 14px 0;
+  text-align: center;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.user-subjects h4::before,
+.user-subjects h4::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    color-mix(in srgb, var(--sh-accent) 30%, transparent),
+    transparent
+  );
 }
 
 .subject-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
+  justify-content: center;
 }
 
 .subject-tag {
-  padding: 6px 14px;
-  background: var(--sh-accent-glow);
-  border: 1px solid color-mix(in srgb, var(--sh-accent) 40%, transparent);
-  border-radius: 20px;
+  padding: 8px 18px;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--sh-accent) 15%, transparent) 0%,
+    color-mix(in srgb, var(--sh-accent) 8%, transparent) 100%);
+  border: 1.5px solid color-mix(in srgb, var(--sh-accent) 35%, transparent);
+  border-radius: 32px;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--sh-accent);
-  transition: var(--sh-transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  position: relative;
+  overflow: hidden;
+}
+
+.subject-tag::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--sh-accent) 0%, var(--sh-accent-2) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .subject-tag:hover {
-  background: var(--sh-accent);
+  border-color: var(--sh-accent);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px var(--sh-accent-glow);
   color: var(--sh-bg-primary);
-  transform: translateY(-2px);
 }
 
-/* ==================== USER STATS - BENTO MINI GRID ==================== */
+.subject-tag:hover::before {
+  opacity: 1;
+}
+
+/* ==================== USER STATS - VINTAGE BENTO GRID ==================== */
 .user-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  padding-top: 20px;
-  border-top: 1px solid var(--sh-border-subtle);
-  margin-top: 16px;
+  gap: 1px;
+  padding: 0;
+  border-top: 2px solid color-mix(in srgb, var(--sh-accent) 20%, transparent);
+  margin-top: 0;
+  background: color-mix(in srgb, var(--sh-accent) 15%, transparent);
+  border-radius: 0 0 30px 30px;
+  overflow: hidden;
 }
 
 .stat-item {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: 12px 8px;
-  background: var(--sh-bg-tertiary);
-  border-radius: 10px;
-  transition: var(--sh-transition);
+  padding: 14px 8px;
+  background: linear-gradient(180deg,
+    var(--sh-bg-card) 0%,
+    color-mix(in srgb, var(--sh-accent) 3%, var(--sh-bg-card)) 100%);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg,
+    var(--sh-accent-glow) 0%,
+    transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .stat-item:hover {
-  background: var(--sh-accent-glow);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--sh-accent) 10%, var(--sh-bg-card)) 0%,
+    color-mix(in srgb, var(--sh-accent) 5%, var(--sh-bg-card)) 100%);
   transform: translateY(-2px);
+}
+
+.stat-item:hover::before {
+  opacity: 0.5;
 }
 
 .stat-value {
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 900;
   color: var(--sh-accent);
   text-shadow: 0 0 20px var(--sh-accent-glow);
+  position: relative;
+  z-index: 1;
+  letter-spacing: -0.5px;
 }
 
 .stat-label {
-  font-size: 9px;
+  font-size: 7px;
   color: var(--sh-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 600;
+  letter-spacing: 0.8px;
+  font-weight: 700;
+  position: relative;
+  z-index: 1;
 }
 
-/* ==================== ACTION BUTTONS - PREMIUM ==================== */
+/* ==================== ACTION BUTTONS - VINTAGE STYLE ==================== */
 .social-action-button {
-  width: 40px;
-  height: 40px;
-  background: var(--sh-bg-tertiary);
-  border: 1px solid var(--sh-border-subtle);
-  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg,
+    var(--sh-bg-tertiary) 0%,
+    var(--sh-bg-secondary) 100%);
+  border: 2px solid var(--sh-border-subtle);
+  border-radius: 16px;
   color: var(--sh-text-secondary);
   cursor: pointer;
-  transition: var(--sh-transition-bounce);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .social-action-button::before {
@@ -930,45 +1127,67 @@
   inset: 0;
   background: linear-gradient(135deg, currentColor 0%, transparent 100%);
   opacity: 0;
-  transition: var(--sh-transition);
+  transition: opacity 0.3s ease;
 }
 
 .social-action-button:hover {
-  transform: translateY(-3px) scale(1.05);
+  transform: translateY(-4px) scale(1.08);
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .social-action-button:hover::before {
-  opacity: 0.1;
+  opacity: 0.15;
 }
 
 .social-action-button svg {
   position: relative;
   z-index: 1;
+  transition: transform 0.3s ease;
+}
+
+.social-action-button:hover svg {
+  transform: scale(1.15);
 }
 
 /* Add friend button */
 .social-action-button.add-friend {
   border-color: var(--sh-accent);
   color: var(--sh-accent);
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--sh-accent) 10%, var(--sh-bg-tertiary)) 0%,
+    color-mix(in srgb, var(--sh-accent) 5%, var(--sh-bg-secondary)) 100%);
 }
 
 .social-action-button.add-friend:hover {
   background: linear-gradient(135deg, var(--sh-accent) 0%, var(--sh-accent-2) 100%);
   color: var(--sh-bg-primary);
-  box-shadow: 0 8px 25px var(--sh-accent-glow-strong);
+  border-color: var(--sh-accent);
+  box-shadow: 
+    0 12px 32px var(--sh-accent-glow-strong),
+    0 0 40px var(--sh-accent-glow);
 }
 
 /* Accept button */
 .social-action-button.accept {
   border-color: var(--sh-success);
   color: var(--sh-success);
-  box-shadow: 0 0 15px rgba(34, 197, 94, 0.2);
+  background: linear-gradient(135deg,
+    rgba(34, 197, 94, 0.1) 0%,
+    rgba(34, 197, 94, 0.05) 100%);
+  box-shadow: 
+    0 2px 8px rgba(34, 197, 94, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .social-action-button.accept:hover {
   background: linear-gradient(135deg, var(--sh-success) 0%, #16a34a 100%);
   color: white;
-  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
+  border-color: var(--sh-success);
+  box-shadow: 
+    0 12px 32px rgba(34, 197, 94, 0.4),
+    0 0 40px rgba(34, 197, 94, 0.3);
 }
 
 /* Reject/Remove button */
@@ -976,44 +1195,74 @@
 .social-action-button.remove {
   border-color: var(--sh-danger);
   color: var(--sh-danger);
-  box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+  background: linear-gradient(135deg,
+    rgba(239, 68, 68, 0.1) 0%,
+    rgba(239, 68, 68, 0.05) 100%);
+  box-shadow: 
+    0 2px 8px rgba(239, 68, 68, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .social-action-button.reject:hover,
 .social-action-button.remove:hover {
   background: linear-gradient(135deg, var(--sh-danger) 0%, #dc2626 100%);
   color: white;
-  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+  border-color: var(--sh-danger);
+  box-shadow: 
+    0 12px 32px rgba(239, 68, 68, 0.4),
+    0 0 40px rgba(239, 68, 68, 0.3);
 }
 
 .request-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
-/* ==================== BADGES - PREMIUM STYLE ==================== */
+/* ==================== BADGES - VINTAGE ORNAMENTAL STYLE ==================== */
 .friend-badge,
 .pending-badge {
-  padding: 8px 16px;
+  padding: 10px 20px;
   font-size: 11px;
-  font-weight: 700;
-  border-radius: 20px;
+  font-weight: 800;
+  border-radius: 32px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.friend-badge::before,
+.pending-badge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, currentColor 0%, transparent 100%);
+  opacity: 0.1;
 }
 
 .friend-badge {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.1) 100%);
   color: var(--sh-success);
-  border: 1px solid var(--sh-success);
-  box-shadow: 0 0 15px rgba(34, 197, 94, 0.2);
+  border: 2px solid var(--sh-success);
+  box-shadow: 
+    0 2px 8px rgba(34, 197, 94, 0.2),
+    0 0 20px rgba(34, 197, 94, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .pending-badge {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, transparent) 0%, color-mix(in srgb, var(--accent) 5%, transparent) 100%);
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent) 20%, transparent) 0%, 
+    color-mix(in srgb, var(--accent) 10%, transparent) 100%);
   color: var(--sh-warning);
-  border: 1px solid var(--sh-warning);
-  box-shadow: 0 0 15px color-mix(in srgb, var(--accent) 20%, transparent);
+  border: 2px solid var(--sh-warning);
+  box-shadow: 
+    0 2px 8px color-mix(in srgb, var(--accent) 20%, transparent),
+    0 0 20px color-mix(in srgb, var(--accent) 15%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* ==================== SHARED CONTENT SECTION ==================== */
@@ -1028,7 +1277,7 @@
   padding: 14px 28px;
   background: linear-gradient(135deg, var(--sh-accent) 0%, var(--sh-accent-2) 100%);
   border: none;
-  border-radius: 12px;
+  border-radius: 24px;
   color: var(--sh-bg-primary);
   font-size: 14px;
   font-weight: 700;
@@ -1082,7 +1331,7 @@
   padding: 12px 20px;
   background: var(--sh-bg-secondary);
   border: 1px solid var(--sh-border-subtle);
-  border-radius: 10px;
+  border-radius: 20px;
   color: var(--sh-text-secondary);
   font-size: 13px;
   font-weight: 600;
@@ -1112,7 +1361,7 @@
 .shared-item-card {
   background: var(--sh-bg-card);
   border: 1px solid var(--sh-border-subtle);
-  border-radius: 16px;
+  border-radius: 28px;
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -1160,7 +1409,7 @@
   padding: 8px 14px;
   font-size: 11px;
   font-weight: 700;
-  border-radius: 20px;
+  border-radius: 32px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -1227,7 +1476,7 @@
   gap: 14px;
   padding: 16px;
   background: linear-gradient(135deg, var(--sh-bg-tertiary) 0%, var(--sh-bg-secondary) 100%);
-  border-radius: 12px;
+  border-radius: 20px;
   border: 1px solid var(--sh-border-subtle);
 }
 
@@ -1308,7 +1557,7 @@
   justify-content: center;
   gap: 8px;
   padding: 12px 20px;
-  border-radius: 10px;
+  border-radius: 20px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -1348,7 +1597,7 @@
   font-size: 15px;
   background: linear-gradient(135deg, var(--sh-bg-card) 0%, var(--sh-bg-tertiary) 100%);
   border: 2px dashed var(--sh-border-subtle);
-  border-radius: 16px;
+  border-radius: 28px;
   position: relative;
 }
 
@@ -1389,7 +1638,7 @@
 .modal-content {
   background: var(--sh-bg-card);
   border: 1px solid var(--sh-border-subtle);
-  border-radius: 20px;
+  border-radius: 32px;
   max-width: 600px;
   width: 100%;
   max-height: 85vh;
@@ -1436,7 +1685,7 @@
   height: 40px;
   background: var(--sh-bg-tertiary);
   border: 1px solid var(--sh-border-subtle);
-  border-radius: 10px;
+  border-radius: 20px;
   color: var(--sh-text-secondary);
   cursor: pointer;
   display: flex;
@@ -1472,7 +1721,7 @@
   padding: 18px;
   background: var(--sh-bg-tertiary);
   border: 1px solid var(--sh-border-subtle);
-  border-radius: 12px;
+  border-radius: 20px;
   cursor: pointer;
   transition: var(--sh-transition);
   margin-bottom: 12px;

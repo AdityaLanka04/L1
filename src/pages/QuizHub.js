@@ -78,7 +78,7 @@ const QuizHub = () => {
               <div className="qh-features">
                 <div className="qh-feature">
                   <ChevronRight size={14} />
-                  <span>AI-Generated Questions</span>
+                  <span>Smart Questions</span>
                 </div>
                 <div className="qh-feature">
                   <ChevronRight size={14} />

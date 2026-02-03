@@ -277,7 +277,7 @@ const WeaknessPractice = () => {
             </div>
             <h2>Practice: {topic}</h2>
             <p className="start-description">
-              Improve your understanding with AI-generated questions tailored to your weaknesses
+              Improve your understanding with personalized questions tailored to your weaknesses
             </p>
             
             <div className="start-details">

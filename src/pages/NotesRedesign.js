@@ -1762,7 +1762,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       }
 
       setNoteContent(quillRef.current?.getEditor().root.innerHTML);
-      showPopup("AI Generated", "Content inserted successfully");
+      showPopup("Success", "Content inserted successfully");
     } catch (error) {
             showPopup("Error", "Failed to generate AI content");
     } finally {
@@ -1810,7 +1810,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       }
 
       setNoteContent(quillRef.current?.getEditor().root.innerHTML);
-      showPopup("AI Generated", `${actionType} content inserted`);
+      showPopup("Success", `${actionType} content inserted`);
     } catch (error) {
             showPopup("Error", "Failed to generate content");
     } finally {

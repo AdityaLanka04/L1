@@ -250,7 +250,7 @@ const AIMediaNotes = () => {
         body: JSON.stringify({
           user_id: userName,
           title: smartTitle,
-          description: `AI-generated flashcards from ${results.source_type === 'youtube' ? 'YouTube video' : 'uploaded media'}`,
+          description: `Flashcards from ${results.source_type === 'youtube' ? 'YouTube video' : 'uploaded media'}`,
           source_type: 'media',
           source_id: null
         })

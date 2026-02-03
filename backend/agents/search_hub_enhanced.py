@@ -511,7 +511,7 @@ Return ONLY valid JSON:
             flashcard_set = FlashcardSet(
                 user_id=actual_user_id,
                 title=clean_title,
-                description=f"AI-generated flashcards covering key concepts of {topic}",
+                description=f"Flashcards covering key concepts of {topic}",
                 source_type="ai_generated",
                 share_code=self._generate_share_code(),
                 is_public=False,
@@ -610,7 +610,7 @@ Return ONLY valid JSON:
             question_set = QuestionSet(
                 user_id=actual_user_id,
                 title=clean_title,
-                description=f"AI-generated practice questions about {topic}",
+                description=f"Practice questions about {topic}",
                 source_type="ai_generated",
                 total_questions=len(questions[:count]),
                 created_at=datetime.utcnow()

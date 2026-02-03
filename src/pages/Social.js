@@ -408,20 +408,20 @@ const Social = () => {
       {user.stats && (
         <div className="user-stats">
           <div className="stat-item">
-            <span className="stat-value">{user.stats.total_lessons}</span>
-            <span className="stat-label">Lessons</span>
+            <span className="stat-value">{user.stats.ai_chats || 0}</span>
+            <span className="stat-label">AI Chats</span>
           </div>
           <div className="stat-item">
-            <span className="stat-value">{user.stats.total_hours}h</span>
-            <span className="stat-label">Study Time</span>
+            <span className="stat-value">{user.stats.flashcards || 0}</span>
+            <span className="stat-label">Flashcards</span>
           </div>
           <div className="stat-item">
-            <span className="stat-value">{user.stats.day_streak}</span>
-            <span className="stat-label">Day Streak</span>
+            <span className="stat-value">{user.stats.notes || 0}</span>
+            <span className="stat-label">Notes</span>
           </div>
           <div className="stat-item">
-            <span className="stat-value">{user.stats.accuracy_percentage}%</span>
-            <span className="stat-label">Accuracy</span>
+            <span className="stat-value">{user.stats.quizzes || 0}</span>
+            <span className="stat-label">Quizzes</span>
           </div>
         </div>
       )}

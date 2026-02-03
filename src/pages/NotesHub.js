@@ -89,7 +89,7 @@ const NotesHub = () => {
                 </div>
                 <div className="nh-feature">
                   <ChevronRight size={14} />
-                  <span>AI-Generated Notes</span>
+                  <span>Smart Notes</span>
                 </div>
               </div>
             </div>

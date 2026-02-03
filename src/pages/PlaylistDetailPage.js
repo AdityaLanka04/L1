@@ -716,9 +716,9 @@ const AddItemModal = ({ onClose, onAdd }) => {
                         </div>
                       ))}
                       {itemType === 'flashcard' && userFlashcards.map(flashcard => {
-                        // Clean up the title: remove "Flashcards:", "AI Generated", " : ", and capitalize first letter
+                        // Clean up the title: remove "Flashcards:", "Cerbyl", " : ", and capitalize first letter
                         let cleanTitle = (flashcard.title || flashcard.name || '')
-                          .replace(/^(Flashcards?:\s*|AI Generated\s*|ai generated\s*)/gi, '')
+                          .replace(/^(Flashcards?:\s*|Cerbyl\s*|AI Generated\s*|ai generated\s*)/gi, '')
                           .replace(/^\s*:\s*/, '')
                           .trim();
                         cleanTitle = cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1);

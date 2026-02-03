@@ -2907,7 +2907,7 @@ async def flashcard_agent_endpoint(
             # Save generated cards to database if action is generate
             if action == "generate" and response_data.get("cards"):
                 cards = response_data["cards"]
-                set_title = f"AI Generated: {topic or 'Study Session'}"
+                set_title = f"{topic or 'Study Session'}"
                 
                 # Generate unique share code
                 import random
@@ -10644,6 +10644,11 @@ async def search_users(
                 models.UserStats.user_id == user.id
             ).first()
             
+            # Get gamification stats for activity counts
+            gam_stats = db.query(models.GamificationStats).filter(
+                models.GamificationStats.user_id == user.id
+            ).first()
+            
             # Check friendship status
             friendship = db.query(models.Friendship).filter(
                 and_(
@@ -10686,10 +10691,10 @@ async def search_users(
                 "field_of_study": user.field_of_study or "",
                 "preferred_subjects": preferred_subjects,
                 "stats": {
-                    "total_lessons": user_stats.total_lessons if user_stats else 0,
-                    "total_hours": round(user_stats.total_hours, 1) if user_stats else 0,
-                    "day_streak": user_stats.day_streak if user_stats else 0,
-                    "accuracy_percentage": round(user_stats.accuracy_percentage, 1) if user_stats else 0
+                    "ai_chats": gam_stats.total_ai_chats if gam_stats else 0,
+                    "flashcards": gam_stats.total_flashcards_created if gam_stats else 0,
+                    "notes": gam_stats.total_notes_created if gam_stats else 0,
+                    "quizzes": gam_stats.total_quizzes_completed if gam_stats else 0
                 },
                 "is_friend": friendship is not None,
                 "request_sent": pending_request_sent is not None,
@@ -10959,6 +10964,11 @@ async def get_friends(
                 models.UserStats.user_id == friend.id
             ).first()
             
+            # Get gamification stats for activity counts
+            gam_stats = db.query(models.GamificationStats).filter(
+                models.GamificationStats.user_id == friend.id
+            ).first()
+            
             preferred_subjects = []
             if comp_profile and comp_profile.preferred_subjects:
                 try:
@@ -10976,10 +10986,10 @@ async def get_friends(
                 "field_of_study": friend.field_of_study or "",
                 "preferred_subjects": preferred_subjects,
                 "stats": {
-                    "total_lessons": user_stats.total_lessons if user_stats else 0,
-                    "total_hours": round(user_stats.total_hours, 1) if user_stats else 0,
-                    "day_streak": user_stats.day_streak if user_stats else 0,
-                    "accuracy_percentage": round(user_stats.accuracy_percentage, 1) if user_stats else 0
+                    "ai_chats": gam_stats.total_ai_chats if gam_stats else 0,
+                    "flashcards": gam_stats.total_flashcards_created if gam_stats else 0,
+                    "notes": gam_stats.total_notes_created if gam_stats else 0,
+                    "quizzes": gam_stats.total_quizzes_completed if gam_stats else 0
                 },
                 "friends_since": friendship.created_at.isoformat() + 'Z'
             })
@@ -19525,8 +19535,14 @@ async def get_personalized_prompts(
         if recent_flashcard_sets:
             selected_sets = random.sample(recent_flashcard_sets, min(2, len(recent_flashcard_sets)))
             for fs in selected_sets:
+                # Clean title - remove prefixes
+                clean_title = fs.title
+                if clean_title:
+                    import re
+                    clean_title = re.sub(r'^(AI Generated:\s*|Cerbyl:\s*|Flashcards?:\s*)', '', clean_title, flags=re.IGNORECASE).strip()
+                
                 topic_prompts.append({
-                    "text": f"create a quiz on {fs.title}",
+                    "text": f"create a quiz on {clean_title}",
                     "reason": "Test your flashcard knowledge",
                     "priority": "high"
                 })
@@ -19539,8 +19555,14 @@ async def get_personalized_prompts(
         if recent_notes:
             selected_notes = random.sample(recent_notes, min(2, len(recent_notes)))
             for note in selected_notes:
+                # Clean title - remove prefixes
+                clean_title = note.title
+                if clean_title:
+                    import re
+                    clean_title = re.sub(r'^(AI Generated:\s*|Cerbyl:\s*|Notes?:\s*)', '', clean_title, flags=re.IGNORECASE).strip()
+                
                 topic_prompts.append({
-                    "text": f"create flashcards on {note.title}",
+                    "text": f"create flashcards on {clean_title}",
                     "reason": "Turn notes into active learning",
                     "priority": "high"
                 })

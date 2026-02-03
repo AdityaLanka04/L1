@@ -134,8 +134,8 @@ const Flashcards = () => {
   // Helper function to clean and format title
   const formatTitle = (title) => {
     if (!title) return '';
-    // Remove prefixes like "AI Generated:", "Flashcards:", etc.
-    let cleaned = title.replace(/^(AI Generated:\s*|Flashcards:\s*)/i, '');
+    // Remove prefixes like "Cerbyl:", "Flashcards:", etc.
+    let cleaned = title.replace(/^(Cerbyl:\s*|AI Generated:\s*|Flashcards:\s*)/i, '');
     // Convert to title case (capitalize first letter of each word)
     return cleaned.split(' ').map(word => 
       word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
@@ -2364,7 +2364,7 @@ const Flashcards = () => {
                                   />
                                 ) : (
                                   <>
-                                    <h2 className="fc-thumbnail-title">{(set.title || 'Untitled Set').replace(/^(AI Generated:\s*|Flashcards:\s*)/i, '')}</h2>
+                                    <h2 className="fc-thumbnail-title">{(set.title || 'Untitled Set').replace(/^(Cerbyl:\s*|AI Generated:\s*|Flashcards:\s*)/i, '')}</h2>
                                     <div className="fc-thumbnail-card-count">{set.card_count} CARDS</div>
                                   </>
                                 )}
@@ -2946,7 +2946,7 @@ const Flashcards = () => {
                         <div key={set.id} className="fc-set-card-new fc-public-card">
                           <div className="fc-set-thumbnail" style={{ background: `linear-gradient(135deg, ${cardColor} 0%, ${cardColor}dd 100%)` }}>
                             <div className="fc-set-thumbnail-content">
-                              <h2 className="fc-thumbnail-title">{(set.title || 'Untitled Set').replace(/^(AI Generated:\s*|Flashcards:\s*)/i, '')}</h2>
+                              <h2 className="fc-thumbnail-title">{(set.title || 'Untitled Set').replace(/^(Cerbyl:\s*|AI Generated:\s*|Flashcards:\s*)/i, '')}</h2>
                             </div>
                             <div className="fc-public-badge">PUBLIC</div>
                           </div>
