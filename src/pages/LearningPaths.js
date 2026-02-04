@@ -117,24 +117,62 @@ const LearningPaths = () => {
   return (
     <div className="lp-container">
       {/* Header */}
-      <div className="lp-header">
-        <button className="lp-back-btn" onClick={() => navigate('/concept-web')}>
-          <ArrowLeft size={20} />
-        </button>
-        <div className="lp-header-content">
-          <div className="lp-header-title">
-            <Route size={32} />
-            <h1>Learning Paths</h1>
+      <header className="lp-header">
+        <div className="lp-header-left">
+          <div className="lp-header-logo" onClick={() => navigate('/dashboard')}>
+            <div className="lp-header-logo-img" />
+            cerbyl
           </div>
-          <p className="lp-header-subtitle">
-            Structured learning journeys to master any topic, step by step
-          </p>
+          <div className="lp-header-divider"></div>
+          <p className="lp-header-subtitle">LEARNING PATHS</p>
         </div>
-        <button className="lp-create-btn" onClick={() => setShowCreateModal(true)}>
-          <Plus size={20} />
-          Create Path
-        </button>
-      </div>
+        <div className="lp-header-right">
+          <button className="lp-create-btn" onClick={() => setShowCreateModal(true)}>
+            <Plus size={16} />
+            <span>Create Path</span>
+          </button>
+          <button className="lp-back-btn" onClick={() => navigate('/concept-web')}>
+            <span>Back</span>
+            <ArrowLeft size={14} />
+          </button>
+        </div>
+      </header>
+
+      {/* Body with Sidebar */}
+      <div className="lp-layout-body">
+        {/* Sidebar */}
+        <aside className="lp-sidebar">
+          <div className="lp-sidebar-section">
+            <h3 className="lp-sidebar-heading">Browse</h3>
+            <nav className="lp-sidebar-menu">
+              <button className="lp-nav-item active">
+                <Route size={18} />
+                <span>All Paths</span>
+              </button>
+              <button className="lp-nav-item">
+                <Play size={18} />
+                <span>Active</span>
+              </button>
+              <button className="lp-nav-item">
+                <CheckCircle size={18} />
+                <span>Completed</span>
+              </button>
+            </nav>
+          </div>
+          
+          <div className="lp-sidebar-divider"></div>
+          
+          <div className="lp-sidebar-stats">
+            <div className="lp-stat-box">
+              <div className="lp-stat-value">{paths.length}</div>
+              <div className="lp-stat-label">Total Paths</div>
+            </div>
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="lp-main">
+          <div className="lp-content">
 
       {/* Paths Grid */}
       {paths.length === 0 ? (
@@ -214,6 +252,9 @@ const LearningPaths = () => {
           ))}
         </div>
       )}
+          </div>
+        </main>
+      </div>
 
       {/* Create Modal */}
       {showCreateModal && (

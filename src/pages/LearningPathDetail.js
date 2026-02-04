@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, Loader, Lock, CheckCircle, Circle, Play, Award,
+  Loader, Lock, CheckCircle, Circle, Play, Award,
   Clock, Target, BookOpen, MessageCircle, FileText, Brain,
-  ChevronRight, Sparkles, Zap
+  ChevronRight, ChevronLeft, Sparkles, Zap
 } from 'lucide-react';
 import learningPathService from '../services/learningPathService';
 import './LearningPathDetail.css';
@@ -228,118 +228,119 @@ const LearningPathDetail = () => {
         <div className="lpd-loading-overlay">
           <div className="lpd-loading-content">
             <Loader className="lpd-spinner" size={48} />
-            <h3>Generating Content...</h3>
-            <p>Creating personalized learning materials for you</p>
+            <h3>GENERATING CONTENT</h3>
+            <p>Creating personalized learning materials</p>
           </div>
         </div>
       )}
 
-      {/* Header */}
+      {/* Main Header with Path Info */}
       <div className="lpd-header">
-        <button className="lpd-back-btn" onClick={() => navigate('/learning-paths')}>
-          <ArrowLeft size={20} />
-        </button>
-        <div className="lpd-header-content">
-          <h1>{path.title}</h1>
-          <p>{path.description}</p>
-          <div className="lpd-header-meta">
-            <span className="lpd-difficulty" style={{
-              backgroundColor: path.difficulty === 'beginner' ? '#4ade80' :
-                             path.difficulty === 'advanced' ? '#f87171' : '#fbbf24'
-            }}>
-              {path.difficulty}
-            </span>
-            <span><Clock size={16} /> {Math.round(path.estimated_hours)}h</span>
-            <span><BookOpen size={16} /> {path.total_nodes} nodes</span>
-            <span><Award size={16} /> {path.progress.total_xp_earned} XP</span>
+        <div className="lpd-header-main">
+          <div className="lpd-title-row">
+            <h1 className="lpd-title">{path.title.toUpperCase()}</h1>
+            <button className="lpd-back-btn" onClick={() => navigate('/learning-paths')}>
+              <ChevronLeft size={16} />
+              <span>BACK</span>
+            </button>
+          </div>
+          <p className="lpd-description">{path.description}</p>
+        </div>
+        
+        <div className="lpd-header-stats">
+          <div className="lpd-stat-badge lpd-difficulty" style={{
+            backgroundColor: path.difficulty === 'beginner' ? '#4ade80' :
+                           path.difficulty === 'advanced' ? '#f87171' : '#fbbf24'
+          }}>
+            {path.difficulty.toUpperCase()}
+          </div>
+          <div className="lpd-stat-badge">
+            <Clock size={14} />
+            <span>{Math.round(path.estimated_hours)}H</span>
+          </div>
+          <div className="lpd-stat-badge">
+            <BookOpen size={14} />
+            <span>{path.total_nodes} NODES</span>
+          </div>
+          <div className="lpd-stat-badge lpd-xp-badge">
+            <Award size={14} />
+            <span>{path.progress.total_xp_earned} XP</span>
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="lpd-progress-section">
+          <div className="lpd-progress-info">
+            <span className="lpd-progress-label">OVERALL PROGRESS</span>
+            <span className="lpd-progress-pct">{Math.round(path.progress.completion_percentage)}%</span>
+          </div>
+          <div className="lpd-progress-track">
+            <div
+              className="lpd-progress-bar"
+              style={{ width: `${path.progress.completion_percentage}%` }}
+            />
+          </div>
+          <div className="lpd-progress-details">
+            <span><CheckCircle size={14} /> {path.completed_nodes} / {path.total_nodes} completed</span>
+            <span><Award size={14} /> {path.progress.total_xp_earned} XP earned</span>
           </div>
         </div>
       </div>
 
-      {/* Progress Overview */}
-      <div className="lpd-progress-card">
-        <div className="lpd-progress-header">
-          <h3>Overall Progress</h3>
-          <span className="lpd-progress-percentage">
-            {Math.round(path.progress.completion_percentage)}%
-          </span>
-        </div>
-        <div className="lpd-progress-bar">
-          <div
-            className="lpd-progress-fill"
-            style={{ width: `${path.progress.completion_percentage}%` }}
-          />
-        </div>
-        <div className="lpd-progress-stats">
-          <div className="lpd-stat">
-            <CheckCircle size={16} />
-            <span>{path.completed_nodes} / {path.total_nodes} completed</span>
-          </div>
-          <div className="lpd-stat">
-            <Award size={16} />
-            <span>{path.progress.total_xp_earned} XP earned</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="lpd-content">
-        {/* Path Map (Left Side) */}
-        <div className="lpd-path-map">
-          <h3>Learning Path</h3>
-          <div className="lpd-nodes-list">
+      {/* Main Content Grid */}
+      <div className="lpd-main">
+        {/* Left Sidebar - Path Map */}
+        <div className="lpd-sidebar">
+          <h3 className="lpd-sidebar-title">LEARNING PATH</h3>
+          <div className="lpd-nodes">
             {nodes.map((node, index) => (
-              <div key={node.id} className="lpd-node-wrapper">
-                {/* Connector Line */}
-                {index < nodes.length - 1 && (
-                  <div className="lpd-node-connector" />
-                )}
+              <div key={node.id} className="lpd-node-item">
+                {/* Connector */}
+                {index < nodes.length - 1 && <div className="lpd-connector" />}
                 
-                {/* Node Card */}
+                {/* Node */}
                 <div
-                  className={`lpd-node-card ${
-                    node.progress.status === 'locked' ? 'lpd-node-locked' : ''
+                  className={`lpd-node ${
+                    node.progress.status === 'locked' ? 'lpd-locked' : ''
                   } ${
-                    selectedNode?.id === node.id ? 'lpd-node-selected' : ''
+                    selectedNode?.id === node.id ? 'lpd-active' : ''
                   }`}
                   onClick={() => node.progress.status !== 'locked' && setSelectedNode(node)}
                 >
-                  <div className="lpd-node-icon-wrapper">
+                  <div className="lpd-node-icon">
                     {getNodeStatusIcon(node.progress.status)}
                   </div>
                   
-                  <div className="lpd-node-info">
-                    <div className="lpd-node-title">
-                      <span className="lpd-node-number">{index + 1}</span>
-                      <h4>{node.title}</h4>
+                  <div className="lpd-node-content">
+                    <div className="lpd-node-header">
+                      <span className="lpd-node-num">{index + 1}</span>
+                      <h4>{node.title.toUpperCase()}</h4>
                     </div>
                     
                     {node.progress.status !== 'locked' && (
-                      <div className="lpd-node-meta">
-                        <span><Clock size={14} /> {node.estimated_minutes}min</span>
+                      <div className="lpd-node-info">
+                        <span><Clock size={12} /> {node.estimated_minutes}min</span>
                         {node.progress.xp_earned > 0 && (
-                          <span className="lpd-node-xp">
-                            <Award size={14} /> +{node.progress.xp_earned}
-                          </span>
+                          <span className="lpd-xp"><Award size={12} /> +{node.progress.xp_earned}</span>
                         )}
                       </div>
                     )}
                     
                     {node.progress.status === 'in_progress' && (
-                      <div className="lpd-node-progress-mini">
-                        <div className="lpd-progress-bar-mini">
+                      <div className="lpd-node-progress">
+                        <div className="lpd-progress-mini">
                           <div
-                            className="lpd-progress-fill-mini"
+                            className="lpd-progress-mini-fill"
                             style={{ width: `${node.progress.progress_pct}%` }}
                           />
                         </div>
-                        <span>{node.progress.progress_pct}%</span>
+                        <span className="lpd-progress-mini-text">{node.progress.progress_pct}%</span>
                       </div>
                     )}
                   </div>
                   
                   {selectedNode?.id === node.id && (
-                    <ChevronRight size={20} className="lpd-node-arrow" />
+                    <ChevronRight size={16} className="lpd-node-chevron" />
                   )}
                 </div>
               </div>
@@ -347,95 +348,94 @@ const LearningPathDetail = () => {
           </div>
         </div>
 
-        {/* Node Details (Right Side) */}
-        <div className="lpd-node-details">
+        {/* Right Panel - Node Details */}
+        <div className="lpd-details">
           {selectedNode ? (
             <>
-              <div className="lpd-details-header">
-                <div>
-                  <h2>{selectedNode.title}</h2>
+              <div className="lpd-details-head">
+                <div className="lpd-details-info">
+                  <h2>{selectedNode.title.toUpperCase()}</h2>
                   <p>{selectedNode.description}</p>
                 </div>
-                <div className="lpd-details-status">
+                <div className="lpd-status-badge">
                   {getNodeStatusIcon(selectedNode.progress.status)}
-                  <span>{selectedNode.progress.status.replace('_', ' ')}</span>
+                  <span>{selectedNode.progress.status.replace('_', ' ').toUpperCase()}</span>
                 </div>
               </div>
 
-              {/* Objectives */}
-              <div className="lpd-section">
-                <h3>
-                  <Target size={20} />
-                  Learning Objectives
+              {/* Objectives Section */}
+              <div className="lpd-block">
+                <h3 className="lpd-block-title">
+                  <Target size={16} />
+                  LEARNING OBJECTIVES
                 </h3>
-                <ul className="lpd-objectives-list">
+                <ul className="lpd-objectives">
                   {selectedNode.objectives?.map((obj, i) => (
                     <li key={i}>
-                      <CheckCircle size={16} />
-                      {obj}
+                      <CheckCircle size={14} />
+                      <span>{obj}</span>
                     </li>
                   ))}
                 </ul>
               </div>
 
-              {/* Activities */}
-              <div className="lpd-section">
-                <h3>
-                  <Sparkles size={20} />
-                  Activities
+              {/* Activities Section */}
+              <div className="lpd-block">
+                <h3 className="lpd-block-title">
+                  <Sparkles size={16} />
+                  ACTIVITIES
                 </h3>
-                <div className="lpd-activities-list">
+                <div className="lpd-activities">
                   {selectedNode.content_plan?.map((activity, i) => (
                     <div 
                       key={i} 
-                      className="lpd-activity-card lpd-activity-clickable"
+                      className="lpd-activity"
                       onClick={() => handleActivityClick(activity)}
                     >
                       <div className="lpd-activity-icon">
                         {getActivityIcon(activity.type)}
                       </div>
-                      <div className="lpd-activity-content">
-                        <h4>{activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}</h4>
+                      <div className="lpd-activity-info">
+                        <h4>{activity.type.toUpperCase()}</h4>
                         <p>{activity.description}</p>
-                        {activity.count && (
-                          <span className="lpd-activity-meta">{activity.count} items</span>
-                        )}
-                        {activity.question_count && (
-                          <span className="lpd-activity-meta">{activity.question_count} questions</span>
+                        {(activity.count || activity.question_count) && (
+                          <span className="lpd-activity-count">
+                            {activity.count || activity.question_count} {activity.count ? 'items' : 'questions'}
+                          </span>
                         )}
                       </div>
-                      <ChevronRight size={18} className="lpd-activity-arrow" />
+                      <ChevronRight size={16} className="lpd-activity-chevron" />
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Reward */}
-              <div className="lpd-section">
-                <h3>
-                  <Award size={20} />
-                  Completion Reward
+              {/* Reward Section */}
+              <div className="lpd-block">
+                <h3 className="lpd-block-title">
+                  <Award size={16} />
+                  COMPLETION REWARD
                 </h3>
-                <div className="lpd-reward-card">
+                <div className="lpd-reward">
                   <Zap size={24} />
                   <span>+{selectedNode.reward?.xp || 50} XP</span>
                 </div>
               </div>
 
-              {/* Actions */}
+              {/* Action Buttons */}
               <div className="lpd-actions">
                 {selectedNode.progress.status === 'unlocked' && (
                   <button
-                    className="lpd-btn-primary"
+                    className="lpd-btn lpd-btn-start"
                     onClick={() => handleStartNode(selectedNode)}
                     disabled={actionLoading}
                   >
                     {actionLoading ? (
-                      <Loader className="lpd-spinner" size={16} />
+                      <Loader className="lpd-spinner" size={14} />
                     ) : (
                       <>
-                        <Play size={16} />
-                        Start Node
+                        <Play size={14} />
+                        <span>START NODE</span>
                       </>
                     )}
                   </button>
@@ -443,33 +443,33 @@ const LearningPathDetail = () => {
                 
                 {selectedNode.progress.status === 'in_progress' && (
                   <button
-                    className="lpd-btn-success"
+                    className="lpd-btn lpd-btn-complete"
                     onClick={() => handleCompleteNode(selectedNode)}
                     disabled={actionLoading}
                   >
                     {actionLoading ? (
-                      <Loader className="lpd-spinner" size={16} />
+                      <Loader className="lpd-spinner" size={14} />
                     ) : (
                       <>
-                        <CheckCircle size={16} />
-                        Complete Node
+                        <CheckCircle size={14} />
+                        <span>COMPLETE NODE</span>
                       </>
                     )}
                   </button>
                 )}
                 
                 {selectedNode.progress.status === 'completed' && (
-                  <div className="lpd-completed-badge">
-                    <CheckCircle size={20} />
-                    <span>Completed</span>
+                  <div className="lpd-completed">
+                    <CheckCircle size={18} />
+                    <span>COMPLETED</span>
                   </div>
                 )}
               </div>
             </>
           ) : (
-            <div className="lpd-no-selection">
+            <div className="lpd-empty">
               <BookOpen size={48} />
-              <p>Select a node to view details</p>
+              <p>SELECT A NODE TO VIEW DETAILS</p>
             </div>
           )}
         </div>
