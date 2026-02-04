@@ -459,9 +459,15 @@ class ParentChildRetriever:
                     if self.vector_store and self.embedding_model:
                         try:
                             embedding = self.embedding_model.encode(child_chunk)
+                            # Convert to list if numpy array, otherwise use as-is
+                            if hasattr(embedding, 'tolist'):
+                                embedding = embedding.tolist()
+                            elif not isinstance(embedding, list):
+                                embedding = list(embedding)
+                            
                             self.vector_store.add(
                                 ids=[child_id],
-                                embeddings=[embedding.tolist()],
+                                embeddings=[embedding],
                                 documents=[child_chunk],
                                 metadatas=[{
                                     **doc.get("metadata", {}),
@@ -810,10 +816,16 @@ class HybridSearchEngine:
                     # Generate embedding
                     embedding = self.embedding_model.encode(content)
                     
+                    # Convert to list if numpy array, otherwise use as-is
+                    if hasattr(embedding, 'tolist'):
+                        embedding = embedding.tolist()
+                    elif not isinstance(embedding, list):
+                        embedding = list(embedding)
+                    
                     # Add to vector store
                     self.vector_store.add(
                         ids=[doc_id],
-                        embeddings=[embedding.tolist()],
+                        embeddings=[embedding],
                         documents=[content],
                         metadatas=[doc.get("metadata", {})]
                     )

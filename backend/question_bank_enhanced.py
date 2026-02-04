@@ -4114,6 +4114,90 @@ def register_question_bank_api(app, unified_ai, get_db_func):
             db.rollback()
             raise HTTPException(status_code=500, detail=str(e))
     
+    @app.post("/api/qb/save_question_set")
+    async def save_question_set(
+        payload: dict = Body(...),
+        db: Session = Depends(get_db_func)
+    ):
+        """Save question set from learning path or other sources"""
+        try:
+            import models
+            
+            user_id = payload.get("user_id")
+            questions = payload.get("questions", [])
+            title = payload.get("title", "Question Set")
+            source = payload.get("source", "manual")
+            
+            if not user_id or not questions:
+                raise HTTPException(status_code=400, detail="user_id and questions are required")
+            
+            user = db.query(models.User).filter(
+                (models.User.username == user_id) | (models.User.email == user_id)
+            ).first()
+            
+            if not user:
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            # Create question set
+            question_set = models.QuestionSet(
+                user_id=user.id,
+                title=title,
+                description=f"Generated from {source}",
+                source_type=source,
+                total_questions=len(questions)
+            )
+            
+            db.add(question_set)
+            db.flush()
+            
+            # Add questions - handle both formats (learning path and standard)
+            for idx, q in enumerate(questions):
+                # Learning path format uses 'question' and 'options' array
+                question_text = q.get("question") or q.get("question_text")
+                options = q.get("options", [])
+                correct_answer = q.get("correct_answer", 0)
+                explanation = q.get("explanation", "")
+                
+                # Convert options array to the format expected by the database
+                if isinstance(options, list) and len(options) > 0:
+                    # If correct_answer is an index, get the actual answer text
+                    if isinstance(correct_answer, int) and correct_answer < len(options):
+                        correct_answer_text = options[correct_answer]
+                    else:
+                        correct_answer_text = str(correct_answer)
+                else:
+                    correct_answer_text = str(correct_answer)
+                
+                question = models.Question(
+                    question_set_id=question_set.id,
+                    question_text=question_text,
+                    question_type="multiple_choice",
+                    difficulty=q.get("difficulty", "medium"),
+                    topic=q.get("topic", title),
+                    correct_answer=correct_answer_text,
+                    options=json.dumps(options),
+                    explanation=explanation,
+                    points=q.get("points", 1),
+                    order_index=idx
+                )
+                db.add(question)
+            
+            db.commit()
+            db.refresh(question_set)
+            
+            return {
+                "status": "success",
+                "set_id": question_set.id,
+                "question_count": len(questions),
+                "title": title
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Save question set error: {e}")
+            db.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
+    
     @app.post("/api/qb/batch_delete")
     async def batch_delete_question_sets(
         payload: dict = Body(...),

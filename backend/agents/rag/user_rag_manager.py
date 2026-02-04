@@ -125,10 +125,16 @@ class UserRAGManager:
                 # Generate embedding
                 embedding = self.embedding_model.encode(content)
                 
+                # Convert to list if numpy array, otherwise use as-is
+                if hasattr(embedding, 'tolist'):
+                    embedding = embedding.tolist()
+                elif not isinstance(embedding, list):
+                    embedding = list(embedding)
+                
                 # Add to user's collection
                 collection.add(
                     ids=[content_id],
-                    embeddings=[embedding.tolist()],
+                    embeddings=[embedding],
                     documents=[content],
                     metadatas=[{
                         "type": content_type,

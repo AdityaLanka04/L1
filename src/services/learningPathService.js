@@ -135,6 +135,28 @@ class LearningPathService {
   }
 
   /**
+   * Get completion quiz for a node
+   */
+  async getCompletionQuiz(pathId, nodeId) {
+    try {
+      const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/completion-quiz`, {
+        method: 'POST',
+        headers: this.getHeaders()
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to get completion quiz');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Get completion quiz error:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Complete a node
    */
   async completeNode(pathId, nodeId, evidence = {}) {
@@ -273,6 +295,215 @@ class LearningPathService {
       throw error;
     }
   }
+
+  /**
+   * Get user's note for a specific node
+   */
+  async getNodeNote(pathId, nodeId) {
+    try {
+      const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/note`, {
+        method: 'GET',
+        headers: this.getHeaders()
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch node note');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Get node note error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Save user's note for a specific node
+   */
+  async saveNodeNote(pathId, nodeId, content) {
+    try {
+      const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/note`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ content })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to save note');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Save node note error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update difficulty view preference for a node
+   */
+  async updateDifficultyView(pathId, nodeId, difficultyView) {
+    try {
+      const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/difficulty-view`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ difficulty_view: difficultyView })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update difficulty view');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Update difficulty view error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Rate a resource
+   */
+  async rateResource(pathId, nodeId, resourceId, rating) {
+    try {
+      const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/resources/${encodeURIComponent(resourceId)}/rate`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ resource_id: resourceId, rating })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to rate resource');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Rate resource error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark a resource as completed
+   */
+  async markResourceCompleted(pathId, nodeId, resourceId, timeSpentMinutes) {
+    try {
+      const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/resources/${encodeURIComponent(resourceId)}/complete`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ resource_id: resourceId, time_spent_minutes: timeSpentMinutes })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to mark resource completed');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Mark resource completed error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Export node content to notes
+   */
+  async exportToNotes(pathId, nodeId, options = {}) {
+    try {
+      const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/export-to-notes`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          node_id: nodeId,
+          include_resources: options.include_resources !== false,
+          include_summary: options.include_summary !== false
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to export to notes');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Export to notes error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Export node content to flashcards
+   */
+  async exportToFlashcards(pathId, nodeId, conceptFocus = null) {
+    try {
+      const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/export-to-flashcards`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          node_id: nodeId,
+          concept_focus: conceptFocus
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to export to flashcards');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Export to flashcards error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Export node as calendar event
+   */
+  async exportToCalendar(pathId, nodeId, options = {}) {
+    try {
+      const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/export-to-calendar`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          node_id: nodeId,
+          scheduled_date: options.scheduled_date,
+          duration_minutes: options.duration_minutes || 30
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to export to calendar');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Export to calendar error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check prerequisites for a node
+   */
+  async checkPrerequisites(pathId, nodeId) {
+    try {
+      const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/prerequisite-check`, {
+        method: 'GET',
+        headers: this.getHeaders()
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to check prerequisites');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Check prerequisites error:', error);
+      throw error;
+    }
+  }
 }
 
 export default new LearningPathService();
+

@@ -26,7 +26,8 @@ const Flashcards = () => {
   const [hasMoreSets, setHasMoreSets] = useState(true);
   const [currentOffset, setCurrentOffset] = useState(0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const SETS_PER_PAGE = 20;
+  const SETS_PER_PAGE = 8; // Show 8 flashcard sets at a time
+  const [displayedSets, setDisplayedSets] = useState([]); // Currently displayed sets
   
   // Card navigation
   const [currentCard, setCurrentCard] = useState(0);
@@ -162,24 +163,15 @@ const Flashcards = () => {
     if (!userName) return;
     
     // Prevent duplicate loading
-    if (loadingHistory || isLoadingMore) return;
+    if (loadingHistory) return;
     
-    // If we're resetting, use initial load state, otherwise use "load more" state
-    if (reset) {
-      setLoadingHistory(true);
-      setCurrentOffset(0);
-      setHasMoreSets(true);
-    } else {
-      // Don't load more if we already know there's no more data
-      if (!hasMoreSets) return;
-      setIsLoadingMore(true);
-    }
+    setLoadingHistory(true);
     
     try {
       const token = localStorage.getItem('token');
-      const offset = reset ? 0 : currentOffset;
+      // Load all flashcard sets at once (or a large limit)
       const response = await fetch(
-        `${API_URL}/get_flashcard_history?user_id=${userName}&limit=${SETS_PER_PAGE}&offset=${offset}`, 
+        `${API_URL}/get_flashcard_history?user_id=${userName}&limit=1000&offset=0`, 
         {
           headers: { 'Authorization': `Bearer ${token}` }
         }
@@ -188,28 +180,22 @@ const Flashcards = () => {
       if (response.ok) {
         const data = await response.json();
         const newSets = Array.isArray(data.flashcard_history) ? data.flashcard_history : [];
+        setFlashcardHistory(newSets);
         
-        if (reset) {
-          // Replace all sets on reset
-          setFlashcardHistory(newSets);
-        } else {
-          // Append new sets for lazy loading
-          setFlashcardHistory(prev => [...prev, ...newSets]);
-        }
-        
-        // Update pagination state
-        setHasMoreSets(data.has_more || false);
-        setCurrentOffset(offset + newSets.length);
+        // Initialize displayed sets with first batch
+        setDisplayedSets(newSets.slice(0, SETS_PER_PAGE));
+        setHasMoreSets(newSets.length > SETS_PER_PAGE);
       } else {
-        setFlashcardHistory(reset ? [] : flashcardHistory);
+        setFlashcardHistory([]);
+        setDisplayedSets([]);
       }
     } catch (error) {
-      setFlashcardHistory(reset ? [] : flashcardHistory);
+      setFlashcardHistory([]);
+      setDisplayedSets([]);
     } finally {
       setLoadingHistory(false);
-      setIsLoadingMore(false);
     }
-  }, [userName, currentOffset, hasMoreSets, loadingHistory, isLoadingMore, flashcardHistory]);
+  }, [userName, loadingHistory]);
 
   const loadFlashcardStats = useCallback(async () => {
     if (!userName) return;
@@ -981,6 +967,31 @@ const Flashcards = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Initialize displayed sets when flashcardHistory changes
+  useEffect(() => {
+    if (flashcardHistory && flashcardHistory.length > 0) {
+      const allSets = getFilteredAndSortedSets();
+      setDisplayedSets(allSets.slice(0, SETS_PER_PAGE));
+    } else {
+      setDisplayedSets([]);
+    }
+  }, [flashcardHistory, searchQuery, sortBy]);
+
+  // Load more sets when scrolling
+  const loadMoreSets = useCallback(() => {
+    const allSets = getFilteredAndSortedSets();
+    const currentLength = displayedSets.length;
+    
+    if (currentLength >= allSets.length) {
+      setHasMoreSets(false);
+      return;
+    }
+    
+    const nextBatch = allSets.slice(currentLength, currentLength + SETS_PER_PAGE);
+    setDisplayedSets(prev => [...prev, ...nextBatch]);
+    setHasMoreSets(currentLength + SETS_PER_PAGE < allSets.length);
+  }, [displayedSets, flashcardHistory, searchQuery, sortBy]);
+
   // Infinite scroll observer for lazy loading
   useEffect(() => {
     if (activePanel !== 'cards') return;
@@ -988,13 +999,21 @@ const Flashcards = () => {
     const observer = new IntersectionObserver(
       (entries) => {
         const target = entries[0];
-        if (target.isIntersecting && hasMoreSets && !loadingHistory && !isLoadingMore) {
-          loadFlashcardHistory(false); // Load more without reset
+        if (target.isIntersecting && !isLoadingMore) {
+          const allSets = getFilteredAndSortedSets();
+          if (displayedSets.length < allSets.length) {
+            setIsLoadingMore(true);
+            // Small delay to show loading state
+            setTimeout(() => {
+              loadMoreSets();
+              setIsLoadingMore(false);
+            }, 300);
+          }
         }
       },
       {
         root: null,
-        rootMargin: '200px', // Start loading 200px before reaching the bottom
+        rootMargin: '100px', // Start loading 100px before reaching the bottom
         threshold: 0.1
       }
     );
@@ -1009,7 +1028,7 @@ const Flashcards = () => {
         observer.unobserve(sentinel);
       }
     };
-  }, [activePanel, hasMoreSets, loadingHistory, isLoadingMore, loadFlashcardHistory]);
+  }, [activePanel, displayedSets, isLoadingMore, loadMoreSets]);
 
 
   // Helper functions
@@ -1058,6 +1077,12 @@ const Flashcards = () => {
         break;
     }
     return filtered;
+  };
+
+  // Get sets to display with lazy loading (only show SETS_PER_PAGE at a time)
+  const getSetsToDisplay = () => {
+    const allSets = getFilteredAndSortedSets();
+    return allSets.slice(0, displayedSets.length || SETS_PER_PAGE);
   };
 
   // Flashcard operations
@@ -2373,6 +2398,11 @@ const Flashcards = () => {
                 <div className="fc-section-header-text">
                   <h2>MY FLASHCARDS</h2>
                   <p>{flashcardHistory.length} {flashcardHistory.length === 1 ? 'SET' : 'SETS'} • {flashcardStats?.total_cards || 0} CARDS TOTAL</p>
+                  {displayedSets.length > 0 && displayedSets.length < getFilteredAndSortedSets().length && (
+                    <p style={{ fontSize: '12px', marginTop: '4px', opacity: 0.7 }}>
+                      Showing {displayedSets.length} of {getFilteredAndSortedSets().length} sets
+                    </p>
+                  )}
                 </div>
                 
                 {loadingHistory && flashcardHistory.length === 0 ? (
@@ -2396,7 +2426,7 @@ const Flashcards = () => {
                 ) : (
                   <>
                     <div className={`fc-grid ${isRearranging ? 'fc-grid-rearranging' : ''}`}>
-                      {getFilteredAndSortedSets().map((set, index) => {
+                      {displayedSets.map((set, index) => {
                         const mastery = getMasteryLevel(set.accuracy_percentage || 0);
                         // Generate different colors for each set
                         const colors = [
@@ -2500,7 +2530,7 @@ const Flashcards = () => {
                     )}
                     
                     {/* End of list indicator */}
-                    {!hasMoreSets && flashcardHistory.length > 0 && (
+                    {displayedSets.length >= getFilteredAndSortedSets().length && displayedSets.length > 0 && (
                       <div className="fc-end-of-list">
                         <p>You've reached the end of your flashcard sets</p>
                       </div>

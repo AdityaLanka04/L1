@@ -88,7 +88,6 @@
 
 .lp-header-logo:hover {
   transform: translateY(-2px);
-  text-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 .lp-header-logo:hover .lp-header-logo-img {
@@ -589,7 +588,6 @@
 
 .lp-path-card:hover .lp-path-content h3 {
   color: color-mix(in srgb, var(--accent) 120%, white);
-  text-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .lp-path-description {
@@ -1153,40 +1151,7 @@
   -webkit-backdrop-filter: blur(12px);
 }
 
-/* ==================== GLOW EFFECTS ==================== */
-.lp-nav-item.active::before {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  background: linear-gradient(135deg, var(--accent), transparent);
-  border-radius: 16px;
-  opacity: 0.2;
-  z-index: -1;
-  filter: blur(8px);
-}
-
-.lp-stat-box::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 20%, transparent) 0%, transparent 70%);
-  animation: statGlow 3s ease-in-out infinite;
-  z-index: 0;
-}
-
-@keyframes statGlow {
-  0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(10%, 10%); }
-}
-
-.lp-stat-value,
-.lp-stat-label {
-  position: relative;
-  z-index: 1;
-}
+/* ==================== GLOW EFFECTS REMOVED ==================== */
 
 /* ==================== CUSTOM SELECTION ==================== */
 ::selection {

@@ -67,10 +67,54 @@ def create_learning_paths_models(Base):
         title = Column(String(255), nullable=False)
         description = Column(Text, nullable=True)
         
+        # Enhanced metadata
+        tags = Column(JSON, nullable=True)  # ["python", "data-structures", "algorithms"]
+        keywords = Column(JSON, nullable=True)  # Search keywords
+        bloom_level = Column(String(50), nullable=True)  # remember/understand/apply/analyze/evaluate/create
+        cognitive_load = Column(String(20), nullable=True)  # low/medium/high
+        industry_relevance = Column(JSON, nullable=True)  # ["software-engineering", "data-science"]
+        
+        # Multi-layer content structure
+        introduction = Column(Text, nullable=True)  # Why this node matters (2-3 sentences)
+        core_sections = Column(JSON, nullable=True)  # Array of content sections with explanations, examples, diagrams
+        summary = Column(JSON, nullable=True)  # Key takeaways in bullet points
+        connection_map = Column(JSON, nullable=True)  # How this relates to other nodes
+        real_world_applications = Column(JSON, nullable=True)  # Concrete examples of usage
+        
+        # Progressive disclosure content
+        beginner_content = Column(JSON, nullable=True)  # Simplified explanations
+        intermediate_content = Column(JSON, nullable=True)  # Standard content
+        advanced_content = Column(JSON, nullable=True)  # Deep dives and edge cases
+        
+        # Content formats
+        video_resources = Column(JSON, nullable=True)  # Video lectures with timestamps
+        interactive_diagrams = Column(JSON, nullable=True)  # Diagram data for rendering
+        audio_narration = Column(JSON, nullable=True)  # Audio file URLs or TTS config
+        infographics = Column(JSON, nullable=True)  # Visual summaries
+        code_playgrounds = Column(JSON, nullable=True)  # Code examples with sandboxes
+        
         # Learning content
         objectives = Column(JSON, nullable=True)  # List of learning objectives
+        learning_outcomes = Column(JSON, nullable=True)  # Measurable skills gained
+        prerequisites = Column(JSON, nullable=True)  # List of prerequisite concepts
+        prerequisite_nodes = Column(JSON, nullable=True)  # IDs of prerequisite nodes
+        
+        # Enhanced resources with metadata
+        resources = Column(JSON, nullable=True)  # External resources (articles, videos, docs)
+        primary_resources = Column(JSON, nullable=True)  # Required resources
+        supplementary_resources = Column(JSON, nullable=True)  # Optional resources
+        practice_resources = Column(JSON, nullable=True)  # Exercises and challenges
+        
         estimated_minutes = Column(Integer, default=30)
         content_plan = Column(JSON, nullable=True)  # Activities: notes, flashcards, quiz, chat
+        
+        # Interactive activities
+        concept_mapping = Column(JSON, nullable=True)  # Concept map exercises
+        scenarios = Column(JSON, nullable=True)  # Scenario-based learning
+        hands_on_projects = Column(JSON, nullable=True)  # Mini-projects
+        
+        # Prerequisite validation
+        prerequisite_quiz = Column(JSON, nullable=True)  # Quick diagnostic questions
         
         # Unlock and completion rules
         unlock_rule = Column(JSON, nullable=True)  # Conditions to unlock this node
@@ -117,16 +161,48 @@ def create_learning_paths_models(Base):
         progress_pct = Column(Integer, default=0)  # 0-100
         xp_earned = Column(Integer, default=0)
         
+        # Difficulty preference
+        difficulty_view = Column(String(20), default="intermediate")  # beginner/intermediate/advanced
+        
         # Completion evidence
         evidence = Column(JSON, nullable=True)  # Stores completion proofs
+        
+        # Performance tracking
+        time_spent_minutes = Column(Integer, default=0)  # Actual time spent
+        quiz_attempts = Column(JSON, nullable=True)  # History of quiz attempts
+        concept_mastery = Column(JSON, nullable=True)  # Mastery level per concept (0-100)
+        struggle_points = Column(JSON, nullable=True)  # Areas where user struggled
+        
+        # Resource tracking
+        resources_completed = Column(JSON, nullable=True)  # Which resources were consumed
+        resource_ratings = Column(JSON, nullable=True)  # User ratings of resources
+        
+        # Activity completion
+        activities_completed = Column(JSON, nullable=True)  # Detailed activity completion
         
         # Timestamps
         started_at = Column(DateTime, nullable=True)
         completed_at = Column(DateTime, nullable=True)
+        last_accessed = Column(DateTime, nullable=True)
         created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
         updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
         
         # Relationships
         node = relationship("LearningPathNode", back_populates="progress_records")
     
-    return LearningPath, LearningPathNode, LearningPathProgress, LearningNodeProgress
+    class LearningNodeNote(Base):
+        """User notes for individual nodes"""
+        __tablename__ = "learning_node_notes"
+        
+        id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+        node_id = Column(String(36), ForeignKey("learning_path_nodes.id"), nullable=False, index=True)
+        user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+        
+        # Note content
+        content = Column(Text, nullable=True)
+        
+        # Timestamps
+        created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+        updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    
+    return LearningPath, LearningPathNode, LearningPathProgress, LearningNodeProgress, LearningNodeNote

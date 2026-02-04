@@ -70,7 +70,30 @@ class LearningPathAgent:
         try:
             # Call AI to generate path structure
             ai_response = self._call_ai(generation_prompt)
-            path_data = self._parse_ai_response(ai_response)
+            
+            try:
+                path_data = self._parse_ai_response(ai_response)
+            except ValueError as parse_error:
+                logger.warning(f"Failed to parse AI response (attempt 1): {parse_error}")
+                
+                # Try with a simpler prompt that's more likely to produce valid JSON
+                logger.info("Retrying with simplified prompt...")
+                simple_prompt = self._build_simple_generation_prompt(topic_prompt, difficulty, target_nodes)
+                
+                try:
+                    ai_response = self._call_ai(simple_prompt)
+                    path_data = self._parse_ai_response(ai_response)
+                except Exception as parse_error2:
+                    logger.warning(f"Failed to parse AI response (attempt 2): {parse_error2}")
+                    logger.info("Using fallback template...")
+                    # Use fallback if both attempts fail
+                    fallback_response = self._get_fallback_response(topic_prompt)
+                    try:
+                        path_data = self._parse_ai_response(fallback_response)
+                    except Exception as fallback_error:
+                        logger.error(f"Even fallback failed: {fallback_error}")
+                        # Last resort - use a minimal hardcoded structure
+                        path_data = json.loads(fallback_response)
             
             # Create database records
             path = self._create_path_in_db(user_id, topic_prompt, path_data, difficulty, db)
@@ -87,71 +110,288 @@ class LearningPathAgent:
             return {"error": str(e)}
     
     def _build_generation_prompt(self, topic: str, difficulty: str, node_count: int, goals: List[str]) -> str:
-        """Build prompt for AI path generation"""
+        """Build prompt for AI path generation with enhanced content structure"""
         goals_text = "\n".join([f"- {g}" for g in goals]) if goals else "General mastery of the topic"
         
-        return f"""Generate a structured learning path for the SPECIFIC topic: "{topic}"
+        return f"""Generate a comprehensive learning path for: "{topic}"
 
-CRITICAL: This learning path MUST be specifically about "{topic}" and nothing else.
+Difficulty: {difficulty} | Nodes: {node_count}
+Learning Goals: {goals_text}
 
-Difficulty Level: {difficulty}
-Target Nodes: {node_count}
-Learning Goals:
-{goals_text}
+CRITICAL JSON RULES:
+1. Return ONLY valid JSON - no extra text before or after
+2. Keep URLs and descriptions SHORT to avoid truncation
+3. Ensure ALL braces and brackets are properly matched
+4. Each node must have DETAILED, STRUCTURED content
 
-Create a progressive learning journey similar to Duolingo's structure for learning {topic}. Each node should build on previous knowledge about {topic}.
-
-Return ONLY valid JSON in this exact format:
-{{
-  "title": "Path title (max 100 chars)",
-  "description": "Brief description of what learner will achieve",
-  "estimated_hours": 10.5,
+ENHANCED NODE STRUCTURE:
+{{{{
+  "title": "Master {topic}",
+  "description": "Comprehensive learning journey for {topic}",
+  "estimated_hours": {node_count * 0.5},
   "nodes": [
-    {{
+    {{{{
       "order_index": 0,
-      "title": "Node title",
-      "description": "What this node covers",
-      "objectives": ["Objective 1", "Objective 2", "Objective 3"],
+      "title": "Introduction to [Specific Subtopic]",
+      "description": "Brief overview of this specific concept",
+      
+      "introduction": "2-3 sentences explaining WHY this node matters and how it fits into the bigger picture",
+      
+      "core_sections": [
+        {{{{
+          "title": "Section 1 Title",
+          "content": "Detailed explanation of the concept",
+          "example": "Concrete example demonstrating the concept",
+          "visual_description": "Description of diagram/chart that would help",
+          "practice_question": "Quick check question for this section"
+        }}}},
+        {{{{
+          "title": "Section 2 Title",
+          "content": "Next concept building on previous",
+          "example": "Another practical example",
+          "visual_description": "Another helpful visual",
+          "practice_question": "Another check question"
+        }}}}
+      ],
+      
+      "summary": [
+        "Key takeaway 1",
+        "Key takeaway 2",
+        "Key takeaway 3"
+      ],
+      
+      "connection_map": {{{{
+        "builds_on": ["Previous concept 1", "Previous concept 2"],
+        "leads_to": ["Next concept 1", "Next concept 2"],
+        "related_topics": ["Related topic 1"]
+      }}}},
+      
+      "real_world_applications": [
+        "Application 1: How this is used in industry/real life",
+        "Application 2: Another practical use case",
+        "Application 3: Career relevance"
+      ],
+      
+      "objectives": ["Specific measurable objective 1", "Objective 2", "Objective 3"],
+      "learning_outcomes": ["What you'll be able to DO after this node"],
+      
+      "tags": ["tag1", "tag2", "tag3"],
+      "keywords": ["keyword1", "keyword2"],
+      "bloom_level": "understand",
+      "cognitive_load": "medium",
+      "industry_relevance": ["software-engineering", "data-science"],
+      
+      "prerequisites": ["Concept you need to know first"],
+      
+      "primary_resources": [
+        {{{{
+          "type": "article",
+          "title": "Comprehensive Article Title",
+          "url": "https://en.wikipedia.org/wiki/Specific_Topic",
+          "description": "What you'll learn",
+          "estimated_minutes": 15,
+          "difficulty": "intermediate",
+          "format": "article"
+        }}}},
+        {{{{
+          "type": "video",
+          "title": "Video Tutorial Title",
+          "url": "https://www.youtube.com/watch?v=SPECIFIC_ID",
+          "description": "Video explanation",
+          "estimated_minutes": 20,
+          "difficulty": "beginner",
+          "format": "video"
+        }}}},
+        {{{{
+          "type": "interactive",
+          "title": "Interactive Tutorial",
+          "url": "https://www.khanacademy.org/specific-topic",
+          "description": "Hands-on practice",
+          "estimated_minutes": 30,
+          "difficulty": "intermediate",
+          "format": "interactive"
+        }}}}
+      ],
+      
+      "supplementary_resources": [
+        {{{{
+          "type": "article",
+          "title": "Alternative Explanation",
+          "url": "https://example.com/alternative",
+          "description": "Different teaching approach",
+          "estimated_minutes": 10,
+          "difficulty": "beginner",
+          "format": "article"
+        }}}}
+      ],
+      
+      "practice_resources": [
+        {{{{
+          "type": "exercise",
+          "title": "Practice Problems",
+          "description": "10 practice problems with solutions",
+          "difficulty": "intermediate"
+        }}}}
+      ],
+      
+      "concept_mapping": {{{{
+        "concepts": ["Concept A", "Concept B", "Concept C"],
+        "relationships": ["A relates to B", "B leads to C"]
+      }}}},
+      
+      "scenarios": [
+        {{{{
+          "title": "Real-World Scenario 1",
+          "description": "Problem situation to solve",
+          "question": "What would you do?",
+          "options": ["Option A", "Option B", "Option C"],
+          "correct": 0,
+          "explanation": "Why this is the best approach"
+        }}}}
+      ],
+      
+      "prerequisite_quiz": [
+        {{{{
+          "question": "Quick diagnostic question",
+          "options": ["A", "B", "C", "D"],
+          "correct_answer": 0
+        }}}}
+      ],
+      
       "estimated_minutes": 45,
       "activities": [
-        {{"type": "notes", "description": "Read about X"}},
-        {{"type": "flashcards", "count": 10, "description": "Review key terms"}},
-        {{"type": "quiz", "question_count": 5, "description": "Test understanding"}},
-        {{"type": "chat", "prompt": "Discuss Y with AI"}}
+        {{{{"type": "notes", "description": "Study the material"}}}},
+        {{{{"type": "flashcards", "count": 10, "description": "Review key concepts"}}}},
+        {{{{"type": "quiz", "question_count": 8, "description": "Test understanding"}}}}
       ],
-      "unlock_rule": {{
-        "type": "sequential",
-        "min_xp": 50,
-        "required_activities": ["quiz"]
-      }},
-      "reward": {{
-        "xp": 50,
-        "badge": null
-      }}
-    }}
+      "unlock_rule": {{{{"type": "sequential"}}}},
+      "reward": {{{{"xp": 50}}}}
+    }}}}
   ]
-}}
+}}}}
 
-Requirements:
-- First node should be unlocked by default (no prerequisites)
-- Each subsequent node requires previous node completion
-- Activities should progress from passive (notes) to active (quiz)
-- XP rewards should increase with difficulty
-- Include 3-6 objectives per node
-- Estimated time should be realistic (20-60 minutes per node)
-"""
+REQUIREMENTS:
+- Create {node_count} nodes, each covering a SPECIFIC subtopic
+- Each node must have detailed introduction, core_sections (2-4 sections), summary
+- Provide connection_map showing how nodes relate
+- Include 3 real_world_applications per node
+- Primary resources: 1 article, 1 video, 1 interactive (use real URLs)
+- Add 1-2 supplementary resources for alternative explanations
+- Include concept_mapping and scenarios for interactive learning
+- Add 2-3 prerequisite_quiz questions for knowledge check
+- Progressive XP: 50, 75, 100, 125, 150, 175, 200
+- Use appropriate tags, keywords, bloom_level, cognitive_load
+- VERIFY: Properly closed JSON structure"""
+    
+    def _build_simple_generation_prompt(self, topic: str, difficulty: str, node_count: int) -> str:
+        """Build a simpler prompt that's more likely to produce valid JSON"""
+        return f"""Create {node_count} learning nodes for "{topic}" ({difficulty} level).
+
+Return ONLY valid JSON:
+
+{{{{
+  "title": "Master {topic}",
+  "description": "Complete learning path for {topic}",
+  "estimated_hours": {node_count * 0.5},
+  "nodes": [
+    {{{{
+      "order_index": 0,
+      "title": "Introduction to {topic}",
+      "description": "Fundamentals and basics",
+      "objectives": ["Understand core concepts", "Learn terminology", "Build foundation"],
+      "prerequisites": [],
+      "resources": [
+        {{{{"type": "article", "title": "{topic} Overview", "url": "https://en.wikipedia.org/wiki/{topic.replace(' ', '_')}", "description": "Comprehensive introduction"}}}},
+        {{{{"type": "video", "title": "{topic} Basics", "url": "https://www.khanacademy.org", "description": "Video tutorial"}}}},
+        {{{{"type": "documentation", "title": "{topic} Guide", "url": "https://www.youtube.com/results?search_query={topic.replace(' ', '+')}", "description": "Learning resources"}}}}
+      ],
+      "estimated_minutes": 30,
+      "activities": [
+        {{{{"type": "notes", "description": "Study fundamentals"}}}},
+        {{{{"type": "flashcards", "count": 8, "description": "Review terms"}}}},
+        {{{{"type": "quiz", "question_count": 5, "description": "Test knowledge"}}}}
+      ],
+      "unlock_rule": {{{{"type": "sequential"}}}},
+      "reward": {{{{"xp": 50}}}}
+    }}}}
+  ]
+}}}}
+
+IMPORTANT:
+- Create {node_count} nodes total, each covering a SPECIFIC subtopic of {topic}
+- For EACH node, provide 3-4 SPECIFIC resources relevant to THAT node's subtopic:
+  * Wikipedia: Use the SPECIFIC subtopic URL (e.g., "Spanish_verb_conjugation", "Python_data_types")
+  * YouTube: Search for the SPECIFIC subtopic (e.g., "spanish present tense tutorial")
+  * Khan Academy, Coursera, or official docs when relevant
+  * Make resource titles descriptive and specific to the node's content
+- Example for Spanish Grammar node on "Verb Conjugation":
+  * "Spanish Verb Conjugation" (Wikipedia)
+  * "Present Tense Conjugation Tutorial" (YouTube)
+  * "SpanishDict Conjugation Guide" (Documentation)
+- Progressive difficulty with increasing XP rewards (50, 75, 100, 125, 150, 175, 200)"""
     
     def _parse_ai_response(self, ai_response: str) -> Dict[str, Any]:
         """Parse and validate AI response"""
         try:
-            # Extract JSON from response
-            json_start = ai_response.find('{')
-            json_end = ai_response.rfind('}') + 1
-            if json_start == -1 or json_end == 0:
+            # Extract JSON from response - try multiple strategies
+            json_str = None
+            
+            # Strategy 1: Find JSON between code blocks
+            if "```json" in ai_response:
+                start = ai_response.find("```json") + 7
+                end = ai_response.find("```", start)
+                if end > start:
+                    json_str = ai_response[start:end].strip()
+            
+            # Strategy 2: Find JSON between curly braces
+            if not json_str:
+                json_start = ai_response.find('{')
+                json_end = ai_response.rfind('}') + 1
+                if json_start != -1 and json_end > 0:
+                    json_str = ai_response[json_start:json_end]
+            
+            if not json_str:
                 raise ValueError("No JSON found in response")
             
-            json_str = ai_response[json_start:json_end]
-            data = json.loads(json_str)
+            # Fix double braces that might come from f-string escaping in prompts
+            # The AI might return {{ instead of { if it's copying our template
+            # Only fix if we have consistent double braces (not just one or two)
+            double_open = json_str.count('{{')
+            double_close = json_str.count('}}')
+            single_open = json_str.count('{') - (double_open * 2)
+            single_close = json_str.count('}') - (double_close * 2)
+            
+            # If we have mostly double braces, convert them to single
+            if double_open > single_open and double_close > single_close:
+                logger.info(f"Converting double braces to single (found {double_open} double opens, {single_open} single opens)")
+                json_str = json_str.replace('{{', '{').replace('}}', '}')
+            
+            # Try to parse as-is first
+            try:
+                data = json.loads(json_str)
+            except json.JSONDecodeError as e:
+                logger.warning(f"Initial JSON parse failed at line {e.lineno}, col {e.colno}: {e.msg}")
+                
+                # If that fails, try fixing common issues
+                json_str = self._fix_json_issues(json_str)
+                try:
+                    data = json.loads(json_str)
+                    logger.info("JSON successfully repaired with standard fixes")
+                except json.JSONDecodeError as e2:
+                    logger.warning(f"Standard repair failed at line {e2.lineno}, col {e2.colno}: {e2.msg}")
+                    
+                    # Last resort: try aggressive repair
+                    json_str = self._aggressive_json_repair(json_str)
+                    try:
+                        data = json.loads(json_str)
+                        logger.info("JSON successfully repaired with aggressive fixes")
+                    except json.JSONDecodeError as e3:
+                        # Log the problematic section
+                        error_pos = e3.pos if hasattr(e3, 'pos') else 0
+                        context_start = max(0, error_pos - 100)
+                        context_end = min(len(json_str), error_pos + 100)
+                        logger.error(f"JSON repair failed. Context around error:\n{json_str[context_start:context_end]}")
+                        raise
             
             # Validate structure
             required_fields = ["title", "description", "nodes"]
@@ -162,30 +402,269 @@ Requirements:
             if not isinstance(data["nodes"], list) or len(data["nodes"]) == 0:
                 raise ValueError("Nodes must be a non-empty list")
             
-            # Validate each node
+            # Validate and fix each node
             for i, node in enumerate(data["nodes"]):
-                node_required = ["title", "description", "objectives", "activities"]
+                node_required = ["title", "description", "objectives"]
                 for field in node_required:
                     if field not in node:
-                        raise ValueError(f"Node {i} missing field: {field}")
+                        logger.warning(f"Node {i} missing required field: {field}, adding default")
+                        if field == "title":
+                            node["title"] = f"Learning Module {i+1}"
+                        elif field == "description":
+                            node["description"] = "Learn key concepts"
+                        elif field == "objectives":
+                            node["objectives"] = ["Master the fundamentals", "Apply knowledge", "Build understanding"]
                 
-                # Set defaults
+                # Set defaults for optional fields
                 node.setdefault("order_index", i)
                 node.setdefault("estimated_minutes", 30)
+                node.setdefault("prerequisites", [])
+                node.setdefault("resources", [])
                 node.setdefault("unlock_rule", {"type": "sequential"})
-                node.setdefault("reward", {"xp": 50})
+                node.setdefault("reward", {"xp": 50 + (i * 25)})
+                
+                # Ensure activities exist and are valid
+                if "activities" not in node or not isinstance(node["activities"], list) or len(node["activities"]) == 0:
+                    logger.warning(f"Node {i} missing or invalid activities, adding defaults")
+                    node["activities"] = [
+                        {"type": "notes", "description": "Study the material"},
+                        {"type": "flashcards", "count": 8, "description": "Review key concepts"},
+                        {"type": "quiz", "question_count": 5, "description": "Test your knowledge"}
+                    ]
             
             return data
         
         except json.JSONDecodeError as e:
             logger.error(f"JSON parse error: {e}")
+            logger.error(f"Problematic JSON (first 500 chars): {json_str[:500] if json_str else 'None'}...")
+            logger.error(f"Problematic JSON (last 500 chars): ...{json_str[-500:] if json_str and len(json_str) > 500 else ''}")
             raise ValueError(f"Invalid JSON response: {e}")
         except Exception as e:
             logger.error(f"Validation error: {e}")
             raise
     
+    def _aggressive_json_repair(self, json_str: str) -> str:
+        """More aggressive JSON repair for badly malformed JSON"""
+        import re
+        
+        # First, try to remove any incomplete trailing content
+        # Look for patterns like incomplete URLs or strings
+        
+        # Find the last complete structure
+        # Strategy: Find the last properly closed array or object
+        
+        # Remove any trailing incomplete content after the last complete structure
+        # Look for patterns like: "url": "https://en.wikipedia.org/...
+        json_str = re.sub(r',\s*"[^"]*":\s*"[^"]*\.\.\.$', '', json_str)
+        json_str = re.sub(r',\s*"[^"]*":\s*"[^"]*$', '', json_str)
+        
+        # Fix the specific pattern we're seeing: }}}]] or }]]
+        # This happens when AI adds extra closing braces
+        # Pattern: ]}}] should be ]}]
+        json_str = re.sub(r'\]\}\}+\]', ']}]', json_str)
+        # Pattern: }}}] should be }}]
+        json_str = re.sub(r'\}\}\}+\]', '}}]', json_str)
+        # Pattern: ]}} should be ]}
+        json_str = re.sub(r'\]\}\}+', ']}', json_str)
+        # Pattern: }}}]] or }}}]
+        json_str = re.sub(r'\}\}+\]\]', '}}]', json_str)
+        json_str = re.sub(r'\}\}+\]', '}]', json_str)
+        # Original patterns
+        json_str = re.sub(r'\}{2,}\]', '}]', json_str)  # }}}] -> }]
+        json_str = re.sub(r'\}\]{2,}', '}]', json_str)  # }]]] -> }]
+        
+        # If we have an incomplete string at the end, close it
+        if json_str.count('"') % 2 != 0:
+            # Odd number of quotes - add closing quote
+            json_str += '"'
+        
+        # Find positions of all braces and brackets - but do it more carefully
+        # We need to track nesting properly
+        stack = []
+        positions_to_remove = []
+        
+        in_string = False
+        escape_next = False
+        
+        for i, char in enumerate(json_str):
+            if escape_next:
+                escape_next = False
+                continue
+            
+            if char == '\\':
+                escape_next = True
+                continue
+            
+            if char == '"':
+                in_string = not in_string
+                continue
+            
+            if in_string:
+                continue
+            
+            if char == '{':
+                stack.append(('{', i))
+            elif char == '[':
+                stack.append(('[', i))
+            elif char == '}':
+                if stack and stack[-1][0] == '{':
+                    stack.pop()
+                else:
+                    # Extra closing brace - mark for removal
+                    positions_to_remove.append(i)
+            elif char == ']':
+                if stack and stack[-1][0] == '[':
+                    stack.pop()
+                else:
+                    # Extra closing bracket - mark for removal
+                    positions_to_remove.append(i)
+        
+        # Remove extra closing braces/brackets from end to start
+        if positions_to_remove:
+            logger.info(f"Removing {len(positions_to_remove)} extra closing braces/brackets")
+            for pos in reversed(positions_to_remove):
+                json_str = json_str[:pos] + json_str[pos + 1:]
+        
+        # If we still have unclosed structures, close them
+        if stack:
+            logger.info(f"Closing {len(stack)} unclosed structures")
+            for opener, _ in reversed(stack):
+                if opener == '{':
+                    json_str += '}'
+                elif opener == '[':
+                    json_str += ']'
+        
+        # Now apply standard fixes
+        json_str = self._fix_json_issues(json_str)
+        
+        return json_str
+    
+    def _fix_json_issues(self, json_str: str) -> str:
+        """Attempt to fix common JSON formatting issues"""
+        import re
+        
+        # Remove any BOM or special characters at start
+        json_str = json_str.lstrip('\ufeff\ufffe')
+        
+        # Replace smart quotes with regular quotes
+        json_str = json_str.replace('"', '"').replace('"', '"')
+        json_str = json_str.replace(''', "'").replace(''', "'")
+        
+        # FIRST: Fix the most common pattern we're seeing - extra braces before final bracket
+        # This must happen BEFORE any other fixes
+        # Pattern: }}}] at the very end
+        if json_str.rstrip().endswith('}}}]'):
+            json_str = json_str.rstrip()[:-4] + '}]'
+        elif json_str.rstrip().endswith('}}}}]'):
+            json_str = json_str.rstrip()[:-5] + '}]'
+        elif json_str.rstrip().endswith('}}}}}]'):
+            json_str = json_str.rstrip()[:-6] + '}]'
+        
+        # Fix ALL instances of }}}] pattern anywhere in the string (not just at end)
+        json_str = re.sub(r'\}\}\}\}\}\]', '}}]', json_str)
+        json_str = re.sub(r'\}\}\}\}\]', '}}]', json_str)
+        json_str = re.sub(r'\}\}\}\]', '}}]', json_str)
+        json_str = re.sub(r'\]\}\}\]', ']}]', json_str)
+        
+        # Fix missing commas between objects in arrays
+        # Pattern: }{ should be },{
+        json_str = re.sub(r'\}\s*\{', '},{', json_str)
+        
+        # Fix missing commas between array elements
+        # Pattern: "] [" should be "], ["
+        json_str = re.sub(r'\]\s*\[', '],[', json_str)
+        
+        # Fix missing commas after closing braces/brackets before new keys
+        # Pattern: } "key" should be }, "key"
+        json_str = re.sub(r'\}(\s*)"(\w+)"(\s*):', r'},\1"\2"\3:', json_str)
+        json_str = re.sub(r'\](\s*)"(\w+)"(\s*):', r'],\1"\2"\3:', json_str)
+        
+        # Fix missing commas between string values and keys
+        # Pattern: "value" "key": should be "value", "key":
+        json_str = re.sub(r'"(\s+)"(\w+)"(\s*):', r'",\1"\2"\3:', json_str)
+        
+        # Remove trailing commas before closing brackets/braces (do this multiple times)
+        for _ in range(3):
+            json_str = re.sub(r',(\s*[}\]])', r'\1', json_str)
+        
+        # Fix extra closing braces/brackets patterns (more comprehensive)
+        # Pattern: ]}}] should be ]}]
+        json_str = re.sub(r'\]\}\}\}+\]', ']}]', json_str)  # ]}}}}] -> ]}]
+        json_str = re.sub(r'\]\}\}+\]', ']}]', json_str)    # ]}}] -> ]}]
+        # Pattern: }}}] should be }}]
+        json_str = re.sub(r'\}\}\}\}+\]', '}}]', json_str)  # }}}}] -> }}]
+        json_str = re.sub(r'\}\}\}+\]', '}}]', json_str)    # }}}] -> }}]
+        # Pattern: }}} should be }}
+        json_str = re.sub(r'\}{3,}', '}}', json_str)  # }}} -> }}
+        # Pattern: ]]] should be ]]
+        json_str = re.sub(r'\]{3,}', ']]', json_str)  # ]]] -> ]]
+        # Pattern: }]] should be }]
+        json_str = re.sub(r'\}\]\]', '}]', json_str)
+        
+        # Fix incomplete strings at the end (missing closing quote)
+        if json_str.count('"') % 2 != 0:
+            # Find the last quote and check if it's opening or closing
+            last_quote_pos = json_str.rfind('"')
+            if last_quote_pos > 0:
+                # Check if there's a colon before it (likely a key)
+                before_quote = json_str[:last_quote_pos].rstrip()
+                if before_quote.endswith(':') or before_quote.endswith(','):
+                    # It's an opening quote for a value, close it
+                    json_str += '"'
+        
+        # Try to fix truncated JSON by ensuring it ends properly
+        # Count opening and closing braces
+        open_braces = json_str.count('{')
+        close_braces = json_str.count('}')
+        open_brackets = json_str.count('[')
+        close_brackets = json_str.count(']')
+        
+        # If we have TOO MANY closing braces/brackets, remove extras from the end
+        if close_braces > open_braces:
+            # Remove extra closing braces from the end
+            extra = close_braces - open_braces
+            logger.info(f"Removing {extra} extra closing braces")
+            for _ in range(extra):
+                last_brace = json_str.rfind('}')
+                if last_brace > 0:
+                    json_str = json_str[:last_brace] + json_str[last_brace + 1:]
+        
+        if close_brackets > open_brackets:
+            # Remove extra closing brackets from the end
+            extra = close_brackets - open_brackets
+            logger.info(f"Removing {extra} extra closing brackets")
+            for _ in range(extra):
+                last_bracket = json_str.rfind(']')
+                if last_bracket > 0:
+                    json_str = json_str[:last_bracket] + json_str[last_bracket + 1:]
+        
+        # Recount after removal
+        open_braces = json_str.count('{')
+        close_braces = json_str.count('}')
+        open_brackets = json_str.count('[')
+        close_brackets = json_str.count(']')
+        
+        # If JSON appears truncated, try to close it
+        if open_braces > close_braces:
+            # Add missing closing braces
+            missing = open_braces - close_braces
+            logger.info(f"Adding {missing} missing closing braces")
+            json_str += '}' * missing
+        
+        if open_brackets > close_brackets:
+            # Add missing closing brackets
+            missing = open_brackets - close_brackets
+            logger.info(f"Adding {missing} missing closing brackets")
+            json_str += ']' * missing
+        
+        # Final cleanup: remove any trailing commas we might have created
+        for _ in range(3):
+            json_str = re.sub(r',(\s*[}\]])', r'\1', json_str)
+        
+        return json_str
+    
     def _create_path_in_db(self, user_id: int, topic_prompt: str, path_data: Dict, difficulty: str, db: Session):
-        """Create learning path and nodes in database"""
+        """Create learning path and nodes in database with enhanced content"""
         # Create main path
         path = models.LearningPath(
             user_id=user_id,
@@ -201,16 +680,63 @@ Requirements:
         db.add(path)
         db.flush()
         
-        # Create nodes
+        # Create nodes with enhanced content
         for node_data in path_data["nodes"]:
             node = models.LearningPathNode(
                 path_id=path.id,
                 order_index=node_data["order_index"],
                 title=node_data["title"],
                 description=node_data.get("description", ""),
+                
+                # Enhanced metadata
+                tags=node_data.get("tags", []),
+                keywords=node_data.get("keywords", []),
+                bloom_level=node_data.get("bloom_level", "understand"),
+                cognitive_load=node_data.get("cognitive_load", "medium"),
+                industry_relevance=node_data.get("industry_relevance", []),
+                
+                # Multi-layer content
+                introduction=node_data.get("introduction", ""),
+                core_sections=node_data.get("core_sections", []),
+                summary=node_data.get("summary", []),
+                connection_map=node_data.get("connection_map", {}),
+                real_world_applications=node_data.get("real_world_applications", []),
+                
+                # Progressive disclosure (will be generated on-demand)
+                beginner_content=node_data.get("beginner_content"),
+                intermediate_content=node_data.get("intermediate_content"),
+                advanced_content=node_data.get("advanced_content"),
+                
+                # Content formats
+                video_resources=node_data.get("video_resources", []),
+                interactive_diagrams=node_data.get("interactive_diagrams", []),
+                audio_narration=node_data.get("audio_narration", []),
+                infographics=node_data.get("infographics", []),
+                code_playgrounds=node_data.get("code_playgrounds", []),
+                
+                # Learning content
                 objectives=node_data.get("objectives", []),
+                learning_outcomes=node_data.get("learning_outcomes", []),
+                prerequisites=node_data.get("prerequisites", []),
+                prerequisite_nodes=node_data.get("prerequisite_nodes", []),
+                
+                # Enhanced resources
+                resources=node_data.get("resources", []),
+                primary_resources=node_data.get("primary_resources", []),
+                supplementary_resources=node_data.get("supplementary_resources", []),
+                practice_resources=node_data.get("practice_resources", []),
+                
                 estimated_minutes=node_data.get("estimated_minutes", 30),
                 content_plan=node_data.get("activities", []),
+                
+                # Interactive activities
+                concept_mapping=node_data.get("concept_mapping", {}),
+                scenarios=node_data.get("scenarios", []),
+                hands_on_projects=node_data.get("hands_on_projects", []),
+                
+                # Prerequisite validation
+                prerequisite_quiz=node_data.get("prerequisite_quiz", []),
+                
                 unlock_rule=node_data.get("unlock_rule", {}),
                 reward=node_data.get("reward", {"xp": 50})
             )
@@ -236,7 +762,15 @@ Requirements:
                 status="unlocked" if i == 0 else "locked",
                 progress_pct=0,
                 xp_earned=0,
-                evidence={}
+                difficulty_view="intermediate",
+                evidence={},
+                time_spent_minutes=0,
+                quiz_attempts=[],
+                concept_mastery={},
+                struggle_points=[],
+                resources_completed=[],
+                resource_ratings={},
+                activities_completed=[]
             )
             db.add(node_progress)
         
@@ -431,7 +965,7 @@ Requirements:
         }
     
     def _serialize_path(self, path, db: Session, include_nodes: bool = False) -> Dict[str, Any]:
-        """Serialize path to JSON"""
+        """Serialize path to JSON with enhanced content"""
         progress = db.query(models.LearningPathProgress).filter(
             models.LearningPathProgress.path_id == path.id
         ).first()
@@ -467,17 +1001,74 @@ Requirements:
                     "order_index": node.order_index,
                     "title": node.title,
                     "description": node.description,
+                    
+                    # Enhanced metadata
+                    "tags": node.tags or [],
+                    "keywords": node.keywords or [],
+                    "bloom_level": node.bloom_level,
+                    "cognitive_load": node.cognitive_load,
+                    "industry_relevance": node.industry_relevance or [],
+                    
+                    # Multi-layer content
+                    "introduction": node.introduction,
+                    "core_sections": node.core_sections or [],
+                    "summary": node.summary or [],
+                    "connection_map": node.connection_map or {},
+                    "real_world_applications": node.real_world_applications or [],
+                    
+                    # Progressive disclosure
+                    "beginner_content": node.beginner_content,
+                    "intermediate_content": node.intermediate_content,
+                    "advanced_content": node.advanced_content,
+                    
+                    # Content formats
+                    "video_resources": node.video_resources or [],
+                    "interactive_diagrams": node.interactive_diagrams or [],
+                    "audio_narration": node.audio_narration or [],
+                    "infographics": node.infographics or [],
+                    "code_playgrounds": node.code_playgrounds or [],
+                    
+                    # Learning content
                     "objectives": node.objectives,
+                    "learning_outcomes": node.learning_outcomes or [],
+                    "prerequisites": node.prerequisites,
+                    "prerequisite_nodes": node.prerequisite_nodes or [],
+                    
+                    # Enhanced resources
+                    "resources": node.resources,
+                    "primary_resources": node.primary_resources or [],
+                    "supplementary_resources": node.supplementary_resources or [],
+                    "practice_resources": node.practice_resources or [],
+                    
                     "estimated_minutes": node.estimated_minutes,
                     "content_plan": node.content_plan,
+                    
+                    # Interactive activities
+                    "concept_mapping": node.concept_mapping or {},
+                    "scenarios": node.scenarios or [],
+                    "hands_on_projects": node.hands_on_projects or [],
+                    
+                    # Prerequisite validation
+                    "prerequisite_quiz": node.prerequisite_quiz or [],
+                    
                     "unlock_rule": node.unlock_rule,
                     "reward": node.reward,
+                    
                     "progress": {
                         "status": node_progress.status if node_progress else "locked",
                         "progress_pct": node_progress.progress_pct if node_progress else 0,
                         "xp_earned": node_progress.xp_earned if node_progress else 0,
+                        "difficulty_view": node_progress.difficulty_view if node_progress else "intermediate",
+                        "time_spent_minutes": node_progress.time_spent_minutes if node_progress else 0,
+                        "quiz_attempts": node_progress.quiz_attempts if node_progress else [],
+                        "concept_mastery": node_progress.concept_mastery if node_progress else {},
+                        "struggle_points": node_progress.struggle_points if node_progress else [],
+                        "resources_completed": node_progress.resources_completed if node_progress else [],
+                        "resource_ratings": node_progress.resource_ratings if node_progress else {},
+                        "activities_completed": node_progress.activities_completed if node_progress else [],
                         "started_at": node_progress.started_at.isoformat() if node_progress and node_progress.started_at else None,
-                        "completed_at": node_progress.completed_at.isoformat() if node_progress and node_progress.completed_at else None
+                        "completed_at": node_progress.completed_at.isoformat() if node_progress and node_progress.completed_at else None,
+                        "last_accessed": node_progress.last_accessed.isoformat() if node_progress and node_progress.last_accessed else None
                     }
                 })
             
@@ -503,29 +1094,37 @@ Requirements:
                     response = main_module.unified_ai.generate(prompt)
                     return response
             
-            # Fallback
-            logger.warning("No AI client available, using fallback")
-            return self._get_fallback_response()
+            # No AI client available - raise error so caller can handle fallback
+            raise Exception("No AI client available")
         
         except Exception as e:
             logger.error(f"AI call failed: {e}")
-            return self._get_fallback_response()
+            raise  # Re-raise so caller can handle with appropriate fallback
     
-    def _get_fallback_response(self) -> str:
-        """Fallback response if AI fails - creates a basic but useful path"""
+    def _get_fallback_response(self, topic: str = "the topic") -> str:
+        """Fallback response if AI fails - creates a basic but useful path with web-searched resources"""
+        logger.info(f"Generating fallback path with web search for: {topic}")
+        
+        # Search for resources for this topic
+        resources = self._search_resources_for_topic(topic, "introduction")
+        
         return json.dumps({
-            "title": "Learning Path",
-            "description": "A structured learning journey to master your topic",
+            "title": f"Learning Path: {topic}",
+            "description": f"A structured learning journey to master {topic}",
             "estimated_hours": 4.0,
             "nodes": [
                 {
                     "order_index": 0,
-                    "title": "Getting Started",
+                    "title": f"Getting Started with {topic}",
                     "description": "Introduction to the fundamentals and core concepts",
                     "objectives": [
                         "Understand the basic terminology and concepts",
                         "Learn the foundational principles",
                         "Set clear learning goals"
+                    ],
+                    "prerequisites": [],
+                    "resources": resources[:3] if resources else [
+                        {"type": "article", "title": f"{topic} Introduction", "url": f"https://en.wikipedia.org/wiki/{topic.replace(' ', '_')}", "description": "Comprehensive overview"}
                     ],
                     "estimated_minutes": 30,
                     "activities": [
@@ -538,31 +1137,38 @@ Requirements:
                 },
                 {
                     "order_index": 1,
-                    "title": "Core Concepts",
+                    "title": f"Core Concepts of {topic}",
                     "description": "Deep dive into the main topics and principles",
                     "objectives": [
                         "Master the core concepts",
                         "Apply knowledge to practical examples",
                         "Build confidence with the material"
                     ],
+                    "prerequisites": ["Basic terminology", "Foundational principles"],
+                    "resources": self._search_resources_for_topic(topic, "tutorial")[:3] if self._search_resources_for_topic(topic, "tutorial") else [
+                        {"type": "article", "title": f"{topic} Guide", "url": f"https://en.wikipedia.org/wiki/{topic.replace(' ', '_')}", "description": "Detailed explanation"}
+                    ],
                     "estimated_minutes": 45,
                     "activities": [
                         {"type": "notes", "description": "Study core concepts in detail"},
                         {"type": "flashcards", "count": 12, "description": "Practice key concepts"},
-                        {"type": "quiz", "question_count": 8, "description": "Test comprehension"},
-                        {"type": "chat", "prompt": "Discuss what you've learned"}
+                        {"type": "quiz", "question_count": 8, "description": "Test comprehension"}
                     ],
                     "unlock_rule": {"type": "sequential", "min_xp": 50},
                     "reward": {"xp": 75}
                 },
                 {
                     "order_index": 2,
-                    "title": "Practice & Application",
+                    "title": f"Practice & Application",
                     "description": "Apply your knowledge through hands-on practice",
                     "objectives": [
                         "Apply concepts to real scenarios",
                         "Solve practice problems",
                         "Develop practical skills"
+                    ],
+                    "prerequisites": ["Core concepts mastery"],
+                    "resources": self._search_resources_for_topic(topic, "practice examples")[:3] if self._search_resources_for_topic(topic, "practice examples") else [
+                        {"type": "article", "title": f"{topic} Examples", "url": f"https://en.wikipedia.org/wiki/{topic.replace(' ', '_')}", "description": "Practical applications"}
                     ],
                     "estimated_minutes": 60,
                     "activities": [
@@ -572,46 +1178,145 @@ Requirements:
                     ],
                     "unlock_rule": {"type": "sequential", "min_xp": 75},
                     "reward": {"xp": 100}
-                },
-                {
-                    "order_index": 3,
-                    "title": "Advanced Topics",
-                    "description": "Explore advanced concepts and techniques",
-                    "objectives": [
-                        "Master advanced techniques",
-                        "Understand complex relationships",
-                        "Prepare for expert-level knowledge"
-                    ],
-                    "estimated_minutes": 45,
-                    "activities": [
-                        {"type": "notes", "description": "Study advanced materials"},
-                        {"type": "flashcards", "count": 12, "description": "Review advanced concepts"},
-                        {"type": "quiz", "question_count": 10, "description": "Test advanced knowledge"},
-                        {"type": "chat", "prompt": "Discuss advanced applications"}
-                    ],
-                    "unlock_rule": {"type": "sequential", "min_xp": 100},
-                    "reward": {"xp": 125}
-                },
-                {
-                    "order_index": 4,
-                    "title": "Mastery & Review",
-                    "description": "Consolidate your knowledge and achieve mastery",
-                    "objectives": [
-                        "Review all key concepts",
-                        "Demonstrate comprehensive understanding",
-                        "Achieve mastery of the topic"
-                    ],
-                    "estimated_minutes": 40,
-                    "activities": [
-                        {"type": "notes", "description": "Comprehensive review"},
-                        {"type": "flashcards", "count": 20, "description": "Master all concepts"},
-                        {"type": "quiz", "question_count": 15, "description": "Final assessment"}
-                    ],
-                    "unlock_rule": {"type": "sequential", "min_xp": 125},
-                    "reward": {"xp": 150}
                 }
             ]
         })
+    
+    def _search_resources_for_topic(self, topic: str, context: str = "") -> List[Dict[str, Any]]:
+        """Search the web for relevant learning resources"""
+        try:
+            import requests
+            from urllib.parse import quote
+            
+            # Use DuckDuckGo Instant Answer API (no API key needed)
+            search_query = f"{topic} {context} tutorial guide learn" if context else f"{topic} tutorial guide learn"
+            logger.info(f"Searching web for: {search_query}")
+            
+            resources = []
+            
+            # Try DuckDuckGo search
+            try:
+                ddg_url = f"https://api.duckduckgo.com/?q={quote(search_query)}&format=json&no_html=1"
+                response = requests.get(ddg_url, timeout=5)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    
+                    # Get related topics
+                    related = data.get('RelatedTopics', [])
+                    for item in related[:5]:
+                        if isinstance(item, dict) and 'FirstURL' in item:
+                            url = item['FirstURL']
+                            text = item.get('Text', '')
+                            
+                            # Determine resource type
+                            resource_type = "article"
+                            if 'youtube.com' in url or 'youtu.be' in url:
+                                resource_type = "video"
+                            elif any(edu in url for edu in ['khanacademy', 'coursera', 'udemy', 'edx']):
+                                resource_type = "interactive"
+                            elif any(doc in url for doc in ['docs.', 'documentation']):
+                                resource_type = "documentation"
+                            
+                            resources.append({
+                                "type": resource_type,
+                                "title": text[:100] if text else f"{topic} Resource",
+                                "url": url,
+                                "description": text[:200] if text else f"Learn about {topic}",
+                                "estimated_minutes": 20 if resource_type == "video" else 15,
+                                "difficulty": "intermediate",
+                                "format": resource_type
+                            })
+            except Exception as e:
+                logger.warning(f"DuckDuckGo search failed: {e}")
+            
+            # If we got resources, return them
+            if resources:
+                logger.info(f"Found {len(resources)} resources from web search")
+                return resources
+            
+            # Fallback: construct high-quality URLs manually
+            logger.info("Using curated resource URLs")
+            topic_encoded = quote(topic.replace(' ', '_'))
+            topic_search = quote(topic)
+            
+            curated_resources = [
+                {
+                    "type": "article",
+                    "title": f"{topic} - Wikipedia",
+                    "url": f"https://en.wikipedia.org/wiki/{topic_encoded}",
+                    "description": f"Comprehensive encyclopedia article about {topic}",
+                    "estimated_minutes": 15,
+                    "difficulty": "intermediate",
+                    "format": "article"
+                },
+                {
+                    "type": "video",
+                    "title": f"{topic} Tutorial",
+                    "url": f"https://www.youtube.com/results?search_query={topic_search}+tutorial",
+                    "description": f"Video tutorials and explanations about {topic}",
+                    "estimated_minutes": 20,
+                    "difficulty": "beginner",
+                    "format": "video"
+                },
+                {
+                    "type": "interactive",
+                    "title": f"Learn {topic}",
+                    "url": f"https://www.khanacademy.org/search?page_search_query={topic_search}",
+                    "description": f"Interactive lessons and practice for {topic}",
+                    "estimated_minutes": 30,
+                    "difficulty": "intermediate",
+                    "format": "interactive"
+                }
+            ]
+            
+            # Add context-specific resources
+            if context:
+                if "introduction" in context.lower() or "basics" in context.lower():
+                    curated_resources.append({
+                        "type": "article",
+                        "title": f"{topic} for Beginners",
+                        "url": f"https://www.google.com/search?q={topic_search}+for+beginners+tutorial",
+                        "description": f"Beginner-friendly introduction to {topic}",
+                        "estimated_minutes": 15,
+                        "difficulty": "beginner",
+                        "format": "article"
+                    })
+                elif "practice" in context.lower() or "examples" in context.lower():
+                    curated_resources.append({
+                        "type": "interactive",
+                        "title": f"{topic} Practice Problems",
+                        "url": f"https://www.google.com/search?q={topic_search}+practice+problems+exercises",
+                        "description": f"Practice exercises and problems for {topic}",
+                        "estimated_minutes": 30,
+                        "difficulty": "intermediate",
+                        "format": "interactive"
+                    })
+                elif "advanced" in context.lower():
+                    curated_resources.append({
+                        "type": "article",
+                        "title": f"Advanced {topic}",
+                        "url": f"https://www.google.com/search?q={topic_search}+advanced+tutorial",
+                        "description": f"Advanced concepts and techniques in {topic}",
+                        "estimated_minutes": 25,
+                        "difficulty": "advanced",
+                        "format": "article"
+                    })
+            
+            return curated_resources[:5]  # Return top 5
+            
+        except Exception as e:
+            logger.error(f"Error searching for resources: {e}")
+            # Last resort fallback
+            return [{
+                "type": "article",
+                "title": f"{topic} - Wikipedia",
+                "url": f"https://en.wikipedia.org/wiki/{topic.replace(' ', '_')}",
+                "description": f"Learn about {topic}",
+                "estimated_minutes": 15,
+                "difficulty": "intermediate",
+                "format": "article"
+            }]
     
     def generate_node_content(self, context: Dict[str, Any], db: Session) -> Dict[str, Any]:
         """Generate content for a specific node activity"""
@@ -640,21 +1345,28 @@ Requirements:
         """Generate study notes for a node"""
         objectives_text = "\n".join([f"- {obj}" for obj in objectives])
         
-        prompt = f"""Generate comprehensive study notes for learning about: {title}
+        prompt = f"""Generate comprehensive study notes SPECIFICALLY for: "{title}"
 
-Topic Context: {topic}
-Description: {description}
-Difficulty Level: {difficulty}
+IMPORTANT: Notes must focus ONLY on "{title}", NOT the entire topic of "{topic}".
 
-Learning Objectives:
+Node Description: {description}
+
+Node-Specific Learning Objectives:
 {objectives_text}
 
+Difficulty Level: {difficulty}
+
 Create detailed, well-structured notes that:
-1. Explain key concepts clearly
-2. Include examples and analogies
-3. Break down complex ideas
-4. Highlight important points
+1. Explain key concepts of "{title}" clearly and specifically
+2. Include examples and analogies relevant to this specific topic
+3. Break down complex ideas within this node's scope
+4. Highlight important points for "{title}"
 5. Are appropriate for {difficulty} level learners
+6. Stay focused on this node's content - do NOT cover other aspects of {topic}
+
+Example: If the node is "Spanish Verb Conjugation" within "Spanish Grammar",
+notes should cover conjugation rules, patterns, tenses, and examples ONLY.
+Do NOT include information about nouns, adjectives, or other grammar topics.
 
 Format the notes in markdown with clear sections and bullet points.
 Return ONLY the markdown content, no JSON."""
@@ -675,27 +1387,34 @@ Return ONLY the markdown content, no JSON."""
         """Generate flashcards for a node"""
         objectives_text = "\n".join([f"- {obj}" for obj in objectives])
         
-        prompt = f"""Generate {count} flashcards for learning: {title}
+        prompt = f"""Generate {count} flashcards SPECIFICALLY for the topic: "{title}"
 
-Topic Context: {topic}
-Difficulty Level: {difficulty}
+IMPORTANT: Flashcards must ONLY cover the specific content of "{title}", NOT the broader topic of "{topic}".
 
-Learning Objectives:
+Node-Specific Learning Objectives:
 {objectives_text}
 
-Create flashcards that:
-1. Cover key concepts and terminology
-2. Are clear and concise
-3. Test understanding, not just memorization
-4. Progress from basic to advanced
-5. Are appropriate for {difficulty} level
+Difficulty Level: {difficulty}
 
-Return ONLY valid JSON in this format:
+Create flashcards that:
+1. Cover key concepts and terminology from "{title}" ONLY
+2. Are clear, concise, and focused on this specific node
+3. Test understanding, not just memorization
+4. Progress from basic to advanced within this topic
+5. Are appropriate for {difficulty} level learners
+6. Do NOT include content from other aspects of {topic} not covered in this node
+
+Example: If the node is "Spanish Verb Conjugation" within a "Spanish Grammar" path,
+flashcards should focus on verb conjugation rules, patterns, and examples ONLY.
+
+CRITICAL: Return ONLY valid JSON with NO extra text before or after. Start with {{ and end with }}.
+
+Format:
 {{
   "flashcards": [
     {{
-      "question": "Front of card (question or term)",
-      "answer": "Back of card (answer or definition)",
+      "question": "Front of card (question or term about {title})",
+      "answer": "Back of card (answer or definition specific to {title})",
       "difficulty": "easy|medium|hard"
     }}
   ]
@@ -703,72 +1422,188 @@ Return ONLY valid JSON in this format:
         
         try:
             response = self._call_ai(prompt)
-            # Parse JSON response
-            json_start = response.find('{')
-            json_end = response.rfind('}') + 1
-            if json_start != -1 and json_end > 0:
-                data = json.loads(response[json_start:json_end])
-                return {
-                    "success": True,
-                    "content_type": "flashcards",
-                    "flashcards": data.get("flashcards", []),
-                    "count": len(data.get("flashcards", []))
-                }
-            else:
+            logger.info(f"Raw flashcard response (first 200 chars): {response[:200]}")
+            
+            # Try multiple extraction strategies
+            json_str = None
+            
+            # Strategy 1: Look for JSON code block
+            if "```json" in response:
+                start = response.find("```json") + 7
+                end = response.find("```", start)
+                if end > start:
+                    json_str = response[start:end].strip()
+                    logger.info("Extracted JSON from code block")
+            
+            # Strategy 2: Look for JSON between braces
+            if not json_str:
+                json_start = response.find('{')
+                json_end = response.rfind('}') + 1
+                if json_start != -1 and json_end > 0:
+                    json_str = response[json_start:json_end]
+                    logger.info(f"Extracted JSON from braces")
+            
+            if not json_str:
+                logger.error(f"No JSON found in flashcard response")
                 raise ValueError("No JSON found in response")
+            
+            # Fix double braces if present (from f-string template copying)
+            double_open = json_str.count('{{')
+            double_close = json_str.count('}}')
+            single_open = json_str.count('{') - (double_open * 2)
+            single_close = json_str.count('}') - (double_close * 2)
+            
+            if double_open > single_open and double_close > single_close:
+                logger.info(f"Converting double braces in flashcard response")
+                json_str = json_str.replace('{{', '{').replace('}}', '}')
+            
+            try:
+                data = json.loads(json_str)
+                logger.info(f"Successfully parsed flashcard JSON")
+            except json.JSONDecodeError as e:
+                logger.warning(f"Flashcard JSON parse failed, attempting repair: {e}")
+                # Try to repair the JSON
+                json_str = self._fix_json_issues(json_str)
+                try:
+                    data = json.loads(json_str)
+                    logger.info(f"Successfully repaired flashcard JSON")
+                except json.JSONDecodeError as e2:
+                    logger.error(f"Flashcard JSON repair failed: {e2}")
+                    return self._get_fallback_flashcards(title, count)
+            
+            # Validate structure
+            if "flashcards" not in data or not isinstance(data["flashcards"], list):
+                logger.error(f"Invalid flashcard structure")
+                return self._get_fallback_flashcards(title, count)
+            
+            return {
+                "success": True,
+                "content_type": "flashcards",
+                "flashcards": data.get("flashcards", []),
+                "count": len(data.get("flashcards", []))
+            }
+            
         except Exception as e:
             logger.error(f"Error generating flashcards: {e}")
-            return {"error": str(e)}
+            return self._get_fallback_flashcards(title, count)
     
     def _generate_quiz(self, title: str, objectives: List[str], topic: str, difficulty: str, count: int) -> Dict[str, Any]:
         """Generate quiz questions for a node"""
         objectives_text = "\n".join([f"- {obj}" for obj in objectives])
         
-        prompt = f"""Generate {count} multiple-choice quiz questions for: {title}
+        prompt = f"""Generate {count} multiple-choice quiz questions SPECIFICALLY for the topic: "{title}"
 
-Topic Context: {topic}
-Difficulty Level: {difficulty}
+IMPORTANT: Questions must ONLY cover the specific content of "{title}", NOT the broader topic of "{topic}".
 
-Learning Objectives:
+Node-Specific Learning Objectives:
 {objectives_text}
 
-Create quiz questions that:
-1. Test understanding of key concepts
-2. Have 4 answer options each
-3. Include one correct answer
-4. Have plausible distractors
-5. Are appropriate for {difficulty} level
+Difficulty Level: {difficulty}
 
-Return ONLY valid JSON in this format:
+Create quiz questions that:
+1. Test understanding of the SPECIFIC concepts in "{title}" ONLY
+2. Focus on the learning objectives listed above
+3. Have 4 answer options each (one correct, three plausible distractors)
+4. Include clear explanations for the correct answer
+5. Are appropriate for {difficulty} level learners
+6. Do NOT include questions about other aspects of {topic} not covered in this specific node
+
+Example: If the node is "Spanish Verb Conjugation" within a "Spanish Grammar" path, 
+questions should be about verb conjugation ONLY, not about nouns, adjectives, or other grammar topics.
+
+CRITICAL: Return ONLY valid JSON with NO extra text before or after. Start with {{ and end with }}.
+
+Format:
 {{
   "questions": [
     {{
-      "question": "Question text",
+      "question": "Question text about {title}",
       "options": ["Option A", "Option B", "Option C", "Option D"],
       "correct_answer": 0,
-      "explanation": "Why this answer is correct"
+      "explanation": "Why this answer is correct and how it relates to {title}"
     }}
   ]
 }}"""
         
         try:
             response = self._call_ai(prompt)
-            # Parse JSON response
-            json_start = response.find('{')
-            json_end = response.rfind('}') + 1
-            if json_start != -1 and json_end > 0:
-                data = json.loads(response[json_start:json_end])
-                return {
-                    "success": True,
-                    "content_type": "quiz",
-                    "questions": data.get("questions", []),
-                    "count": len(data.get("questions", []))
-                }
-            else:
+            logger.info(f"Raw AI response (first 200 chars): {response[:200]}")
+            
+            # Try multiple extraction strategies
+            json_str = None
+            
+            # Strategy 1: Look for JSON code block
+            if "```json" in response:
+                start = response.find("```json") + 7
+                end = response.find("```", start)
+                if end > start:
+                    json_str = response[start:end].strip()
+                    logger.info("Extracted JSON from code block")
+            
+            # Strategy 2: Look for JSON between braces
+            if not json_str:
+                json_start = response.find('{')
+                json_end = response.rfind('}') + 1
+                if json_start != -1 and json_end > 0:
+                    json_str = response[json_start:json_end]
+                    logger.info(f"Extracted JSON from braces (start={json_start}, end={json_end})")
+            
+            if not json_str:
+                logger.error(f"No JSON found in response: {response[:500]}")
                 raise ValueError("No JSON found in response")
+            
+            # Log the extracted JSON for debugging
+            logger.info(f"Extracted JSON (first 200 chars): {json_str[:200]}")
+            
+            # Fix double braces if present (from f-string template copying)
+            double_open = json_str.count('{{')
+            double_close = json_str.count('}}')
+            single_open = json_str.count('{') - (double_open * 2)
+            single_close = json_str.count('}') - (double_close * 2)
+            
+            if double_open > single_open and double_close > single_close:
+                logger.info(f"Converting double braces in quiz response")
+                json_str = json_str.replace('{{', '{').replace('}}', '}')
+            
+            # Try to parse
+            try:
+                data = json.loads(json_str)
+                logger.info(f"Successfully parsed JSON with {len(data.get('questions', []))} questions")
+            except json.JSONDecodeError as e:
+                logger.warning(f"Quiz JSON parse failed at line {e.lineno}, col {e.colno}: {e.msg}")
+                logger.warning(f"Problematic section: {json_str[max(0, e.pos-50):min(len(json_str), e.pos+50)]}")
+                
+                # Try to repair the JSON
+                logger.info("Attempting JSON repair...")
+                json_str = self._fix_json_issues(json_str)
+                
+                try:
+                    data = json.loads(json_str)
+                    logger.info(f"Successfully repaired and parsed JSON")
+                except json.JSONDecodeError as e2:
+                    logger.error(f"JSON repair failed: {e2}")
+                    logger.error(f"Failed JSON (first 500 chars): {json_str[:500]}")
+                    
+                    # Last resort: return a fallback quiz
+                    logger.warning("Using fallback quiz questions")
+                    return self._get_fallback_quiz(title, count)
+            
+            # Validate the structure
+            if "questions" not in data or not isinstance(data["questions"], list):
+                logger.error(f"Invalid quiz structure: {data}")
+                return self._get_fallback_quiz(title, count)
+            
+            return {
+                "success": True,
+                "content_type": "quiz",
+                "questions": data.get("questions", []),
+                "count": len(data.get("questions", []))
+            }
+            
         except Exception as e:
             logger.error(f"Error generating quiz: {e}")
-            return {"error": str(e)}
+            logger.error(f"Exception type: {type(e).__name__}")
+            return self._get_fallback_quiz(title, count)
     
     def _generate_chat_prompt(self, title: str, objectives: List[str], topic: str) -> Dict[str, Any]:
         """Generate a chat discussion prompt for a node"""
@@ -800,3 +1635,49 @@ Return ONLY the prompt text, no JSON."""
         except Exception as e:
             logger.error(f"Error generating chat prompt: {e}")
             return {"error": str(e)}
+    
+    def _get_fallback_quiz(self, title: str, count: int) -> Dict[str, Any]:
+        """Generate a fallback quiz when AI fails"""
+        logger.info(f"Generating fallback quiz for: {title}")
+        
+        questions = []
+        for i in range(min(count, 5)):  # Generate up to 5 fallback questions
+            questions.append({
+                "question": f"What is a key concept related to {title}?",
+                "options": [
+                    f"Core principle {i+1} of {title}",
+                    f"Alternative concept {i+1}",
+                    f"Related but different topic {i+1}",
+                    f"Unrelated concept {i+1}"
+                ],
+                "correct_answer": 0,
+                "explanation": f"This question tests your understanding of the fundamental concepts in {title}."
+            })
+        
+        return {
+            "success": True,
+            "content_type": "quiz",
+            "questions": questions,
+            "count": len(questions),
+            "fallback": True
+        }
+    
+    def _get_fallback_flashcards(self, title: str, count: int) -> Dict[str, Any]:
+        """Generate fallback flashcards when AI fails"""
+        logger.info(f"Generating fallback flashcards for: {title}")
+        
+        flashcards = []
+        for i in range(min(count, 8)):  # Generate up to 8 fallback flashcards
+            flashcards.append({
+                "question": f"Key concept {i+1} in {title}",
+                "answer": f"This is an important concept related to {title}. Review your learning materials for specific details.",
+                "difficulty": "medium"
+            })
+        
+        return {
+            "success": True,
+            "content_type": "flashcards",
+            "flashcards": flashcards,
+            "count": len(flashcards),
+            "fallback": True
+        }

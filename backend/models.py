@@ -20,7 +20,7 @@ engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} i
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()  
 UploadedDocument, QuestionSet, Question, QuestionSession, UserPerformanceMetrics = create_question_bank_models(Base)
-LearningPath, LearningPathNode, LearningPathProgress, LearningNodeProgress = create_learning_paths_models(Base)
+LearningPath, LearningPathNode, LearningPathProgress, LearningNodeProgress, LearningNodeNote = create_learning_paths_models(Base)
 
 
 
