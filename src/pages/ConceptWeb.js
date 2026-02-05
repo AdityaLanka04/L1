@@ -1,4 +1,4 @@
-// ConceptWeb.js - Comprehensive Knowledge Management System
+﻿// ConceptWeb.js - Comprehensive Knowledge Management System
 // Part 1: Imports and Initial Setup
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -873,7 +873,7 @@ const ConceptWeb = () => {
       {/* Header */}
       <header className="cw-header">
         <div className="cw-header-left">
-          <h1 className="cw-logo" onClick={() => navigate('/dashboard')}>
+          <h1 className="cw-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <div className="cw-logo-img" />
             cerbyl
           </h1>

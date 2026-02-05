@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import './Games.css';
@@ -319,7 +319,7 @@ const Games = () => {
     <div className="games-page">
       <header className="gm-header">
         <div className="gm-header-left">
-          <h1 className="gm-logo" onClick={() => navigate('/dashboard')}>
+          <h1 className="gm-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <div className="gm-logo-img" />
             cerbyl
           </h1>

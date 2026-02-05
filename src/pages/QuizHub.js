@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Users, Swords, ChevronRight, Zap } from 'lucide-react';
 import './QuizHub.css';
@@ -31,7 +31,7 @@ const QuizHub = () => {
       {/* Header */}
       <header className="qh-header">
         <div className="qh-header-left">
-          <h1 className="qh-logo" onClick={() => navigate('/dashboard')}>
+          <h1 className="qh-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <div className="qh-logo-img" />
             cerbyl
           </h1>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Play, Brain, Target, TrendingUp, Award, Clock, CheckCircle,
@@ -260,7 +260,7 @@ const WeaknessPractice = () => {
     return (
       <div className="weakness-practice-container">
         <header className="practice-header">
-          <h1 className="practice-logo" onClick={() => navigate('/dashboard')}>
+          <h1 className="practice-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <div className="practice-logo-img" />
             cerbyl
           </h1>
@@ -324,7 +324,7 @@ const WeaknessPractice = () => {
         {/* Header - Matching Weaknesses Page Style */}
         <header className="practice-header">
           <div className="practice-header-left">
-            <h1 className="practice-logo" onClick={() => navigate('/dashboard')}>
+            <h1 className="practice-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
               <div className="practice-logo-img" />
               cerbyl
             </h1>
@@ -406,7 +406,7 @@ const WeaknessPractice = () => {
       {/* Header - Matching Weaknesses Page Style */}
       <header className="practice-header">
         <div className="practice-header-left">
-          <h1 className="practice-logo" onClick={() => navigate('/dashboard')}>
+          <h1 className="practice-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <div className="practice-logo-img" />
             cerbyl
           </h1>

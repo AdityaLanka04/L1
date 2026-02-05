@@ -2053,18 +2053,20 @@
 .at-reminders-toolbar {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .at-search-input-wrapper {
   position: relative;
   flex: 1;
+  min-width: 280px;
   max-width: 400px;
 }
 
 .at-search-input-wrapper svg {
   position: absolute;
-  left: var(--spacing-md);
+  left: 14px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-tertiary);
@@ -2073,30 +2075,100 @@
 
 .at-search-input {
   width: 100%;
-  padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) 44px;
+  padding: 12px 14px 12px 44px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-primary);
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   color: var(--text-primary);
   font-size: 14px;
-  transition: all var(--transition-base);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .at-search-input:focus {
   outline: none;
   border-color: var(--accent-primary);
   background: var(--bg-elevated);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 10%, transparent);
 }
 
 .at-search-input::placeholder {
   color: var(--text-tertiary);
 }
 
+/* Month Filter */
+.at-month-filter-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent-primary) 8%, var(--bg-tertiary)) 0%,
+    color-mix(in srgb, var(--accent-primary) 4%, var(--bg-tertiary)) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 20%, var(--border-primary));
+  border-radius: 8px;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-primary) 8%, transparent);
+}
+
+.at-month-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.at-month-nav-btn:hover {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+  transform: scale(1.05);
+}
+
+.at-month-filter-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+  min-width: 140px;
+  text-align: center;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+.at-month-reset-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-left: 4px;
+}
+
+.at-month-reset-btn:hover {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+  transform: rotate(180deg);
+}
+
 .at-toolbar-btn {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
+  gap: 8px;
+  padding: 12px 20px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-md);
@@ -2126,34 +2198,73 @@
 
 .at-reminders-list-content {
   flex: 1;
-  overflow-y: visible;
-  padding: var(--spacing-2xl);
+  overflow-y: auto;
+  padding: 24px;
 }
 
 .at-reminder-list-item {
   display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-lg);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-lg);
-  margin-bottom: var(--spacing-lg);
-  transition: all var(--transition-base);
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, 
+    var(--bg-secondary) 0%,
+    color-mix(in srgb, var(--bg-secondary) 98%, var(--accent-primary)) 100%
+  );
+  border: 1.5px solid var(--border-primary);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.at-reminder-list-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 4px;
+  background: currentColor;
+  opacity: 0.6;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .at-reminder-list-item:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--border-secondary);
-  box-shadow: var(--shadow-md);
+  background: linear-gradient(135deg, 
+    var(--bg-tertiary) 0%,
+    color-mix(in srgb, var(--bg-tertiary) 95%, var(--accent-primary)) 100%
+  );
+  border-color: color-mix(in srgb, var(--accent-primary) 30%, var(--border-primary));
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent-primary) 12%, rgba(0, 0, 0, 0.1));
+  transform: translateY(-2px);
+}
+
+.at-reminder-list-item:hover::before {
+  width: 5px;
+  opacity: 1;
 }
 
 .at-reminder-list-item.completed {
-  opacity: 0.6;
+  opacity: 0.55;
+  background: var(--bg-secondary);
 }
 
-.at-reminder-list-item.flagged {
-  border-left-width: 3px;
+.at-reminder-list-item.completed:hover {
+  opacity: 0.7;
+}
+
+.at-reminder-list-item.flagged::after {
+  content: '';
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 8px;
+  height: 8px;
+  background: var(--accent-warning);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--accent-warning);
 }
 
 .at-reminder-checkbox-btn {
@@ -2164,36 +2275,45 @@
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 0;
+  padding: 4px;
   color: var(--text-secondary);
-  transition: color var(--transition-base);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
 }
 
 .at-reminder-checkbox-btn:hover {
   color: var(--text-primary);
+  background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
+  transform: scale(1.1);
 }
 
 .at-reminder-content-area {
   flex: 1;
-  cursor: pointer;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .at-reminder-main-info {
-  margin-bottom: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .at-reminder-title-row {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
-  margin-bottom: 4px;
+  gap: 12px;
 }
 
 .at-reminder-title-text {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
   flex: 1;
+  line-height: 1.4;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 .at-reminder-list-item.completed .at-reminder-title-text {
@@ -2202,79 +2322,216 @@
 }
 
 .at-reminder-priority-badge {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
 }
 
 .at-reminder-description-text {
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 1.6;
   color: var(--text-secondary);
   margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
-.at-reminder-metadata {
+.at-reminder-dates-row {
   display: flex;
   align-items: center;
-  gap: var(--spacing-lg);
+  gap: 12px;
   flex-wrap: wrap;
+  margin-top: 8px;
 }
 
-.at-reminder-meta-item {
+.at-reminder-date-badge {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--text-tertiary);
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  letter-spacing: 0.3px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.at-reminder-list-tag {
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
-  font-size: 11px;
-  font-weight: 600;
+.at-reminder-date-badge.reminder-date {
+  background: linear-gradient(135deg, 
+    var(--accent-primary) 0%,
+    color-mix(in srgb, var(--accent-primary) 85%, #8b5cf6) 100%
+  );
+  color: white;
+  border: none;
+}
+
+.at-reminder-date-badge.reminder-date.no-date {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--text-tertiary) 40%, var(--bg-tertiary)) 0%,
+    color-mix(in srgb, var(--text-tertiary) 30%, var(--bg-tertiary)) 100%
+  );
+  color: var(--text-tertiary);
+  opacity: 0.7;
+}
+
+.at-reminder-date-badge.reminder-date:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent-primary) 35%, rgba(0, 0, 0, 0.3));
+}
+
+.at-reminder-date-badge.created-date {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent-primary) 70%, var(--text-secondary)) 0%,
+    color-mix(in srgb, var(--accent-primary) 60%, var(--text-secondary)) 100%
+  );
+  color: white;
+  border: none;
+}
+
+.at-reminder-date-badge.created-date:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.at-reminder-date-badge svg {
+  flex-shrink: 0;
+}
+
+/* Action Panel */
+.at-reminder-actions-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.at-reminder-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.at-reminder-action-btn:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  transform: translateY(-2px);
+}
+
+.at-reminder-action-btn.view-btn {
+  color: var(--accent-blue);
+}
+
+.at-reminder-action-btn.view-btn:hover {
+  background: color-mix(in srgb, var(--accent-blue) 10%, transparent);
+}
+
+.at-reminder-action-btn.edit-btn {
+  color: var(--accent-primary);
+}
+
+.at-reminder-action-btn.edit-btn:hover {
+  background: color-mix(in srgb, var(--accent-primary) 10%, transparent);
+}
+
+.at-reminder-action-btn.flag-btn {
+  color: var(--accent-warning);
+}
+
+.at-reminder-action-btn.flag-btn:hover {
+  background: color-mix(in srgb, var(--accent-warning) 10%, transparent);
+}
+
+.at-reminder-list-item.flagged .at-reminder-action-btn.flag-btn {
+  background: color-mix(in srgb, var(--accent-warning) 15%, transparent);
+}
+
+.at-reminder-action-btn.delete-btn {
+  color: var(--accent-danger);
+}
+
+.at-reminder-action-btn.delete-btn:hover {
+  background: color-mix(in srgb, var(--accent-danger) 10%, transparent);
 }
 
 /* Subtasks */
 .at-reminder-subtasks-section {
-  margin-top: var(--spacing-md);
-  padding-top: var(--spacing-md);
-  border-top: 1px solid var(--border-primary);
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--accent-primary) 10%, var(--border-primary));
 }
 
 .at-subtasks-toggle-btn {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
+  gap: 8px;
+  padding: 8px 14px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-primary);
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 .at-subtasks-toggle-btn:hover {
   background: var(--bg-elevated);
-  border-color: var(--border-secondary);
+  border-color: var(--accent-primary);
   color: var(--text-primary);
+  transform: translateX(4px);
 }
 
 .at-subtasks-list-area {
-  margin-top: var(--spacing-md);
-  padding-left: var(--spacing-lg);
+  margin-top: 12px;
+  padding-left: 16px;
 }
 
 .at-subtask-list-item {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
-  padding: var(--spacing-sm) 0;
+  gap: 12px;
+  padding: 8px 0;
   font-size: 13px;
   color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .at-reminder-list-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .at-reminder-actions-panel {
+    opacity: 1;
+    transform: translateX(0);
+    width: 100%;
+    justify-content: flex-end;
+    margin-left: 0;
+    margin-top: 8px;
+  }
+  
+  .at-reminder-dates-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 }
 
 .at-subtask-checkbox-btn {
@@ -2364,12 +2621,14 @@
   position: relative;
   z-index: var(--z-modal);
   width: 90%;
-  max-width: 600px;
+  max-width: 580px;
   max-height: 90vh;
   background: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-xl);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 20%, var(--border-primary));
+  border-radius: 16px;
+  box-shadow: 
+    0 20px 60px color-mix(in srgb, var(--accent-primary) 15%, rgba(0, 0, 0, 0.3)),
+    0 0 0 1px color-mix(in srgb, var(--accent-primary) 10%, transparent);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -2379,11 +2638,11 @@
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(20px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -2391,21 +2650,211 @@
   max-width: 800px;
 }
 
+.at-reminder-view-modal {
+  max-width: 650px;
+}
+
+/* Reminder Detail View */
+.at-reminder-detail-view {
+  padding: 8px;
+}
+
+.at-reminder-detail-card {
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  padding: 32px;
+  border: 2px solid color-mix(in srgb, var(--accent-primary) 15%, var(--border-primary));
+}
+
+.at-reminder-detail-header {
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid color-mix(in srgb, var(--accent-primary) 10%, var(--border-primary));
+}
+
+.at-reminder-detail-title-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.at-reminder-detail-title-row h3 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  flex: 1;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+.at-reminder-detail-title-row h3.completed {
+  text-decoration: line-through;
+  color: var(--text-tertiary);
+}
+
+.at-reminder-detail-priority {
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 16px;
+  background: color-mix(in srgb, var(--accent-warning) 10%, var(--bg-tertiary));
+  border-radius: 8px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+.at-reminder-detail-section {
+  margin-bottom: 24px;
+}
+
+.at-reminder-detail-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+.at-reminder-detail-section p {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+.at-reminder-detail-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.at-reminder-detail-info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+  border: 1px solid var(--border-primary);
+}
+
+.at-reminder-detail-info-item svg {
+  color: var(--accent-primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.at-reminder-detail-info-item > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.at-reminder-detail-info-item .label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+.at-reminder-detail-info-item .value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  word-break: break-word;
+}
+
+.at-reminder-detail-info-item .value.link {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.at-reminder-detail-info-item .value.link:hover {
+  text-decoration: underline;
+}
+
+.at-reminder-detail-actions {
+  display: flex;
+  gap: 12px;
+  padding-top: 24px;
+  border-top: 2px solid color-mix(in srgb, var(--accent-primary) 10%, var(--border-primary));
+}
+
+.at-detail-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+.at-detail-action-btn.edit {
+  background: linear-gradient(135deg, 
+    var(--accent-primary) 0%,
+    color-mix(in srgb, var(--accent-primary) 85%, #8b5cf6) 100%
+  );
+  color: white;
+}
+
+.at-detail-action-btn.edit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent-primary) 35%, rgba(0, 0, 0, 0.3));
+}
+
+.at-detail-action-btn.delete {
+  background: linear-gradient(135deg, 
+    var(--accent-danger) 0%,
+    color-mix(in srgb, var(--accent-danger) 85%, #dc2626) 100%
+  );
+  color: white;
+}
+
+.at-detail-action-btn.delete:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent-danger) 35%, rgba(0, 0, 0, 0.3));
+}
+
 .at-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-2xl);
-  background: var(--bg-tertiary);
-  border-bottom: 1px solid var(--border-primary);
+  padding: 24px 28px;
+  background: linear-gradient(180deg, 
+    color-mix(in srgb, var(--accent-primary) 8%, var(--bg-tertiary)) 0%,
+    color-mix(in srgb, var(--accent-primary) 4%, var(--bg-tertiary)) 100%
+  );
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary) 15%, var(--border-primary));
 }
 
 .at-modal-header h2,
 .at-modal-header h3 {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
+  letter-spacing: 0.5px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 .at-modal-close-btn {
@@ -2414,24 +2863,26 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: var(--bg-elevated);
+  background: transparent;
   border: 1px solid var(--border-primary);
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .at-modal-close-btn:hover {
-  background: var(--bg-secondary);
-  border-color: var(--border-secondary);
+  background: var(--bg-elevated);
+  border-color: var(--accent-primary);
   color: var(--text-primary);
+  transform: rotate(90deg);
 }
 
 .at-modal-content {
   flex: 1;
   overflow-y: auto;
-  padding: var(--spacing-2xl);
+  padding: 28px;
+  background: var(--bg-secondary);
 }
 
 /* Day Summary */
@@ -2527,36 +2978,39 @@
 .at-list-form-container {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xl);
+  gap: 20px;
 }
 
 .at-form-field {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: 8px;
 }
 
 .at-form-label {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  font-size: 13px;
+  gap: 8px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 .at-form-input,
 .at-form-textarea,
 .at-form-select {
   width: 100%;
-  padding: var(--spacing-md);
+  padding: 14px 16px;
   background: var(--bg-tertiary);
   border: 1px solid var(--border-primary);
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   color: var(--text-primary);
   font-size: 14px;
-  font-family: var(--font-sans);
-  transition: all var(--transition-base);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .at-form-input:focus,
@@ -2565,6 +3019,7 @@
   outline: none;
   border-color: var(--accent-primary);
   background: var(--bg-elevated);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 10%, transparent);
 }
 
 .at-form-input::placeholder,
@@ -2580,21 +3035,22 @@
 .at-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-lg);
+  gap: 16px;
 }
 
 .at-checkbox-field {
-  margin-top: var(--spacing-md);
+  margin-top: 12px;
 }
 
 .at-checkbox-label {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: 12px;
   font-size: 14px;
   font-weight: 500;
   color: var(--text-primary);
   cursor: pointer;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 .at-checkbox-label input[type="checkbox"] {
@@ -2607,31 +3063,33 @@
 .at-color-picker-grid {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
-  gap: var(--spacing-sm);
+  gap: 8px;
 }
 
 .at-color-option {
   width: 36px;
   height: 36px;
   border: 2px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .at-color-option:hover {
   transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .at-color-option.selected {
   border-color: white;
   box-shadow: 0 0 0 2px var(--bg-secondary), 0 0 0 4px currentColor;
+  transform: scale(1.05);
 }
 
 .at-icon-picker-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: var(--spacing-sm);
+  gap: 8px;
 }
 
 .at-icon-picker-btn {
@@ -2641,67 +3099,146 @@
   height: 48px;
   background: var(--bg-tertiary);
   border: 2px solid var(--border-primary);
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .at-icon-picker-btn:hover {
   background: var(--bg-elevated);
   border-color: var(--border-secondary);
+  transform: translateY(-2px);
 }
 
 .at-icon-picker-btn.selected {
   background: var(--bg-elevated);
+  border-color: var(--accent-primary);
 }
 
 .at-form-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--spacing-md);
-  padding-top: var(--spacing-xl);
+  gap: 12px;
+  padding-top: 24px;
+  margin-top: 8px;
   border-top: 1px solid var(--border-primary);
 }
 
 .at-form-btn {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-2xl);
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-md);
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 32px;
+  background: transparent;
+  border: 1.5px solid var(--border-primary);
+  border-radius: 8px;
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 11px;
   font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  overflow: hidden;
+}
+
+.at-form-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+}
+
+.at-form-btn span {
+  position: relative;
+  z-index: 1;
 }
 
 .at-form-btn:hover {
-  background: var(--bg-elevated);
-  border-color: var(--border-secondary);
+  border-color: var(--text-secondary);
+  transform: translateY(-1px);
+}
+
+.at-form-btn:hover::before {
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
 }
 
 .at-form-btn.cancel {
   color: var(--text-secondary);
+  border-color: color-mix(in srgb, var(--border-primary) 80%, transparent);
 }
 
+.at-form-btn.cancel:hover {
+  color: var(--text-primary);
+  border-color: var(--border-primary);
+  background: transparent;
+}
+
+.at-form-btn.cancel:hover::before {
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent);
+}
+
+/* Primary Button with Gradient */
 .at-form-btn.primary {
-  background: var(--accent-primary);
-  border-color: var(--accent-primary);
+  background: linear-gradient(135deg, 
+    var(--accent-primary) 0%, 
+    color-mix(in srgb, var(--accent-primary) 85%, #8b5cf6) 50%,
+    color-mix(in srgb, var(--accent-primary) 90%, #ec4899) 100%
+  );
+  border: none;
   color: white;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent-primary) 25%, transparent);
+  font-weight: 700;
+  letter-spacing: 1.8px;
+}
+
+.at-form-btn.primary::before {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0) 0%, 
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  opacity: 0;
 }
 
 .at-form-btn.primary:hover {
-  background: var(--accent-primary-hover);
-  border-color: var(--accent-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent-primary) 35%, transparent);
+}
+
+.at-form-btn.primary:hover::before {
+  opacity: 1;
+}
+
+.at-form-btn.primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent-primary) 30%, transparent);
 }
 
 .at-form-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.at-form-btn:disabled:hover {
+  transform: none;
+  border-color: var(--border-primary);
+}
+
+.at-form-btn.primary:disabled {
+  background: color-mix(in srgb, var(--accent-primary) 50%, var(--bg-tertiary));
+  box-shadow: none;
 }
 
 /* ============================================
@@ -2712,41 +3249,112 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-3xl);
+  padding: 48px;
   text-align: center;
 }
 
 .at-empty-state-icon {
-  margin-bottom: var(--spacing-2xl);
+  margin-bottom: 24px;
   color: var(--text-muted);
 }
 
 .at-empty-state h3 {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text-primary);
-  margin: 0 0 var(--spacing-md) 0;
+  margin: 0 0 12px 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  letter-spacing: 0.3px;
 }
 
 .at-empty-state p {
   font-size: 14px;
   color: var(--text-secondary);
-  margin: 0 0 var(--spacing-2xl) 0;
+  margin: 0 0 28px 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 .at-empty-state-btn {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-2xl);
-  background: var(--accent-primary);
-  border: 1px solid var(--accent-primary);
-  border-radius: var(--radius-md);
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 32px;
+  background: linear-gradient(135deg, 
+    var(--accent-primary) 0%, 
+    color-mix(in srgb, var(--accent-primary) 85%, #8b5cf6) 50%,
+    color-mix(in srgb, var(--accent-primary) 90%, #ec4899) 100%
+  );
+  border: none;
+  border-radius: 8px;
   color: white;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent-primary) 25%, transparent);
+}
+
+.at-empty-state-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--accent-primary) 35%, transparent);
+}
+
+/* ============================================
+   FLOATING ACTION BUTTON
+   ============================================ */
+.at-fab-btn {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, 
+    var(--accent-primary) 0%, 
+    color-mix(in srgb, var(--accent-primary) 85%, #8b5cf6) 50%,
+    color-mix(in srgb, var(--accent-primary) 90%, #ec4899) 100%
+  );
+  border: none;
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  box-shadow: 
+    0 8px 24px color-mix(in srgb, var(--accent-primary) 35%, rgba(0, 0, 0, 0.3)),
+    0 0 0 0 color-mix(in srgb, var(--accent-primary) 40%, transparent);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1000;
+  animation: fabPulse 2s ease-in-out infinite;
+}
+
+@keyframes fabPulse {
+  0%, 100% {
+    box-shadow: 
+      0 8px 24px color-mix(in srgb, var(--accent-primary) 35%, rgba(0, 0, 0, 0.3)),
+      0 0 0 0 color-mix(in srgb, var(--accent-primary) 40%, transparent);
+  }
+  50% {
+    box-shadow: 
+      0 8px 24px color-mix(in srgb, var(--accent-primary) 35%, rgba(0, 0, 0, 0.3)),
+      0 0 0 12px color-mix(in srgb, var(--accent-primary) 0%, transparent);
+  }
+}
+
+.at-fab-btn:hover {
+  transform: scale(1.1) rotate(90deg);
+  box-shadow: 
+    0 12px 32px color-mix(in srgb, var(--accent-primary) 45%, rgba(0, 0, 0, 0.4)),
+    0 0 0 0 color-mix(in srgb, var(--accent-primary) 40%, transparent);
+  animation: none;
+}
+
+.at-fab-btn:active {
+  transform: scale(1.05) rotate(90deg);
 }
 
 .at-empty-state-btn:hover {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Calendar as CalendarIcon, Clock, FileText, BookOpen, 
@@ -24,6 +24,7 @@ const ActivityTimeline = () => {
   const [viewMode, setViewMode] = useState('calendar');
   const [calendarViewType, setCalendarViewType] = useState('week'); // 'day', 'week' or 'month'
   const [timelineViewType, setTimelineViewType] = useState('list'); // 'list' or 'compact'
+  const [filterMonth, setFilterMonth] = useState(new Date()); // Month filter for reminders
   
   // Data states
   const [activities, setActivities] = useState([]);
@@ -219,6 +220,11 @@ const ActivityTimeline = () => {
   useEffect(() => {
     loadReminders();
   }, [selectedSmartList, selectedListId]);
+  
+  // Reload lists to update counts when reminders change
+  useEffect(() => {
+    loadReminderLists();
+  }, [reminders.length]);
 
   // Auto-scroll to current time in week view
   useEffect(() => {
@@ -975,16 +981,6 @@ const ActivityTimeline = () => {
               <Grid size={16} />
               <span>Month</span>
             </button>
-            <button 
-              className="at-view-action-btn primary"
-              onClick={() => {
-                resetReminderForm();
-                setShowReminderModal(true);
-              }}
-            >
-              <Plus size={16} />
-              <span>New Reminder</span>
-            </button>
           </div>
         </div>
 
@@ -1214,16 +1210,6 @@ const ActivityTimeline = () => {
               <Grid size={16} />
               <span>Month</span>
             </button>
-            <button 
-              className="at-view-action-btn primary"
-              onClick={() => {
-                resetReminderForm();
-                setShowReminderModal(true);
-              }}
-            >
-              <Plus size={16} />
-              <span>New Reminder</span>
-            </button>
           </div>
         </div>
 
@@ -1416,16 +1402,6 @@ const ActivityTimeline = () => {
             >
               <Grid size={16} />
               <span>Month</span>
-            </button>
-            <button 
-              className="at-view-action-btn primary"
-              onClick={() => {
-                resetReminderForm();
-                setShowReminderModal(true);
-              }}
-            >
-              <Plus size={16} />
-              <span>New Reminder</span>
             </button>
           </div>
         </div>
@@ -1669,12 +1645,30 @@ const ActivityTimeline = () => {
 
   // Render reminders view
   const renderReminders = () => {
-    const filteredReminders = searchQuery 
-      ? reminders.filter(r => 
-          r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (r.description && r.description.toLowerCase().includes(searchQuery.toLowerCase()))
-        )
-      : reminders;
+    // Start with all reminders from backend (already filtered by smart list)
+    let filteredReminders = reminders;
+    
+    // Apply search filter
+    if (searchQuery) {
+      filteredReminders = filteredReminders.filter(r => 
+        r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (r.description && r.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+    }
+    
+    // Apply month filter only if a specific month is selected (not current month)
+    const currentMonth = new Date();
+    const isCurrentMonth = filterMonth.getMonth() === currentMonth.getMonth() && 
+                          filterMonth.getFullYear() === currentMonth.getFullYear();
+    
+    if (!isCurrentMonth) {
+      filteredReminders = filteredReminders.filter(r => {
+        if (!r.reminder_date) return true; // Show reminders without dates
+        const reminderDate = new Date(r.reminder_date);
+        return reminderDate.getMonth() === filterMonth.getMonth() && 
+               reminderDate.getFullYear() === filterMonth.getFullYear();
+      });
+    }
 
     return (
       <div className="at-reminders-view-container">
@@ -1813,16 +1807,39 @@ const ActivityTimeline = () => {
                   className="at-search-input"
                 />
               </div>
-              <button 
-                className="at-toolbar-btn primary"
-                onClick={() => { 
-                  resetReminderForm(); 
-                  setShowReminderModal(true); 
-                }}
-              >
-                <Plus size={16} />
-                <span>New Reminder</span>
-              </button>
+              
+              <div className="at-month-filter-wrapper">
+                <button 
+                  className="at-month-nav-btn"
+                  onClick={() => {
+                    const newMonth = new Date(filterMonth);
+                    newMonth.setMonth(newMonth.getMonth() - 1);
+                    setFilterMonth(newMonth);
+                  }}
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <span className="at-month-filter-label">
+                  {filterMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </span>
+                <button 
+                  className="at-month-nav-btn"
+                  onClick={() => {
+                    const newMonth = new Date(filterMonth);
+                    newMonth.setMonth(newMonth.getMonth() + 1);
+                    setFilterMonth(newMonth);
+                  }}
+                >
+                  <ChevronRight size={14} />
+                </button>
+                <button 
+                  className="at-month-reset-btn"
+                  onClick={() => setFilterMonth(new Date())}
+                  title="Reset to current month"
+                >
+                  <RefreshCw size={14} />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1850,26 +1867,23 @@ const ActivityTimeline = () => {
                 <div 
                   key={reminder.id} 
                   className={`at-reminder-list-item ${reminder.is_completed ? 'completed' : ''} ${reminder.is_flagged ? 'flagged' : ''}`}
-                  style={{
-                    borderLeft: `3px solid ${reminder.color}`,
-                    background: `${reminder.color}08`
-                  }}
+                  style={{ color: reminder.color }}
                 >
                   <button 
                     className="at-reminder-checkbox-btn"
-                    onClick={() => toggleReminderComplete(reminder)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleReminderComplete(reminder);
+                    }}
                   >
                     {reminder.is_completed ? (
-                      <CheckCircle2 size={20} style={{ color: reminder.color }} />
+                      <CheckCircle2 size={22} style={{ color: reminder.color }} />
                     ) : (
-                      <Circle size={20} style={{ color: reminder.color }} />
+                      <Circle size={22} style={{ color: reminder.color }} />
                     )}
                   </button>
                   
-                  <div 
-                    className="at-reminder-content-area"
-                    onClick={() => openEditReminder(reminder)}
-                  >
+                  <div className="at-reminder-content-area">
                     <div className="at-reminder-main-info">
                       <div className="at-reminder-title-row">
                         <span className="at-reminder-title-text">{reminder.title}</span>
@@ -1886,103 +1900,89 @@ const ActivityTimeline = () => {
                       {reminder.description && (
                         <p className="at-reminder-description-text">{reminder.description}</p>
                       )}
-                    </div>
-                    
-                    <div className="at-reminder-metadata">
-                      {reminder.reminder_date && (
-                        <span className="at-reminder-meta-item">
-                          <CalendarDays size={11} />
-                          {new Date(reminder.reminder_date).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            hour12: !preferences.timeFormat24h
-                          })}
-                        </span>
-                      )}
-                      {reminder.recurring !== 'none' && (
-                        <span className="at-reminder-meta-item">
-                          <Repeat size={11} />
-                          {reminder.recurring}
-                        </span>
-                      )}
-                      {reminder.location && (
-                        <span className="at-reminder-meta-item">
-                          <MapPin size={11} />
-                          {reminder.location}
-                        </span>
-                      )}
-                      {reminder.list_id && (
-                        <span 
-                          className="at-reminder-list-tag"
-                          style={{ 
-                            background: reminderLists.find(l => l.id === reminder.list_id)?.color,
-                            color: 'white'
-                          }}
-                        >
-                          {reminderLists.find(l => l.id === reminder.list_id)?.name}
-                        </span>
-                      )}
-                    </div>
-
-                    {reminder.subtasks && reminder.subtasks.length > 0 && (
-                      <div className="at-reminder-subtasks-section">
-                        <button 
-                          className="at-subtasks-toggle-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setExpandedReminders(prev => ({
-                              ...prev,
-                              [reminder.id]: !prev[reminder.id]
-                            }));
-                          }}
-                        >
-                          {expandedReminders[reminder.id] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                          <span>{reminder.subtasks.length} subtask{reminder.subtasks.length > 1 ? 's' : ''}</span>
-                        </button>
-                        {expandedReminders[reminder.id] && (
-                          <div className="at-subtasks-list-area">
-                            {reminder.subtasks.map(subtask => (
-                              <div key={subtask.id} className="at-subtask-list-item">
-                                <button 
-                                  className="at-subtask-checkbox-btn"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleReminderComplete(subtask);
-                                  }}
-                                >
-                                  {subtask.is_completed ? (
-                                    <CheckCircle2 size={14} style={{ color: reminder.color }} />
-                                  ) : (
-                                    <Circle size={14} style={{ color: reminder.color }} />
-                                  )}
-                                </button>
-                                <span className={subtask.is_completed ? 'completed' : ''}>{subtask.title}</span>
-                              </div>
-                            ))}
-                          </div>
+                      
+                      <div className="at-reminder-dates-row">
+                        {reminder.reminder_date ? (
+                          <span className="at-reminder-date-badge reminder-date">
+                            <CalendarDays size={13} />
+                            <span>{new Date(reminder.reminder_date).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: !preferences.timeFormat24h
+                            })}</span>
+                          </span>
+                        ) : (
+                          <span className="at-reminder-date-badge reminder-date no-date">
+                            <CalendarDays size={13} />
+                            <span>No due date</span>
+                          </span>
+                        )}
+                        {reminder.created_at && (
+                          <span className="at-reminder-date-badge created-date">
+                            <Clock size={13} />
+                            <span>{new Date(reminder.created_at).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}</span>
+                          </span>
                         )}
                       </div>
-                    )}
+                    </div>
                   </div>
-
-                  <div className="at-reminder-action-buttons">
-                    <button 
-                      className={`at-reminder-action-btn flag ${reminder.is_flagged ? 'active' : ''}`}
-                      onClick={() => toggleReminderFlag(reminder)}
+                  
+                  <div className="at-reminder-actions-panel">
+                    <button
+                      className="at-reminder-action-btn view-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedDay({ 
+                          date: reminder.reminder_date ? new Date(reminder.reminder_date) : new Date(),
+                          reminders: [reminder]
+                        });
+                        setShowDayModal(true);
+                      }}
+                      title="View details"
                     >
-                      <Flag size={14} />
+                      <Eye size={18} />
                     </button>
-                    <button 
-                      className="at-reminder-action-btn delete"
-                      onClick={() => {
-                        if (window.confirm('Delete this reminder?')) {
+                    <button
+                      className="at-reminder-action-btn edit-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditReminder(reminder);
+                      }}
+                      title="Edit reminder"
+                    >
+                      <Edit3 size={18} />
+                    </button>
+                    <button
+                      className="at-reminder-action-btn flag-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleReminderFlag(reminder);
+                      }}
+                      title={reminder.is_flagged ? "Unflag" : "Flag"}
+                    >
+                      <Flag 
+                        size={18} 
+                        fill={reminder.is_flagged ? 'currentColor' : 'none'}
+                      />
+                    </button>
+                    <button
+                      className="at-reminder-action-btn delete-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm('Are you sure you want to delete this reminder?')) {
                           deleteReminder(reminder.id);
                         }
                       }}
+                      title="Delete reminder"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 </div>
@@ -2000,7 +2000,7 @@ const ActivityTimeline = () => {
       {/* Top Navigation Bar */}
       <header className="at-profile-header">
         <div className="at-profile-header-left">
-          <h1 className="at-profile-logo" onClick={() => navigate('/dashboard')}>
+          <h1 className="at-profile-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <div className="at-profile-logo-img" />
             cerbyl
           </h1>
@@ -2146,30 +2146,167 @@ const ActivityTimeline = () => {
         </main>
       </div>
 
-      {/* Day Detail Modal */}
+      {/* Day Detail Modal / Reminder View */}
       {showDayModal && selectedDay && (
         <div className="at-modal-overlay" onClick={() => setShowDayModal(false)}>
-          <div className="at-modal-container day-detail-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="at-modal-container at-reminder-view-modal" onClick={(e) => e.stopPropagation()}>
             <div className="at-modal-header">
-              <h2>{selectedDay.date.toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                month: 'long', 
-                day: 'numeric', 
-                year: 'numeric' 
-              })}</h2>
+              <h2>
+                {selectedDay.reminders?.length === 1 && !selectedDay.activities?.length 
+                  ? 'Reminder Details' 
+                  : selectedDay.date.toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      month: 'long', 
+                      day: 'numeric', 
+                      year: 'numeric' 
+                    })
+                }
+              </h2>
               <button className="at-modal-close-btn" onClick={() => setShowDayModal(false)}>
                 <X size={20} />
               </button>
             </div>
             
             <div className="at-modal-content">
-              <div className="at-day-summary">
-                <span>{selectedDay.reminders?.length || 0} reminders</span>
-                <span className="at-summary-divider">•</span>
-                <span>{selectedDay.activities.length} activities</span>
-              </div>
+              {selectedDay.reminders?.length === 1 && !selectedDay.activities?.length ? (
+                /* Single Reminder View */
+                <div className="at-reminder-detail-view">
+                  {selectedDay.reminders.map(reminder => (
+                    <div key={reminder.id} className="at-reminder-detail-card">
+                      <div className="at-reminder-detail-header">
+                        <div className="at-reminder-detail-title-row">
+                          <button 
+                            className="at-reminder-checkbox-btn"
+                            onClick={() => toggleReminderComplete(reminder)}
+                          >
+                            {reminder.is_completed ? (
+                              <CheckCircle2 size={28} style={{ color: reminder.color }} />
+                            ) : (
+                              <Circle size={28} style={{ color: reminder.color }} />
+                            )}
+                          </button>
+                          <h3 className={reminder.is_completed ? 'completed' : ''}>{reminder.title}</h3>
+                          {reminder.is_flagged && (
+                            <Flag size={20} fill="var(--accent-warning)" color="var(--accent-warning)" />
+                          )}
+                        </div>
+                        {reminder.priority !== 'none' && (
+                          <div className="at-reminder-detail-priority">
+                            <span style={{ color: priorityConfig[reminder.priority].color }}>
+                              {priorityConfig[reminder.priority].label} Priority {priorityConfig[reminder.priority].markers}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {reminder.description && (
+                        <div className="at-reminder-detail-section">
+                          <h4><FileText size={16} /> Description</h4>
+                          <p>{reminder.description}</p>
+                        </div>
+                      )}
+                      
+                      <div className="at-reminder-detail-info-grid">
+                        {reminder.reminder_date && (
+                          <div className="at-reminder-detail-info-item">
+                            <CalendarDays size={18} />
+                            <div>
+                              <span className="label">Due Date</span>
+                              <span className="value">{new Date(reminder.reminder_date).toLocaleDateString('en-US', { 
+                                weekday: 'long',
+                                month: 'long', 
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: !preferences.timeFormat24h
+                              })}</span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {reminder.created_at && (
+                          <div className="at-reminder-detail-info-item">
+                            <Clock size={18} />
+                            <div>
+                              <span className="label">Created</span>
+                              <span className="value">{new Date(reminder.created_at).toLocaleDateString('en-US', { 
+                                month: 'long', 
+                                day: 'numeric',
+                                year: 'numeric'
+                              })}</span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {reminder.location && (
+                          <div className="at-reminder-detail-info-item">
+                            <MapPin size={18} />
+                            <div>
+                              <span className="label">Location</span>
+                              <span className="value">{reminder.location}</span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {reminder.url && (
+                          <div className="at-reminder-detail-info-item">
+                            <Link size={18} />
+                            <div>
+                              <span className="label">URL</span>
+                              <a href={reminder.url} target="_blank" rel="noopener noreferrer" className="value link">{reminder.url}</a>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {reminder.recurring !== 'none' && (
+                          <div className="at-reminder-detail-info-item">
+                            <Repeat size={18} />
+                            <div>
+                              <span className="label">Repeats</span>
+                              <span className="value">{reminder.recurring} {reminder.recurring_interval > 1 ? `(every ${reminder.recurring_interval})` : ''}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="at-reminder-detail-actions">
+                        <button 
+                          className="at-detail-action-btn edit"
+                          onClick={() => {
+                            openEditReminder(reminder);
+                            setShowDayModal(false);
+                          }}
+                        >
+                          <Edit3 size={18} />
+                          <span>EDIT REMINDER</span>
+                        </button>
+                        <button 
+                          className="at-detail-action-btn delete"
+                          onClick={() => {
+                            if (window.confirm('Are you sure you want to delete this reminder?')) {
+                              deleteReminder(reminder.id);
+                              setShowDayModal(false);
+                            }
+                          }}
+                        >
+                          <Trash2 size={18} />
+                          <span>DELETE</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                /* Day Timeline View */
+                <>
+                  <div className="at-day-summary">
+                    <span>{selectedDay.reminders?.length || 0} reminders</span>
+                    <span className="at-summary-divider">•</span>
+                    <span>{selectedDay.activities?.length || 0} activities</span>
+                  </div>
 
-              <div className="at-day-timeline">
+                  <div className="at-day-timeline">
                 {Array.from({ length: 24 }, (_, hour) => {
                   const hourReminders = (selectedDay.reminders || []).filter(r => 
                     new Date(r.reminder_date).getHours() === hour
@@ -2253,6 +2390,8 @@ const ActivityTimeline = () => {
                   );
                 })}
               </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -2483,15 +2622,14 @@ const ActivityTimeline = () => {
                       resetReminderForm(); 
                     }}
                   >
-                    Cancel
+                    CANCEL
                   </button>
                   <button 
                     className="at-form-btn primary"
                     onClick={editingReminder ? saveEditedReminder : createReminder} 
                     disabled={!reminderForm.title.trim()}
                   >
-                    <Plus size={16} />
-                    <span>{editingReminder ? 'Save Changes' : 'Create Reminder'}</span>
+                    <span>{editingReminder ? 'SAVE CHANGES' : 'CREATE REMINDER'}</span>
                   </button>
                 </div>
               </div>
@@ -2638,6 +2776,20 @@ const ActivityTimeline = () => {
             </div>
           </div>
         </div>
+      )}
+      
+      {/* Floating Action Button for New Reminder */}
+      {viewMode === 'reminders' && (
+        <button 
+          className="at-fab-btn"
+          onClick={() => {
+            resetReminderForm();
+            setShowReminderModal(true);
+          }}
+          title="Create New Reminder"
+        >
+          <Plus size={24} />
+        </button>
       )}
     </div>
   );

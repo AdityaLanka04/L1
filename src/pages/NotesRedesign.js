@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+﻿import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ReactQuill, { Quill } from "react-quill";
 import "react-quill/dist/quill.snow.css";
@@ -2408,7 +2408,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
               <ArrowLeft size={18} />
             </button>
           )}
-          <h1 className="nr-header-title" onClick={() => navigate('/dashboard')}>
+          <h1 className="nr-header-title" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
             cerbyl
           </h1>
@@ -2447,7 +2447,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
             <span>My Notes</span>
             <ChevronRight size={14} />
           </button>
-          <button className="nr-nav-btn-ghost" onClick={() => navigate("/dashboard")}>
+          <button className="nr-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
             <span>Dashboard</span>
             <ChevronRight size={14} />
           </button>

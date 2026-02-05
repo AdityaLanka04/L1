@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, Loader, FileText, Trash2, Eye, Sparkles, ChevronLeft, ChevronRight, BookOpen, Tag, Lightbulb, X, UploadCloud, Presentation } from 'lucide-react';
 import './SlideExplorer.css';
@@ -211,7 +211,7 @@ const SlideExplorer = () => {
       {/* Header - Full Width */}
       <header className="se-header">
         <div className="se-header-left">
-          <h1 className="se-header-title" onClick={() => navigate('/dashboard')}>
+          <h1 className="se-header-title" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <div className="se-logo-img" />
             cerbyl
           </h1>
@@ -242,7 +242,7 @@ const SlideExplorer = () => {
           </nav>
 
           <div className="se-sidebar-footer">
-            <button className="se-tab-btn" onClick={() => navigate('/dashboard')}>
+            <button className="se-tab-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
               <ChevronLeft size={20} />
               <span className="se-nav-text">Dashboard</span>
             </button>

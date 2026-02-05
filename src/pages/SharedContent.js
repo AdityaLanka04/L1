@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageSquare, FileText, Users, Clock, Eye, Edit3, Trash2, Search, Filter, Calendar } from 'lucide-react';
 import './SharedContent.css';
@@ -134,7 +134,7 @@ const SharedContent = () => {
           <button className="shared-nav-btn" onClick={() => navigate('/social')}>
             Social Hub
           </button>
-          <button className="shared-nav-btn" onClick={() => navigate('/dashboard')}>
+          <button className="shared-nav-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             Dashboard
           </button>
         </div>

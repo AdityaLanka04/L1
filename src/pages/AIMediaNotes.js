@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Upload, Youtube, FileText, Save, Copy, Mic, Loader,
@@ -426,7 +426,7 @@ const AIMediaNotes = () => {
           >
             <Menu size={20} />
           </button>
-          <h1 className="mn-top-header-title" onClick={() => navigate('/dashboard')}>
+          <h1 className="mn-top-header-title" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
             cerbyl
           </h1>
@@ -439,7 +439,7 @@ const AIMediaNotes = () => {
         {/* Sidebar */}
         <aside className={`mn-sidebar ${!sidebarOpen ? 'collapsed' : ''}`}>
           <div className="mn-sidebar-header">
-            <div className="mn-logo" onClick={() => navigate('/dashboard')}>
+            <div className="mn-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             </div>
           </div>
 
@@ -494,7 +494,7 @@ const AIMediaNotes = () => {
               <span className="mn-nav-icon">{Icons.notes}</span>
               <span className="mn-nav-text">MY NOTES</span>
             </button>
-            <button className="mn-nav-item" onClick={() => navigate('/dashboard')}>
+            <button className="mn-nav-item" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
               <span className="mn-nav-icon">{Icons.home}</span>
               <span className="mn-nav-text">DASHBOARD</span>
             </button>

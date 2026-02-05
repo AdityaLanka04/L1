@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Trophy, Award, Star, Zap, Target, Crown, Flame, 
@@ -249,7 +249,7 @@ const XPRoadmap = () => {
       {/* Standardized Header */}
       <header className="xp-roadmap-header">
         <div className="xp-roadmap-header-left">
-          <h1 className="xp-roadmap-logo" onClick={() => navigate('/dashboard')}>
+          <h1 className="xp-roadmap-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <div className="xp-roadmap-logo-img" />
             cerbyl
           </h1>

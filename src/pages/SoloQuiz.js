@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Play, Brain, Sparkles, Loader, AlertCircle, BarChart3,
@@ -103,7 +103,7 @@ const SoloQuiz = () => {
     <div className="sq-page">
       <header className="sq-header">
         <div className="sq-header-left">
-          <h1 className="sq-logo" onClick={() => navigate('/dashboard')}>
+          <h1 className="sq-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <div className="sq-logo-img" />
             cerbyl
           </h1>

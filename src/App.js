@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from './pages/Dashboard';
 import AIChat from './pages/AIChat';
@@ -54,19 +54,28 @@ import LearningPathDetail from './pages/LearningPathDetail';
 import ProactiveNotification from './components/ProactiveNotification';
 import ProtectedRoute from './components/ProtectedRoute';
 import SafetyProtectedRoute from './components/SafetyProtectedRoute';
-
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
+import GlobalNavSidebar from './components/GlobalNavSidebar';
+import { useGlobalNav } from './hooks/useGlobalNav';
 
 function App() {
   const [notification, setNotification] = useState(null);
+  const { isOpen, openNav, closeNav } = useGlobalNav();
 
-  // Notification logic moved to Dashboard.js for better control
-  // No notification checks in App.js - only on login in Dashboard
+  // Make openNav available globally via window object
+  React.useEffect(() => {
+    window.openGlobalNav = openNav;
+    return () => {
+      delete window.openGlobalNav;
+    };
+  }, [openNav]);
 
   return (
     <ThemeProvider>
       <ToastProvider>
         <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-top)', color: 'var(--text-primary)' }}>
+          {/* Global Navigation Sidebar */}
+          <GlobalNavSidebar isOpen={isOpen} onClose={closeNav} />
+          
           {/* Notification Popup */}
           {notification && (
             <ProactiveNotification

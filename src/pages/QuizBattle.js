@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+﻿import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Swords, Users, Clock, X, Check, Zap, Trophy, Shield, 
@@ -257,7 +257,7 @@ const QuizBattle = () => {
     <div className="qb-page">
       <header className="qb-header">
         <div className="qb-header-left">
-          <h1 className="qb-logo" onClick={() => navigate('/dashboard')}>
+          <h1 className="qb-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <div className="qb-logo-img" />
             cerbyl
           </h1>
@@ -269,7 +269,7 @@ const QuizBattle = () => {
             <Users size={16} />
             Social
           </button>
-          <button className="qb-nav-btn" onClick={() => navigate('/dashboard')}>
+          <button className="qb-nav-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             Dashboard
           </button>
         </div>

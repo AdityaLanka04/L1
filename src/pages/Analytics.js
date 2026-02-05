@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ChevronLeft, TrendingUp, Download, ChevronRight,
@@ -180,7 +180,7 @@ const Analytics = () => {
       {/* Standardized Header - Exact copy from Profile */}
       <header className="analytics-header">
         <div className="analytics-header-left">
-          <h1 className="analytics-logo" onClick={() => navigate('/dashboard')}>
+          <h1 className="analytics-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <div className="analytics-logo-img" />
             cerbyl
           </h1>

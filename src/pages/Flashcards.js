@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import CustomPopup from './CustomPopup';
 import './Flashcards.css';
@@ -2235,7 +2235,7 @@ const Flashcards = () => {
             </button>
           )}
           <div className="fc-header-left">
-            <h1 className="fc-header-title" onClick={() => navigate('/dashboard')}>
+            <h1 className="fc-header-title" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
               <div className="fc-header-logo-img" />
               cerbyl
             </h1>
@@ -2338,7 +2338,7 @@ const Flashcards = () => {
           {/* Sidebar */}
           <aside className={`fc-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
             <div className="fc-sidebar-header">
-              <div className="fc-logo" onClick={() => navigate('/dashboard')}>
+              <div className="fc-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
                 <div className="fc-logo-img" />
                 <span className="fc-logo-text">cerbyl</span>
               </div>

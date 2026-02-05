@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Plus, Search, Star, Clock, Folder, Trash2, Upload, FolderPlus, 
@@ -397,7 +397,7 @@ const MyNotes = () => {
       {/* Header - Full Width */}
       <header className="mn-header">
         <div className="mn-header-left">
-          <div className="mn-header-title" onClick={() => navigate('/dashboard')}>
+          <div className="mn-header-title" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <div className="mn-logo-img"></div>
             cerbyl
           </div>

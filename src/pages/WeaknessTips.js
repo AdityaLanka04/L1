@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ChevronRight, Lightbulb, BookOpen, Activity, ArrowRight, Brain, Target,
@@ -135,7 +135,7 @@ const WeaknessTips = () => {
       {/* Header */}
       <header className="tips-header">
         <div className="tips-header-left">
-          <h1 className="tips-logo" onClick={() => navigate('/dashboard')}>
+          <h1 className="tips-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <div className="tips-logo-img" />
             cerbyl
           </h1>

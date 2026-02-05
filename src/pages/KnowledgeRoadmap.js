@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ReactFlow, {
   Background,
@@ -1476,7 +1476,7 @@ User question: ${messageText}`);
     <div className="kr-page">
       <header className="kr-header">
         <div className="kr-header-left">
-          <div className="kr-brand" onClick={() => navigate('/dashboard')}>
+          <div className="kr-brand" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <div className="kr-logo-img"></div>
             cerbyl
           </div>
@@ -1531,7 +1531,7 @@ User question: ${messageText}`);
               </button>
             </>
           ) : (
-            <button className="kr-nav-btn" onClick={() => navigate('/dashboard')}>
+            <button className="kr-nav-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
               Dashboard
               <ChevronRight size={14} />
             </button>

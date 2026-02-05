@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
 import { API_URL } from '../config';
@@ -1775,7 +1775,7 @@ const AIChat = ({ sharedMode = false }) => {
       {/* Header */}
       <header className="ac-header">
         <div className="ac-header-left">
-          <h1 className="ac-logo" onClick={() => navigate('/dashboard')}>
+          <h1 className="ac-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <div className="ac-logo-img" />
             cerbyl
           </h1>

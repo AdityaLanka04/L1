@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRight, ChevronLeft, X, Filter, Calendar, Play, HelpCircle, RefreshCw, Edit, MessageCircle, Target, Brain, TrendingUp, Zap, BarChart3, LogIn, UserPlus } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
@@ -1504,7 +1504,7 @@ const SearchHub = () => {
               <>
                 <button 
                   className="header-text-btn login-signup-btn"
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => window.openGlobalNav && window.openGlobalNav()}
                 >
                   Dashboard
                 </button>

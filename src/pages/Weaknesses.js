@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ChevronRight, Target, Brain, MessageSquare, 
@@ -81,7 +81,7 @@ const Weaknesses = () => {
       {/* Header */}
       <header className="weaknesses-header">
         <div className="weaknesses-header-left">
-          <h1 className="weaknesses-logo" onClick={() => navigate('/dashboard')}>
+          <h1 className="weaknesses-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <div className="weaknesses-logo-img" />
             cerbyl
           </h1>

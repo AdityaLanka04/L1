@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Loader, BookOpen, Target, Clock, Award,
@@ -119,7 +119,7 @@ const LearningPaths = () => {
       {/* Header */}
       <header className="lp-header">
         <div className="lp-header-left">
-          <div className="lp-header-logo" onClick={() => navigate('/dashboard')}>
+          <div className="lp-header-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <div className="lp-header-logo-img" />
             cerbyl
           </div>

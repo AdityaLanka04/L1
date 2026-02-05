@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, ChevronRight } from 'lucide-react';
 import './StudyInsights.css';
@@ -111,7 +111,7 @@ const StudyInsights = () => {
     <div className="si-page">
       <header className="si-header">
         <div className="si-header-left">
-          <h1 className="si-logo" onClick={() => navigate('/dashboard')}>
+          <h1 className="si-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <div className="si-logo-img" />
             cerbyl
           </h1>

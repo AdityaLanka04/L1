@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Mic, BookOpen, Zap, ChevronRight
@@ -34,7 +34,7 @@ const NotesHub = () => {
       {/* Header */}
       <header className="nh-header">
         <div className="nh-header-left">
-          <h1 className="nh-logo" onClick={() => navigate('/dashboard')}>
+          <h1 className="nh-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
             <div className="nh-logo-img" />
             cerbyl
           </h1>

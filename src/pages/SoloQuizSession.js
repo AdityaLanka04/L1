@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, Target, Trophy, CheckCircle, XCircle, Loader, Lightbulb, RefreshCw, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import './QuizBattleSession.css';
@@ -447,7 +447,7 @@ const SoloQuizSession = () => {
               <RefreshCw size={18} />
               Try Another Quiz
             </button>
-            <button className="result-button secondary" onClick={() => navigate('/dashboard')}>
+            <button className="result-button secondary" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
               Back to Dashboard
             </button>
           </div>
