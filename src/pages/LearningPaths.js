@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Loader, BookOpen, Target, Clock, Award,
   TrendingUp, CheckCircle, Lock, Play, Trash2, MoreVertical,
@@ -10,6 +10,7 @@ import './LearningPaths.css';
 
 const LearningPaths = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [paths, setPaths] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -23,7 +24,23 @@ const LearningPaths = () => {
 
   useEffect(() => {
     loadPaths();
-  }, []);
+    
+    // Check if we should auto-generate from SearchHub
+    if (location.state?.autoGenerate && location.state?.topic) {
+      setTopicPrompt(location.state.topic);
+      setDifficulty(location.state.difficulty || 'intermediate');
+      setLength(location.state.length || 'medium');
+      setShowCreateModal(true);
+      
+      // Auto-trigger generation after a brief delay
+      setTimeout(() => {
+        handleCreatePath();
+      }, 500);
+      
+      // Clear the state to prevent re-triggering
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const loadPaths = async () => {
     try {

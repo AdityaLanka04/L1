@@ -787,7 +787,8 @@ const LearningPathDetail = () => {
                 </div>
               )}
 
-              {/* Resources Section */}
+              {/* Resources Section - TEMPORARILY DISABLED (waiting for search API key) */}
+              {/* 
               {((selectedNode.primary_resources && selectedNode.primary_resources.length > 0) ||
                 (selectedNode.supplementary_resources && selectedNode.supplementary_resources.length > 0) ||
                 (selectedNode.practice_resources && selectedNode.practice_resources.length > 0) ||
@@ -798,7 +799,6 @@ const LearningPathDetail = () => {
                     LEARNING RESOURCES
                   </h3>
                   
-                  {/* Primary Resources */}
                   {selectedNode.primary_resources && selectedNode.primary_resources.length > 0 && (
                     <div className="lpd-resource-category">
                       <h4 className="lpd-resource-category-title">Required Resources</h4>
@@ -867,7 +867,6 @@ const LearningPathDetail = () => {
                     </div>
                   )}
 
-                  {/* Supplementary Resources */}
                   {selectedNode.supplementary_resources && selectedNode.supplementary_resources.length > 0 && (
                     <div className="lpd-resource-category">
                       <h4 className="lpd-resource-category-title">Optional Resources</h4>
@@ -903,7 +902,6 @@ const LearningPathDetail = () => {
                     </div>
                   )}
 
-                  {/* Practice Resources */}
                   {selectedNode.practice_resources && selectedNode.practice_resources.length > 0 && (
                     <div className="lpd-resource-category">
                       <h4 className="lpd-resource-category-title">Practice & Exercises</h4>
@@ -928,7 +926,6 @@ const LearningPathDetail = () => {
                     </div>
                   )}
 
-                  {/* Fallback to old resources format */}
                   {!selectedNode.primary_resources && selectedNode.resources && selectedNode.resources.length > 0 && (
                     <div className="lpd-resources">
                       {selectedNode.resources.map((resource, i) => (
@@ -956,6 +953,7 @@ const LearningPathDetail = () => {
                   )}
                 </div>
               )}
+              */}
 
               {/* Activities Section */}
               <div className="lpd-block">

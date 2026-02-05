@@ -279,12 +279,14 @@ class SearchHubAction(str, Enum):
     CREATE_QUESTIONS = "create_questions"
     CREATE_QUIZ = "create_quiz"
     CREATE_ROADMAP = "create_roadmap"
+    CREATE_LEARNING_PATH = "create_learning_path"
     
     # Content Search
     SEARCH_ALL = "search_all"
     SEARCH_NOTES = "search_notes"
     SEARCH_FLASHCARDS = "search_flashcards"
     SEARCH_QUESTIONS = "search_questions"
+    SEARCH_LEARNING_PATHS = "search_learning_paths"
     
     # AI Exploration
     EXPLAIN_TOPIC = "explain_topic"
@@ -298,6 +300,7 @@ class SearchHubAction(str, Enum):
     SHOW_WEAK_AREAS = "show_weak_areas"
     SHOW_STRONG_AREAS = "show_strong_areas"
     SHOW_ACHIEVEMENTS = "show_achievements"
+    SHOW_LEARNING_PATHS = "show_learning_paths"
     
     # Knowledge Graph / Adaptive Learning
     DETECT_LEARNING_STYLE = "detect_learning_style"
@@ -328,6 +331,7 @@ class ContentType(str, Enum):
     QUESTION_SET = "question_set"
     QUIZ = "quiz"
     ROADMAP = "roadmap"
+    LEARNING_PATH = "learning_path"
     CHAT = "chat"
 
 
@@ -1367,7 +1371,8 @@ class SearchHubAgent(BaseAgent):
             SearchHubAction.CREATE_FLASHCARDS.value,
             SearchHubAction.CREATE_QUESTIONS.value,
             SearchHubAction.CREATE_QUIZ.value,
-            SearchHubAction.CREATE_ROADMAP.value
+            SearchHubAction.CREATE_ROADMAP.value,
+            SearchHubAction.CREATE_LEARNING_PATH.value
         ]:
             return "create"
         
@@ -1377,6 +1382,7 @@ class SearchHubAgent(BaseAgent):
             SearchHubAction.SEARCH_NOTES.value,
             SearchHubAction.SEARCH_FLASHCARDS.value,
             SearchHubAction.SEARCH_QUESTIONS.value,
+            SearchHubAction.SEARCH_LEARNING_PATHS.value,
             SearchHubAction.BROWSE_PUBLIC.value
         ]:
             return "search"
@@ -1411,6 +1417,7 @@ class SearchHubAgent(BaseAgent):
             SearchHubAction.TAKE_QUIZ.value,
             SearchHubAction.SHOW_PROGRESS.value,
             SearchHubAction.SHOW_ACHIEVEMENTS.value,
+            SearchHubAction.SHOW_LEARNING_PATHS.value,
             SearchHubAction.OPTIMIZE_RETENTION.value,
             SearchHubAction.ADAPT_DIFFICULTY.value,
             SearchHubAction.FIND_STUDY_TWIN.value
@@ -1441,6 +1448,24 @@ class SearchHubAgent(BaseAgent):
         params = state.get("extracted_params", {})
         
         state["execution_path"].append(f"searchhub:create:{action}")
+        
+        # Handle learning path creation (navigation-based, no content creator needed)
+        if action == SearchHubAction.CREATE_LEARNING_PATH.value:
+            state["navigate_to"] = "/learning-paths"
+            state["navigate_params"] = {
+                "autoGenerate": True,
+                "topic": topic or "your topic",
+                "difficulty": params.get("difficulty", "intermediate"),
+                "length": params.get("length", "medium")
+            }
+            state["response_data"] = {
+                "success": True,
+                "action": action,
+                "navigate_to": "/learning-paths",
+                "navigate_params": state["navigate_params"],
+                "message": f"Generating learning path for {topic or 'your topic'}..."
+            }
+            return state
         
         if not self.content_creator:
             state["errors"] = ["Content creation not available"]
@@ -1703,6 +1728,7 @@ class SearchHubAgent(BaseAgent):
             SearchHubAction.TAKE_QUIZ.value: "/solo-quiz",
             SearchHubAction.SHOW_PROGRESS.value: "/study-insights",
             SearchHubAction.SHOW_ACHIEVEMENTS.value: "/study-insights?tab=achievements",
+            SearchHubAction.SHOW_LEARNING_PATHS.value: "/learning-paths",
             SearchHubAction.DETECT_LEARNING_STYLE.value: "/study-insights?tab=style",
             SearchHubAction.FIND_STUDY_TWIN.value: "/community",
             SearchHubAction.OPTIMIZE_RETENTION.value: "/study-insights?tab=retention",
@@ -1717,6 +1743,7 @@ class SearchHubAgent(BaseAgent):
             SearchHubAction.TAKE_QUIZ.value: "Starting quiz mode...",
             SearchHubAction.SHOW_PROGRESS.value: "Loading your learning progress...",
             SearchHubAction.SHOW_ACHIEVEMENTS.value: "Loading your achievements...",
+            SearchHubAction.SHOW_LEARNING_PATHS.value: "Loading your learning paths...",
             SearchHubAction.DETECT_LEARNING_STYLE.value: "Analyzing your learning style...",
             SearchHubAction.OPTIMIZE_RETENTION.value: "Optimizing your retention schedule...",
             SearchHubAction.ADAPT_DIFFICULTY.value: "Adjusting difficulty to your level...",

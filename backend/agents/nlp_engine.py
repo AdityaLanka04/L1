@@ -238,6 +238,29 @@ INTENT_DEFINITIONS = {
         "requires_topic": True,
         "response_type": "action",
     },
+    "create_learning_path": {
+        "category": IntentCategory.CREATE,
+        "examples": [
+            "create a learning path on machine learning",
+            "make a roadmap for python",
+            "generate a study plan for data science",
+            "create a path on quantum computing",
+            "build a learning roadmap for web development",
+            "i want to learn machine learning step by step",
+            "help me learn python systematically",
+            "create a structured path for AI",
+            "make a study roadmap for algorithms",
+            "path on deep learning",
+            "roadmap for javascript",
+            "study plan for calculus",
+            "learn react from scratch",
+            "systematic approach to learning databases",
+        ],
+        "keywords": ["path", "roadmap", "plan", "systematic", "structured", "step by step", "from scratch"],
+        "verbs": ["create", "make", "generate", "build", "learn"],
+        "requires_topic": True,
+        "response_type": "action",
+    },
     
     # ============ LEARNING INTENTS ============
     "explain_topic": {
@@ -828,6 +851,14 @@ class NLPEngine:
         
         # First check for specific create patterns (high priority)
         create_patterns = [
+            # Learning Path patterns (HIGHEST PRIORITY - must come first!)
+            (r'(?:create|make|generate|build)\s+(?:a\s+)?(?:learning\s+)?path\s+(?:on|for|about)\s+\w+', 'create_learning_path', 0.95),
+            (r'(?:create|make|generate|build)\s+(?:a\s+)?roadmap\s+(?:on|for|about)\s+\w+', 'create_learning_path', 0.95),
+            (r'(?:create|make|generate|build)\s+(?:a\s+)?study\s+plan\s+(?:on|for|about)\s+\w+', 'create_learning_path', 0.95),
+            (r'\bpath\s+(?:on|for|about)\s+\w+', 'create_learning_path', 0.9),
+            (r'\broadmap\s+(?:on|for|about)\s+\w+', 'create_learning_path', 0.9),
+            (r'learn\s+\w+\s+(?:step\s+by\s+step|systematically|from\s+scratch)', 'create_learning_path', 0.9),
+            (r'study\s+\w+\s+systematically', 'create_learning_path', 0.9),
             # Note patterns
             (r'\bnote[s]?\s+(?:on|about|for)\s+\w+', 'create_note', 0.85),
             (r'\bnote[s]?\s+\w+', 'create_note', 0.75),

@@ -1036,9 +1036,11 @@ class EnhancedSearchHubAgent(BaseAgent):
             "create_flashcards": "create",
             "create_questions": "create",
             "create_quiz": "create",
+            "create_learning_path": "create",
             
             # Search
             "search_all": "search",
+            "search_learning_paths": "search",
             
             # Exploration/Learning
             "explain_topic": "explore",
@@ -1046,6 +1048,7 @@ class EnhancedSearchHubAgent(BaseAgent):
             
             # Review
             "review_flashcards": "learning",
+            "show_learning_paths": "learning",
             
             # Knowledge Graph / Analytics
             "show_weak_areas": "knowledge_graph",
@@ -1088,6 +1091,23 @@ class EnhancedSearchHubAgent(BaseAgent):
         count = entities.get("count", 10)
         
         state["execution_path"].append(f"searchhub:create:{intent}")
+        
+        # Handle learning path creation (navigation-based, no content creator needed)
+        if intent == "create_learning_path":
+            state["navigate_to"] = "/learning-paths"
+            state["navigate_params"] = {
+                "autoGenerate": True,
+                "topic": topic or "your topic",
+                "difficulty": entities.get("difficulty", "intermediate"),
+                "length": entities.get("length", "medium")
+            }
+            state["response_data"] = {
+                "success": True,
+                "message": f"Generating learning path for {topic or 'your topic'}...",
+                "navigate_to": "/learning-paths"
+            }
+            logger.info(f"Learning path creation - navigate_to: /learning-paths, topic: {topic}")
+            return state
         
         if not self.content_creator:
             state["errors"] = ["Content creation not available"]

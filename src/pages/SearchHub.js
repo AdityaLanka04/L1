@@ -317,6 +317,9 @@ const SearchHub = () => {
 
     const commands = [
       { pattern: 'create', suggestions: [
+        { text: 'create a learning path on {topic}', icon: '', action: 'create_learning_path', description: 'AI generates structured roadmap' },
+        { text: 'create a path on {topic}', icon: '', action: 'create_learning_path', description: 'AI generates structured roadmap' },
+        { text: 'create a roadmap for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates structured roadmap' },
         { text: 'create a note on {topic}', icon: '', action: 'create_note', description: 'AI writes comprehensive notes' },
         { text: 'create 10 flashcards on {topic}', icon: '', action: 'create_flashcards', description: 'AI generates study cards' },
         { text: 'create 15 flashcards on {topic}', icon: '', action: 'create_flashcards', description: 'More cards for deeper study' },
@@ -324,12 +327,18 @@ const SearchHub = () => {
         { text: 'create a quiz on {topic}', icon: '', action: 'create_quiz', description: 'Start quiz immediately' },
       ]},
       { pattern: 'make', suggestions: [
+        { text: 'make a learning path for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates structured roadmap' },
+        { text: 'make a path for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates structured roadmap' },
+        { text: 'make a roadmap for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates structured roadmap' },
         { text: 'make a note about {topic}', icon: '', action: 'create_note', description: 'AI writes comprehensive notes' },
         { text: 'make flashcards for {topic}', icon: '', action: 'create_flashcards', description: 'AI generates study cards' },
         { text: 'make a quiz about {topic}', icon: '', action: 'create_quiz', description: 'Start quiz immediately' },
         { text: 'make questions about {topic}', icon: '', action: 'create_questions', description: 'AI creates practice questions' },
       ]},
       { pattern: 'generate', suggestions: [
+        { text: 'generate a learning path for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates structured roadmap' },
+        { text: 'generate a path for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates structured roadmap' },
+        { text: 'generate a roadmap for {topic}', icon: '', action: 'create_learning_path', description: 'AI generates structured roadmap' },
         { text: 'generate flashcards on {topic}', icon: '', action: 'create_flashcards', description: 'AI generates study cards' },
         { text: 'generate questions on {topic}', icon: '', action: 'create_questions', description: 'AI creates practice questions' },
         { text: 'generate a study guide for {topic}', icon: '', action: 'create_note', description: 'Comprehensive study guide' },
@@ -339,14 +348,26 @@ const SearchHub = () => {
         { text: 'write about {topic}', icon: '', action: 'create_note', description: 'AI writes comprehensive notes' },
       ]},
       { pattern: 'learn', suggestions: [
+        { text: 'learn {topic} step by step', icon: '', action: 'create_learning_path', description: 'Structured learning roadmap' },
         { text: 'learn about {topic}', icon: '', action: 'explain', description: 'Get AI explanation' },
-        { text: 'learn {topic} from scratch', icon: '', action: 'explain', description: 'Beginner-friendly explanation' },
+        { text: 'learn {topic} from scratch', icon: '', action: 'create_learning_path', description: 'Beginner-friendly path' },
+      ]},
+      { pattern: 'path', suggestions: [
+        { text: 'path on {topic}', icon: '', action: 'create_learning_path', description: 'Create learning path' },
+        { text: 'path for {topic}', icon: '', action: 'create_learning_path', description: 'Create learning path' },
+        { text: 'learning path on {topic}', icon: '', action: 'create_learning_path', description: 'Structured roadmap' },
+      ]},
+      { pattern: 'roadmap', suggestions: [
+        { text: 'roadmap for {topic}', icon: '', action: 'create_learning_path', description: 'Create learning roadmap' },
+        { text: 'roadmap on {topic}', icon: '', action: 'create_learning_path', description: 'Create learning roadmap' },
+        { text: 'study roadmap for {topic}', icon: '', action: 'create_learning_path', description: 'Structured study plan' },
       ]},
       { pattern: 'teach', suggestions: [
         { text: 'teach me {topic}', icon: '', action: 'explain', description: 'Interactive AI tutoring' },
         { text: 'teach me about {topic}', icon: '', action: 'explain', description: 'Interactive AI tutoring' },
       ]},
       { pattern: 'study', suggestions: [
+        { text: 'study {topic} systematically', icon: '', action: 'create_learning_path', description: 'Structured learning path' },
         { text: 'study {topic}', icon: '', action: 'create_flashcards', description: 'Create flashcards to study' },
         { text: 'study my flashcards', icon: '', action: 'review_flashcards', description: 'Review your cards' },
         { text: 'study weak areas', icon: '', action: 'show_weak_areas', description: 'Focus on improvements' },
@@ -361,6 +382,7 @@ const SearchHub = () => {
         { text: 'review what I\'ll forget next', icon: '', action: 'predict_forgetting' },
       ]},
       { pattern: 'show', suggestions: [
+        { text: 'show my learning paths', icon: '', action: 'show_learning_paths' },
         { text: 'show my progress', icon: '', action: 'show_progress' },
         { text: 'show weak areas', icon: '', action: 'show_weak_areas' },
         { text: 'show my achievements', icon: '', action: 'show_achievements' },
@@ -747,7 +769,7 @@ const SearchHub = () => {
     const { action, parameters } = intentData;
     
     // Check if user is logged in for creation actions
-    if (!userName && ['create_note', 'create_flashcards', 'create_questions', 'create_quiz'].includes(action)) {
+    if (!userName && ['create_note', 'create_flashcards', 'create_questions', 'create_quiz', 'create_learning_path'].includes(action)) {
       setShowLoginModal(true);
       setIsSearching(false);
       return;
@@ -936,6 +958,28 @@ const SearchHub = () => {
           navigate('/flashcards');
           break;
           
+        case 'create_learning_path':
+          setIsCreating(true);
+          setCreatingMessage(`Generating learning path for ${parameters.topic}...`);
+          
+          // Navigate to learning paths with auto-generation
+          setTimeout(() => {
+            setIsCreating(false);
+            navigate('/learning-paths', { 
+              state: { 
+                autoGenerate: true,
+                topic: parameters.topic || searchQuery,
+                difficulty: parameters.difficulty || 'intermediate',
+                length: parameters.length || 'medium'
+              } 
+            });
+          }, 800);
+          break;
+          
+        case 'show_learning_paths':
+          navigate('/learning-paths');
+          break;
+          
         default:
           // Fall back to regular search
           setIsSearching(false);
@@ -985,7 +1029,12 @@ const SearchHub = () => {
               let category = 'AI Suggestion';
               
               // Intelligent categorization based on intent
-              if (suggestionLower.includes('flashcard') || suggestionLower.includes('card')) {
+              if (suggestionLower.includes('learning path') || suggestionLower.includes('roadmap') || suggestionLower.includes('step by step') || 
+                  (suggestionLower.includes('path') && (suggestionLower.includes('create') || suggestionLower.includes('make') || suggestionLower.includes('generate'))) ||
+                  suggestionLower.includes('study plan')) {
+                type = 'create_learning_path';
+                category = 'Learning Path';
+              } else if (suggestionLower.includes('flashcard') || suggestionLower.includes('card')) {
                 type = 'create_flashcards';
                 category = 'Create';
               } else if (suggestionLower.includes('note') || suggestionLower.includes('write')) {
@@ -1012,9 +1061,9 @@ const SearchHub = () => {
               } else if (suggestionLower.includes('chat') || suggestionLower.includes('talk') || suggestionLower.includes('discuss')) {
                 type = 'chat';
                 category = 'Chat';
-              } else if (suggestionLower.includes('roadmap') || suggestionLower.includes('path')) {
-                type = 'roadmap';
-                category = 'Plan';
+              } else if (suggestionLower.includes('path')) {
+                type = 'show_learning_paths';
+                category = 'Learning Path';
               } else {
                 type = 'nlp_suggestion';
                 category = 'AI';
@@ -1080,9 +1129,22 @@ const SearchHub = () => {
     
     // Action-based suggestions
     if (queryLower.includes('create') || queryLower.includes('make') || queryLower.includes('generate')) {
-      const topic = queryLower.replace(/^(create|make|generate)\s+/i, '').trim();
-      if (topic) {
+      // Extract topic - handle "path", "roadmap", "learning path" variations
+      let topic = queryLower
+        .replace(/^(create|make|generate)\s+(a\s+)?(learning\s+)?(path|roadmap|study\s+plan)\s+(on|for|about)\s+/i, '')
+        .replace(/^(create|make|generate)\s+(a\s+)?/i, '')
+        .trim();
+      
+      // If topic contains "path" or "roadmap", extract the actual topic
+      const pathMatch = topic.match(/(?:path|roadmap|study\s+plan)\s+(?:on|for|about)\s+(.+)/i);
+      if (pathMatch) {
+        topic = pathMatch[1].trim();
+      }
+      
+      if (topic && topic.length > 2) {
         suggestions.push(
+          { text: `create learning path on ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
+          { text: `create path on ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
           { text: `create flashcards on ${topic}`, type: 'create_flashcards', category: 'Create', source: 'smart' },
           { text: `create notes on ${topic}`, type: 'create_note', category: 'Create', source: 'smart' },
           { text: `create quiz on ${topic}`, type: 'create_quiz', category: 'Quiz', source: 'smart' }
@@ -1110,10 +1172,23 @@ const SearchHub = () => {
         { text: 'show my achievements', type: 'show_achievements', category: 'Progress', source: 'smart' }
       );
     } else {
-      // Topic-based suggestions
-      const topic = query.trim();
-      if (topic.length > 2) {
+      // Topic-based suggestions - also handle "path on X" patterns
+      let topic = query.trim();
+      
+      // Check if query is like "path on machine learning" or "roadmap for python"
+      const pathPatternMatch = topic.match(/^(path|roadmap|study\s+plan)\s+(on|for|about)\s+(.+)/i);
+      if (pathPatternMatch) {
+        const actualTopic = pathPatternMatch[3].trim();
         suggestions.push(
+          { text: `create learning path on ${actualTopic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
+          { text: `create path on ${actualTopic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
+          { text: `explain ${actualTopic}`, type: 'explain', category: 'Learn', source: 'smart' },
+          { text: `create flashcards on ${actualTopic}`, type: 'create_flashcards', category: 'Create', source: 'smart' }
+        );
+      } else if (topic.length > 2) {
+        suggestions.push(
+          { text: `create learning path on ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
+          { text: `create path on ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
           { text: `create flashcards on ${topic}`, type: 'create_flashcards', category: 'Create', source: 'smart' },
           { text: `explain ${topic}`, type: 'explain', category: 'Learn', source: 'smart' },
           { text: `create notes on ${topic}`, type: 'create_note', category: 'Create', source: 'smart' },
@@ -1164,6 +1239,7 @@ const SearchHub = () => {
           // If we found a topic, create suggestions for it
           if (topic && topic.length > 2) {
             topicSuggestions.push(
+              { text: `create learning path on ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'personalized' },
               { text: `create flashcards on ${topic}`, type: 'create_flashcards', category: 'Create', source: 'personalized' },
               { text: `explain ${topic}`, type: 'explain', category: 'Learn', source: 'personalized' },
               { text: `quiz me on ${topic}`, type: 'create_quiz', category: 'Quiz', source: 'personalized' }
@@ -1212,7 +1288,12 @@ const SearchHub = () => {
         let type = 'suggestion';
         let category = 'Suggested';
         
-        if (textLower.includes('flashcard')) {
+        if (textLower.includes('learning path') || textLower.includes('roadmap') || 
+            (textLower.includes('path') && (textLower.includes('create') || textLower.includes('make'))) ||
+            textLower.includes('study plan')) {
+          type = 'create_learning_path';
+          category = 'Learning Path';
+        } else if (textLower.includes('flashcard')) {
           type = 'create_flashcards';
           category = 'Create';
         } else if (textLower.includes('note')) {
@@ -1973,6 +2054,32 @@ const SearchHub = () => {
                   <div className="create-options">
                     <h4>Create study materials or explore this topic:</h4>
                     <div className="create-options-grid">
+                      <button
+                        className="create-option-card"
+                        onClick={() => {
+                          if (!userName) {
+                            setShowLoginModal(true);
+                            return;
+                          }
+                          setIsCreating(true);
+                          setCreatingMessage(`Generating learning path for ${searchQuery}...`);
+                          setTimeout(() => {
+                            setIsCreating(false);
+                            navigate('/learning-paths', { 
+                              state: { 
+                                autoGenerate: true,
+                                topic: searchQuery,
+                                difficulty: 'intermediate',
+                                length: 'medium'
+                              } 
+                            });
+                          }, 800);
+                        }}
+                      >
+                        <Target size={32} />
+                        <h5>Create Learning Path</h5>
+                        <p>Structured roadmap to master this</p>
+                      </button>
                       <button
                         className="create-option-card"
                         onClick={() => handleCreateContent('flashcards')}

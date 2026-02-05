@@ -146,6 +146,53 @@ def search_quiz_history(user_id: int, topic: Optional[str] = None, limit: int = 
 
 
 @tool
+def search_learning_paths(query: str, user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
+    """
+    Search user's learning paths by title and description.
+    Use this to find relevant learning paths.
+    
+    Args:
+        query: Search query
+        user_id: User's ID
+        limit: Maximum results
+    
+    Returns:
+        List of matching learning paths with id, title, description, progress
+    """
+    if not _db_session_factory:
+        return []
+    try:
+        from sqlalchemy import or_
+        import models
+        
+        db = _db_session_factory()
+        results = db.query(models.LearningPath).filter(
+            models.LearningPath.user_id == user_id,
+            or_(
+                models.LearningPath.title.ilike(f"%{query}%"),
+                models.LearningPath.description.ilike(f"%{query}%")
+            )
+        ).limit(limit).all()
+        
+        db.close()
+        return [
+            {
+                "id": lp.id,
+                "title": lp.title,
+                "description": lp.description,
+                "difficulty": lp.difficulty,
+                "status": lp.status,
+                "total_nodes": lp.total_nodes,
+                "completed_nodes": lp.completed_nodes
+            }
+            for lp in results
+        ]
+    except Exception as e:
+        logger.error(f"Error searching learning paths: {e}")
+        return []
+
+
+@tool
 def get_study_statistics(user_id: int, days: int = 30) -> Dict[str, Any]:
     """
     Get user's study statistics.
@@ -232,6 +279,7 @@ class SearchTools:
             search_flashcards,
             search_notes,
             search_quiz_history,
+            search_learning_paths,
             get_study_statistics,
             semantic_search
         ]
