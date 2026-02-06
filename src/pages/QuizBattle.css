@@ -441,6 +441,7 @@
   border-radius: 3px;
   transition: all 0.4s var(--qb-transition-spring);
   box-shadow: 0 0 12px var(--qb-accent-glow);
+  transform: translateX(calc(var(--filter-index, 0) * 100%));
 }
 
 .qb-filter-tab {
@@ -482,9 +483,11 @@
 }
 
 .qb-filter-tab.active {
-  color: var(--qb-accent);
-  background: var(--qb-bg-tertiary);
+  color: white;
+  background: var(--qb-gradient-primary);
   border-radius: 10px;
+  box-shadow: 0 4px 12px var(--qb-accent-glow);
+  font-weight: 700;
 }
 
 .qb-filter-tab.active::before {

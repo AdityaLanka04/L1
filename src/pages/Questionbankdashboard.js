@@ -1175,6 +1175,11 @@ const QuestionBankDashboard = () => {
 
   const renderSidebar = () => (
     <div className="qbd-sidebar">
+      <div className="qbd-sidebar-header">
+        <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+          <Menu size={20} />
+        </button>
+      </div>
       <nav className="qbd-sidebar-nav">
         <button 
           className={`qbd-sidebar-item ${activeView === 'upload-pdf' ? 'active' : ''}`}

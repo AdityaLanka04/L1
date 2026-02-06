@@ -10650,8 +10650,8 @@ async def search_users(
             ).first()
             
             # Get gamification stats for activity counts
-            gam_stats = db.query(models.GamificationStats).filter(
-                models.GamificationStats.user_id == user.id
+            gam_stats = db.query(models.UserGamificationStats).filter(
+                models.UserGamificationStats.user_id == user.id
             ).first()
             
             # Check friendship status
@@ -10970,8 +10970,8 @@ async def get_friends(
             ).first()
             
             # Get gamification stats for activity counts
-            gam_stats = db.query(models.GamificationStats).filter(
-                models.GamificationStats.user_id == friend.id
+            gam_stats = db.query(models.UserGamificationStats).filter(
+                models.UserGamificationStats.user_id == friend.id
             ).first()
             
             preferred_subjects = []

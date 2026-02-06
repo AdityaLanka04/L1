@@ -2390,6 +2390,9 @@ const NotesRedesign = ({ sharedMode = false }) => {
       {/* Header - Exact MyNotes mn-header Style */}
       <header className={`top-nav-new ${titleSectionCollapsed ? 'hidden' : ''}`}>
         <div className="nav-left">
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
           {!isSharedContent && (
             <button
               onClick={() => navigate('/notes/my-notes')}

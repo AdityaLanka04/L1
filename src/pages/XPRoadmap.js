@@ -249,7 +249,7 @@ const XPRoadmap = () => {
       {/* Standardized Header */}
       <header className="xp-roadmap-header">
         <div className="xp-roadmap-header-left">
-          <button className="nav-menu-btn" onClick={() => navigate('/dashboard')} aria-label="Open navigation">
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             <Menu size={20} />
           </button>
           <h1 className="xp-roadmap-logo" onClick={() => navigate('/search-hub')}>

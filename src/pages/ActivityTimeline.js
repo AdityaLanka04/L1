@@ -2000,7 +2000,7 @@ const ActivityTimeline = () => {
       {/* Top Navigation Bar */}
       <header className="at-profile-header">
         <div className="at-profile-header-left">
-          <button className="nav-menu-btn" onClick={() => navigate('/dashboard')} aria-label="Open navigation">
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             <Menu size={20} />
           </button>
           <h1 className="at-profile-logo" onClick={() => navigate('/search-hub')}>

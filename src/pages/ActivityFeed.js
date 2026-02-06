@@ -82,7 +82,7 @@ const ActivityFeed = () => {
     <div className="feed-page">
       <header className="hub-header">
         <div className="hub-header-left">
-          <button className="nav-menu-btn" onClick={() => navigate('/dashboard')} aria-label="Open navigation">
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             <Menu size={20} />
           </button>
           <h1 className="hub-logo" onClick={() => navigate('/search-hub')}>

@@ -134,6 +134,9 @@ const SharedItemViewer = () => {
     <div className="shared-viewer-page">
       <header className="shared-viewer-header">
         <div className="header-left">
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
           <button className="back-btn" onClick={() => navigate('/shared')}>
             ◄ Back
           </button>

@@ -319,7 +319,7 @@ const Games = () => {
     <div className="games-page">
       <header className="gm-header">
         <div className="gm-header-left">
-          <button className="nav-menu-btn" onClick={() => navigate('/dashboard')} aria-label="Open navigation">
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             <Menu size={20} />
           </button>
           <h1 className="gm-logo" onClick={() => navigate('/search-hub')}>

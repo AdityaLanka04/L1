@@ -859,7 +859,7 @@ async def export_to_notes(
     username: str = Depends(verify_token),
     db: Session = Depends(get_db)
 ):
-    """Export node content to notes app"""
+    """Export node content to notes app with rich HTML formatting"""
     try:
         user_id = get_user_id_from_username(username, db)
         
@@ -881,37 +881,72 @@ async def export_to_notes(
         if not path:
             raise HTTPException(status_code=404, detail="Path not found")
         
-        # Build note content
-        note_content = f"# {node.title}\n\n"
+        # Build rich HTML note content (matching Knowledge Roadmap format)
+        note_content = f'<h1 style="font-weight: 800; font-size: 28px; margin-bottom: 24px; color: var(--accent);">{node.title}</h1>'
+        note_content += f'<p style="color: var(--text-secondary); margin-bottom: 32px; font-style: italic;">From Learning Path: {path.title}</p>'
+        note_content += '<hr style="border: none; border-top: 2px solid var(--border); margin: 24px 0;">'
         
+        # Introduction
         if node.introduction:
-            note_content += f"## Introduction\n{node.introduction}\n\n"
+            note_content += '<div style="margin-bottom: 24px; padding: 16px; background: var(--panel); border-left: 4px solid var(--accent); border-radius: 4px;">'
+            note_content += '<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;">Introduction</h4>'
+            note_content += f'<p style="color: var(--text-primary); line-height: 1.7; font-size: 14px;">{node.introduction}</p>'
+            note_content += '</div>'
         
+        # Core Sections
         if node.core_sections:
-            note_content += "## Core Content\n\n"
             for section in node.core_sections:
-                note_content += f"### {section.get('title', 'Section')}\n"
-                note_content += f"{section.get('content', '')}\n\n"
+                note_content += '<div style="margin-bottom: 24px;">'
+                note_content += f'<h3 style="font-weight: 700; font-size: 20px; margin-bottom: 12px; color: var(--accent);">{section.get("title", "Section")}</h3>'
+                note_content += f'<p style="color: var(--text-primary); line-height: 1.7; font-size: 14px; margin-bottom: 12px;">{section.get("content", "")}</p>'
+                
+                # Example
                 if section.get('example'):
-                    note_content += f"**Example:** {section.get('example')}\n\n"
+                    note_content += '<div style="padding: 12px; background: color-mix(in srgb, var(--info) 10%, transparent); border-radius: 4px; border: 1px solid var(--info); margin-top: 12px;">'
+                    note_content += '<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--info); text-transform: uppercase; letter-spacing: 0.5px;">Example</h4>'
+                    note_content += f'<p style="color: var(--text-primary); line-height: 1.7; font-size: 14px;">{section.get("example")}</p>'
+                    note_content += '</div>'
+                
+                note_content += '</div>'
         
+        # Key Takeaways / Summary
         if request.include_summary and node.summary:
-            note_content += "## Key Takeaways\n"
+            note_content += '<div style="margin-bottom: 24px;">'
+            note_content += '<h3 style="font-weight: 700; font-size: 20px; margin-bottom: 12px; color: var(--accent);">Key Takeaways</h3>'
+            note_content += '<ul style="margin-left: 20px; color: var(--text-primary); line-height: 1.8;">'
             for item in node.summary:
-                note_content += f"- {item}\n"
-            note_content += "\n"
+                note_content += f'<li style="margin-bottom: 6px; font-size: 14px;">{item}</li>'
+            note_content += '</ul></div>'
         
-        if request.include_resources and node.primary_resources:
-            note_content += "## Resources\n"
-            for resource in node.primary_resources:
-                note_content += f"- [{resource.get('title')}]({resource.get('url')}) - {resource.get('description')}\n"
-            note_content += "\n"
-        
+        # Real-World Applications
         if node.real_world_applications:
-            note_content += "## Real-World Applications\n"
+            note_content += '<div style="margin-bottom: 24px;">'
+            note_content += '<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 8px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;">Real-World Applications</h4>'
+            note_content += '<ul style="margin-left: 20px; color: var(--text-primary); line-height: 1.8;">'
             for app in node.real_world_applications:
-                note_content += f"- {app}\n"
-            note_content += "\n"
+                note_content += f'<li style="margin-bottom: 6px; font-size: 14px;">{app}</li>'
+            note_content += '</ul></div>'
+        
+        # Resources
+        if request.include_resources and node.primary_resources:
+            note_content += '<div style="margin-bottom: 24px; padding: 16px; background: var(--panel); border-radius: 4px;">'
+            note_content += '<h4 style="font-weight: 600; font-size: 14px; margin-bottom: 12px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;">Resources</h4>'
+            note_content += '<ul style="margin-left: 20px; color: var(--text-primary); line-height: 1.8;">'
+            for resource in node.primary_resources:
+                title = resource.get('title', 'Resource')
+                url = resource.get('url', '#')
+                description = resource.get('description', '')
+                note_content += f'<li style="margin-bottom: 8px; font-size: 14px;"><a href="{url}" style="color: var(--accent); text-decoration: none; font-weight: 600;">{title}</a>'
+                if description:
+                    note_content += f' - {description}'
+                note_content += '</li>'
+            note_content += '</ul></div>'
+        
+        # Footer
+        note_content += '<hr style="border: none; border-top: 2px solid var(--border); margin: 32px 0;">'
+        note_content += '<p style="color: var(--text-secondary); font-size: 12px; text-align: center; margin-top: 24px;">'
+        note_content += f'Exported from Learning Path: {path.title}'
+        note_content += '</p>'
         
         return {
             "success": True,

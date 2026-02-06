@@ -256,24 +256,46 @@ const LearningPathDetail = () => {
     if (!selectedNode) return;
     
     try {
+      setActionLoading(true);
+      
+      // Get the export data from backend
       const response = await learningPathService.exportToNotes(pathId, selectedNode.id, {
         include_resources: true,
         include_summary: true
       });
       
-      // Navigate to notes with the exported content
-      navigate('/notes/my-notes', {
-        state: {
-          generatedNote: {
-            title: response.note_title,
-            content: response.note_content,
-            tags: response.tags
-          }
-        }
+      // Create note directly via API (like Knowledge Roadmap does)
+      const token = localStorage.getItem('token');
+      const userName = localStorage.getItem('username');
+      
+      const createNoteResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/create_note`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          user_id: userName,
+          title: response.note_title,
+          content: response.note_content
+        })
       });
+
+      if (createNoteResponse.ok) {
+        const newNote = await createNoteResponse.json();
+        const noteId = newNote.id || newNote.note_id;
+        
+        // Navigate to the newly created note
+        navigate(`/notes/editor/${noteId}`);
+      } else {
+        throw new Error('Failed to create note');
+      }
+      
     } catch (error) {
       console.error('Error exporting to notes:', error);
       alert('Failed to export to notes');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -353,15 +375,30 @@ const LearningPathDetail = () => {
       // Route to appropriate page based on activity type
       switch (activity.type) {
         case 'notes':
-          navigate('/notes/my-notes', {
-            state: {
-              generatedNote: {
-                title: `${path.title} - ${selectedNode.title}`,
-                content: response.content,
-                fromLearningPath: true
-              }
-            }
+          // Create note directly via API (like Knowledge Roadmap does)
+          const token = localStorage.getItem('token');
+          const userName = localStorage.getItem('username');
+          
+          const createNoteResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/create_note`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              user_id: userName,
+              title: `${path.title} - ${selectedNode.title}`,
+              content: response.content
+            })
           });
+
+          if (createNoteResponse.ok) {
+            const newNote = await createNoteResponse.json();
+            const noteId = newNote.id || newNote.note_id;
+            navigate(`/notes/editor/${noteId}`);
+          } else {
+            throw new Error('Failed to create note');
+          }
           break;
 
         case 'flashcards':
@@ -464,6 +501,9 @@ const LearningPathDetail = () => {
       <div className="lpd-header">
         <div className="lpd-header-main">
           <div className="lpd-title-row">
+            <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+              <Menu size={20} />
+            </button>
             <h1 className="lpd-title">{path.title.toUpperCase()}</h1>
             <button className="lpd-back-btn" onClick={() => navigate('/learning-paths')}>
               <ChevronLeft size={16} />

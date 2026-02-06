@@ -180,6 +180,9 @@ const PlaylistDetailPage = () => {
       {/* Top Bar */}
       <div className="detail-topbar">
         <div className="topbar-left">
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
         </div>
 
         <div className="topbar-right">

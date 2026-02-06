@@ -68,26 +68,42 @@ class LearningPathAgent:
         )
         
         try:
-            # Call AI to generate path structure
-            ai_response = self._call_ai(generation_prompt)
+            # Call AI to generate path structure with higher token limit for complete response
+            ai_response = self._call_ai(generation_prompt, max_tokens=8000)
+            
+            logger.info(f"Received AI response of {len(ai_response)} characters")
             
             try:
                 path_data = self._parse_ai_response(ai_response)
+                logger.info(f"Successfully parsed path with {len(path_data.get('nodes', []))} nodes")
+                
+                # CRITICAL CHECK: Verify we got ALL requested nodes
+                if len(path_data.get('nodes', [])) < target_nodes:
+                    raise ValueError(f"Only got {len(path_data.get('nodes', []))} nodes, expected {target_nodes}. Retrying with explicit template.")
+                
             except ValueError as parse_error:
                 logger.warning(f"Failed to parse AI response (attempt 1): {parse_error}")
+                logger.warning(f"AI response preview: {ai_response[:500]}...")
                 
                 # Try with a simpler prompt that's more likely to produce valid JSON
                 logger.info("Retrying with simplified prompt...")
                 simple_prompt = self._build_simple_generation_prompt(topic_prompt, difficulty, target_nodes)
                 
                 try:
-                    ai_response = self._call_ai(simple_prompt)
+                    ai_response = self._call_ai(simple_prompt, max_tokens=8000)
+                    logger.info(f"Received simplified AI response of {len(ai_response)} characters")
                     path_data = self._parse_ai_response(ai_response)
+                    logger.info(f"Successfully parsed simplified path with {len(path_data.get('nodes', []))} nodes")
+                    
+                    # CRITICAL CHECK: Verify we got ALL requested nodes
+                    if len(path_data.get('nodes', [])) < target_nodes:
+                        raise ValueError(f"Even simplified prompt only got {len(path_data.get('nodes', []))} nodes, expected {target_nodes}")
+                    
                 except Exception as parse_error2:
                     logger.warning(f"Failed to parse AI response (attempt 2): {parse_error2}")
                     logger.info("Using fallback template...")
-                    # Use fallback if both attempts fail
-                    fallback_response = self._get_fallback_response(topic_prompt)
+                    # Use fallback if both attempts fail - but generate correct number of nodes
+                    fallback_response = self._get_fallback_response(topic_prompt, target_nodes)
                     try:
                         path_data = self._parse_ai_response(fallback_response)
                     except Exception as fallback_error:
@@ -113,45 +129,54 @@ class LearningPathAgent:
         """Build prompt for AI path generation with enhanced content structure"""
         goals_text = "\n".join([f"- {g}" for g in goals]) if goals else "General mastery of the topic"
         
-        return f"""Generate a comprehensive learning path for: "{topic}"
+        return f"""You are an expert teacher creating a comprehensive learning path for "{topic}".
 
-Difficulty: {difficulty} | Nodes: {node_count}
-Learning Goals: {goals_text}
+STUDENT LEVEL: {difficulty}
+NUMBER OF MODULES: {node_count}
+LEARNING GOALS: {goals_text}
 
-CRITICAL JSON RULES:
-1. Return ONLY valid JSON - no extra text before or after
-2. Keep URLs and descriptions SHORT to avoid truncation
-3. Ensure ALL braces and brackets are properly matched
-4. Each node must have DETAILED, STRUCTURED content
+YOUR TASK: Design a complete curriculum with {node_count} modules that takes a student from beginner to proficient in {topic}.
 
-ENHANCED NODE STRUCTURE:
-{{{{
+PEDAGOGICAL REQUIREMENTS:
+1. Start with fundamentals and prerequisites
+2. Build concepts progressively - each module should build on previous ones
+3. Cover the ESSENTIAL topics a student MUST know to master {topic}
+4. Order topics logically (e.g., for Machine Learning: math foundations → supervised learning → unsupervised learning → neural networks → deep learning)
+5. Include practical applications and real-world examples
+6. End with advanced topics and mastery
+
+THINK LIKE A TEACHER:
+- What are the core concepts a student needs to understand {topic}?
+- What order makes the most sense pedagogically?
+- What prerequisites are needed for each concept?
+- What real-world applications will motivate the student?
+
+Return ONLY valid JSON with this structure:
+
+{{
   "title": "Master {topic}",
-  "description": "Comprehensive learning journey for {topic}",
+  "description": "Comprehensive {difficulty}-level learning path for {topic}",
   "estimated_hours": {node_count * 0.5},
   "nodes": [
-    {{{{
+    {{
       "order_index": 0,
-      "title": "Introduction to [Specific Subtopic]",
-      "description": "Brief overview of this specific concept",
+      "title": "[Specific topic name - e.g., 'Linear Algebra Fundamentals' for ML]",
+      "description": "2-3 sentences explaining what this module covers and why it matters",
       
-      "introduction": "2-3 sentences explaining WHY this node matters and how it fits into the bigger picture",
+      "introduction": "2-3 sentences explaining WHY this topic is important and how it fits into the bigger picture of {topic}",
       
       "core_sections": [
-        {{{{
-          "title": "Section 1 Title",
-          "content": "Detailed explanation of the concept",
+        {{
+          "title": "Specific Concept 1",
+          "content": "Detailed explanation of this concept",
           "example": "Concrete example demonstrating the concept",
-          "visual_description": "Description of diagram/chart that would help",
-          "practice_question": "Quick check question for this section"
-        }}}},
-        {{{{
-          "title": "Section 2 Title",
-          "content": "Next concept building on previous",
-          "example": "Another practical example",
-          "visual_description": "Another helpful visual",
-          "practice_question": "Another check question"
-        }}}}
+          "visual_description": "Description of a helpful diagram or visualization"
+        }},
+        {{
+          "title": "Specific Concept 2",
+          "content": "Next concept building on the previous",
+          "example": "Another practical example"
+        }}
       ],
       
       "summary": [
@@ -160,175 +185,162 @@ ENHANCED NODE STRUCTURE:
         "Key takeaway 3"
       ],
       
-      "connection_map": {{{{
-        "builds_on": ["Previous concept 1", "Previous concept 2"],
-        "leads_to": ["Next concept 1", "Next concept 2"],
-        "related_topics": ["Related topic 1"]
-      }}}},
-      
       "real_world_applications": [
-        "Application 1: How this is used in industry/real life",
-        "Application 2: Another practical use case",
-        "Application 3: Career relevance"
+        "Specific real-world application 1",
+        "Specific real-world application 2",
+        "Specific real-world application 3"
       ],
       
-      "objectives": ["Specific measurable objective 1", "Objective 2", "Objective 3"],
-      "learning_outcomes": ["What you'll be able to DO after this node"],
+      "objectives": [
+        "Specific measurable learning objective 1",
+        "Specific measurable learning objective 2",
+        "Specific measurable learning objective 3"
+      ],
       
-      "tags": ["tag1", "tag2", "tag3"],
-      "keywords": ["keyword1", "keyword2"],
-      "bloom_level": "understand",
-      "cognitive_load": "medium",
-      "industry_relevance": ["software-engineering", "data-science"],
-      
-      "prerequisites": ["Concept you need to know first"],
+      "prerequisites": ["Specific prerequisite concepts"],
       
       "primary_resources": [
-        {{{{
-          "type": "article",
-          "title": "Comprehensive Article Title",
-          "url": "https://en.wikipedia.org/wiki/Specific_Topic",
-          "description": "What you'll learn",
-          "estimated_minutes": 15,
-          "difficulty": "intermediate",
-          "format": "article"
-        }}}},
-        {{{{
-          "type": "video",
-          "title": "Video Tutorial Title",
-          "url": "https://www.youtube.com/watch?v=SPECIFIC_ID",
-          "description": "Video explanation",
-          "estimated_minutes": 20,
-          "difficulty": "beginner",
-          "format": "video"
-        }}}},
-        {{{{
-          "type": "interactive",
-          "title": "Interactive Tutorial",
-          "url": "https://www.khanacademy.org/specific-topic",
-          "description": "Hands-on practice",
-          "estimated_minutes": 30,
-          "difficulty": "intermediate",
-          "format": "interactive"
-        }}}}
-      ],
-      
-      "supplementary_resources": [
-        {{{{
-          "type": "article",
-          "title": "Alternative Explanation",
-          "url": "https://example.com/alternative",
-          "description": "Different teaching approach",
-          "estimated_minutes": 10,
-          "difficulty": "beginner",
-          "format": "article"
-        }}}}
-      ],
-      
-      "practice_resources": [
-        {{{{
-          "type": "exercise",
-          "title": "Practice Problems",
-          "description": "10 practice problems with solutions",
-          "difficulty": "intermediate"
-        }}}}
-      ],
-      
-      "concept_mapping": {{{{
-        "concepts": ["Concept A", "Concept B", "Concept C"],
-        "relationships": ["A relates to B", "B leads to C"]
-      }}}},
-      
-      "scenarios": [
-        {{{{
-          "title": "Real-World Scenario 1",
-          "description": "Problem situation to solve",
-          "question": "What would you do?",
-          "options": ["Option A", "Option B", "Option C"],
-          "correct": 0,
-          "explanation": "Why this is the best approach"
-        }}}}
-      ],
-      
-      "prerequisite_quiz": [
-        {{{{
-          "question": "Quick diagnostic question",
-          "options": ["A", "B", "C", "D"],
-          "correct_answer": 0
-        }}}}
+        {{"type": "article", "title": "Specific article title", "url": "https://en.wikipedia.org/wiki/Specific_Topic", "description": "What you'll learn"}},
+        {{"type": "video", "title": "Specific video title", "url": "https://www.youtube.com/watch?v=VIDEO_ID", "description": "Video explanation"}},
+        {{"type": "interactive", "title": "Specific tutorial", "url": "https://www.khanacademy.org/topic", "description": "Hands-on practice"}}
       ],
       
       "estimated_minutes": 45,
       "activities": [
-        {{{{"type": "notes", "description": "Study the material"}}}},
-        {{{{"type": "flashcards", "count": 10, "description": "Review key concepts"}}}},
-        {{{{"type": "quiz", "question_count": 8, "description": "Test understanding"}}}}
+        {{"type": "notes", "description": "Study the material"}},
+        {{"type": "flashcards", "count": 10, "description": "Review key concepts"}},
+        {{"type": "quiz", "question_count": 8, "description": "Test understanding"}}
       ],
-      "unlock_rule": {{{{"type": "sequential"}}}},
-      "reward": {{{{"xp": 50}}}}
-    }}}}
+      "unlock_rule": {{"type": "sequential"}},
+      "reward": {{"xp": 50}}
+    }}
+    ... REPEAT FOR ALL {node_count} MODULES WITH PROPER TOPIC PROGRESSION ...
   ]
-}}}}
+}}
 
-REQUIREMENTS:
-- Create {node_count} nodes, each covering a SPECIFIC subtopic
-- Each node must have detailed introduction, core_sections (2-4 sections), summary
-- Provide connection_map showing how nodes relate
-- Include 3 real_world_applications per node
-- Primary resources: 1 article, 1 video, 1 interactive (use real URLs)
-- Add 1-2 supplementary resources for alternative explanations
-- Include concept_mapping and scenarios for interactive learning
-- Add 2-3 prerequisite_quiz questions for knowledge check
-- Progressive XP: 50, 75, 100, 125, 150, 175, 200
-- Use appropriate tags, keywords, bloom_level, cognitive_load
-- VERIFY: Properly closed JSON structure"""
+CRITICAL REQUIREMENTS:
+1. CREATE EXACTLY {node_count} MODULES - one for each major topic in {topic}
+2. Each module title should be a SPECIFIC TOPIC (not generic like "Introduction" or "Advanced Concepts")
+3. Order modules in LOGICAL TEACHING SEQUENCE
+4. Make each module focus on ONE specific concept or skill
+5. Ensure progressive difficulty - start simple, end advanced
+6. Use REAL, SPECIFIC resource URLs when possible
+7. Return COMPLETE JSON with ALL {node_count} modules
+
+EXAMPLE TOPIC PROGRESSION FOR MACHINE LEARNING (8 modules):
+1. "Mathematical Foundations: Linear Algebra and Calculus"
+2. "Statistics and Probability for ML"
+3. "Supervised Learning: Regression"
+4. "Supervised Learning: Classification"
+5. "Unsupervised Learning: Clustering"
+6. "Neural Networks Fundamentals"
+7. "Deep Learning and CNNs"
+8. "Model Evaluation and Deployment"
+
+NOW CREATE A SIMILAR PEDAGOGICALLY SOUND PROGRESSION FOR "{topic}" WITH {node_count} MODULES."""
     
     def _build_simple_generation_prompt(self, topic: str, difficulty: str, node_count: int) -> str:
-        """Build a simpler prompt that's more likely to produce valid JSON"""
-        return f"""Create {node_count} learning nodes for "{topic}" ({difficulty} level).
+        """Build a simpler prompt focused on proper topic progression"""
+        
+        return f"""You are an expert teacher creating a {node_count}-module learning path for "{topic}" at {difficulty} level.
 
-Return ONLY valid JSON:
+CRITICAL: Think like a teacher. What are the {node_count} most important topics a student needs to learn {topic} in the RIGHT ORDER?
 
-{{{{
+EXAMPLE - If topic is "Machine Learning" with 8 modules:
+1. Mathematical Foundations (Linear Algebra, Calculus)
+2. Statistics and Probability
+3. Supervised Learning: Regression
+4. Supervised Learning: Classification  
+5. Unsupervised Learning: Clustering
+6. Neural Networks Fundamentals
+7. Deep Learning and CNNs
+8. Model Evaluation and Deployment
+
+EXAMPLE - If topic is "Spanish" with 8 modules:
+1. Spanish Alphabet and Pronunciation
+2. Basic Grammar: Nouns and Articles
+3. Present Tense Verb Conjugation
+4. Essential Vocabulary: Daily Life
+5. Past Tenses: Preterite and Imperfect
+6. Future and Conditional Tenses
+7. Subjunctive Mood
+8. Advanced Conversation and Idioms
+
+NOW CREATE {node_count} SPECIFIC TOPICS FOR "{topic}" IN LOGICAL TEACHING ORDER.
+
+Return ONLY this JSON structure with ALL {node_count} modules:
+
+{{
   "title": "Master {topic}",
-  "description": "Complete learning path for {topic}",
+  "description": "Complete {difficulty}-level learning path for {topic}",
   "estimated_hours": {node_count * 0.5},
   "nodes": [
-    {{{{
+    {{
       "order_index": 0,
-      "title": "Introduction to {topic}",
-      "description": "Fundamentals and basics",
-      "objectives": ["Understand core concepts", "Learn terminology", "Build foundation"],
+      "title": "[SPECIFIC TOPIC 1 - not generic, actual topic name]",
+      "description": "What this specific topic covers and why it's important",
+      "objectives": [
+        "Specific learning objective 1 for this topic",
+        "Specific learning objective 2 for this topic",
+        "Specific learning objective 3 for this topic"
+      ],
       "prerequisites": [],
       "resources": [
-        {{{{"type": "article", "title": "{topic} Overview", "url": "https://en.wikipedia.org/wiki/{topic.replace(' ', '_')}", "description": "Comprehensive introduction"}}}},
-        {{{{"type": "video", "title": "{topic} Basics", "url": "https://www.khanacademy.org", "description": "Video tutorial"}}}},
-        {{{{"type": "documentation", "title": "{topic} Guide", "url": "https://www.youtube.com/results?search_query={topic.replace(' ', '+')}", "description": "Learning resources"}}}}
+        {{"type": "article", "title": "Article about [TOPIC 1]", "url": "https://en.wikipedia.org/wiki/[Specific_Topic]", "description": "Comprehensive guide"}},
+        {{"type": "video", "title": "Video tutorial on [TOPIC 1]", "url": "https://www.youtube.com/watch?v=EXAMPLE", "description": "Visual explanation"}},
+        {{"type": "interactive", "title": "Practice [TOPIC 1]", "url": "https://www.khanacademy.org/[topic]", "description": "Hands-on practice"}}
       ],
       "estimated_minutes": 30,
       "activities": [
-        {{{{"type": "notes", "description": "Study fundamentals"}}}},
-        {{{{"type": "flashcards", "count": 8, "description": "Review terms"}}}},
-        {{{{"type": "quiz", "question_count": 5, "description": "Test knowledge"}}}}
+        {{"type": "notes", "description": "Study [TOPIC 1] fundamentals"}},
+        {{"type": "flashcards", "count": 8, "description": "Review [TOPIC 1] concepts"}},
+        {{"type": "quiz", "question_count": 5, "description": "Test [TOPIC 1] knowledge"}}
       ],
-      "unlock_rule": {{{{"type": "sequential"}}}},
-      "reward": {{{{"xp": 50}}}}
-    }}}}
+      "unlock_rule": {{"type": "sequential"}},
+      "reward": {{"xp": 50}}
+    }},
+    {{
+      "order_index": 1,
+      "title": "[SPECIFIC TOPIC 2 - builds on topic 1]",
+      "description": "What this specific topic covers and how it builds on previous",
+      "objectives": [
+        "Specific learning objective 1 for this topic",
+        "Specific learning objective 2 for this topic",
+        "Specific learning objective 3 for this topic"
+      ],
+      "prerequisites": ["[TOPIC 1]"],
+      "resources": [
+        {{"type": "article", "title": "Article about [TOPIC 2]", "url": "https://en.wikipedia.org/wiki/[Specific_Topic]", "description": "Detailed guide"}},
+        {{"type": "video", "title": "Video tutorial on [TOPIC 2]", "url": "https://www.youtube.com/watch?v=EXAMPLE", "description": "Video lesson"}},
+        {{"type": "interactive", "title": "Practice [TOPIC 2]", "url": "https://www.khanacademy.org/[topic]", "description": "Interactive exercises"}}
+      ],
+      "estimated_minutes": 35,
+      "activities": [
+        {{"type": "notes", "description": "Study [TOPIC 2] in depth"}},
+        {{"type": "flashcards", "count": 9, "description": "Review [TOPIC 2] concepts"}},
+        {{"type": "quiz", "question_count": 6, "description": "Test [TOPIC 2] understanding"}}
+      ],
+      "unlock_rule": {{"type": "sequential"}},
+      "reward": {{"xp": 75}}
+    }}
+    ... CONTINUE FOR ALL {node_count} MODULES WITH PROPER TOPIC PROGRESSION ...
   ]
-}}}}
+}}
 
-IMPORTANT:
-- Create {node_count} nodes total, each covering a SPECIFIC subtopic of {topic}
-- For EACH node, provide 3-4 SPECIFIC resources relevant to THAT node's subtopic:
-  * Wikipedia: Use the SPECIFIC subtopic URL (e.g., "Spanish_verb_conjugation", "Python_data_types")
-  * YouTube: Search for the SPECIFIC subtopic (e.g., "spanish present tense tutorial")
-  * Khan Academy, Coursera, or official docs when relevant
-  * Make resource titles descriptive and specific to the node's content
-- Example for Spanish Grammar node on "Verb Conjugation":
-  * "Spanish Verb Conjugation" (Wikipedia)
-  * "Present Tense Conjugation Tutorial" (YouTube)
-  * "SpanishDict Conjugation Guide" (Documentation)
-- Progressive difficulty with increasing XP rewards (50, 75, 100, 125, 150, 175, 200)"""
+MANDATORY REQUIREMENTS:
+1. CREATE EXACTLY {node_count} MODULES - NO MORE, NO LESS
+2. Each module title must be a SPECIFIC TOPIC from {topic} curriculum (not generic)
+3. Order topics in LOGICAL TEACHING SEQUENCE (prerequisites first, advanced topics last)
+4. Each topic should be DIFFERENT and cover a distinct concept
+5. Make descriptions and objectives SPECIFIC to each topic
+6. Use real URLs when possible (Wikipedia, YouTube, Khan Academy)
+7. Progressive XP: 50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300, 325
+
+VERIFY BEFORE RESPONDING:
+✓ Count modules: Must be exactly {node_count}
+✓ Each title is a SPECIFIC topic (not "Introduction" or "Advanced Concepts")
+✓ Topics are in LOGICAL TEACHING ORDER
+✓ Each module has unique, specific content"""
     
     def _parse_ai_response(self, ai_response: str) -> Dict[str, Any]:
         """Parse and validate AI response"""
@@ -432,6 +444,7 @@ IMPORTANT:
                         {"type": "quiz", "question_count": 5, "description": "Test your knowledge"}
                     ]
             
+            logger.info(f"Successfully validated {len(data['nodes'])} nodes")
             return data
         
         except json.JSONDecodeError as e:
@@ -779,6 +792,8 @@ IMPORTANT:
         
         return path
     
+        return path
+    
     def get_user_paths(self, user_id: int, db: Session) -> Dict[str, Any]:
         """Get all learning paths for a user (excluding archived)"""
         paths = db.query(models.LearningPath).filter(
@@ -1076,13 +1091,20 @@ IMPORTANT:
         
         return result
     
-    def _call_ai(self, prompt: str) -> str:
+    def _call_ai(self, prompt: str, max_tokens: int = 8000) -> str:
         """Call AI service to generate content"""
         try:
             # Use the AI client if available
             if self.ai_client:
-                logger.info("Using provided AI client")
-                response = self.ai_client.generate(prompt)
+                logger.info(f"Using provided AI client with max_tokens={max_tokens}")
+                # Check if the AI client supports max_tokens parameter
+                try:
+                    response = self.ai_client.generate(prompt, max_tokens=max_tokens)
+                except TypeError:
+                    # Fallback if max_tokens not supported
+                    response = self.ai_client.generate(prompt)
+                
+                logger.info(f"AI response length: {len(response)} characters")
                 return response
             
             # Try to get from main module
@@ -1091,7 +1113,11 @@ IMPORTANT:
                 main_module = sys.modules['main']
                 if hasattr(main_module, 'unified_ai'):
                     logger.info("Using unified_ai from main module")
-                    response = main_module.unified_ai.generate(prompt)
+                    try:
+                        response = main_module.unified_ai.generate(prompt, max_tokens=max_tokens)
+                    except TypeError:
+                        response = main_module.unified_ai.generate(prompt)
+                    logger.info(f"AI response length: {len(response)} characters")
                     return response
             
             # No AI client available - raise error so caller can handle fallback
@@ -1101,85 +1127,61 @@ IMPORTANT:
             logger.error(f"AI call failed: {e}")
             raise  # Re-raise so caller can handle with appropriate fallback
     
-    def _get_fallback_response(self, topic: str = "the topic") -> str:
-        """Fallback response if AI fails - creates a basic but useful path with web-searched resources"""
-        logger.info(f"Generating fallback path with web search for: {topic}")
+    def _get_fallback_response(self, topic: str = "the topic", node_count: int = 8) -> str:
+        """Fallback response if AI fails - creates a basic but useful path with the correct number of nodes"""
+        logger.info(f"Generating fallback path with {node_count} nodes for: {topic}")
         
-        # Search for resources for this topic
-        resources = self._search_resources_for_topic(topic, "introduction")
+        # Generate node titles
+        titles = [
+            f"Getting Started with {topic}",
+            f"Core Concepts of {topic}",
+            f"Intermediate {topic}",
+            f"Advanced {topic}",
+            f"Practical {topic}",
+            f"Real-World {topic}",
+            f"Best Practices in {topic}",
+            f"Common Pitfalls in {topic}",
+            f"Optimizing {topic}",
+            f"Testing {topic}",
+            f"Advanced Patterns in {topic}",
+            f"Mastering {topic}"
+        ]
+        
+        nodes = []
+        for i in range(node_count):
+            title = titles[i] if i < len(titles) else f"Module {i+1}: {topic}"
+            xp = 50 + (i * 25)
+            
+            nodes.append({
+                "order_index": i,
+                "title": title,
+                "description": f"Learn key concepts and skills for {title.lower()}",
+                "objectives": [
+                    "Understand the core concepts",
+                    "Apply knowledge to practical examples",
+                    "Build confidence with the material"
+                ],
+                "prerequisites": ["Previous module"] if i > 0 else [],
+                "resources": [
+                    {"type": "article", "title": f"{title}", "url": f"https://en.wikipedia.org/wiki/{topic.replace(' ', '_')}", "description": "Comprehensive overview"},
+                    {"type": "video", "title": f"{title} Tutorial", "url": "https://www.youtube.com", "description": "Video explanation"},
+                    {"type": "interactive", "title": f"{title} Practice", "url": "https://www.khanacademy.org", "description": "Hands-on practice"}
+                ],
+                "estimated_minutes": 30 + (i * 5),
+                "activities": [
+                    {"type": "notes", "description": "Study the material"},
+                    {"type": "flashcards", "count": 8 + i, "description": "Review key concepts"},
+                    {"type": "quiz", "question_count": 5 + i, "description": "Test your understanding"}
+                ],
+                "unlock_rule": {"type": "sequential"},
+                "reward": {"xp": xp}
+            })
         
         return json.dumps({
             "title": f"Learning Path: {topic}",
             "description": f"A structured learning journey to master {topic}",
-            "estimated_hours": 4.0,
-            "nodes": [
-                {
-                    "order_index": 0,
-                    "title": f"Getting Started with {topic}",
-                    "description": "Introduction to the fundamentals and core concepts",
-                    "objectives": [
-                        "Understand the basic terminology and concepts",
-                        "Learn the foundational principles",
-                        "Set clear learning goals"
-                    ],
-                    "prerequisites": [],
-                    "resources": resources[:3] if resources else [
-                        {"type": "article", "title": f"{topic} Introduction", "url": f"https://en.wikipedia.org/wiki/{topic.replace(' ', '_')}", "description": "Comprehensive overview"}
-                    ],
-                    "estimated_minutes": 30,
-                    "activities": [
-                        {"type": "notes", "description": "Read introductory materials"},
-                        {"type": "flashcards", "count": 8, "description": "Review key terms"},
-                        {"type": "quiz", "question_count": 5, "description": "Test your understanding"}
-                    ],
-                    "unlock_rule": {"type": "sequential"},
-                    "reward": {"xp": 50}
-                },
-                {
-                    "order_index": 1,
-                    "title": f"Core Concepts of {topic}",
-                    "description": "Deep dive into the main topics and principles",
-                    "objectives": [
-                        "Master the core concepts",
-                        "Apply knowledge to practical examples",
-                        "Build confidence with the material"
-                    ],
-                    "prerequisites": ["Basic terminology", "Foundational principles"],
-                    "resources": self._search_resources_for_topic(topic, "tutorial")[:3] if self._search_resources_for_topic(topic, "tutorial") else [
-                        {"type": "article", "title": f"{topic} Guide", "url": f"https://en.wikipedia.org/wiki/{topic.replace(' ', '_')}", "description": "Detailed explanation"}
-                    ],
-                    "estimated_minutes": 45,
-                    "activities": [
-                        {"type": "notes", "description": "Study core concepts in detail"},
-                        {"type": "flashcards", "count": 12, "description": "Practice key concepts"},
-                        {"type": "quiz", "question_count": 8, "description": "Test comprehension"}
-                    ],
-                    "unlock_rule": {"type": "sequential", "min_xp": 50},
-                    "reward": {"xp": 75}
-                },
-                {
-                    "order_index": 2,
-                    "title": f"Practice & Application",
-                    "description": "Apply your knowledge through hands-on practice",
-                    "objectives": [
-                        "Apply concepts to real scenarios",
-                        "Solve practice problems",
-                        "Develop practical skills"
-                    ],
-                    "prerequisites": ["Core concepts mastery"],
-                    "resources": self._search_resources_for_topic(topic, "practice examples")[:3] if self._search_resources_for_topic(topic, "practice examples") else [
-                        {"type": "article", "title": f"{topic} Examples", "url": f"https://en.wikipedia.org/wiki/{topic.replace(' ', '_')}", "description": "Practical applications"}
-                    ],
-                    "estimated_minutes": 60,
-                    "activities": [
-                        {"type": "notes", "description": "Review application strategies"},
-                        {"type": "flashcards", "count": 15, "description": "Practice problem-solving"},
-                        {"type": "quiz", "question_count": 10, "description": "Challenge yourself"}
-                    ],
-                    "unlock_rule": {"type": "sequential", "min_xp": 75},
-                    "reward": {"xp": 100}
-                }
-            ]
+            "estimated_hours": node_count * 0.5,
+            "nodes": nodes
         })
     
     def _search_resources_for_topic(self, topic: str, context: str = "") -> List[Dict[str, Any]]:

@@ -292,13 +292,15 @@ const QuizBattle = () => {
             </button>
           </section>
 
-          <div className="qb-filters">
+          <div 
+            className="qb-filters"
+            style={{ '--filter-index': filters.indexOf(statusFilter) }}
+          >
             {filters.map((filter, index) => (
               <button 
                 key={filter} 
                 className={`qb-filter-tab ${statusFilter === filter ? 'active' : ''}`}
                 onClick={() => setStatusFilter(filter)}
-                style={{ '--filter-index': index }}
               >
                 <span>{filter.charAt(0).toUpperCase() + filter.slice(1)}</span>
               </button>

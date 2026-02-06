@@ -1776,7 +1776,7 @@ const AIChat = ({ sharedMode = false }) => {
       {/* Header */}
       <header className="ac-header">
         <div className="ac-header-left">
-          <button className="nav-menu-btn" onClick={() => navigate('/dashboard')} aria-label="Open navigation">
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             {Icons.menu}
           </button>
           <h1 className="ac-logo" onClick={() => navigate('/search-hub')}>

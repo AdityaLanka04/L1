@@ -114,6 +114,9 @@ const StudyInsights = () => {
     <div className="si-page">
       <header className="si-header">
         <div className="si-header-left">
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
           <h1 className="si-logo" onClick={() => navigate('/dashboard')}>
             <div className="si-logo-img" />
             cerbyl
