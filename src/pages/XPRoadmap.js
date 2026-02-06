@@ -5,7 +5,7 @@ import {
   BookOpen, Brain, Sparkles, Rocket, Medal, Gift,
   TrendingUp, CheckCircle, Lock, ChevronRight,
   MessageCircle, FileText, Layers, Clock
-} from 'lucide-react';
+, Menu} from 'lucide-react';
 import './XPRoadmap.css';
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
@@ -249,7 +249,10 @@ const XPRoadmap = () => {
       {/* Standardized Header */}
       <header className="xp-roadmap-header">
         <div className="xp-roadmap-header-left">
-          <h1 className="xp-roadmap-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+          <button className="nav-menu-btn" onClick={() => navigate('/dashboard')} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="xp-roadmap-logo" onClick={() => navigate('/search-hub')}>
             <div className="xp-roadmap-logo-img" />
             cerbyl
           </h1>

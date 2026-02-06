@@ -105,6 +105,7 @@ const Flashcards = () => {
 
   // Icons
   const Icons = {
+    menu: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>,
     fire: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2c.5 2.5 2 4.5 2 7a4 4 0 1 1-8 0c0-2.5 1.5-4.5 2-7 1.5 1.5 2.5 2 4 0z"/></svg>,
     book: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
     target: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
@@ -2338,7 +2339,10 @@ const Flashcards = () => {
           {/* Sidebar */}
           <aside className={`fc-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
             <div className="fc-sidebar-header">
-              <div className="fc-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+              <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            {Icons.menu}
+          </button>
+          <div className="fc-logo" onClick={() => navigate('/search-hub')}>
                 <div className="fc-logo-img" />
                 <span className="fc-logo-text">cerbyl</span>
               </div>

@@ -14,7 +14,7 @@ import {
   ChevronUp, ChevronLeft, ArrowRight, ArrowUp, ArrowDown, Flag, Tag, 
   Hash, Percent, BarChart2, Filter, Eye, EyeOff, Square, CheckSquare,
   Maximize2, Minimize2, Link as LinkIcon, TrendingDown, ArrowLeft, Circle
-} from 'lucide-react';
+, Menu} from 'lucide-react';
 import './ConceptWeb.css';
 import { API_URL } from '../config';
 
@@ -873,7 +873,10 @@ const ConceptWeb = () => {
       {/* Header */}
       <header className="cw-header">
         <div className="cw-header-left">
-          <h1 className="cw-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+          <button className="nav-menu-btn" onClick={() => navigate('/dashboard')} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="cw-logo" onClick={() => navigate('/search-hub')}>
             <div className="cw-logo-img" />
             cerbyl
           </h1>

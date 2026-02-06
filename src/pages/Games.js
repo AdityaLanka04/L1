@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight , Menu} from 'lucide-react';
 import './Games.css';
 import { API_URL } from '../config';
 
@@ -319,7 +319,10 @@ const Games = () => {
     <div className="games-page">
       <header className="gm-header">
         <div className="gm-header-left">
-          <h1 className="gm-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+          <button className="nav-menu-btn" onClick={() => navigate('/dashboard')} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="gm-logo" onClick={() => navigate('/search-hub')}>
             <div className="gm-logo-img" />
             cerbyl
           </h1>

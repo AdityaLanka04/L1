@@ -397,7 +397,10 @@ const MyNotes = () => {
       {/* Header - Full Width */}
       <header className="mn-header">
         <div className="mn-header-left">
-          <div className="mn-header-title" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+          <button className="nav-menu-btn" onClick={() => navigate('/dashboard')} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <div className="mn-header-title" onClick={() => navigate('/search-hub')}>
             <div className="mn-logo-img"></div>
             cerbyl
           </div>

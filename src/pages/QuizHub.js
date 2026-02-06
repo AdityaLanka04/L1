@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Users, Swords, ChevronRight, Zap } from 'lucide-react';
+import { User, Users, Swords, ChevronRight, Zap , Menu} from 'lucide-react';
 import './QuizHub.css';
 import ImportExportModal from '../components/ImportExportModal';
 
@@ -31,7 +31,10 @@ const QuizHub = () => {
       {/* Header */}
       <header className="qh-header">
         <div className="qh-header-left">
-          <h1 className="qh-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+          <button className="nav-menu-btn" onClick={() => navigate('/dashboard')} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="qh-logo" onClick={() => navigate('/search-hub')}>
             <div className="qh-logo-img" />
             cerbyl
           </h1>

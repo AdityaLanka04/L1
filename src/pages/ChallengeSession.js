@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Clock, Target, Trophy, CheckCircle, XCircle, Loader, TrendingUp } from 'lucide-react';
+import { Clock, Target, Trophy, CheckCircle, XCircle, Loader, TrendingUp , Menu} from 'lucide-react';
 import './ChallengeSession.css';
 import { API_URL } from '../config';
 

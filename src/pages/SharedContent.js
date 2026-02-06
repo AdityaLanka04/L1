@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, FileText, Users, Clock, Eye, Edit3, Trash2, Search, Filter, Calendar } from 'lucide-react';
+import { MessageSquare, FileText, Users, Clock, Eye, Edit3, Trash2, Search, Filter, Calendar , Menu} from 'lucide-react';
 import './SharedContent.css';
 import { API_URL } from '../config';
 const SharedContent = () => {
@@ -124,7 +124,10 @@ const SharedContent = () => {
     <div className="shared-content-page">
       <header className="shared-header">
         <div className="shared-header-left">
-          <h1 className="shared-logo">
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="shared-logo" onClick={() => navigate('/search-hub')}>
             <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
             cerbyl
           </h1>
@@ -134,8 +137,8 @@ const SharedContent = () => {
           <button className="shared-nav-btn" onClick={() => navigate('/social')}>
             Social Hub
           </button>
-          <button className="shared-nav-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
-            Dashboard
+          <button className="shared-nav-btn" onClick={() => navigate('/dashboard')}>
+                  Dashboard
           </button>
         </div>
       </header>

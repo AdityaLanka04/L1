@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Play, Brain, Target, TrendingUp, Award, Clock, CheckCircle,
   XCircle, Zap, ArrowRight, RotateCcw, Home, ChevronRight
-} from 'lucide-react';
+, Menu} from 'lucide-react';
 import './WeaknessPractice.css';
 import { API_URL } from '../config';
 
@@ -260,7 +260,10 @@ const WeaknessPractice = () => {
     return (
       <div className="weakness-practice-container">
         <header className="practice-header">
-          <h1 className="practice-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="practice-logo" onClick={() => navigate('/search-hub')}>
             <div className="practice-logo-img" />
             cerbyl
           </h1>
@@ -324,7 +327,10 @@ const WeaknessPractice = () => {
         {/* Header - Matching Weaknesses Page Style */}
         <header className="practice-header">
           <div className="practice-header-left">
-            <h1 className="practice-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+            <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="practice-logo" onClick={() => navigate('/search-hub')}>
               <div className="practice-logo-img" />
               cerbyl
             </h1>
@@ -406,7 +412,10 @@ const WeaknessPractice = () => {
       {/* Header - Matching Weaknesses Page Style */}
       <header className="practice-header">
         <div className="practice-header-left">
-          <h1 className="practice-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="practice-logo" onClick={() => navigate('/search-hub')}>
             <div className="practice-logo-img" />
             cerbyl
           </h1>

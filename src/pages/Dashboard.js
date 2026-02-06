@@ -6,7 +6,7 @@ import {
   CheckCircle, XCircle, Clock, Plus, Users, Bell, Calendar as CalendarIcon, BookOpen, Zap,
   MessageSquare, HelpCircle, FileText, Network, ChevronRight, Search, User, Home,
   Brain, Target, Flame, Settings, LogOut, Sparkles, TrendingUp, Layers, Trophy
-} from 'lucide-react';
+, Menu} from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { rgbaFromHex } from '../utils/ThemeManager';
 import ThemeSwitcher from '../components/ThemeSwitcher';
@@ -912,6 +912,9 @@ const Dashboard = () => {
 
       <header className="ds-header">
         <div className="ds-header-content">
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
           <div className="ds-header-left">
             <div className="ds-user-info">
               {userProfile?.picture && (

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Youtube, FileText, Save, Copy, RefreshCw, Mic, Loader, ArrowLeft } from 'lucide-react';
+import { Upload, Youtube, FileText, Save, Copy, RefreshCw, Mic, Loader, ArrowLeft , Menu} from 'lucide-react';
 import './AudioVideoNotes.css';
 import { API_URL } from '../config';
 

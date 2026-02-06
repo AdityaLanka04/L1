@@ -1723,3 +1723,32 @@
 [data-theme-mode="light"] .react-flow__minimap {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
+
+
+/* ==================== NAVIGATION MENU BUTTON ==================== */
+.nav-menu-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  position: relative;
+}
+
+.nav-menu-btn:hover {
+  color: var(--accent);
+  background: var(--bg-bottom);
+}
+
+.nav-menu-btn:active {
+  transform: scale(0.95);
+}
+
+.nav-menu-btn svg {
+  stroke-width: 2;
+}

@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Map, HelpCircle, BookOpen, TrendingUp, Target, ChevronRight, Play } from 'lucide-react';
+import { Map, HelpCircle, BookOpen, TrendingUp, Target, ChevronRight, Play , Menu} from 'lucide-react';
 import './LearningReviewHub.css';
 import { API_URL } from '../config';
 
@@ -79,7 +79,10 @@ const LearningReviewHub = () => {
       {/* Header */}
       <header className="lrh-header">
         <div className="lrh-header-left">
-          <h1 className="lrh-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+          <button className="nav-menu-btn" onClick={() => navigate('/dashboard')} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="lrh-logo" onClick={() => navigate('/search-hub')}>
             <div className="lrh-logo-img" />
             cerbyl
           </h1>

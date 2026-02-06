@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Target, Trophy, CheckCircle, XCircle, Loader, Lightbulb, RefreshCw, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, Target, Trophy, CheckCircle, XCircle, Loader, Lightbulb, RefreshCw, AlertCircle, ChevronLeft, ChevronRight , Menu} from 'lucide-react';
 import './QuizBattleSession.css';
 import quizAgentService from '../services/quizAgentService';
 

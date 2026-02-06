@@ -21,7 +21,7 @@ import {
   Calendar,
   ChevronLeft,
   Lock
-} from 'lucide-react';
+, Menu} from 'lucide-react';
 import './CustomizeDashboard.css';
 
 // Widget definitions with default configurations
@@ -811,7 +811,10 @@ const CustomizeDashboard = () => {
       {/* Header - Profile Style */}
       <header className="cd-header">
         <div className="cd-header-left">
-          <span className="cd-logo" onClick={goBack}>
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <span className="cd-logo" onClick={() => navigate('/search-hub')}>
             <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
             cerbyl
           </span>

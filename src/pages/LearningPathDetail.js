@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  Loader, Lock, CheckCircle, Circle, Play, Award,
+import { Loader, Lock, CheckCircle, Circle, Play, Award,
   Clock, Target, BookOpen, MessageCircle, FileText, Brain,
   ChevronRight, ChevronLeft, Sparkles, Zap, Download, Calendar,
   Star, ExternalLink, Lightbulb, Map, TrendingUp, Code, Video,
-  Headphones, Image as ImageIcon, Activity, GitBranch
-} from 'lucide-react';
+  Headphones, Image as ImageIcon, Activity, GitBranch, Menu } from 'lucide-react';
 import learningPathService from '../services/learningPathService';
 import './LearningPathDetail.css';
 

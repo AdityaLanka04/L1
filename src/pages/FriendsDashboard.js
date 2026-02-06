@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Search, UserPlus, Check, X, UserMinus, ArrowLeft, Clock, Activity, Award, ChevronRight } from 'lucide-react';
+import { Users, Search, UserPlus, Check, X, UserMinus, ArrowLeft, Clock, Activity, Award, ChevronRight , Menu} from 'lucide-react';
 import './FriendsDashboard.css';
 import { API_URL } from '../config';
 
@@ -214,7 +214,10 @@ const FriendsDashboard = () => {
       {/* Standardized Header */}
       <header className="hub-header">
         <div className="hub-header-left">
-          <h1 className="hub-logo">
+          <button className="nav-menu-btn" onClick={() => navigate('/dashboard')} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="hub-logo" onClick={() => navigate('/search-hub')}>
             <div className="hub-logo-img" />
             cerbyl
           </h1>

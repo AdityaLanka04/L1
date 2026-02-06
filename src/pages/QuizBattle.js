@@ -4,7 +4,7 @@ import {
   Swords, Users, Clock, X, Check, Zap, Trophy, Shield, 
   Flame, Crown, Sparkles, ChevronRight, BookOpen, Database,
   Gauge, ArrowRight, AlertCircle
-} from 'lucide-react';
+, Menu} from 'lucide-react';
 import './QuizBattle.css';
 import { API_URL } from '../config';
 import useSharedWebSocket from '../hooks/useSharedWebSocket';
@@ -257,7 +257,10 @@ const QuizBattle = () => {
     <div className="qb-page">
       <header className="qb-header">
         <div className="qb-header-left">
-          <h1 className="qb-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="qb-logo" onClick={() => navigate('/search-hub')}>
             <div className="qb-logo-img" />
             cerbyl
           </h1>
@@ -269,8 +272,8 @@ const QuizBattle = () => {
             <Users size={16} />
             Social
           </button>
-          <button className="qb-nav-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
-            Dashboard
+          <button className="qb-nav-btn" onClick={() => navigate('/dashboard')}>
+                  Dashboard
           </button>
         </div>
       </header>

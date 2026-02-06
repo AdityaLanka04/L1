@@ -10,7 +10,7 @@ import ReactFlow, {
   Position,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Plus, Loader, MapPin, Book, Sparkles, Trash2, FileDown, Info, ChevronRight, X, Edit3, Save, StickyNote } from 'lucide-react';
+import { Plus, Loader, MapPin, Book, Sparkles, Trash2, FileDown, Info, ChevronRight, X, Edit3, Save, StickyNote , Menu} from 'lucide-react';
 import './KnowledgeRoadmap.css';
 import { API_URL } from '../config';
 const CustomNode = ({ data, selected }) => {
@@ -1476,7 +1476,10 @@ User question: ${messageText}`);
     <div className="kr-page">
       <header className="kr-header">
         <div className="kr-header-left">
-          <div className="kr-brand" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <div className="kr-brand" onClick={() => navigate('/search-hub')}>
             <div className="kr-logo-img"></div>
             cerbyl
           </div>
@@ -1531,8 +1534,8 @@ User question: ${messageText}`);
               </button>
             </>
           ) : (
-            <button className="kr-nav-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
-              Dashboard
+            <button className="kr-nav-btn" onClick={() => navigate('/dashboard')}>
+                  Dashboard
               <ChevronRight size={14} />
             </button>
           )}

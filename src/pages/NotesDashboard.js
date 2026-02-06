@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Search, Filter, FileText, Layout, Settings,
   ArrowLeft
-} from 'lucide-react';
+, Menu} from 'lucide-react';
 import './NotesDashboard.css';
 import DatabaseViews from '../components/DatabaseViews';
 import AdvancedSearch from '../components/AdvancedSearch';

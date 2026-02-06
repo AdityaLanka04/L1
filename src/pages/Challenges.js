@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Target, Clock, Users, TrendingUp, Zap, Trophy, Plus, X } from 'lucide-react';
+import { Target, Clock, Users, TrendingUp, Zap, Trophy, Plus, X , Menu} from 'lucide-react';
 import './Challenges.css';
 import { API_URL } from '../config';
 
@@ -145,7 +145,10 @@ const Challenges = () => {
     <div className="challenges-page">
       <header className="challenges-header">
         <div className="challenges-header-left">
-          <h1 className="challenges-logo">
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="challenges-logo" onClick={() => navigate('/search-hub')}>
             <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
             cerbyl
           </h1>
@@ -153,7 +156,8 @@ const Challenges = () => {
         </div>
         <div className="challenges-header-right">
           <button className="challenges-nav-btn" onClick={() => navigate('/social')}>Back to Social</button>
-          <button className="challenges-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
+          <button className="challenges-nav-btn" onClick={() => navigate('/dashboard')}>
+                  Dashboard</button>
         </div>
       </header>
 

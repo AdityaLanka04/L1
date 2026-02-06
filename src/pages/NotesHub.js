@@ -2,7 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import {
   Mic, BookOpen, Zap, ChevronRight
-} from 'lucide-react';
+, Menu} from 'lucide-react';
 import './NotesHub.css';
 import './NotesHubConvert.css';
 import ImportExportModal from '../components/ImportExportModal';
@@ -34,7 +34,10 @@ const NotesHub = () => {
       {/* Header */}
       <header className="nh-header">
         <div className="nh-header-left">
-          <h1 className="nh-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+          <button className="nav-menu-btn" onClick={() => navigate('/dashboard')} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="nh-logo" onClick={() => navigate('/search-hub')}>
             <div className="nh-logo-img" />
             cerbyl
           </h1>

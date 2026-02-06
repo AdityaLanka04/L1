@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRight, ChevronLeft, X, Filter, Calendar, Play, HelpCircle, RefreshCw, Edit, MessageCircle, Target, Brain, TrendingUp, Zap, BarChart3, LogIn, UserPlus } from 'lucide-react';
+import { Search, Sparkles, Clock, Users, BookOpen, FileText, Layers, ChevronRight, ChevronLeft, X, Filter, Calendar, Play, HelpCircle, RefreshCw, Edit, MessageCircle, Target, Brain, TrendingUp, Zap, BarChart3, LogIn, UserPlus , Menu} from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import './SearchHub.css';
 import { API_URL } from '../config/api';
@@ -1563,6 +1563,9 @@ const SearchHub = () => {
     <div className="search-hub-page">
       <header className="search-hub-header">
         <div className="header-content">
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
           <div className="header-buttons">
             {!userName && (
               <>
@@ -1585,7 +1588,7 @@ const SearchHub = () => {
               <>
                 <button 
                   className="header-text-btn login-signup-btn"
-                  onClick={() => window.openGlobalNav && window.openGlobalNav()}
+                  onClick={() => navigate('/dashboard')}
                 >
                   Dashboard
                 </button>

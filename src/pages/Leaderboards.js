@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Clock, Target, TrendingUp, Medal, Crown, Award } from 'lucide-react';
+import { Trophy, Clock, Target, TrendingUp, Medal, Crown, Award , Menu} from 'lucide-react';
 import './Leaderboards.css';
 import { API_URL } from '../config';
 const Leaderboards = () => {
@@ -78,7 +78,10 @@ const Leaderboards = () => {
     <div className="leaderboard-page">
       <header className="leaderboard-header">
         <div className="leaderboard-header-left">
-          <h1 className="leaderboard-logo">
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="leaderboard-logo" onClick={() => navigate('/search-hub')}>
             <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
             cerbyl
           </h1>
@@ -86,7 +89,8 @@ const Leaderboards = () => {
         </div>
         <div className="leaderboard-header-right">
           <button className="leaderboard-nav-btn" onClick={() => navigate('/social')}>Back to Social</button>
-          <button className="leaderboard-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
+          <button className="leaderboard-nav-btn" onClick={() => navigate('/dashboard')}>
+                  Dashboard</button>
         </div>
       </header>
 

@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader, TrendingUp, BookOpen, Target, Clock } from 'lucide-react';
+import { ArrowLeft, Loader, TrendingUp, BookOpen, Target, Clock , Menu} from 'lucide-react';
 import './Statistics.css';
 import { API_URL } from '../config';
 const Statistics = () => {
@@ -113,7 +113,10 @@ const Statistics = () => {
             <span>BACK</span>
           </button>
           <div className="st-header-title-group">
-            <h1 className="st-logo">
+            <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="st-logo" onClick={() => navigate('/search-hub')}>
               <div className="st-logo-img" />
               cerbyl
             </h1>
@@ -121,7 +124,8 @@ const Statistics = () => {
           </div>
         </div>
         <div className="st-header-right">
-          <button className="st-nav-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
+          <button className="st-nav-btn" onClick={() => navigate('/dashboard')}>
+                  Dashboard</button>
           <button className="st-nav-btn logout" onClick={() => { localStorage.removeItem('token'); navigate('/login'); }}>Logout</button>
         </div>
       </header>

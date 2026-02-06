@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, UserMinus, FileText, Eye, Edit3, Trash2, Clock, Plus, Gamepad2, Activity, BookOpen, ChevronRight } from 'lucide-react';
+import { Users, MessageSquare, Share2, TrendingUp, Search, UserPlus, Check, X, UserMinus, FileText, Eye, Edit3, Trash2, Clock, Plus, Gamepad2, Activity, BookOpen, ChevronRight , Menu} from 'lucide-react';
 import ShareModal from './SharedModal';
 import './Social.css';
 import { API_URL } from '../config';
@@ -435,7 +435,10 @@ const Social = () => {
     <div className="hub-page">
       <header className="hub-header">
         <div className="hub-header-left">
-          <h1 className="hub-logo">
+          <button className="nav-menu-btn" onClick={() => navigate('/dashboard')} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="hub-logo" onClick={() => navigate('/search-hub')}>
             <div className="hub-logo-img" />
             cerbyl
           </h1>

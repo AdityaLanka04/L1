@@ -4,7 +4,7 @@ import {
   ChevronRight, Target, Brain, MessageSquare, 
   TrendingUp, AlertTriangle, CheckCircle, 
   Activity, Zap, RefreshCw
-} from 'lucide-react';
+, Menu} from 'lucide-react';
 import './Weaknesses.css';
 import { API_URL } from '../config';
 
@@ -81,7 +81,10 @@ const Weaknesses = () => {
       {/* Header */}
       <header className="weaknesses-header">
         <div className="weaknesses-header-left">
-          <h1 className="weaknesses-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+          <button className="nav-menu-btn" onClick={() => navigate('/dashboard')} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="weaknesses-logo" onClick={() => navigate('/search-hub')}>
             <div className="weaknesses-logo-img" />
             cerbyl
           </h1>

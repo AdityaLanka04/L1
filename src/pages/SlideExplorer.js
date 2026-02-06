@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, Loader, FileText, Trash2, Eye, Sparkles, ChevronLeft, ChevronRight, BookOpen, Tag, Lightbulb, X, UploadCloud, Presentation } from 'lucide-react';
+import { Upload, Loader, FileText, Trash2, Eye, Sparkles, ChevronLeft, ChevronRight, BookOpen, Tag, Lightbulb, X, UploadCloud, Presentation , Menu} from 'lucide-react';
 import './SlideExplorer.css';
 import { API_URL } from '../config';
 import slideExplorerAgentService from '../services/slideExplorerAgentService';

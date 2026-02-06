@@ -155,3 +155,32 @@ html,body{overflow-x:hidden;margin:0;padding:0;height:auto}
 @media(max-width:768px){.si-header{padding:12px 20px}.si-header-content{flex-direction:column;align-items:flex-start;gap:12px}.si-header-right{width:100%;flex-wrap:wrap}.si-time-toggle{width:100%}.si-toggle-btn{flex:1}.si-nav-btn{flex:1}.si-main{padding:20px 16px}.si-bento-grid{gap:12px}.si-bento{padding:16px}.si-time-stats,.si-activity,.si-quiz,.si-flashcards,.si-weak,.si-recent-quizzes,.si-qb,.si-topics,.si-notes{grid-column:span 12}.si-stats-grid{grid-template-columns:1fr}.si-quiz-summary{flex-direction:column}.si-diff-grid{grid-template-columns:1fr}.si-fc-stats{grid-template-columns:1fr}.si-qb-stats{grid-template-columns:1fr}}
 @media(max-width:480px){.si-logo{font-size:20px}.si-stat-value{font-size:32px}.si-quiz-score{font-size:40px}.si-quiz-count{font-size:32px}.si-fc-value,.si-qb-value{font-size:28px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important}.si-bento{animation:none}}
+
+
+/* ==================== NAVIGATION MENU BUTTON ==================== */
+.nav-menu-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  position: relative;
+}
+
+.nav-menu-btn:hover {
+  color: var(--accent);
+  background: var(--bg-bottom);
+}
+
+.nav-menu-btn:active {
+  transform: scale(0.95);
+}
+
+.nav-menu-btn svg {
+  stroke-width: 2;
+}

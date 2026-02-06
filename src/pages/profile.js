@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, BookOpen, Target, Brain, Award, TrendingUp, ChevronRight } from 'lucide-react';
+import { User, BookOpen, Target, Brain, Award, TrendingUp, ChevronRight , Menu} from 'lucide-react';
 import './profile.css';
 import { API_URL } from '../config';
 const Profile = () => {
@@ -351,7 +351,10 @@ const Profile = () => {
       <div className="profile-container">
         <header className="profile-header">
           <div className="profile-header-left">
-            <h1 className="profile-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+            <button className="nav-menu-btn" onClick={() => navigate('/dashboard')} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="profile-logo" onClick={() => navigate('/search-hub')}>
               <div className="profile-logo-img" />
               cerbyl
             </h1>

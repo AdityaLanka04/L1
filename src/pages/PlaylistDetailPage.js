@@ -4,7 +4,7 @@ import {
   Plus, Trash2, Check, Users, Clock, BookOpen, X,
   FileText, MessageSquare, ExternalLink, Youtube, FileUp, Link as LinkIcon,
   ChevronDown, ChevronUp, ChevronRight, Share2, Heart, Lock, Globe, GraduationCap
-} from 'lucide-react';
+, Menu} from 'lucide-react';
 import './PlaylistDetailPage.css';
 import { API_URL } from '../config';
 

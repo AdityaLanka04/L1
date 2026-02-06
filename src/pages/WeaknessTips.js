@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ChevronRight, Lightbulb, BookOpen, Activity, ArrowRight, Brain, Target,
   CheckCircle, XCircle, Clock, Trophy, Zap, AlertCircle
-} from 'lucide-react';
+, Menu} from 'lucide-react';
 import './WeaknessTips.css';
 import { API_URL } from '../config';
 
@@ -135,7 +135,10 @@ const WeaknessTips = () => {
       {/* Header */}
       <header className="tips-header">
         <div className="tips-header-left">
-          <h1 className="tips-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="tips-logo" onClick={() => navigate('/search-hub')}>
             <div className="tips-logo-img" />
             cerbyl
           </h1>

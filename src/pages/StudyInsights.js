@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ChevronRight } from 'lucide-react';
+import { Search, ChevronRight , Menu} from 'lucide-react';
 import './StudyInsights.css';
 import { API_URL } from '../config';
 import logo from '../assets/logo.svg';
@@ -96,22 +96,25 @@ const StudyInsights = () => {
           <p>Unable to load insights</p>
           {error && <p className="si-error-detail">{error}</p>}
           <button className="si-btn" onClick={loadComprehensiveInsights}>Retry</button>
-          <button className="si-btn" onClick={() => navigate('/dashboard')}>Back to Dashboard</button>
+          <button className="si-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
         </div>
       </div>
     );
   }
 
-  const hasData = insights.activity_breakdown && 
-    (insights.activity_breakdown.ai_chats > 0 || 
-     insights.activity_breakdown.quizzes_completed > 0 ||
-     insights.activity_breakdown.flashcards_reviewed > 0);
+  // Check if there's any data to display
+  const hasData = insights && (
+    (insights.time_stats && (insights.time_stats.weekly_study_minutes > 0 || insights.time_stats.day_streak > 0)) ||
+    (insights.flashcards && insights.flashcards.total_cards > 0) ||
+    (insights.notes && insights.notes.total_notes > 0) ||
+    (insights.weak_areas && insights.weak_areas.length > 0)
+  );
 
   return (
     <div className="si-page">
       <header className="si-header">
         <div className="si-header-left">
-          <h1 className="si-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+          <h1 className="si-logo" onClick={() => navigate('/dashboard')}>
             <div className="si-logo-img" />
             cerbyl
           </h1>
@@ -119,24 +122,6 @@ const StudyInsights = () => {
           <span className="si-subtitle">STUDY INSIGHTS</span>
         </div>
         <nav className="si-header-right">
-          <div className="si-time-toggle">
-            <button 
-              className={`si-toggle-btn ${timeRange === 'session' ? 'active' : ''}`}
-              onClick={() => setTimeRange('session')}
-            >
-              THIS SESSION
-            </button>
-            <button 
-              className={`si-toggle-btn ${timeRange === 'overall' ? 'active' : ''}`}
-              onClick={() => setTimeRange('overall')}
-            >
-              OVERALL
-            </button>
-          </div>
-          <button className="si-nav-btn si-nav-btn-ghost" onClick={() => navigate('/search-hub')}>
-            <Search size={14} />
-            <span>Search Hub</span>
-          </button>
           <button className="si-nav-btn si-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
             <span>Dashboard</span>
             <ChevronRight size={14} />

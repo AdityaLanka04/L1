@@ -4,7 +4,7 @@ import {
   ArrowLeft, Plus, Loader, BookOpen, Target, Clock, Award,
   TrendingUp, CheckCircle, Lock, Play, Trash2, MoreVertical,
   Sparkles, Route, Map, GraduationCap, Star, Circle
-} from 'lucide-react';
+, Menu} from 'lucide-react';
 import learningPathService from '../services/learningPathService';
 import './LearningPaths.css';
 
@@ -136,7 +136,10 @@ const LearningPaths = () => {
       {/* Header */}
       <header className="lp-header">
         <div className="lp-header-left">
-          <div className="lp-header-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <div className="lp-header-logo" onClick={() => navigate('/search-hub')}>
             <div className="lp-header-logo-img" />
             cerbyl
           </div>

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Play, Brain, Sparkles, Loader, AlertCircle, BarChart3,
   BookOpen, Gauge, Cpu, Database, ArrowRight, History, TrendingUp, Zap, ChevronRight
-} from 'lucide-react';
+, Menu} from 'lucide-react';
 import './SoloQuiz.css';
 import quizAgentService from '../services/quizAgentService';
 
@@ -103,7 +103,10 @@ const SoloQuiz = () => {
     <div className="sq-page">
       <header className="sq-header">
         <div className="sq-header-left">
-          <h1 className="sq-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+          <button className="nav-menu-btn" onClick={() => navigate('/dashboard')} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="sq-logo" onClick={() => navigate('/search-hub')}>
             <div className="sq-logo-img" />
             cerbyl
           </h1>

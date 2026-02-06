@@ -4,7 +4,7 @@ import {
   ChevronLeft, TrendingUp, Download, ChevronRight,
   BarChart3, Activity, Zap, BookOpen, MessageSquare,
   Trophy, Target, Flame, Clock, Brain, Swords, Calendar
-} from 'lucide-react';
+, Menu} from 'lucide-react';
 import './Analytics.css';
 import { API_URL } from '../config';
 import { useTheme } from '../contexts/ThemeContext';
@@ -180,7 +180,10 @@ const Analytics = () => {
       {/* Standardized Header - Exact copy from Profile */}
       <header className="analytics-header">
         <div className="analytics-header-left">
-          <h1 className="analytics-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+          <button className="nav-menu-btn" onClick={() => navigate('/dashboard')} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="analytics-logo" onClick={() => navigate('/search-hub')}>
             <div className="analytics-logo-img" />
             cerbyl
           </h1>
