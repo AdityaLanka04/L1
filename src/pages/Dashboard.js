@@ -1003,6 +1003,13 @@ const Dashboard = () => {
             </button>
           </div>
           
+          <div className="ds-header-center">
+            <div className="ds-header-title" onClick={() => navigate('/search-hub')}>
+              <div className="ds-logo-img"></div>
+              cerbyl
+            </div>
+          </div>
+          
           <div className="ds-header-right">
             <button
               className="ds-search-hub-btn"

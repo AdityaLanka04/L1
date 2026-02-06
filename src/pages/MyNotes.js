@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Plus, Search, Star, Clock, Folder, Trash2, Upload, FolderPlus, 
   Grid, List as ListIcon, Layout, Sparkles, ChevronLeft, ChevronRight,
-  Home, LogOut, FileText, Menu
+  Home, LogOut, FileText, Menu, RotateCcw
 } from 'lucide-react';
 import './MyNotes.css';
 import './MyNotesSmartFolders.css';
@@ -282,6 +282,23 @@ const MyNotes = () => {
       }
     } catch (error) {
           }
+  };
+
+  const restoreNote = async (noteId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/restore_note/${noteId}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        await loadTrash();
+        await loadNotes();
+      }
+    } catch (error) {
+      console.error('Error restoring note:', error);
+    }
   };
 
   const handleTemplateSelect = async (template) => {
@@ -595,20 +612,32 @@ const MyNotes = () => {
                       <div className="nt-note-card-header">
                         <h3 className="nt-note-title">{note.title || 'Untitled'}</h3>
                         <div className="nt-note-actions">
-                          <button
-                            className="nt-note-action-btn"
-                            onClick={(e) => { e.stopPropagation(); setNoteToMove(note); setShowMoveModal(true); }}
-                            title="Move to folder"
-                          >
-                            <Folder size={14} />
-                          </button>
-                          <button
-                            className="nt-note-action-btn delete"
-                            onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }}
-                            title="Delete"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          {showTrash ? (
+                            <button
+                              className="nt-note-action-btn restore"
+                              onClick={(e) => { e.stopPropagation(); restoreNote(note.id); }}
+                              title="Restore from trash"
+                            >
+                              <RotateCcw size={14} />
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                className="nt-note-action-btn"
+                                onClick={(e) => { e.stopPropagation(); setNoteToMove(note); setShowMoveModal(true); }}
+                                title="Move to folder"
+                              >
+                                <Folder size={14} />
+                              </button>
+                              <button
+                                className="nt-note-action-btn delete"
+                                onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }}
+                                title="Delete"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                       <div className="nt-note-preview">{extractPreview(note.content)}</div>
