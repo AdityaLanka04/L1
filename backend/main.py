@@ -163,13 +163,9 @@ sync_sequences()
 
 
 
-app = FastAPI(title="Brainwave Backend API", version="3.0.0")  #  Keep this, remove duplicate
+app = FastAPI(title="Brainwave Backend API", version="3.0.0")
 
 # ==================== CORS CONFIGURATION ====================
-
-
-
-app.add_middleware(
 # CORS Configuration - Use environment variable
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,https://cerbyl.com").split(",")
 
