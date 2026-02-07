@@ -10,7 +10,7 @@ echo "🚀 Starting BrainwaveAI Backend Deployment..."
 # Configuration
 # IMPORTANT: Set your GitHub repository URL here or as environment variable
 # Example: export GITHUB_REPO="https://github.com/yourusername/BrainwaveAI.git"
-GITHUB_REPO="${GITHUB_REPO:-https://github.com/YOUR_USERNAME/YOUR_REPO.git}"
+GITHUB_REPO="${GITHUB_REPO:-https://github.com/Asphar0057/BrainwaveAI}"
 GITHUB_BRANCH="${GITHUB_BRANCH:-main}"
 
 # Validate GitHub repo is set
