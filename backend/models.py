@@ -2,7 +2,6 @@ from sqlalchemy import (
     create_engine, Column, Integer, String, Text, DateTime, ForeignKey,
     Boolean, Float, JSON, Date, func  #  ADD func here
 )
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker, backref
 from datetime import datetime, timezone
 from typing import Optional, List
@@ -14,14 +13,10 @@ from question_bank_models import create_question_bank_models
 from learning_paths_models import create_learning_paths_models
 
 # ==================== DATABASE CONFIG ====================
+# Import Base, engine, and SessionLocal from database.py to ensure consistency
+from database import Base, engine, SessionLocal
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./brainwave_tutor.db")
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {})
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()  
-UploadedDocument, QuestionSet, Question, QuestionSession, UserPerformanceMetrics = create_question_bank_models(Base)
-LearningPath, LearningPathNode, LearningPathProgress, LearningNodeProgress, LearningNodeNote = create_learning_paths_models(Base)
-
+# NOTE: Factory functions will be called AFTER User class is defined to avoid circular dependencies
 
 
 class DailyGoal(Base):
@@ -79,6 +74,12 @@ class User(Base):
     learning_paths = relationship("LearningPath", backref="user")
     learning_path_progress = relationship("LearningPathProgress", backref="user")
     learning_node_progress = relationship("LearningNodeProgress", backref="user")
+
+
+# ==================== CREATE FACTORY MODELS ====================
+# Now that User is defined, we can safely create models that reference it
+UploadedDocument, QuestionSet, Question, QuestionSession, UserPerformanceMetrics = create_question_bank_models(Base)
+LearningPath, LearningPathNode, LearningPathProgress, LearningNodeProgress, LearningNodeNote = create_learning_paths_models(Base)
 
 
 class ChatSession(Base):
