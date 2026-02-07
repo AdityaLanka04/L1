@@ -19,6 +19,9 @@ from typing import Dict, Optional, Any, List
 from pathlib import Path
 import asyncio
 
+# Initialize logger first
+logger = logging.getLogger(__name__)
+
 # YouTube Transcript API (primary method)
 try:
     from youtube_transcript_api import YouTubeTranscriptApi
@@ -42,8 +45,6 @@ except ImportError:
     HttpError = Exception
     GOOGLE_API_AVAILABLE = False
     logger.warning("google-api-python-client not installed. Install with: pip install google-api-python-client")
-
-logger = logging.getLogger(__name__)
 
 # Get YouTube API key from environment
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY") or os.getenv("GOOGLE_API_KEY")
