@@ -833,9 +833,9 @@ const Dashboard = () => {
   const navigateToNotes = () => navigate('/notes');
   const navigateToGames = () => navigate('/games');
   const navigateToSocial = () => navigate('/social');
-  const navigateToConcepts = () => navigate('/concept-web');
+  const navigateToConcepts = () => navigate('/activity-timeline');
   const navigateToLearningReview = () => navigate('/learning-review');
-  const navigateToActivityTimeline = () => navigate('/activity-timeline');
+  const navigateToActivityTimeline = () => navigate('/concept-web');
   const navigateToAnalytics = () => navigate('/analytics');
   const openProfile = () => navigate('/profile');
   const navigateToCustomize = () => navigate('/customize-dashboard');
@@ -1126,11 +1126,11 @@ const Dashboard = () => {
           <ChevronRight className="ds-card-click-indicator" size={20} style={{ color: getWidgetColor('concept-web') }} />
           <div className="ds-feature-content">
             <div className="ds-feature-icon" style={{ background: `linear-gradient(135deg, ${getWidgetColor('concept-web')} 0%, ${getWidgetColor('concept-web')} 100%)`, boxShadow: `0 6px 20px ${rgbaFromHex(getWidgetColor('concept-web'), 0.3)}` }}>
-              <Network size={24} />
+              <CalendarIcon size={24} />
             </div>
-            <h3 className="ds-feature-title">Concept Web</h3>
+            <h3 className="ds-feature-title">Activity Timeline</h3>
             <p className="ds-feature-description">
-              Visualize connections between topics and ideas.
+              Calendar & Reminders
             </p>
           </div>
         </div>
@@ -1328,11 +1328,11 @@ const Dashboard = () => {
           <ChevronRight className="ds-card-click-indicator" size={20} style={{ color: getWidgetColor('activity') }} />
           <div className="ds-feature-content">
             <div className="ds-feature-icon" style={{ background: `linear-gradient(135deg, ${getWidgetColor('activity')} 0%, ${getWidgetColor('activity')} 100%)`, boxShadow: `0 6px 20px ${rgbaFromHex(getWidgetColor('activity'), 0.3)}` }}>
-              <CalendarIcon size={24} />
+              <Network size={24} />
             </div>
-            <h3 className="ds-feature-title">Activity Timeline</h3>
+            <h3 className="ds-feature-title">Concept Web</h3>
             <p className="ds-feature-description">
-              Calendar & Reminders
+              Visualize connections between topics and ideas.
             </p>
           </div>
         </div>

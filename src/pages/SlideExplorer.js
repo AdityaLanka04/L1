@@ -211,7 +211,10 @@ const SlideExplorer = () => {
       {/* Header - Full Width */}
       <header className="se-header">
         <div className="se-header-left">
-          <h1 className="se-header-title" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <Menu size={20} />
+          </button>
+          <h1 className="se-header-title" onClick={() => navigate('/search-hub')}>
             <div className="se-logo-img" />
             cerbyl
           </h1>
@@ -242,7 +245,7 @@ const SlideExplorer = () => {
           </nav>
 
           <div className="se-sidebar-footer">
-            <button className="se-tab-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+            <button className="se-tab-btn" onClick={() => navigate('/dashboard')}>
               <ChevronLeft size={20} />
               <span className="se-nav-text">Dashboard</span>
             </button>

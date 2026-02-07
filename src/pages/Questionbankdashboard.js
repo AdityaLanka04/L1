@@ -1226,7 +1226,7 @@ const QuestionBankDashboard = () => {
       </nav>
 
       <div className="qbd-sidebar-footer">
-        <button className="qbd-sidebar-item" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+        <button className="qbd-sidebar-item" onClick={() => navigate('/dashboard')}>
           <ChevronLeft size={20} />
           <span className="qbd-nav-text">Dashboard</span>
         </button>
@@ -2689,7 +2689,10 @@ const QuestionBankDashboard = () => {
       {/* Header - Full Width */}
       <header className="qbd-header">
         <div className="qbd-header-left">
-          <div className="qbd-header-title" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+          <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+            <List size={20} />
+          </button>
+          <div className="qbd-header-title" onClick={() => navigate('/search-hub')}>
             <div className="qbd-logo-img"></div>
             cerbyl
           </div>
