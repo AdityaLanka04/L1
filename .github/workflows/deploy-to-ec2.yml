@@ -1,0 +1,28 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          cd /home/ubuntu/brainwave-backend
+          git pull origin main
+          docker-compose -f aws-deployment/docker-compose.production.yml down
+          docker-compose -f aws-deployment/docker-compose.production.yml build --no-cache
+          docker-compose -f aws-deployment/docker-compose.production.yml up -d
+          sleep 10
+          curl -f http://localhost:8000/api/health || exit 1
+          echo "✅ Deployment successful!"

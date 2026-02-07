@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../aws-deployment/Dockerfile.production
+    container_name: brainwave-backend-prod
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../backend/.env.production
+    environment:
+      - ENV=production
+      - UPLOAD_DIR=/app/uploads
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ../backend:/app
+      - backend_uploads:/app/uploads
+      - backend_exports:/app/exports
+      - backend_attachments:/app/attachments
+      - backend_chroma:/app/chroma_db
+      - backend_cache:/app/cache
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  backend_uploads:
+  backend_exports:
+  backend_attachments:
+  backend_chroma:
+  backend_cache:
