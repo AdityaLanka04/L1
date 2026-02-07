@@ -79,29 +79,31 @@ class AutoIndexer:
             session = self.db_session_factory()
             
             # Get users active in the last 24 hours
+            # PostgreSQL syntax: NOW() - INTERVAL '1 day'
+            # SQLite syntax: datetime('now', '-1 day')
             active_users_query = text("""
                 SELECT DISTINCT u.id, u.email
                 FROM users u
-                WHERE u.last_login > datetime('now', '-1 day')
+                WHERE u.last_login > NOW() - INTERVAL '1 day'
                 OR EXISTS (
                     SELECT 1 FROM notes n 
                     WHERE n.user_id = u.id 
-                    AND n.created_at > datetime('now', '-1 day')
+                    AND n.created_at > NOW() - INTERVAL '1 day'
                 )
                 OR EXISTS (
                     SELECT 1 FROM flashcard_sets fs 
                     WHERE fs.user_id = u.id 
-                    AND fs.created_at > datetime('now', '-1 day')
+                    AND fs.created_at > NOW() - INTERVAL '1 day'
                 )
                 OR EXISTS (
                     SELECT 1 FROM chat_sessions cs 
                     WHERE cs.user_id = u.id 
-                    AND cs.created_at > datetime('now', '-1 day')
+                    AND cs.created_at > NOW() - INTERVAL '1 day'
                 )
                 OR EXISTS (
                     SELECT 1 FROM question_sets qs 
                     WHERE qs.user_id = u.id 
-                    AND qs.created_at > datetime('now', '-1 day')
+                    AND qs.created_at > NOW() - INTERVAL '1 day'
                 )
                 LIMIT 100
             """)
