@@ -170,34 +170,13 @@ app = FastAPI(title="Brainwave Backend API", version="3.0.0")  #  Keep this, rem
 
 
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:8000",
-        "https://cerbyl.com",
-        "https://www.cerbyl.com",
-        "https://ceryl.onrender.com",
-        "https://l1.vercel.app", 
-        "https://l1-theta.vercel.app",
-        "https://l1-7i4bnhcn1-asphar0057s-projects.vercel.app"
-    ],
-    allow_origin_regex=r"https://(l1-.*\.vercel\.app|.*cerbyl\.com)$",  # Allow all Vercel preview deploys and cerbyl.com
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS Configuration - Use environment variable
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,https://cerbyl.com").split(",")
 
-
-# CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://*.onrender.com",
-        "https://*.vercel.app",
-        "https://brainwave-ai.vercel.app"
-    ],
+    allow_origins=allowed_origins,
+    allow_origin_regex=r"https://(l1-.*\.vercel\.app|.*cerbyl\.com)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

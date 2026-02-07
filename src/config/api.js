@@ -2,10 +2,8 @@
  * API Configuration
  */
 
-//  In production (Vercel), this will be: https://ceryl.onrender.com/api
-//  In development, this will be: http://localhost:8000/api
-export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
-
+// Point to your domain with HTTPS (SSL is now setup!)
+export const API_URL = process.env.REACT_APP_API_URL || 'https://api.cerbyl.com/api';
 
 /**
  * Helper function for making authenticated API requests
@@ -15,7 +13,6 @@ export const apiRequest = async (endpoint, options = {}) => {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
   const url = `${API_URL}/${cleanEndpoint}`;
   
-    
   const token = localStorage.getItem('token');
   
   const defaultHeaders = {
@@ -34,7 +31,7 @@ export const apiRequest = async (endpoint, options = {}) => {
 
     // Handle expired token - auto logout
     if (response.status === 401) {
-            localStorage.removeItem('token');
+      localStorage.removeItem('token');
       localStorage.removeItem('username');
       localStorage.removeItem('userProfile');
       sessionStorage.removeItem('safetyAccepted');
@@ -49,7 +46,7 @@ export const apiRequest = async (endpoint, options = {}) => {
 
     return await response.json();
   } catch (error) {
-        throw error;
+    throw error;
   }
 };
 
