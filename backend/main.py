@@ -363,6 +363,11 @@ from learning_paths_api import register_learning_paths_api
 register_learning_paths_api(app, unified_ai)
 logger.info(" Learning Paths API registered")
 
+# Register Learning Progress Tracking API
+from learning_progress_api import router as learning_progress_router
+app.include_router(learning_progress_router, prefix="/api/learning-progress", tags=["learning-progress"])
+logger.info(" Learning Progress Tracking API registered")
+
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -2243,6 +2248,82 @@ Your brief comment:"""
                     
                     db.commit()
                     print(f"✅ Database committed - message saved!")
+                    
+                    # ============================================================
+                    # TRACK LEARNING PROGRESS
+                    # ============================================================
+                    print(f"\n{'='*80}")
+                    print(f"🎓 LEARNING PROGRESS TRACKING - STARTING")
+                    print(f"{'='*80}")
+                    print(f"📊 Context:")
+                    print(f"   - User ID: {user.id}")
+                    print(f"   - User email: {user.email}")
+                    print(f"   - Chat session ID: {chat_id_int}")
+                    print(f"   - Topics discussed: {topics_discussed}")
+                    
+                    try:
+                        print(f"\n📦 Importing track_chat_activity...")
+                        from learning_progress_hooks import track_chat_activity
+                        print(f"✅ Import successful")
+                        
+                        # Get recent messages for context
+                        print(f"\n📝 Fetching recent messages from database...")
+                        recent_messages = db.query(models.ChatMessage).filter(
+                            models.ChatMessage.chat_session_id == chat_id_int
+                        ).order_by(models.ChatMessage.timestamp.desc()).limit(5).all()
+                        print(f"✅ Found {len(recent_messages)} recent messages")
+                        
+                        print(f"\n🔄 Building chat messages array...")
+                        chat_messages = []
+                        for msg in reversed(recent_messages):
+                            chat_messages.append({"role": "user", "content": msg.user_message})
+                            chat_messages.append({"role": "assistant", "content": msg.ai_response})
+                        print(f"✅ Built array with {len(chat_messages)} messages")
+                        
+                        # Extract topic from topics_discussed
+                        topic = topics_discussed[0] if topics_discussed else "General Discussion"
+                        print(f"📌 Topic: {topic}")
+                        
+                        print(f"\n🚀 Calling track_chat_activity (async)...")
+                        progress_result = await track_chat_activity(
+                            db=db,
+                            user_id=user.id,
+                            chat_messages=chat_messages,
+                            topic=topic
+                        )
+                        
+                        print(f"\n✅ track_chat_activity returned")
+                        print(f"📊 Result: {progress_result}")
+                        
+                        if progress_result and progress_result.get("success"):
+                            updated_count = progress_result.get("updated_nodes", 0)
+                            print(f"📊 Learning progress tracked: {updated_count} nodes updated")
+                            
+                            if updated_count > 0:
+                                print(f"🎉 SUCCESS: Progress was updated!")
+                                if progress_result.get("updates"):
+                                    print(f"📈 Updated nodes:")
+                                    for update in progress_result["updates"]:
+                                        print(f"   - {update.get('node_title')}: {update.get('new_progress')}%")
+                            else:
+                                print(f"ℹ️ No nodes were updated (no matches or low confidence)")
+                        else:
+                            print(f"⚠️ Progress tracking returned unsuccessful result")
+                            if progress_result:
+                                print(f"   Error: {progress_result.get('error', 'Unknown')}")
+                        
+                        print(f"{'='*80}\n")
+                        
+                    except Exception as progress_error:
+                        print(f"\n❌ EXCEPTION IN LEARNING PROGRESS TRACKING")
+                        print(f"Error type: {type(progress_error).__name__}")
+                        print(f"Error message: {str(progress_error)}")
+                        import traceback
+                        print(f"Full traceback:")
+                        traceback.print_exc()
+                        print(f"{'='*80}\n")
+                        # Don't fail the request if progress tracking fails
+                    
                 else:
                     print(f"ℹ️ Message already exists, skipping save and point award")
             except Exception as save_error:

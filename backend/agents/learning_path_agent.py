@@ -117,7 +117,7 @@ class LearningPathAgent:
             return {
                 "success": True,
                 "path_id": path.id,
-                "path": self._serialize_path(path, db),
+                "path": self._serialize_path(path, db, user_id),
                 "message": f"Created learning path with {len(path.nodes)} nodes"
             }
         
@@ -767,12 +767,12 @@ VERIFY BEFORE RESPONDING:
         )
         db.add(progress)
         
-        # Create node progress records (first node unlocked, rest locked)
+        # Create node progress records (ALL nodes unlocked for flexible learning)
         for i, node in enumerate(path.nodes):
             node_progress = models.LearningNodeProgress(
                 node_id=node.id,
                 user_id=user_id,
-                status="unlocked" if i == 0 else "locked",
+                status="unlocked",  # All nodes unlocked by default
                 progress_pct=0,
                 xp_earned=0,
                 difficulty_view="intermediate",
@@ -802,7 +802,7 @@ VERIFY BEFORE RESPONDING:
         ).order_by(models.LearningPath.created_at.desc()).all()
         
         return {
-            "paths": [self._serialize_path(p, db) for p in paths]
+            "paths": [self._serialize_path(p, db, user_id) for p in paths]
         }
     
     def get_path_details(self, path_id: str, user_id: int, db: Session) -> Dict[str, Any]:
@@ -820,7 +820,7 @@ VERIFY BEFORE RESPONDING:
         db.commit()
         
         return {
-            "path": self._serialize_path(path, db, include_nodes=True)
+            "path": self._serialize_path(path, db, user_id, include_nodes=True)
         }
     
     def start_node(self, node_id: str, user_id: int, db: Session) -> Dict[str, Any]:
@@ -979,7 +979,7 @@ VERIFY BEFORE RESPONDING:
             "total_activities": total_activities
         }
     
-    def _serialize_path(self, path, db: Session, include_nodes: bool = False) -> Dict[str, Any]:
+    def _serialize_path(self, path, db: Session, user_id: int, include_nodes: bool = False) -> Dict[str, Any]:
         """Serialize path to JSON with enhanced content"""
         progress = db.query(models.LearningPathProgress).filter(
             models.LearningPathProgress.path_id == path.id
@@ -1008,7 +1008,8 @@ VERIFY BEFORE RESPONDING:
             nodes_data = []
             for node in sorted(path.nodes, key=lambda n: n.order_index):
                 node_progress = db.query(models.LearningNodeProgress).filter(
-                    models.LearningNodeProgress.node_id == node.id
+                    models.LearningNodeProgress.node_id == node.id,
+                    models.LearningNodeProgress.user_id == user_id
                 ).first()
                 
                 nodes_data.append({

@@ -39,6 +39,13 @@ const LearningPathDetail = () => {
 
   useEffect(() => {
     loadPathDetails();
+    
+    // Poll for progress updates every 10 seconds
+    const progressInterval = setInterval(() => {
+      loadPathDetails();
+    }, 10000);
+    
+    return () => clearInterval(progressInterval);
   }, [pathId]);
 
   useEffect(() => {
@@ -589,10 +596,13 @@ const LearningPathDetail = () => {
                         {node.progress.xp_earned > 0 && (
                           <span className="lpd-xp"><Award size={12} /> +{node.progress.xp_earned}</span>
                         )}
+                        {node.progress.progress_pct > 0 && (
+                          <span className="lpd-progress-badge">{node.progress.progress_pct}%</span>
+                        )}
                       </div>
                     )}
                     
-                    {node.progress.status === 'in_progress' && (
+                    {(node.progress.status === 'in_progress' || (node.progress.status === 'unlocked' && node.progress.progress_pct > 0)) && (
                       <div className="lpd-node-progress">
                         <div className="lpd-progress-mini">
                           <div

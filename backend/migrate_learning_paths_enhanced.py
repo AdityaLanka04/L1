@@ -23,7 +23,8 @@ def migrate_learning_paths():
     """Add new columns to learning path tables"""
     
     # Get database URL from environment or use default
-    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./brainwave_tutor.db")
+    # Use backend/brainwave_tutor.db for local development
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./backend/brainwave_tutor.db")
     
     # Fix for Supabase Transaction mode
     if "postgresql" in DATABASE_URL or "postgres" in DATABASE_URL:
@@ -66,9 +67,11 @@ def migrate_learning_paths():
         
         # Learning Path Nodes - Enhanced learning content
         ("learning_path_nodes", "learning_outcomes", "JSON"),
+        ("learning_path_nodes", "prerequisites", "JSON"),
         ("learning_path_nodes", "prerequisite_nodes", "JSON"),
         
         # Learning Path Nodes - Enhanced resources
+        ("learning_path_nodes", "resources", "JSON"),
         ("learning_path_nodes", "primary_resources", "JSON"),
         ("learning_path_nodes", "supplementary_resources", "JSON"),
         ("learning_path_nodes", "practice_resources", "JSON"),
@@ -160,8 +163,12 @@ def migrate_learning_paths():
                     init_queries.append(("learning_path_nodes", "code_playgrounds", "[]"))
                 if column_exists(inspector, "learning_path_nodes", "learning_outcomes"):
                     init_queries.append(("learning_path_nodes", "learning_outcomes", "[]"))
+                if column_exists(inspector, "learning_path_nodes", "prerequisites"):
+                    init_queries.append(("learning_path_nodes", "prerequisites", "[]"))
                 if column_exists(inspector, "learning_path_nodes", "prerequisite_nodes"):
                     init_queries.append(("learning_path_nodes", "prerequisite_nodes", "[]"))
+                if column_exists(inspector, "learning_path_nodes", "resources"):
+                    init_queries.append(("learning_path_nodes", "resources", "[]"))
                 if column_exists(inspector, "learning_path_nodes", "primary_resources"):
                     init_queries.append(("learning_path_nodes", "primary_resources", "[]"))
                 if column_exists(inspector, "learning_path_nodes", "supplementary_resources"):
