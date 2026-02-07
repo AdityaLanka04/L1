@@ -1,3 +1,0 @@
-﻿// This script will be used to generate the comprehensive ConceptWeb.js file
-// Due to tool limitations, I'm creating a marker file
-Write-Output "Creating comprehensive ConceptWeb implementation..."
