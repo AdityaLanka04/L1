@@ -1330,7 +1330,7 @@ const Dashboard = () => {
             <div className="ds-feature-icon" style={{ background: `linear-gradient(135deg, ${getWidgetColor('activity')} 0%, ${getWidgetColor('activity')} 100%)`, boxShadow: `0 6px 20px ${rgbaFromHex(getWidgetColor('activity'), 0.3)}` }}>
               <Network size={24} />
             </div>
-            <h3 className="ds-feature-title">Concept Web</h3>
+            <h3 className="ds-feature-title">Learning Path</h3>
             <p className="ds-feature-description">
               Visualize connections between topics and ideas.
             </p>

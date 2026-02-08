@@ -84,7 +84,7 @@ const GlobalNavSidebar = ({ isOpen, onClose }) => {
       items: [
         { path: '/learning-paths', label: 'All Paths', icon: Map, description: 'Structured courses' },
         { path: '/playlists', label: 'Playlists', icon: BookOpen, description: 'Curated content' },
-        { path: '/concept-web', label: 'Concept Web', icon: Grid, description: 'Knowledge graph' },
+        { path: '/concept-web', label: 'Learning Path', icon: Grid, description: 'Knowledge graph' },
         { path: '/learning-review-hub', label: 'Review Hub', icon: Bookmark, description: 'Review materials' },
       ]
     },

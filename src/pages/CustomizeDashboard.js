@@ -93,7 +93,7 @@ const WIDGET_DEFINITIONS = {
   },
   'concept-web': {
     id: 'concept-web',
-    title: 'Concept Web',
+    title: 'Learning Path',
     icon: Network,
     description: 'Visualize topic connections',
     sizes: { S: { cols: 1, rows: 1 }, M: { cols: 1, rows: 2 }, L: { cols: 2, rows: 2 } },

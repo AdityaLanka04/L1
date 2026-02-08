@@ -512,7 +512,7 @@ const LearningPathDetail = () => {
               <Menu size={20} />
             </button>
             <h1 className="lpd-title">{path.title.toUpperCase()}</h1>
-            <button className="lpd-back-btn" onClick={() => navigate('/learning-paths')}>
+            <button className="lpd-back-btn" onClick={() => navigate('/dashboard')}>
               <ChevronLeft size={16} />
               <span>BACK</span>
             </button>

@@ -151,7 +151,7 @@ const LearningPaths = () => {
             <Plus size={16} />
             <span>Create Path</span>
           </button>
-          <button className="lp-back-btn" onClick={() => navigate('/concept-web')}>
+          <button className="lp-back-btn" onClick={() => navigate('/dashboard')}>
             <span>Back</span>
             <ArrowLeft size={14} />
           </button>
