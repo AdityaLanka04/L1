@@ -416,22 +416,22 @@ const AIMediaNotes = () => {
 
   return (
     <div className="ai-media-notes-page">
-      {/* Top Header - Exact MyNotes Style */}
-      <header className="mn-top-header">
-        <div className="mn-top-header-left">
+      {/* Standardized Header */}
+      <header className="hub-header">
+        <div className="hub-header-left">
           <button 
-            className="mn-sidebar-toggle" 
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            aria-label="Toggle sidebar"
+            className="nav-menu-btn" 
+            onClick={() => window.openGlobalNav && window.openGlobalNav()}
+            aria-label="Open navigation"
           >
-            <Menu size={20} />
+            <Menu size={18} />
           </button>
-          <h1 className="mn-top-header-title" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
-            <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+          <h1 className="hub-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+            <div className="hub-logo-img" />
             cerbyl
           </h1>
-          <div className="mn-top-header-divider"></div>
-          <p className="mn-top-header-subtitle">MEDIA NOTES</p>
+          <div className="hub-header-divider"></div>
+          <p className="hub-header-subtitle">MEDIA NOTES</p>
         </div>
       </header>
 
@@ -490,11 +490,11 @@ const AIMediaNotes = () => {
           </nav>
 
           <div className="mn-sidebar-footer">
-            <button className="mn-nav-item" onClick={() => navigate('/notes')}>
+            <button className="mn-nav-item" onClick={() => navigate('/notes/my-notes')}>
               <span className="mn-nav-icon">{Icons.notes}</span>
               <span className="mn-nav-text">MY NOTES</span>
             </button>
-            <button className="mn-nav-item" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+            <button className="mn-nav-item" onClick={() => navigate('/dashboard')}>
               <span className="mn-nav-icon">{Icons.home}</span>
               <span className="mn-nav-text">DASHBOARD</span>
             </button>

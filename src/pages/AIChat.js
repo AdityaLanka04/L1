@@ -1773,25 +1773,19 @@ const AIChat = ({ sharedMode = false }) => {
 
   return (
     <div className="ai-chat-page">
-      {/* Header */}
-      <header className="ac-header">
-        <div className="ac-header-left">
+      {/* Standardized Header */}
+      <header className="hub-header">
+        <div className="hub-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             {Icons.menu}
           </button>
-          <h1 className="ac-logo" onClick={() => navigate('/search-hub')}>
-            <div className="ac-logo-img" />
+          <h1 className="hub-logo" onClick={() => navigate('/search-hub')}>
+            <div className="hub-logo-img" />
             cerbyl
           </h1>
-          <div className="ac-header-divider"></div>
-          <span className="ac-subtitle">AI CHAT</span>
+          <div className="hub-header-divider"></div>
+          <p className="hub-header-subtitle">AI CHAT</p>
         </div>
-        <nav className="ac-header-right">
-          <button className="ac-nav-btn ac-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
-            <span>Dashboard</span>
-            {Icons.chevronRight}
-          </button>
-        </nav>
       </header>
 
       <div className="ac-layout">
@@ -1953,6 +1947,13 @@ const AIChat = ({ sharedMode = false }) => {
               </div>
             </div>
           </nav>
+
+          <div className="ac-sidebar-footer">
+            <button className="ac-nav-item" onClick={() => navigate('/dashboard')}>
+              <span className="ac-nav-icon">{Icons.home}</span>
+              <span className="ac-nav-text">Dashboard</span>
+            </button>
+          </div>
         </aside>
 
         {/* Main Content */}

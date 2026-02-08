@@ -447,25 +447,157 @@
   background-image: none !important;
 }
 
-/* Fixed Header */
-.fc-header {
+/* ==================== HEADER - Matching NotesRedesign Exactly ==================== */
+.hub-header {
   height: 70px;
   min-height: 70px;
-  max-height: 70px;
-  padding: 0 40px;
-  background: color-mix(in srgb, var(--fc-bg-primary) 80%, transparent);
-  backdrop-filter: blur(20px) saturate(180%);
+  padding: 20px 40px;
+  background: var(--fc-bg-primary);
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+  width: 100%;
+  z-index: 100;
   position: sticky;
   top: 0;
-  z-index: 100;
+}
+
+.hub-header-left {
+  display: flex !important;
+  align-items: center !important;
+  flex-direction: row !important;
+  gap: 16px;
+}
+
+.nav-menu-btn {
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 10px;
+  color: var(--accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.nav-menu-btn svg {
+  width: 18px !important;
+  height: 18px !important;
+}
+
+.nav-menu-btn:hover {
+  background: var(--fc-bg-tertiary);
+  border-color: var(--accent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.hub-logo {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: -1px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hub-logo-img {
+  height: 60px;
+  width: 60px;
+  -webkit-mask: url('../assets/logo.svg') no-repeat center;
+  mask: url('../assets/logo.svg') no-repeat center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  background-color: var(--accent);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hub-logo:hover {
+  transform: translateY(-2px);
+  text-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.hub-logo:hover .hub-logo-img {
+  transform: scale(1.1);
+}
+
+.hub-header-divider {
+  width: 1px;
+  height: 20px;
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.hub-header-subtitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.hub-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hub-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 8px;
+}
+
+.hub-nav-btn svg {
+  width: 14px !important;
+  height: 14px !important;
+  stroke: currentColor !important;
+  fill: none !important;
+}
+
+.hub-nav-btn-ghost {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  opacity: 0.7;
+}
+
+.hub-nav-btn-ghost:hover {
+  opacity: 1;
+  color: var(--accent);
 }
 
 /* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
+[data-theme-mode="dark"] .hub-header {
+  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
+}
+
+[data-theme-mode="light"] .hub-header {
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Old fc-header styles for backwards compatibility */
 [data-theme-mode="dark"] .fc-header {
   background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
@@ -798,14 +930,16 @@
   flex-direction: column;
 }
 
-/* Only center generator and empty states */
+/* Only center generator and empty states - OVERRIDE - TRUE CENTER */
 .fc-content:has(.fc-generator),
 .fc-content:has(.fc-empty),
 .fc-content:has(.fc-loading) {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding-top: 0 !important;
+  min-height: calc(100vh - 70px) !important;
 }
 
 /* Center alignment only for generator content */
@@ -1107,45 +1241,168 @@
   height: 14px;
 }
 
-/* Empty State */
+/* Empty State - Compact and Centered - OVERRIDE ALL */
 .fc-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: calc(100vh - var(--fc-header-height) - 100px);
-  padding: 60px 20px;
-  text-align: center;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+  text-align: center !important;
+  max-width: 800px !important;
+  margin: 0 !important;
+  position: relative !important;
+  gap: 24px !important;
 }
 
+/* Remove icon completely */
 .fc-empty-icon {
-  width: 70px;
-  height: 70px;
-  background: var(--fc-bg-tertiary);
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--fc-accent);
-  margin-bottom: 20px;
-}
-
-.fc-empty-icon svg {
-  width: 32px;
-  height: 32px;
+  display: none !important;
 }
 
 .fc-empty h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--fc-text-primary);
-  margin-bottom: 8px;
+  font-size: 24px !important;
+  font-weight: 600 !important;
+  color: var(--fc-text-primary) !important;
+  margin-bottom: 0 !important;
+  margin-top: 0 !important;
 }
 
-.fc-empty p {
-  font-size: 14px;
-  color: var(--fc-text-muted);
-  margin-bottom: 20px;
+/* Subtitle text - smaller and visible */
+.fc-empty > p {
+  display: block !important;
+  font-size: 14px !important;
+  color: var(--fc-text-muted) !important;
+  margin: 0 !important;
+  line-height: 1.5 !important;
+  opacity: 0.7 !important;
+}
+
+/* Button styling - MATCH HEADER SUBTITLE */
+.fc-empty .fc-btn {
+  margin-top: 0 !important;
+  padding: 12px 24px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 2px !important;
+  text-transform: uppercase !important;
+  border-radius: 8px !important;
+}
+
+/* Search container in empty state - SEARCHHUB STYLE */
+.fc-empty-search-container {
+  width: 100%;
+  max-width: 700px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 4px;
+}
+
+/* Search box wrapper - SEARCHHUB STYLE - NO LEFT ICON */
+.fc-empty .fc-search,
+.fc-empty .fc-search-large {
+  all: unset !important;
+  position: relative !important;
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  border: 3px solid var(--fc-accent) !important;
+  background: var(--fc-bg-primary) !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-sizing: border-box !important;
+}
+
+.fc-empty .fc-search:hover,
+.fc-empty .fc-search-large:hover {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 15%, transparent) !important;
+}
+
+.fc-empty .fc-search:focus-within,
+.fc-empty .fc-search-large:focus-within {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent) !important;
+}
+
+/* Hide left search icon */
+.fc-empty .fc-search-icon:not(.search-btn) {
+  display: none !important;
+}
+
+/* Search input - SEARCHHUB STYLE - WIDER */
+.fc-empty .fc-search input,
+.fc-empty .fc-search-large input {
+  all: unset !important;
+  flex: 1 !important;
+  width: 100% !important;
+  height: 60px !important;
+  padding: 0 20px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--fc-accent) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+
+.fc-empty .fc-search input::placeholder,
+.fc-empty .fc-search-large input::placeholder {
+  color: color-mix(in srgb, var(--accent) 40%, transparent) !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+}
+
+.fc-empty .fc-search input:focus,
+.fc-empty .fc-search-large input:focus {
+  outline: none !important;
+}
+
+/* Search button integrated - SEARCHHUB STYLE */
+.fc-empty .fc-search-icon.search-btn,
+.fc-empty-search-container .fc-btn.search-btn-integrated {
+  all: unset !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 60px !important;
+  height: 60px !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--fc-accent) !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.fc-empty .fc-search-icon.search-btn:hover,
+.fc-empty-search-container .fc-btn.search-btn-integrated:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent) !important;
+}
+
+.fc-empty .fc-search-icon.search-btn svg,
+.fc-empty-search-container .fc-btn.search-btn-integrated svg {
+  width: 22px !important;
+  height: 22px !important;
+  stroke-width: 2.5 !important;
+}
+
+/* Hide button container */
+.fc-empty-search-buttons {
+  display: none !important;
+}
+
+/* Override any background gradients on empty state */
+.fc-empty::before {
+  display: none !important;
+}
+
+[data-theme-mode="dark"] .fc-empty,
+[data-theme-mode="light"] .fc-empty {
+  background: transparent !important;
 }
 
 /* Loading State */
@@ -3820,7 +4077,7 @@
   box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
-/* Floating Animation for Empty States */
+/* Floating Animation for Empty States - DISABLED */
 @keyframes float {
   0%, 100% {
     transform: translateY(0px);
@@ -3831,7 +4088,8 @@
 }
 
 .fc-empty-icon {
-  animation: float 3s ease-in-out infinite;
+  animation: none !important;
+  display: none !important;
 }
 
 /* Enhanced Nav Item Hover */
@@ -4071,21 +4329,14 @@
   animation: borderGlow 2s infinite;
 }
 
-/* Enhanced Empty State */
+/* Enhanced Empty State - DISABLED */
 .fc-empty {
   position: relative;
 }
 
 .fc-empty::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 5%, transparent) 0%, transparent 70%);
-  pointer-events: none;
+  display: none !important;
+  content: none !important;
 }
 
 /* Smooth Transitions for All Interactive Elements */
@@ -4404,19 +4655,13 @@
   opacity: 1;
 }
 
-/* Enhanced Empty State Gradient */
+/* Enhanced Empty State Gradient - DISABLED */
 [data-theme-mode="dark"] .fc-empty {
-  background: radial-gradient(ellipse 60% 50% at 50% 50%, 
-    color-mix(in srgb, var(--accent) 5%, transparent) 0%,
-    transparent 70%
-  );
+  background: transparent !important;
 }
 
 [data-theme-mode="light"] .fc-empty {
-  background: radial-gradient(ellipse 60% 50% at 50% 50%, 
-    color-mix(in srgb, var(--accent) 8%, transparent) 0%,
-    transparent 70%
-  );
+  background: transparent !important;
 }
 
 /* Stats Bar Enhanced */
@@ -5190,23 +5435,39 @@
   color: white;
 }
 
-/* Public flashcards search bar */
+/* Public flashcards search bar - Compact centered design */
 .fc-public-search-bar {
   display: flex;
+  flex-direction: column;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
   align-items: center;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* When search bar is inside empty state */
+.fc-empty .fc-public-search-bar {
+  margin-top: 0;
+  margin-bottom: 0;
+  width: 100%;
+}
+
+.fc-public-search-bar .fc-search-large {
+  width: 100%;
 }
 
 .fc-search-large {
   flex: 1;
   min-width: 300px;
-  height: 44px;
+  height: 48px;
 }
 
 .fc-search-large input {
   font-size: 14px !important;
   text-transform: none !important;
+  height: 100%;
 }
 
 /* Public flashcard card badge */

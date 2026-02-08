@@ -2221,8 +2221,8 @@ const Flashcards = () => {
   return (
     <div className="flashcards-page">
       <div className="fc-layout">
-        {/* Header - Full Width - Always Visible */}
-        <header className="fc-header">
+        {/* Standardized Header */}
+        <header className="hub-header">
           {sidebarCollapsed && (
             <button 
               className="fc-show-sidebar-btn" 
@@ -2235,103 +2235,16 @@ const Flashcards = () => {
               </svg>
             </button>
           )}
-          <div className="fc-header-left">
-            <h1 className="fc-header-title" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
-              <div className="fc-header-logo-img" />
+          <div className="hub-header-left">
+            <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
+              {Icons.menu}
+            </button>
+            <h1 className="hub-logo" onClick={() => window.openGlobalNav && window.openGlobalNav()}>
+              <div className="hub-logo-img" />
               cerbyl
             </h1>
-            <div className="fc-header-divider"></div>
-            <p className="fc-header-subtitle">FLASHCARDS</p>
-          </div>
-          <div className="fc-header-actions">
-            {activePanel === 'cards' && (
-              <>
-                <div className="fc-search">
-                  <span className="fc-search-icon">{Icons.search}</span>
-                  <input 
-                    type="text"
-                    placeholder="Search sets..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                <div className="fc-custom-select-wrapper">
-                  <button 
-                    className="fc-custom-select" 
-                    onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
-                  >
-                    <span className="fc-custom-select-text">
-                      {sortBy === 'recent' && 'MOST RECENT'}
-                      {sortBy === 'alphabetical' && 'A-Z'}
-                      {sortBy === 'cards' && 'MOST CARDS'}
-                      {sortBy === 'accuracy' && 'HIGHEST ACCURACY'}
-                    </span>
-                    <span className="fc-custom-select-arrow">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                      </svg>
-                    </span>
-                  </button>
-                  {sortDropdownOpen && (
-                    <div className="fc-custom-dropdown">
-                      <button 
-                        className={`fc-custom-option ${sortBy === 'recent' ? 'active' : ''}`}
-                        onClick={() => {
-                          setIsRearranging(true);
-                          setSortBy('recent');
-                          setSortDropdownOpen(false);
-                          setTimeout(() => setIsRearranging(false), 500);
-                        }}
-                      >
-                        MOST RECENT
-                      </button>
-                      <button 
-                        className={`fc-custom-option ${sortBy === 'alphabetical' ? 'active' : ''}`}
-                        onClick={() => {
-                          setIsRearranging(true);
-                          setSortBy('alphabetical');
-                          setSortDropdownOpen(false);
-                          setTimeout(() => setIsRearranging(false), 500);
-                        }}
-                      >
-                        A-Z
-                      </button>
-                      <button 
-                        className={`fc-custom-option ${sortBy === 'cards' ? 'active' : ''}`}
-                        onClick={() => {
-                          setIsRearranging(true);
-                          setSortBy('cards');
-                          setSortDropdownOpen(false);
-                          setTimeout(() => setIsRearranging(false), 500);
-                        }}
-                      >
-                        MOST CARDS
-                      </button>
-                      <button 
-                        className={`fc-custom-option ${sortBy === 'accuracy' ? 'active' : ''}`}
-                        onClick={() => {
-                          setIsRearranging(true);
-                          setSortBy('accuracy');
-                          setSortDropdownOpen(false);
-                          setTimeout(() => setIsRearranging(false), 500);
-                        }}
-                      >
-                        HIGHEST ACCURACY
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <button className="fc-btn fc-btn-secondary" onClick={() => { 
-                  loadFlashcardHistory(true); // Reset pagination
-                  loadFlashcardStats(); 
-                }}>
-                  {Icons.refresh}
-                </button>
-              </>
-            )}
-            <button className="fc-btn fc-btn-primary" onClick={() => setActivePanel('generator')}>
-              + CREATE NEW
-            </button>
+            <div className="hub-header-divider"></div>
+            <p className="hub-header-subtitle">FLASHCARDS</p>
           </div>
         </header>
 
@@ -2399,16 +2312,6 @@ const Flashcards = () => {
           {activePanel === 'cards' && (
             <>
               <div className="fc-content fc-cards-panel">
-                <div className="fc-section-header-text">
-                  <h2>MY FLASHCARDS</h2>
-                  <p>{flashcardHistory.length} {flashcardHistory.length === 1 ? 'SET' : 'SETS'} • {flashcardStats?.total_cards || 0} CARDS TOTAL</p>
-                  {displayedSets.length > 0 && displayedSets.length < getFilteredAndSortedSets().length && (
-                    <p style={{ fontSize: '12px', marginTop: '4px', opacity: 0.7 }}>
-                      Showing {displayedSets.length} of {getFilteredAndSortedSets().length} sets
-                    </p>
-                  )}
-                </div>
-                
                 {loadingHistory && flashcardHistory.length === 0 ? (
                   <div className="fc-loading">
                     <div className="fc-spinner">
@@ -2420,7 +2323,6 @@ const Flashcards = () => {
                   </div>
                 ) : flashcardHistory.length === 0 ? (
                   <div className="fc-empty">
-                    <div className="fc-empty-icon">{Icons.book}</div>
                     <h3>No Flashcard Sets Yet</h3>
                     <p>Create your first set to start learning!</p>
                     <button className="fc-btn fc-btn-primary" onClick={() => setActivePanel('generator')}>
@@ -2429,6 +2331,16 @@ const Flashcards = () => {
                   </div>
                 ) : (
                   <>
+                    <div className="fc-section-header-text">
+                      <h2>MY FLASHCARDS</h2>
+                      <p>{flashcardHistory.length} {flashcardHistory.length === 1 ? 'SET' : 'SETS'} • {flashcardStats?.total_cards || 0} CARDS TOTAL</p>
+                      {displayedSets.length > 0 && displayedSets.length < getFilteredAndSortedSets().length && (
+                        <p style={{ fontSize: '12px', marginTop: '4px', opacity: 0.7 }}>
+                          Showing {displayedSets.length} of {getFilteredAndSortedSets().length} sets
+                        </p>
+                      )}
+                    </div>
+                    
                     <div className={`fc-grid ${isRearranging ? 'fc-grid-rearranging' : ''}`}>
                       {displayedSets.map((set, index) => {
                         const mastery = getMasteryLevel(set.accuracy_percentage || 0);
@@ -2438,7 +2350,6 @@ const Flashcards = () => {
                           '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788'
                         ];
                         const cardColor = colors[index % colors.length];
-                        
                         return (
                           <div key={set.id} className="fc-set-card-new">
                             {/* Colored Thumbnail with Title */}
@@ -2889,11 +2800,6 @@ const Flashcards = () => {
           {activePanel === 'review' && (
             <>
               <div className="fc-content">
-                <div className="fc-section-header-text">
-                  <h2>NEEDS REVIEW</h2>
-                  <p>CARDS YOU MARKED AS "I DON'T KNOW THIS"</p>
-                </div>
-                
                 {loadingReviewCards ? (
                   <div className="fc-loading">
                     <div className="fc-spinner">
@@ -2905,7 +2811,6 @@ const Flashcards = () => {
                   </div>
                 ) : reviewCards.total_cards === 0 ? (
                   <div className="fc-empty">
-                    <div className="fc-empty-icon">{Icons.check}</div>
                     <h3>No Cards Need Review</h3>
                     <p>Great job! You haven't marked any cards as "I don't know this" yet.</p>
                     <button className="fc-btn fc-btn-primary" onClick={() => setActivePanel('cards')}>
@@ -2913,24 +2818,30 @@ const Flashcards = () => {
                     </button>
                   </div>
                 ) : (
-                  <div className="fc-review-section">
-                    <div className="fc-review-summary">
-                      <span className="fc-review-count">{reviewCards.total_cards} cards</span> need your attention
+                  <>
+                    <div className="fc-section-header-text">
+                      <h2>NEEDS REVIEW</h2>
+                      <p>CARDS YOU MARKED AS "I DON'T KNOW THIS"</p>
                     </div>
                     
-                    {(reviewCards.sets || []).map((setData) => (
-                      <div key={setData.set_id} className="fc-review-set">
-                        <div className="fc-review-set-header">
-                          <h3>{setData.set_title}</h3>
-                          <span className="fc-review-set-count">{(setData.cards || []).length} cards</span>
-                        </div>
-                        <div className="fc-review-cards-list">
-                          {(setData.cards || []).map((card) => (
-                            <div key={card.id} className="fc-review-card-item">
-                              <div className="fc-review-card-content">
-                                <div className="fc-review-card-question">
-                                  <span className="fc-review-label">Q:</span>
-                                  {card.question}
+                    <div className="fc-review-section">
+                      <div className="fc-review-summary">
+                        <span className="fc-review-count">{reviewCards.total_cards} cards</span> need your attention
+                      </div>
+                      
+                      {(reviewCards.sets || []).map((setData) => (
+                        <div key={setData.set_id} className="fc-review-set">
+                          <div className="fc-review-set-header">
+                            <h3>{setData.set_title}</h3>
+                            <span className="fc-review-set-count">{(setData.cards || []).length} cards</span>
+                          </div>
+                          <div className="fc-review-cards-list">
+                            {(setData.cards || []).map((card) => (
+                              <div key={card.id} className="fc-review-card-item">
+                                <div className="fc-review-card-content">
+                                  <div className="fc-review-card-question">
+                                    <span className="fc-review-label">Q:</span>
+                                    {card.question}
                                 </div>
                                 <div className="fc-review-card-answer">
                                   <span className="fc-review-label">A:</span>
@@ -2973,7 +2884,8 @@ const Flashcards = () => {
                         </button>
                       </div>
                     ))}
-                  </div>
+                    </div>
+                  </>
                 )}
               </div>
             </>
@@ -2983,30 +2895,6 @@ const Flashcards = () => {
           {activePanel === 'explore' && (
             <>
               <div className="fc-content fc-cards-panel">
-                <div className="fc-section-header-text">
-                  <h2>EXPLORE PUBLIC FLASHCARDS</h2>
-                  <p>DISCOVER AND COPY FLASHCARD SETS FROM THE COMMUNITY</p>
-                </div>
-                
-                <div className="fc-public-search-bar">
-                  <div className="fc-search fc-search-large">
-                    <span className="fc-search-icon">{Icons.search}</span>
-                    <input 
-                      type="text"
-                      placeholder="Search public flashcard sets..."
-                      value={publicSearchQuery}
-                      onChange={(e) => setPublicSearchQuery(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && searchPublicFlashcards()}
-                    />
-                  </div>
-                  <button className="fc-btn fc-btn-primary" onClick={() => searchPublicFlashcards()}>
-                    Search
-                  </button>
-                  <button className="fc-btn fc-btn-secondary" onClick={loadAllPublicFlashcards}>
-                    Show All
-                  </button>
-                </div>
-                
                 {loadingPublic ? (
                   <div className="fc-loading">
                     <div className="fc-spinner">
@@ -3018,16 +2906,54 @@ const Flashcards = () => {
                   </div>
                 ) : publicFlashcards.length === 0 ? (
                   <div className="fc-empty">
-                    <div className="fc-empty-icon">{Icons.search}</div>
                     <h3>No Public Flashcards Found</h3>
-                    <p>Try a different search term or browse all public sets.</p>
-                    <button className="fc-btn fc-btn-primary" onClick={loadAllPublicFlashcards}>
-                      Browse All Public Sets
-                    </button>
+                    <p>Search for flashcard sets shared by the community</p>
+                    
+                    <div className="fc-empty-search-container">
+                      <div className="fc-search fc-search-large">
+                        <input 
+                          type="text"
+                          placeholder="Search public flashcards..."
+                          value={publicSearchQuery}
+                          onChange={(e) => setPublicSearchQuery(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && searchPublicFlashcards()}
+                        />
+                        <button className="fc-search-icon search-btn" onClick={() => searchPublicFlashcards()} type="button">
+                          {Icons.search}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ) : (
-                  <div className="fc-grid">
-                    {publicFlashcards.map((set, index) => {
+                  <>
+                    <div className="fc-section-header-text">
+                      <h2>EXPLORE PUBLIC FLASHCARDS</h2>
+                      <p>DISCOVER AND COPY FLASHCARD SETS FROM THE COMMUNITY</p>
+                    </div>
+                    
+                    <div className="fc-public-search-bar">
+                      <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                        <div className="fc-search fc-search-large">
+                          <span className="fc-search-icon">{Icons.search}</span>
+                          <input 
+                            type="text"
+                            placeholder="Search public flashcard sets..."
+                            value={publicSearchQuery}
+                            onChange={(e) => setPublicSearchQuery(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && searchPublicFlashcards()}
+                          />
+                        </div>
+                        <button className="fc-btn fc-btn-primary" onClick={() => searchPublicFlashcards()}>
+                          Search
+                        </button>
+                        <button className="fc-btn fc-btn-secondary" onClick={loadAllPublicFlashcards}>
+                          Show All
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="fc-grid">
+                      {publicFlashcards.map((set, index) => {
                       const colors = [
                         '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8',
                         '#F7DC6F', '#BB8FCE', '#85C1E2', '#F8B739', '#52B788'
@@ -3069,7 +2995,8 @@ const Flashcards = () => {
                         </div>
                       );
                     })}
-                  </div>
+                    </div>
+                  </>
                 )}
               </div>
             </>
