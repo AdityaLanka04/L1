@@ -300,7 +300,7 @@ class UserRAGManager:
                 SELECT id, title, content, created_at
                 FROM notes
                 WHERE user_id = :user_id
-                AND created_at > datetime('now', '-7 days')
+                AND created_at > NOW() - INTERVAL '7 days'
                 ORDER BY created_at DESC
                 LIMIT 50
             """)
@@ -324,7 +324,7 @@ class UserRAGManager:
                 FROM flashcards f
                 JOIN flashcard_sets fs ON f.set_id = fs.id
                 WHERE fs.user_id = :user_id
-                AND f.created_at > datetime('now', '-7 days')
+                AND f.created_at > NOW() - INTERVAL '7 days'
                 ORDER BY f.created_at DESC
                 LIMIT 50
             """)
@@ -349,7 +349,7 @@ class UserRAGManager:
                 FROM chat_messages cm
                 JOIN chat_sessions cs ON cm.chat_session_id = cs.id
                 WHERE cs.user_id = :user_id
-                AND cm.timestamp > datetime('now', '-7 days')
+                AND cm.timestamp > NOW() - INTERVAL '7 days'
                 ORDER BY cm.timestamp DESC
                 LIMIT 30
             """)
@@ -373,7 +373,7 @@ class UserRAGManager:
                 FROM question_sets qs
                 LEFT JOIN questions q ON q.question_set_id = qs.id
                 WHERE qs.user_id = :user_id
-                AND qs.created_at > datetime('now', '-7 days')
+                AND qs.created_at > NOW() - INTERVAL '7 days'
                 GROUP BY qs.id, qs.title, qs.description, qs.created_at
                 ORDER BY qs.created_at DESC
                 LIMIT 20

@@ -16,10 +16,10 @@ class SemanticCache:
     Uses embeddings to find semantically similar cached responses
     """
     
-    def __init__(self, similarity_threshold: float = 0.95, max_size: int = 1000):
+    def __init__(self, similarity_threshold: float = 0.98, max_size: int = 1000):
         """
         Args:
-            similarity_threshold: Minimum cosine similarity to consider a cache hit (0.95 = 95% similar)
+            similarity_threshold: Minimum cosine similarity to consider a cache hit (0.98 = 98% similar, increased from 0.95 to reduce false matches)
             max_size: Maximum number of cached items
         """
         self.similarity_threshold = similarity_threshold
@@ -168,7 +168,7 @@ def get_semantic_cache() -> SemanticCache:
     global _semantic_cache
     if _semantic_cache is None:
         _semantic_cache = SemanticCache(
-            similarity_threshold=0.95,  # 95% similar = cache hit
+            similarity_threshold=0.98,  # 98% similar = cache hit (increased from 0.95 to reduce false matches)
             max_size=1000
         )
     return _semantic_cache

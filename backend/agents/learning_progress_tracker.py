@@ -567,7 +567,7 @@ Return ONLY a valid JSON array of matches (empty array if no matches):
             updates = []
             for match in matches:
                 # Only update if confidence is high enough (lowered threshold for better tracking)
-                if match["confidence"] >= 30:  # Lowered from 50 to 30
+                if match["confidence"] >= 20:  # Lowered from 30 to 20 to capture more matches
                     # Scale progress by confidence
                     scaled_progress = int(
                         match["progress_contribution"] * (match["confidence"] / 100)
@@ -607,7 +607,7 @@ Return ONLY a valid JSON array of matches (empty array if no matches):
                     else:
                         print(f"   ❌ Update failed: {result.get('error')}")
                 else:
-                    print(f"\n   ⏭️ Skipping node {match['node_title']} (confidence {match['confidence']}% < 30%)")
+                    print(f"\n   ⏭️ Skipping node {match['node_title']} (confidence {match['confidence']}% < 20%)")
             
             print(f"\n✅ TRACK_ACTIVITY COMPLETED")
             print(f"📊 Summary:")
