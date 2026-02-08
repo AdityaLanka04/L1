@@ -334,13 +334,19 @@ const AIChat = ({ sharedMode = false }) => {
 
   const loadChatMessages = async (sessionId) => {
     if (!sessionId) {
+      console.log('⚠️ loadChatMessages called with no sessionId');
       return;
     }
     
+    console.log('📥 loadChatMessages called for chat_id:', sessionId);
+    console.log('   Current activeChatId:', activeChatId);
         
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/get_chat_messages?chat_id=${sessionId}`, {
+      const url = `${API_URL}/get_chat_messages?chat_id=${sessionId}`;
+      console.log('🌐 Fetching messages from:', url);
+      
+      const response = await fetch(url, {
         method: 'GET',
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -363,7 +369,12 @@ const AIChat = ({ sharedMode = false }) => {
   };
 
   const createNewChat = async () => {
-    if (!userName) return null;
+    if (!userName) {
+      console.error('❌ createNewChat: No userName');
+      return null;
+    }
+    
+    console.log('🆕 createNewChat called for user:', userName);
     
     try {
       const token = localStorage.getItem('token');
@@ -381,6 +392,8 @@ const AIChat = ({ sharedMode = false }) => {
 
       if (response.ok) {
         const newChat = await response.json();
+        console.log('✅ Backend response:', newChat);
+        
         const sessionData = {
           id: newChat.session_id || newChat.id,
           title: newChat.title,
@@ -388,13 +401,18 @@ const AIChat = ({ sharedMode = false }) => {
           updated_at: newChat.updated_at || newChat.created_at
         };
         
+        console.log('📋 Created session data:', sessionData);
+        console.log('   Using ID:', sessionData.id);
+        
         setChatSessions(prev => [sessionData, ...prev]);
         return sessionData.id;
       } else {
+        console.error('❌ Failed to create chat, status:', response.status);
         return null;
       }
     } catch (error) {
-            return null;
+      console.error('❌ Exception in createNewChat:', error);
+      return null;
     }
   };
 
@@ -582,6 +600,10 @@ const AIChat = ({ sharedMode = false }) => {
     let currentChatId = activeChatId;
     let isNewChat = false;
     
+    console.log('🚀 sendMessage called');
+    console.log('   activeChatId (state):', activeChatId);
+    console.log('   currentChatId (local):', currentChatId);
+    
     // Store message text and files before clearing
     const messageText = inputMessage;
     const messagedFiles = [...selectedFiles];
@@ -590,8 +612,12 @@ const AIChat = ({ sharedMode = false }) => {
     setInputMessage('');
     
     if (!currentChatId) {
+      console.log('🆕 No active chat, creating new chat...');
       currentChatId = await createNewChat();
+      console.log('✅ New chat created with ID:', currentChatId);
+      
       if (!currentChatId) {
+        console.error('❌ Failed to create new chat');
         alert('Error: Failed to create new chat. Please try again.');
         setInputMessage(messageText); // Restore input on error
         return;
@@ -601,9 +627,12 @@ const AIChat = ({ sharedMode = false }) => {
       justSentMessageRef.current = true;
       // Set activeChatId immediately to prevent useEffect from clearing messages
       setActiveChatId(currentChatId);
+      console.log('📍 Updated activeChatId state to:', currentChatId);
       // Navigate with replace to update URL without triggering full reload
       navigate(`/ai-chat/${currentChatId}`, { replace: true });
+      console.log('🔗 Navigated to /ai-chat/' + currentChatId);
     } else {
+      console.log('📝 Using existing chat ID:', currentChatId);
       // Also set flag for existing chats
       justSentMessageRef.current = true;
     }
@@ -637,6 +666,11 @@ const AIChat = ({ sharedMode = false }) => {
       formData.append('question', messageText || 'Please analyze the uploaded files.');
       formData.append('chat_id', currentChatId.toString());
 
+      console.log('📤 Sending message to backend:');
+      console.log('   user_id:', userName);
+      console.log('   chat_id:', currentChatId.toString());
+      console.log('   question:', messageText.substring(0, 50) + '...');
+
       messagedFiles.forEach(file => {
         formData.append('files', file);
       });
@@ -645,6 +679,8 @@ const AIChat = ({ sharedMode = false }) => {
       const endpoint = messagedFiles.length > 0 ? 
         `${API_URL}/ask_with_files/` : 
         `${API_URL}/ask_simple/`;
+
+      console.log('🌐 Calling endpoint:', endpoint);
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -660,7 +696,9 @@ const AIChat = ({ sharedMode = false }) => {
       const data = await response.json();
       
       console.log(`✅ AI response received (Chat Agent + RAG)`);
-      console.log(`   Chat ID: ${data.chat_id || currentChatId}`);
+      console.log(`   Sent chat_id: ${currentChatId}`);
+      console.log(`   Returned chat_id: ${data.chat_id || 'none'}`);
+      console.log(`   Chat ID Match: ${data.chat_id === currentChatId ? '✅ YES' : '❌ NO'}`);
       console.log(`   RAG Used: ${data.rag_used ? 'YES' : 'NO'}`);
       console.log(`   RAG Results: ${data.rag_results_count || 0} items`);
       console.log(`   Weak Concepts: ${data.weak_concepts_count || 0} tracked`);
@@ -715,10 +753,15 @@ const AIChat = ({ sharedMode = false }) => {
       // Check if the backend used a different chat_id (in case of validation issues)
       const actualChatId = data.chat_id;
       if (actualChatId && actualChatId !== currentChatId) {
-        console.log(`Chat ID changed from ${currentChatId} to ${actualChatId}`);
+        console.warn(`⚠️ Chat ID mismatch detected!`);
+        console.warn(`   Expected: ${currentChatId}`);
+        console.warn(`   Received: ${actualChatId}`);
+        console.warn(`   Updating to use backend's chat_id`);
         setActiveChatId(actualChatId);
         navigate(`/ai-chat/${actualChatId}`, { replace: true });
         currentChatId = actualChatId;
+      } else {
+        console.log('✅ Chat ID consistent:', currentChatId);
       }
       
       // Auto-rename chat if it's the first message or title is still "New Chat"
@@ -1631,16 +1674,22 @@ const AIChat = ({ sharedMode = false }) => {
   useEffect(() => {
     const numericChatId = chatId ? parseInt(chatId) : null;
     
-    console.log('useEffect triggered:', { numericChatId, activeChatId, justSent: justSentMessageRef.current });
+    console.log('🔄 useEffect[chatId] triggered');
+    console.log('   URL chatId:', chatId);
+    console.log('   numericChatId:', numericChatId);
+    console.log('   activeChatId state:', activeChatId);
+    console.log('   justSentMessageRef:', justSentMessageRef.current);
+    console.log('   isLoadingRef:', isLoadingRef.current);
     
     if (numericChatId && !isNaN(numericChatId)) {
       // Skip reload if we just sent a message (to preserve messages and action buttons)
       if (justSentMessageRef.current) {
-        console.log('Skipping reload - just sent message');
+        console.log('⏭️ Skipping reload - just sent message');
         justSentMessageRef.current = false;
         isLoadingRef.current = false;
         // Update activeChatId if needed but don't reload messages
         if (activeChatId !== numericChatId) {
+          console.log('📍 Updating activeChatId to:', numericChatId);
           setActiveChatId(numericChatId);
         }
         return;
@@ -1648,21 +1697,31 @@ const AIChat = ({ sharedMode = false }) => {
       
       // Only load messages if this is a different chat than what we have active
       if (activeChatId !== numericChatId) {
+        console.log('⚠️ Chat ID mismatch detected');
+        console.log('   Setting activeChatId to:', numericChatId);
         setActiveChatId(numericChatId);
         // Only clear and reload if we're switching to a different existing chat
         if (!isLoadingRef.current) {
-          console.log('Loading messages for chat:', numericChatId);
+          console.log('📥 Loading messages for chat:', numericChatId);
           isLoadingRef.current = true;
           setMessages([]);
           loadChatMessages(numericChatId);
+        } else {
+          console.log('⏭️ Skipping load (already loading)');
         }
+      } else {
+        console.log('✅ Chat IDs match, no action needed');
       }
     } else if (chatId === undefined || chatId === null) {
+      console.log('📭 No chatId in URL');
       // Only reset if we're at /ai-chat with no ID (fresh start)
       // Don't reset if we just sent a message (new chat creation)
       if (!justSentMessageRef.current && activeChatId !== null) {
+        console.log('🔄 Resetting chat state');
         setActiveChatId(null);
         setMessages([]);
+      } else {
+        console.log('⏭️ Skipping reset (just sent message or no active chat)');
       }
       isLoadingRef.current = false;
       justSentMessageRef.current = false;
