@@ -141,7 +141,12 @@ class UserRAGManager:
                         "title": item.get("title", ""),
                         "user_id": user_id,
                         "indexed_at": datetime.utcnow().isoformat(),
-                        **{k: v for k, v in item.items() if k not in ["content", "text", "embedding"]}
+                        # Convert any datetime objects to ISO strings for ChromaDB compatibility
+                        **{
+                            k: v.isoformat() if isinstance(v, datetime) else v 
+                            for k, v in item.items() 
+                            if k not in ["content", "text", "embedding"] and v is not None
+                        }
                     }]
                 )
                 
@@ -369,7 +374,7 @@ class UserRAGManager:
             # Index recent question sets
             questions_query = text("""
                 SELECT qs.id, qs.title, qs.description, qs.created_at,
-                       GROUP_CONCAT(q.question_text || ' | ' || q.correct_answer, '\n') as questions_content
+                       STRING_AGG(q.question_text || ' | ' || q.correct_answer, E'\n') as questions_content
                 FROM question_sets qs
                 LEFT JOIN questions q ON q.question_set_id = qs.id
                 WHERE qs.user_id = :user_id
