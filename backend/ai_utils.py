@@ -60,7 +60,8 @@ class UnifiedAIClient:
         else:
             raise ValueError("At least one AI client (Gemini or Groq) must be provided")
     
-    def generate(self, prompt: str, max_tokens: int = 2000, temperature: float = 0.7) -> str:
+    def generate(self, prompt: str, max_tokens: int = 2000, temperature: float = 0.7, 
+                 use_cache: bool = True, conversation_id: str = None) -> str:
         """
         Generate AI response with Gemini as primary, Groq as fallback
         Includes intelligent caching to reduce token usage
@@ -69,13 +70,19 @@ class UnifiedAIClient:
             prompt: The prompt to send
             max_tokens: Maximum tokens in response
             temperature: Temperature for generation
+            use_cache: Set to False for conversational contexts where history matters
+            conversation_id: Unique conversation ID to include in cache key
         
         Returns:
             AI response text
         """
-        # Check cache first
-        if self.cache_manager:
-            cached_response = self.cache_manager.get_ai_response(prompt, temperature, max_tokens)
+        # Check cache first (but only if caching is enabled)
+        # For conversations, we include conversation_id in the cache key
+        # This prevents returning cached responses from different conversation contexts
+        if self.cache_manager and use_cache:
+            # Build cache key with conversation context
+            cache_prompt = f"{conversation_id}_{prompt}" if conversation_id else prompt
+            cached_response = self.cache_manager.get_ai_response(cache_prompt, temperature, max_tokens)
             if cached_response:
                 logger.info(f"✅ AI cache hit - saved tokens!")
                 return cached_response
@@ -114,9 +121,10 @@ class UnifiedAIClient:
                                     text = data['candidates'][0]['content']['parts'][0]['text']
                                     logger.info(f" Gemini REST response received: {len(text)} chars")
                                     
-                                    # Cache the response
-                                    if self.cache_manager:
-                                        self.cache_manager.set_ai_response(prompt, temperature, max_tokens, text)
+                                    # Cache the response (with conversation context if provided)
+                                    if self.cache_manager and use_cache:
+                                        cache_prompt = f"{conversation_id}_{prompt}" if conversation_id else prompt
+                                        self.cache_manager.set_ai_response(cache_prompt, temperature, max_tokens, text)
                                     
                                     return text
                                 else:
@@ -163,9 +171,10 @@ class UnifiedAIClient:
                 logger.info(f" Groq response received")
                 result = response.choices[0].message.content.strip()
                 
-                # Cache the response
-                if self.cache_manager:
-                    self.cache_manager.set_ai_response(prompt, temperature, max_tokens, result)
+                # Cache the response (with conversation context if provided)
+                if self.cache_manager and use_cache:
+                    cache_prompt = f"{conversation_id}_{prompt}" if conversation_id else prompt
+                    self.cache_manager.set_ai_response(cache_prompt, temperature, max_tokens, result)
                 
                 return result
             else:
@@ -186,9 +195,10 @@ class UnifiedAIClient:
                     logger.info(" Groq fallback successful")
                     result = response.choices[0].message.content.strip()
                     
-                    # Cache the fallback response
-                    if self.cache_manager:
-                        self.cache_manager.set_ai_response(prompt, temperature, max_tokens, result)
+                    # Cache the fallback response (with conversation context if provided)
+                    if self.cache_manager and use_cache:
+                        cache_prompt = f"{conversation_id}_{prompt}" if conversation_id else prompt
+                        self.cache_manager.set_ai_response(cache_prompt, temperature, max_tokens, result)
                     
                     return result
                 except Exception as groq_error:

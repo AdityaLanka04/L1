@@ -191,18 +191,21 @@ const AIChat = ({ sharedMode = false }) => {
     return randomGreeting.replace(/{name}/g, name);
   };
 
-  // Enhanced scroll to bottom from Knowledge Roadmap
-  const scrollToBottom = () => {
-    if (messagesContainerRef.current) {
+  // Scroll to show latest message at TOP of viewport
+  // This allows user to scroll UP to see older messages
+  const scrollToLatestMessage = () => {
+    if (messagesContainerRef.current && messages.length > 0) {
       const container = messagesContainerRef.current;
-      container.scrollTo({
-        top: container.scrollHeight,
-        left: 0,
-        behavior: 'smooth'
-      });
-    } else {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      // Scroll to bottom (where latest message is)
+      container.scrollTop = container.scrollHeight;
     }
+  };
+
+  // Enhanced scroll to bottom - NOW DISABLED (we use column-reverse)
+  // Messages are reversed in CSS, so "bottom" is actually the top (newest)
+  const scrollToBottom = () => {
+    // Scroll to show latest message at top of viewport
+    scrollToLatestMessage();
   };
 
   // Enhanced scroll handling from Knowledge Roadmap
@@ -227,6 +230,7 @@ const AIChat = ({ sharedMode = false }) => {
   };
 
   // Enhanced scroll to top from Knowledge Roadmap
+  // Scrolls to show OLDEST messages (user scrolls up to see history)
   const scrollToTop = () => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTo({
@@ -357,7 +361,10 @@ const AIChat = ({ sharedMode = false }) => {
       if (response.ok) {
         const messagesArray = await response.json();
                 setMessages(messagesArray);
-        setTimeout(scrollToBottom, 100);
+        // Scroll to show latest message at top of viewport
+        setTimeout(() => {
+          scrollToLatestMessage();
+        }, 100);
       } else {
                 setMessages([]);
       }
@@ -651,6 +658,11 @@ const AIChat = ({ sharedMode = false }) => {
 
     // Add user message to UI immediately
     setMessages(prev => [...prev, userMessage]);
+    
+    // Scroll to show latest message (at bottom, but visible at top of viewport)
+    setTimeout(() => {
+      scrollToLatestMessage();
+    }, 50);
     
     // Set loading state
     setLoading(true);
@@ -1729,7 +1741,8 @@ const AIChat = ({ sharedMode = false }) => {
   }, [chatId]);
 
   useEffect(() => {
-    scrollToBottom();
+    // Scroll to show latest message at top of viewport
+    scrollToLatestMessage();
     
     // Update message count for current chat if it's "New Chat"
     if (activeChatId) {

@@ -577,7 +577,44 @@ TONE: Creative, open-minded, encouraging, playful"""
         context: Dict[str, Any],
         reasoning_chain: List[Dict] = None
     ) -> str:
-        """Generate an adaptive response"""
+        # ==================== HUMAN-LIKE RESPONSE LOGIC ====================
+        from human_response_logic import get_human_logic
+        
+        human_logic = get_human_logic()
+        conversation_history = context.get("conversation_history", [])
+        
+        # DEBUG: Log conversation history structure
+        logger.info(f"📜 Conversation history: {len(conversation_history)} messages")
+        if conversation_history:
+            logger.info(f"   Last message keys: {list(conversation_history[-1].keys())}")
+            logger.info(f"   Last user message: {conversation_history[-1].get('user_message', conversation_history[-1].get('user', 'N/A'))[:50]}")
+        
+        # Analyze conversation pattern
+        pattern_analysis = human_logic.analyze_conversation_pattern(
+            user_input,
+            conversation_history
+        )
+        
+        logger.info(f"🧠 Pattern Analysis: {pattern_analysis}")
+        
+        # Check if we're in a loop (ONLY if user is repeating, not if AI is repeating)
+        # DISABLED FOR NOW - causing false positives
+        # if human_logic.detect_conversation_loop(conversation_history):
+        #     logger.warning("🔄 Conversation loop detected - breaking out")
+        #     return human_logic.get_loop_breaking_response()
+        
+        # Generate human response instruction
+        human_instruction = human_logic.generate_human_response_instruction(
+            pattern_analysis,
+            user_input
+        )
+        
+        # Adjust max_tokens based on pattern
+        max_tokens = human_logic.get_max_tokens_for_style(pattern_analysis)
+        
+        logger.info(f"📏 Max tokens adjusted to: {max_tokens} (style: {pattern_analysis['suggested_max_length']})")
+        
+        # ==================== BUILD PROMPT ====================
         # Check if we have an enhanced system prompt with comprehensive context
         enhanced_prompt = context.get("enhanced_system_prompt")
         
@@ -592,6 +629,9 @@ TONE: Creative, open-minded, encouraging, playful"""
             # Fall back to standard prompt building
             system_prompt = self._build_system_prompt(mode, style, emotional_state, context)
         
+        # PREPEND HUMAN RESPONSE INSTRUCTION (HIGHEST PRIORITY)
+        system_prompt = f"{human_instruction}\n\n{'='*80}\n\n{system_prompt}"
+        
         user_context = self._build_user_context(context, reasoning_chain)
         
         full_prompt = f"""{system_prompt}
@@ -603,10 +643,18 @@ Student's message: {user_input}
 Provide a helpful, educational response. Be interactive and engaging. Reference their specific learning materials when relevant. If they're asking about a topic they struggle with, provide extra support. If it's a strength, challenge them further."""
         
         try:
+            # CRITICAL: Disable caching for chat conversations
+            # Each conversation should get fresh responses based on context
+            session_id = context.get("session_id", "unknown")
+            user_id = context.get("user_id", "unknown")
+            conversation_id = f"chat_{session_id}_{user_id}"
+            
             response = self.ai_client.generate(
                 full_prompt, 
-                max_tokens=4000,  # Increased to allow detailed explanations
-                temperature=0.7
+                max_tokens=max_tokens,  # ADJUSTED based on pattern analysis
+                temperature=0.7,
+                use_cache=False,  # DISABLE CACHING FOR CONVERSATIONS
+                conversation_id=conversation_id  # Unique per conversation
             )
             return response.strip()
         except Exception as e:

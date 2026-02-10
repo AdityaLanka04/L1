@@ -128,35 +128,50 @@ models.Base.metadata.create_all(bind=engine)
 
 
 def sync_sequences():
-    if "postgres" not in DATABASE_URL:
+    """Sync PostgreSQL sequences - ONLY runs on PostgreSQL databases"""
+    # Check if using PostgreSQL
+    if not DATABASE_URL or "postgres" not in DATABASE_URL.lower():
+        logger.info("Skipping sequence sync (not using PostgreSQL)")
         return
+    
+    try:
+        sequences = [
+            ("chat_messages_id_seq", "chat_messages"),
+            ("chat_sessions_id_seq", "chat_sessions"),
+            ("activities_id_seq", "activities"),
+        ]
 
-    sequences = [
-        ("chat_messages_id_seq", "chat_messages"),
-        ("chat_sessions_id_seq", "chat_sessions"),
-        ("activities_id_seq", "activities"),
-    ]
+        with engine.connect() as connection:
+            for sequence_name, table_name in sequences:
+                try:
+                    # Check if sequence exists (PostgreSQL only)
+                    sequence_exists = connection.execute(
+                        text("SELECT to_regclass(:sequence_name)"),
+                        {"sequence_name": sequence_name}
+                    ).scalar()
 
-    with engine.connect() as connection:
-        for sequence_name, table_name in sequences:
-            sequence_exists = connection.execute(
-                text("SELECT to_regclass(:sequence_name)"),
-                {"sequence_name": sequence_name}
-            ).scalar()
+                    if not sequence_exists:
+                        continue
 
-            if not sequence_exists:
-                continue
+                    # Sync sequence
+                    connection.execute(
+                        text(
+                            f"SELECT setval(:sequence_name, COALESCE((SELECT MAX(id) FROM {table_name}), 0) + 1, false)"
+                        ),
+                        {"sequence_name": sequence_name}
+                    )
+                except Exception as seq_error:
+                    logger.warning(f"Could not sync sequence {sequence_name}: {seq_error}")
+                    continue
 
-            connection.execute(
-                text(
-                    f"SELECT setval(:sequence_name, COALESCE((SELECT MAX(id) FROM {table_name}), 0) + 1, false)"
-                ),
-                {"sequence_name": sequence_name}
-            )
-
-        connection.commit()
+            connection.commit()
+            logger.info("PostgreSQL sequences synced successfully")
+    except Exception as e:
+        logger.error(f"Error syncing sequences: {e}")
+        # Don't crash the app if sequence sync fails
 
 
+# Only sync sequences if using PostgreSQL
 sync_sequences()
 
 
@@ -300,13 +315,21 @@ from ai_utils import UnifiedAIClient
 unified_ai = UnifiedAIClient(gemini_client, groq_client, GEMINI_MODEL, GROQ_MODEL, GEMINI_API_KEY)
 
 # Unified AI call function - uses the unified_ai client
-def call_ai(prompt: str, max_tokens: int = 2000, temperature: float = 0.7) -> str:
+def call_ai(prompt: str, max_tokens: int = 2000, temperature: float = 0.7, 
+            use_cache: bool = True, conversation_id: str = None) -> str:
     """
     Call AI with Gemini as primary, Groq as fallback
     Used throughout the entire app for all AI calls
     Automatically processes math notation in responses
+    
+    Args:
+        prompt: The prompt to send to AI
+        max_tokens: Maximum tokens in response
+        temperature: Temperature for generation
+        use_cache: Set to False for conversational contexts (default True)
+        conversation_id: Unique conversation ID for cache key (prevents cross-conversation caching)
     """
-    response = unified_ai.generate(prompt, max_tokens, temperature)
+    response = unified_ai.generate(prompt, max_tokens, temperature, use_cache, conversation_id)
     # Post-process math notation to ensure proper LaTeX wrapping
     response = process_math_in_response(response)
     response = enhance_display_math(response)
