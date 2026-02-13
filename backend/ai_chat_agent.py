@@ -743,8 +743,15 @@ class AIChatAgent:
             # Combine system prompt and user message
             full_prompt = f"{system_prompt}\n\nStudent: {user_message}\n\nTutor:"
             
-            # Call AI with caching (unified_ai automatically caches responses)
-            response = unified_ai.generate(full_prompt, max_tokens=2000, temperature=0.7)
+            # CRITICAL: Disable caching for chat conversations
+            # Each message should get a fresh response based on conversation context
+            response = unified_ai.generate(
+                full_prompt, 
+                max_tokens=2000, 
+                temperature=0.7,
+                use_cache=False,  # DISABLE CACHING FOR CONVERSATIONS
+                conversation_id=f"aichat_{self.student_id}"  # Unique per student
+            )
             
             return response
         except Exception as e:
