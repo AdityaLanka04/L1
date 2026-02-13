@@ -1556,12 +1556,20 @@ const Flashcards = () => {
     setIsFlipped(false);
     setShowStudyResults(false);
     setStudySessionStats({ correct: 0, incorrect: 0, skipped: 0 });
-    const cards = studySettings.shuffle ? [...flashcards].sort(() => Math.random() - 0.5) : flashcards;
-    if (studySettings.shuffle) {
+    setSelectedOption(null);
+    setShowAnswer(false);
+    
+    // For preview mode, keep the same cards
+    if (previewMode) {
+      const cards = studySettings.shuffle ? [...flashcards].sort(() => Math.random() - 0.5) : flashcards;
       setShuffledCards(cards);
+    } else {
+      // For study mode, regenerate and shuffle
+      const cards = studySettings.shuffle ? [...flashcards].sort(() => Math.random() - 0.5) : flashcards;
+      setShuffledCards(cards);
+      // Regenerate MCQ options for first card
+      generateMCQOptions(cards, 0);
     }
-    // Regenerate MCQ options for first card
-    generateMCQOptions(cards, 0);
   };
 
   const handleNext = () => {
@@ -1953,6 +1961,81 @@ const Flashcards = () => {
       setIsFlipped(prev => !prev);
     };
     
+    // Show results at the end of preview session
+    if (showStudyResults) {
+      const totalReviewed = studySessionStats.correct + studySessionStats.incorrect;
+      const knownPercentage = totalReviewed > 0 ? Math.round((studySessionStats.correct / totalReviewed) * 100) : 0;
+      
+      return (
+        <div className="flashcards-page">
+          <div className="fc-study-mode">
+            <div className="fc-results">
+              <div className="fc-results-card">
+                <div className="fc-results-icon">{Icons.celebration}</div>
+                <h2>Review Complete!</h2>
+                <p className="fc-results-subtitle">{currentSetInfo?.setTitle || 'Preview Session'}</p>
+                
+                <div className="fc-results-stats">
+                  <div className="fc-result-stat correct">
+                    <div className="fc-result-stat-icon">{Icons.check}</div>
+                    <div className="fc-result-stat-num">{studySessionStats.correct}</div>
+                    <div className="fc-result-stat-label">I Know This</div>
+                  </div>
+                  <div className="fc-result-stat incorrect">
+                    <div className="fc-result-stat-icon">{Icons.x}</div>
+                    <div className="fc-result-stat-num">{studySessionStats.incorrect}</div>
+                    <div className="fc-result-stat-label">Don't Know</div>
+                  </div>
+                  <div className="fc-result-stat skipped">
+                    <div className="fc-result-stat-icon">{Icons.eye}</div>
+                    <div className="fc-result-stat-num">{totalReviewed}</div>
+                    <div className="fc-result-stat-label">Cards Reviewed</div>
+                  </div>
+                </div>
+
+                <div className="fc-results-message">
+                  {totalReviewed === 0 ? (
+                    <p>You viewed the cards but didn't mark any as known or unknown. Try reviewing them to track your progress.</p>
+                  ) : knownPercentage >= 80 ? (
+                    <p>Excellent! You know {knownPercentage}% of these cards. Keep up the great work!</p>
+                  ) : knownPercentage >= 50 ? (
+                    <p>Good progress! You know {knownPercentage}% of these cards. Keep studying!</p>
+                  ) : (
+                    <p>You know {knownPercentage}% of these cards. Practice makes perfect!</p>
+                  )}
+                </div>
+
+                <div className="fc-results-actions">
+                  <button className="fc-btn fc-btn-secondary" onClick={restartStudy}>
+                    {Icons.refresh} Review Again
+                  </button>
+                  <button 
+                    className="fc-btn fc-btn-primary" 
+                    onClick={() => {
+                      // Switch to study mode (quiz)
+                      setPreviewMode(false);
+                      setShowStudyResults(false);
+                      setStudySessionStats({ correct: 0, incorrect: 0, skipped: 0 });
+                      setCurrentCard(0);
+                      const cards = studySettings.shuffle ? [...previewCards].sort(() => Math.random() - 0.5) : previewCards;
+                      setShuffledCards(cards);
+                      generateMCQOptions(cards, 0);
+                      setStudyMode(true);
+                    }}
+                  >
+                    {Icons.target} Start Quiz
+                  </button>
+                  <button className="fc-btn fc-btn-secondary" onClick={exitStudyMode}>
+                    Exit
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <div className="flashcards-page">
         <div className="fc-study-mode">
@@ -1961,7 +2044,10 @@ const Flashcards = () => {
               <h2>{formatTitle(currentSetInfo?.setTitle) || 'Preview Mode'}</h2>
               <span className="fc-card-counter">CARD {currentCard + 1} OF {previewCards.length}</span>
             </div>
-            <button className="fc-exit-btn fc-exit-styled" onClick={exitStudyMode}>
+            <button className="fc-exit-btn fc-exit-styled" onClick={() => {
+              // Show results before exiting
+              setShowStudyResults(true);
+            }}>
               EXIT {Icons.chevronRight}
             </button>
           </div>
@@ -2032,7 +2118,7 @@ const Flashcards = () => {
                 className="fc-knowledge-btn fc-dont-know"
                 onClick={async (e) => {
                   e.stopPropagation();
-                  handleStudyResponse('incorrect');
+                  setStudySessionStats(prev => ({ ...prev, incorrect: prev.incorrect + 1 }));
                   const card = previewCards[currentCard];
                   if (card?.id) {
                     await updateCardMastery(card.id, false, 'preview');
@@ -2041,6 +2127,9 @@ const Flashcards = () => {
                   if (currentCard < previewCards.length - 1) {
                     setCurrentCard(currentCard + 1);
                     setIsFlipped(false);
+                  } else {
+                    // Show results at the end
+                    setShowStudyResults(true);
                   }
                 }}
               >
@@ -2051,7 +2140,7 @@ const Flashcards = () => {
                 className="fc-knowledge-btn fc-know"
                 onClick={async (e) => {
                   e.stopPropagation();
-                  handleStudyResponse('correct');
+                  setStudySessionStats(prev => ({ ...prev, correct: prev.correct + 1 }));
                   const card = previewCards[currentCard];
                   if (card?.id) {
                     await updateCardMastery(card.id, true, 'preview');
@@ -2062,6 +2151,9 @@ const Flashcards = () => {
                   if (currentCard < previewCards.length - 1) {
                     setCurrentCard(currentCard + 1);
                     setIsFlipped(false);
+                  } else {
+                    // Show results at the end
+                    setShowStudyResults(true);
                   }
                 }}
               >
@@ -2084,7 +2176,7 @@ const Flashcards = () => {
             <div className="fc-results">
               <div className="fc-results-card">
                 <div className="fc-results-icon">{Icons.celebration}</div>
-                <h2>Session Complete!</h2>
+                <h2>Quiz Complete!</h2>
                 <p className="fc-results-subtitle">{currentSetInfo?.setTitle || 'Study Session'}</p>
                 
                 <div className="fc-results-stats">
@@ -2096,13 +2188,34 @@ const Flashcards = () => {
                   <div className="fc-result-stat incorrect">
                     <div className="fc-result-stat-icon">{Icons.x}</div>
                     <div className="fc-result-stat-num">{studySessionStats.incorrect}</div>
-                    <div className="fc-result-stat-label">Needs Review</div>
+                    <div className="fc-result-stat-label">Incorrect</div>
                   </div>
                   <div className="fc-result-stat skipped">
-                    <div className="fc-result-stat-icon">{Icons.arrowRight}</div>
-                    <div className="fc-result-stat-num">{studySessionStats.skipped}</div>
-                    <div className="fc-result-stat-label">Skipped</div>
+                    <div className="fc-result-stat-icon">{Icons.eye}</div>
+                    <div className="fc-result-stat-num">{currentStudyCards.length}</div>
+                    <div className="fc-result-stat-label">Total Questions</div>
                   </div>
+                </div>
+
+                <div className="fc-results-message">
+                  {(() => {
+                    const total = studySessionStats.correct + studySessionStats.incorrect;
+                    const percentage = total > 0 ? Math.round((studySessionStats.correct / total) * 100) : 0;
+                    
+                    if (percentage === 100) {
+                      return <p>Perfect score! You're a master of this topic!</p>;
+                    } else if (percentage >= 90) {
+                      return <p>Outstanding! You got {percentage}% correct. Almost perfect!</p>;
+                    } else if (percentage >= 80) {
+                      return <p>Excellent work! You scored {percentage}%. Keep it up!</p>;
+                    } else if (percentage >= 70) {
+                      return <p>Good job! You got {percentage}% correct. You're making progress!</p>;
+                    } else if (percentage >= 60) {
+                      return <p>Not bad! You scored {percentage}%. Review the material and try again!</p>;
+                    } else {
+                      return <p>You scored {percentage}%. Don't give up - practice makes perfect!</p>;
+                    }
+                  })()}
                 </div>
 
                 <div className="fc-results-actions">
@@ -2110,7 +2223,7 @@ const Flashcards = () => {
                     {Icons.refresh} Study Again
                   </button>
                   <button className="fc-btn fc-btn-primary" onClick={exitStudyMode}>
-                    Back
+                    Back to Flashcards
                   </button>
                 </div>
               </div>
@@ -2137,38 +2250,10 @@ const Flashcards = () => {
               <div className="fc-study-content">
                 <div className="fc-study-mcq-area">
                   <div className="fc-mcq-question-container">
-                    <button 
-                      className="fc-arrow-btn fc-arrow-left"
-                      onClick={() => {
-                        if (currentCard > 0) {
-                          setCurrentCard(currentCard - 1);
-                          generateMCQOptions(currentStudyCards, currentCard - 1);
-                          setSelectedOption(null);
-                          setShowAnswer(false);
-                        }
-                      }}
-                      disabled={currentCard === 0}
-                    >
-                      ◀
-                    </button>
                     <div className="fc-study-question-card">
                       <div className="fc-study-badge">Question</div>
                       <div className="fc-study-question-text">{currentStudyCards[currentCard]?.question}</div>
                     </div>
-                    <button 
-                      className="fc-arrow-btn fc-arrow-right"
-                      onClick={() => {
-                        if (currentCard < currentStudyCards.length - 1) {
-                          setCurrentCard(currentCard + 1);
-                          generateMCQOptions(currentStudyCards, currentCard + 1);
-                          setSelectedOption(null);
-                          setShowAnswer(false);
-                        }
-                      }}
-                      disabled={currentCard === currentStudyCards.length - 1}
-                    >
-                      ▶
-                    </button>
                   </div>
 
                   <div className="fc-mcq-options">

@@ -107,6 +107,7 @@ const AIChat = ({ sharedMode = false }) => {
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const sidebarNavRef = useRef(null);
+  const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const isLoadingRef = useRef(false);
   const justSentMessageRef = useRef(false);  // Flag to prevent reload after sending
@@ -191,34 +192,33 @@ const AIChat = ({ sharedMode = false }) => {
     return randomGreeting.replace(/{name}/g, name);
   };
 
-  // Scroll to show latest message at TOP of viewport
-  // This allows user to scroll UP to see older messages
+  // Scroll to bottom to show latest message
   const scrollToLatestMessage = () => {
-    if (messagesContainerRef.current && messages.length > 0) {
+    if (messagesContainerRef.current) {
       const container = messagesContainerRef.current;
-      // Scroll to bottom (where latest message is)
+      // Force scroll to bottom immediately
       container.scrollTop = container.scrollHeight;
     }
   };
 
-  // Enhanced scroll to bottom - NOW DISABLED (we use column-reverse)
-  // Messages are reversed in CSS, so "bottom" is actually the top (newest)
+  // Enhanced scroll to bottom
   const scrollToBottom = () => {
-    // Scroll to show latest message at top of viewport
     scrollToLatestMessage();
   };
+
+  // Auto-scroll whenever messages change
+  useEffect(() => {
+    // Small delay to ensure DOM is updated
+    const timer = setTimeout(() => {
+      scrollToLatestMessage();
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [messages]);
 
   // Enhanced scroll handling from Knowledge Roadmap
   const handleScroll = () => {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-      
-      // Add scrolled class for visual indicator (more precise detection)
-      if (scrollTop > 10) {
-        messagesContainerRef.current.classList.add('scrolled');
-      } else {
-        messagesContainerRef.current.classList.remove('scrolled');
-      }
       
       // Show scroll to top button when scrolled down significantly
       setShowScrollToTop(scrollTop > 200);
@@ -618,6 +618,11 @@ const AIChat = ({ sharedMode = false }) => {
     // Clear input immediately for better UX
     setInputMessage('');
     
+    // Reset textarea height to single line
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '24px';
+    }
+    
     if (!currentChatId) {
       console.log('🆕 No active chat, creating new chat...');
       currentChatId = await createNewChat();
@@ -658,11 +663,6 @@ const AIChat = ({ sharedMode = false }) => {
 
     // Add user message to UI immediately
     setMessages(prev => [...prev, userMessage]);
-    
-    // Scroll to show latest message (at bottom, but visible at top of viewport)
-    setTimeout(() => {
-      scrollToLatestMessage();
-    }, 50);
     
     // Set loading state
     setLoading(true);
@@ -989,6 +989,29 @@ const AIChat = ({ sharedMode = false }) => {
 
   const handleInputChange = (e) => {
     setInputMessage(e.target.value);
+    
+    // Auto-expand textarea vertically
+    if (textareaRef.current) {
+      // Reset to minimum height first
+      textareaRef.current.style.height = '24px';
+      
+      // Get the scroll height (actual content height)
+      const scrollHeight = textareaRef.current.scrollHeight;
+      
+      // Set max height to 300px (about 12 lines)
+      const maxHeight = 300;
+      
+      // Apply the new height (content height or max, whichever is smaller)
+      const newHeight = Math.min(scrollHeight, maxHeight);
+      textareaRef.current.style.height = newHeight + 'px';
+      
+      // Show scrollbar if content exceeds max height
+      if (scrollHeight > maxHeight) {
+        textareaRef.current.style.overflowY = 'auto';
+      } else {
+        textareaRef.current.style.overflowY = 'hidden';
+      }
+    }
   };
 
   const handleLogout = async () => {
@@ -2033,7 +2056,6 @@ const AIChat = ({ sharedMode = false }) => {
           {/* Chat Content */}
           <div 
             className="ac-content"
-            ref={messagesContainerRef}
             onScroll={handleScroll}
           >
             {messages.length === 0 ? (
@@ -2041,63 +2063,53 @@ const AIChat = ({ sharedMode = false }) => {
                 <div className="ac-welcome">
                   <h2>{greeting}</h2>
                 </div>
-                {/* Input Area - Centered with greeting when empty */}
-                <div className="ac-input-area ac-input-centered">
-                  <div className="ac-input-container">
-                    <div 
-                      className={`ac-input-wrapper ${dragActive ? 'drag-active' : ''}`}
-                      onDrop={handleDrop}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                    >
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        multiple
-                        accept=".pdf,image/*"
-                        onChange={handleFileInputChange}
-                        style={{ display: 'none' }}
-                      />
-                      
-                      <button
-                        className="ac-input-btn"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={loading}
-                        title="Attach files"
-                      >
-                        {Icons.attach}
-                      </button>
-                      
-                      <textarea
-                        value={inputMessage}
-                        onChange={handleInputChange}
-                        onKeyDown={handleKeyDown}
-                        placeholder="Type your message or drag files here..."
-                        className="ac-textarea"
-                        disabled={loading}
-                        rows="1"
-                        style={{
-                          height: '24px',
-                          minHeight: '24px',
-                          maxHeight: '24px',
-                          overflow: 'hidden',
-                          resize: 'none'
-                        }}
-                      />
-                      
-                      <button
-                        onClick={sendMessage}
-                        disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}
-                        className="ac-send-btn"
-                      >
-                        {Icons.send}
-                      </button>
-                    </div>
-                  </div>
+                {/* Input Box - Centered with greeting when empty */}
+                <div 
+                  className={`ac-input-wrapper ${dragActive ? 'drag-active' : ''}`}
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept=".pdf,image/*"
+                    onChange={handleFileInputChange}
+                    style={{ display: 'none' }}
+                  />
+                  
+                  <button
+                    className="ac-input-btn"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={loading}
+                    title="Attach files"
+                  >
+                    {Icons.attach}
+                  </button>
+                  
+                  <textarea
+                    ref={textareaRef}
+                    value={inputMessage}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type your message or drag files here..."
+                    className="ac-textarea"
+                    disabled={loading}
+                    rows="1"
+                  />
+                  
+                  <button
+                    onClick={sendMessage}
+                    disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}
+                    className="ac-send-btn"
+                  >
+                    {Icons.send}
+                  </button>
                 </div>
               </div>
             ) : (
-              <div className="ac-messages">
+              <div className="ac-messages" ref={messagesContainerRef} onScroll={handleScroll}>
                 {messages.map((message) => (
                   <div key={message.id} className={`ac-message ${message.type}`}>
                     <div className="ac-message-bubble">
@@ -2287,23 +2299,6 @@ const AIChat = ({ sharedMode = false }) => {
                           </span>
                         )}
                       </div>
-                      
-                      {message.type === 'ai' && !message.userRating && !message.feedbackSubmitted && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto', marginRight: '0' }}>
-                          <span className="ac-rating-label">RATE THIS RESPONSE</span>
-                          <div className="ac-rating-buttons">
-                            {[1, 2, 3, 4, 5].map(rating => (
-                              <button
-                                key={rating}
-                                className="ac-rating-btn"
-                                onClick={() => rateResponse(message.id, rating)}
-                              >
-                                {rating}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
 
                     {showFeedbackFor === message.id && (
@@ -2397,60 +2392,50 @@ const AIChat = ({ sharedMode = false }) => {
             </div>
           )}
 
-          {/* Input Area - Only show at bottom when there are messages */}
+          {/* Input Box - Fixed at bottom when there are messages */}
           {messages.length > 0 && (
-            <div className="ac-input-area">
-              <div className="ac-input-container">
-                <div 
-                  className={`ac-input-wrapper ${dragActive ? 'drag-active' : ''}`}
-                  onDrop={handleDrop}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    accept=".pdf,image/*"
-                    onChange={handleFileInputChange}
-                    style={{ display: 'none' }}
-                  />
-                  
-                  <button
-                    className="ac-input-btn"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={loading}
-                    title="Attach files"
-                  >
-                    {Icons.attach}
-                  </button>
-                  
-                  <textarea
-                    value={inputMessage}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Type your message or drag files here..."
-                    className="ac-textarea"
-                    disabled={loading}
-                    rows="1"
-                    style={{
-                      height: '24px',
-                      minHeight: '24px',
-                      maxHeight: '24px',
-                      overflow: 'hidden',
-                      resize: 'none'
-                    }}
-                  />
-                  
-                  <button
-                    onClick={sendMessage}
-                    disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}
-                    className="ac-send-btn"
-                  >
-                    {Icons.send}
-                  </button>
-                </div>
-              </div>
+            <div 
+              className={`ac-input-wrapper ${dragActive ? 'drag-active' : ''}`}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,image/*"
+                onChange={handleFileInputChange}
+                style={{ display: 'none' }}
+              />
+              
+              <button
+                className="ac-input-btn"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading}
+                title="Attach files"
+              >
+                {Icons.attach}
+              </button>
+              
+              <textarea
+                ref={textareaRef}
+                value={inputMessage}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                placeholder="Type your message or drag files here..."
+                className="ac-textarea"
+                disabled={loading}
+                rows="1"
+              />
+              
+              <button
+                onClick={sendMessage}
+                disabled={loading || (!inputMessage.trim() && selectedFiles.length === 0)}
+                className="ac-send-btn"
+              >
+                {Icons.send}
+              </button>
             </div>
           )}
         </main>

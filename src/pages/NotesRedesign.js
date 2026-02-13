@@ -1413,8 +1413,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
     onFullscreen: () => setTitleSectionCollapsed(!titleSectionCollapsed),
     onPreviewMode: () => setViewMode('preview'),
     onEditMode: () => setViewMode('edit'),
-    onToggleDarkEditor: () => setEditorDarkMode(true),
-    onToggleLightEditor: () => setEditorDarkMode(false),
     onToggleFavorite: () => selectedNote && toggleFavorite(selectedNote.id),
     onDelete: () => selectedNote && moveToTrash(selectedNote.id),
   };
@@ -2497,29 +2495,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     >
                       <Edit3 size={16} />
                       <span>Edit</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Editor Theme Section */}
-                <div className="tool-section">
-                  <label className="tool-section-label">EDITOR THEME</label>
-                  <div className="tool-buttons-group">
-                    <button
-                      className={`tool-panel-btn ${!editorDarkMode ? "active" : ""}`}
-                      onClick={() => setEditorDarkMode(false)}
-                      title="Light editor"
-                    >
-                      <Eye size={16} />
-                      <span>Light</span>
-                    </button>
-                    <button
-                      className={`tool-panel-btn ${editorDarkMode ? "active" : ""}`}
-                      onClick={() => setEditorDarkMode(true)}
-                      title="Dark editor"
-                    >
-                      <Eye size={16} />
-                      <span>Dark</span>
                     </button>
                   </div>
                 </div>
