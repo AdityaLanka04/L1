@@ -48,6 +48,21 @@
   background: var(--tpl-bg-secondary);
 }
 
+/* Warning Banner */
+.tpl-warning {
+  padding: 16px 24px;
+  background: color-mix(in srgb, #f59e0b 15%, var(--tpl-bg-secondary));
+  border-bottom: 2px solid #f59e0b;
+  color: var(--tpl-text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.tpl-warning strong {
+  color: #f59e0b;
+  font-weight: 700;
+}
+
 .tpl-header h2 {
   margin: 0;
   font-size: 20px;

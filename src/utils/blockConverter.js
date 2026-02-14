@@ -20,6 +20,8 @@ export const htmlToBlocks = (html) => {
 
   const processNode = (node) => {
     const tagName = node.tagName?.toLowerCase();
+    // Use innerHTML to preserve LaTeX formulas, fallback to textContent
+    const content = node.innerHTML || node.textContent || '';
     const textContent = node.textContent || '';
 
     switch (tagName) {
@@ -27,7 +29,7 @@ export const htmlToBlocks = (html) => {
         blocks.push({
           id: blockId++,
           type: 'heading1',
-          content: textContent,
+          content: content,
           properties: {}
         });
         break;
@@ -35,7 +37,7 @@ export const htmlToBlocks = (html) => {
         blocks.push({
           id: blockId++,
           type: 'heading2',
-          content: textContent,
+          content: content,
           properties: {}
         });
         break;
@@ -43,7 +45,7 @@ export const htmlToBlocks = (html) => {
         blocks.push({
           id: blockId++,
           type: 'heading3',
-          content: textContent,
+          content: content,
           properties: {}
         });
         break;
@@ -60,7 +62,7 @@ export const htmlToBlocks = (html) => {
         blocks.push({
           id: blockId++,
           type: 'quote',
-          content: textContent,
+          content: content,
           properties: {}
         });
         break;
@@ -77,7 +79,7 @@ export const htmlToBlocks = (html) => {
           blocks.push({
             id: blockId++,
             type: 'bulletList',
-            content: li.textContent || '',
+            content: li.innerHTML || li.textContent || '',
             properties: {}
           });
         });
@@ -87,17 +89,17 @@ export const htmlToBlocks = (html) => {
           blocks.push({
             id: blockId++,
             type: 'numberedList',
-            content: li.textContent || '',
+            content: li.innerHTML || li.textContent || '',
             properties: {}
           });
         });
         break;
       case 'p':
-        if (textContent.trim()) {
+        if (content.trim() || textContent.trim()) {
           blocks.push({
             id: blockId++,
             type: 'paragraph',
-            content: textContent,
+            content: content,
             properties: {}
           });
         }

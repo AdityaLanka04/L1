@@ -1,6 +1,6 @@
 .math-content {
   line-height: 1.9;
-  color: #e0e0e0;
+  color: inherit;
   font-size: 15px;
   word-wrap: break-word;
 }
@@ -21,7 +21,7 @@
 .math-content h2,
 .math-content h3,
 .math-content h4 {
-  color: #ffffff;
+  color: inherit;
   margin: 1.4em 0 0.7em 0;
   font-weight: 600;
 }
@@ -39,7 +39,7 @@
 
 .math-content strong {
   font-weight: 700;
-  color: #ffffff;
+  color: inherit;
 }
 
 .math-content em {
@@ -159,14 +159,14 @@
 }
 
 [data-theme-mode="light"] .math-content {
-  color: #1a1a1a;
+  color: inherit;
 }
 
 [data-theme-mode="light"] .math-content h1,
 [data-theme-mode="light"] .math-content h2,
 [data-theme-mode="light"] .math-content h3,
 [data-theme-mode="light"] .math-content strong {
-  color: #1a1a1a;
+  color: inherit;
 }
 
 [data-theme-mode="light"] .math-content code {

@@ -15,6 +15,7 @@ import './BlockEditor.css';
 import CodeBlock from './CodeBlock';
 import TableBlock from './TableBlock';
 import FileViewer from './FileViewer';
+import MathRenderer from './MathRenderer';
 
 const BLOCK_TYPES = [
   // Basic Text
@@ -791,6 +792,9 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       padding: blockStyle.spacing === 'compact' ? '2px' : blockStyle.spacing === 'relaxed' ? '8px' : '4px',
     };
     
+    // Check if content contains LaTeX
+    const hasLatex = block.content && (block.content.includes('$') || block.content.includes('\\(') || block.content.includes('\\['));
+    
     const props = {
       ref: (el) => { 
         blockRefs.current[block.id] = el;
@@ -813,6 +817,36 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
       'data-placeholder': block.content ? '' : `Type something...`,
       style: customStyle
     };
+
+    // If content has LaTeX, always render with MathRenderer
+    if (hasLatex) {
+      const ContentTag = block.type === 'heading1' ? 'h1' : 
+                         block.type === 'heading2' ? 'h2' : 
+                         block.type === 'heading3' ? 'h3' : 
+                         block.type === 'quote' ? 'blockquote' : 'div';
+      
+      return (
+        <ContentTag 
+          className={`block-content block-${block.type}`} 
+          style={customStyle}
+          contentEditable={!readOnly && block.type !== 'divider'}
+          suppressContentEditableWarning={true}
+          onInput={handleContentInput}
+          onBlur={(e) => {
+            const content = e.currentTarget.innerHTML || '';
+            if (content !== block.content) {
+              updateBlock(block.id, { content });
+            }
+          }}
+          onKeyDown={(e) => handleKeyDown(e, block.id, blocks.findIndex(b => b.id === block.id))}
+          ref={(el) => { 
+            blockRefs.current[block.id] = el;
+          }}
+        >
+          <MathRenderer content={block.content} />
+        </ContentTag>
+      );
+    }
 
     switch (block.type) {
       case 'heading1':
