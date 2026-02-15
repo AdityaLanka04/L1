@@ -3173,7 +3173,10 @@ async def convert_content(request: ConversionAgentRequest):
         # Extract response data
         response_data = result.metadata.get("response_data", {})
         
-        return ConversionAgentResponse(
+        logger.info(f"🔍 API Response - response_data from metadata: {response_data}")
+        logger.info(f"🔍 API Response - full metadata: {result.metadata}")
+        
+        response = ConversionAgentResponse(
             success=result.success,
             action=result.metadata.get("action", "convert"),
             response=result.response,
@@ -3183,6 +3186,10 @@ async def convert_content(request: ConversionAgentRequest):
             execution_time_ms=execution_time,
             metadata=result.metadata
         )
+        
+        logger.info(f"🔍 API Response being returned: {response.dict()}")
+        
+        return response
         
     except Exception as e:
         logger.error(f"Conversion agent error: {e}")

@@ -39,13 +39,6 @@ const LearningPathDetail = () => {
 
   useEffect(() => {
     loadPathDetails();
-    
-    // Poll for progress updates every 10 seconds
-    const progressInterval = setInterval(() => {
-      loadPathDetails();
-    }, 10000);
-    
-    return () => clearInterval(progressInterval);
   }, [pathId]);
 
   useEffect(() => {

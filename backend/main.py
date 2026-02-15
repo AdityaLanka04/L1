@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Any
 import asyncio
 import math  
 import tempfile
-from fastapi import FastAPI, Form, Depends, HTTPException, status, Query, Request, File, UploadFile, Body
+from fastapi import FastAPI, Form, Depends, HTTPException, status, Query, Request, File, UploadFile, Body, Header
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm, HTTPBearer, HTTPAuthorizationCredentials
@@ -98,6 +98,7 @@ import advanced_prompting
 from flashcard_api_minimal import register_flashcard_api_minimal
 from question_bank_enhanced import register_question_bank_api
 from proactive_ai_system import get_proactive_ai_engine
+from activity_logger import log_activity
 from adaptive_learning_api import register_adaptive_learning_api
 from math_processor import process_math_in_response, enhance_display_math
 from comprehensive_chat_context import build_comprehensive_chat_context, build_enhanced_chat_prompt
@@ -192,6 +193,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add activity logging middleware
+from activity_middleware import log_request_activity
+app.middleware("http")(log_request_activity)
 
 ph = PasswordHasher()
 security = HTTPBearer()
@@ -3516,6 +3521,14 @@ def save_chat_message(message_data: ChatMessageSave, db: Session = Depends(get_d
     try:
         from gamification_system import award_points
         award_points(db, chat_session.user_id, "ai_chat")
+        # Log activity
+        log_activity(
+            user_id=chat_session.user_id,
+            tool_name='ai_chat',
+            action='send_message',
+            tokens_used=0,  # Add token counting if available
+            metadata={'chat_id': message_data.chat_id}
+        )
     except Exception as gam_error:
         logger.warning(f"Failed to award AI chat points: {gam_error}")
     
@@ -4352,6 +4365,21 @@ Generate educational flashcards covering the main topics discussed. Return ONLY 
         # Call AI to generate flashcards
         ai_response = unified_ai.generate(prompt, max_tokens=2000, temperature=0.7)
         
+        # Log token usage
+        try:
+            from activity_logger import log_activity
+            estimated_tokens = (len(prompt) + len(ai_response)) // 4
+            log_activity(
+                user_id=user.id,
+                tool_name='flashcards_ai',
+                action='ai_generate',
+                tokens_used=estimated_tokens,
+                metadata={'generation_type': generation_type, 'card_count': card_count}
+            )
+            logger.info(f"📊 Logged {estimated_tokens} tokens for flashcard generation")
+        except Exception as log_error:
+            logger.debug(f"Could not log flashcard tokens: {log_error}")
+        
         # Parse the response
         import json
         import re
@@ -4660,6 +4688,21 @@ async def generate_note_content(
         
         generated_content = call_ai(full_prompt, max_tokens=2048, temperature=0.7)
         logger.info(f"Generated content length: {len(generated_content)} characters")
+        
+        # Log token usage
+        try:
+            from activity_logger import log_activity
+            estimated_tokens = (len(full_prompt) + len(generated_content)) // 4
+            log_activity(
+                user_id=user.id,
+                tool_name='notes_ai',
+                action='ai_generate',
+                tokens_used=estimated_tokens,
+                metadata={'content_type': content_type}
+            )
+            logger.info(f"📊 Logged {estimated_tokens} tokens for note generation")
+        except Exception as log_error:
+            logger.debug(f"Could not log note tokens: {log_error}")
         
         generated_content = clean_conversational_elements(generated_content)
         
@@ -8285,6 +8328,22 @@ Generate exactly {question_count} high-quality questions now:"""
         
         response_text = chat_completion.choices[0].message.content
         response_text = process_math_in_response(response_text)
+        
+        # Log token usage
+        try:
+            from activity_logger import log_ai_tokens
+            if hasattr(chat_completion, 'usage') and chat_completion.usage:
+                log_ai_tokens(
+                    user_id=user.id,
+                    tool_name='question_bank_ai',
+                    prompt_tokens=chat_completion.usage.prompt_tokens,
+                    completion_tokens=chat_completion.usage.completion_tokens,
+                    total_tokens=chat_completion.usage.total_tokens,
+                    model=GROQ_MODEL
+                )
+                logger.info(f"📊 Logged {chat_completion.usage.total_tokens} tokens for question generation")
+        except Exception as log_error:
+            logger.debug(f"Could not log question tokens: {log_error}")
         
         # Extract JSON
         try:
@@ -13915,6 +13974,41 @@ async def recalculate_gamification(db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Recalculation error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# ==================== ADMIN ANALYTICS ENDPOINTS ====================
+from admin_analytics import (
+    get_analytics_overview,
+    get_user_analytics,
+    get_user_detail,
+    export_analytics_csv,
+    export_user_csv,
+    init_activity_log_table
+)
+
+# Initialize activity log table
+init_activity_log_table()
+
+@app.get("/api/admin/analytics/overview")
+async def admin_analytics_overview(days: int = Query(30), x_user_id: str = Header(None, alias="X-User-Id")):
+    return await get_analytics_overview(days, x_user_id)
+
+@app.get("/api/admin/analytics/users")
+async def admin_analytics_users(days: int = Query(30), x_user_id: str = Header(None, alias="X-User-Id")):
+    return await get_user_analytics(days, x_user_id)
+
+@app.get("/api/admin/analytics/user/{target_user_id}")
+async def admin_analytics_user_detail(target_user_id: int, x_user_id: str = Header(None, alias="X-User-Id")):
+    return await get_user_detail(target_user_id, x_user_id)
+
+@app.get("/api/admin/analytics/export/csv")
+async def admin_analytics_export_csv(days: int = Query(30), x_user_id: str = Header(None, alias="X-User-Id")):
+    return await export_analytics_csv(days, x_user_id)
+
+@app.get("/api/admin/analytics/export/user/{target_user_id}/csv")
+async def admin_analytics_export_user_csv(target_user_id: int, x_user_id: str = Header(None, alias="X-User-Id")):
+    return await export_user_csv(target_user_id, x_user_id)
+
+# ==================== END ADMIN ANALYTICS ====================
 
 # ==================== END SERVE REACT APP ====================
 

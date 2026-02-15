@@ -8,7 +8,8 @@ import { API_URL, getAuthToken } from '../config';
 
 class QuestionBankService {
   constructor() {
-    this.baseUrl = `${API_URL}/api/agents/question-bank`;
+    // API_URL already includes /api
+    this.baseUrl = `${API_URL}/agents/question-bank`;
   }
 
   /**

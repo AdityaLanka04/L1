@@ -8,6 +8,7 @@ import {
 import './MyNotes.css';
 import './MyNotesSmartFolders.css';
 import './MyNotesChatImport.css';
+import './MyNotesConvert.css';
 import { API_URL } from '../config';
 import Templates from '../components/Templates';
 import ImportExportModal from '../components/ImportExportModal';
@@ -453,7 +454,7 @@ const MyNotes = () => {
                 <span className="nt-nav-icon"><Upload size={18} /></span>
                 <span className="nt-nav-text">From Chat</span>
               </button>
-              <button className="nt-nav-item" onClick={() => setShowConvertModal(true)}>
+              <button className="nt-nav-item convert-btn" onClick={() => setShowConvertModal(true)}>
                 <span className="nt-nav-icon"><Sparkles size={18} /></span>
                 <span className="nt-nav-text">Convert</span>
               </button>

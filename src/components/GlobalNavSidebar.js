@@ -15,6 +15,7 @@ const GlobalNavSidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
   const [expandedSections, setExpandedSections] = useState(['main']);
   const [searchQuery, setSearchQuery] = useState('');
+  const userEmail = localStorage.getItem('email');
 
   const toggleSection = (sectionId) => {
     setExpandedSections(prev =>
@@ -108,7 +109,15 @@ const GlobalNavSidebar = ({ isOpen, onClose }) => {
         { path: '/profile', label: 'Profile', icon: Star, description: 'Your profile' },
         { path: '/customize-dashboard', label: 'Customize', icon: Settings, description: 'Personalize dashboard' },
       ]
-    }
+    },
+    ...(userEmail === 'aditya.s.lanka@gmail.com' ? [{
+      id: 'admin',
+      title: 'Admin',
+      icon: BarChart3,
+      items: [
+        { path: '/admin/analytics', label: 'Analytics Dashboard', icon: BarChart3, description: 'User analytics & logs' },
+      ]
+    }] : [])
   ];
 
   const filteredNavigation = searchQuery

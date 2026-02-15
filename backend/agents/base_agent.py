@@ -267,6 +267,10 @@ class BaseAgent(ABC):
             
             execution_time = (time.time() - start_time) * 1000
             
+            logger.info(f"🔍 BaseAgent result keys: {result.keys()}")
+            logger.info(f"🔍 BaseAgent response_data: {result.get('response_data')}")
+            logger.info(f"🔍 BaseAgent response_metadata: {result.get('response_metadata')}")
+            
             # Include response_data in metadata for downstream use
             metadata = result.get("response_metadata", {})
             
@@ -274,6 +278,7 @@ class BaseAgent(ABC):
             if result.get("response_data"):
                 metadata["response_data"] = result.get("response_data")
             
+            logger.info(f"🔍 BaseAgent final metadata: {metadata}")
             logger.debug(f"Agent {self.agent_type.value} result metadata: {metadata}")
             
             return AgentResponse(

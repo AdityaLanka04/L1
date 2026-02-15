@@ -51,6 +51,7 @@ import PlaylistsPage from './pages/PlaylistsPage';
 import XPRoadmap from './pages/XPRoadmap';
 import LearningPaths from './pages/LearningPaths';
 import LearningPathDetail from './pages/LearningPathDetail';
+import AdminAnalytics from './pages/AdminAnalytics';
 import ProactiveNotification from './components/ProactiveNotification';
 import ProtectedRoute from './components/ProtectedRoute';
 import SafetyProtectedRoute from './components/SafetyProtectedRoute';
@@ -142,6 +143,7 @@ function App() {
             <Route path="/activity-timeline" element={<ProtectedRoute><ActivityTimeline /></ProtectedRoute>} />
             <Route path="/customize-dashboard" element={<ProtectedRoute><CustomizeDashboard /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
             <Route path="/home" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />
             <Route path="/shared/:contentType/:contentId" element={<SharedItemViewer />} />

@@ -852,7 +852,10 @@ Generate ONLY the title (no quotes, no explanation):"""
         
         state["execution_path"].append("conversion:save")
         
+        logger.info(f"🔄 Saving conversion result - Type: {content_type}, User: {user_id}")
+        
         if not self.db_session_factory:
+            logger.error("❌ Database not available")
             state["errors"] = state.get("errors", []) + ["Database not available"]
             return state
         
@@ -866,15 +869,49 @@ Generate ONLY the title (no quotes, no explanation):"""
                 user = db.query(User).filter(User.username == user_id).first()
                 if user:
                     actual_user_id = user.id
+                    logger.info(f"✅ Found user ID {actual_user_id} for username {user_id}")
                 else:
-                    logger.warning(f"User not found for username: {user_id}")
+                    logger.warning(f"❌ User not found for username: {user_id}")
                     state["errors"] = state.get("errors", []) + ["User not found"]
                     db.close()
                     return state
             elif isinstance(user_id, str):
                 actual_user_id = int(user_id)
             
-            if content_type == "flashcards":
+            if content_type == "notes":
+                from models import Note
+                
+                content = generated.get("content", "")
+                source_content = state.get("source_content", [])
+                
+                logger.info(f"📝 Creating note with {len(content)} characters")
+                
+                # Generate crisp 4-word title using AI
+                title = self._generate_crisp_title(source_content, "notes")
+                
+                logger.info(f"📝 Note title: {title}")
+                
+                # Create note
+                note = Note(
+                    user_id=actual_user_id,
+                    title=title,
+                    content=content
+                )
+                db.add(note)
+                db.commit()
+                
+                logger.info(f"✅ Note created successfully with ID: {note.id}")
+                
+                state["conversion_result"] = {
+                    "success": True,
+                    "note_id": note.id,
+                    "note_title": title,
+                    "word_count": len(content.split())
+                }
+                
+                logger.info(f"✅ Conversion result set: {state['conversion_result']}")
+            
+            elif content_type == "flashcards":
                 from models import FlashcardSet, Flashcard
                 
                 cards = generated.get("cards", [])
@@ -997,6 +1034,8 @@ Generate ONLY the title (no quotes, no explanation):"""
         
         state["execution_path"].append("conversion:format")
         
+        logger.info(f"📦 Formatting response - Result: {result}")
+        
         if result.get("success", True):
             if dest_type == "flashcards":
                 state["final_response"] = f"Successfully converted {source_type} to {result.get('card_count', 0)} flashcards"
@@ -1018,6 +1057,9 @@ Generate ONLY the title (no quotes, no explanation):"""
             "destination_type": dest_type,
             "response_data": result
         }
+        
+        logger.info(f"✅ Response data set in state: {state['response_data']}")
+        logger.info(f"✅ Response metadata: {state['response_metadata']}")
         
         return state
     
@@ -1042,12 +1084,13 @@ Generate ONLY the title (no quotes, no explanation):"""
         """Process and validate input"""
         return state
     
-    async def _execute_core_logic(self, state: AgentState) -> AgentState:
-        """Execute the main agent logic"""
+    # Required abstract methods from BaseAgent - not used in graph-based approach
+    async def _process_input(self, state: AgentState) -> AgentState:
+        """Process and validate input - handled by graph"""
         return state
     
-    async def _format_response(self, state: AgentState) -> AgentState:
-        """Format the final response"""
+    async def _execute_core_logic(self, state: AgentState) -> AgentState:
+        """Execute the main agent logic - handled by graph"""
         return state
 
 

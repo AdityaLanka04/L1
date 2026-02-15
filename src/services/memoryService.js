@@ -8,7 +8,8 @@ import { API_URL, getAuthToken } from '../config';
 
 class MemoryService {
   constructor() {
-    this.baseUrl = `${API_URL}/api/agents/memory`;
+    // API_URL already includes /api
+    this.baseUrl = `${API_URL}/agents/memory`;
   }
 
   /**

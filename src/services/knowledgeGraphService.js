@@ -8,7 +8,8 @@ import { API_URL, getAuthToken } from '../config';
 
 class KnowledgeGraphService {
   constructor() {
-    this.baseUrl = `${API_URL}/api/agents/knowledge-graph`;
+    // API_URL already includes /api
+    this.baseUrl = `${API_URL}/agents/knowledge-graph`;
   }
 
   /**

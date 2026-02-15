@@ -37,6 +37,22 @@
   color: var(--text-primary);
 }
 
+.search-info-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+  border-bottom: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border));
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.search-info-banner svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
 .advanced-search-content {
   flex: 1;
   overflow-y: auto;

@@ -1,17 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, Clock, FileText, Calendar, Tag, Folder } from 'lucide-react';
+import { X, Search, Clock, Calendar, Folder, Info } from 'lucide-react';
 import './AdvancedSearch.css';
 
 const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFolder, setSelectedFolder] = useState('all');
-  const [selectedBlockType, setSelectedBlockType] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [useRegex, setUseRegex] = useState(false);
-  const [searchInTitle, setSearchInTitle] = useState(true);
-  const [searchInContent, setSearchInContent] = useState(true);
   const [results, setResults] = useState([]);
   const [searchHistory, setSearchHistory] = useState([]);
 
@@ -53,7 +50,7 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
       }
     }
 
-    // Filter by date range
+    // Filter by date range (last modified)
     if (dateFrom) {
       filtered = filtered.filter(n => new Date(n.updated_at) >= new Date(dateFrom));
     }
@@ -61,59 +58,35 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
       filtered = filtered.filter(n => new Date(n.updated_at) <= new Date(dateTo));
     }
 
-    // Search in title and content
+    // Search in both title and content
     const searchPattern = useRegex 
       ? new RegExp(searchQuery, caseSensitive ? 'g' : 'gi')
       : null;
 
     filtered = filtered.filter(note => {
-      let matches = false;
-
-      if (searchInTitle) {
-        if (useRegex) {
-          matches = matches || searchPattern.test(note.title);
-        } else {
-          const titleMatch = caseSensitive 
-            ? note.title.includes(searchQuery)
-            : note.title.toLowerCase().includes(searchQuery.toLowerCase());
-          matches = matches || titleMatch;
-        }
+      // Search in title
+      let titleMatch = false;
+      if (useRegex) {
+        titleMatch = searchPattern.test(note.title);
+      } else {
+        titleMatch = caseSensitive 
+          ? note.title.includes(searchQuery)
+          : note.title.toLowerCase().includes(searchQuery.toLowerCase());
       }
 
-      if (searchInContent) {
-        const content = note.content.replace(/<[^>]+>/g, '');
-        if (useRegex) {
-          matches = matches || searchPattern.test(content);
-        } else {
-          const contentMatch = caseSensitive
-            ? content.includes(searchQuery)
-            : content.toLowerCase().includes(searchQuery.toLowerCase());
-          matches = matches || contentMatch;
-        }
+      // Search in content
+      const content = note.content.replace(/<[^>]+>/g, '');
+      let contentMatch = false;
+      if (useRegex) {
+        contentMatch = searchPattern.test(content);
+      } else {
+        contentMatch = caseSensitive
+          ? content.includes(searchQuery)
+          : content.toLowerCase().includes(searchQuery.toLowerCase());
       }
 
-      return matches;
+      return titleMatch || contentMatch;
     });
-
-    // Filter by block type (if content contains specific HTML tags)
-    if (selectedBlockType !== 'all') {
-      filtered = filtered.filter(note => {
-        switch (selectedBlockType) {
-          case 'heading':
-            return /<h[1-6]>/i.test(note.content);
-          case 'code':
-            return /<code>|<pre>/i.test(note.content);
-          case 'list':
-            return /<ul>|<ol>/i.test(note.content);
-          case 'image':
-            return /<img/i.test(note.content);
-          case 'link':
-            return /<a /i.test(note.content);
-          default:
-            return true;
-        }
-      });
-    }
 
     setResults(filtered);
   };
@@ -123,36 +96,35 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
       if (searchQuery) performSearch();
     }, 300);
     return () => clearTimeout(debounce);
-  }, [searchQuery, selectedFolder, selectedBlockType, dateFrom, dateTo, caseSensitive, useRegex, searchInTitle, searchInContent]);
-
-  const highlightMatch = (text, query) => {
-    if (!query || useRegex) return text;
-    const regex = new RegExp(`(${query})`, caseSensitive ? 'g' : 'gi');
-    return text.replace(regex, '<mark>$1</mark>');
-  };
+  }, [searchQuery, selectedFolder, dateFrom, dateTo, caseSensitive, useRegex]);
 
   const getPreview = (content, query) => {
     const text = content.replace(/<[^>]+>/g, '');
-    if (!query) return text.substring(0, 100) + '...';
+    if (!query) return text.substring(0, 150) + '...';
     
     const index = caseSensitive 
       ? text.indexOf(query)
       : text.toLowerCase().indexOf(query.toLowerCase());
     
-    if (index === -1) return text.substring(0, 100) + '...';
+    if (index === -1) return text.substring(0, 150) + '...';
     
-    const start = Math.max(0, index - 50);
-    const end = Math.min(text.length, index + query.length + 50);
-    return '...' + text.substring(start, end) + '...';
+    const start = Math.max(0, index - 60);
+    const end = Math.min(text.length, index + query.length + 90);
+    return (start > 0 ? '...' : '') + text.substring(start, end) + (end < text.length ? '...' : '');
   };
 
   return (
     <div className="advanced-search-modal">
         <div className="advanced-search-header">
-          <h2>Advanced Search</h2>
+          <h2>Search All Notes</h2>
           <button className="modal-close-btn" onClick={onClose}>
             <X size={20} />
           </button>
+        </div>
+
+        <div className="search-info-banner">
+          <Info size={16} />
+          <span>Search across all your notes by title and content</span>
         </div>
 
         <div className="advanced-search-content">
@@ -161,7 +133,7 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
             <input
               type="text"
               className="search-main-input"
-              placeholder="Search notes..."
+              placeholder="Type to search across all notes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               autoFocus
@@ -170,14 +142,17 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
 
           <div className="search-filters">
             <div className="filter-group">
-              <label>Folder</label>
+              <label>
+                <Folder size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                Filter by Folder
+              </label>
               <select
                 className="filter-select"
                 value={selectedFolder}
                 onChange={(e) => setSelectedFolder(e.target.value)}
               >
                 <option value="all">All Folders</option>
-                <option value="none">No Folder</option>
+                <option value="none">Unfiled Notes</option>
                 {folders.map(folder => (
                   <option key={folder.id} value={folder.id}>{folder.name}</option>
                 ))}
@@ -185,23 +160,10 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
             </div>
 
             <div className="filter-group">
-              <label>Block Type</label>
-              <select
-                className="filter-select"
-                value={selectedBlockType}
-                onChange={(e) => setSelectedBlockType(e.target.value)}
-              >
-                <option value="all">All Types</option>
-                <option value="heading">Headings</option>
-                <option value="code">Code Blocks</option>
-                <option value="list">Lists</option>
-                <option value="image">Images</option>
-                <option value="link">Links</option>
-              </select>
-            </div>
-
-            <div className="filter-group">
-              <label>Date From</label>
+              <label>
+                <Calendar size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                Last Modified From
+              </label>
               <input
                 type="date"
                 className="filter-input"
@@ -211,7 +173,10 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
             </div>
 
             <div className="filter-group">
-              <label>Date To</label>
+              <label>
+                <Calendar size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                Last Modified To
+              </label>
               <input
                 type="date"
                 className="filter-input"
@@ -222,22 +187,6 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
           </div>
 
           <div className="search-options">
-            <label className="search-option">
-              <input
-                type="checkbox"
-                checked={searchInTitle}
-                onChange={(e) => setSearchInTitle(e.target.checked)}
-              />
-              Search in titles
-            </label>
-            <label className="search-option">
-              <input
-                type="checkbox"
-                checked={searchInContent}
-                onChange={(e) => setSearchInContent(e.target.checked)}
-              />
-              Search in content
-            </label>
             <label className="search-option">
               <input
                 type="checkbox"
@@ -252,7 +201,7 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
                 checked={useRegex}
                 onChange={(e) => setUseRegex(e.target.checked)}
               />
-              Use regex
+              Use regex (advanced)
             </label>
           </div>
 
@@ -260,7 +209,7 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
             <div className="search-results-section">
               <div className="search-results-header">
                 <h3>Results</h3>
-                <span className="results-count">{results.length} found</span>
+                <span className="results-count">{results.length} note{results.length !== 1 ? 's' : ''} found</span>
               </div>
 
               {results.length > 0 ? (
@@ -296,7 +245,8 @@ const AdvancedSearch = ({ notes, folders, onSelectNote, onClose }) => {
               ) : (
                 <div className="no-results">
                   <Search size={48} />
-                  <p>No results found</p>
+                  <p>No notes found matching "{searchQuery}"</p>
+                  <small>Try different keywords or adjust filters</small>
                 </div>
               )}
             </div>

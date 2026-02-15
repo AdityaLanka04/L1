@@ -432,3 +432,173 @@
 .flashcards-page .iem-body::-webkit-scrollbar-thumb:hover {
   background: var(--iem-accent);
 }
+
+/* Enhanced UI for Flashcards Convert Modal */
+.flashcards-page .iem-modal {
+  border-radius: 16px !important;
+  border: 1px solid var(--iem-border) !important;
+}
+
+.flashcards-page .iem-header {
+  border-bottom: 1px solid var(--iem-border) !important;
+  background: linear-gradient(135deg, var(--iem-bg-secondary), var(--iem-bg-tertiary)) !important;
+}
+
+.flashcards-page .iem-header h2 {
+  font-size: 20px !important;
+  background: linear-gradient(135deg, var(--iem-accent), var(--fc-accent-dark)) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+.flashcards-page .iem-close-btn {
+  border-radius: 8px !important;
+  border: 1px solid var(--iem-border) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.flashcards-page .iem-close-btn:hover {
+  transform: rotate(90deg) !important;
+}
+
+.flashcards-page .iem-select-bar {
+  border-radius: 8px !important;
+  border: 1px solid var(--iem-border) !important;
+  background: linear-gradient(135deg, var(--iem-bg-tertiary), var(--iem-bg-secondary)) !important;
+}
+
+.flashcards-page .iem-select-all-btn {
+  border-radius: 6px !important;
+  border: 1px solid var(--iem-border) !important;
+  transition: all 0.2s !important;
+}
+
+.flashcards-page .iem-select-all-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.2) !important;
+}
+
+.flashcards-page .iem-items-list {
+  border-radius: 8px !important;
+  border: 1px solid var(--iem-border) !important;
+}
+
+.flashcards-page .iem-item-card {
+  border-radius: 6px !important;
+  margin: 8px !important;
+  border: 1px solid transparent !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.flashcards-page .iem-item-card:hover {
+  transform: translateX(4px) !important;
+  border-color: var(--iem-accent) !important;
+  box-shadow: 0 4px 12px rgba(215, 179, 140, 0.15) !important;
+}
+
+.flashcards-page .iem-item-card.selected {
+  background: linear-gradient(135deg, rgba(215, 179, 140, 0.15), rgba(215, 179, 140, 0.05)) !important;
+  border-color: var(--iem-accent) !important;
+}
+
+.flashcards-page .iem-conversion-card {
+  border-radius: 12px !important;
+  border: 1px solid var(--iem-border) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.flashcards-page .iem-conversion-card::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(135deg, transparent, rgba(215, 179, 140, 0.1)) !important;
+  opacity: 0 !important;
+  transition: opacity 0.3s !important;
+}
+
+.flashcards-page .iem-conversion-card:hover::before {
+  opacity: 1 !important;
+}
+
+.flashcards-page .iem-conversion-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 8px 24px rgba(215, 179, 140, 0.2) !important;
+}
+
+.flashcards-page .iem-conversion-card.selected {
+  border-color: var(--iem-accent) !important;
+  box-shadow: 0 0 0 2px rgba(215, 179, 140, 0.3) !important;
+}
+
+.flashcards-page .iem-settings {
+  border-radius: 12px !important;
+  border: 1px solid var(--iem-border) !important;
+  background: linear-gradient(135deg, var(--iem-bg-tertiary), var(--iem-bg-secondary)) !important;
+}
+
+.flashcards-page .iem-input,
+.flashcards-page .iem-select {
+  border-radius: 8px !important;
+  border: 1px solid var(--iem-border) !important;
+  transition: all 0.2s !important;
+}
+
+.flashcards-page .iem-input:focus,
+.flashcards-page .iem-select:focus {
+  border-color: var(--iem-accent) !important;
+  box-shadow: 0 0 0 3px rgba(215, 179, 140, 0.1) !important;
+}
+
+.flashcards-page .iem-btn-primary {
+  border-radius: 8px !important;
+  background: linear-gradient(135deg, var(--iem-accent), var(--fc-accent-dark)) !important;
+  border: none !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.flashcards-page .iem-btn-primary::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent) !important;
+  transition: left 0.5s !important;
+}
+
+.flashcards-page .iem-btn-primary:hover::before {
+  left: 100% !important;
+}
+
+.flashcards-page .iem-btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px rgba(215, 179, 140, 0.4) !important;
+}
+
+.flashcards-page .iem-btn-secondary {
+  border-radius: 8px !important;
+  border: 1px solid var(--iem-border) !important;
+  transition: all 0.2s !important;
+}
+
+.flashcards-page .iem-btn-secondary:hover {
+  transform: translateY(-2px) !important;
+  border-color: var(--iem-accent) !important;
+}
+
+.flashcards-page .iem-result-details {
+  border-radius: 12px !important;
+  border: 1px solid var(--iem-border) !important;
+  background: linear-gradient(135deg, var(--iem-bg-tertiary), var(--iem-bg-secondary)) !important;
+}
+
+.flashcards-page .iem-actions {
+  border-top: 1px solid var(--iem-border) !important;
+  background: linear-gradient(135deg, var(--iem-bg-secondary), var(--iem-bg-tertiary)) !important;
+}

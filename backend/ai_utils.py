@@ -171,6 +171,27 @@ class UnifiedAIClient:
                 logger.info(f" Groq response received")
                 result = response.choices[0].message.content.strip()
                 
+                # Log token usage if available
+                if hasattr(response, 'usage') and response.usage:
+                    try:
+                        from activity_logger import log_ai_tokens
+                        # Try to get user_id from conversation_id if it's numeric
+                        if conversation_id:
+                            try:
+                                user_id = int(conversation_id.split('_')[0]) if '_' in str(conversation_id) else int(conversation_id)
+                                log_ai_tokens(
+                                    user_id=user_id,
+                                    tool_name='ai_chat',
+                                    prompt_tokens=response.usage.prompt_tokens,
+                                    completion_tokens=response.usage.completion_tokens,
+                                    total_tokens=response.usage.total_tokens,
+                                    model=self.groq_model
+                                )
+                            except (ValueError, AttributeError):
+                                pass
+                    except Exception as log_error:
+                        logger.debug(f"Could not log tokens: {log_error}")
+                
                 # Cache the response (with conversation context if provided)
                 if self.cache_manager and use_cache:
                     cache_prompt = f"{conversation_id}_{prompt}" if conversation_id else prompt

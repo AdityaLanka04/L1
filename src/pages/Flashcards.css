@@ -349,6 +349,11 @@
   background: linear-gradient(135deg, var(--fc-accent), var(--fc-accent-dark)) !important;
 }
 
+.fc-nav-item.fc-convert-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--fc-accent) 30%, transparent);
+}
+
 [data-theme-mode="light"] .fc-nav-item.fc-convert-btn {
   color: #ffffff !important;
 }

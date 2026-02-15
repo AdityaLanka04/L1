@@ -4,11 +4,12 @@
  * Provides AI-powered note generation, improvement, and analysis
  */
 
-import { API_URL, getAuthToken } from '../config';
+import { API_URL, getAuthToken } from '../config/api';
 
 class NoteAgentService {
   constructor() {
-    this.baseUrl = `${API_URL}/api/agents/notes`;
+    // API_URL already includes /api, so we just add /agents/notes
+    this.baseUrl = `${API_URL}/agents/notes`;
   }
 
   /**

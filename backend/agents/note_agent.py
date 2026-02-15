@@ -376,90 +376,194 @@ Use HTML formatting: <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>
 
 EXPLANATION:""",
 
-        "key_points": """Extract the key points from this content.
+        "key_points": """You are an expert at extracting key information from content.
 
-RULES:
-- Identify 5-10 most important points
-- Present as a clear list
-- Include brief explanations for each
-- Prioritize by importance
-- Use HTML formatting (<h2>Key Points</h2>, <ul>, <li>)
+═══════════════════════════════════════════════════════════════════
+TASK: Extract the key points from this content
+═══════════════════════════════════════════════════════════════════
 
-Content:
+EXTRACTION RULES:
+1. IDENTIFY: Find 5-10 most important points
+2. PRIORITIZE: Order by importance
+3. BE SPECIFIC: Include concrete details
+4. BE CONCISE: Keep each point brief but complete
+5. FORMAT: Use HTML list format
+
+OUTPUT FORMAT:
+<h2>Key Points</h2>
+<ul>
+  <li><strong>Point 1:</strong> Brief explanation</li>
+  <li><strong>Point 2:</strong> Brief explanation</li>
+  ...
+</ul>
+
+═══════════════════════════════════════════════════════════════════
+CONTENT TO ANALYZE:
 {content}
+═══════════════════════════════════════════════════════════════════
 
-Key Points:""",
+KEY POINTS:""",
 
-        "grammar": """Fix all grammar and spelling errors in this text.
+        "grammar": """You are an expert proofreader fixing grammar and spelling errors.
 
-RULES:
-- Correct spelling mistakes
-- Fix grammatical errors
-- Improve punctuation
-- Do NOT change the meaning or style
-- Keep the same tone and voice
+═══════════════════════════════════════════════════════════════════
+TASK: Fix all grammar and spelling errors in this text
+═══════════════════════════════════════════════════════════════════
 
-Text to correct:
+CRITICAL RULES:
+1. SPELLING: Correct all spelling mistakes
+2. GRAMMAR: Fix grammatical errors (subject-verb agreement, tense, etc.)
+3. PUNCTUATION: Improve punctuation (commas, periods, apostrophes)
+4. PRESERVE MEANING: Do NOT change the meaning or main ideas
+5. PRESERVE STYLE: Keep the same tone and voice
+6. NO ADDITIONS: Do NOT add new information
+7. MINIMAL CHANGES: Only fix actual errors
+
+WHAT TO FIX:
+✓ Spelling mistakes
+✓ Grammar errors
+✓ Punctuation errors
+✓ Capitalization errors
+✓ Typos
+
+WHAT NOT TO CHANGE:
+✗ The meaning or message
+✗ The writing style
+✗ The structure or organization
+✗ Technical terms (unless misspelled)
+
+═══════════════════════════════════════════════════════════════════
+TEXT TO CORRECT:
 {content}
+═══════════════════════════════════════════════════════════════════
 
-Corrected version:""",
+CORRECTED VERSION (return ONLY the corrected text):""",
 
-        "tone_change": """Rewrite this text in a {tone} tone.
+        "tone_change": """You are an expert writer adapting content to different tones.
 
-RULES:
-- Change the tone to be {tone}
-- Keep the same information
-- Adjust language and style appropriately
-- Maintain clarity
-- Use HTML formatting where appropriate
+═══════════════════════════════════════════════════════════════════
+TASK: Rewrite this text in a {tone} tone
+═══════════════════════════════════════════════════════════════════
 
-Original text:
+TARGET TONE: {tone}
+
+TONE GUIDELINES:
+- Professional: Formal, business-appropriate, polished
+- Casual: Relaxed, conversational, friendly
+- Academic: Scholarly, precise, formal with citations style
+- Friendly: Warm, approachable, personable
+- Formal: Very polished, traditional, respectful
+- Creative: Imaginative, expressive, artistic
+- Technical: Precise, detailed, specialized terminology
+
+REWRITING RULES:
+1. TONE: Change the tone to be {tone}
+2. CONTENT: Keep the same information and facts
+3. STYLE: Adjust language and style appropriately
+4. CLARITY: Maintain or improve clarity
+5. FORMAT: Use HTML formatting where appropriate
+
+═══════════════════════════════════════════════════════════════════
+ORIGINAL TEXT:
 {content}
+═══════════════════════════════════════════════════════════════════
 
-Rewritten in {tone} tone:""",
+REWRITTEN IN {tone} TONE:""",
 
-        "outline": """Create a structured outline for this topic.
+        "outline": """You are an expert at creating structured outlines for topics.
 
+═══════════════════════════════════════════════════════════════════
+TASK: Create a structured outline for this topic
+═══════════════════════════════════════════════════════════════════
 Topic: {content}
-Depth: {depth}
+Depth: {depth} - {depth_description}
 {context_section}
 
-RULES:
-- Create a hierarchical outline
-- Include main sections and subsections
-- Add brief descriptions for each section
+OUTLINE STRUCTURE:
+- Use hierarchical organization (main sections → subsections)
+- Include brief descriptions for each section
 - {depth_instruction}
-- Use HTML formatting (<h2>, <h3>, <ul>, <li>)
+- Make it actionable and clear
 
-Outline:""",
+FORMAT:
+<h2>Outline: [Topic Name]</h2>
 
-        "organize": """Reorganize and structure this content for better clarity.
+<h3>I. [Main Section 1]</h3>
+<ul>
+  <li><strong>A. [Subsection]:</strong> Brief description</li>
+  <li><strong>B. [Subsection]:</strong> Brief description</li>
+</ul>
 
-RULES:
-- Group related information together
-- Create logical sections
-- Add appropriate headings
-- Improve flow and readability
-- Use HTML formatting (<h2>, <h3>, <p>, <ul>)
+<h3>II. [Main Section 2]</h3>
+<ul>
+  <li><strong>A. [Subsection]:</strong> Brief description</li>
+  <li><strong>B. [Subsection]:</strong> Brief description</li>
+</ul>
 
-Content to organize:
+═══════════════════════════════════════════════════════════════════
+
+OUTLINE:""",
+
+        "organize": """You are an expert at organizing and structuring content for clarity.
+
+═══════════════════════════════════════════════════════════════════
+TASK: Reorganize and structure this content for better clarity
+═══════════════════════════════════════════════════════════════════
+
+ORGANIZATION PRINCIPLES:
+1. GROUP: Group related information together
+2. HIERARCHY: Create logical sections with clear headings
+3. FLOW: Ensure smooth transitions between sections
+4. CLARITY: Make the structure obvious and easy to follow
+5. FORMAT: Use HTML formatting for structure
+
+STRUCTURE TO CREATE:
+- Clear headings (<h2>, <h3>)
+- Logical paragraphs (<p>)
+- Bullet points for lists (<ul>, <li>)
+- Emphasis where needed (<strong>, <em>)
+
+═══════════════════════════════════════════════════════════════════
+CONTENT TO ORGANIZE:
 {content}
+═══════════════════════════════════════════════════════════════════
 
-Organized version:""",
+ORGANIZED VERSION:""",
 
-        "code_explain": """Explain this code clearly.
+        "code_explain": """You are an expert programmer explaining code to learners.
 
-RULES:
-- Explain what the code does
-- Break down key parts
-- Mention any important patterns or techniques
-- Suggest improvements if relevant
-- Use HTML formatting with <pre><code> for code blocks
+═══════════════════════════════════════════════════════════════════
+TASK: Explain this code clearly and comprehensively
+═══════════════════════════════════════════════════════════════════
 
-Code:
+EXPLANATION STRUCTURE:
+1. OVERVIEW: What does this code do? (1-2 sentences)
+2. BREAKDOWN: Explain each important part
+3. KEY CONCEPTS: Highlight important patterns or techniques
+4. IMPROVEMENTS: Suggest potential improvements (if any)
+
+FORMAT:
+<h2>Code Explanation</h2>
+<p><strong>Overview:</strong> [What it does]</p>
+
+<h3>Code Breakdown:</h3>
+<ul>
+  <li>[Explanation of part 1]</li>
+  <li>[Explanation of part 2]</li>
+</ul>
+
+<h3>Key Concepts:</h3>
+<ul>
+  <li>[Concept 1]</li>
+  <li>[Concept 2]</li>
+</ul>
+
+═══════════════════════════════════════════════════════════════════
+CODE TO EXPLAIN:
 {content}
+═══════════════════════════════════════════════════════════════════
 
-Explanation:"""
+EXPLANATION:"""
     }
 
     def __init__(self, ai_client):

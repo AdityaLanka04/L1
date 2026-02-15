@@ -5,6 +5,7 @@ import "react-quill/dist/quill.snow.css";
 import "./NotesRedesign.css";
 import "./NotesRedesignSmartFolders.css";
 import "./NotesRedesignChatImport.css";
+import "./NotesRedesignConvert.css";
 import CustomPopup from "./CustomPopup";
 import { useTheme } from '../contexts/ThemeContext';
 import { 
@@ -378,6 +379,9 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [showChatImport, setShowChatImport] = useState(false);
   const [chatSessions, setChatSessions] = useState([]);
   const [selectedSessions, setSelectedSessions] = useState([]);
+  const [showNavigateDialog, setShowNavigateDialog] = useState(false);
+  const [newNoteId, setNewNoteId] = useState(null);
+  const [newNoteTitle, setNewNoteTitle] = useState('');
   const [importMode, setImportMode] = useState("summary");
   const [importing, setImporting] = useState(false);
   
@@ -2113,29 +2117,71 @@ const NotesRedesign = ({ sharedMode = false }) => {
         { formatStyle: importMode === 'summary' ? 'summary' : 'structured' }
       );
       
-      if (result.success && result.result) {
-        const noteResult = result.result;
-        
+      console.log('Full result:', JSON.stringify(result, null, 2));
+      
+      if (result.success) {
         // Refresh notes list
         await loadNotes();
         
         setShowChatImport(false);
         setSelectedSessions([]);
         
-        // Navigate to the newly created note if we have the ID
-        if (noteResult.note_id) {
-          navigate(`/notes/editor/${noteResult.note_id}`);
-        }
+        // Get note data from result
+        const noteData = result.result || result;
         
-        showPopup("Conversion Successful", `"${noteResult.note_title || 'Note'}" created successfully via AI Agent.`);
+        console.log('Note data:', JSON.stringify(noteData, null, 2));
+        
+        // Check for note_id in various possible locations
+        const noteId = noteData.note_id || result.note_id || noteData.id || result.id;
+        const noteTitle = noteData.note_title || result.note_title || noteData.title || result.title || 'New Note';
+        
+        console.log('Extracted - Note ID:', noteId, 'Note Title:', noteTitle);
+        
+        if (noteId) {
+          setNewNoteId(noteId);
+          setNewNoteTitle(noteTitle);
+          setShowNavigateDialog(true);
+          console.log('Dialog set to show with note ID:', noteId);
+        } else {
+          console.log('No note ID found, showing popup instead');
+          showPopup("Conversion Successful", `"${noteTitle}" created successfully via AI Agent.`);
+        }
       } else {
-        throw new Error(result.response || 'Conversion failed');
+        throw new Error(result.response || result.error || 'Conversion failed');
       }
     } catch (err) {
       console.error('Chat to note conversion error:', err);
       showPopup("Conversion Failed", "Unable to convert chat to note.");
     }
     setImporting(false);
+  };
+
+  const handleNavigateToNewNote = () => {
+    console.log('Navigating to note ID:', newNoteId);
+    if (newNoteId) {
+      // Close dialog first
+      setShowNavigateDialog(false);
+      setNewNoteId(null);
+      setNewNoteTitle('');
+      
+      // Navigate to the new note
+      navigate(`/notes/editor/${newNoteId}`);
+      
+      // Force page reload if we're already on a notes editor page
+      setTimeout(() => {
+        window.location.href = `/notes/editor/${newNoteId}`;
+      }, 100);
+    } else {
+      console.error('No note ID to navigate to');
+      setShowNavigateDialog(false);
+    }
+  };
+
+  const handleStayOnCurrentNote = () => {
+    showPopup("Note Created", `"${newNoteTitle}" has been created successfully. You can find it in your notes list.`);
+    setShowNavigateDialog(false);
+    setNewNoteId(null);
+    setNewNoteTitle('');
   };
 
   const exportAsPDF = () => {
@@ -3739,6 +3785,38 @@ const NotesRedesign = ({ sharedMode = false }) => {
           }
         }}
       />
+
+      {/* Navigate to New Note Dialog */}
+      {showNavigateDialog && (
+        <>
+          <div className="ai-overlay" onClick={handleStayOnCurrentNote}></div>
+          <div className="navigate-dialog-modal">
+            <div className="navigate-dialog-header">
+              <h3>Note Created Successfully!</h3>
+            </div>
+            <div className="navigate-dialog-content">
+              <p>
+                Your note <strong>"{newNoteTitle}"</strong> has been created from the chat conversation.
+              </p>
+              <p>Would you like to open the new note now?</p>
+            </div>
+            <div className="navigate-dialog-actions">
+              <button
+                className="navigate-btn-secondary"
+                onClick={handleStayOnCurrentNote}
+              >
+                Stay Here
+              </button>
+              <button
+                className="navigate-btn-primary"
+                onClick={handleNavigateToNewNote}
+              >
+                Open New Note
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
