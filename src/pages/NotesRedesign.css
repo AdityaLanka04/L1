@@ -819,10 +819,34 @@
 }
 
 .formatting-toolbar {
-  display: flex;
-  align-items: center;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   gap: 4px;
   flex-wrap: wrap;
+  overflow: visible !important;
+  min-height: 56px !important;
+  padding: 8px 0 !important;
+}
+
+/* Fix for toolbar button icon clipping */
+.formatting-toolbar .toolbar-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 40px !important;
+  height: 40px !important;
+  padding: 10px !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+.formatting-toolbar .toolbar-btn svg {
+  width: 20px !important;
+  height: 20px !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+  margin: 0 auto !important;
 }
 
 .format-btn {
@@ -1366,6 +1390,12 @@
   margin-bottom: 8px;
 }
 
+.ai-assistant-divider {
+  height: 1px;
+  background: var(--nr-border-subtle);
+  margin: 24px 0;
+}
+
 .ai-action-buttons {
   display: flex;
   flex-wrap: wrap;
@@ -1382,16 +1412,24 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  position: relative;
 }
 
-.ai-action-btn:hover {
+.ai-action-btn:hover:not(:disabled) {
   background: var(--nr-bg-elevated);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .ai-action-btn.active {
   background: var(--nr-accent-glow);
   border-color: var(--nr-accent);
   color: var(--nr-accent);
+}
+
+.ai-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Form Elements */

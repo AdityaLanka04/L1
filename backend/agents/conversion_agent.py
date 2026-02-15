@@ -166,6 +166,12 @@ RULES:
 2. Use clear headings and structure
 3. Include key concepts and explanations
 4. Use HTML formatting (<h1>, <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>)
+5. PRESERVE ALL LATEX FORMULAS EXACTLY AS THEY APPEAR:
+   - Keep inline math in single dollar signs: $formula$
+   - Keep display math in double dollar signs: $$formula$$
+   - DO NOT convert LaTeX to HTML or plain text
+   - DO NOT use placeholders like _LATEX_INLINE_0_
+   - Example: Keep "$x^2 + y^2 = r^2$" exactly as is
 
 Write detailed educational content:"""
 

@@ -190,7 +190,7 @@ What could be improved?
   }
 ];
 
-const Templates = ({ onSelectTemplate, onClose, userName }) => {
+const Templates = ({ onSelectTemplate, onClose, userName, hasExistingContent = false }) => {
   const [activeTab, setActiveTab] = useState('built-in');
   const [customTemplates, setCustomTemplates] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -419,6 +419,13 @@ const Templates = ({ onSelectTemplate, onClose, userName }) => {
             <X size={20} />
           </button>
         </div>
+
+        {hasExistingContent && (
+          <div className="tpl-warning">
+            <strong>⚠️ Warning:</strong> Applying a template will replace your current note content. 
+            Consider creating a new note first to preserve your work.
+          </div>
+        )}
 
         <div className="tpl-tabs">
           <button

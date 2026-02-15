@@ -1442,6 +1442,21 @@ const NotesRedesign = ({ sharedMode = false }) => {
   };
 
   const handleTemplateSelect = (template) => {
+    // Check if there's existing content that would be overwritten
+    const hasExistingContent = noteContent && noteContent.trim().length > 0;
+    
+    if (hasExistingContent) {
+      const confirmOverwrite = window.confirm(
+        'This will replace your current note content with the template. Do you want to continue?\n\n' +
+        'Tip: You can create a new note first, then apply the template to avoid losing your work.'
+      );
+      
+      if (!confirmOverwrite) {
+        setShowTemplates(false);
+        return;
+      }
+    }
+    
     setNoteTitle(template.title);
     
     // If template already has blocks, use them
@@ -1970,11 +1985,13 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   };
 
-  const aiWritingAssist = async () => {
-    if (isSharedContent && !canEdit && aiAssistAction !== 'explain_only') return;
+  const aiWritingAssist = async (actionOverride = null) => {
+    const action = actionOverride || aiAssistAction;
+    
+    if (isSharedContent && !canEdit && action !== 'explain_only') return;
     
     // Handle explain_only action separately
-    if (aiAssistAction === 'explain_only') {
+    if (action === 'explain_only') {
       await explainTextOnly();
       return;
     }
@@ -1983,7 +2000,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
     let textToProcess = selectedText;
     
     // For generate action, we don't need selected text
-    if (aiAssistAction !== 'generate' && (!textToProcess || !textToProcess.trim())) {
+    if (action !== 'generate' && (!textToProcess || !textToProcess.trim())) {
       // Try to get selected text from the editor
       const selection = window.getSelection();
       if (selection && selection.toString()) {
@@ -1991,7 +2008,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
       }
     }
 
-    if (aiAssistAction !== 'generate' && (!textToProcess || !textToProcess.trim())) {
+    if (action !== 'generate' && (!textToProcess || !textToProcess.trim())) {
       showPopup("No Text Selected", "Please select text or enter text to process");
       return;
     }
@@ -2012,7 +2029,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         'translate': 'improve'  // Use improve as fallback for translate
       };
       
-      const agentAction = actionMap[aiAssistAction] || aiAssistAction;
+      const agentAction = actionMap[action] || action;
       
       // Use the note agent service
       const result = await noteAgentService.invoke(agentAction, {
@@ -2038,7 +2055,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
         original: textToProcess || selectedText,
         suggested: resultText.trim(),
         range: selectedRange,
-        action: aiAssistAction,
+        action: action,
         blockId: selectedBlockId,
         isBlockEditor: true
       });
@@ -2046,10 +2063,30 @@ const NotesRedesign = ({ sharedMode = false }) => {
       setShowAIAssistant(false);
       
     } catch (error) {
-            showPopup("Error", "Failed to process text");
+      console.error("AI processing error:", error);
+      showPopup("Error", "Failed to process text");
     } finally {
       setGeneratingAI(false);
     }
+  };
+
+  // Quick action handler - executes AI action immediately
+  const handleQuickAction = async (action) => {
+    setAiAssistAction(action);
+    
+    // For actions that need text selection, validate first
+    if (action !== 'generate' && (!selectedText || !selectedText.trim())) {
+      const selection = window.getSelection();
+      if (selection && selection.toString()) {
+        setSelectedText(selection.toString());
+      } else {
+        showPopup("No Text Selected", "Please select text in the editor or enter text in the input field");
+        return;
+      }
+    }
+    
+    // Execute immediately
+    await aiWritingAssist(action);
   };
 
   const handleSessionToggle = (sid) =>
@@ -3113,60 +3150,83 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
             <div className="ai-assistant-content">
               <div className="ai-assistant-section">
-                <label>Select Action:</label>
+                <label>Quick Actions (Click to Execute):</label>
                 <div className="ai-action-buttons">
                   <button
-                    className={`ai-action-btn ${aiAssistAction === 'generate' ? 'active' : ''}`}
-                    onClick={() => setAiAssistAction('generate')}
+                    className={`ai-action-btn ${aiAssistAction === 'grammar' ? 'active' : ''}`}
+                    onClick={() => handleQuickAction('grammar')}
+                    disabled={generatingAI}
+                    title="Fix grammar and spelling errors"
                   >
-                    <Sparkles size={14} style={{ marginRight: '4px', display: 'inline' }} />
-                    Generate Content
-                  </button>
-                  <button
-                    className={`ai-action-btn ${aiAssistAction === 'continue' ? 'active' : ''}`}
-                    onClick={() => setAiAssistAction('continue')}
-                  >
-                    Continue Writing
+                    Fix Grammar
                   </button>
                   <button
                     className={`ai-action-btn ${aiAssistAction === 'improve' ? 'active' : ''}`}
-                    onClick={() => setAiAssistAction('improve')}
+                    onClick={() => handleQuickAction('improve')}
+                    disabled={generatingAI}
+                    title="Improve clarity and style"
                   >
                     Improve
                   </button>
                   <button
                     className={`ai-action-btn ${aiAssistAction === 'simplify' ? 'active' : ''}`}
-                    onClick={() => setAiAssistAction('simplify')}
+                    onClick={() => handleQuickAction('simplify')}
+                    disabled={generatingAI}
+                    title="Make text simpler and easier to understand"
                   >
                     Simplify
                   </button>
                   <button
                     className={`ai-action-btn ${aiAssistAction === 'expand' ? 'active' : ''}`}
-                    onClick={() => setAiAssistAction('expand')}
+                    onClick={() => handleQuickAction('expand')}
+                    disabled={generatingAI}
+                    title="Add more details and examples"
                   >
                     Expand
                   </button>
                   <button
-                    className={`ai-action-btn ${aiAssistAction === 'grammar' ? 'active' : ''}`}
-                    onClick={() => setAiAssistAction('grammar')}
-                  >
-                    Fix Grammar
-                  </button>
-                  <button
                     className={`ai-action-btn ${aiAssistAction === 'summarize' ? 'active' : ''}`}
-                    onClick={() => setAiAssistAction('summarize')}
+                    onClick={() => handleQuickAction('summarize')}
+                    disabled={generatingAI}
+                    title="Create a concise summary"
                   >
                     Summarize
                   </button>
                   <button
+                    className={`ai-action-btn ${aiAssistAction === 'continue' ? 'active' : ''}`}
+                    onClick={() => handleQuickAction('continue')}
+                    disabled={generatingAI}
+                    title="Continue writing from where text ends"
+                  >
+                    Continue Writing
+                  </button>
+                </div>
+              </div>
+
+              <div className="ai-assistant-divider"></div>
+
+              <div className="ai-assistant-section">
+                <label>Advanced Actions:</label>
+                <div className="ai-action-buttons">
+                  <button
+                    className={`ai-action-btn ${aiAssistAction === 'generate' ? 'active' : ''}`}
+                    onClick={() => setAiAssistAction('generate')}
+                    disabled={generatingAI}
+                  >
+                    <Sparkles size={14} style={{ marginRight: '4px', display: 'inline' }} />
+                    Generate Content
+                  </button>
+                  <button
                     className={`ai-action-btn ${aiAssistAction === 'tone_change' ? 'active' : ''}`}
                     onClick={() => setAiAssistAction('tone_change')}
+                    disabled={generatingAI}
                   >
                     Change Tone
                   </button>
                   <button
                     className={`ai-action-btn ${aiAssistAction === 'code' ? 'active' : ''}`}
                     onClick={() => setAiAssistAction('code')}
+                    disabled={generatingAI}
                   >
                     <Code size={14} style={{ marginRight: '4px', display: 'inline' }} />
                     Code
@@ -3174,6 +3234,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                   <button
                     className={`ai-action-btn explain-only ${aiAssistAction === 'explain_only' ? 'active' : ''}`}
                     onClick={() => setAiAssistAction('explain_only')}
+                    disabled={generatingAI}
                     title="Get explanation without modifying text"
                   >
                     <Eye size={14} style={{ marginRight: '4px', display: 'inline' }} />
@@ -3264,19 +3325,22 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 >
                   Cancel
                 </button>
-                <button
-                  className="ai-btn-generate"
-                  onClick={aiWritingAssist}
-                  disabled={generatingAI || processingVoice}
-                >
-                  {generatingAI ? (
-                    <>
-                      <span className="spinner"></span> Processing...
-                    </>
-                  ) : (
-                    <>Process Text</>
-                  )}
-                </button>
+                {/* Only show Process button for advanced actions that need configuration */}
+                {(aiAssistAction === 'generate' || aiAssistAction === 'tone_change' || aiAssistAction === 'code' || aiAssistAction === 'explain_only') && (
+                  <button
+                    className="ai-btn-generate"
+                    onClick={() => aiWritingAssist()}
+                    disabled={generatingAI || processingVoice}
+                  >
+                    {generatingAI ? (
+                      <>
+                        <span className="spinner"></span> Processing...
+                      </>
+                    ) : (
+                      <>Process Text</>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -3575,6 +3639,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
             onSelectTemplate={handleTemplateSelect}
             onClose={() => setShowTemplates(false)}
             userName={userName}
+            hasExistingContent={noteContent && noteContent.trim().length > 0}
           />
         </>
       )}
