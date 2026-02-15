@@ -211,23 +211,26 @@ const FriendsDashboard = () => {
 
   return (
     <div className="fd-container">
-      {/* Standardized Header */}
-      <header className="hub-header">
-        <div className="hub-header-left">
+      {/* Header - Matching QuizBattle Style */}
+      <header className="qb-header">
+        <div className="qb-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             <Menu size={20} />
           </button>
-          <h1 className="hub-logo" onClick={() => navigate('/search-hub')}>
-            <div className="hub-logo-img" />
+          <h1 className="qb-logo" onClick={() => navigate('/search-hub')}>
+            <div className="qb-logo-img" />
             cerbyl
           </h1>
-          <div className="hub-header-divider"></div>
-          <p className="hub-header-subtitle">FRIENDS</p>
+          <div className="qb-header-divider"></div>
+          <span className="qb-subtitle">FRIENDS</span>
         </div>
-        <div className="hub-header-right">
-          <button className="hub-nav-btn hub-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
+        <div className="qb-header-right">
+          <button className="qb-nav-btn" onClick={() => navigate('/social')}>
+            <Users size={16} />
+            Social
+          </button>
+          <button className="qb-nav-btn" onClick={() => navigate('/dashboard')}>
+            Dashboard
           </button>
         </div>
       </header>
@@ -253,7 +256,7 @@ const FriendsDashboard = () => {
             </button>
           </nav>
           <button className="fd-sidebar-back" onClick={() => navigate('/social')}>
-            <ArrowLeft size={18} /><span>Back to Social</span>
+            <span>👥 Back to Social</span>
           </button>
         </div>
 
@@ -286,17 +289,25 @@ const FriendsDashboard = () => {
             {/* Find Friends View */}
             {activeView === 'find-friends' && (
               <>
-                {isSearching && <div className="fd-loading"><div className="fd-spinner"></div><p>Searching...</p></div>}
                 <div className="fd-users-list">
                   {searchQuery.length >= 2 ? (
-                    searchResults.length > 0 ? searchResults.map(user => renderUserCard(user))
-                    : !isSearching && <div className="fd-empty-state"><p>No users found matching "{searchQuery}"</p></div>
+                    isSearching ? (
+                      <div className="fd-loading"><div className="fd-spinner"></div><p>Searching...</p></div>
+                    ) : searchResults.length > 0 ? (
+                      searchResults.map(user => renderUserCard(user))
+                    ) : (
+                      <div className="fd-empty-state"><p>No users found matching "{searchQuery}"</p></div>
+                    )
                   ) : (
                     <>
                       <h3 className="fd-section-title">All Users</h3>
-                      {allUsers.length > 0 ? allUsers.map(user => renderUserCard(user))
-                       : loading ? <div className="fd-loading"><div className="fd-spinner"></div></div>
-                       : <div className="fd-empty-state"><p>No users available</p></div>}
+                      {loading ? (
+                        <div className="fd-loading"><div className="fd-spinner"></div><p>Loading users...</p></div>
+                      ) : allUsers.length > 0 ? (
+                        allUsers.map(user => renderUserCard(user))
+                      ) : (
+                        <div className="fd-empty-state"><p>No users available</p></div>
+                      )}
                     </>
                   )}
                 </div>

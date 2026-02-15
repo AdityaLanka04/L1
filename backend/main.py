@@ -11974,6 +11974,21 @@ Requirements:
         
         questions_data = json.loads(content)
         
+        # Shuffle options to prevent pattern recognition (fixes longest answer bug)
+        import random
+        for q_data in questions_data:
+            options = q_data["options"]
+            correct_index = q_data["correct_answer"]
+            correct_answer_text = options[correct_index]
+            
+            # Shuffle the options
+            random.shuffle(options)
+            
+            # Find new index of correct answer after shuffle
+            new_correct_index = options.index(correct_answer_text)
+            q_data["options"] = options
+            q_data["correct_answer"] = new_correct_index
+        
         # Save questions to database
         saved_questions = []
         for q_data in questions_data:
@@ -12179,6 +12194,21 @@ Requirements:
         content = content.strip()
         
         questions_data = json.loads(content)
+        
+        # Shuffle options to prevent pattern recognition (fixes longest answer bug)
+        import random
+        for q_data in questions_data:
+            options = q_data["options"]
+            correct_index = q_data["correct_answer"]
+            correct_answer_text = options[correct_index]
+            
+            # Shuffle the options
+            random.shuffle(options)
+            
+            # Find new index of correct answer after shuffle
+            new_correct_index = options.index(correct_answer_text)
+            q_data["options"] = options
+            q_data["correct_answer"] = new_correct_index
         
         # Save questions to database
         saved_questions = []

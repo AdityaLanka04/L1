@@ -1,8 +1,8 @@
-/* ==================== FORCE BOXY DESIGN ==================== */
+/* ==================== FORCE CONSISTENT BORDER RADIUS ==================== */
 .learning-playlists-container *,
 .learning-playlists-container *::before,
 .learning-playlists-container *::after {
-  border-radius: 0 !important;
+  border-radius: inherit !important;
 }
 
 .learning-playlists-container {
@@ -56,7 +56,7 @@
   background: var(--accent);
   color: var(--primary-contrast);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 8px;
   font-weight: 700;
   font-size: 11px;
   text-transform: uppercase;
@@ -117,7 +117,7 @@
   padding: 10px 15px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .search-box svg {
@@ -142,7 +142,7 @@
   padding: 10px 15px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 14px;
   color: var(--text-primary);
   cursor: pointer;
@@ -187,7 +187,7 @@
 .create-playlist-card {
   background: var(--panel);
   border: 2px dashed var(--border);
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 40px 20px;
   display: flex;
   flex-direction: column;
@@ -243,7 +243,7 @@
 .playlist-card {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -341,14 +341,14 @@
   position: relative;
   height: 8px;
   background: color-mix(in srgb, var(--accent) 10%, var(--panel) 90%);
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
 }
 
 .playlist-progress-fill {
   height: 100%;
   background: var(--accent);
-  border-radius: 10px;
+  border-radius: 8px;
   transition: width 0.3s ease;
 }
 
@@ -457,7 +457,7 @@
 .playlist-detail {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 30px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
@@ -540,7 +540,7 @@
   gap: 8px;
   padding: 12px 24px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
@@ -627,7 +627,7 @@
 .progress-bar-large {
   height: 12px;
   background: color-mix(in srgb, var(--accent) 10%, var(--panel) 90%);
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
   margin-bottom: 10px;
 }
@@ -635,7 +635,7 @@
 .progress-fill-large {
   height: 100%;
   background: var(--accent);
-  border-radius: 10px;
+  border-radius: 8px;
   transition: width 0.3s ease;
 }
 

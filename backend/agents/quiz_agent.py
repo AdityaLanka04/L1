@@ -472,11 +472,48 @@ Return ONLY a valid JSON object:
     
     def _clean_question(self, question: Dict) -> Dict:
         """Clean and normalize question data"""
+        import random
+        
         correct = str(question.get("correct_answer", "A")).strip().upper()
         if correct and correct[0] in ["A", "B", "C", "D"]:
             correct = correct[0]
         else:
             correct = "A"
+        
+        # Get options and shuffle them to prevent pattern recognition
+        options = question.get("options", [])
+        if options and len(options) >= 4:
+            # Convert letter answer to index
+            correct_index = ord(correct) - ord('A')
+            
+            # Extract the correct answer text (remove letter prefix if present)
+            correct_text = options[correct_index]
+            if correct_text.startswith(correct + ')') or correct_text.startswith(correct + '.'):
+                correct_text = correct_text[2:].strip()
+            
+            # Clean all options (remove letter prefixes)
+            cleaned_options = []
+            for opt in options:
+                if opt and len(opt) > 2 and opt[1] in [')', '.']:
+                    cleaned_options.append(opt[2:].strip())
+                else:
+                    cleaned_options.append(opt.strip() if opt else "")
+            
+            # Shuffle the options
+            random.shuffle(cleaned_options)
+            
+            # Find new index of correct answer
+            try:
+                new_correct_index = cleaned_options.index(correct_text)
+                new_correct_letter = chr(ord('A') + new_correct_index)
+            except ValueError:
+                # If we can't find it, keep original
+                new_correct_letter = correct
+                cleaned_options = [opt.strip() if opt else "" for opt in options]
+            
+            # Re-add letter prefixes
+            options = [f"{chr(ord('A') + i)}) {opt}" for i, opt in enumerate(cleaned_options)]
+            correct = new_correct_letter
         
         return {
             "question_text": question.get("question_text", "").strip(),
@@ -484,7 +521,7 @@ Return ONLY a valid JSON object:
             "difficulty": question.get("difficulty", "medium").lower(),
             "topic": question.get("topic", "General"),
             "correct_answer": correct,
-            "options": question.get("options", []),
+            "options": options,
             "explanation": question.get("explanation", ""),
             "cognitive_level": question.get("cognitive_level", "understand"),
             "points": question.get("points", 1)

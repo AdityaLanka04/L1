@@ -83,8 +83,8 @@
   opacity: 0.6;
 }
 
-/* ==================== HEADER - MATCHING LEARNINGREVIEWHUB ==================== */
-.hub-header {
+/* ==================== HEADER - MATCHING QUIZBATTLE ==================== */
+.qb-header {
   position: sticky;
   top: 0;
   z-index: 100;
@@ -97,43 +97,30 @@
   max-height: 70px;
   background: color-mix(in srgb, var(--bg-primary) 80%, transparent);
   backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
   flex-shrink: 0;
 }
 
-/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
-[data-theme-mode="dark"] .hub-header {
+[data-theme-mode="dark"] .qb-header {
   background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
   border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
 }
 
-[data-theme-mode="light"] .hub-header {
+[data-theme-mode="light"] .qb-header {
   background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
 
-.hub-header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.hub-logo {
+.qb-header-left {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--accent);
-  letter-spacing: -1px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
 }
 
-.hub-logo-img {
+.qb-logo-img {
   height: 60px;
   width: 60px;
   -webkit-mask: url('../assets/logo.svg') no-repeat center;
@@ -144,70 +131,74 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.hub-logo:hover {
+.qb-logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: -1px;
+  margin: 0;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.qb-logo:hover {
   transform: translateY(-2px);
   text-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
-.hub-logo:hover .hub-logo-img {
+.qb-logo:hover .qb-logo-img {
   transform: scale(1.1);
 }
 
-.hub-header-divider {
+.qb-header-divider {
   width: 1px;
   height: 20px;
   background: color-mix(in srgb, var(--accent) 30%, transparent);
+  margin-left: 10px;
+  margin-right: 10px;
 }
 
-.hub-header-subtitle {
+.qb-subtitle {
   font-size: 11px;
   font-weight: 600;
   color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
   letter-spacing: 2px;
   text-transform: uppercase;
+  margin-left: 6px;
 }
 
-.hub-header-right {
+.qb-header-right {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.hub-nav-btn {
-  padding: 0 16px;
-  height: 38px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 19px;
-  color: var(--text-primary);
-  font-size: 11px;
-  font-weight: 600;
-  font-family: 'Inter', sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+.qb-nav-btn {
   display: flex;
   align-items: center;
   gap: 6px;
+  padding: 10px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  border-radius: 0;
 }
 
-.hub-nav-btn:hover {
-  background: var(--panel);
+.qb-nav-btn:hover {
+  background: var(--bg-bottom);
   border-color: var(--accent);
-}
-
-.hub-nav-btn-ghost {
-  background: transparent;
-  border: none;
-  color: var(--text-primary);
-  opacity: 0.7;
-}
-
-.hub-nav-btn-ghost:hover {
-  opacity: 1;
   color: var(--accent);
-  background: transparent;
+  transform: translateY(-2px);
 }
 
 /* ==================== BENTO GRID - PREMIUM LAYOUT ==================== */
