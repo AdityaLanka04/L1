@@ -29,32 +29,35 @@ const QuizHub = () => {
       </div>
 
       {/* Header */}
-      <header className="qh-header">
-        <div className="qh-header-left">
+      <header className="gm-header">
+        <div className="gm-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             <Menu size={20} />
           </button>
-          <h1 className="qh-logo" onClick={() => navigate('/search-hub')}>
-            <div className="qh-logo-img" />
+          <h1 className="gm-logo" onClick={() => navigate('/search-hub')}>
+            <div className="gm-logo-img" />
             cerbyl
           </h1>
-          <div className="qh-header-divider"></div>
-          <span className="qh-subtitle">QUIZ HUB</span>
+          <div className="gm-header-divider"></div>
+          <span className="gm-subtitle">QUIZ HUB</span>
         </div>
-        <nav className="qh-header-right">
+        <nav className="gm-header-right">
           <button 
             onClick={(e) => {
               e.stopPropagation();
               setShowImportExport(true);
             }} 
-            className="qh-nav-btn qh-nav-btn-accent"
+            className="gm-nav-btn gm-nav-btn-accent"
           >
             <Zap size={16} />
             <span>Convert</span>
           </button>
-          <button className="qh-nav-btn qh-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/social')}>
+            <Users size={16} />
+            Social
+          </button>
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            Dashboard
           </button>
         </nav>
       </header>

@@ -433,27 +433,27 @@ const Social = () => {
 
   return (
     <div className="hub-page">
-      <header className="qb-header">
-        <div className="qb-header-left">
+      <header className="gm-header">
+        <div className="gm-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             <Menu size={20} />
           </button>
-          <h1 className="qb-logo" onClick={() => navigate('/search-hub')}>
-            <div className="qb-logo-img" />
+          <h1 className="gm-logo" onClick={() => navigate('/search-hub')}>
+            <div className="gm-logo-img" />
             cerbyl
           </h1>
-          <div className="qb-header-divider"></div>
-          <span className="qb-subtitle">SOCIAL HUB</span>
+          <div className="gm-header-divider"></div>
+          <span className="gm-subtitle">SOCIAL HUB</span>
         </div>
-        <div className="qb-header-right">
-          <button className="qb-nav-btn" onClick={() => navigate('/quiz-battle')}>
+        <nav className="gm-header-right">
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/quiz-battle')}>
             <Gamepad2 size={16} />
             Quiz Battles
           </button>
-          <button className="qb-nav-btn" onClick={() => navigate('/dashboard')}>
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
             Dashboard
           </button>
-        </div>
+        </nav>
       </header>
 
       {activeTab === 'hub' && (

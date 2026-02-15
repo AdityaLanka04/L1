@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Target, Flame, TrendingUp, Heart, Award, Zap, Star, ChevronRight , Menu} from 'lucide-react';
+import { Trophy, Target, Flame, TrendingUp, Heart, Award, Zap, Star, ChevronRight, Menu, Users } from 'lucide-react';
 import './ActivityFeed.css';
 import { API_URL } from '../config';
 
@@ -80,24 +80,27 @@ const ActivityFeed = () => {
 
   return (
     <div className="feed-page">
-      <header className="hub-header">
-        <div className="hub-header-left">
+      <header className="gm-header">
+        <div className="gm-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             <Menu size={20} />
           </button>
-          <h1 className="hub-logo" onClick={() => navigate('/search-hub')}>
-            <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+          <h1 className="gm-logo" onClick={() => navigate('/search-hub')}>
+            <div className="gm-logo-img" />
             cerbyl
           </h1>
-          <div className="hub-header-divider"></div>
-          <p className="hub-header-subtitle">ACTIVITY FEED</p>
+          <div className="gm-header-divider"></div>
+          <span className="gm-subtitle">ACTIVITY FEED</span>
         </div>
-        <div className="hub-header-right">
-          <button className="hub-nav-btn hub-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
+        <nav className="gm-header-right">
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/social')}>
+            <Users size={16} />
+            Social
           </button>
-        </div>
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            Dashboard
+          </button>
+        </nav>
       </header>
 
       <div className="feed-container">

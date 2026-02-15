@@ -143,22 +143,27 @@ const Challenges = () => {
 
   return (
     <div className="challenges-page">
-      <header className="challenges-header">
-        <div className="challenges-header-left">
+      <header className="gm-header">
+        <div className="gm-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             <Menu size={20} />
           </button>
-          <h1 className="challenges-logo" onClick={() => navigate('/search-hub')}>
-            <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+          <h1 className="gm-logo" onClick={() => navigate('/search-hub')}>
+            <div className="gm-logo-img" />
             cerbyl
           </h1>
-          <span className="challenges-subtitle">CHALLENGES</span>
+          <div className="gm-header-divider"></div>
+          <span className="gm-subtitle">CHALLENGES</span>
         </div>
-        <div className="challenges-header-right">
-          <button className="challenges-nav-btn" onClick={() => navigate('/social')}>Back to Social</button>
-          <button className="challenges-nav-btn" onClick={() => navigate('/dashboard')}>
-                  Dashboard</button>
-        </div>
+        <nav className="gm-header-right">
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/social')}>
+            <Users size={16} />
+            Social
+          </button>
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            Dashboard
+          </button>
+        </nav>
       </header>
 
       <div className="challenges-container">

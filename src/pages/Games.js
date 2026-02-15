@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight , Menu} from 'lucide-react';
+import { ChevronRight, Menu, Users } from 'lucide-react';
 import './Games.css';
 import { API_URL } from '../config';
 
@@ -330,9 +330,12 @@ const Games = () => {
           <span className="gm-subtitle">GAMES & CHALLENGES</span>
         </div>
         <nav className="gm-header-right">
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/social')}>
+            <Users size={16} />
+            Social
+          </button>
           <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
-            <span>Dashboard</span>
-            <ChevronRight size={14} />
+            Dashboard
           </button>
         </nav>
       </header>

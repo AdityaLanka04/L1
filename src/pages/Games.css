@@ -128,8 +128,8 @@
 }
 
 .gm-nav-btn svg {
-  width: 14px !important;
-  height: 14px !important;
+  width: 16px !important;
+  height: 16px !important;
   stroke: currentColor !important;
   fill: none !important;
 }
@@ -144,6 +144,26 @@
 .gm-nav-btn-ghost:hover {
   opacity: 1;
   color: var(--accent);
+}
+
+.gm-nav-btn-accent {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black));
+  color: var(--bg-primary);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
+  opacity: 1;
+}
+
+[data-theme-mode="light"] .gm-nav-btn-accent {
+  color: white;
+}
+
+[data-theme-mode="dark"] .gm-nav-btn-accent {
+  color: var(--bg-primary);
+}
+
+.gm-nav-btn-accent:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 [data-theme-mode="dark"] .gm-header {

@@ -114,6 +114,9 @@
 }
 
 .challenges-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   background: var(--panel);
   border: 1px solid var(--border);
   color: var(--text-secondary);

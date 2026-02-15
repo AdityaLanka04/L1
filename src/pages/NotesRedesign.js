@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import ReactQuill, { Quill } from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import "./NotesRedesign.css";
-import "./NotesRedesignConvert.css";
 import "./NotesRedesignSmartFolders.css";
 import "./NotesRedesignChatImport.css";
 import CustomPopup from "./CustomPopup";

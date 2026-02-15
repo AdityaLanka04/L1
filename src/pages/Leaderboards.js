@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Clock, Target, TrendingUp, Medal, Crown, Award , Menu} from 'lucide-react';
+import { Trophy, Clock, Target, TrendingUp, Medal, Crown, Award, Menu, Users } from 'lucide-react';
 import './Leaderboards.css';
 import { API_URL } from '../config';
 const Leaderboards = () => {
@@ -76,22 +76,27 @@ const Leaderboards = () => {
 
   return (
     <div className="leaderboard-page">
-      <header className="leaderboard-header">
-        <div className="leaderboard-header-left">
+      <header className="gm-header">
+        <div className="gm-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             <Menu size={20} />
           </button>
-          <h1 className="leaderboard-logo" onClick={() => navigate('/search-hub')}>
-            <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+          <h1 className="gm-logo" onClick={() => navigate('/search-hub')}>
+            <div className="gm-logo-img" />
             cerbyl
           </h1>
-          <span className="leaderboard-subtitle">LEADERBOARDS</span>
+          <div className="gm-header-divider"></div>
+          <span className="gm-subtitle">LEADERBOARDS</span>
         </div>
-        <div className="leaderboard-header-right">
-          <button className="leaderboard-nav-btn" onClick={() => navigate('/social')}>Back to Social</button>
-          <button className="leaderboard-nav-btn" onClick={() => navigate('/dashboard')}>
-                  Dashboard</button>
-        </div>
+        <nav className="gm-header-right">
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/social')}>
+            <Users size={16} />
+            Social
+          </button>
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            Dashboard
+          </button>
+        </nav>
       </header>
 
       <div className="leaderboard-container">

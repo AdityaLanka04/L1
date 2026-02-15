@@ -122,25 +122,27 @@ const SharedContent = () => {
 
   return (
     <div className="shared-content-page">
-      <header className="shared-header">
-        <div className="shared-header-left">
+      <header className="gm-header">
+        <div className="gm-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             <Menu size={20} />
           </button>
-          <h1 className="shared-logo" onClick={() => navigate('/search-hub')}>
-            <img src="/logo.svg" alt="" style={{ height: '24px', marginRight: '8px', filter: 'brightness(0) saturate(100%) invert(77%) sepia(48%) saturate(456%) hue-rotate(359deg) brightness(95%) contrast(89%)' }} />
+          <h1 className="gm-logo" onClick={() => navigate('/search-hub')}>
+            <div className="gm-logo-img" />
             cerbyl
           </h1>
-          <span className="shared-subtitle">SHARED WITH ME</span>
+          <div className="gm-header-divider"></div>
+          <span className="gm-subtitle">SHARED WITH ME</span>
         </div>
-        <div className="shared-header-right">
-          <button className="shared-nav-btn" onClick={() => navigate('/social')}>
-            Social Hub
+        <nav className="gm-header-right">
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/social')}>
+            <Users size={16} />
+            Social
           </button>
-          <button className="shared-nav-btn" onClick={() => navigate('/dashboard')}>
-                  Dashboard
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
+            Dashboard
           </button>
-        </div>
+        </nav>
       </header>
 
       <div className="shared-container">

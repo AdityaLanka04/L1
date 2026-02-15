@@ -211,28 +211,28 @@ const FriendsDashboard = () => {
 
   return (
     <div className="fd-container">
-      {/* Header - Matching QuizBattle Style */}
-      <header className="qb-header">
-        <div className="qb-header-left">
+      {/* Header - Matching Games */}
+      <header className="gm-header">
+        <div className="gm-header-left">
           <button className="nav-menu-btn" onClick={() => window.openGlobalNav && window.openGlobalNav()} aria-label="Open navigation">
             <Menu size={20} />
           </button>
-          <h1 className="qb-logo" onClick={() => navigate('/search-hub')}>
-            <div className="qb-logo-img" />
+          <h1 className="gm-logo" onClick={() => navigate('/search-hub')}>
+            <div className="gm-logo-img" />
             cerbyl
           </h1>
-          <div className="qb-header-divider"></div>
-          <span className="qb-subtitle">FRIENDS</span>
+          <div className="gm-header-divider"></div>
+          <span className="gm-subtitle">FRIENDS</span>
         </div>
-        <div className="qb-header-right">
-          <button className="qb-nav-btn" onClick={() => navigate('/social')}>
+        <nav className="gm-header-right">
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/social')}>
             <Users size={16} />
             Social
           </button>
-          <button className="qb-nav-btn" onClick={() => navigate('/dashboard')}>
+          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
             Dashboard
           </button>
-        </div>
+        </nav>
       </header>
 
       <div className="fd-layout">
@@ -255,9 +255,6 @@ const FriendsDashboard = () => {
                 <span className="fd-badge">{friendRequests.received.length + friendRequests.sent.length}</span>}
             </button>
           </nav>
-          <button className="fd-sidebar-back" onClick={() => navigate('/social')}>
-            <span>👥 Back to Social</span>
-          </button>
         </div>
 
 
