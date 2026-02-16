@@ -16,7 +16,7 @@ import {
   MoreVertical, Archive, RefreshCw, Save, Clock,
   AlignLeft, Bold, Italic, Underline, 
   List, ListOrdered, Link2, Image, Code,
-  ArrowLeft, Tag, Layout, Filter, Palette, Command, Zap
+  ArrowLeft, Layout, Filter, Palette, Command, Zap
 } from 'lucide-react';
 import { API_URL } from '../config';
 import gamificationService from '../services/gamificationService';
@@ -232,11 +232,9 @@ const QuickSwitcher = null;
 const FormattingToolbar = ({ onAIAssist, showAI, onInsertBlock }) => null;
 const SlashMenu = ({ isOpen, position, onSelect, onClose }) => null;
 const BacklinksPanel = ({ backlinks, onNoteClick }) => null;
-const TagsPanel = ({ tags, selectedTag, onTagSelect, onClose }) => null;
 
 // Stub hooks
 const useQuickSwitcher = (notes, folders, selectNote) => ({ QuickSwitcherComponent: null });
-const useTags = (notes) => ({ allTags: [] });
 const useBacklinks = (selectedNote, notes) => [];
 const useSlashCommands = (quillRef) => ({ 
   showSlashMenu: false, 
@@ -247,8 +245,6 @@ const useSlashCommands = (quillRef) => ({
 
 // Utility functions
 const parsePageLinks = (content) => [];
-const parseTags = (content) => [];
-const filterNotesByTag = (notes, tag) => notes;
 
 // Remove problematic imports and register them conditionally
 let QuillTableUI;
@@ -340,8 +336,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
   ];
   
   // Enhanced features state
-  const [showTagsPanel, setShowTagsPanel] = useState(false);
-  const [selectedTagFilter, setSelectedTagFilter] = useState(null);
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState(null);
@@ -364,7 +358,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [pageProperties, setPageProperties] = useState([
     { id: '1', name: 'Created', type: 'date', value: new Date().toISOString().split('T')[0] },
     { id: '2', name: 'Status', type: 'text', value: 'Draft' },
-    { id: '3', name: 'Tags', type: 'tags', value: '' },
   ]);
   const [showPageProperties, setShowPageProperties] = useState(false);
   const [editorDarkMode, setEditorDarkMode] = useState(false);
@@ -1359,17 +1352,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
   };
   
   // Enhanced features handlers
-  const handleTagSelect = (tag) => {
-    setSelectedTagFilter(tag);
-    setShowFavorites(false);
-    setShowTrash(false);
-    setSelectedFolder(null);
-  };
-
-  const handleClearTagFilter = () => {
-    setSelectedTagFilter(null);
-  };
-
   // Keyboard shortcuts handlers
   const keyboardHandlers = {
     onSave: () => selectedNote && autoSave(),
@@ -1478,7 +1460,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
 
   // Enhanced features hooks (must be after selectNote is defined)
   const { QuickSwitcherComponent } = useQuickSwitcher(notes, folders, selectNote);
-  const { allTags } = useTags(notes);
   const backlinks = useBacklinks(selectedNote, notes);
   const { 
     showSlashMenu, 
@@ -1640,23 +1621,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
       return () => editor.root.removeEventListener('click', handlePageLinkClick);
     }
   }, [notes, quillRef]);
-
-  // Handle tag clicks
-  useEffect(() => {
-    const handleTagClick = (e) => {
-      if (e.target.classList.contains('tag')) {
-        const tag = e.target.dataset.tag;
-        handleTagSelect(tag);
-        setShowTagsPanel(true);
-      }
-    };
-
-    const editor = quillRef.current?.getEditor();
-    if (editor && editor.root) {
-      editor.root.addEventListener('click', handleTagClick);
-      return () => editor.root.removeEventListener('click', handleTagClick);
-    }
-  }, [quillRef]);
 
   // Handle text selection for AI assistant in block editor
   useEffect(() => {
@@ -2389,11 +2353,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
       filtered = filtered.filter(n => !n.folder_id);
     }
 
-    // Tag filtering
-    if (selectedTagFilter) {
-      filtered = filterNotesByTag(filtered, selectedTagFilter);
-    }
-
     return filtered;
   };
 
@@ -2656,21 +2615,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     >
                       <Layout size={16} />
                       <span>Templates</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Tags Section */}
-                <div className="tool-section">
-                  <label className="tool-section-label">ORGANIZATION</label>
-                  <div className="tool-buttons-group">
-                    <button 
-                      onClick={() => setShowTagsPanel(!showTagsPanel)}
-                      className={`tool-panel-btn ${showTagsPanel ? 'active' : ''}`}
-                      title="Toggle tags panel"
-                    >
-                      <Tag size={16} />
-                      <span>Tags</span>
                     </button>
                   </div>
                 </div>
@@ -3652,16 +3596,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
         title={popup.title}
         message={popup.message}
       />
-
-      {/* Tags Panel */}
-      {showTagsPanel && !isSharedContent && (
-        <TagsPanel
-          tags={allTags}
-          selectedTag={selectedTagFilter}
-          onTagSelect={handleTagSelect}
-          onClose={() => setShowTagsPanel(false)}
-        />
-      )}
 
       {/* Advanced Search */}
       {showAdvancedSearch && !isSharedContent && (

@@ -607,7 +607,7 @@ const MyNotes = () => {
                       <div className="nt-favorite-badge"><Star size={14} /></div>
                     )}
                     <div className="nt-note-card-cover">
-                      <FileText className="nt-note-cover-icon" size={48} />
+                      <div className="nt-note-cover-preview" dangerouslySetInnerHTML={{ __html: note.content || '<p>Empty note</p>' }} />
                     </div>
                     <div className="nt-note-card-content">
                       <div className="nt-note-card-header">
@@ -641,7 +641,6 @@ const MyNotes = () => {
                           )}
                         </div>
                       </div>
-                      <div className="nt-note-preview">{extractPreview(note.content)}</div>
                       <div className="nt-note-footer">
                         <span className="nt-note-date">
                           <Clock size={12} />

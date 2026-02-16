@@ -4672,3 +4672,256 @@ h1.note-title ::-moz-selection,
 .notes-redesign .iem-body::-webkit-scrollbar-thumb:hover {
   background: var(--iem-accent);
 }
+
+
+/* ==================== TEMPLATE MODAL STYLING FOR NOTES-REDESIGN ==================== */
+/* Overlay for template modal */
+.notes-redesign .ai-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(8px) !important;
+  z-index: 10000 !important;
+}
+
+/* Template modal container in NotesRedesign context */
+.notes-redesign .tpl-modal {
+  z-index: 10001 !important;
+}
+
+/* Ensure proper colors in dark mode */
+[data-theme-mode="dark"] .notes-redesign .tpl-modal {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-header {
+  background: var(--bg-secondary) !important;
+  border-bottom-color: var(--border) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-header h2 {
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-close-btn {
+  background: var(--hover-bg) !important;
+  border-color: var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-close-btn:hover {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: var(--bg-primary) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-tabs {
+  background: var(--hover-bg) !important;
+  border-bottom-color: var(--border) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-tab {
+  background: transparent !important;
+  border-color: var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-tab:hover {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-tab.active {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #000000 !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-content {
+  background: var(--bg-secondary) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-card {
+  background: var(--hover-bg) !important;
+  border-color: var(--border) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-card:hover {
+  border-color: var(--accent) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-card h3 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-card p {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-card-icon {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
+  color: var(--bg-primary) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-form {
+  background: var(--hover-bg) !important;
+  border-color: var(--border) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-form h3 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-form-group label {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-input,
+[data-theme-mode="dark"] .notes-redesign .tpl-textarea {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-input:focus,
+[data-theme-mode="dark"] .notes-redesign .tpl-textarea:focus {
+  border-color: var(--accent) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-btn-secondary {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-btn-secondary:hover {
+  background: var(--hover-bg) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-btn-primary {
+  background: var(--accent) !important;
+  color: #000000 !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-saved-item {
+  background: var(--hover-bg) !important;
+  border-color: var(--border) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-saved-item:hover {
+  border-color: var(--accent) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-saved-info h4 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-saved-info p {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-action-btn {
+  background: transparent !important;
+  border-color: var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-action-btn:hover {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #000000 !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-hint {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .tpl-hint strong {
+  color: var(--accent) !important;
+}
+
+/* Light mode overrides */
+[data-theme-mode="light"] .notes-redesign .tpl-modal {
+  background: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .tpl-header {
+  background: #ffffff !important;
+  border-bottom-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .tpl-header h2 {
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .tpl-close-btn {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  color: rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .tpl-close-btn:hover {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #ffffff !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .tpl-tabs {
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-bottom-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .tpl-tab {
+  background: transparent !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  color: rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .tpl-tab:hover {
+  background: #ffffff !important;
+  color: rgba(0, 0, 0, 0.9) !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .tpl-tab.active {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #ffffff !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .tpl-content {
+  background: #ffffff !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .tpl-card {
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .tpl-card:hover {
+  border-color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .tpl-card h3 {
+  color: rgba(0, 0, 0, 0.9) !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .tpl-card p {
+  color: rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .tpl-card-icon {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
+  color: #ffffff !important;
+}
+
+[data-theme-mode="light"] .notes-redesign .tpl-btn-primary {
+  background: var(--accent) !important;
+  color: #ffffff !important;
+}

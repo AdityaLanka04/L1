@@ -833,9 +833,47 @@
     color-mix(in srgb, var(--nt-accent) 20%, transparent) 100%);
   border-bottom: 1px solid var(--nt-border-subtle);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: flex-start;
   overflow: hidden;
+  padding: 12px;
+}
+
+.nt-note-cover-preview {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--nt-text-muted);
+  opacity: 0.6;
+  pointer-events: none;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+}
+
+.nt-note-cover-preview * {
+  font-size: 10px !important;
+  line-height: 1.4 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: inherit !important;
+}
+
+.nt-note-cover-preview h1,
+.nt-note-cover-preview h2,
+.nt-note-cover-preview h3,
+.nt-note-cover-preview h4,
+.nt-note-cover-preview h5,
+.nt-note-cover-preview h6 {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+.nt-note-cover-preview img {
+  display: none;
 }
 
 .nt-note-card-cover::after {
@@ -858,8 +896,8 @@
   position: relative;
   z-index: 1;
   color: var(--nt-accent);
-  opacity: 0.3;
-  font-size: 48px;
+  opacity: 0.2;
+  font-size: 24px;
   transition: all 0.3s ease;
 }
 
@@ -939,6 +977,7 @@
   line-height: 1.5;
   display: -webkit-box;
   -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
   overflow: hidden;
   margin-bottom: 16px;
   text-transform: uppercase;
@@ -1598,4 +1637,257 @@
 .nt-nav-item.convert-btn:active {
   transform: translateY(0);
   box-shadow: 0 2px 8px color-mix(in srgb, var(--nt-accent) 30%, transparent);
+}
+
+
+/* ==================== TEMPLATE MODAL STYLING FOR MY-NOTES ==================== */
+/* Overlay for template modal */
+.my-notes-page-full .nt-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(8px) !important;
+  z-index: 9999 !important;
+}
+
+/* Template modal container in MyNotes context */
+.my-notes-page-full .tpl-modal {
+  z-index: 10000 !important;
+}
+
+/* Ensure proper colors in dark mode */
+[data-theme-mode="dark"] .my-notes-page-full .tpl-modal {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-header {
+  background: var(--bg-secondary) !important;
+  border-bottom-color: var(--border) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-header h2 {
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-close-btn {
+  background: var(--hover-bg) !important;
+  border-color: var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-close-btn:hover {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: var(--bg-primary) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-tabs {
+  background: var(--hover-bg) !important;
+  border-bottom-color: var(--border) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-tab {
+  background: transparent !important;
+  border-color: var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-tab:hover {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-tab.active {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #000000 !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-content {
+  background: var(--bg-secondary) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-card {
+  background: var(--hover-bg) !important;
+  border-color: var(--border) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-card:hover {
+  border-color: var(--accent) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-card h3 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-card p {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-card-icon {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
+  color: var(--bg-primary) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-form {
+  background: var(--hover-bg) !important;
+  border-color: var(--border) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-form h3 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-form-group label {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-input,
+[data-theme-mode="dark"] .my-notes-page-full .tpl-textarea {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-input:focus,
+[data-theme-mode="dark"] .my-notes-page-full .tpl-textarea:focus {
+  border-color: var(--accent) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-btn-secondary {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-btn-secondary:hover {
+  background: var(--hover-bg) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-btn-primary {
+  background: var(--accent) !important;
+  color: #000000 !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-saved-item {
+  background: var(--hover-bg) !important;
+  border-color: var(--border) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-saved-item:hover {
+  border-color: var(--accent) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-saved-info h4 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-saved-info p {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-action-btn {
+  background: transparent !important;
+  border-color: var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-action-btn:hover {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #000000 !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-hint {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme-mode="dark"] .my-notes-page-full .tpl-hint strong {
+  color: var(--accent) !important;
+}
+
+/* Light mode overrides */
+[data-theme-mode="light"] .my-notes-page-full .tpl-modal {
+  background: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-header {
+  background: #ffffff !important;
+  border-bottom-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-header h2 {
+  color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-close-btn {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  color: rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-close-btn:hover {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #ffffff !important;
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-tabs {
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-bottom-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-tab {
+  background: transparent !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  color: rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-tab:hover {
+  background: #ffffff !important;
+  color: rgba(0, 0, 0, 0.9) !important;
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-tab.active {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #ffffff !important;
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-content {
+  background: #ffffff !important;
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-card {
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-card:hover {
+  border-color: var(--accent) !important;
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-card h3 {
+  color: rgba(0, 0, 0, 0.9) !important;
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-card p {
+  color: rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-card-icon {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black)) !important;
+  color: #ffffff !important;
+}
+
+[data-theme-mode="light"] .my-notes-page-full .tpl-btn-primary {
+  background: var(--accent) !important;
+  color: #ffffff !important;
 }
