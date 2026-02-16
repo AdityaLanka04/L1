@@ -647,7 +647,7 @@ Provide a helpful, educational response. Be interactive and engaging. Reference 
             # Each conversation should get fresh responses based on context
             session_id = context.get("session_id", "unknown")
             user_id = context.get("user_id", "unknown")
-            conversation_id = f"chat_{session_id}_{user_id}"
+            conversation_id = f"chat_{user_id}_{session_id}"  # Put user_id FIRST for easier extraction
             
             response = self.ai_client.generate(
                 full_prompt, 
@@ -1480,24 +1480,7 @@ Keep it brief and include the link.
                 context=context,
                 reasoning_chain=state.get("reasoning_chain", [])
             )
-            
-            # Log token usage for this AI call
-            try:
-                from activity_logger import log_activity
-                user_id = state.get("user_id")
-                if user_id:
-                    # Estimate tokens: ~4 chars per token
-                    estimated_tokens = (len(user_input) + len(response)) // 4
-                    log_activity(
-                        user_id=int(user_id) if str(user_id).isdigit() else user_id,
-                        tool_name='ai_chat',
-                        action='ai_generate',
-                        tokens_used=estimated_tokens,
-                        metadata={'mode': mode.value if hasattr(mode, 'value') else str(mode)}
-                    )
-                    logger.info(f"📊 Logged {estimated_tokens} tokens for user {user_id}")
-            except Exception as log_error:
-                logger.debug(f"Could not log chat tokens: {log_error}")
+            # Token logging is handled automatically by ai_utils.py
         
         # === COMBINE FORMATTED WEAKNESS DATA WITH AI RESPONSE ===
         if formatted_weakness_data:

@@ -19,8 +19,10 @@ const AdminAnalytics = () => {
   }
   
   // Check if user is admin
+  const ADMIN_EMAILS = ['aditya.s.lanka@gmail.com', 'cerbyl@gmail.com', 'stupendous0512@gmail.com'];
+  
   useEffect(() => {
-    if (userEmail !== 'aditya.s.lanka@gmail.com') {
+    if (!ADMIN_EMAILS.includes(userEmail)) {
       navigate('/dashboard');
     }
   }, [userEmail, navigate]);
@@ -33,9 +35,17 @@ const AdminAnalytics = () => {
   const [dateRange, setDateRange] = useState(30);
 
   useEffect(() => {
-    if (userEmail === 'aditya.s.lanka@gmail.com') {
+    if (ADMIN_EMAILS.includes(userEmail)) {
       loadOverview();
       loadUsers();
+      
+      // Auto-refresh every 30 seconds
+      const interval = setInterval(() => {
+        loadOverview();
+        loadUsers();
+      }, 30000);
+      
+      return () => clearInterval(interval);
     }
   }, [dateRange, userEmail]);
 
@@ -162,7 +172,7 @@ const AdminAnalytics = () => {
     }
   };
 
-  if (userEmail !== 'aditya.s.lanka@gmail.com') {
+  if (!ADMIN_EMAILS.includes(userEmail)) {
     return null;
   }
 

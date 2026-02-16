@@ -14,9 +14,12 @@ DB_PATH = os.path.join(os.path.dirname(__file__), 'brainwave_tutor.db')
 
 def check_admin(x_user_id: Optional[str] = Header(None)):
     """Check if user is admin - accepts email or user_id"""
-    # Admin email check
-    if x_user_id == 'aditya.s.lanka@gmail.com':
+    # Admin emails
+    ADMIN_EMAILS = ['aditya.s.lanka@gmail.com', 'cerbyl@gmail.com', 'stupendous0512@gmail.com']
+    
+    if x_user_id in ADMIN_EMAILS:
         return x_user_id
+    
     # Admin user_id check (if numeric)
     try:
         if int(x_user_id) == 1:

@@ -15,6 +15,9 @@ venv/
 .venv/
 .env
 
+# Admin pages with sensitive data
+src/pages/AdminAnalytics.js
+
 # Misc
 .DS_Store
 start.log
