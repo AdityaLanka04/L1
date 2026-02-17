@@ -312,7 +312,7 @@ const AIChat = ({ sharedMode = false }) => {
       
       if (response.ok) {
         const foldersData = await response.json();
-        setFolders(foldersData || []);
+        setFolders(foldersData.folders || []);
       }
     } catch (error) {
           }

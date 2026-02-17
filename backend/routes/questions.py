@@ -1,0 +1,1020 @@
+import json
+import logging
+import re
+from datetime import datetime, timezone
+from typing import Any, Dict
+
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+
+import models
+from database import get_db
+from deps import call_ai, get_current_user, get_user_by_email, get_user_by_username, unified_ai
+from math_processor import process_math_in_response
+
+logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/api", tags=["questions"])
+
+
+def build_user_profile_dict(user, comprehensive_profile=None) -> Dict[str, Any]:
+    profile = {
+        "user_id": getattr(user, "id", "unknown"),
+        "first_name": getattr(user, "first_name", "Student"),
+        "last_name": getattr(user, "last_name", ""),
+        "field_of_study": getattr(user, "field_of_study", "General Studies"),
+        "learning_style": getattr(user, "learning_style", "Mixed"),
+        "school_university": getattr(user, "school_university", "Student"),
+        "age": getattr(user, "age", None),
+    }
+    if comprehensive_profile:
+        profile.update(
+            {
+                "difficulty_level": getattr(
+                    comprehensive_profile, "difficulty_level", "intermediate"
+                ),
+                "learning_pace": getattr(
+                    comprehensive_profile, "learning_pace", "moderate"
+                ),
+                "study_environment": getattr(
+                    comprehensive_profile, "study_environment", "quiet"
+                ),
+                "preferred_language": getattr(
+                    comprehensive_profile, "preferred_language", "english"
+                ),
+                "study_goals": getattr(comprehensive_profile, "study_goals", None),
+                "career_goals": getattr(comprehensive_profile, "career_goals", None),
+                "primary_archetype": getattr(
+                    comprehensive_profile, "primary_archetype", ""
+                ),
+                "secondary_archetype": getattr(
+                    comprehensive_profile, "secondary_archetype", ""
+                ),
+                "archetype_description": getattr(
+                    comprehensive_profile, "archetype_description", ""
+                ),
+            }
+        )
+    return profile
+
+
+@router.post("/generate_practice_questions")
+async def generate_practice_questions(
+    payload: dict = Body(...), db: Session = Depends(get_db)
+):
+    try:
+        user_id = payload.get("user_id")
+        topic = payload.get("topic") or payload.get("content", "")
+        question_count = payload.get("question_count", 10)
+        difficulty_mix = payload.get("difficulty_mix", {"easy": 3, "medium": 5, "hard": 2})
+        question_types = payload.get("question_types", ["multiple_choice"])
+        title = payload.get("title", f"Practice: {topic[:50]}")
+
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        if not topic:
+            raise HTTPException(status_code=400, detail="Topic or content required")
+
+        type_instructions = []
+        if "multiple_choice" in question_types:
+            type_instructions.append("multiple choice questions with 4 options")
+        if "true_false" in question_types:
+            type_instructions.append("true/false questions")
+        if "short_answer" in question_types:
+            type_instructions.append("short answer questions")
+
+        type_str = (
+            ", ".join(type_instructions) if type_instructions else "multiple choice questions"
+        )
+
+        prompt = f"""Generate {question_count} educational practice questions about: {topic}
+
+**DIFFICULTY DISTRIBUTION**:
+- Easy: {difficulty_mix.get('easy', 3)} questions (basic recall and understanding)
+- Medium: {difficulty_mix.get('medium', 5)} questions (application and analysis)
+- Hard: {difficulty_mix.get('hard', 2)} questions (synthesis and evaluation)
+
+**QUESTION TYPES**: Create {type_str}
+
+**REQUIREMENTS**:
+1. Questions should test understanding of key concepts
+2. Include detailed explanations for each answer
+3. Make questions clear and unambiguous
+4. Ensure correct answers are accurate
+5. For multiple choice, make distractors plausible but clearly wrong
+
+**OUTPUT FORMAT** (JSON array only, no markdown):
+[
+  {{
+    "question_text": "Clear, specific question?",
+    "question_type": "multiple_choice|true_false|short_answer",
+    "correct_answer": "Correct answer (for MC use A/B/C/D, for T/F use true/false)",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "difficulty": "easy|medium|hard",
+    "explanation": "Detailed explanation of why this answer is correct",
+    "topic": "{topic[:100]}"
+  }}
+]
+
+Generate exactly {question_count} high-quality questions now:"""
+
+        response_text = call_ai(prompt, max_tokens=4000, temperature=0.7)
+        response_text = process_math_in_response(response_text)
+
+        try:
+            response_text = re.sub(r'^```(?:json)?\n?', '', response_text, flags=re.MULTILINE)
+            response_text = re.sub(r'\n?```$', '', response_text, flags=re.MULTILINE)
+
+            json_match = re.search(r'\[.*\]', response_text, re.DOTALL)
+            if json_match:
+                questions_data = json.loads(json_match.group())
+            else:
+                raise ValueError("No JSON array found in response")
+        except Exception as e:
+            logger.error(f"Failed to parse questions: {str(e)}, response: {response_text[:500]}")
+            raise HTTPException(status_code=500, detail="Failed to parse AI response")
+
+        question_set = models.QuestionSet(
+            user_id=user.id,
+            title=title,
+            description=f"Practice questions for {topic[:100]}",
+            source_type="custom",
+            total_questions=len(questions_data),
+        )
+
+        db.add(question_set)
+        db.commit()
+        db.refresh(question_set)
+
+        for idx, q_data in enumerate(questions_data):
+            question = models.Question(
+                question_set_id=question_set.id,
+                question_text=q_data.get("question_text", ""),
+                question_type=q_data.get("question_type", "multiple_choice"),
+                correct_answer=str(q_data.get("correct_answer", "")),
+                options=json.dumps(q_data.get("options", [])) if q_data.get("options") else None,
+                difficulty=q_data.get("difficulty", "medium"),
+                explanation=q_data.get("explanation", ""),
+                topic=q_data.get("topic", topic[:100]),
+                order_index=idx,
+            )
+            db.add(question)
+
+        db.commit()
+        db.refresh(question_set)
+
+        questions = (
+            db.query(models.Question)
+            .filter(models.Question.question_set_id == question_set.id)
+            .order_by(models.Question.order_index)
+            .all()
+        )
+
+        logger.info(
+            f"Generated {len(questions)} practice questions for user {user.id} on topic: {topic[:50]}"
+        )
+
+        return {
+            "status": "success",
+            "question_set_id": question_set.id,
+            "id": question_set.id,
+            "title": question_set.title,
+            "question_count": len(questions),
+            "questions": [
+                {
+                    "id": q.id,
+                    "question_text": q.question_text,
+                    "question_type": q.question_type,
+                    "difficulty": q.difficulty,
+                    "correct_answer": q.correct_answer,
+                    "options": json.loads(q.options) if q.options else [],
+                    "explanation": q.explanation,
+                    "topic": q.topic,
+                }
+                for q in questions
+            ],
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating practice questions: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to generate questions: {str(e)}")
+
+
+@router.post("/generate_questions")
+async def generate_questions(
+    payload: dict = Body(...), db: Session = Depends(get_db)
+):
+    try:
+        user_id = payload.get("user_id")
+        chat_session_ids = payload.get("chat_session_ids", [])
+        slide_ids = payload.get("slide_ids", [])
+        question_count = payload.get("question_count", 10)
+        difficulty_mix = payload.get("difficulty_mix", {"easy": 3, "medium": 5, "hard": 2})
+
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        if not chat_session_ids and not slide_ids:
+            raise HTTPException(status_code=400, detail="At least one source required")
+
+        source_content = ""
+
+        if chat_session_ids:
+            sessions = (
+                db.query(models.ChatSession)
+                .filter(
+                    models.ChatSession.id.in_(chat_session_ids),
+                    models.ChatSession.user_id == user.id,
+                )
+                .all()
+            )
+
+            for session in sessions:
+                messages = (
+                    db.query(models.ChatMessage)
+                    .filter(models.ChatMessage.chat_session_id == session.id)
+                    .limit(20)
+                    .all()
+                )
+
+                for msg in messages:
+                    source_content += f"Q: {msg.user_message}\nA: {msg.ai_response}\n\n"
+
+        if slide_ids:
+            slides = (
+                db.query(models.UploadedSlide)
+                .filter(
+                    models.UploadedSlide.id.in_(slide_ids),
+                    models.UploadedSlide.user_id == user.id,
+                )
+                .all()
+            )
+
+            for slide in slides:
+                if slide.extracted_text:
+                    source_content += (
+                        f"\n\nSlide: {slide.original_filename}\n{slide.extracted_text[:2000]}\n"
+                    )
+
+        source_content = source_content[:6000]
+
+        prompt = f"""Generate {question_count} educational questions based on this content.
+
+**DIFFICULTY DISTRIBUTION**:
+- Easy: {difficulty_mix.get('easy', 3)} questions
+- Medium: {difficulty_mix.get('medium', 5)} questions
+- Hard: {difficulty_mix.get('hard', 2)} questions
+
+**QUESTION TYPES**: Mix of multiple choice, true/false, and short answer
+
+**SOURCE CONTENT**:
+{source_content}
+
+**OUTPUT FORMAT** (JSON array only):
+[
+  {{
+    "question_text": "Question here?",
+    "question_type": "multiple_choice|true_false|short_answer",
+    "correct_answer": "Correct answer",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "difficulty": "easy|medium|hard",
+    "explanation": "Why this is correct",
+    "topic": "Topic name"
+  }}
+]
+
+Generate exactly {question_count} questions:"""
+
+        response_text = call_ai(prompt, max_tokens=3000, temperature=0.7)
+        response_text = process_math_in_response(response_text)
+
+        try:
+            json_match = re.search(r'\[.*\]', response_text, re.DOTALL)
+            if json_match:
+                questions_data = json.loads(json_match.group())
+            else:
+                raise ValueError("No JSON array found")
+        except Exception as e:
+            logger.error(f"Failed to parse questions: {str(e)}")
+            questions_data = []
+
+        question_set = models.QuestionSet(
+            user_id=user.id,
+            title=f"Questions - {datetime.now().strftime('%Y-%m-%d')}",
+            description="Auto-generated questions",
+            source_type=(
+                "mixed"
+                if (chat_session_ids and slide_ids)
+                else ("chat" if chat_session_ids else "slides")
+            ),
+            source_chat_sessions=json.dumps(chat_session_ids) if chat_session_ids else None,
+            source_slides=json.dumps(slide_ids) if slide_ids else None,
+            question_count=len(questions_data),
+            easy_count=difficulty_mix.get("easy", 0),
+            medium_count=difficulty_mix.get("medium", 0),
+            hard_count=difficulty_mix.get("hard", 0),
+            status="active",
+        )
+
+        db.add(question_set)
+        db.commit()
+        db.refresh(question_set)
+
+        for idx, q_data in enumerate(questions_data):
+            question = models.Question(
+                question_set_id=question_set.id,
+                question_text=q_data.get("question_text", ""),
+                question_type=q_data.get("question_type", "multiple_choice"),
+                correct_answer=q_data.get("correct_answer", ""),
+                options=json.dumps(q_data.get("options", [])) if q_data.get("options") else None,
+                difficulty=q_data.get("difficulty", "medium"),
+                explanation=q_data.get("explanation", ""),
+                topic=q_data.get("topic", "General"),
+                order_index=idx,
+            )
+            db.add(question)
+
+        db.commit()
+        db.refresh(question_set)
+
+        questions = (
+            db.query(models.Question)
+            .filter(models.Question.question_set_id == question_set.id)
+            .order_by(models.Question.order_index)
+            .all()
+        )
+
+        return {
+            "status": "success",
+            "question_set_id": question_set.id,
+            "id": question_set.id,
+            "title": question_set.title,
+            "question_count": len(questions),
+            "questions": [
+                {
+                    "id": q.id,
+                    "question_text": q.question_text,
+                    "question_type": q.question_type,
+                    "difficulty": q.difficulty,
+                    "options": json.loads(q.options) if q.options else [],
+                }
+                for q in questions
+            ],
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating questions: {str(e)}", exc_info=True)
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to generate questions: {str(e)}")
+
+
+@router.get("/get_question_sets")
+def get_question_sets(user_id: str = Query(...), db: Session = Depends(get_db)):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        question_sets = (
+            db.query(models.QuestionSet)
+            .filter(models.QuestionSet.user_id == user.id)
+            .order_by(models.QuestionSet.created_at.desc())
+            .all()
+        )
+
+        return {
+            "question_sets": [
+                {
+                    "id": qs.id,
+                    "title": qs.title,
+                    "description": qs.description,
+                    "question_count": qs.question_count,
+                    "easy_count": qs.easy_count,
+                    "medium_count": qs.medium_count,
+                    "hard_count": qs.hard_count,
+                    "best_score": round(qs.best_score, 1),
+                    "attempt_count": qs.attempt_count,
+                    "status": qs.status,
+                    "can_practice": True,
+                    "created_at": qs.created_at.isoformat() + "Z",
+                }
+                for qs in question_sets
+            ]
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting question sets: {str(e)}")
+        return {"question_sets": []}
+
+
+@router.delete("/delete_question_set/{question_set_id}")
+def delete_question_set(
+    question_set_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    try:
+        question_set = (
+            db.query(models.QuestionSet)
+            .filter(
+                models.QuestionSet.id == question_set_id,
+                models.QuestionSet.user_id == current_user.id,
+            )
+            .first()
+        )
+
+        if not question_set:
+            raise HTTPException(status_code=404, detail="Question set not found")
+
+        db.query(models.QuestionResult).filter(
+            models.QuestionResult.question_id.in_(
+                db.query(models.Question.id).filter(
+                    models.Question.question_set_id == question_set_id
+                )
+            )
+        ).delete(synchronize_session=False)
+
+        db.query(models.QuestionAttempt).filter(
+            models.QuestionAttempt.question_set_id == question_set_id
+        ).delete()
+
+        db.query(models.Question).filter(
+            models.Question.question_set_id == question_set_id
+        ).delete()
+
+        db.delete(question_set)
+        db.commit()
+
+        return {"status": "success", "message": "Question set deleted successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting question set: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete question set: {str(e)}")
+
+
+@router.post("/submit_question_answers")
+async def submit_question_answers(
+    payload: dict = Body(...), db: Session = Depends(get_db)
+):
+    try:
+        question_set_id = payload.get("question_set_id")
+        answers = payload.get("answers", {})
+
+        question_set = (
+            db.query(models.QuestionSet)
+            .filter(models.QuestionSet.id == question_set_id)
+            .first()
+        )
+
+        if not question_set:
+            raise HTTPException(status_code=404, detail="Question set not found")
+
+        questions = (
+            db.query(models.Question)
+            .filter(models.Question.question_set_id == question_set_id)
+            .all()
+        )
+
+        correct_count = 0
+        incorrect_count = 0
+        question_results = []
+
+        for question in questions:
+            question_id_str = str(question.id)
+
+            if question_id_str not in answers:
+                is_correct = False
+                display_answer = "No answer provided"
+            else:
+                user_answer = answers[question_id_str]
+
+                if user_answer is None or (
+                    isinstance(user_answer, str) and user_answer.strip() == ""
+                ):
+                    is_correct = False
+                    display_answer = "No answer provided"
+                else:
+                    display_answer = user_answer
+
+                    if question.question_type == "multiple_choice":
+                        is_correct = (
+                            user_answer.strip().lower() == question.correct_answer.strip().lower()
+                        )
+                    elif question.question_type == "true_false":
+                        is_correct = (
+                            user_answer.strip().lower() == question.correct_answer.strip().lower()
+                        )
+                    else:
+                        is_correct = (
+                            user_answer.strip().lower() in question.correct_answer.strip().lower()
+                        )
+
+            if is_correct:
+                correct_count += 1
+            else:
+                incorrect_count += 1
+
+            question_results.append(
+                {
+                    "question_id": question.id,
+                    "question_text": question.question_text,
+                    "user_answer": display_answer,
+                    "correct_answer": question.correct_answer,
+                    "is_correct": is_correct,
+                    "explanation": question.explanation,
+                }
+            )
+
+        score = (correct_count / len(questions) * 100) if questions else 0
+
+        attempt = models.QuestionAttempt(
+            question_set_id=question_set_id,
+            user_id=question_set.user_id,
+            attempt_number=question_set.attempt_count + 1,
+            answers=json.dumps(answers),
+            score=score,
+            correct_count=correct_count,
+            incorrect_count=incorrect_count,
+            total_questions=len(questions),
+            submitted_at=datetime.now(timezone.utc),
+        )
+
+        db.add(attempt)
+
+        question_set.attempt_count += 1
+        if score > question_set.best_score:
+            question_set.best_score = score
+
+        db.commit()
+
+        return {
+            "status": "success",
+            "score": round(score, 1),
+            "correct_count": correct_count,
+            "incorrect_count": incorrect_count,
+            "total_questions": len(questions),
+            "question_results": question_results,
+            "feedback": f"You scored {round(score, 1)}%! {'Excellent work!' if score >= 80 else 'Keep practicing!'}",
+        }
+
+    except Exception as e:
+        logger.error(f"Error submitting answers: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/get_question_set_details/{question_set_id}")
+def get_question_set_details(question_set_id: int, db: Session = Depends(get_db)):
+    try:
+        question_set = (
+            db.query(models.QuestionSet)
+            .filter(models.QuestionSet.id == question_set_id)
+            .first()
+        )
+
+        if not question_set:
+            raise HTTPException(status_code=404, detail="Question set not found")
+
+        questions = (
+            db.query(models.Question)
+            .filter(models.Question.question_set_id == question_set_id)
+            .order_by(models.Question.order_index)
+            .all()
+        )
+
+        return {
+            "id": question_set.id,
+            "title": question_set.title,
+            "description": question_set.description,
+            "question_count": len(questions),
+            "status": question_set.status,
+            "questions": [
+                {
+                    "id": q.id,
+                    "question_text": q.question_text,
+                    "question_type": q.question_type,
+                    "correct_answer": q.correct_answer,
+                    "options": json.loads(q.options) if q.options else [],
+                    "difficulty": q.difficulty,
+                    "explanation": q.explanation,
+                    "topic": q.topic,
+                }
+                for q in questions
+            ],
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting question set details: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/submit_learning_response")
+async def submit_learning_response(
+    payload: dict = Body(...), db: Session = Depends(get_db)
+):
+    try:
+        review_id = payload.get("review_id")
+        user_response = payload.get("user_response", "")
+        attempt_number = payload.get("attempt_number", 1)
+
+        if not review_id or not user_response.strip():
+            raise HTTPException(status_code=400, detail="Review ID and response are required")
+
+        review = (
+            db.query(models.LearningReview)
+            .filter(models.LearningReview.id == review_id)
+            .first()
+        )
+
+        if not review:
+            raise HTTPException(status_code=404, detail="Learning review not found")
+
+        try:
+            expected_points = json.loads(review.expected_points)
+        except Exception:
+            expected_points = []
+
+        if not expected_points:
+            raise HTTPException(status_code=400, detail="No learning points found in review")
+
+        user = db.query(models.User).filter(models.User.id == review.user_id).first()
+
+        evaluation_prompt = f"""Evaluate student's learning retention.
+
+**EXPECTED POINTS**:
+{chr(10).join([f"{i+1}. {point}" for i, point in enumerate(expected_points)])}
+
+**STUDENT RESPONSE**:
+{user_response}
+
+**RULES**: Point is "covered" if student shows understanding (semantic match, not exact words).
+
+**OUTPUT JSON**:
+{{
+  "covered_points": ["Covered points from expected list"],
+  "missing_points": ["Missing points from expected list"],
+  "coverage_percentage": <0-100>,
+  "understanding_quality": "<poor|fair|good|excellent>",
+  "feedback": "Brief feedback on strengths/improvements",
+  "next_steps": "Actionable advice"
+}}"""
+
+        response_text = call_ai(evaluation_prompt, max_tokens=2048, temperature=0.3)
+
+        try:
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if json_match:
+                evaluation = json.loads(json_match.group())
+            else:
+                raise ValueError("No JSON found in response")
+        except Exception as e:
+            logger.error(f"Failed to parse evaluation JSON: {str(e)}")
+            logger.error(f"Raw response: {response_text}")
+            evaluation = {
+                "covered_points": [],
+                "missing_points": expected_points,
+                "coverage_percentage": 0,
+                "understanding_quality": "fair",
+                "feedback": "Unable to properly evaluate your response. Please try again with more detail.",
+                "next_steps": "Write a more comprehensive response covering all key concepts.",
+            }
+
+        covered_points = evaluation.get("covered_points", [])
+        missing_points = evaluation.get("missing_points", [])
+        coverage_percentage = evaluation.get("coverage_percentage", 0)
+        understanding_quality = evaluation.get("understanding_quality", "fair")
+        feedback = evaluation.get("feedback", "")
+        next_steps = evaluation.get("next_steps", "")
+
+        attempt = models.LearningReviewAttempt(
+            review_id=review.id,
+            attempt_number=attempt_number,
+            user_response=user_response,
+            covered_points=json.dumps(covered_points),
+            missing_points=json.dumps(missing_points),
+            completeness_percentage=coverage_percentage,
+            feedback=feedback,
+            submitted_at=datetime.now(timezone.utc),
+        )
+        db.add(attempt)
+
+        review.current_attempt = attempt_number
+        review.attempt_count = max(review.attempt_count, attempt_number)
+
+        if coverage_percentage > review.best_score:
+            review.best_score = coverage_percentage
+
+        is_complete = coverage_percentage >= 80.0 or attempt_number >= 3
+
+        if is_complete and coverage_percentage >= 80.0:
+            review.status = "completed"
+            review.completed_at = datetime.now(timezone.utc)
+
+        review.updated_at = datetime.now(timezone.utc)
+
+        db.commit()
+        db.refresh(attempt)
+
+        return {
+            "status": "success",
+            "attempt_id": attempt.id,
+            "attempt_number": attempt_number,
+            "covered_points": covered_points,
+            "missing_points": missing_points,
+            "completeness_percentage": round(coverage_percentage, 1),
+            "understanding_quality": understanding_quality,
+            "feedback": feedback,
+            "next_steps": next_steps,
+            "is_complete": is_complete,
+            "can_continue": not is_complete and attempt_number < 5,
+            "best_score": review.best_score,
+            "points_covered_count": len(covered_points),
+            "points_missing_count": len(missing_points),
+            "total_points": len(expected_points),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error submitting learning response: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to evaluate learning response: {str(e)}",
+        )
+
+
+@router.get("/get_generated_questions")
+def get_generated_questions(user_id: str = Query(...), db: Session = Depends(get_db)):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        question_sets = (
+            db.query(models.QuestionSet)
+            .filter(models.QuestionSet.user_id == user.id)
+            .order_by(models.QuestionSet.created_at.desc())
+            .all()
+        )
+
+        return {
+            "question_sets": [
+                {
+                    "id": qs.id,
+                    "title": qs.title,
+                    "question_count": qs.question_count,
+                    "created_at": qs.created_at.isoformat() + "Z",
+                    "status": qs.status,
+                    "best_score": round(qs.best_score, 1),
+                    "attempt_count": qs.attempt_count,
+                }
+                for qs in question_sets
+            ]
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting generated questions: {str(e)}")
+        return {"question_sets": []}
+
+
+@router.get("/get_question_set/{question_set_id}")
+def get_question_set_with_questions(question_set_id: int, db: Session = Depends(get_db)):
+    try:
+        question_set = (
+            db.query(models.QuestionSet)
+            .filter(models.QuestionSet.id == question_set_id)
+            .first()
+        )
+
+        if not question_set:
+            raise HTTPException(status_code=404, detail="Question set not found")
+
+        questions = (
+            db.query(models.Question)
+            .filter(models.Question.question_set_id == question_set_id)
+            .order_by(models.Question.order_index)
+            .all()
+        )
+
+        return {
+            "id": question_set.id,
+            "title": question_set.title,
+            "description": question_set.description,
+            "questions": [
+                {
+                    "id": q.id,
+                    "question_text": q.question_text,
+                    "question_type": q.question_type,
+                    "options": json.loads(q.options) if q.options else [],
+                    "difficulty": q.difficulty,
+                    "explanation": q.explanation,
+                    "topic": q.topic,
+                }
+                for q in questions
+            ],
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting question set: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/submit_answers")
+async def submit_answers(payload: dict = Body(...), db: Session = Depends(get_db)):
+    try:
+        user_id = payload.get("user_id")
+        question_set_id = payload.get("question_set_id")
+        answers = payload.get("answers", {})
+
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        question_set = (
+            db.query(models.QuestionSet)
+            .filter(models.QuestionSet.id == question_set_id)
+            .first()
+        )
+
+        if not question_set:
+            raise HTTPException(status_code=404, detail="Question set not found")
+
+        questions = (
+            db.query(models.Question)
+            .filter(models.Question.question_set_id == question_set_id)
+            .all()
+        )
+
+        results = []
+        correct_count = 0
+
+        for question in questions:
+            user_answer = answers.get(str(question.id), "").strip()
+            is_correct = False
+
+            if question.question_type == "multiple_choice":
+                is_correct = user_answer.lower() == question.correct_answer.lower()
+            elif question.question_type == "true_false":
+                is_correct = user_answer.lower() == question.correct_answer.lower()
+            else:
+                is_correct = any(
+                    keyword in user_answer.lower()
+                    for keyword in question.correct_answer.lower().split()[:3]
+                )
+
+            if is_correct:
+                correct_count += 1
+
+            results.append(
+                {
+                    "question_id": question.id,
+                    "user_answer": user_answer,
+                    "correct_answer": question.correct_answer,
+                    "is_correct": is_correct,
+                    "explanation": question.explanation,
+                }
+            )
+
+        score = (correct_count / len(questions)) * 100 if questions else 0
+
+        question_set.attempt_count += 1
+        if score > question_set.best_score:
+            question_set.best_score = score
+
+        attempt = models.QuestionAttempt(
+            question_set_id=question_set_id,
+            user_id=user.id,
+            attempt_number=question_set.attempt_count,
+            answers=json.dumps(answers),
+            score=score,
+            correct_count=correct_count,
+            incorrect_count=len(questions) - correct_count,
+            total_questions=len(questions),
+            submitted_at=datetime.now(timezone.utc),
+        )
+        db.add(attempt)
+        db.commit()
+
+        return {
+            "status": "success",
+            "score": round(score, 1),
+            "correct_count": correct_count,
+            "total_questions": len(questions),
+            "details": results,
+        }
+
+    except Exception as e:
+        logger.error(f"Error submitting answers: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/get_hints/{question_id}")
+def get_hints_for_question(question_id: int, db: Session = Depends(get_db)):
+    try:
+        question = (
+            db.query(models.Question).filter(models.Question.id == question_id).first()
+        )
+
+        if not question:
+            raise HTTPException(status_code=404, detail="Question not found")
+
+        hints = []
+
+        if question.question_type == "multiple_choice":
+            options = json.loads(question.options) if question.options else []
+            if len(options) >= 2:
+                hints.append("Consider the options carefully. Eliminate obviously wrong answers first.")
+                hints.append(f"The correct answer relates to: {question.topic}")
+
+        elif question.question_type == "true_false":
+            hints.append(f"Think about the fundamental concepts of {question.topic}")
+            hints.append("Consider real-world applications of this concept")
+
+        else:
+            hints.append(f"Focus on the key terms related to {question.topic}")
+            hints.append("Think about how this concept is applied in practice")
+
+        hints.append(f"Review your notes on {question.topic} if you're unsure")
+
+        return {"question_id": question_id, "hints": hints[:3]}
+
+    except Exception as e:
+        logger.error(f"Error getting hints: {str(e)}")
+        return {
+            "question_id": question_id,
+            "hints": ["Think about the main concepts covered in this topic."],
+        }
+
+
+@router.get("/get_quiz_history")
+def get_quiz_history(user_id: str = Query(...), db: Session = Depends(get_db)):
+    try:
+        user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        result = []
+
+        if hasattr(models, "QuizSession"):
+            quiz_sessions = (
+                db.query(models.QuizSession)
+                .filter(models.QuizSession.user_id == user.id)
+                .order_by(models.QuizSession.created_at.desc())
+                .all()
+            )
+
+            for session in quiz_sessions:
+                result.append(
+                    {
+                        "id": session.id,
+                        "title": getattr(session, "title", "Quiz Session"),
+                        "score": getattr(session, "score", 0),
+                        "total_questions": getattr(session, "total_questions", 0),
+                        "correct_answers": getattr(session, "correct_answers", 0),
+                        "completed_at": (
+                            session.completed_at.isoformat() + "Z"
+                            if hasattr(session, "completed_at") and session.completed_at
+                            else session.created_at.isoformat() + "Z"
+                        ),
+                        "created_at": session.created_at.isoformat() + "Z",
+                    }
+                )
+
+        elif hasattr(models, "QuestionSet"):
+            question_sets = (
+                db.query(models.QuestionSet)
+                .filter(models.QuestionSet.user_id == user.id)
+                .order_by(models.QuestionSet.created_at.desc())
+                .all()
+            )
+
+            for qs in question_sets:
+                result.append(
+                    {
+                        "id": qs.id,
+                        "title": qs.title or "Quiz Session",
+                        "score": 0,
+                        "total_questions": getattr(qs, "question_count", 0),
+                        "correct_answers": 0,
+                        "completed_at": qs.created_at.isoformat() + "Z",
+                        "created_at": qs.created_at.isoformat() + "Z",
+                    }
+                )
+
+        logger.info(f"Retrieved {len(result)} quiz sessions for user {user.email}")
+        return result
+
+    except Exception as e:
+        logger.error(f"Error getting quiz history: {str(e)}", exc_info=True)
+        return []
