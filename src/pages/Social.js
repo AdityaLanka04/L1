@@ -354,7 +354,7 @@ const Social = () => {
       icon: Share2,
       title: 'Shared',
       subtitle: 'LEARNING CONTENT',
-      onClick: () => setActiveTab('shared'),
+      onClick: () => navigate('/shared'),
       className: 'shared-card'
     },
     {
@@ -446,10 +446,6 @@ const Social = () => {
           <span className="gm-subtitle">SOCIAL HUB</span>
         </div>
         <nav className="gm-header-right">
-          <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/quiz-battle')}>
-            <Gamepad2 size={16} />
-            Quiz Battles
-          </button>
           <button className="gm-nav-btn gm-nav-btn-ghost" onClick={() => navigate('/dashboard')}>
             Dashboard
           </button>

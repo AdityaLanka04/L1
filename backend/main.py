@@ -237,3 +237,20 @@ else:
     @app.get("/")
     async def root():
         return {"message": "Brainwave Backend API v4.0.0", "status": "running"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", "8000"))
+    reload = os.getenv("RELOAD", "false").lower() == "true"
+    
+    logger.info(f"Starting uvicorn server on {host}:{port}")
+    uvicorn.run(
+        "main:app",
+        host=host,
+        port=port,
+        reload=reload,
+        log_level="info"
+    )

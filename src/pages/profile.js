@@ -441,7 +441,7 @@ const Profile = () => {
                   Take our assessment to unlock personalized AI tutoring tailored to your unique learning style
                 </p>
                 <button className="quiz-btn" onClick={retakeQuiz}>
-                  Take Learning Archetype Quiz
+                  Take Learning Preferences Quiz
                 </button>
               </div>
             </section>

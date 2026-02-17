@@ -217,7 +217,7 @@
 
 /* ==================== BENTO CARDS - GLASSMORPHISM ==================== */
 .bento-card {
-  background: var(--sh-bg-card);
+  background: var(--bg-secondary);
   padding: 32px;
   display: flex;
   flex-direction: column;
@@ -278,8 +278,9 @@
 }
 
 .bento-card:hover {
-  background: color-mix(in srgb, var(--sh-accent) 8%, var(--sh-bg-card));
-  transform: scale(1.01);
+  background: var(--bg-secondary);
+  transform: translateY(-4px) scale(1.01);
+  border-color: var(--accent);
 }
 
 .bento-card:hover::before {
@@ -407,25 +408,17 @@
 }
 
 /* ==================== FRIENDS CARD ==================== */
-.friends-card {
+.hub-page .friends-card {
   grid-column: 3 / 4;
   grid-row: 1 / 2;
-  background: linear-gradient(145deg, var(--sh-bg-card) 0%, color-mix(in srgb, var(--sh-accent) 5%, var(--sh-bg-card)) 100%);
-}
-
-.friends-card::before {
-  background: radial-gradient(circle at top right, var(--sh-accent-glow) 0%, transparent 60%);
+  background: var(--bg-secondary) !important;
 }
 
 /* ==================== ACTIVITY CARD ==================== */
-.activity-card {
+.hub-page .activity-card {
   grid-column: 3 / 4;
   grid-row: 2 / 3;
-  background: linear-gradient(145deg, color-mix(in srgb, var(--sh-accent) 12%, var(--sh-bg-card)) 0%, var(--sh-bg-card) 100%);
-}
-
-.activity-card::before {
-  background: radial-gradient(circle at center, var(--sh-accent-glow-strong) 0%, transparent 60%);
+  background: var(--bg-secondary) !important;
 }
 
 /* ==================== GAMES CARD - ACCENT HIGHLIGHT ==================== */
@@ -488,22 +481,22 @@
 }
 
 /* ==================== BOTTOM ROW CARDS ==================== */
-.playlists-card {
+.hub-page .playlists-card {
   grid-column: 1 / 2;
   grid-row: 3 / 4;
-  background: linear-gradient(145deg, var(--sh-bg-card) 0%, color-mix(in srgb, var(--sh-accent) 3%, var(--sh-bg-card)) 100%);
+  background: var(--bg-secondary) !important;
 }
 
-.quiz-card {
+.hub-page .quiz-card {
   grid-column: 2 / 3;
   grid-row: 3 / 4;
-  background: linear-gradient(145deg, color-mix(in srgb, var(--sh-accent) 5%, var(--sh-bg-card)) 0%, var(--sh-bg-card) 100%);
+  background: var(--bg-secondary) !important;
 }
 
-.shared-card {
+.hub-page .shared-card {
   grid-column: 3 / 4;
   grid-row: 3 / 4;
-  background: linear-gradient(145deg, var(--sh-bg-card) 0%, color-mix(in srgb, var(--sh-accent) 8%, var(--sh-bg-card)) 100%);
+  background: var(--bg-secondary) !important;
 }
 
 .leaderboards-card {
@@ -1831,12 +1824,42 @@
 
 /* Light mode bento cards */
 [data-theme-mode="light"] .bento-card {
-  background: var(--sh-bg-card);
+  background-image: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.02) 2px,
+      rgba(0, 0, 0, 0.02) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.02) 2px,
+      rgba(0, 0, 0, 0.02) 4px
+    ),
+    linear-gradient(145deg, var(--sh-bg-card) 0%, color-mix(in srgb, var(--sh-accent) 8%, var(--sh-bg-card)) 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 [data-theme-mode="light"] .bento-card:hover {
-  background: color-mix(in srgb, var(--sh-accent) 6%, var(--sh-bg-card));
+  background-image: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.025) 2px,
+      rgba(0, 0, 0, 0.025) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.025) 2px,
+      rgba(0, 0, 0, 0.025) 4px
+    ),
+    linear-gradient(145deg, color-mix(in srgb, var(--sh-accent) 12%, var(--sh-bg-card)) 0%, color-mix(in srgb, var(--sh-accent) 10%, var(--sh-bg-card)) 100%);
   box-shadow: 
     inset 0 1px 0 rgba(255, 255, 255, 0.8),
     0 8px 24px rgba(0, 0, 0, 0.08);
@@ -2628,27 +2651,6 @@
 
 .shared-card {
   --card-glow-color: var(--accent);
-}
-
-/* Card-specific hover glows */
-.friends-card:hover {
-  box-shadow: 0 0 40px rgba(59, 130, 246, 0.2);
-}
-
-.activity-card:hover {
-  box-shadow: 0 0 40px rgba(16, 185, 129, 0.2);
-}
-
-.playlists-card:hover {
-  box-shadow: 0 0 40px rgba(245, 158, 11, 0.2);
-}
-
-.quiz-card:hover {
-  box-shadow: 0 0 40px var(--sh-accent-glow);
-}
-
-.shared-card:hover {
-  box-shadow: 0 0 40px rgba(236, 72, 153, 0.2);
 }
 
 /* ==================== GRADIENT TEXT EFFECTS ==================== */

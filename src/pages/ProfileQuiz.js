@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ProfileQuiz.css';
 import { API_URL } from '../config';
@@ -11,6 +11,7 @@ const ProfileQuiz = () => {
   const [showMainSuggestions, setShowMainSuggestions] = useState(false);
   const [otherSubjectSuggestions, setOtherSubjectSuggestions] = useState([]);
   const [showOtherSuggestions, setShowOtherSuggestions] = useState(false);
+  const [showSkipWarning, setShowSkipWarning] = useState(false);
   
   // Refs for auto-scroll
   const mainSubjectRef = useRef(null);
@@ -52,27 +53,17 @@ const ProfileQuiz = () => {
     'Human Resources', 'Operations Management', 'Supply Chain Management', 'Project Management',
     'Law', 'Criminal Justice', 'International Relations', 'Education', 'Special Education'
   ];
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [selectedAnswers, setSelectedAnswers] = useState([]);
-  const [showSkipWarning, setShowSkipWarning] = useState(false);
   const [answers, setAnswers] = useState({
     learningStage: '',
     subjects: [],
     mainSubject: '',
     brainwaveGoal: '',
-    archetypeAnswers: {},
-    archetypeScores: {
-      Logicor: 0,
-      Flowist: 0,
-      Kinetiq: 0,
-      Synth: 0,
-      Dreamweaver: 0,
-      Anchor: 0,
-      Spark: 0,
-      Empathion: 0,
-      Seeker: 0,
-      Resonant: 0
+    learningPreferences: {
+      q1: [],
+      q2: [],
+      q3: [],
+      q4: [],
+      q5: []
     }
   });
   const [userName, setUserName] = useState('');
@@ -115,183 +106,63 @@ const ProfileQuiz = () => {
     { value: 'curiosity', label: 'Learn out of curiosity' }
   ];
 
-  const archetypeQuestions = [
+  const learningPreferenceQuestions = [
     {
-      id: 1,
-      question: "When you're studying for a big exam, which approaches do you use? (Select all that apply)",
-      multiSelect: true,
-      layout: 'grid',
+      id: 'q1',
+      question: "When you're learning something new, which approach helps you understand fastest?",
+      subtitle: "select all that apply",
       options: [
-        { text: "Create detailed outlines and systematic breakdowns", archetypes: { Logicor: 3, Anchor: 2 } },
-        { text: "Jump between topics based on interest", archetypes: { Flowist: 3, Spark: 2 } },
-        { text: "Use flashcards or explain concepts out loud", archetypes: { Kinetiq: 3, Flowist: 1 } },
-        { text: "Draw diagrams and mind maps", archetypes: { Synth: 3, Dreamweaver: 2 } },
-        { text: "Study with others in groups", archetypes: { Empathion: 2, Synth: 1 } },
-        { text: "Focus on practice problems", archetypes: { Logicor: 2, Kinetiq: 2 } }
+        { value: 'A', text: 'Step-by-step explanation with clear logic and definitions' },
+        { value: 'B', text: 'Worked examples first, then I infer the rule/pattern' },
+        { value: 'C', text: 'Visuals (diagrams/mind maps) showing relationships' },
+        { value: 'D', text: 'Real-world applications/case studies that show "why it matters"' }
       ]
     },
     {
-      id: 2,
-      question: "What roles do you naturally take in group projects? (Select all that apply)",
-      multiSelect: true,
-      layout: 'grid',
+      id: 'q2',
+      question: "Which study method improves your retention the most over a week?",
+      subtitle: "select all that apply",
       options: [
-        { text: "Organizer & timeline keeper", archetypes: { Anchor: 3, Logicor: 2 } },
-        { text: "Idea generator & creative problem solver", archetypes: { Spark: 3, Dreamweaver: 2 } },
-        { text: "Connector & collaborator", archetypes: { Synth: 3, Empathion: 2 } },
-        { text: "Flexible adapter", archetypes: { Flowist: 3, Resonant: 2 } },
-        { text: "Detail-oriented editor", archetypes: { Anchor: 2, Logicor: 1 } },
-        { text: "Hands-on builder", archetypes: { Kinetiq: 3, Flowist: 1 } }
+        { value: 'A', text: 'Active recall (self-quizzing without notes)' },
+        { value: 'B', text: 'Spaced repetition (reviewing over multiple days)' },
+        { value: 'C', text: 'Rewriting/organizing notes into a clean structure' },
+        { value: 'D', text: 'Teaching/explaining the concept to someone (or to myself)' }
       ]
     },
     {
-      id: 3,
-      question: "How do you best understand new concepts?",
-      multiSelect: false,
-      layout: 'vertical',
+      id: 'q3',
+      question: "What type of practice gives you the biggest score jump in exams?",
+      subtitle: "select all that apply",
       options: [
-        { text: "Through logical steps and formulas", archetypes: { Logicor: 3, Anchor: 1 } },
-        { text: "By physically working through examples", archetypes: { Kinetiq: 3, Flowist: 2 } },
-        { text: "Connecting to real-world applications", archetypes: { Synth: 3, Seeker: 2 } },
-        { text: "Grasping the overall vision first", archetypes: { Dreamweaver: 3, Spark: 1 } }
+        { value: 'A', text: 'Topic-wise practice sets (one concept at a time)' },
+        { value: 'B', text: 'Mixed practice (questions from different topics in one set)' },
+        { value: 'C', text: 'Timed mocks under exam conditions' },
+        { value: 'D', text: 'Error-focused drills (repeat only what I get wrong)' }
       ]
     },
     {
-      id: 4,
-      question: "What describes your study space?",
-      multiSelect: false,
-      layout: 'vertical',
+      id: 'q4',
+      question: "When you make mistakes, what feedback style helps you improve quickest?",
+      subtitle: "select all that apply",
       options: [
-        { text: "Very organized with everything labeled", archetypes: { Anchor: 3 } },
-        { text: "Organized chaos - messy but I know where things are", archetypes: { Spark: 2, Flowist: 2 } },
-        { text: "Decorated with inspiration boards and quotes", archetypes: { Dreamweaver: 3, Spark: 1 } },
-        { text: "Constantly rearranged based on projects", archetypes: { Flowist: 3, Resonant: 2 } }
+        { value: 'A', text: 'Exact step where I went wrong + corrected steps' },
+        { value: 'B', text: 'Hints that guide me to the answer without revealing it' },
+        { value: 'C', text: 'A "why this works" explanation + a similar follow-up question' },
+        { value: 'D', text: 'A summary of my common mistake patterns + a targeted plan' }
       ]
     },
     {
-      id: 5,
-      question: "When you hit a roadblock, what do you do? (Select all that apply)",
-      multiSelect: true,
-      layout: 'grid',
+      id: 'q5',
+      question: "How should your learning path be structured to keep you progressing?",
+      subtitle: "select all that apply",
       options: [
-        { text: "Break it into smaller pieces", archetypes: { Logicor: 3, Anchor: 1 } },
-        { text: "Try different approaches", archetypes: { Kinetiq: 3, Flowist: 2 } },
-        { text: "Look for patterns", archetypes: { Synth: 3, Seeker: 1 } },
-        { text: "Brainstorm alternatives", archetypes: { Spark: 3, Dreamweaver: 2 } },
-        { text: "Take a break and come back", archetypes: { Resonant: 2, Flowist: 1 } },
-        { text: "Ask for help", archetypes: { Empathion: 2, Synth: 1 } }
-      ]
-    },
-    {
-      id: 6,
-      question: "What motivates you during tough semesters? (Select all that apply)",
-      multiSelect: true,
-      layout: 'grid',
-      options: [
-        { text: "Clear progress toward degree", archetypes: { Anchor: 3, Logicor: 2 } },
-        { text: "Learning fascinating topics", archetypes: { Seeker: 3, Spark: 2 } },
-        { text: "Work with meaning & impact", archetypes: { Empathion: 3, Synth: 1 } },
-        { text: "Achieving mastery", archetypes: { Logicor: 3, Kinetiq: 2 } },
-        { text: "Exploring new ideas", archetypes: { Dreamweaver: 2, Seeker: 2 } },
-        { text: "Building practical skills", archetypes: { Kinetiq: 2, Anchor: 1 } }
-      ]
-    },
-    {
-      id: 7,
-      question: "How do you take notes in lectures?",
-      multiSelect: false,
-      layout: 'vertical',
-      options: [
-        { text: "Detailed linear notes following structure", archetypes: { Anchor: 3, Logicor: 2 } },
-        { text: "Sketches, diagrams, and visual elements", archetypes: { Dreamweaver: 3, Spark: 2 } },
-        { text: "Key ideas with connections to other topics", archetypes: { Synth: 3, Seeker: 1 } },
-        { text: "Record/photograph to review later while active", archetypes: { Kinetiq: 3, Flowist: 2 } }
-      ]
-    },
-    {
-      id: 8,
-      question: "What type of classes do you prefer? (Select all that apply)",
-      multiSelect: true,
-      layout: 'grid',
-      options: [
-        { text: "Career-focused courses", archetypes: { Anchor: 3, Logicor: 1 } },
-        { text: "Interdisciplinary explorations", archetypes: { Seeker: 3, Spark: 2 } },
-        { text: "Hands-on projects", archetypes: { Kinetiq: 3, Flowist: 1 } },
-        { text: "Multi-discipline connections", archetypes: { Synth: 3, Dreamweaver: 2 } },
-        { text: "Theory-heavy courses", archetypes: { Logicor: 2, Seeker: 1 } },
-        { text: "Creative & innovative courses", archetypes: { Spark: 3, Dreamweaver: 1 } }
-      ]
-    },
-    {
-      id: 9,
-      question: "How do you handle deadline stress? (Select all that apply)",
-      multiSelect: true,
-      layout: 'grid',
-      options: [
-        { text: "Make detailed to-do lists", archetypes: { Anchor: 3, Logicor: 2 } },
-        { text: "Exercise or physical activity", archetypes: { Kinetiq: 3, Flowist: 2 } },
-        { text: "Talk with friends or journal", archetypes: { Empathion: 3, Spark: 1 } },
-        { text: "Stay flexible with plans", archetypes: { Resonant: 3, Flowist: 2 } },
-        { text: "Focus intensely on tasks", archetypes: { Logicor: 2, Anchor: 1 } },
-        { text: "Take strategic breaks", archetypes: { Resonant: 2, Kinetiq: 1 } }
-      ]
-    },
-    {
-      id: 10,
-      question: "Which study environments work for you? (Select all that apply)",
-      multiSelect: true,
-      layout: 'grid',
-      options: [
-        { text: "Quiet library", archetypes: { Anchor: 2, Logicor: 2 } },
-        { text: "Coffee shop with ambiance", archetypes: { Flowist: 3, Kinetiq: 1 } },
-        { text: "Outdoor spaces", archetypes: { Kinetiq: 2, Resonant: 2 } },
-        { text: "Creative inspiring spaces", archetypes: { Spark: 3, Dreamweaver: 2 } },
-        { text: "Study groups", archetypes: { Empathion: 2, Synth: 2 } },
-        { text: "My own room", archetypes: { Anchor: 1, Resonant: 1 } }
-      ]
-    },
-    {
-      id: 11,
-      question: "What learning resources do you prefer? (Select all that apply)",
-      multiSelect: true,
-      layout: 'grid',
-      options: [
-        { text: "Textbooks & written materials", archetypes: { Logicor: 2, Anchor: 2 } },
-        { text: "Video tutorials", archetypes: { Kinetiq: 2, Flowist: 1 } },
-        { text: "Interactive simulations", archetypes: { Kinetiq: 3, Spark: 2 } },
-        { text: "Concept maps & visuals", archetypes: { Synth: 3, Dreamweaver: 2 } },
-        { text: "Discussion forums", archetypes: { Empathion: 2, Seeker: 1 } },
-        { text: "Real-world case studies", archetypes: { Synth: 2, Seeker: 2 } }
-      ]
-    },
-    {
-      id: 12,
-      question: "How do you prepare for exams? (Select all that apply)",
-      multiSelect: true,
-      layout: 'grid',
-      options: [
-        { text: "Review notes systematically", archetypes: { Anchor: 3, Logicor: 2 } },
-        { text: "Do practice problems", archetypes: { Logicor: 3, Kinetiq: 1 } },
-        { text: "Create study guides", archetypes: { Anchor: 2, Synth: 2 } },
-        { text: "Teach concepts to others", archetypes: { Empathion: 3, Kinetiq: 2 } },
-        { text: "Review in varied locations", archetypes: { Flowist: 2, Kinetiq: 1 } },
-        { text: "Connect to bigger picture", archetypes: { Dreamweaver: 2, Synth: 2 } }
+        { value: 'A', text: 'Strict linear path: must master basics before moving on' },
+        { value: 'B', text: 'Adaptive path: difficulty adjusts based on my quiz performance' },
+        { value: 'C', text: 'Goal-based path: jump to what I need for an exam/career goal' },
+        { value: 'D', text: 'Concept-map path: I choose nodes, but prerequisites are recommended' }
       ]
     }
   ];
-
-  const archetypeDescriptions = {
-    Logicor: "You excel at breaking down complex problems into logical steps and systematic approaches. Your analytical mind naturally identifies patterns and structures, making you particularly effective at subjects requiring methodical thinking and clear reasoning.",
-    Flowist: "You thrive in dynamic learning environments where you can adapt and explore freely. Your flexible approach allows you to connect ideas across different contexts naturally, making learning feel intuitive rather than forced.",
-    Kinetiq: "You learn best through hands-on experience and physical engagement. Movement and tactile interaction help you process information deeply, turning abstract concepts into tangible understanding through active practice.",
-    Synth: "You possess a remarkable ability to see connections between seemingly unrelated ideas. Your holistic thinking allows you to integrate knowledge from various domains, creating innovative solutions and comprehensive understanding.",
-    Dreamweaver: "You think in possibilities and future scenarios, naturally envisioning the bigger picture. Your visionary perspective helps you understand not just what is, but what could be, making you excellent at strategic and creative thinking.",
-    Anchor: "You value structure, consistency, and systematic organization in your learning. Your disciplined approach and attention to detail create a solid foundation for building comprehensive knowledge over time.",
-    Spark: "You're driven by creativity and innovative thinking, constantly generating new ideas and perspectives. Your enthusiastic approach to learning brings fresh energy to every subject you explore.",
-    Empathion: "You connect deeply with the human and emotional dimensions of learning. Your ability to understand context and meaning helps you grasp not just the facts, but the significance behind them.",
-    Seeker: "You're motivated by curiosity and the joy of discovery. Your natural inclination to ask questions and explore unknowns drives you to delve deep into subjects that capture your interest.",
-    Resonant: "You're highly adaptable and attuned to different learning situations. Your flexibility allows you to adjust your approach based on context, making you effective across various subjects and environments."
-  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -386,123 +257,6 @@ const ProfileQuiz = () => {
       ...prev,
       subjects: prev.subjects.filter(s => s !== subject)
     }));
-  };
-
-  const handleArchetypeSelect = (optionIndex) => {
-    const question = archetypeQuestions[currentQuestion];
-    
-    if (question.multiSelect) {
-      setSelectedAnswers(prev => {
-        if (prev.includes(optionIndex)) {
-          return prev.filter(i => i !== optionIndex);
-        } else {
-          return [...prev, optionIndex];
-        }
-      });
-    } else {
-      setSelectedAnswer(optionIndex);
-    }
-  };
-
-  const handleArchetypeNext = () => {
-    const question = archetypeQuestions[currentQuestion];
-    
-    if (question.multiSelect && selectedAnswers.length === 0) return;
-    if (!question.multiSelect && selectedAnswer === null) return;
-
-    const newArchetypeAnswers = { 
-      ...answers.archetypeAnswers, 
-      [currentQuestion]: question.multiSelect ? selectedAnswers : selectedAnswer 
-    };
-    const newScores = { ...answers.archetypeScores };
-    
-    if (question.multiSelect) {
-      selectedAnswers.forEach(answerIndex => {
-        const selectedOption = question.options[answerIndex];
-        Object.entries(selectedOption.archetypes).forEach(([archetype, points]) => {
-          newScores[archetype] = (newScores[archetype] || 0) + points;
-        });
-      });
-    } else {
-      const selectedOption = question.options[selectedAnswer];
-      Object.entries(selectedOption.archetypes).forEach(([archetype, points]) => {
-        newScores[archetype] = (newScores[archetype] || 0) + points;
-      });
-    }
-
-    setAnswers(prev => ({
-      ...prev,
-      archetypeAnswers: newArchetypeAnswers,
-      archetypeScores: newScores
-    }));
-
-    if (currentQuestion < archetypeQuestions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-      setSelectedAnswer(null);
-      setSelectedAnswers([]);
-    } else {
-      completeQuiz(newScores);
-    }
-  };
-
-  const handleArchetypeBack = () => {
-    if (currentQuestion > 0) {
-      setCurrentQuestion(currentQuestion - 1);
-      const prevAnswer = answers.archetypeAnswers[currentQuestion - 1];
-      const prevQuestion = archetypeQuestions[currentQuestion - 1];
-      
-      if (prevQuestion.multiSelect) {
-        setSelectedAnswers(prevAnswer || []);
-        setSelectedAnswer(null);
-      } else {
-        setSelectedAnswer(prevAnswer ?? null);
-        setSelectedAnswers([]);
-      }
-    }
-  };
-
-  const completeQuiz = async (scores) => {
-    const sortedArchetypes = Object.entries(scores)
-      .sort(([, a], [, b]) => b - a)
-      .map(([archetype]) => archetype);
-
-    const primaryArchetype = sortedArchetypes[0];
-    const secondaryArchetype = sortedArchetypes[1];
-
-    try {
-      const token = localStorage.getItem('token');
-      
-      await fetch(`${API_URL}/save_complete_profile`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          user_id: userName,
-          learning_stage: answers.learningStage,
-          preferred_subjects: answers.subjects,
-          main_subject: answers.mainSubject,
-          brainwave_goal: answers.brainwaveGoal,
-          primary_archetype: primaryArchetype,
-          secondary_archetype: secondaryArchetype,
-          archetype_scores: scores,
-          archetype_description: archetypeDescriptions[primaryArchetype],
-          quiz_completed: true,
-          quiz_responses: answers.archetypeAnswers
-        })
-      });
-
-      setCurrentStep('complete');
-      // Set flags that user just completed onboarding
-      sessionStorage.setItem('justCompletedOnboarding', 'true');
-      sessionStorage.setItem('isFirstTimeUser', 'true');
-      sessionStorage.setItem('justLoggedIn', 'true'); // Set flag for welcome notification
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 5000);
-    } catch (error) {
-          }
   };
 
   const handleSkip = () => {
@@ -675,9 +429,67 @@ const ProfileQuiz = () => {
     );
   }
 
-  if (currentStep === 'archetype') {
-    const question = archetypeQuestions[currentQuestion];
-    const isValid = question.multiSelect ? selectedAnswers.length > 0 : selectedAnswer !== null;
+  if (currentStep === 'preferences') {
+    const isFormValid = () => {
+      return answers.learningPreferences.q1.length > 0 && 
+             answers.learningPreferences.q2.length > 0 && 
+             answers.learningPreferences.q3.length > 0 && 
+             answers.learningPreferences.q4.length > 0 && 
+             answers.learningPreferences.q5.length > 0;
+    };
+
+    const handleAnswerSelect = (questionId, value) => {
+      setAnswers(prev => {
+        const currentAnswers = prev.learningPreferences[questionId] || [];
+        const newAnswers = currentAnswers.includes(value)
+          ? currentAnswers.filter(v => v !== value)
+          : [...currentAnswers, value];
+        
+        return {
+          ...prev,
+          learningPreferences: {
+            ...prev.learningPreferences,
+            [questionId]: newAnswers
+          }
+        };
+      });
+    };
+
+    const handleSubmit = async () => {
+      if (!isFormValid()) return;
+
+      try {
+        const token = localStorage.getItem('token');
+        
+        await fetch(`${API_URL}/save_complete_profile`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            user_id: userName,
+            learning_stage: answers.learningStage,
+            preferred_subjects: answers.subjects,
+            main_subject: answers.mainSubject,
+            brainwave_goal: answers.brainwaveGoal,
+            learning_preferences: answers.learningPreferences,
+            quiz_completed: true
+          })
+        });
+
+        setCurrentStep('complete');
+        sessionStorage.setItem('justCompletedOnboarding', 'true');
+        sessionStorage.setItem('isFirstTimeUser', 'true');
+        sessionStorage.setItem('justLoggedIn', 'true');
+        
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 3000);
+      } catch (error) {
+        console.error('Error saving profile:', error);
+      }
+    };
     
     return (
       <div className="profile-quiz-page">
@@ -694,66 +506,47 @@ const ProfileQuiz = () => {
         
         <div className="quiz-container">
           <div className="quiz-header">
-            <h1 className="quiz-title">discover your learning archetype</h1>
-            <div className="quiz-progress-bar">
-              <div className="quiz-progress-fill" style={{ width: `${80 + (currentQuestion / archetypeQuestions.length) * 20}%` }}></div>
-            </div>
-            <p className="quiz-progress-text">
-              Question {currentQuestion + 1} of {archetypeQuestions.length}
-            </p>
+            <h1 className="quiz-title">Learning Preferences</h1>
+            <p className="quiz-subtitle">Help us personalize your learning experience</p>
           </div>
 
-          <div className="quiz-content">
-            <div className="question-card">
-              <h2 className="question-text">{question.question}</h2>
-              {question.multiSelect && (
-                <p className="question-subtitle">select all that apply</p>
-              )}
-              
-              <div className={`options-grid ${question.layout === 'grid' ? 'options-grid-2col' : 'options-grid-1col'}`}>
-                {question.options.map((option, index) => {
-                  const isSelected = question.multiSelect 
-                    ? selectedAnswers.includes(index)
-                    : selectedAnswer === index;
-                    
-                  return (
+          <div className="quiz-all-questions">
+            {learningPreferenceQuestions.map((question, qIndex) => (
+              <div key={question.id} className="question-section">
+                <div className="question-header">
+                  <span className="question-number">Question {qIndex + 1}</span>
+                  <h2 className="question-text">{question.question}</h2>
+                  <p className="question-subtitle">{question.subtitle}</p>
+                </div>
+
+                <div className="options-list">
+                  {question.options.map((option) => (
                     <button
-                      key={index}
-                      className={`option-button ${isSelected ? 'selected' : ''}`}
-                      onClick={() => handleArchetypeSelect(index)}
+                      key={option.value}
+                      className={`option-button ${answers.learningPreferences[question.id]?.includes(option.value) ? 'selected' : ''}`}
+                      onClick={() => handleAnswerSelect(question.id, option.value)}
                     >
-                      <span className="option-number">{String.fromCharCode(65 + index)}</span>
+                      <span className="option-letter">{option.value})</span>
                       <span className="option-text">{option.text}</span>
-                      {question.multiSelect && isSelected && (
+                      {answers.learningPreferences[question.id]?.includes(option.value) && (
                         <span className="option-checkmark">✓</span>
                       )}
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
+            ))}
 
-              <div className="navigation-buttons">
-                <button 
-                  className="back-btn" 
-                  onClick={handleArchetypeBack}
-                  disabled={currentQuestion === 0}
-                >
-                  <svg className="back-btn-icon" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M16 5v14l-11-7z"/>
-                  </svg>
-                  back
-                </button>
-                <button 
-                  className="continue-btn" 
-                  onClick={handleArchetypeNext}
-                  disabled={!isValid}
-                >
-                  {currentQuestion === archetypeQuestions.length - 1 ? 'complete' : 'continue'}
-                </button>
-              </div>
-
-              <button className="skip-quiz-btn" onClick={handleSkip}>
-                skip learning style assessment
+            <div className="quiz-actions">
+              <button
+                className="submit-quiz-btn"
+                onClick={handleSubmit}
+                disabled={!isFormValid()}
+              >
+                Complete Setup
+              </button>
+              <button className="skip-quiz-link" onClick={handleSkip}>
+                Skip for now
               </button>
             </div>
           </div>
@@ -764,7 +557,7 @@ const ProfileQuiz = () => {
             <div className="skip-warning-modal">
               <h3>are you sure you want to skip?</h3>
               <p>
-                The Learning Archetype Assessment helps us personalize your AI tutor to match your unique learning style. 
+                This quick assessment helps us personalize your AI tutor to match your unique learning style. 
                 This significantly enhances your learning experience and makes study sessions more effective.
               </p>
               <p className="warning-emphasis">
@@ -786,23 +579,13 @@ const ProfileQuiz = () => {
   }
 
   if (currentStep === 'complete') {
-    const primaryArchetype = Object.entries(answers.archetypeScores)
-      .sort(([, a], [, b]) => b - a)[0][0];
-
     return (
       <div className="profile-quiz-page">
         <div className="quiz-container">
           <div className="quiz-completion">
-            <p className="completion-header">you are a</p>
-            
-            <h1 className="archetype-name">{primaryArchetype}</h1>
-            
-            <p className="archetype-description">
-              {archetypeDescriptions[primaryArchetype]}
-            </p>
-
+            <h1 className="completion-title">All Set!</h1>
             <p className="completion-message">
-              Your AI tutor is now personalized to match your unique learning style
+              Your AI tutor is now personalized to match your unique learning preferences
             </p>
             <p className="redirect-message">Redirecting to your dashboard...</p>
           </div>
@@ -991,9 +774,9 @@ const ProfileQuiz = () => {
             <div className="form-section" ref={submitRef}>
               <button
                 className="submit-btn"
-                onClick={() => setCurrentStep('archetype')}
+                onClick={() => setCurrentStep('preferences')}
               >
-                continue to learning style
+                continue to learning preferences
               </button>
             </div>
           )}

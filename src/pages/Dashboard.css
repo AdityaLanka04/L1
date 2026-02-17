@@ -740,7 +740,7 @@ body {
 
 .ds-card {
   background: var(--bg-secondary);
-  border-radius: 8px;
+  border-radius: 0.8rem !important;
   border: 1px solid var(--border);
   position: relative;
   overflow: hidden;

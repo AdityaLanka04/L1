@@ -6,6 +6,7 @@ import Homepage from './pages/Homepage';
 import SafetyLogin from './pages/SafetyLogin';
 import LearningReviewHub from './pages/LearningReviewHub';
 import Social from './pages/Social';
+import SharedPage from './pages/SharedPage';
 import FriendsDashboard from './pages/FriendsDashboard';
 import ActivityFeed from './pages/ActivityFeed';
 import Leaderboards from './pages/Leaderboards';
@@ -107,6 +108,7 @@ function App() {
             <Route path="/ai-chat/:chatId?" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />
             <Route path="/learning-review" element={<ProtectedRoute><LearningReviewHub /></ProtectedRoute>} />
             <Route path="/social" element={<ProtectedRoute><Social /></ProtectedRoute>} />
+            <Route path="/shared" element={<ProtectedRoute><SharedPage /></ProtectedRoute>} />
             <Route path="/playlists" element={<ProtectedRoute><PlaylistsPage /></ProtectedRoute>} />
             <Route path="/playlists/:playlistId" element={<ProtectedRoute><PlaylistDetailPage /></ProtectedRoute>} />
             <Route path="/friends" element={<ProtectedRoute><FriendsDashboard /></ProtectedRoute>} />
