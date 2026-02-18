@@ -89,6 +89,18 @@ const Flashcards = () => {
   // Needs Review state
   const [reviewCards, setReviewCards] = useState({ total_cards: 0, sets: [] });
   const [loadingReviewCards, setLoadingReviewCards] = useState(false);
+
+  // Spaced Repetition state
+  const [dueCards, setDueCards] = useState({ due_count: 0, new_count: 0, review_count: 0, learning_count: 0, relearning_count: 0, cards: [] });
+  const [srStudyMode, setSrStudyMode] = useState(false);
+  const [srCurrentCard, setSrCurrentCard] = useState(0);
+  const [srFlipped, setSrFlipped] = useState(false);
+  const [srSessionStats, setSrSessionStats] = useState({ again: 0, hard: 0, good: 0, easy: 0 });
+  const [showSrResults, setShowSrResults] = useState(false);
+  const [srStats, setSrStats] = useState(null);
+  const [loadingSrStats, setLoadingSrStats] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState(null);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   
   // Flashcard Agent Integration States
   const [agentSessionActive, setAgentSessionActive] = useState(false);
@@ -235,6 +247,105 @@ const Flashcards = () => {
     }
     setLoadingReviewCards(false);
   }, [userName]);
+
+  // ==================== SPACED REPETITION FUNCTIONS ====================
+
+  const loadDueCards = useCallback(async () => {
+    if (!userName) return;
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/flashcards/due?user_id=${userName}&limit=100`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDueCards(data);
+      }
+    } catch (error) {
+      console.error('Failed to load due cards:', error);
+    }
+  }, [userName]);
+
+  const loadSrStats = useCallback(async () => {
+    if (!userName) return;
+    setLoadingSrStats(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/flashcards/sr_stats?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSrStats(data);
+      }
+    } catch (error) {
+      console.error('Failed to load SR stats:', error);
+    }
+    setLoadingSrStats(false);
+  }, [userName]);
+
+  const loadAiSuggestions = async () => {
+    if (!userName) return;
+    setLoadingSuggestions(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/flashcards/ai_suggestions?user_id=${userName}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setAiSuggestions(data);
+      }
+    } catch (error) {
+      console.error('Failed to load AI suggestions:', error);
+    }
+    setLoadingSuggestions(false);
+  };
+
+  const handleSrReview = async (grade) => {
+    const cards = dueCards.cards;
+    if (!cards || cards.length === 0) return;
+    const card = cards[srCurrentCard];
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/flashcards/sr_review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ user_id: userName, card_id: card.id, grade })
+      });
+
+      if (response.ok) {
+        setSrSessionStats(prev => ({ ...prev, [grade]: prev[grade] + 1 }));
+
+        if (srCurrentCard < cards.length - 1) {
+          setSrCurrentCard(srCurrentCard + 1);
+          setSrFlipped(false);
+        } else {
+          setShowSrResults(true);
+        }
+      }
+    } catch (error) {
+      console.error('SR review failed:', error);
+    }
+  };
+
+  const startSrStudy = () => {
+    setSrStudyMode(true);
+    setSrCurrentCard(0);
+    setSrFlipped(false);
+    setSrSessionStats({ again: 0, hard: 0, good: 0, easy: 0 });
+    setShowSrResults(false);
+  };
+
+  const exitSrStudy = () => {
+    setSrStudyMode(false);
+    setShowSrResults(false);
+    setSrCurrentCard(0);
+    setSrFlipped(false);
+    loadDueCards();
+    loadSrStats();
+  };
 
   const markCardForReview = async (flashcardId, marked = true) => {
     try {
@@ -863,6 +974,7 @@ const Flashcards = () => {
       loadFlashcardHistory(true); // Reset and load initial data
       loadFlashcardStats();
       loadReviewCards();
+      loadDueCards();
       
       // Check for URL parameters to load a specific set
       const params = new URLSearchParams(location.search);
@@ -2077,6 +2189,125 @@ const Flashcards = () => {
     );
   }
 
+  // Spaced Repetition Study Mode UI
+  if (srStudyMode && dueCards.cards && dueCards.cards.length > 0) {
+    const cards = dueCards.cards;
+    const card = cards[srCurrentCard];
+    const totalReviewed = srSessionStats.again + srSessionStats.hard + srSessionStats.good + srSessionStats.easy;
+    const srProgress = Math.round(((srCurrentCard + (showSrResults ? 1 : 0)) / cards.length) * 100);
+
+    if (showSrResults) {
+      const totalGraded = srSessionStats.again + srSessionStats.hard + srSessionStats.good + srSessionStats.easy;
+      const successRate = totalGraded > 0 ? Math.round(((srSessionStats.good + srSessionStats.easy) / totalGraded) * 100) : 0;
+
+      return (
+        <div className="flashcards-page">
+          <div className="fc-study-mode">
+            <div className="fc-sr-results">
+              <h2 className="fc-sr-results-title">Session Complete</h2>
+              <p className="fc-sr-results-subtitle">{totalGraded} Cards Reviewed</p>
+
+              <div className="fc-sr-results-grid">
+                <div className="fc-sr-result-item fc-sr-again">
+                  <span className="fc-sr-result-count">{srSessionStats.again}</span>
+                  <span className="fc-sr-result-label">Again</span>
+                </div>
+                <div className="fc-sr-result-item fc-sr-hard">
+                  <span className="fc-sr-result-count">{srSessionStats.hard}</span>
+                  <span className="fc-sr-result-label">Hard</span>
+                </div>
+                <div className="fc-sr-result-item fc-sr-good">
+                  <span className="fc-sr-result-count">{srSessionStats.good}</span>
+                  <span className="fc-sr-result-label">Good</span>
+                </div>
+                <div className="fc-sr-result-item fc-sr-easy">
+                  <span className="fc-sr-result-count">{srSessionStats.easy}</span>
+                  <span className="fc-sr-result-label">Easy</span>
+                </div>
+              </div>
+
+              <div className="fc-sr-retention-bar">
+                <div className="fc-sr-retention-fill" style={{ width: `${successRate}%` }}></div>
+                <span className="fc-sr-retention-text">{successRate}% success rate</span>
+              </div>
+
+              <div className="fc-sr-results-actions">
+                <button className="fc-btn fc-btn-primary" onClick={exitSrStudy}>
+                  Back to Study Queue
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flashcards-page">
+        <div className="fc-study-mode">
+          <div className="fc-study-header">
+            <button className="fc-btn fc-btn-ghost" onClick={exitSrStudy}>
+              {Icons.back} Exit
+            </button>
+            <div className="fc-study-progress">
+              <span>{srCurrentCard + 1} / {cards.length}</span>
+              <div className="fc-progress-bar">
+                <div className="fc-progress-fill" style={{ width: `${srProgress}%` }}></div>
+              </div>
+            </div>
+            <div className="fc-sr-session-counts">
+              <span className="fc-sr-mini-count fc-sr-again">{srSessionStats.again}</span>
+              <span className="fc-sr-mini-count fc-sr-hard">{srSessionStats.hard}</span>
+              <span className="fc-sr-mini-count fc-sr-good">{srSessionStats.good}</span>
+              <span className="fc-sr-mini-count fc-sr-easy">{srSessionStats.easy}</span>
+            </div>
+          </div>
+
+          <div className="fc-sr-card-area">
+            {card && (
+              <div className={`fc-sr-card ${srFlipped ? 'fc-sr-card-flipped' : ''}`} onClick={() => !srFlipped && setSrFlipped(true)}>
+                {!srFlipped ? (
+                  <div className="fc-sr-card-front">
+                    <div className="fc-sr-card-badge">{card.sr_state === 'new' ? 'NEW' : card.sr_state?.toUpperCase()}</div>
+                    <div className="fc-sr-card-set">{card.set_title}</div>
+                    <div className="fc-sr-card-content">{card.question}</div>
+                    <div className="fc-sr-tap-hint">Tap to reveal answer</div>
+                  </div>
+                ) : (
+                  <div className="fc-sr-card-back">
+                    <div className="fc-sr-card-label">Answer</div>
+                    <div className="fc-sr-card-content">{card.answer}</div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {srFlipped && card && (
+            <div className="fc-sr-grade-buttons">
+              <button className="fc-sr-grade fc-sr-again" onClick={() => handleSrReview('again')}>
+                <span className="fc-sr-grade-interval">{card.interval_preview?.again || '1m'}</span>
+                <span className="fc-sr-grade-label">Again</span>
+              </button>
+              <button className="fc-sr-grade fc-sr-hard" onClick={() => handleSrReview('hard')}>
+                <span className="fc-sr-grade-interval">{card.interval_preview?.hard || '6m'}</span>
+                <span className="fc-sr-grade-label">Hard</span>
+              </button>
+              <button className="fc-sr-grade fc-sr-good" onClick={() => handleSrReview('good')}>
+                <span className="fc-sr-grade-interval">{card.interval_preview?.good || '1d'}</span>
+                <span className="fc-sr-grade-label">Good</span>
+              </button>
+              <button className="fc-sr-grade fc-sr-easy" onClick={() => handleSrReview('easy')}>
+                <span className="fc-sr-grade-interval">{card.interval_preview?.easy || '4d'}</span>
+                <span className="fc-sr-grade-label">Easy</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // Study Mode UI (MCQ Quiz)
   if (studyMode && flashcards.length > 0) {
     return (
@@ -2264,6 +2495,13 @@ const Flashcards = () => {
               <span className="fc-nav-icon">{Icons.cards}</span>
               <span className="fc-nav-text">My Flashcards</span>
             </button>
+            <button className={`fc-nav-item ${activePanel === 'sr_study' ? 'active' : ''}`} onClick={() => { setActivePanel('sr_study'); loadDueCards(); loadSrStats(); }}>
+              <span className="fc-nav-icon">{Icons.target}</span>
+              <span className="fc-nav-text">Study Queue</span>
+              {dueCards.due_count > 0 && (
+                <span className="fc-nav-badge fc-nav-badge-sr">{dueCards.due_count}</span>
+              )}
+            </button>
             <button className={`fc-nav-item ${activePanel === 'review' ? 'active' : ''}`} onClick={() => setActivePanel('review')}>
               <span className="fc-nav-icon">{Icons.refresh}</span>
               <span className="fc-nav-text">Needs Review</span>
@@ -2306,6 +2544,14 @@ const Flashcards = () => {
           {/* My Flashcards Panel */}
           {activePanel === 'cards' && (
             <>
+              {/* Due Cards Banner */}
+              {dueCards.due_count > 0 && (
+                <div className="fc-due-banner" onClick={() => { setActivePanel('sr_study'); loadDueCards(); loadSrStats(); }}>
+                  <span className="fc-due-banner-icon">{Icons.target}</span>
+                  <span className="fc-due-banner-text">{dueCards.due_count} cards due for review today</span>
+                  <button className="fc-btn fc-btn-sm fc-due-banner-btn">Study Now</button>
+                </div>
+              )}
               <div className="fc-content fc-cards-panel">
                 {loadingHistory && flashcardHistory.length === 0 ? (
                   <div className="fc-loading">
@@ -3012,6 +3258,206 @@ const Flashcards = () => {
                 )}
               </div>
             </>
+          )}
+
+          {/* Spaced Repetition - Study Queue Panel */}
+          {activePanel === 'sr_study' && (
+            <div className="fc-content">
+              <div className="fc-sr-panel-header">
+                <h2>Spaced Repetition</h2>
+                <p><span>{dueCards.due_count}</span> Cards Due Today</p>
+              </div>
+
+              {/* Due cards summary */}
+              <div className="fc-sr-summary">
+                <div className="fc-sr-summary-item">
+                  <span className="fc-sr-dot fc-sr-dot-new"></span>
+                  <span className="fc-sr-count">{dueCards.new_count || 0}</span>
+                  <span className="fc-sr-label">New</span>
+                </div>
+                <div className="fc-sr-summary-item">
+                  <span className="fc-sr-dot fc-sr-dot-review"></span>
+                  <span className="fc-sr-count">{dueCards.review_count || 0}</span>
+                  <span className="fc-sr-label">Review</span>
+                </div>
+                <div className="fc-sr-summary-item">
+                  <span className="fc-sr-dot fc-sr-dot-learning"></span>
+                  <span className="fc-sr-count">{dueCards.learning_count || 0}</span>
+                  <span className="fc-sr-label">Learning</span>
+                </div>
+                <div className="fc-sr-summary-item">
+                  <span className="fc-sr-dot fc-sr-dot-relearning"></span>
+                  <span className="fc-sr-count">{dueCards.relearning_count || 0}</span>
+                  <span className="fc-sr-label">Relearning</span>
+                </div>
+              </div>
+
+              {dueCards.due_count > 0 && (
+                <button className="fc-btn fc-btn-primary fc-sr-start-btn" onClick={startSrStudy}>
+                  {Icons.bolt} Start Review ({dueCards.due_count} cards)
+                </button>
+              )}
+
+              {dueCards.due_count === 0 && (
+                <div className="fc-sr-empty">
+                  <div className="fc-sr-empty-icon">{Icons.check}</div>
+                  <h3>You're all caught up!</h3>
+                  <p>No cards due for review right now. Great job!</p>
+                </div>
+              )}
+
+              {/* SR Stats Section */}
+              {srStats && (
+                <div className="fc-sr-stats-panel">
+                  <h3 className="fc-sr-stats-title">Your Stats</h3>
+
+                  <div className="fc-sr-stats-grid">
+                    <div className="fc-sr-stat-card">
+                      <span className="fc-sr-stat-value">{srStats.retention_rate || 0}%</span>
+                      <span className="fc-sr-stat-label">Retention Rate</span>
+                    </div>
+                    <div className="fc-sr-stat-card">
+                      <span className="fc-sr-stat-value">{srStats.total_reviews || 0}</span>
+                      <span className="fc-sr-stat-label">Total Reviews</span>
+                    </div>
+                    <div className="fc-sr-stat-card">
+                      <span className="fc-sr-stat-value">{srStats.maturity?.mature_count || 0}</span>
+                      <span className="fc-sr-stat-label">Mature Cards</span>
+                    </div>
+                    <div className="fc-sr-stat-card">
+                      <span className="fc-sr-stat-value">{srStats.maturity?.average_interval ? `${Math.round(srStats.maturity.average_interval)}d` : '0d'}</span>
+                      <span className="fc-sr-stat-label">Avg Interval</span>
+                    </div>
+                  </div>
+
+                  {/* Card State Distribution */}
+                  {srStats.state_distribution && (
+                    <div className="fc-sr-state-dist">
+                      <h4>Card States</h4>
+                      <div className="fc-sr-state-bars">
+                        {Object.entries(srStats.state_distribution).map(([state, count]) => (
+                          <div key={state} className="fc-sr-state-bar-row">
+                            <span className="fc-sr-state-bar-label">{state}</span>
+                            <div className="fc-sr-state-bar-track">
+                              <div
+                                className={`fc-sr-state-bar-fill fc-sr-bar-${state}`}
+                                style={{ width: `${srStats.total_cards > 0 ? (count / srStats.total_cards * 100) : 0}%` }}
+                              ></div>
+                            </div>
+                            <span className="fc-sr-state-bar-count">{count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Review Forecast */}
+                  {srStats.review_forecast && srStats.review_forecast.length > 0 && (
+                    <div className="fc-sr-forecast">
+                      <h4>14-Day Review Forecast</h4>
+                      <div className="fc-sr-forecast-chart">
+                        {srStats.review_forecast.map((day, idx) => {
+                          const maxCount = Math.max(...srStats.review_forecast.map(d => d.count), 1);
+                          const height = Math.max(4, (day.count / maxCount) * 80);
+                          return (
+                            <div key={idx} className="fc-sr-forecast-bar-wrapper">
+                              <div className="fc-sr-forecast-bar" style={{ height: `${height}px` }}>
+                                {day.count > 0 && <span className="fc-sr-forecast-count">{day.count}</span>}
+                              </div>
+                              <span className="fc-sr-forecast-label">{day.day_label}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Ease Distribution */}
+                  {srStats.ease_distribution && (
+                    <div className="fc-sr-ease-dist">
+                      <h4>Ease Distribution</h4>
+                      <div className="fc-sr-ease-bars">
+                        {srStats.ease_distribution.map((bucket, idx) => (
+                          <div key={idx} className="fc-sr-ease-bar-row">
+                            <span className="fc-sr-ease-label">{bucket.label}</span>
+                            <div className="fc-sr-ease-bar-track">
+                              <div
+                                className="fc-sr-ease-bar-fill"
+                                style={{ width: `${srStats.total_cards > 0 ? (bucket.count / srStats.total_cards * 100) : 0}%` }}
+                              ></div>
+                            </div>
+                            <span className="fc-sr-ease-count">{bucket.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* AI Suggestions Section */}
+              <div className="fc-sr-ai-section">
+                <h3 className="fc-sr-stats-title">AI Study Coach</h3>
+                <button
+                  className="fc-btn fc-btn-secondary fc-sr-ai-btn"
+                  onClick={loadAiSuggestions}
+                  disabled={loadingSuggestions}
+                >
+                  {loadingSuggestions ? 'Analyzing...' : 'Get AI Study Suggestions'}
+                </button>
+
+                {aiSuggestions && (
+                  <div className="fc-sr-suggestions">
+                    {aiSuggestions.encouragement && (
+                      <div className="fc-sr-suggestion-card fc-sr-encouragement">
+                        <p>{aiSuggestions.encouragement}</p>
+                      </div>
+                    )}
+
+                    <div className="fc-sr-suggestion-stats">
+                      {aiSuggestions.daily_target && (
+                        <div className="fc-sr-suggestion-stat">
+                          <span className="fc-sr-suggestion-stat-value">{aiSuggestions.daily_target}</span>
+                          <span className="fc-sr-suggestion-stat-label">Daily Target</span>
+                        </div>
+                      )}
+                      {aiSuggestions.optimal_new_cards_per_day !== undefined && (
+                        <div className="fc-sr-suggestion-stat">
+                          <span className="fc-sr-suggestion-stat-value">{aiSuggestions.optimal_new_cards_per_day}</span>
+                          <span className="fc-sr-suggestion-stat-label">New Cards/Day</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {aiSuggestions.study_tips && aiSuggestions.study_tips.length > 0 && (
+                      <div className="fc-sr-tips">
+                        <h4>Study Tips</h4>
+                        <ul>
+                          {aiSuggestions.study_tips.map((tip, idx) => (
+                            <li key={idx}>{tip}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {aiSuggestions.problem_areas && aiSuggestions.problem_areas.length > 0 && (
+                      <div className="fc-sr-problem-areas">
+                        <h4>Problem Areas</h4>
+                        {aiSuggestions.problem_areas.map((area, idx) => (
+                          <div key={idx} className={`fc-sr-problem-card fc-sr-priority-${area.priority}`}>
+                            <div className="fc-sr-problem-header">
+                              <span className="fc-sr-problem-topic">{area.topic}</span>
+                              <span className={`fc-sr-priority-badge`}>{area.priority}</span>
+                            </div>
+                            <p>{area.suggestion}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           )}
 
           {/* Statistics Panel */}

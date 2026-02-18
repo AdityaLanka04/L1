@@ -32,6 +32,25 @@ DATABASE_URL = os.getenv("DATABASE_URL", "")
 
 models.Base.metadata.create_all(bind=engine)
 
+# --- Migrate: add spaced-repetition columns to flashcards if missing ---
+_SR_COLUMNS = {
+    "ease_factor": "FLOAT DEFAULT 2.5",
+    "interval": "FLOAT DEFAULT 0",
+    "repetitions": "INTEGER DEFAULT 0",
+    "next_review_date": "DATETIME",
+    "lapses": "INTEGER DEFAULT 0",
+    "sr_state": "VARCHAR(20) DEFAULT 'new'",
+    "learning_step": "INTEGER DEFAULT 0",
+}
+
+with engine.connect() as _conn:
+    _existing = {r[1] for r in _conn.execute(text("PRAGMA table_info(flashcards)"))}
+    for _col, _typ in _SR_COLUMNS.items():
+        if _col not in _existing:
+            _conn.execute(text(f"ALTER TABLE flashcards ADD COLUMN {_col} {_typ}"))
+            logger.info("Added column flashcards.%s", _col)
+    _conn.commit()
+
 
 def _sync_sequences():
     if not DATABASE_URL or "postgres" not in DATABASE_URL.lower():

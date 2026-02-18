@@ -1,11 +1,11 @@
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import func
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
 import models
@@ -478,3 +478,460 @@ async def update_flashcard_review(request: FlashcardReviewRequest, db: Session =
         "times_reviewed": card.times_reviewed,
         "correct_count": card.correct_count,
     }
+
+
+# ==================== SPACED REPETITION ENDPOINTS ====================
+
+
+class SRReviewRequest(BaseModel):
+    user_id: str
+    card_id: int
+    grade: str  # "again", "hard", "good", "easy"
+
+
+@router.get("/flashcards/due")
+def get_due_flashcards(
+    user_id: str = Query(...),
+    limit: int = Query(50),
+    db: Session = Depends(get_db),
+):
+    """Get all flashcards due for spaced repetition review."""
+    user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    from spaced_repetition import preview_intervals
+
+    now = datetime.now(timezone.utc)
+
+    due_cards = (
+        db.query(models.Flashcard)
+        .join(models.FlashcardSet)
+        .filter(
+            models.FlashcardSet.user_id == user.id,
+            or_(
+                models.Flashcard.next_review_date <= now,
+                and_(
+                    models.Flashcard.next_review_date == None,
+                    or_(
+                        models.Flashcard.sr_state == "new",
+                        models.Flashcard.sr_state == None,
+                    ),
+                ),
+                # Also include learning/relearning cards that are due
+                and_(
+                    models.Flashcard.sr_state.in_(["learning", "relearning"]),
+                    models.Flashcard.next_review_date <= now,
+                ),
+            ),
+        )
+        .order_by(models.Flashcard.next_review_date.asc().nullsfirst())
+        .limit(limit)
+        .all()
+    )
+
+    # Count by state
+    new_count = sum(1 for c in due_cards if (c.sr_state or "new") == "new")
+    review_count = sum(1 for c in due_cards if c.sr_state == "review")
+    learning_count = sum(1 for c in due_cards if c.sr_state == "learning")
+    relearning_count = sum(1 for c in due_cards if c.sr_state == "relearning")
+
+    cards_data = []
+    for c in due_cards:
+        fs = db.query(models.FlashcardSet).filter(models.FlashcardSet.id == c.set_id).first()
+        set_title = fs.title if fs else ""
+
+        card_state = c.sr_state or "new"
+        card_ease = c.ease_factor if c.ease_factor else 2.5
+        card_interval = c.interval if c.interval else 0
+        card_reps = c.repetitions if c.repetitions else 0
+        card_lapses = c.lapses if c.lapses else 0
+        card_step = c.learning_step if c.learning_step else 0
+
+        interval_preview = preview_intervals(
+            card_state, card_ease, card_interval, card_reps, card_lapses, card_step
+        )
+
+        cards_data.append({
+            "id": c.id,
+            "set_id": c.set_id,
+            "set_title": set_title,
+            "question": c.question,
+            "answer": c.answer,
+            "difficulty": c.difficulty or "medium",
+            "sr_state": card_state,
+            "ease_factor": card_ease,
+            "interval": card_interval,
+            "repetitions": card_reps,
+            "lapses": card_lapses,
+            "interval_preview": interval_preview,
+        })
+
+    return {
+        "due_count": len(due_cards),
+        "new_count": new_count,
+        "review_count": review_count,
+        "learning_count": learning_count,
+        "relearning_count": relearning_count,
+        "cards": cards_data,
+    }
+
+
+@router.post("/flashcards/sr_review")
+async def sr_review(request: SRReviewRequest, db: Session = Depends(get_db)):
+    """Submit a spaced repetition review with SM-2 grade."""
+    from spaced_repetition import GRADE_MAP, calculate_next_review, preview_intervals
+
+    user = get_user_by_username(db, request.user_id) or get_user_by_email(db, request.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    grade_str = request.grade.lower()
+    if grade_str not in GRADE_MAP:
+        raise HTTPException(status_code=400, detail=f"Invalid grade. Must be one of: {list(GRADE_MAP.keys())}")
+
+    card = db.query(models.Flashcard).filter(models.Flashcard.id == request.card_id).first()
+    if not card:
+        raise HTTPException(status_code=404, detail="Flashcard not found")
+
+    grade = GRADE_MAP[grade_str]
+    old_state = card.sr_state or "new"
+
+    # Calculate next review using SM-2
+    result = calculate_next_review(
+        sr_state=old_state,
+        ease_factor=card.ease_factor or 2.5,
+        interval=card.interval or 0,
+        repetitions=card.repetitions or 0,
+        lapses=card.lapses or 0,
+        grade=grade,
+        learning_step=card.learning_step or 0,
+    )
+
+    # Update SR fields
+    card.sr_state = result["new_state"]
+    card.ease_factor = result["new_ease"]
+    card.interval = result["new_interval"]
+    card.repetitions = result["new_repetitions"]
+    card.lapses = result["new_lapses"]
+    card.learning_step = result["new_learning_step"]
+    card.next_review_date = result["next_review_date"]
+
+    # Also update legacy fields for backward compatibility
+    card.times_reviewed = (card.times_reviewed or 0) + 1
+    if grade >= 2:  # Good or Easy
+        card.correct_count = (card.correct_count or 0) + 1
+    card.last_reviewed = datetime.now(timezone.utc)
+
+    # Clear marked_for_review if card is now in review state with good ease
+    if result["new_state"] == "review" and grade >= 2:
+        card.marked_for_review = False
+
+    db.commit()
+
+    # Get set info
+    flashcard_set = db.query(models.FlashcardSet).filter(
+        models.FlashcardSet.id == card.set_id
+    ).first()
+    set_title = flashcard_set.title if flashcard_set else ""
+
+    # Award gamification points
+    try:
+        from gamification_system import award_points
+        award_points(db, user.id, "flashcard_reviewed")
+        # Award mastery bonus if card graduated to review for the first time
+        if old_state in ("new", "learning") and result["new_state"] == "review":
+            award_points(db, user.id, "flashcard_mastered")
+    except Exception:
+        pass
+
+    # Write to ChromaDB
+    from tutor import chroma_store
+    if chroma_store.available():
+        try:
+            summary = (
+                f"SR Review in \"{set_title}\": grade={grade_str}, "
+                f"Q: {card.question[:80]}. "
+                f"State: {old_state}->{result['new_state']}, "
+                f"Next interval: {result['new_interval']:.1f}d, Ease: {result['new_ease']}"
+            )
+            chroma_store.write_episode(
+                user_id=str(user.id),
+                summary=summary,
+                metadata={
+                    "source": "flashcard_sr_review",
+                    "card_id": str(card.id),
+                    "set_id": str(card.set_id),
+                    "sr_grade": grade_str,
+                    "sr_state_before": old_state,
+                    "sr_state_after": result["new_state"],
+                    "new_interval_days": str(round(result["new_interval"], 2)),
+                    "topic": set_title,
+                },
+            )
+        except Exception as e:
+            logger.warning(f"Chroma write failed on SR review: {e}")
+
+    # Write struggle to Neo4j on Again
+    if grade == 0:
+        from tutor import neo4j_store
+        if neo4j_store.available():
+            try:
+                concept = set_title.replace("Flashcards: ", "") if set_title else ""
+                if concept:
+                    await neo4j_store.update_struggle(str(user.id), concept)
+            except Exception as e:
+                logger.warning(f"Neo4j struggle write failed: {e}")
+
+    # Get interval preview for the updated card
+    new_preview = preview_intervals(
+        result["new_state"], result["new_ease"], result["new_interval"],
+        result["new_repetitions"], result["new_lapses"], result["new_learning_step"],
+    )
+
+    return {
+        "status": "success",
+        "card_id": card.id,
+        "new_state": result["new_state"],
+        "new_interval": round(result["new_interval"], 2),
+        "new_ease": result["new_ease"],
+        "next_review_date": result["next_review_date"].isoformat() + "Z",
+        "interval_preview": new_preview,
+    }
+
+
+@router.get("/flashcards/sr_stats")
+def get_sr_stats(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """Get detailed spaced repetition statistics."""
+    user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    all_cards = (
+        db.query(models.Flashcard)
+        .join(models.FlashcardSet)
+        .filter(models.FlashcardSet.user_id == user.id)
+        .all()
+    )
+
+    total = len(all_cards)
+    if total == 0:
+        return {
+            "total_cards": 0,
+            "state_distribution": {"new": 0, "learning": 0, "review": 0, "relearning": 0},
+            "retention_rate": 0,
+            "ease_distribution": [],
+            "review_forecast": [],
+            "maturity": {"average_interval": 0, "mature_count": 0, "longest_interval": 0},
+            "lapse_stats": {"total_lapses": 0, "most_lapsed": []},
+        }
+
+    # State distribution
+    state_dist = {"new": 0, "learning": 0, "review": 0, "relearning": 0}
+    for c in all_cards:
+        state = c.sr_state or "new"
+        if state in state_dist:
+            state_dist[state] += 1
+
+    # Retention rate
+    total_reviews = sum(c.times_reviewed or 0 for c in all_cards)
+    total_correct = sum(c.correct_count or 0 for c in all_cards)
+    retention = round((total_correct / total_reviews * 100), 1) if total_reviews > 0 else 0
+
+    # Ease distribution (histogram)
+    ease_buckets = [
+        {"range": "1.3-1.7", "label": "Hard", "count": 0},
+        {"range": "1.7-2.1", "label": "Difficult", "count": 0},
+        {"range": "2.1-2.5", "label": "Normal", "count": 0},
+        {"range": "2.5-2.9", "label": "Easy", "count": 0},
+        {"range": "2.9+", "label": "Very Easy", "count": 0},
+    ]
+    for c in all_cards:
+        ease = c.ease_factor or 2.5
+        if ease < 1.7:
+            ease_buckets[0]["count"] += 1
+        elif ease < 2.1:
+            ease_buckets[1]["count"] += 1
+        elif ease < 2.5:
+            ease_buckets[2]["count"] += 1
+        elif ease < 2.9:
+            ease_buckets[3]["count"] += 1
+        else:
+            ease_buckets[4]["count"] += 1
+
+    # Review forecast (next 14 days)
+    now = datetime.now(timezone.utc)
+    forecast = []
+    for day_offset in range(14):
+        target_date = (now + timedelta(days=day_offset)).date()
+        count = 0
+        for c in all_cards:
+            if c.next_review_date:
+                review_date = c.next_review_date
+                if hasattr(review_date, 'date'):
+                    review_date = review_date.date()
+                if review_date == target_date:
+                    count += 1
+            elif (c.sr_state or "new") == "new" and day_offset == 0:
+                count += 1  # New cards are due today
+        forecast.append({
+            "date": target_date.isoformat(),
+            "day_label": "Today" if day_offset == 0 else target_date.strftime("%b %d"),
+            "count": count,
+        })
+
+    # Maturity stats (only review cards)
+    review_cards = [c for c in all_cards if c.sr_state == "review"]
+    intervals = [c.interval or 0 for c in review_cards]
+    avg_interval = round(sum(intervals) / len(intervals), 1) if intervals else 0
+    longest = max(intervals) if intervals else 0
+    mature_count = sum(1 for i in intervals if i >= 21)
+
+    # Lapse stats
+    total_lapses = sum(c.lapses or 0 for c in all_cards)
+    most_lapsed = sorted(
+        [c for c in all_cards if (c.lapses or 0) > 0],
+        key=lambda c: c.lapses or 0,
+        reverse=True,
+    )[:5]
+
+    return {
+        "total_cards": total,
+        "state_distribution": state_dist,
+        "retention_rate": retention,
+        "total_reviews": total_reviews,
+        "ease_distribution": ease_buckets,
+        "review_forecast": forecast,
+        "maturity": {
+            "average_interval": avg_interval,
+            "mature_count": mature_count,
+            "longest_interval": round(longest, 1),
+            "review_card_count": len(review_cards),
+        },
+        "lapse_stats": {
+            "total_lapses": total_lapses,
+            "most_lapsed": [
+                {"card_id": c.id, "question": c.question[:80], "lapses": c.lapses}
+                for c in most_lapsed
+            ],
+        },
+    }
+
+
+@router.get("/flashcards/ai_suggestions")
+async def get_ai_suggestions(user_id: str = Query(...), db: Session = Depends(get_db)):
+    """Get AI-powered study suggestions based on SR data."""
+    user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Gather stats
+    all_cards = (
+        db.query(models.Flashcard)
+        .join(models.FlashcardSet)
+        .filter(models.FlashcardSet.user_id == user.id)
+        .all()
+    )
+
+    total = len(all_cards)
+    if total == 0:
+        return {
+            "daily_target": 10,
+            "problem_areas": [],
+            "study_tips": ["Start by creating some flashcard sets on topics you want to learn!"],
+            "optimal_new_cards_per_day": 10,
+            "encouragement": "Welcome! Create your first flashcard set to get started.",
+        }
+
+    now = datetime.now(timezone.utc)
+
+    # Calculate stats for the prompt
+    state_counts = {"new": 0, "learning": 0, "review": 0, "relearning": 0}
+    for c in all_cards:
+        s = c.sr_state or "new"
+        if s in state_counts:
+            state_counts[s] += 1
+
+    due_today = sum(
+        1 for c in all_cards
+        if (c.next_review_date and c.next_review_date <= now)
+        or (c.sr_state or "new") == "new"
+    )
+
+    total_reviews = sum(c.times_reviewed or 0 for c in all_cards)
+    total_correct = sum(c.correct_count or 0 for c in all_cards)
+    retention = round((total_correct / total_reviews * 100), 1) if total_reviews > 0 else 0
+
+    avg_ease = round(sum((c.ease_factor or 2.5) for c in all_cards) / total, 2)
+
+    # Problem cards
+    low_ease_cards = [c for c in all_cards if (c.ease_factor or 2.5) < 1.8]
+    high_lapse_cards = [c for c in all_cards if (c.lapses or 0) >= 3]
+
+    # Get set titles for problem cards
+    problem_topics = set()
+    for c in low_ease_cards + high_lapse_cards:
+        fs = db.query(models.FlashcardSet).filter(models.FlashcardSet.id == c.set_id).first()
+        if fs:
+            problem_topics.add(fs.title)
+
+    # Recent study frequency
+    reviewed_last_week = sum(
+        1 for c in all_cards
+        if c.last_reviewed and (now - c.last_reviewed).days <= 7
+    )
+
+    prompt = f"""You are a spaced repetition study coach. Analyze this student's flashcard data and provide personalized suggestions.
+
+Stats:
+- Total cards: {total}, Due today: {due_today}
+- State distribution: new={state_counts['new']}, learning={state_counts['learning']}, review={state_counts['review']}, relearning={state_counts['relearning']}
+- Retention rate: {retention}%
+- Average ease factor: {avg_ease}
+- Cards with low ease (<1.8): {len(low_ease_cards)} cards
+- Cards with high lapses (>=3): {len(high_lapse_cards)} cards
+- Problem topics: {', '.join(problem_topics) if problem_topics else 'None'}
+- Cards reviewed in last 7 days: {reviewed_last_week}
+- Total lifetime reviews: {total_reviews}
+
+Return ONLY valid JSON (no markdown, no code blocks):
+{{
+  "daily_target": <recommended cards to review per day as number>,
+  "problem_areas": [
+    {{"topic": "topic name", "suggestion": "specific advice", "priority": "high or medium or low"}}
+  ],
+  "study_tips": ["tip 1", "tip 2", "tip 3"],
+  "optimal_new_cards_per_day": <number>,
+  "encouragement": "motivational message based on their data"
+}}"""
+
+    try:
+        ai_response = unified_ai.generate(prompt, max_tokens=800, temperature=0.7)
+        cleaned = ai_response.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.split("\n", 1)[-1].rsplit("```", 1)[0]
+        suggestions = json.loads(cleaned)
+        return suggestions
+    except Exception as e:
+        logger.warning(f"AI suggestions failed: {e}")
+        # Fallback with basic heuristic suggestions
+        tips = []
+        if retention < 80:
+            tips.append("Your retention rate is below 80%. Consider reviewing more frequently to strengthen memory.")
+        if len(low_ease_cards) > 5:
+            tips.append(f"You have {len(low_ease_cards)} difficult cards. Try breaking these into simpler sub-concepts.")
+        if state_counts["new"] > 50:
+            tips.append("You have many unstarted cards. Focus on reviewing existing cards before adding more new ones.")
+        if not tips:
+            tips.append("Keep up the great work! Consistency is key to long-term retention.")
+
+        return {
+            "daily_target": min(50, max(10, due_today)),
+            "problem_areas": [
+                {"topic": t, "suggestion": "Focus extra time on this topic", "priority": "high"}
+                for t in list(problem_topics)[:3]
+            ],
+            "study_tips": tips,
+            "optimal_new_cards_per_day": 10 if state_counts["review"] < 100 else 5,
+            "encouragement": f"You've reviewed {total_reviews} cards total. Keep going!",
+        }

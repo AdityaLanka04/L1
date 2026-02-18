@@ -364,9 +364,17 @@ class Flashcard(Base):
     marked_for_review = Column(Boolean, default=False)  # Track "I don't know this" cards
     is_edited = Column(Boolean, default=False)  # Track if card was manually edited
     edited_at = Column(DateTime, nullable=True)  # When the card was last edited
+    # Spaced Repetition fields (SM-2 algorithm)
+    ease_factor = Column(Float, default=2.5)
+    interval = Column(Float, default=0)  # In days (0 = new card)
+    repetitions = Column(Integer, default=0)  # Consecutive correct in review state
+    next_review_date = Column(DateTime, nullable=True)  # When card is next due
+    lapses = Column(Integer, default=0)  # Times card went from review -> relearning
+    sr_state = Column(String(20), default="new")  # new/learning/review/relearning
+    learning_step = Column(Integer, default=0)  # Current step in learning/relearning
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     flashcard_set = relationship("FlashcardSet", back_populates="flashcards")
 
 class FlashcardStudySession(Base):
