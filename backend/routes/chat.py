@@ -96,11 +96,31 @@ async def ask_ai(
             if not chat_session:
                 raise HTTPException(status_code=404, detail="Chat session not found")
 
+        # Fetch chat history for context in the full /ask/ endpoint too
+        chat_history_for_tutor = []
+        if chat_id_int:
+            recent_msgs_for_ctx = (
+                db.query(models.ChatMessage)
+                .filter(models.ChatMessage.chat_session_id == chat_id_int)
+                .order_by(models.ChatMessage.timestamp.desc())
+                .limit(20)
+                .all()
+            )
+            chat_history_for_tutor = [
+                {"user": msg.user_message, "ai": msg.ai_response}
+                for msg in reversed(recent_msgs_for_ctx)
+            ]
+
         from tutor.graph import get_tutor
 
         tutor = get_tutor()
         if tutor:
-            result = await tutor.invoke(user_id=str(user.id), user_input=question)
+            result = await tutor.invoke(
+                user_id=str(user.id),
+                user_input=question,
+                chat_id=chat_id_int,
+                chat_history=chat_history_for_tutor,
+            )
             response_text = result.get("response", "")
         else:
             response_text = call_ai(question)
@@ -176,7 +196,7 @@ async def ask_simple(
                 db.query(models.ChatMessage)
                 .filter(models.ChatMessage.chat_session_id == chat_id_int)
                 .order_by(models.ChatMessage.timestamp.desc())
-                .limit(10)
+                .limit(20)
                 .all()
             )
             chat_history = [

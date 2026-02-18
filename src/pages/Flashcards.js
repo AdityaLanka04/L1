@@ -45,7 +45,8 @@ const Flashcards = () => {
   const [depthLevel, setDepthLevel] = useState('standard');
   const [autoSave, setAutoSave] = useState(true);
   const [isPublic, setIsPublic] = useState(false);
-  
+  const [additionalSpecs, setAdditionalSpecs] = useState('');
+
   // Custom flashcard creation
   const [customCards, setCustomCards] = useState([{ question: '', answer: '' }]);
   const [customSetTitle, setCustomSetTitle] = useState('');
@@ -1148,114 +1149,32 @@ const Flashcards = () => {
       showPopup('No Sessions Selected', 'Please select at least one chat session.');
       return;
     }
-    
+
     setGenerating(true);
     try {
       const token = localStorage.getItem('token');
-      
-      // Try the new agent endpoint first for BOTH modes
-      try {
-        const formData = new FormData();
-        formData.append('user_id', userName);
-        formData.append('action', 'generate');
-        formData.append('card_count', cardCount.toString());
-        formData.append('difficulty', difficultyLevel);
-        formData.append('depth_level', depthLevel);
-        formData.append('is_public', isPublic.toString());
-        
-        if (generationMode === 'topic') {
-          // Topic-based generation
-          formData.append('topic', topic);
-        } else {
-          // Chat history-based generation
-          const chatHistory = await loadChatHistoryData();
-          
-          // Convert chat history to content string for the agent
-          const chatContent = chatHistory
-            .map(msg => `Q: ${msg.user_message || msg.content}\nA: ${msg.ai_response || ''}`)
-            .join('\n\n');
-          
-          formData.append('content', chatContent);
-          
-          // Generate a title from the chat
-          const summaryTitle = await generateChatSummaryTitle(chatHistory);
-          formData.append('topic', summaryTitle); // Use as topic hint
-        }
-        
-        const agentResponse = await fetch(`${API_URL}/flashcard_agent/`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: formData
-        });
-        
-        if (agentResponse.ok) {
-          const data = await agentResponse.json();
-          
-          // Cards can be at data.cards or data.data.cards
-          const cards = data.cards || data.data?.cards;
-          
-          if (data.success && cards && cards.length > 0) {
-            setFlashcards(cards);
-            setCurrentCard(0);
-            setIsFlipped(false);
-            
-            const setTitle = data.set_title || data.data?.set_title || (generationMode === 'topic' ? `Flashcards: ${topic}` : 'Chat Study Cards');
-            
-            setCurrentSetInfo({
-              saved: true,
-              setId: data.set_id || data.data?.set_id,
-              shareCode: data.share_code || data.data?.share_code,
-              setTitle: setTitle,
-              cardCount: cards.length
-            });
-            
-            loadFlashcardHistory(true); // Reset pagination after generation
-            loadFlashcardStats();
-            gamificationService.trackFlashcardSet(userName, cards.length);
-            
-            // Update URL with share code
-            const shareCode = data.share_code || data.data?.share_code;
-            if (shareCode) {
-              window.history.replaceState({}, '', `/flashcards?code=${shareCode}&mode=preview`);
-            }
-            
-            // Auto-open preview mode after generation
-            const shuffledCards = studySettings.shuffle ? [...cards].sort(() => Math.random() - 0.5) : cards;
-            setShuffledCards(shuffledCards);
-            setPreviewMode(true);
-            
-            setGenerating(false);
-            return;
-          }
-        }
-        
-        // If agent fails, fall through to legacy endpoint
-
-      } catch (agentError) {
-
-      }
-      
-      // Legacy endpoint fallback
       const formData = new FormData();
       formData.append('user_id', userName);
       formData.append('card_count', cardCount.toString());
-      formData.append('difficulty_level', difficultyLevel);
+      formData.append('difficulty', difficultyLevel);
       formData.append('depth_level', depthLevel);
-      formData.append('save_to_set', autoSave.toString());
+      formData.append('additional_specs', additionalSpecs);
       formData.append('is_public', isPublic.toString());
 
       if (generationMode === 'topic') {
         formData.append('topic', topic);
         formData.append('generation_type', 'topic');
-        if (autoSave) formData.append('set_title', `Flashcards: ${topic}`);
+        formData.append('set_title', `Flashcards: ${topic}`);
       } else {
         const chatHistory = await loadChatHistoryData();
+        const chatContent = chatHistory
+          .map(msg => `Q: ${msg.user_message || msg.content}\nA: ${msg.ai_response || ''}`)
+          .join('\n\n');
+        formData.append('content', chatContent);
         formData.append('generation_type', 'chat_history');
-        formData.append('chat_data', JSON.stringify(chatHistory));
-        if (autoSave) {
-          const summaryTitle = await generateChatSummaryTitle(chatHistory);
-          formData.append('set_title', summaryTitle);
-        }
+        const summaryTitle = await generateChatSummaryTitle(chatHistory);
+        formData.append('set_title', summaryTitle);
+        formData.append('topic', summaryTitle);
       }
 
       const response = await fetch(`${API_URL}/generate_flashcards`, {
@@ -1269,48 +1188,39 @@ const Flashcards = () => {
       }
 
       const data = await response.json();
-      
-      if (!data.flashcards || data.flashcards.length === 0) {
+      const cards = data.cards || data.flashcards;
+
+      if (!cards || cards.length === 0) {
         showPopup('No Cards Generated', 'Unable to generate flashcards. Try a different topic.');
         setGenerating(false);
         return;
       }
-      
-      setFlashcards(data.flashcards);
+
+      setFlashcards(cards);
       setCurrentCard(0);
       setIsFlipped(false);
 
-      if (data.saved_to_set) {
-        setCurrentSetInfo({
-          saved: true,
-          setId: data.set_id,
-          shareCode: data.share_code,
-          setTitle: data.set_title,
-          cardCount: data.flashcards.length
-        });
-        loadFlashcardHistory(true); // Reset pagination after generation
-        loadFlashcardStats();
-        gamificationService.trackFlashcardSet(userName, data.flashcards.length);
-        
-        // Update URL with share code
-        if (data.share_code) {
-          window.history.replaceState({}, '', `/flashcards?code=${data.share_code}&mode=preview`);
-        }
-        
-        // Auto-open preview mode after generation
-        const cards = studySettings.shuffle ? [...data.flashcards].sort(() => Math.random() - 0.5) : data.flashcards;
-        setShuffledCards(cards);
-        setPreviewMode(true);
-      } else {
-        setCurrentSetInfo({ saved: false, cardCount: data.flashcards.length });
-        
-        // Auto-open preview mode after generation
-        const cards = studySettings.shuffle ? [...data.flashcards].sort(() => Math.random() - 0.5) : data.flashcards;
-        setShuffledCards(cards);
-        setPreviewMode(true);
+      setCurrentSetInfo({
+        saved: true,
+        setId: data.set_id,
+        shareCode: data.share_code,
+        setTitle: data.set_title || (generationMode === 'topic' ? `Flashcards: ${topic}` : 'Chat Study Cards'),
+        cardCount: cards.length
+      });
+
+      loadFlashcardHistory(true);
+      loadFlashcardStats();
+      gamificationService.trackFlashcardSet(userName, cards.length);
+
+      if (data.share_code) {
+        window.history.replaceState({}, '', `/flashcards?code=${data.share_code}&mode=preview`);
       }
+
+      const shuffledCards = studySettings.shuffle ? [...cards].sort(() => Math.random() - 0.5) : cards;
+      setShuffledCards(shuffledCards);
+      setPreviewMode(true);
     } catch (error) {
-            showPopup('Error', 'Failed to generate flashcards. Please try again.');
+      showPopup('Error', 'Failed to generate flashcards. Please try again.');
     }
     setGenerating(false);
   };
@@ -2865,6 +2775,23 @@ const Flashcards = () => {
                             )}
                           </div>
                         </div>
+                      </div>
+
+                      <div className="fc-form-group" style={{ marginTop: '12px' }}>
+                        <label className="fc-label">Additional Instructions (optional)</label>
+                        <textarea
+                          className="fc-input"
+                          style={{
+                            minHeight: '60px',
+                            resize: 'vertical',
+                            fontFamily: 'inherit',
+                            padding: '10px 12px',
+                          }}
+                          placeholder="e.g., Focus on practical examples, include code snippets, use real-world scenarios..."
+                          value={additionalSpecs}
+                          onChange={(e) => setAdditionalSpecs(e.target.value)}
+                          rows={2}
+                        />
                       </div>
                     </>
                   )}

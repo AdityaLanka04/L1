@@ -7,6 +7,7 @@ def build_tutor_prompt(state: TutorState) -> str:
     student = state.get("student_state")
     insights = state.get("neo4j_insights")
     memories = state.get("episodic_memories", [])
+    structured_context = state.get("structured_context", [])
     chat_history = state.get("chat_history", [])
     task = state.get("instructional_task", "")
     user_input = state.get("user_input", "")
@@ -19,6 +20,10 @@ def build_tutor_prompt(state: TutorState) -> str:
         sections.append(_chat_history_section(chat_history))
 
     sections.append(_concept_section(insights))
+
+    # Structured data from DB (flashcards, notes, activity) goes BEFORE memories
+    if structured_context:
+        sections.append(_structured_context_section(structured_context))
 
     if memories:
         sections.append(_memory_section(memories))
@@ -47,10 +52,9 @@ def _student_section(s: StudentState | None) -> str:
 
 def _chat_history_section(history: list[dict]) -> str:
     lines = ["[CONVERSATION HISTORY (recent messages)]"]
-    for msg in history[-6:]:  # last 6 exchanges max
+    for msg in history[-6:]:
         lines.append(f"Student: {msg.get('user', '')}")
         ai_resp = msg.get("ai", "")
-        # Truncate long AI responses in context
         if len(ai_resp) > 200:
             ai_resp = ai_resp[:200] + "..."
         lines.append(f"Cerbyl: {ai_resp}")
@@ -80,8 +84,15 @@ def _concept_section(insights: Neo4jInsights | None) -> str:
     return "\n".join(lines)
 
 
+def _structured_context_section(context_lines: list[str]) -> str:
+    """Section containing real data from the database (flashcards, notes, activity)."""
+    lines = ["[STRUCTURED LEARNING DATA (from database - use this for accurate answers)]"]
+    lines.extend(context_lines)
+    return "\n".join(lines)
+
+
 def _memory_section(memories: list[str]) -> str:
-    lines = ["[RELEVANT HISTORY]"]
+    lines = ["[RELEVANT HISTORY (from episodic memory)]"]
     for m in memories:
         lines.append(f"- {m}")
     return "\n".join(lines)

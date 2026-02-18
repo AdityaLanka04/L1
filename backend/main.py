@@ -199,6 +199,14 @@ async def startup():
         logger.warning(f"Tutor init failed: {e}")
 
     try:
+        from deps import unified_ai as _ai
+        from flashcard_graph import create_flashcard_graph
+        create_flashcard_graph(_ai, SessionLocal)
+        logger.info("Flashcard graph initialized")
+    except Exception as e:
+        logger.warning(f"Flashcard graph init failed: {e}")
+
+    try:
         from tutor import neo4j_store
         await neo4j_store.connect()
         if neo4j_store.available():

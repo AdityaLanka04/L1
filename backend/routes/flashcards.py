@@ -219,8 +219,11 @@ async def generate_flashcards_endpoint(
     topic: str = Form(None),
     generation_type: str = Form("topic"),
     chat_data: str = Form(None),
+    content: str = Form(None),
     card_count: int = Form(10),
     difficulty: str = Form("medium"),
+    depth_level: str = Form("standard"),
+    additional_specs: str = Form(""),
     set_title: str = Form(None),
     is_public: bool = Form(False),
     db: Session = Depends(get_db),
@@ -229,43 +232,61 @@ async def generate_flashcards_endpoint(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if generation_type == "topic" and topic:
+    # Resolve content for chat_history mode
+    chat_content = ""
+    if generation_type == "chat_history":
+        if content:
+            chat_content = content
+        elif chat_data:
+            try:
+                chat_history = json.loads(chat_data)
+                chat_content = "\n".join(
+                    [f"Q: {m.get('question', '')}\nA: {m.get('answer', '')}" for m in chat_history[:10]]
+                )
+            except Exception:
+                chat_content = chat_data
+        if not chat_content:
+            raise HTTPException(status_code=400, detail="Provide content or chat_data")
+    elif generation_type == "topic" and not topic:
+        raise HTTPException(status_code=400, detail="Provide topic")
+
+    # Use the LangGraph-based flashcard generator
+    from flashcard_graph import get_flashcard_graph
+
+    graph = get_flashcard_graph()
+    if graph:
+        flashcards_data = await graph.invoke(
+            user_id=str(user.id),
+            topic=topic or "",
+            content=chat_content,
+            generation_type=generation_type,
+            card_count=card_count,
+            difficulty=difficulty,
+            depth_level=depth_level,
+            additional_specs=additional_specs,
+        )
+    else:
+        # Fallback: direct AI call if graph not initialized
         prompt = (
-            f"Generate {card_count} flashcards about: {topic}\n"
+            f"Generate {card_count} flashcards about: {topic or chat_content[:500]}\n"
             f"Difficulty: {difficulty}\n\n"
             f"Return ONLY a valid JSON array. Each object: "
             f'{{"question": "...", "answer": "...", "difficulty": "{difficulty}"}}\n'
             f"No other text."
         )
-        content = topic
-    elif generation_type == "chat_history" and chat_data:
+        ai_response = unified_ai.generate(prompt, max_tokens=2000, temperature=0.7)
         try:
-            chat_history = json.loads(chat_data)
-            chat_text = "\n".join(
-                [f"Q: {m.get('question', '')}\nA: {m.get('answer', '')}" for m in chat_history[:10]]
-            )
-        except Exception:
-            chat_text = chat_data
+            cleaned = ai_response.strip()
+            if cleaned.startswith("```"):
+                cleaned = cleaned.split("\n", 1)[-1].rsplit("```", 1)[0]
+            flashcards_data = json.loads(cleaned)
+            if isinstance(flashcards_data, dict):
+                flashcards_data = flashcards_data.get("flashcards", [])
+        except json.JSONDecodeError:
+            flashcards_data = [{"question": "Error parsing", "answer": ai_response[:500], "difficulty": difficulty}]
 
-        prompt = (
-            f"Generate {card_count} flashcards from this conversation:\n\n{chat_text}\n\n"
-            f"Return ONLY a valid JSON array. Each object: "
-            f'{{"question": "...", "answer": "...", "difficulty": "{difficulty}"}}\n'
-            f"No other text."
-        )
-        content = chat_text
-    else:
-        raise HTTPException(status_code=400, detail="Provide topic or chat_data")
-
-    ai_response = unified_ai.generate(prompt, max_tokens=2000, temperature=0.7)
-
-    try:
-        cleaned = ai_response.strip()
-        if cleaned.startswith("```"):
-            cleaned = cleaned.split("\n", 1)[-1].rsplit("```", 1)[0]
-        flashcards_data = json.loads(cleaned)
-    except json.JSONDecodeError:
-        flashcards_data = [{"question": "Error parsing", "answer": ai_response[:500], "difficulty": difficulty}]
+    if not flashcards_data:
+        raise HTTPException(status_code=500, detail="Failed to generate flashcards")
 
     title = set_title or (f"Flashcards: {topic[:30]}" if topic else "Generated Flashcards")
     new_set = models.FlashcardSet(
@@ -288,7 +309,12 @@ async def generate_flashcards_endpoint(
             difficulty=card_data.get("difficulty", difficulty),
         )
         db.add(card)
-        saved_cards.append(card_data)
+        db.commit()
+        db.refresh(card)
+        saved_cards.append({
+            **card_data,
+            "id": card.id,
+        })
 
     try:
         from gamification_system import award_points
@@ -298,17 +324,45 @@ async def generate_flashcards_endpoint(
 
     db.commit()
 
+    # Write to ChromaDB so the AI agent knows about flashcard creation
+    try:
+        from tutor import chroma_store
+        if chroma_store.available():
+            card_topics = [c.get("question", "")[:50] for c in saved_cards[:5]]
+            summary = (
+                f"Flashcard set created: \"{title}\" with {len(saved_cards)} cards "
+                f"on topic \"{topic or 'chat history'}\". "
+                f"Difficulty: {difficulty}. "
+                f"Sample questions: {'; '.join(card_topics)}"
+            )
+            chroma_store.write_episode(
+                user_id=str(user.id),
+                summary=summary,
+                metadata={
+                    "source": "flashcard_created",
+                    "set_id": str(new_set.id),
+                    "set_title": title,
+                    "topic": topic or "",
+                    "card_count": str(len(saved_cards)),
+                    "difficulty": difficulty,
+                },
+            )
+    except Exception as e:
+        logger.warning(f"Chroma write failed on flashcard creation: {e}")
+
     return {
+        "success": True,
         "status": "success",
         "set_id": new_set.id,
         "set_title": new_set.title,
+        "cards": saved_cards,
         "flashcards": saved_cards,
         "total_generated": len(saved_cards),
     }
 
 
 @router.post("/mark_flashcard_for_review")
-def mark_flashcard_for_review(
+async def mark_flashcard_for_review(
     card_id: int = Form(...),
     marked: bool = Form(True),
     db: Session = Depends(get_db),
@@ -320,11 +374,51 @@ def mark_flashcard_for_review(
     card.marked_for_review = marked
     db.commit()
 
+    # Write struggle to Neo4j and ChromaDB when marking as "I don't know"
+    if marked:
+        flashcard_set = db.query(models.FlashcardSet).filter(
+            models.FlashcardSet.id == card.set_id
+        ).first()
+        if flashcard_set:
+            from tutor import neo4j_store
+            if neo4j_store.available():
+                try:
+                    concept = flashcard_set.title.replace("Flashcards: ", "") if flashcard_set.title else ""
+                    if concept:
+                        await neo4j_store.update_struggle(
+                            str(flashcard_set.user_id), concept
+                        )
+                except Exception as e:
+                    logger.warning(f"Neo4j struggle write on mark_for_review failed: {e}")
+
+            # Also track in ChromaDB
+            from tutor import chroma_store
+            if chroma_store.available():
+                try:
+                    summary = (
+                        f"Student marked flashcard for review (doesn't know): "
+                        f"Q: {card.question[:100]} from set \"{flashcard_set.title}\""
+                    )
+                    chroma_store.write_episode(
+                        user_id=str(flashcard_set.user_id),
+                        summary=summary,
+                        metadata={
+                            "source": "flashcard_review",
+                            "card_id": str(card.id),
+                            "set_id": str(card.set_id),
+                            "was_correct": "False",
+                            "topic": flashcard_set.title or "",
+                            "action": "marked_for_review",
+                        },
+                    )
+                except Exception as e:
+                    logger.warning(f"Chroma write failed on mark_for_review: {e}")
+
     return {"status": "success", "card_id": card_id, "marked_for_review": marked}
 
 
 @router.post("/flashcards/review")
-def update_flashcard_review(request: FlashcardReviewRequest, db: Session = Depends(get_db)):
+async def update_flashcard_review(request: FlashcardReviewRequest, db: Session = Depends(get_db)):
     card = db.query(models.Flashcard).filter(models.Flashcard.id == int(request.card_id)).first()
     if not card:
         raise HTTPException(status_code=404, detail="Flashcard not found")
@@ -334,6 +428,49 @@ def update_flashcard_review(request: FlashcardReviewRequest, db: Session = Depen
         card.correct_count = (card.correct_count or 0) + 1
     card.last_reviewed = datetime.now(timezone.utc)
     db.commit()
+
+    # Get set info for context
+    flashcard_set = db.query(models.FlashcardSet).filter(
+        models.FlashcardSet.id == card.set_id
+    ).first()
+    set_title = flashcard_set.title if flashcard_set else ""
+    owner_id = str(flashcard_set.user_id) if flashcard_set else ""
+
+    # Write to Chroma episodic memory (shared with AI chat)
+    from tutor import chroma_store
+    if chroma_store.available() and owner_id:
+        try:
+            outcome = "correctly" if request.was_correct else "incorrectly"
+            summary = (
+                f"Flashcard review in set \"{set_title}\": Student answered {outcome}. "
+                f"Q: {card.question[:100]} A: {card.answer[:100]}. "
+                f"Total reviews: {card.times_reviewed}, Correct: {card.correct_count}."
+            )
+            chroma_store.write_episode(
+                user_id=owner_id,
+                summary=summary,
+                metadata={
+                    "source": "flashcard_review",
+                    "card_id": str(card.id),
+                    "set_id": str(card.set_id),
+                    "was_correct": str(request.was_correct),
+                    "topic": set_title,
+                    "mode": request.mode,
+                },
+            )
+        except Exception as e:
+            logger.warning(f"Chroma write failed on flashcard review: {e}")
+
+    # Write struggle to Neo4j on incorrect answers
+    if not request.was_correct and owner_id:
+        from tutor import neo4j_store
+        if neo4j_store.available():
+            try:
+                concept = set_title.replace("Flashcards: ", "") if set_title else ""
+                if concept:
+                    await neo4j_store.update_struggle(owner_id, concept)
+            except Exception as e:
+                logger.warning(f"Neo4j struggle write failed: {e}")
 
     return {
         "status": "success",

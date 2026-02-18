@@ -42,6 +42,7 @@ class TutorState(TypedDict, total=False):
     student_state: StudentState
     neo4j_insights: Neo4jInsights
     episodic_memories: list[str]
+    structured_context: list[str]
     retrieval_gated: bool
     instructional_task: str
     response: str

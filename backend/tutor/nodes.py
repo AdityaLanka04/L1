@@ -48,13 +48,37 @@ RECALL_PATTERNS = [
     r"\bwhat\s*(have\s*)?we\s*(been|covered)\b",
 ]
 
+# Patterns to detect what domain the user is asking about
+FLASHCARD_PATTERNS = [
+    r"\bflashcard",
+    r"\bflash\s*card",
+    r"\bcards?\s*(i|we)\s*(stud|review|learn|creat|made|did)",
+    r"\b(stud|review|learn|practic)\w*\s*(card|flashcard)",
+    r"\bquiz\s*me\b",
+    r"\bmy\s*cards?\b",
+]
+
+NOTE_PATTERNS = [
+    r"\bnotes?\b",
+    r"\bwhat\s*(did\s*)?(i|we)\s*(write|note|jot)",
+    r"\bmy\s*notes?\b",
+    r"\bstudy\s*notes?\b",
+    r"\bnote\s*i\s*(took|made|wrote|created)",
+]
+
+ACTIVITY_PATTERNS = [
+    r"\bwhat\s*(did|have)\s*(i|we)\s*(done|do|study|learn|work|cover)\b",
+    r"\bmy\s*(progress|activity|history|learning)\b",
+    r"\bhow\s*(am\s*i|have\s*i)\s*(doing|progressing)\b",
+    r"\bsummar(y|ize)\s*(my|of)\b",
+]
+
 
 def _is_repetitive(text: str, chat_history: list[dict]) -> bool:
-    """Check if the user is sending the same or very similar messages repeatedly."""
     if not chat_history:
         return False
     text_lower = text.lower().strip()
-    recent = chat_history[-5:]  # check last 5 messages
+    recent = chat_history[-5:]
     repeat_count = sum(
         1 for msg in recent
         if msg.get("user", "").lower().strip() == text_lower
@@ -62,16 +86,27 @@ def _is_repetitive(text: str, chat_history: list[dict]) -> bool:
     return repeat_count >= 2
 
 
+def _detect_query_domain(text: str) -> list[str]:
+    """Detect what domains/sources the user is asking about."""
+    text_lower = text.lower()
+    domains = []
+    if any(re.search(p, text_lower) for p in FLASHCARD_PATTERNS):
+        domains.append("flashcard")
+    if any(re.search(p, text_lower) for p in NOTE_PATTERNS):
+        domains.append("note")
+    if any(re.search(p, text_lower) for p in ACTIVITY_PATTERNS):
+        domains.append("activity")
+    return domains
+
+
 def detect_intent(state: TutorState) -> dict:
     text = state.get("user_input", "").lower().strip()
     chat_history = state.get("chat_history", [])
 
-    # Detect repetitive/spam messages
     if _is_repetitive(text, chat_history):
         return {"intent": "repetitive"}
 
     if any(re.search(p, text) for p in GREETING_PATTERNS):
-        # If user already greeted before in this chat, treat as continuation
         if chat_history:
             return {"intent": "returning_greeting"}
         return {"intent": "greeting"}
@@ -103,7 +138,6 @@ async def fetch_student_state(state: TutorState) -> dict:
             try:
                 uid = int(user_id)
 
-                # Fetch user's first name
                 user_record = db.query(User).filter(User.id == uid).first()
                 if user_record and user_record.first_name:
                     student.first_name = user_record.first_name
@@ -178,10 +212,190 @@ async def reason_from_graph(state: TutorState) -> dict:
     return {"neo4j_insights": insights}
 
 
+def _fetch_flashcard_context(db_factory, user_id: str, top_k: int = 10) -> list[str]:
+    """Query the actual database for recent flashcard activity."""
+    if not db_factory:
+        return []
+    try:
+        from models import FlashcardSet, Flashcard, FlashcardStudySession
+        db = db_factory()
+        try:
+            uid = int(user_id)
+            context_lines = []
+
+            # Get recent flashcard sets
+            sets = (
+                db.query(FlashcardSet)
+                .filter(FlashcardSet.user_id == uid)
+                .order_by(FlashcardSet.created_at.desc())
+                .limit(top_k)
+                .all()
+            )
+            if sets:
+                context_lines.append(f"You have {len(sets)} recent flashcard sets:")
+                for fs in sets:
+                    card_count = db.query(Flashcard).filter(Flashcard.set_id == fs.id).count()
+                    reviewed_cards = (
+                        db.query(Flashcard)
+                        .filter(Flashcard.set_id == fs.id, Flashcard.times_reviewed > 0)
+                        .all()
+                    )
+                    total_reviewed = sum(c.times_reviewed or 0 for c in reviewed_cards)
+                    total_correct = sum(c.correct_count or 0 for c in reviewed_cards)
+                    accuracy = (
+                        round(total_correct / total_reviewed * 100, 1)
+                        if total_reviewed > 0
+                        else 0
+                    )
+                    created = fs.created_at.strftime("%b %d, %Y") if fs.created_at else "unknown"
+                    status = f"studied {total_reviewed} times, {accuracy}% accuracy" if total_reviewed > 0 else "not yet studied"
+                    context_lines.append(
+                        f"  - \"{fs.title}\" ({card_count} cards, created {created}, {status})"
+                    )
+
+            # Get cards marked for review (struggling)
+            struggling_cards = (
+                db.query(Flashcard)
+                .join(FlashcardSet)
+                .filter(
+                    FlashcardSet.user_id == uid,
+                    Flashcard.marked_for_review == True,
+                )
+                .limit(5)
+                .all()
+            )
+            if struggling_cards:
+                context_lines.append(f"\nCards marked for review ({len(struggling_cards)} cards you're struggling with):")
+                for c in struggling_cards:
+                    context_lines.append(f"  - Q: {c.question[:80]}")
+
+            # Get recently reviewed cards
+            recent_reviewed = (
+                db.query(Flashcard)
+                .join(FlashcardSet)
+                .filter(
+                    FlashcardSet.user_id == uid,
+                    Flashcard.last_reviewed != None,
+                )
+                .order_by(Flashcard.last_reviewed.desc())
+                .limit(10)
+                .all()
+            )
+            if recent_reviewed:
+                context_lines.append(f"\nRecently reviewed flashcards:")
+                for c in recent_reviewed:
+                    outcome = "correct" if (c.correct_count or 0) > (c.times_reviewed or 0) / 2 else "needs practice"
+                    reviewed_date = c.last_reviewed.strftime("%b %d") if c.last_reviewed else ""
+                    context_lines.append(
+                        f"  - Q: {c.question[:60]} ({outcome}, last reviewed {reviewed_date})"
+                    )
+
+            return context_lines
+        finally:
+            db.close()
+    except Exception as e:
+        logger.warning(f"Failed to fetch flashcard context: {e}")
+        return []
+
+
+def _fetch_notes_context(db_factory, user_id: str, top_k: int = 10) -> list[str]:
+    """Query the actual database for recent notes activity."""
+    if not db_factory:
+        return []
+    try:
+        from models import Note
+        db = db_factory()
+        try:
+            uid = int(user_id)
+            context_lines = []
+
+            notes = (
+                db.query(Note)
+                .filter(Note.user_id == uid, Note.is_deleted == False)
+                .order_by(Note.updated_at.desc())
+                .limit(top_k)
+                .all()
+            )
+            if notes:
+                context_lines.append(f"You have {len(notes)} recent notes:")
+                for n in notes:
+                    updated = n.updated_at.strftime("%b %d, %Y") if n.updated_at else ""
+                    content_preview = ""
+                    if n.content:
+                        # Strip HTML/markdown and get first 100 chars
+                        clean = re.sub(r'<[^>]+>', '', n.content)
+                        clean = re.sub(r'[#*_\[\]()]', '', clean).strip()
+                        content_preview = f" - {clean[:100]}..." if len(clean) > 100 else f" - {clean}"
+                    context_lines.append(
+                        f"  - \"{n.title}\" (updated {updated}){content_preview}"
+                    )
+
+            return context_lines
+        finally:
+            db.close()
+    except Exception as e:
+        logger.warning(f"Failed to fetch notes context: {e}")
+        return []
+
+
+def _fetch_activity_summary(db_factory, user_id: str) -> list[str]:
+    """Get a summary of recent learning activity across all features."""
+    if not db_factory:
+        return []
+    try:
+        from models import FlashcardSet, Flashcard, Note, ChatMessage, FlashcardStudySession
+        from sqlalchemy import func
+        db = db_factory()
+        try:
+            uid = int(user_id)
+            context_lines = ["Here's a summary of your recent learning activity:"]
+
+            # Flashcard stats
+            total_sets = db.query(func.count(FlashcardSet.id)).filter(
+                FlashcardSet.user_id == uid
+            ).scalar() or 0
+            total_cards = (
+                db.query(func.count(Flashcard.id))
+                .join(FlashcardSet)
+                .filter(FlashcardSet.user_id == uid)
+                .scalar() or 0
+            )
+            cards_mastered = (
+                db.query(func.count(Flashcard.id))
+                .join(FlashcardSet)
+                .filter(FlashcardSet.user_id == uid, Flashcard.correct_count >= 3)
+                .scalar() or 0
+            )
+            context_lines.append(
+                f"  - Flashcards: {total_sets} sets, {total_cards} total cards, {cards_mastered} mastered"
+            )
+
+            # Notes stats
+            total_notes = db.query(func.count(Note.id)).filter(
+                Note.user_id == uid, Note.is_deleted == False
+            ).scalar() or 0
+            context_lines.append(f"  - Notes: {total_notes} notes")
+
+            # Chat stats
+            total_chats = db.query(func.count(ChatMessage.id)).filter(
+                ChatMessage.user_id == uid
+            ).scalar() or 0
+            context_lines.append(f"  - Chat interactions: {total_chats} messages")
+
+            return context_lines
+        finally:
+            db.close()
+    except Exception as e:
+        logger.warning(f"Failed to fetch activity summary: {e}")
+        return []
+
+
 def gate_and_retrieve(state: TutorState) -> dict:
     intent = state.get("intent", "")
     user_input = state.get("user_input", "")
     student = state.get("student_state")
+    db_factory = state.get("_db_factory")
+    user_id = state.get("user_id", "")
 
     # Always retrieve for recall, confusion, followup, and regular questions
     should_retrieve = intent in ("recall", "confusion", "followup", "question")
@@ -194,24 +408,90 @@ def gate_and_retrieve(state: TutorState) -> dict:
                 break
 
     memories = []
-    if should_retrieve and chroma_store.available():
-        try:
-            top_k = 5 if intent == "recall" else 3
-            memories = chroma_store.retrieve_episodes(
-                state.get("user_id", ""), user_input, top_k=top_k
-            )
-        except Exception as e:
-            logger.warning(f"Chroma retrieval failed: {e}")
+    structured_context = []
+
+    # Detect what domains the user is asking about
+    domains = _detect_query_domain(user_input)
+
+    if should_retrieve:
+        # --- SMART RETRIEVAL: Query actual DB for structured data ---
+        if "flashcard" in domains or (intent == "recall" and not domains):
+            fc_context = _fetch_flashcard_context(db_factory, user_id)
+            if fc_context:
+                structured_context.extend(fc_context)
+
+            # Also get flashcard memories from ChromaDB
+            if chroma_store.available():
+                try:
+                    fc_memories = chroma_store.retrieve_episodes_filtered(
+                        user_id, user_input, source_filter="flashcard_review", top_k=5
+                    )
+                    for m in fc_memories:
+                        memories.append(m["document"])
+
+                    fc_created = chroma_store.retrieve_episodes_filtered(
+                        user_id, user_input, source_filter="flashcard_created", top_k=5
+                    )
+                    for m in fc_created:
+                        memories.append(m["document"])
+                except Exception as e:
+                    logger.warning(f"Chroma flashcard retrieval failed: {e}")
+
+        if "note" in domains or (intent == "recall" and not domains):
+            note_context = _fetch_notes_context(db_factory, user_id)
+            if note_context:
+                structured_context.extend(note_context)
+
+            # Also get note memories from ChromaDB
+            if chroma_store.available():
+                try:
+                    note_memories = chroma_store.retrieve_episodes_filtered(
+                        user_id, user_input, source_filter="note_activity", top_k=5
+                    )
+                    for m in note_memories:
+                        memories.append(m["document"])
+                except Exception as e:
+                    logger.warning(f"Chroma note retrieval failed: {e}")
+
+        if "activity" in domains:
+            activity_context = _fetch_activity_summary(db_factory, user_id)
+            if activity_context:
+                structured_context.extend(activity_context)
+
+        # --- GENERAL EPISODIC RETRIEVAL from ChromaDB ---
+        if chroma_store.available():
+            try:
+                top_k = 5 if intent == "recall" else 3
+                general_memories = chroma_store.retrieve_episodes(
+                    user_id, user_input, top_k=top_k
+                )
+                for m in general_memories:
+                    if m not in memories:
+                        memories.append(m)
+            except Exception as e:
+                logger.warning(f"Chroma retrieval failed: {e}")
+
+        # If it's a recall intent with no specific domain and we have no structured
+        # context, fetch everything as fallback
+        if intent == "recall" and not structured_context and not domains:
+            fc_context = _fetch_flashcard_context(db_factory, user_id, top_k=5)
+            note_context = _fetch_notes_context(db_factory, user_id, top_k=5)
+            activity_context = _fetch_activity_summary(db_factory, user_id)
+            structured_context.extend(activity_context)
+            structured_context.extend(fc_context)
+            structured_context.extend(note_context)
 
     return {
         "retrieval_gated": should_retrieve,
         "episodic_memories": memories,
+        "structured_context": structured_context,
     }
 
 
 def _build_instructional_task(state: TutorState) -> str:
     intent = state.get("intent", "")
     student = state.get("student_state")
+    domains = _detect_query_domain(state.get("user_input", ""))
 
     if intent == "greeting":
         return (
@@ -234,12 +514,38 @@ def _build_instructional_task(state: TutorState) -> str:
         )
 
     if intent == "recall":
+        domain_hints = ""
+        if "flashcard" in domains:
+            domain_hints = (
+                "The student is specifically asking about their FLASHCARD activity. "
+                "Use the STRUCTURED LEARNING DATA section below which contains their actual flashcard sets, "
+                "study progress, and review history from the database. "
+                "Give specific details: set names, card counts, accuracy percentages, what topics they studied. "
+            )
+        elif "note" in domains:
+            domain_hints = (
+                "The student is specifically asking about their NOTES. "
+                "Use the STRUCTURED LEARNING DATA section below which contains their actual notes "
+                "from the database. Give specific details: note titles, content previews, dates. "
+            )
+        elif "activity" in domains:
+            domain_hints = (
+                "The student is asking about their overall learning progress/activity. "
+                "Use the STRUCTURED LEARNING DATA section below which contains a summary of all "
+                "their activity across flashcards, notes, and chat. Give a comprehensive overview. "
+            )
+        else:
+            domain_hints = (
+                "The student is asking about previous sessions or past conversations. "
+                "Use BOTH the STRUCTURED LEARNING DATA and RELEVANT HISTORY sections below. "
+                "Give specific details about their flashcards, notes, and study activity. "
+            )
+
         return (
-            "The student is asking about previous sessions or past conversations. "
-            "Use the RELEVANT HISTORY section below to recall what you've worked on together. "
-            "If there is relevant history, summarize what you covered and suggest continuing from there. "
-            "If there is no history available, honestly say you're still building up your memory "
-            "of their learning journey and ask what they'd like to revisit."
+            f"{domain_hints}"
+            "If structured data is available, use it to give accurate, specific answers. "
+            "NEVER make up or guess information. Only report what is in the data. "
+            "If there is no data available, honestly say you don't have records of that activity yet."
         )
 
     if intent == "confusion":
@@ -276,9 +582,13 @@ def build_prompt_and_respond(state: TutorState) -> dict:
     student_name = student.first_name if student and student.first_name else ""
 
     system = (
-        "You are Cerbyl, an expert tutor. You adapt your teaching to each student's level "
-        "and learning style. You never dump information; you teach with intention. "
-        "Be concise but thorough. Use markdown formatting for clarity."
+        "You are Cerbyl, an expert tutor and central learning agent. You have access to the student's "
+        "complete learning history including their flashcards, notes, study sessions, and chat history. "
+        "You adapt your teaching to each student's level and learning style. "
+        "You never dump information; you teach with intention. "
+        "Be concise but thorough. Use markdown formatting for clarity. "
+        "When reporting on the student's activity, always use the STRUCTURED LEARNING DATA provided - "
+        "never fabricate or guess information."
     )
     if student_name:
         system += f"\n\nThe student's name is {student_name}. Address them by name naturally (not every sentence)."
@@ -348,7 +658,6 @@ async def persist_updates(state: TutorState) -> dict:
     if evaluation and evaluation.distilled_memory:
         memory_summary = evaluation.distilled_memory
     elif intent not in ("greeting", "off_topic", "repetitive", "recall"):
-        # Fallback: save a basic summary for any substantive interaction
         truncated_resp = response_text[:150] + "..." if len(response_text) > 150 else response_text
         memory_summary = f"Student asked: {user_input[:100]}. Cerbyl covered: {truncated_resp}"
 
@@ -360,6 +669,7 @@ async def persist_updates(state: TutorState) -> dict:
                 metadata={
                     "intent": intent,
                     "concept": primary_concept or "",
+                    "source": "chat",
                 },
             )
             chroma_writes.append({"summary": memory_summary})

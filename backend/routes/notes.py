@@ -97,6 +97,33 @@ def create_note(note_data: NoteCreate, db: Session = Depends(get_db)):
     except Exception:
         pass
 
+    # Write to ChromaDB so the AI agent knows about this note
+    try:
+        from tutor import chroma_store
+        if chroma_store.available():
+            import re as _re
+            content_preview = ""
+            if note_data.content:
+                clean = _re.sub(r'<[^>]+>', '', note_data.content)
+                clean = _re.sub(r'[#*_\[\]()]', '', clean).strip()
+                content_preview = clean[:200]
+            summary = (
+                f"Note created: \"{note_data.title}\". "
+                f"Content: {content_preview}" if content_preview else f"Note created: \"{note_data.title}\" (empty note)"
+            )
+            chroma_store.write_episode(
+                user_id=str(user.id),
+                summary=summary,
+                metadata={
+                    "source": "note_activity",
+                    "action": "created",
+                    "note_id": str(new_note.id),
+                    "note_title": note_data.title[:100],
+                },
+            )
+    except Exception as e:
+        logger.warning(f"Chroma write failed on note create: {e}")
+
     return {
         "id": new_note.id,
         "title": new_note.title,
@@ -121,6 +148,33 @@ def update_note(note_data: NoteUpdate, db: Session = Depends(get_db)):
     note.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(note)
+
+    # Write to ChromaDB so the AI agent knows about note updates
+    try:
+        from tutor import chroma_store
+        if chroma_store.available():
+            import re as _re
+            content_preview = ""
+            if note_data.content:
+                clean = _re.sub(r'<[^>]+>', '', note_data.content)
+                clean = _re.sub(r'[#*_\[\]()]', '', clean).strip()
+                content_preview = clean[:200]
+            summary = (
+                f"Note updated: \"{note_data.title}\". "
+                f"Content: {content_preview}" if content_preview else f"Note updated: \"{note_data.title}\""
+            )
+            chroma_store.write_episode(
+                user_id=str(note.user_id),
+                summary=summary,
+                metadata={
+                    "source": "note_activity",
+                    "action": "updated",
+                    "note_id": str(note.id),
+                    "note_title": note_data.title[:100],
+                },
+            )
+    except Exception as e:
+        logger.warning(f"Chroma write failed on note update: {e}")
 
     return {
         "id": note.id,
