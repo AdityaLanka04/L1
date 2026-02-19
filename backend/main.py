@@ -113,6 +113,7 @@ from routes import (
     reminders,
     playlists,
     search,
+    searchhub,
     reviews,
     weakness,
     imports,
@@ -133,6 +134,7 @@ app.include_router(notifications.router)
 app.include_router(reminders.router)
 app.include_router(playlists.router)
 app.include_router(search.router)
+app.include_router(searchhub.router)
 app.include_router(reviews.router)
 app.include_router(weakness.router)
 app.include_router(imports.router)
@@ -224,6 +226,14 @@ async def startup():
         logger.info("Flashcard graph initialized")
     except Exception as e:
         logger.warning(f"Flashcard graph init failed: {e}")
+
+    try:
+        from deps import unified_ai as _ai
+        from searchhub_graph import create_searchhub_graph
+        create_searchhub_graph(_ai, SessionLocal)
+        logger.info("SearchHub graph initialized")
+    except Exception as e:
+        logger.warning(f"SearchHub graph init failed: {e}")
 
     try:
         from tutor import neo4j_store

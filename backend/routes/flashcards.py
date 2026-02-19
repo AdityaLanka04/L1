@@ -213,6 +213,22 @@ def get_flashcards_for_review(user_id: str = Query(None), db: Session = Depends(
     return {"total_cards": len(cards), "sets": list(sets_dict.values())}
 
 
+def _unwrap_form_value(value):
+    if value is None:
+        return None
+    if value.__class__.__name__ == "Form" and hasattr(value, "default"):
+        return value.default
+    return value
+
+
+def _coerce_bool(value, default=False):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in ("true", "1", "yes", "y", "on")
+    return default
+
+
 @router.post("/generate_flashcards")
 async def generate_flashcards_endpoint(
     user_id: str = Form(...),
@@ -228,6 +244,24 @@ async def generate_flashcards_endpoint(
     is_public: bool = Form(False),
     db: Session = Depends(get_db),
 ):
+    user_id = _unwrap_form_value(user_id)
+    topic = _unwrap_form_value(topic)
+    generation_type = _unwrap_form_value(generation_type) or "topic"
+    chat_data = _unwrap_form_value(chat_data)
+    content = _unwrap_form_value(content)
+    card_count = _unwrap_form_value(card_count) or 10
+    difficulty = _unwrap_form_value(difficulty) or "medium"
+    depth_level = _unwrap_form_value(depth_level) or "standard"
+    additional_specs = _unwrap_form_value(additional_specs) or ""
+    set_title = _unwrap_form_value(set_title)
+    is_public = _coerce_bool(_unwrap_form_value(is_public), default=False)
+    try:
+        card_count = int(card_count)
+    except (TypeError, ValueError):
+        card_count = 10
+    if set_title is not None and not isinstance(set_title, str):
+        set_title = None
+
     user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

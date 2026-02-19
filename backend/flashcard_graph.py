@@ -133,6 +133,8 @@ def build_prompt(state: FlashcardGenState) -> dict:
     difficulty = state.get("difficulty", "medium")
     depth_level = state.get("depth_level", "standard")
     additional_specs = state.get("additional_specs", "")
+    if not isinstance(additional_specs, str):
+        additional_specs = ""
     weaknesses = state.get("student_weaknesses", [])
     strengths = state.get("student_strengths", [])
 

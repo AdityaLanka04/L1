@@ -1,6 +1,7 @@
 import json
 import logging
 import random
+import re
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
@@ -251,6 +252,84 @@ def generate_filter_description(filters: dict) -> str:
     if parts:
         return "Showing " + ", ".join(parts)
     return "Showing all results"
+
+
+def _clean_prompt_topic(text: str) -> str:
+    cleaned = re.sub(r'^(AI Generated:|Cerbyl:|Flashcards?:|Notes?:)\s*', '', text, flags=re.IGNORECASE)
+    return cleaned.strip()
+
+
+def _extract_topic_from_episode(entry: dict) -> Optional[str]:
+    meta = entry.get("metadata") or {}
+    for key in ("topic", "note_title", "set_title", "concept"):
+        value = meta.get(key)
+        if value:
+            return _clean_prompt_topic(str(value))
+    doc = entry.get("document", "")
+    match = re.search(r"\"([^\"]+)\"", doc)
+    if match:
+        return _clean_prompt_topic(match.group(1))
+    match = re.search(r"about ([^\.]+)", doc, flags=re.IGNORECASE)
+    if match:
+        return _clean_prompt_topic(match.group(1))
+    return None
+
+
+def _build_chroma_prompts(user_id: str) -> list:
+    try:
+        from tutor import chroma_store
+    except Exception:
+        return []
+
+    if not chroma_store.available():
+        return []
+
+    episodes = []
+    for source in ("note_activity", "flashcard_created", "chat", "flashcard_review"):
+        episodes.extend(chroma_store.retrieve_recent_by_source(user_id, source, top_k=6))
+
+    prompts = []
+    for entry in episodes:
+        topic = _extract_topic_from_episode(entry)
+        if not topic:
+            continue
+        source = (entry.get("metadata") or {}).get("source", "")
+        if source == "note_activity":
+            prompts.append({
+                "text": f"create flashcards on {topic}",
+                "reason": "Turn recent notes into active recall",
+                "priority": "high"
+            })
+        elif source == "flashcard_created":
+            prompts.append({
+                "text": f"create a quiz on {topic}",
+                "reason": "Test your flashcard knowledge",
+                "priority": "high"
+            })
+        elif source == "flashcard_review":
+            meta = entry.get("metadata") or {}
+            was_correct = str(meta.get("was_correct", "")).lower() == "false"
+            marked = meta.get("action") == "marked_for_review"
+            if was_correct or marked:
+                prompts.append({
+                    "text": "review weak flashcards",
+                    "reason": "Focus on difficult cards",
+                    "priority": "high"
+                })
+            else:
+                prompts.append({
+                    "text": f"review flashcards on {topic}",
+                    "reason": "Reinforce recent topics",
+                    "priority": "medium"
+                })
+        else:
+            prompts.append({
+                "text": f"explain {topic} step-by-step",
+                "reason": "Continue learning this topic",
+                "priority": "medium"
+            })
+
+    return prompts
 
 
 @router.post("/search_content")
@@ -1557,90 +1636,91 @@ async def get_personalized_prompts(
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        topic_prompts = []
+        topic_prompts = _build_chroma_prompts(str(user.id))
 
-        recent_flashcard_sets = db.query(models.FlashcardSet).filter(
-            models.FlashcardSet.user_id == user.id
-        ).order_by(models.FlashcardSet.updated_at.desc()).limit(10).all()
+        if not topic_prompts:
+            recent_flashcard_sets = db.query(models.FlashcardSet).filter(
+                models.FlashcardSet.user_id == user.id
+            ).order_by(models.FlashcardSet.updated_at.desc()).limit(10).all()
 
-        if recent_flashcard_sets:
-            selected_sets = random.sample(recent_flashcard_sets, min(2, len(recent_flashcard_sets)))
-            for fs in selected_sets:
-                clean_title = fs.title
-                if clean_title:
-                    clean_title = _re.sub(r'^(AI Generated:\s*|Cerbyl:\s*|Flashcards?:\s*)', '', clean_title, flags=_re.IGNORECASE).strip()
+            if recent_flashcard_sets:
+                selected_sets = random.sample(recent_flashcard_sets, min(2, len(recent_flashcard_sets)))
+                for fs in selected_sets:
+                    clean_title = fs.title
+                    if clean_title:
+                        clean_title = _re.sub(r'^(AI Generated:\s*|Cerbyl:\s*|Flashcards?:\s*)', '', clean_title, flags=_re.IGNORECASE).strip()
 
-                topic_prompts.append({
-                    "text": f"create a quiz on {clean_title}",
-                    "reason": "Test your flashcard knowledge",
-                    "priority": "high"
-                })
-
-        recent_notes = db.query(models.Note).filter(
-            models.Note.user_id == user.id
-        ).order_by(models.Note.updated_at.desc()).limit(10).all()
-
-        if recent_notes:
-            selected_notes = random.sample(recent_notes, min(2, len(recent_notes)))
-            for note in selected_notes:
-                clean_title = note.title
-                if clean_title:
-                    clean_title = _re.sub(r'^(AI Generated:\s*|Cerbyl:\s*|Notes?:\s*)', '', clean_title, flags=_re.IGNORECASE).strip()
-
-                topic_prompts.append({
-                    "text": f"create flashcards on {clean_title}",
-                    "reason": "Turn notes into active learning",
-                    "priority": "high"
-                })
-
-        recent_chats = db.query(models.ChatSession).filter(
-            models.ChatSession.user_id == user.id
-        ).order_by(models.ChatSession.updated_at.desc()).limit(10).all()
-
-        if recent_chats:
-            meaningful_chats = [c for c in recent_chats if c.title and c.title.lower() not in ['new chat', 'untitled', '']]
-            if meaningful_chats:
-                selected_chats = random.sample(meaningful_chats, min(2, len(meaningful_chats)))
-                for chat in selected_chats:
                     topic_prompts.append({
-                        "text": f"explain {chat.title} step-by-step",
-                        "reason": "Continue learning this topic",
-                        "priority": "medium"
+                        "text": f"create a quiz on {clean_title}",
+                        "reason": "Test your flashcard knowledge",
+                        "priority": "high"
                     })
 
-        profile = db.query(models.ComprehensiveUserProfile).filter(
-            models.ComprehensiveUserProfile.user_id == user.id
-        ).first()
+            recent_notes = db.query(models.Note).filter(
+                models.Note.user_id == user.id
+            ).order_by(models.Note.updated_at.desc()).limit(10).all()
 
-        weak_topics = []
-        if profile and profile.weak_areas:
-            try:
-                weak_topics = json.loads(profile.weak_areas) if isinstance(profile.weak_areas, str) else profile.weak_areas
-            except Exception:
-                pass
+            if recent_notes:
+                selected_notes = random.sample(recent_notes, min(2, len(recent_notes)))
+                for note in selected_notes:
+                    clean_title = note.title
+                    if clean_title:
+                        clean_title = _re.sub(r'^(AI Generated:\s*|Cerbyl:\s*|Notes?:\s*)', '', clean_title, flags=_re.IGNORECASE).strip()
 
-        if weak_topics:
-            selected_weak = random.sample(weak_topics, min(2, len(weak_topics)))
-            for topic in selected_weak:
+                    topic_prompts.append({
+                        "text": f"create flashcards on {clean_title}",
+                        "reason": "Turn notes into active learning",
+                        "priority": "high"
+                    })
+
+            recent_chats = db.query(models.ChatSession).filter(
+                models.ChatSession.user_id == user.id
+            ).order_by(models.ChatSession.updated_at.desc()).limit(10).all()
+
+            if recent_chats:
+                meaningful_chats = [c for c in recent_chats if c.title and c.title.lower() not in ['new chat', 'untitled', '']]
+                if meaningful_chats:
+                    selected_chats = random.sample(meaningful_chats, min(2, len(meaningful_chats)))
+                    for chat in selected_chats:
+                        topic_prompts.append({
+                            "text": f"explain {chat.title} step-by-step",
+                            "reason": "Continue learning this topic",
+                            "priority": "medium"
+                        })
+
+            profile = db.query(models.ComprehensiveUserProfile).filter(
+                models.ComprehensiveUserProfile.user_id == user.id
+            ).first()
+
+            weak_topics = []
+            if profile and profile.weak_areas:
+                try:
+                    weak_topics = json.loads(profile.weak_areas) if isinstance(profile.weak_areas, str) else profile.weak_areas
+                except Exception:
+                    pass
+
+            if weak_topics:
+                selected_weak = random.sample(weak_topics, min(2, len(weak_topics)))
+                for topic in selected_weak:
+                    topic_prompts.append({
+                        "text": f"create flashcards on {topic}",
+                        "reason": "Focus on weak areas",
+                        "priority": "high"
+                    })
+
+            weak_flashcard_sets = db.query(models.FlashcardSet).join(
+                models.Flashcard
+            ).filter(
+                models.FlashcardSet.user_id == user.id,
+                models.Flashcard.marked_for_review == True
+            ).distinct().limit(5).all()
+
+            if weak_flashcard_sets:
                 topic_prompts.append({
-                    "text": f"create flashcards on {topic}",
-                    "reason": "Focus on weak areas",
+                    "text": "review weak flashcards",
+                    "reason": f"{len(weak_flashcard_sets)} sets need attention",
                     "priority": "high"
                 })
-
-        weak_flashcard_sets = db.query(models.FlashcardSet).join(
-            models.Flashcard
-        ).filter(
-            models.FlashcardSet.user_id == user.id,
-            models.Flashcard.marked_for_review == True
-        ).distinct().limit(5).all()
-
-        if weak_flashcard_sets:
-            topic_prompts.append({
-                "text": "review weak flashcards",
-                "reason": f"{len(weak_flashcard_sets)} sets need attention",
-                "priority": "high"
-            })
 
         random.shuffle(topic_prompts)
         seen_texts = set()

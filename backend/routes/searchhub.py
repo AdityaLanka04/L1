@@ -1,0 +1,792 @@
+import logging
+import re
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+import models
+from deps import call_ai, get_db, get_user_by_email, get_user_by_username
+
+logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/api/agents/searchhub", tags=["searchhub"])
+
+SESSION_CONTEXT: Dict[str, List[dict]] = {}
+
+
+class SearchHubRequest(BaseModel):
+    user_id: str
+    query: str
+    session_id: Optional[str] = None
+    context: Optional[dict] = None
+
+
+class CreateNoteRequest(BaseModel):
+    user_id: str
+    topic: str
+    content: Optional[str] = None
+    depth: str = "standard"
+    tone: str = "professional"
+
+
+class CreateFlashcardsRequest(BaseModel):
+    user_id: str
+    topic: str
+    count: int = 10
+    difficulty: str = "medium"
+    content: Optional[str] = None
+
+
+class CreateQuestionsRequest(BaseModel):
+    user_id: str
+    topic: str
+    count: int = 10
+    difficulty_mix: Optional[dict] = None
+    content: Optional[str] = None
+
+
+class ExplainRequest(BaseModel):
+    user_id: str
+    topic: str
+    depth: str = "standard"
+
+
+class ClearContextRequest(BaseModel):
+    user_id: str
+    session_id: str
+
+
+def _resolve_user(db: Session, user_id: str):
+    if not user_id or user_id.lower() == "guest":
+        return None
+    return get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
+
+
+def _dedupe_preserve(items: List[str]) -> List[str]:
+    seen = set()
+    output = []
+    for item in items:
+        if not item:
+            continue
+        key = item.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        output.append(item)
+    return output
+
+
+def _clean_topic(text: str) -> str:
+    cleaned = re.sub(r"^(ai generated:|cerbyl:|flashcards?:|notes?:)\s*", "", text, flags=re.IGNORECASE)
+    return cleaned.strip()
+
+
+def _extract_topic(query: str, patterns: List[str]) -> Optional[str]:
+    for pattern in patterns:
+        match = re.search(pattern, query, flags=re.IGNORECASE)
+        if match and match.group(1):
+            topic = match.group(1).strip()
+            if topic:
+                return topic
+    return None
+
+
+def _extract_count(query: str) -> Optional[int]:
+    match = re.search(r"\b(\d{1,3})\b", query)
+    if match:
+        try:
+            return int(match.group(1))
+        except ValueError:
+            return None
+    return None
+
+
+def _extract_difficulty(query: str) -> Optional[str]:
+    for level in ("easy", "medium", "hard"):
+        if re.search(rf"\b{level}\b", query, flags=re.IGNORECASE):
+            return level
+    return None
+
+
+def _infer_action(query: str) -> Dict[str, Any]:
+    query_clean = (query or "").strip()
+    query_lower = query_clean.lower()
+
+    if not query_clean:
+        return {"action": "search", "confidence": 0.3}
+
+    if re.match(r"^(hi|hello|hey|yo|good morning|good afternoon|good evening)\b", query_lower):
+        return {"action": "greeting", "confidence": 0.95}
+
+    if "help" in query_lower or "what can you do" in query_lower or "commands" in query_lower:
+        return {"action": "show_help", "confidence": 0.9}
+
+    if "weak area" in query_lower or "weakness" in query_lower or "struggle" in query_lower:
+        return {"action": "show_weak_areas", "confidence": 0.9}
+
+    if "progress" in query_lower or "stats" in query_lower or "statistics" in query_lower:
+        return {"action": "show_progress", "confidence": 0.85}
+
+    if "achievement" in query_lower or "badge" in query_lower:
+        return {"action": "show_achievements", "confidence": 0.85}
+
+    if "show my learning paths" in query_lower or "show learning paths" in query_lower:
+        return {"action": "show_learning_paths", "confidence": 0.85}
+
+    if "learning path" in query_lower or "roadmap" in query_lower or "study plan" in query_lower:
+        topic = _extract_topic(query_clean, [r"(?:path|roadmap|learning path|study plan)\s+(?:on|for|about)\s+(.+)"])
+        topic = topic or re.sub(r"^(create|make|generate)\s+", "", query_lower, flags=re.IGNORECASE).strip()
+        return {"action": "create_learning_path", "topic": topic or query_clean, "confidence": 0.8}
+
+    if "review flashcards" in query_lower or "review weak flashcards" in query_lower:
+        return {"action": "review_flashcards", "confidence": 0.85}
+
+    search_keywords = [
+        "search", "find", "show me", "get me", "fetch", "look for", "look up",
+        "where is", "where are", "do i have", "my flashcards", "my notes", "my chats",
+    ]
+    if any(keyword in query_lower for keyword in search_keywords):
+        return {"action": "search", "confidence": 0.75}
+
+    if "flashcard" in query_lower:
+        if any(keyword in query_lower for keyword in ("create", "make", "generate", "build")):
+            topic = _extract_topic(query_clean, [
+                r"(?:flashcards?|cards?)\s+(?:on|about|for)\s+(.+)",
+                r"(?:create|make|generate|build)\s+(?:flashcards?|cards?)\s+(?:on|about|for)?\s*(.+)",
+            ])
+            return {"action": "create_flashcards", "topic": topic or query_clean, "confidence": 0.85}
+        return {"action": "search", "confidence": 0.7}
+
+    if "note" in query_lower:
+        if any(keyword in query_lower for keyword in ("create", "make", "write", "generate")):
+            topic = _extract_topic(query_clean, [
+                r"(?:notes?|note)\s+(?:on|about|for)\s+(.+)",
+                r"(?:create|make|write|generate)\s+(?:notes?|note)\s+(?:on|about|for)?\s*(.+)",
+            ])
+            return {"action": "create_note", "topic": topic or query_clean, "confidence": 0.85}
+        return {"action": "search", "confidence": 0.7}
+
+    if "quiz" in query_lower or "test" in query_lower:
+        topic = _extract_topic(query_clean, [
+            r"(?:quiz|test)\s+(?:me\s+)?(?:on|about|for)\s+(.+)",
+            r"(?:create|make|generate)\s+(?:a\s+)?(?:quiz|test)\s+(?:on|about|for)?\s*(.+)",
+        ])
+        return {"action": "create_quiz", "topic": topic or query_clean, "confidence": 0.85}
+
+    if "question" in query_lower:
+        topic = _extract_topic(query_clean, [
+            r"(?:questions?)\s+(?:on|about|for)\s+(.+)",
+            r"(?:create|make|generate)\s+(?:questions?)\s+(?:on|about|for)?\s*(.+)",
+        ])
+        return {"action": "create_questions", "topic": topic or query_clean, "confidence": 0.85}
+
+    if query_lower.startswith(("explain", "what is", "how does", "define", "tell me about", "summarize")):
+        topic = re.sub(r"^(explain|what is|how does|define|tell me about|summarize)\s+", "", query_clean, flags=re.IGNORECASE)
+        return {"action": "explain", "topic": topic or query_clean, "confidence": 0.8}
+
+    if "chat" in query_lower or "talk" in query_lower or "discuss" in query_lower:
+        return {"action": "start_chat", "topic": query_clean, "confidence": 0.75}
+
+    return {"action": "search", "confidence": 0.6}
+
+
+def _build_topic_suggestions(topic: str) -> List[str]:
+    return [
+        f"create flashcards on {topic}",
+        f"create notes on {topic}",
+        f"quiz me on {topic}",
+        f"explain {topic}",
+    ]
+
+
+def _extract_topic_from_episode(entry: dict) -> Optional[str]:
+    meta = entry.get("metadata") or {}
+    for key in ("topic", "note_title", "set_title", "concept"):
+        value = meta.get(key)
+        if value:
+            return _clean_topic(str(value))
+    doc = entry.get("document", "")
+    match = re.search(r"\"([^\"]+)\"", doc)
+    if match:
+        return _clean_topic(match.group(1))
+    match = re.search(r"about ([^\.]+)", doc, flags=re.IGNORECASE)
+    if match:
+        return _clean_topic(match.group(1))
+    return None
+
+
+def _get_chroma_suggestions(user_id: str, query: Optional[str], limit: int = 8) -> List[str]:
+    try:
+        from tutor import chroma_store
+    except Exception:
+        return []
+
+    if not chroma_store.available():
+        return []
+
+    episodes: List[dict] = []
+    if query:
+        episodes = chroma_store.retrieve_episodes_filtered(user_id, query, top_k=limit)
+    else:
+        for source in ("note_activity", "flashcard_created", "chat", "flashcard_review"):
+            episodes.extend(chroma_store.retrieve_recent_by_source(user_id, source, top_k=4))
+
+    topics = []
+    for entry in episodes:
+        topic = _extract_topic_from_episode(entry)
+        if topic:
+            topics.append(topic)
+
+    topics = _dedupe_preserve(topics)
+    suggestions: List[str] = []
+    for topic in topics:
+        suggestions.extend(_build_topic_suggestions(topic))
+
+    return _dedupe_preserve(suggestions)[:limit]
+
+
+async def _create_note_with_ai(
+    db: Session,
+    user: models.User,
+    topic: str,
+    content: Optional[str],
+    depth: str,
+    tone: str,
+) -> dict:
+    note_title = topic.strip() if topic else "New Note"
+    if not content:
+        depth_lower = (depth or "standard").lower()
+        depth_guidance = {
+            "brief": "Keep it concise with key bullets and short sections.",
+            "deep": "Go in depth with detailed explanations and examples.",
+        }
+        prompt = (
+            f"Create study notes on: {note_title}\n\n"
+            f"Tone: {tone}\n"
+            f"{depth_guidance.get(depth_lower, 'Use clear headers, bullets, and examples when helpful.')}\n"
+            f"Format with markdown headers and bullet points."
+        )
+        try:
+            content = call_ai(prompt, max_tokens=2000, temperature=0.7).strip()
+        except Exception:
+            content = f"# {note_title}\n\n- Key ideas\n- Definitions\n- Examples"
+
+    new_note = models.Note(user_id=user.id, title=note_title, content=content or "")
+    db.add(new_note)
+    db.commit()
+    db.refresh(new_note)
+
+    try:
+        from gamification_system import award_points
+        award_points(db, user.id, "note_created")
+        db.commit()
+    except Exception:
+        pass
+
+    try:
+        from tutor import chroma_store
+        if chroma_store.available():
+            clean_preview = re.sub(r'<[^>]+>', '', content or "")
+            clean_preview = re.sub(r'[#*_\[\]()]', '', clean_preview).strip()
+            preview = clean_preview[:200]
+            summary = (
+                f"Note created: \"{note_title}\". Content: {preview}" if preview
+                else f"Note created: \"{note_title}\" (empty note)"
+            )
+            chroma_store.write_episode(
+                user_id=str(user.id),
+                summary=summary,
+                metadata={
+                    "source": "note_activity",
+                    "action": "created",
+                    "note_id": str(new_note.id),
+                    "note_title": note_title[:100],
+                },
+            )
+    except Exception as e:
+        logger.warning(f"Chroma write failed on searchhub note create: {e}")
+
+    return {
+        "id": new_note.id,
+        "title": new_note.title,
+        "content": new_note.content,
+    }
+
+
+@router.post("")
+async def searchhub_agent(request: SearchHubRequest, db: Session = Depends(get_db)):
+    query = (request.query or "").strip()
+    user = _resolve_user(db, request.user_id)
+
+    if request.session_id:
+        history = SESSION_CONTEXT.setdefault(request.session_id, [])
+        history.append({"query": query})
+        if len(history) > 20:
+            history.pop(0)
+
+    intent = None
+    try:
+        from searchhub_graph import get_searchhub_graph
+        graph = get_searchhub_graph()
+        if graph:
+            intent = await graph.invoke(
+                user_id=request.user_id,
+                query=query,
+                context=request.context,
+            )
+    except Exception as e:
+        logger.warning(f"SearchHub graph invoke failed: {e}")
+
+    if not intent:
+        intent = _infer_action(query)
+    action = intent.get("action")
+    topic = intent.get("topic") or query
+    count = _extract_count(query) or 10
+    difficulty = _extract_difficulty(query) or "medium"
+
+    if action in {"create_note", "create_flashcards", "create_questions", "create_quiz"} and not user:
+        return {
+            "ai_response": "Please log in to create content. Once you are logged in, I can create notes, flashcards, and quizzes for you.",
+            "search_results": [],
+            "suggestions": ["log in", "create an account"],
+            "metadata": {
+                "action": "auth_required",
+                "confidence": intent.get("confidence", 0.4),
+                "topic": topic,
+                "response_type": "chat",
+                "chatbot_message": "Log in required to create content.",
+            },
+        }
+
+    if action == "greeting":
+        return {
+            "ai_response": "Hi! What would you like to learn or create today?",
+            "search_results": [],
+            "suggestions": [
+                "create flashcards on a topic",
+                "create notes on a topic",
+                "explain a concept",
+            ],
+            "metadata": {
+                "action": "greeting",
+                "confidence": intent.get("confidence", 0.95),
+                "response_type": "chat",
+                "chatbot_message": "Hi! How can I help?",
+            },
+        }
+
+    if action == "show_help":
+        return {
+            "ai_response": "You can ask me to search your study content or create new materials. Try: create flashcards on biology, explain quantum physics, or show my progress.",
+            "search_results": [],
+            "suggestions": [
+                "create flashcards on biology",
+                "create notes on world history",
+                "show my progress",
+                "review weak flashcards",
+            ],
+            "metadata": {
+                "action": "show_help",
+                "confidence": intent.get("confidence", 0.9),
+                "response_type": "chat",
+                "chatbot_message": "Here are a few things I can do.",
+            },
+        }
+
+    if action == "show_progress":
+        return {
+            "navigate_to": "/study-insights",
+            "metadata": {
+                "action": "show_progress",
+                "confidence": intent.get("confidence", 0.85),
+                "response_type": "navigation",
+                "chatbot_message": "Opening your study insights.",
+            },
+        }
+
+    if action == "show_achievements":
+        return {
+            "navigate_to": "/study-insights?tab=achievements",
+            "metadata": {
+                "action": "show_achievements",
+                "confidence": intent.get("confidence", 0.85),
+                "response_type": "navigation",
+                "chatbot_message": "Showing your achievements.",
+            },
+        }
+
+    if action == "show_weak_areas":
+        return {
+            "navigate_to": "/study-insights?tab=weak",
+            "metadata": {
+                "action": "show_weak_areas",
+                "confidence": intent.get("confidence", 0.85),
+                "response_type": "navigation",
+                "chatbot_message": "Loading your weak areas.",
+            },
+        }
+
+    if action == "review_flashcards":
+        return {
+            "navigate_to": "/flashcards",
+            "metadata": {
+                "action": "review_flashcards",
+                "confidence": intent.get("confidence", 0.85),
+                "response_type": "navigation",
+                "chatbot_message": "Opening flashcards.",
+            },
+        }
+
+    if action == "create_learning_path":
+        return {
+            "navigate_to": "/learning-paths",
+            "navigate_params": {
+                "autoGenerate": True,
+                "topic": topic,
+                "difficulty": "intermediate",
+                "length": "medium",
+            },
+            "metadata": {
+                "action": "create_learning_path",
+                "confidence": intent.get("confidence", 0.8),
+                "response_type": "navigation",
+                "chatbot_message": f"Generating a learning path for {topic}.",
+            },
+        }
+
+    if action == "show_learning_paths":
+        return {
+            "navigate_to": "/learning-paths",
+            "metadata": {
+                "action": "show_learning_paths",
+                "confidence": intent.get("confidence", 0.8),
+                "response_type": "navigation",
+                "chatbot_message": "Showing your learning paths.",
+            },
+        }
+
+    if action == "start_chat":
+        return {
+            "navigate_to": "/ai-chat",
+            "navigate_params": {"initialMessage": topic},
+            "metadata": {
+                "action": "start_chat",
+                "confidence": intent.get("confidence", 0.75),
+                "response_type": "navigation",
+                "chatbot_message": "Opening chat.",
+            },
+        }
+
+    if action == "explain":
+        prompt = (
+            f"Explain the topic '{topic}' clearly and concisely. "
+            f"Use simple language and 2-4 short paragraphs."
+        )
+        try:
+            explanation = call_ai(prompt, max_tokens=400, temperature=0.6).strip()
+        except Exception:
+            explanation = f"Here is a concise overview of {topic}. I can also create flashcards or notes if you'd like."
+
+        return {
+            "ai_response": explanation,
+            "search_results": [],
+            "suggestions": _build_topic_suggestions(topic),
+            "metadata": {
+                "action": "explain",
+                "confidence": intent.get("confidence", 0.75),
+                "topic": topic,
+                "response_type": "chat",
+                "chatbot_message": "Here is a quick explanation.",
+            },
+        }
+
+    if action == "create_note":
+        note_data = await _create_note_with_ai(db, user, topic, None, "standard", "professional")
+        return {
+            "success": True,
+            "content_id": note_data["id"],
+            "content_title": note_data["title"],
+            "navigate_to": f"/notes/editor/{note_data['id']}",
+            "metadata": {
+                "action": "create_note",
+                "confidence": intent.get("confidence", 0.85),
+                "topic": topic,
+                "response_type": "navigation",
+                "chatbot_message": f"Created notes on {note_data['title']}.",
+            },
+        }
+
+    if action == "create_flashcards":
+        from routes import flashcards as flashcard_routes
+
+        generation_type = "topic"
+        response = await flashcard_routes.generate_flashcards_endpoint(
+            user_id=request.user_id,
+            topic=topic,
+            generation_type=generation_type,
+            card_count=count,
+            difficulty=difficulty,
+            db=db,
+        )
+        set_id = response.get("set_id")
+        set_title = response.get("set_title") or topic
+        return {
+            "success": True,
+            "content_id": set_id,
+            "content_title": set_title,
+            "navigate_to": f"/flashcards?set_id={set_id}" if set_id else "/flashcards",
+            "metadata": {
+                "action": "create_flashcards",
+                "confidence": intent.get("confidence", 0.85),
+                "topic": topic,
+                "response_type": "navigation",
+                "chatbot_message": f"Created flashcards on {set_title}.",
+            },
+        }
+
+    if action in {"create_questions", "create_quiz"}:
+        from routes import questions as question_routes
+
+        payload = {
+            "user_id": request.user_id,
+            "topic": topic,
+            "question_count": count,
+            "difficulty_mix": {"easy": 3, "medium": 5, "hard": 2},
+            "question_types": ["multiple_choice"],
+            "title": f"Practice: {topic[:50]}",
+        }
+        response = await question_routes.generate_practice_questions(payload=payload, db=db)
+        content_id = response.get("question_set_id") or response.get("id")
+        if action == "create_quiz":
+            navigate_to = f"/solo-quiz?set_id={content_id}" if content_id else "/solo-quiz"
+        else:
+            navigate_to = f"/question-bank?set_id={content_id}" if content_id else "/question-bank"
+
+        return {
+            "success": True,
+            "content_id": content_id,
+            "content_title": response.get("title") or topic,
+            "navigate_to": navigate_to,
+            "metadata": {
+                "action": action,
+                "confidence": intent.get("confidence", 0.85),
+                "topic": topic,
+                "response_type": "navigation",
+                "chatbot_message": f"Created questions on {topic}.",
+            },
+        }
+
+    if user:
+        from routes import search as search_routes
+
+        filters = request.context or {}
+        content_types = filters.get("content_types", "all")
+        sort_by = filters.get("sort_by", "relevance")
+        date_from = filters.get("date_from")
+        date_to = filters.get("date_to")
+
+        search_result = await search_routes.search_content(
+            user_id=request.user_id,
+            query=query,
+            content_types=content_types,
+            sort_by=sort_by,
+            date_from=date_from,
+            date_to=date_to,
+            db=db,
+        )
+
+        suggestions = _get_chroma_suggestions(str(user.id), query, limit=6)
+        if not suggestions:
+            suggestions = search_result.get("related_searches", []) or _build_topic_suggestions(topic)
+
+        ai_response = None
+        if not search_result.get("results"):
+            try:
+                ai_response = call_ai(
+                    f"Provide a short, friendly description of '{topic}' in 2-3 sentences.",
+                    max_tokens=200,
+                    temperature=0.6,
+                ).strip()
+            except Exception:
+                ai_response = (
+                    f"I can help you learn about {topic}. "
+                    "Ask me to create notes, flashcards, or a quick quiz."
+                )
+
+        return {
+            "search_results": search_result.get("results", []),
+            "ai_response": ai_response,
+            "suggestions": suggestions,
+            "metadata": {
+                "action": "search",
+                "confidence": intent.get("confidence", 0.6),
+                "topic": topic,
+                "response_type": "search",
+            },
+        }
+
+    ai_response = "I can help explain a topic or create study materials. Log in to search your saved content."
+    return {
+        "ai_response": ai_response,
+        "search_results": [],
+        "suggestions": _build_topic_suggestions(topic),
+        "metadata": {
+            "action": "search",
+            "confidence": intent.get("confidence", 0.4),
+            "topic": topic,
+            "response_type": "chat",
+        },
+    }
+
+
+@router.post("/create-note")
+async def create_note_endpoint(request: CreateNoteRequest, db: Session = Depends(get_db)):
+    user = _resolve_user(db, request.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    note_data = await _create_note_with_ai(
+        db=db,
+        user=user,
+        topic=request.topic,
+        content=request.content,
+        depth=request.depth,
+        tone=request.tone,
+    )
+
+    return {
+        "success": True,
+        "content_id": note_data["id"],
+        "content_title": note_data["title"],
+        "navigate_to": f"/notes/editor/{note_data['id']}",
+    }
+
+
+@router.post("/create-flashcards")
+async def create_flashcards_endpoint(request: CreateFlashcardsRequest, db: Session = Depends(get_db)):
+    user = _resolve_user(db, request.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    from routes import flashcards as flashcard_routes
+
+    generation_type = "chat_history" if request.content else "topic"
+    response = await flashcard_routes.generate_flashcards_endpoint(
+        user_id=request.user_id,
+        topic=request.topic,
+        generation_type=generation_type,
+        content=request.content,
+        card_count=request.count,
+        difficulty=request.difficulty,
+        db=db,
+    )
+
+    set_id = response.get("set_id")
+    set_title = response.get("set_title") or request.topic
+
+    return {
+        "success": True,
+        "content_id": set_id,
+        "content_title": set_title,
+        "navigate_to": f"/flashcards?set_id={set_id}" if set_id else "/flashcards",
+        "flashcards": response.get("flashcards", []),
+    }
+
+
+@router.post("/create-questions")
+async def create_questions_endpoint(request: CreateQuestionsRequest, db: Session = Depends(get_db)):
+    user = _resolve_user(db, request.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    from routes import questions as question_routes
+
+    payload = {
+        "user_id": request.user_id,
+        "topic": request.topic,
+        "question_count": request.count,
+        "difficulty_mix": request.difficulty_mix or {"easy": 3, "medium": 5, "hard": 2},
+        "question_types": ["multiple_choice"],
+        "title": f"Practice: {request.topic[:50]}",
+    }
+    response = await question_routes.generate_practice_questions(payload=payload, db=db)
+    content_id = response.get("question_set_id") or response.get("id")
+
+    return {
+        "success": True,
+        "content_id": content_id,
+        "content_title": response.get("title") or request.topic,
+        "navigate_to": f"/question-bank?set_id={content_id}" if content_id else "/question-bank",
+        "questions": response.get("questions", []),
+    }
+
+
+@router.post("/explain")
+async def explain_endpoint(request: ExplainRequest, db: Session = Depends(get_db)):
+    topic = request.topic.strip()
+    prompt = (
+        f"Explain the topic '{topic}' clearly and concisely. "
+        f"Use simple language and 2-4 short paragraphs."
+    )
+    try:
+        explanation = call_ai(prompt, max_tokens=400, temperature=0.6).strip()
+    except Exception:
+        explanation = f"Here is a concise overview of {topic}. I can also create flashcards or notes if you'd like."
+
+    return {
+        "success": True,
+        "topic": topic,
+        "explanation": explanation,
+    }
+
+
+@router.get("/suggestions")
+async def suggestions_endpoint(
+    query: str = Query("", min_length=0),
+    user_id: str = Query("guest"),
+    db: Session = Depends(get_db),
+):
+    user = _resolve_user(db, user_id)
+    suggestions: List[str] = []
+
+    if user:
+        suggestions = _get_chroma_suggestions(str(user.id), query, limit=8)
+
+    if not suggestions and query:
+        suggestions = _build_topic_suggestions(query)
+
+    if not suggestions:
+        suggestions = [
+            "create flashcards on a topic",
+            "create notes on a topic",
+            "explain a concept",
+            "show my progress",
+        ]
+
+    return {"success": True, "suggestions": _dedupe_preserve(suggestions)[:8]}
+
+
+@router.get("/actions")
+async def actions_endpoint():
+    return {
+        "success": True,
+        "actions": [
+            {"action": "create_note", "label": "Create Note"},
+            {"action": "create_flashcards", "label": "Create Flashcards"},
+            {"action": "create_questions", "label": "Create Questions"},
+            {"action": "create_quiz", "label": "Create Quiz"},
+            {"action": "create_learning_path", "label": "Create Learning Path"},
+            {"action": "show_progress", "label": "Show Progress"},
+            {"action": "show_weak_areas", "label": "Show Weak Areas"},
+            {"action": "review_flashcards", "label": "Review Flashcards"},
+            {"action": "start_chat", "label": "Start Chat"},
+        ],
+    }
+
+
+@router.post("/clear-context")
+async def clear_context_endpoint(request: ClearContextRequest):
+    if request.session_id in SESSION_CONTEXT:
+        SESSION_CONTEXT.pop(request.session_id, None)
+    return {"success": True, "session_id": request.session_id}
