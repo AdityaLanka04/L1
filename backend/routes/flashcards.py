@@ -288,6 +288,17 @@ async def generate_flashcards_endpoint(
     if not flashcards_data:
         raise HTTPException(status_code=500, detail="Failed to generate flashcards")
 
+    # Normalize LaTeX delimiters so KaTeX renders correctly on the frontend
+    try:
+        from math_processor import process_math_in_response
+        for card_data in flashcards_data:
+            if card_data.get("question"):
+                card_data["question"] = process_math_in_response(card_data["question"])
+            if card_data.get("answer"):
+                card_data["answer"] = process_math_in_response(card_data["answer"])
+    except Exception:
+        pass
+
     title = set_title or (f"Flashcards: {topic[:30]}" if topic else "Generated Flashcards")
     new_set = models.FlashcardSet(
         user_id=user.id,

@@ -12,6 +12,7 @@ import './QuestionbankConvert.css';
 import { API_URL } from '../config';
 import ImportExportModal from '../components/ImportExportModal';
 import questionBankAgentService from '../services/questionBankAgentService';
+import MathRenderer from '../components/MathRenderer';
 const QuestionBankDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -2414,7 +2415,7 @@ const QuestionBankDashboard = () => {
                     <div key={wa.id} className={`qbd-wrong-answer-card ${wa.reviewed ? 'reviewed' : ''}`}>
                       <div className="qbd-wrong-answer-question">
                         <span className="qbd-difficulty-badge">{wa.difficulty}</span>
-                        <p>{wa.question_text}</p>
+                        <MathRenderer content={wa.question_text || ''} className="qbd-wrong-question-text" />
                       </div>
                       <div className="qbd-wrong-answer-comparison">
                         <div className="qbd-answer-box wrong">
@@ -2515,7 +2516,7 @@ const QuestionBankDashboard = () => {
                       <span className="qbd-topic-badge">{q.topic}</span>
                     </div>
 
-                    <p className="qbd-question-text">{q.question_text}</p>
+                    <MathRenderer content={q.question_text || ''} className="qbd-question-text" />
 
                     {q.question_type === 'multiple_choice' && (
                       <div className="qbd-options">
@@ -2528,7 +2529,7 @@ const QuestionBankDashboard = () => {
                               checked={userAnswers[q.id] === option}
                               onChange={() => handleAnswerChange(q.id, option)}
                             />
-                            <span>{option}</span>
+                            <MathRenderer content={option || ''} className="qbd-option-text" />
                           </label>
                         ))}
                       </div>
@@ -2638,7 +2639,7 @@ const QuestionBankDashboard = () => {
                         {detail.is_correct ? <CheckCircle size={20} /> : <XCircle size={20} />}
                       </div>
                       <div className="qbd-result-content">
-                        <p className="qbd-result-question"><strong>Q{idx + 1}:</strong> {detail.question_text}</p>
+                        <div className="qbd-result-question"><strong>Q{idx + 1}:</strong> <MathRenderer content={detail.question_text || ''} className="qbd-result-question-math" /></div>
                         <p className="qbd-result-answer">
                           <strong>Your answer:</strong> {detail.user_answer || 'No answer'}
                         </p>

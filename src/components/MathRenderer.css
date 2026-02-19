@@ -274,3 +274,97 @@
 .math-content p:has(.katex) {
   line-height: 1.9;
 }
+
+/* ---- Context overrides for quiz options, card text, question text ---- */
+
+/* Option text inside flex buttons/labels: inline-flex so it doesn't break button layout */
+.math-content.option-text {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  line-height: 1.5;
+  font-size: inherit;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Question text in quiz: block, slightly larger */
+.math-content.question-text {
+  display: block;
+  font-size: 1.15em;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* Question text in results review */
+.math-content.question-text-full {
+  display: inline;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* Question bank dashboard question text */
+.math-content.qbd-question-text {
+  display: block;
+  font-size: inherit;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Question bank wrong answer question */
+.math-content.qbd-wrong-question-text {
+  display: block;
+  font-size: inherit;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Question bank option text inside radio label */
+.math-content.qbd-option-text {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  font-size: inherit;
+  line-height: 1.4;
+}
+
+/* Question bank results question text */
+.math-content.qbd-result-question-math {
+  display: inline;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* Flashcard study card text: centered, full size */
+.math-content.fc-study-card-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: inherit;
+  line-height: 1.6;
+  width: 100%;
+  min-height: 40px;
+}
+
+/* SR card content: same centered treatment */
+.math-content.fc-sr-card-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 1.15em;
+  line-height: 1.7;
+  width: 100%;
+  min-height: 40px;
+}
+
+/* Display math inside card/option contexts: don't over-center */
+.math-content.option-text .katex-display,
+.math-content.qbd-option-text .katex-display {
+  display: inline-block;
+  margin: 0;
+  text-align: left;
+}

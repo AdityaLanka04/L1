@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Clock, Target, Trophy, CheckCircle, XCircle, Loader, Lightbulb, RefreshCw, AlertCircle, ChevronLeft, ChevronRight , Menu} from 'lucide-react';
 import './QuizBattleSession.css';
 import quizAgentService from '../services/quizAgentService';
+import MathRenderer from '../components/MathRenderer';
 
 const SoloQuizSession = () => {
   const navigate = useNavigate();
@@ -393,7 +394,7 @@ const SoloQuizSession = () => {
                   <div key={index} className={`question-comparison-item expanded ${isCorrect ? 'correct' : 'incorrect'}`}>
                     <div className="question-comparison-header">
                       <div className="question-number">Q{index + 1}</div>
-                      <div className="question-text-full">{result.question_text || question?.question_text}</div>
+                      <MathRenderer content={result.question_text || question?.question_text || ''} className="question-text-full" />
                       <span className={`status-badge ${isCorrect ? 'correct' : 'incorrect'}`}>
                         {isCorrect ? '✓ Correct' : '✗ Incorrect'}
                       </span>
@@ -416,7 +417,7 @@ const SoloQuizSession = () => {
                             >
                               <div className="option-content">
                                 <span className="option-letter">{optionLetter}</span>
-                                <span className="option-text">{optionText}</span>
+                                <MathRenderer content={optionText || ''} className="option-text" />
                                 {isCorrectOption && <CheckCircle size={16} className="correct-icon" />}
                               </div>
                               {isUserSelected && (
@@ -493,7 +494,7 @@ const SoloQuizSession = () => {
                 {currentQuestion?.difficulty}
               </span>
             </div>
-            <h2 className="question-text">{currentQuestion?.question_text}</h2>
+            <MathRenderer content={currentQuestion?.question_text || ''} className="question-text" />
           </div>
 
           <div className="answers-grid">
@@ -515,7 +516,7 @@ const SoloQuizSession = () => {
                   disabled={quizMode === 'sequential-instant' && showInstantFeedback}
                 >
                   <span className="option-letter">{String.fromCharCode(65 + index)}</span>
-                  <span className="option-text">{optionText}</span>
+                  <MathRenderer content={optionText || ''} className="option-text" />
                   {quizMode === 'sequential-instant' && showInstantFeedback && isSelected && (
                     instantFeedbackCorrect ? 
                       <CheckCircle size={20} className="option-icon" /> : 

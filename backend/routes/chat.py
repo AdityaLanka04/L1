@@ -122,6 +122,11 @@ async def ask_ai(
                 chat_history=chat_history_for_tutor,
             )
             response_text = result.get("response", "")
+            try:
+                from math_processor import process_math_in_response
+                response_text = process_math_in_response(response_text)
+            except Exception:
+                pass
         else:
             response_text = call_ai(question)
 
@@ -215,6 +220,11 @@ async def ask_simple(
                 chat_history=chat_history,
             )
             response_text = result.get("response", "")
+            try:
+                from math_processor import process_math_in_response
+                response_text = process_math_in_response(response_text)
+            except Exception:
+                pass
         else:
             response_text = call_ai(question)
 

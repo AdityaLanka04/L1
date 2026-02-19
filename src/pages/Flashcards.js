@@ -6,6 +6,7 @@ import './FlashcardsConvert.css';
 import { API_URL } from '../config';
 import gamificationService from '../services/gamificationService';
 import ImportExportModal from '../components/ImportExportModal';
+import MathRenderer from '../components/MathRenderer';
 
 const Flashcards = () => {
   const navigate = useNavigate();
@@ -2103,9 +2104,7 @@ const Flashcards = () => {
                 <div className="fc-study-card-inner">
                   <div className="fc-study-card-front">
                     <div className="fc-study-badge">Question</div>
-                    <div className="fc-study-card-text">
-                      {previewCards[currentCard]?.question}
-                    </div>
+                    <MathRenderer content={previewCards[currentCard]?.question || ''} className="fc-study-card-text" />
                     {previewCards[currentCard]?.is_edited && (
                       <div className="fc-edited-badge" title={`Edited ${previewCards[currentCard]?.edited_at ? new Date(previewCards[currentCard].edited_at).toLocaleString() : ''}`}>
                         EDITED
@@ -2115,7 +2114,7 @@ const Flashcards = () => {
                   </div>
                   <div className="fc-study-card-back">
                     <div className="fc-study-badge">Answer</div>
-                    <div className="fc-study-card-text">{previewCards[currentCard]?.answer}</div>
+                    <MathRenderer content={previewCards[currentCard]?.answer || ''} className="fc-study-card-text" />
                     <div className="fc-study-hint">Click to flip back</div>
                   </div>
                 </div>
@@ -2270,13 +2269,13 @@ const Flashcards = () => {
                   <div className="fc-sr-card-front">
                     <div className="fc-sr-card-badge">{card.sr_state === 'new' ? 'NEW' : card.sr_state?.toUpperCase()}</div>
                     <div className="fc-sr-card-set">{card.set_title}</div>
-                    <div className="fc-sr-card-content">{card.question}</div>
+                    <MathRenderer content={card.question || ''} className="fc-sr-card-content" />
                     <div className="fc-sr-tap-hint">Tap to reveal answer</div>
                   </div>
                 ) : (
                   <div className="fc-sr-card-back">
                     <div className="fc-sr-card-label">Answer</div>
-                    <div className="fc-sr-card-content">{card.answer}</div>
+                    <MathRenderer content={card.answer || ''} className="fc-sr-card-content" />
                   </div>
                 )}
               </div>
