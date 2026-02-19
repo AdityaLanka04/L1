@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Square, Circle, Type, Minus, Trash2, Move, ZoomIn, ZoomOut, 
   Download, Undo, Redo, Palette, X, ArrowLeft, StickyNote,
@@ -7,15 +7,23 @@ import {
 } from 'lucide-react';
 import './CanvasMode.css';
 
-// Apple Notes Feature: Shape Recognition
-const recognizeShape = (points) => {
-  if (points.length < 8) return null;
-  
-  const firstPoint = points[0];
-  const lastPoint = points[points.length - 1];
-  const closingDistance = Math.sqrt(Math.pow(lastPoint.x - firstPoint.x, 2) + Math.pow(lastPoint.y - firstPoint.y, 2));
-  
-  // Calculate bounding box
+const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+const pathLength = (points) => points.reduce((sum, p, i) => {
+  if (i === 0) return 0;
+  return sum + distance(p, points[i - 1]);
+}, 0);
+
+const pointToLineDistance = (p, a, b) => {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const length = Math.hypot(dx, dy);
+  if (length === 0) return distance(p, a);
+  const numerator = Math.abs(dy * p.x - dx * p.y + b.x * a.y - b.y * a.x);
+  return numerator / length;
+};
+
+const getBoundingBox = (points) => {
   const xs = points.map(p => p.x);
   const ys = points.map(p => p.y);
   const minX = Math.min(...xs);
@@ -27,19 +35,77 @@ const recognizeShape = (points) => {
   const centerX = (minX + maxX) / 2;
   const centerY = (minY + maxY) / 2;
   const size = Math.max(width, height);
-  
-  // Check for straight line FIRST (before closed shapes)
-  const totalDistance = points.reduce((sum, p, i) => {
-    if (i === 0) return 0;
-    const prev = points[i - 1];
-    return sum + Math.sqrt(Math.pow(p.x - prev.x, 2) + Math.pow(p.y - prev.y, 2));
-  }, 0);
-  
-  const directDistance = Math.sqrt(Math.pow(lastPoint.x - firstPoint.x, 2) + Math.pow(lastPoint.y - firstPoint.y, 2));
-  const linearity = directDistance / totalDistance;
-  
-  // If path is very straight (linearity > 0.85), it's a line
-  if (linearity > 0.85 && totalDistance > 50) {
+  return { minX, maxX, minY, maxY, width, height, centerX, centerY, size };
+};
+
+const simplifyPath = (points, tolerance) => {
+  if (points.length <= 2) return points;
+  const sqTolerance = tolerance * tolerance;
+  const markers = new Uint8Array(points.length);
+  markers[0] = 1;
+  markers[points.length - 1] = 1;
+  const stack = [[0, points.length - 1]];
+
+  const getSqSegDist = (p, p1, p2) => {
+    let x = p1.x;
+    let y = p1.y;
+    let dx = p2.x - x;
+    let dy = p2.y - y;
+
+    if (dx !== 0 || dy !== 0) {
+      const t = ((p.x - x) * dx + (p.y - y) * dy) / (dx * dx + dy * dy);
+      if (t > 1) {
+        x = p2.x;
+        y = p2.y;
+      } else if (t > 0) {
+        x += dx * t;
+        y += dy * t;
+      }
+    }
+
+    dx = p.x - x;
+    dy = p.y - y;
+    return dx * dx + dy * dy;
+  };
+
+  while (stack.length) {
+    const [first, last] = stack.pop();
+    let maxSqDist = 0;
+    let index = 0;
+
+    for (let i = first + 1; i < last; i++) {
+      const sqDist = getSqSegDist(points[i], points[first], points[last]);
+      if (sqDist > maxSqDist) {
+        index = i;
+        maxSqDist = sqDist;
+      }
+    }
+
+    if (maxSqDist > sqTolerance) {
+      markers[index] = 1;
+      stack.push([first, index], [index, last]);
+    }
+  }
+
+  return points.filter((_, i) => markers[i]);
+};
+
+// Apple Notes Feature: Shape Recognition
+const recognizeShape = (points) => {
+  if (points.length < 8) return null;
+
+  const totalDistance = pathLength(points);
+  const { minX, maxX, minY, maxY, width, height, centerX, centerY, size } = getBoundingBox(points);
+
+  if (totalDistance < 60 || size < 12) return null;
+
+  const firstPoint = points[0];
+  const lastPoint = points[points.length - 1];
+  const directDistance = distance(firstPoint, lastPoint);
+  const straightness = directDistance / totalDistance;
+  const maxDeviation = points.reduce((max, p) => Math.max(max, pointToLineDistance(p, firstPoint, lastPoint)), 0);
+
+  if (straightness > 0.92 && maxDeviation < Math.max(4, size * 0.03)) {
     return {
       type: 'line',
       x1: firstPoint.x,
@@ -48,93 +114,67 @@ const recognizeShape = (points) => {
       y2: lastPoint.y
     };
   }
-  
-  // Check if path is closed (circle or rectangle)
-  const isClosed = closingDistance < Math.max(30, size * 0.15);
-  
-  if (isClosed && size > 30) {
-    // Calculate how circular the shape is
-    const avgRadius = (width + height) / 4;
-    let radiusVariance = 0;
-    let radiusSum = 0;
-    
-    points.forEach(p => {
-      const r = Math.sqrt(Math.pow(p.x - centerX, 2) + Math.pow(p.y - centerY, 2));
-      radiusSum += r;
-      radiusVariance += Math.abs(r - avgRadius);
-    });
-    
-    const avgActualRadius = radiusSum / points.length;
-    radiusVariance /= points.length;
-    const circularityScore = 1 - (radiusVariance / avgRadius);
-    
-    // Check aspect ratio
-    const aspectRatio = Math.min(width, height) / Math.max(width, height);
-    
-    // If high circularity score (> 0.75) and decent aspect ratio (> 0.7), it's a circle
-    if (circularityScore > 0.75 && aspectRatio > 0.7) {
-      return {
-        type: 'circle',
-        x: centerX,
-        y: centerY,
-        radius: avgActualRadius
-      };
-    }
-    
-    // Check for rectangle by analyzing corners
-    const corners = findCorners(points, centerX, centerY);
-    if (corners.length >= 4 && corners.length <= 6) {
-      // It's likely a rectangle
-      return {
-        type: 'rectangle',
-        x: minX,
-        y: minY,
-        width,
-        height
-      };
-    }
-    
-    // Default to rectangle for closed shapes
-    if (aspectRatio < 0.7 || circularityScore < 0.6) {
-      return {
-        type: 'rectangle',
-        x: minX,
-        y: minY,
-        width,
-        height
-      };
-    }
+
+  const closingDistance = distance(firstPoint, lastPoint);
+  const isClosed = closingDistance < Math.max(12, size * 0.1);
+  if (!isClosed || size < 24) return null;
+
+  const simplified = simplifyPath(points, Math.max(2, size * 0.02));
+  const aspectRatio = Math.min(width, height) / Math.max(width, height);
+
+  const radii = simplified.map(p => Math.hypot(p.x - centerX, p.y - centerY));
+  const avgRadius = radii.reduce((sum, r) => sum + r, 0) / radii.length;
+  const radiusVariance = radii.reduce((sum, r) => sum + Math.abs(r - avgRadius), 0) / radii.length;
+  const circularityScore = 1 - (radiusVariance / (avgRadius || 1));
+
+  if (circularityScore > 0.82 && aspectRatio > 0.78) {
+    return {
+      type: 'circle',
+      x: centerX,
+      y: centerY,
+      radius: avgRadius
+    };
   }
-  
+
+  const rx = width / 2 || 1;
+  const ry = height / 2 || 1;
+  const ellipseError = simplified.reduce((sum, p) => {
+    const dx = (p.x - centerX) / rx;
+    const dy = (p.y - centerY) / ry;
+    const norm = (dx * dx) + (dy * dy);
+    return sum + Math.abs(1 - norm);
+  }, 0) / simplified.length;
+
+  const edgeTolerance = Math.max(6, size * 0.05);
+  const edgeHits = simplified.filter(p => {
+    const dx = Math.min(Math.abs(p.x - minX), Math.abs(p.x - maxX));
+    const dy = Math.min(Math.abs(p.y - minY), Math.abs(p.y - maxY));
+    return Math.min(dx, dy) < edgeTolerance;
+  });
+  const edgeRatio = edgeHits.length / simplified.length;
+
+  if (ellipseError < 0.32 && aspectRatio > 0.35) {
+    return {
+      type: 'ellipse',
+      x: centerX,
+      y: centerY,
+      rx: Math.max(8, rx),
+      ry: Math.max(8, ry)
+    };
+  }
+
+  if (edgeRatio > 0.72 || aspectRatio < 0.35) {
+    return {
+      type: 'rectangle',
+      x: minX,
+      y: minY,
+      width,
+      height
+    };
+  }
+
   return null;
 };
-
-// Helper function to find corners in a path
-const findCorners = (points, centerX, centerY) => {
-  const corners = [];
-  const angleThreshold = Math.PI / 4; // 45 degrees
-  
-  for (let i = 2; i < points.length - 2; i++) {
-    const prev = points[i - 2];
-    const curr = points[i];
-    const next = points[i + 2];
-    
-    const angle1 = Math.atan2(curr.y - prev.y, curr.x - prev.x);
-    const angle2 = Math.atan2(next.y - curr.y, next.x - curr.x);
-    let angleDiff = Math.abs(angle2 - angle1);
-    
-    // Normalize angle difference
-    if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
-    
-    if (angleDiff > angleThreshold) {
-      corners.push(curr);
-    }
-  }
-  
-  return corners;
-};
-
-// Removed old checkIfLine and pointToLineDistance - now using improved algorithm above
 
 // Apple Notes Feature: Smooth Drawing (Catmull-Rom spline)
 const smoothPath = (points) => {
@@ -175,26 +215,91 @@ const smoothPath = (points) => {
   return smoothed;
 };
 
+const getElementBounds = (el) => {
+  if (el.type === 'rectangle' || el.type === 'sticky' || el.type === 'table' || el.type === 'image') {
+    return { x: el.x, y: el.y, width: el.width || 0, height: el.height || 0 };
+  }
+  if (el.type === 'circle') {
+    const radius = el.radius || 0;
+    return { x: el.x - radius, y: el.y - radius, width: radius * 2, height: radius * 2 };
+  }
+  if (el.type === 'ellipse') {
+    const rx = el.rx || 0;
+    const ry = el.ry || 0;
+    return { x: el.x - rx, y: el.y - ry, width: rx * 2, height: ry * 2 };
+  }
+  if (el.type === 'line' || el.type === 'arrow') {
+    const minX = Math.min(el.x1, el.x2);
+    const maxX = Math.max(el.x1, el.x2);
+    const minY = Math.min(el.y1, el.y2);
+    const maxY = Math.max(el.y1, el.y2);
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  }
+  if (el.type === 'draw') {
+    const xs = el.points.map(p => p.x);
+    const ys = el.points.map(p => p.y);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  }
+  if (el.type === 'text') {
+    return { x: el.x, y: el.y - 20, width: 220, height: 32 };
+  }
+  return { x: 0, y: 0, width: 0, height: 0 };
+};
+
+const translateElement = (el, dx, dy) => {
+  if (el.type === 'rectangle' || el.type === 'sticky' || el.type === 'table' || el.type === 'image' || el.type === 'text') {
+    return { ...el, x: el.x + dx, y: el.y + dy };
+  }
+  if (el.type === 'circle' || el.type === 'ellipse') {
+    return { ...el, x: el.x + dx, y: el.y + dy };
+  }
+  if (el.type === 'line' || el.type === 'arrow') {
+    return { ...el, x1: el.x1 + dx, y1: el.y1 + dy, x2: el.x2 + dx, y2: el.y2 + dy };
+  }
+  if (el.type === 'draw') {
+    return { ...el, points: el.points.map(p => ({ x: p.x + dx, y: p.y + dy })) };
+  }
+  return el;
+};
+
 const CanvasMode = ({ initialContent, onClose, onSave }) => {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
+  const elementsRef = useRef([]);
+  const selectedElementRef = useRef(null);
+  const selectedElementsRef = useRef([]);
+  const selectedIdsRef = useRef(new Set());
+  const currentPathRef = useRef([]);
+  const pendingStateRef = useRef({});
+  const rafRef = useRef(null);
+  const lastSerializedRef = useRef('');
+  const hydratedRef = useRef(false);
+  const eraseDirtyRef = useRef(false);
+  const selectionStartRef = useRef(null);
+  const selectionAdditiveRef = useRef(false);
+  const selectionBaseRef = useRef(new Set());
+  const dragSelectionRef = useRef(null);
   
   const [tool, setTool] = useState('select');
   const [elements, setElements] = useState([]);
   const [selectedElement, setSelectedElement] = useState(null);
   const [drawing, setDrawing] = useState(false);
   const [currentPath, setCurrentPath] = useState([]);
-  const [zoom, setZoom] = useState(0.5);
+  const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   const [dragStart, setDragStart] = useState(null);
-  const [color, setColor] = useState('#FFFFFF');
+  const [color, setColor] = useState('#111827');
   const [strokeWidth, setStrokeWidth] = useState(2);
   const [history, setHistory] = useState([[]]);
   const [historyIndex, setHistoryIndex] = useState(0);
-  const [showGrid, setShowGrid] = useState(true);
-  const [showRuler, setShowRuler] = useState(true);
+  const [showGrid, setShowGrid] = useState(false);
+  const [showRuler, setShowRuler] = useState(false);
   const [snapToGrid, setSnapToGrid] = useState(false);
   const [editingText, setEditingText] = useState(null);
   const [rulerTool, setRulerTool] = useState(null); // { x, y, angle, length }
@@ -204,11 +309,13 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
   const [lastSaved, setLastSaved] = useState(null);
   const autoSaveTimeout = useRef(null);
   const [selectedElements, setSelectedElements] = useState([]); // Multi-select
+  const [selectionBox, setSelectionBox] = useState(null);
   const [copiedElements, setCopiedElements] = useState([]);
   const [fillColor, setFillColor] = useState('transparent');
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [opacity, setOpacity] = useState(1);
-  const [backgroundPattern, setBackgroundPattern] = useState('none');
+  const [drawStyle, setDrawStyle] = useState('pen');
+  const [backgroundPattern, setBackgroundPattern] = useState('dots');
   const [showMinimap, setShowMinimap] = useState(false);
   const [resizing, setResizing] = useState(null); // { element, handle: 'se' | 'sw' | 'ne' | 'nw' | 'n' | 's' | 'e' | 'w' }
   const [rotating, setRotating] = useState(null); // { element, startAngle }
@@ -220,11 +327,12 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
   const [tableCols, setTableCols] = useState(3);
   const fileInputRef = useRef(null);
   const GRID_SIZE = 20;
+  const MIN_POINT_DISTANCE = 1.5;
 
   const COLORS = [
-    '#FFFFFF', '#000000', '#FF6B6B', '#4ECDC4', 
-    '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', 
-    '#BB8FCE', '#85C1E2', '#52B788', '#F4A261'
+    '#111827', '#374151', '#1D4ED8', '#0EA5E9',
+    '#14B8A6', '#16A34A', '#FDE68A', '#F59E0B',
+    '#F97316', '#EF4444', '#A855F7', '#94A3B8'
   ];
 
   const STICKY_COLORS = [
@@ -241,41 +349,152 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
   ];
 
   const STROKE_WIDTHS = [1, 2, 4, 6, 8, 12];
+  const serializeElements = (items) => JSON.stringify({ canvasElements: items });
+  const isLightColor = (hex) => {
+    if (!hex || hex[0] !== '#' || hex.length !== 7) return false;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    return luminance > 0.78;
+  };
+  const selectedIdSet = useMemo(() => new Set(selectedElements.map(el => el.id)), [selectedElements]);
+
+  const getElementsByIds = (idsSet) => elementsRef.current.filter(el => idsSet.has(el.id));
+
+  const updateSelection = (idsSet) => {
+    const selection = getElementsByIds(idsSet);
+    selectedIdsRef.current = new Set(selection.map(el => el.id));
+    selectedElementsRef.current = selection;
+    setSelectedElements(selection);
+    if (selection.length === 1) {
+      setSelectedElement(selection[0]);
+      selectedElementRef.current = selection[0];
+    } else {
+      setSelectedElement(null);
+      selectedElementRef.current = null;
+    }
+  };
+
+  const clearSelection = () => {
+    selectedIdsRef.current = new Set();
+    selectedElementsRef.current = [];
+    setSelectedElements([]);
+    setSelectedElement(null);
+    selectedElementRef.current = null;
+  };
+
+  const applyDrawStyle = (style) => {
+    setDrawStyle(style);
+    if (style === 'pen') {
+      setStrokeWidth(2);
+      setOpacity(1);
+    } else if (style === 'marker') {
+      setStrokeWidth(6);
+      setOpacity(0.7);
+    } else if (style === 'highlighter') {
+      setStrokeWidth(14);
+      setOpacity(0.35);
+    }
+  };
+
+  const scheduleStateUpdate = (updates) => {
+    pendingStateRef.current = { ...pendingStateRef.current, ...updates };
+    if (rafRef.current) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      const pending = pendingStateRef.current;
+      pendingStateRef.current = {};
+      if (Object.prototype.hasOwnProperty.call(pending, 'elements')) {
+        setElements(pending.elements);
+      }
+      if (Object.prototype.hasOwnProperty.call(pending, 'currentPath')) {
+        setCurrentPath(pending.currentPath);
+      }
+      if (Object.prototype.hasOwnProperty.call(pending, 'previewShape')) {
+        setPreviewShape(pending.previewShape);
+      }
+      if (Object.prototype.hasOwnProperty.call(pending, 'selectedElement')) {
+        setSelectedElement(pending.selectedElement);
+      }
+    });
+  };
+
+  const commitElements = (newElements, { addHistory = false } = {}) => {
+    elementsRef.current = newElements;
+    scheduleStateUpdate({ elements: newElements });
+    if (addHistory) addToHistory(newElements);
+  };
 
   // Load initial content
   useEffect(() => {
+    let parsedElements = [];
     if (initialContent) {
       try {
         const parsed = JSON.parse(initialContent);
-        if (parsed.canvasElements) {
-          setElements(parsed.canvasElements);
-          setHistory([[...parsed.canvasElements]]);
+        if (Array.isArray(parsed.canvasElements)) {
+          parsedElements = parsed.canvasElements;
         }
       } catch (e) {
               }
     }
+    setElements(parsedElements);
+    elementsRef.current = parsedElements;
+    setHistory([[...parsedElements]]);
+    setHistoryIndex(0);
+    lastSerializedRef.current = serializeElements(parsedElements);
+    hydratedRef.current = true;
   }, [initialContent]);
+
+  useEffect(() => {
+    elementsRef.current = elements;
+  }, [elements]);
+
+  useEffect(() => {
+    if (selectedIdsRef.current.size === 0) return;
+    const validIds = new Set(elements.map(el => el.id));
+    const filtered = new Set([...selectedIdsRef.current].filter(id => validIds.has(id)));
+    if (filtered.size !== selectedIdsRef.current.size) {
+      updateSelection(filtered);
+    }
+  }, [elements]);
+
+  useEffect(() => {
+    selectedElementRef.current = selectedElement;
+  }, [selectedElement]);
+
+  useEffect(() => {
+    selectedElementsRef.current = selectedElements;
+  }, [selectedElements]);
+
+  useEffect(() => {
+    currentPathRef.current = currentPath;
+  }, [currentPath]);
+
+  useEffect(() => () => {
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+  }, []);
 
   // Copy/Paste functionality
   const copySelected = () => {
-    if (selectedElements.length > 0) {
-      setCopiedElements(selectedElements.map(el => ({ ...el })));
-    } else if (selectedElement) {
-      setCopiedElements([{ ...selectedElement }]);
+    if (selectedIdsRef.current.size > 0) {
+      setCopiedElements(getElementsByIds(selectedIdsRef.current).map(el => ({ ...el })));
+    } else if (selectedElementRef.current) {
+      setCopiedElements([{ ...selectedElementRef.current }]);
     }
   };
 
   const pasteElements = () => {
     if (copiedElements.length > 0) {
+      const baseElements = elementsRef.current;
       const newElements = copiedElements.map(el => ({
         ...el,
         id: Date.now() + Math.random(),
         x: el.x + 20,
         y: el.y + 20
       }));
-      setElements([...elements, ...newElements]);
-      addToHistory([...elements, ...newElements]);
-      setSelectedElements(newElements);
+      commitElements([...baseElements, ...newElements], { addHistory: true });
+      updateSelection(new Set(newElements.map(el => el.id)));
     }
   };
 
@@ -290,6 +509,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
       if (editingText) return; // Don't trigger shortcuts while editing text
       
       if (e.key === 'v' || e.key === 'V') setTool('select');
+      else if (e.key === 'p' || e.key === 'P') setTool('pan');
       else if (e.key === 'd' || e.key === 'D') setTool('draw');
       else if (e.key === 'r' || e.key === 'R') setTool('rectangle');
       else if (e.key === 'c' || e.key === 'C') setTool('circle');
@@ -321,7 +541,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           duplicateSelected();
         } else if (e.key === 'a' || e.key === 'A') {
           e.preventDefault();
-          setSelectedElements([...elements]);
+          updateSelection(new Set(elementsRef.current.map(el => el.id)));
         } else if (e.key === 'z' || e.key === 'Z') {
           e.preventDefault();
           if (e.shiftKey) redo();
@@ -348,7 +568,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
     if (historyIndex > 0) {
       const newIndex = historyIndex - 1;
       setHistoryIndex(newIndex);
-      setElements([...history[newIndex]]);
+      commitElements([...history[newIndex]]);
     }
   };
 
@@ -356,7 +576,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
     if (historyIndex < history.length - 1) {
       const newIndex = historyIndex + 1;
       setHistoryIndex(newIndex);
-      setElements([...history[newIndex]]);
+      commitElements([...history[newIndex]]);
     }
   };
 
@@ -402,9 +622,15 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
     if (element.type === 'rectangle' || element.type === 'sticky' || element.type === 'table') {
       return x >= element.x && x <= element.x + (element.width || 0) &&
              y >= element.y && y <= element.y + (element.height || 0);
-    } else if (element.type === 'circle') {
+    } else if (element.type === 'circle' || element.type === 'ellipse') {
       const dx = x - element.x;
       const dy = y - element.y;
+      if (element.type === 'ellipse') {
+        const rx = element.rx || 0;
+        const ry = element.ry || 0;
+        if (rx === 0 || ry === 0) return false;
+        return (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) <= 1;
+      }
       return Math.sqrt(dx * dx + dy * dy) <= (element.radius || 0);
     } else if (element.type === 'text') {
       return x >= element.x && x <= element.x + 200 &&
@@ -431,17 +657,18 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
   };
 
   const getResizeHandle = (x, y, element) => {
-    if (!element || (element.type !== 'rectangle' && element.type !== 'sticky' && element.type !== 'circle' && element.type !== 'table')) return null;
+    if (!element || (element.type !== 'rectangle' && element.type !== 'sticky' && element.type !== 'circle' && element.type !== 'ellipse' && element.type !== 'table')) return null;
     
     const handleSize = 8;
     
-    if (element.type === 'circle') {
-      // For circles, only provide handles at cardinal directions
-      const radius = element.radius || 0;
-      if (Math.abs(x - (element.x + radius)) < handleSize && Math.abs(y - element.y) < handleSize) return 'e';
-      if (Math.abs(x - (element.x - radius)) < handleSize && Math.abs(y - element.y) < handleSize) return 'w';
-      if (Math.abs(x - element.x) < handleSize && Math.abs(y - (element.y + radius)) < handleSize) return 's';
-      if (Math.abs(x - element.x) < handleSize && Math.abs(y - (element.y - radius)) < handleSize) return 'n';
+    if (element.type === 'circle' || element.type === 'ellipse') {
+      // For circles/ellipses, only provide handles at cardinal directions
+      const radiusX = element.type === 'ellipse' ? (element.rx || 0) : (element.radius || 0);
+      const radiusY = element.type === 'ellipse' ? (element.ry || 0) : (element.radius || 0);
+      if (Math.abs(x - (element.x + radiusX)) < handleSize && Math.abs(y - element.y) < handleSize) return 'e';
+      if (Math.abs(x - (element.x - radiusX)) < handleSize && Math.abs(y - element.y) < handleSize) return 'w';
+      if (Math.abs(x - element.x) < handleSize && Math.abs(y - (element.y + radiusY)) < handleSize) return 's';
+      if (Math.abs(x - element.x) < handleSize && Math.abs(y - (element.y - radiusY)) < handleSize) return 'n';
       return null;
     }
     
@@ -467,6 +694,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
 
   const handleMouseDown = (e) => {
     const pos = getMousePos(e);
+    const liveElements = elementsRef.current;
 
     // Check if clicking on ruler tool
     if (rulerTool && tool === 'select') {
@@ -494,15 +722,22 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
       }
     }
 
+    if (tool === 'pan') {
+      setIsPanning(true);
+      setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+      return;
+    }
+
     if (tool === 'select') {
       // Check for resize handles on all resizable shapes
-      const clicked = [...elements].reverse().find(el => isPointInElement(pos.x, pos.y, el));
+      const clicked = [...liveElements].reverse().find(el => isPointInElement(pos.x, pos.y, el));
       
       if (clicked) {
         const handle = getResizeHandle(pos.x, pos.y, clicked);
         
         if (handle) {
           // Start resizing
+          updateSelection(new Set([clicked.id]));
           const resizeData = {
             element: clicked,
             handle,
@@ -511,36 +746,56 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
             startWidth: clicked.width || 0,
             startHeight: clicked.height || 0,
             startRadius: clicked.radius || 0,
+            startRx: clicked.rx || 0,
+            startRy: clicked.ry || 0,
             startPosX: clicked.x,
             startPosY: clicked.y
           };
           setResizing(resizeData);
-          setSelectedElement(clicked);
+          return;
+        }
+
+        if (e.shiftKey) {
+          const nextIds = new Set(selectedIdsRef.current);
+          if (nextIds.has(clicked.id)) nextIds.delete(clicked.id);
+          else nextIds.add(clicked.id);
+          updateSelection(nextIds);
+          return;
+        }
+
+        if (selectedIdsRef.current.size > 1 && selectedIdsRef.current.has(clicked.id)) {
+          dragSelectionRef.current = {
+            start: pos,
+            snapshot: new Map(selectedElementsRef.current.map(el => [el.id, el]))
+          };
+          setDragStart(null);
           return;
         }
         
-        // Not on a handle, start dragging
-        setSelectedElement(clicked);
-        if (clicked.type === 'circle') {
-          setDragStart({ x: pos.x - clicked.x, y: pos.y - clicked.y });
-        } else {
-          setDragStart({ x: pos.x - clicked.x, y: pos.y - clicked.y });
-        }
+        updateSelection(new Set([clicked.id]));
+        setDragStart({ x: pos.x - clicked.x, y: pos.y - clicked.y });
       } else {
-        setSelectedElement(null);
-        setIsPanning(true);
-        setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+        selectionStartRef.current = pos;
+        selectionAdditiveRef.current = e.shiftKey;
+        selectionBaseRef.current = new Set(selectedIdsRef.current);
+        setSelectionBox({ x: pos.x, y: pos.y, width: 0, height: 0 });
+        setDragStart(null);
+        if (!e.shiftKey) {
+          clearSelection();
+        }
       }
     } else if (tool === 'draw') {
       setDrawing(true);
-      setCurrentPath([pos]);
+      currentPathRef.current = [pos];
+      scheduleStateUpdate({ currentPath: currentPathRef.current });
     } else if (tool === 'eraser') {
       // Eraser: find and delete element under cursor
-      const clicked = [...elements].reverse().find(el => isPointInElement(pos.x, pos.y, el));
+      eraseDirtyRef.current = false;
+      const clicked = [...liveElements].reverse().find(el => isPointInElement(pos.x, pos.y, el));
       if (clicked) {
-        const newElements = elements.filter(el => el.id !== clicked.id);
-        setElements(newElements);
-        addToHistory(newElements);
+        const newElements = liveElements.filter(el => el.id !== clicked.id);
+        commitElements(newElements);
+        eraseDirtyRef.current = true;
       }
       setDrawing(true); // Allow continuous erasing
     } else if (tool === 'text') {
@@ -551,11 +806,11 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         y: pos.y,
         text: 'Double click to edit',
         color,
-        fontSize: 18
+        fontSize: 18,
+        opacity
       };
-      const newElements = [...elements, newElement];
-      setElements(newElements);
-      addToHistory(newElements);
+      const newElements = [...liveElements, newElement];
+      commitElements(newElements, { addHistory: true });
       setTool('select');
     } else if (tool === 'sticky') {
       // Use sticky colors or default to yellow
@@ -573,9 +828,8 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         timestamp: new Date().toLocaleString(),
         opacity: opacity
       };
-      const newElements = [...elements, newElement];
-      setElements(newElements);
-      addToHistory(newElements);
+      const newElements = [...liveElements, newElement];
+      commitElements(newElements, { addHistory: true });
       setTool('select');
     } else if (tool === 'arrow') {
       setDrawing(true);
@@ -594,6 +848,8 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
 
   const handleMouseMove = (e) => {
     const pos = getMousePos(e);
+    const liveElements = elementsRef.current;
+    const activeElement = selectedElementRef.current;
 
     // Handle ruler dragging
     if (draggingRuler && rulerTool) {
@@ -644,19 +900,27 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
       const deltaX = pos.x - resizing.startX;
       const deltaY = pos.y - resizing.startY;
       
-      const newElements = elements.map(el => {
+      const newElements = liveElements.map(el => {
         if (el.id === resizing.element.id) {
           const minSize = el.type === 'sticky' ? 100 : 20;
           
-          if (el.type === 'circle') {
-            // Handle circle resizing
+          if (el.type === 'circle' || el.type === 'ellipse') {
+            // Handle circle/ellipse resizing
+            if (el.type === 'ellipse') {
+              let newRx = resizing.startRx || 0;
+              let newRy = resizing.startRy || 0;
+              const minRadius = Math.max(12, minSize);
+              if (resizing.handle === 'e') newRx = Math.max(minRadius, (resizing.startRx || 0) + deltaX);
+              else if (resizing.handle === 'w') newRx = Math.max(minRadius, (resizing.startRx || 0) - deltaX);
+              else if (resizing.handle === 's') newRy = Math.max(minRadius, (resizing.startRy || 0) + deltaY);
+              else if (resizing.handle === 'n') newRy = Math.max(minRadius, (resizing.startRy || 0) - deltaY);
+              return { ...el, rx: newRx, ry: newRy };
+            }
             let newRadius = resizing.startRadius;
-            
             if (resizing.handle === 'e') newRadius = Math.max(minSize, resizing.startRadius + deltaX);
             else if (resizing.handle === 'w') newRadius = Math.max(minSize, resizing.startRadius - deltaX);
             else if (resizing.handle === 's') newRadius = Math.max(minSize, resizing.startRadius + deltaY);
             else if (resizing.handle === 'n') newRadius = Math.max(minSize, resizing.startRadius - deltaY);
-            
             return { ...el, radius: newRadius };
           } else {
             // Handle rectangle/sticky resizing
@@ -699,7 +963,30 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         return el;
       });
       
-      setElements(newElements);
+      commitElements(newElements);
+      return;
+    }
+
+    if (dragSelectionRef.current && tool === 'select') {
+      const { start, snapshot } = dragSelectionRef.current;
+      const dx = pos.x - start.x;
+      const dy = pos.y - start.y;
+      const newElements = liveElements.map(el => (
+        snapshot.has(el.id) ? translateElement(snapshot.get(el.id), dx, dy) : el
+      ));
+      commitElements(newElements);
+      return;
+    }
+
+    if (selectionStartRef.current && tool === 'select') {
+      const start = selectionStartRef.current;
+      const box = {
+        x: Math.min(start.x, pos.x),
+        y: Math.min(start.y, pos.y),
+        width: Math.abs(pos.x - start.x),
+        height: Math.abs(pos.y - start.y)
+      };
+      setSelectionBox(box);
       return;
     }
 
@@ -714,52 +1001,58 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
       });
     } else if (drawing) {
       if (tool === 'draw') {
-        setCurrentPath([...currentPath, pos]);
+        const lastPoint = currentPathRef.current[currentPathRef.current.length - 1];
+        if (!lastPoint || distance(lastPoint, pos) >= MIN_POINT_DISTANCE) {
+          currentPathRef.current = [...currentPathRef.current, pos];
+          scheduleStateUpdate({ currentPath: currentPathRef.current });
+        }
       } else if (tool === 'eraser') {
         // Continuous erasing while dragging
-        const clicked = [...elements].reverse().find(el => isPointInElement(pos.x, pos.y, el));
+        const clicked = [...liveElements].reverse().find(el => isPointInElement(pos.x, pos.y, el));
         if (clicked) {
-          const newElements = elements.filter(el => el.id !== clicked.id);
-          setElements(newElements);
-          addToHistory(newElements);
+          const newElements = liveElements.filter(el => el.id !== clicked.id);
+          commitElements(newElements);
+          eraseDirtyRef.current = true;
         }
       } else if (dragStart) {
         // Update live preview for shapes
         if (tool === 'rectangle') {
-          setPreviewShape({
+          scheduleStateUpdate({ previewShape: {
             type: 'rectangle',
             x: Math.min(dragStart.x, pos.x),
             y: Math.min(dragStart.y, pos.y),
             width: Math.abs(pos.x - dragStart.x),
             height: Math.abs(pos.y - dragStart.y)
-          });
+          }});
         } else if (tool === 'circle') {
           const radius = Math.sqrt(Math.pow(pos.x - dragStart.x, 2) + Math.pow(pos.y - dragStart.y, 2));
-          setPreviewShape({
+          scheduleStateUpdate({ previewShape: {
             type: 'circle',
             x: dragStart.x,
             y: dragStart.y,
             radius
-          });
+          }});
         } else if (tool === 'line' || tool === 'arrow') {
-          setPreviewShape({
+          scheduleStateUpdate({ previewShape: {
             type: tool,
             x1: dragStart.x,
             y1: dragStart.y,
             x2: pos.x,
             y2: pos.y
-          });
+          }});
         }
       }
-    } else if (selectedElement && dragStart && tool === 'select') {
-      const newElements = elements.map(el => {
-        if (el.id === selectedElement.id) {
-          return { ...el, x: pos.x - dragStart.x, y: pos.y - dragStart.y };
+    } else if (activeElement && dragStart && tool === 'select') {
+      const updatedSelected = { ...activeElement, x: pos.x - dragStart.x, y: pos.y - dragStart.y };
+      const newElements = liveElements.map(el => {
+        if (el.id === activeElement.id) {
+          return updatedSelected;
         }
         return el;
       });
-      setElements(newElements);
-      setSelectedElement({ ...selectedElement, x: pos.x - dragStart.x, y: pos.y - dragStart.y });
+      commitElements(newElements);
+      selectedElementRef.current = updatedSelected;
+      scheduleStateUpdate({ selectedElement: updatedSelected });
     }
   };
 
@@ -775,18 +1068,66 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
 
     // Finish resizing
     if (resizing) {
-      addToHistory(elements);
+      addToHistory(elementsRef.current);
       setResizing(null);
       return;
     }
 
+    if (dragSelectionRef.current && tool === 'select') {
+      addToHistory(elementsRef.current);
+      dragSelectionRef.current = null;
+      return;
+    }
+
+    if (selectionStartRef.current && tool === 'select') {
+      const start = selectionStartRef.current;
+      const box = {
+        x: Math.min(start.x, pos.x),
+        y: Math.min(start.y, pos.y),
+        width: Math.abs(pos.x - start.x),
+        height: Math.abs(pos.y - start.y)
+      };
+      if (box.width >= 4 && box.height >= 4) {
+        const idsInBox = new Set();
+        elementsRef.current.forEach(el => {
+          const bounds = getElementBounds(el);
+          const intersects = !(
+            bounds.x > box.x + box.width ||
+            bounds.x + bounds.width < box.x ||
+            bounds.y > box.y + box.height ||
+            bounds.y + bounds.height < box.y
+          );
+          if (intersects) idsInBox.add(el.id);
+        });
+        const finalIds = selectionAdditiveRef.current
+          ? new Set([...selectionBaseRef.current, ...idsInBox])
+          : idsInBox;
+        updateSelection(finalIds);
+      } else if (!selectionAdditiveRef.current) {
+        clearSelection();
+      }
+      setSelectionBox(null);
+      selectionStartRef.current = null;
+      selectionAdditiveRef.current = false;
+      selectionBaseRef.current = new Set();
+      return;
+    }
+
+    if (drawing && tool === 'draw') {
+      const lastPoint = currentPathRef.current[currentPathRef.current.length - 1];
+      if (!lastPoint || distance(lastPoint, pos) >= MIN_POINT_DISTANCE) {
+        currentPathRef.current = [...currentPathRef.current, pos];
+      }
+    }
+
     if (drawing) {
-      if (tool === 'draw' && currentPath.length > 1) {
+      if (tool === 'draw' && currentPathRef.current.length > 1) {
         let finalElement;
+        const pathPoints = currentPathRef.current;
         
         // Apple Notes Feature: Shape Recognition
-        if (shapeRecognition && currentPath.length > 10) {
-          const recognized = recognizeShape(currentPath);
+        if (shapeRecognition && pathPoints.length > 10) {
+          const recognized = recognizeShape(pathPoints);
           if (recognized) {
             finalElement = { ...recognized, id: Date.now(), color, strokeWidth, fillColor: 'transparent', opacity };
           }
@@ -794,21 +1135,28 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         
         // If no shape recognized or recognition disabled, use smooth drawing
         if (!finalElement) {
-          const smoothedPath = smoothDrawing ? smoothPath(currentPath) : currentPath;
+          const smoothedPath = smoothDrawing ? smoothPath(pathPoints) : pathPoints;
           finalElement = {
             id: Date.now(),
             type: 'draw',
             points: smoothedPath,
             color,
             strokeWidth,
-            fillColor: 'transparent'
+            fillColor: 'transparent',
+            opacity,
+            drawStyle
           };
         }
         
-        const newElements = [...elements, finalElement];
-        setElements(newElements);
-        addToHistory(newElements);
-        setCurrentPath([]);
+        const newElements = [...elementsRef.current, finalElement];
+        commitElements(newElements, { addHistory: true });
+        currentPathRef.current = [];
+        scheduleStateUpdate({ currentPath: [] });
+      } else if (tool === 'eraser') {
+        if (eraseDirtyRef.current) {
+          addToHistory(elementsRef.current);
+          eraseDirtyRef.current = false;
+        }
       } else if (tool === 'rectangle' && dragStart) {
         const newElement = {
           id: Date.now(),
@@ -823,9 +1171,8 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           opacity
         };
         if (newElement.width > 5 && newElement.height > 5) {
-          const newElements = [...elements, newElement];
-          setElements(newElements);
-          addToHistory(newElements);
+          const newElements = [...elementsRef.current, newElement];
+          commitElements(newElements, { addHistory: true });
         }
         setTool('select');
       } else if (tool === 'circle' && dragStart) {
@@ -844,9 +1191,8 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           opacity
         };
         if (radius > 5) {
-          const newElements = [...elements, newElement];
-          setElements(newElements);
-          addToHistory(newElements);
+          const newElements = [...elementsRef.current, newElement];
+          commitElements(newElements, { addHistory: true });
         }
         setTool('select');
       } else if (tool === 'line' && dragStart) {
@@ -861,9 +1207,8 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           strokeWidth,
           opacity
         };
-        const newElements = [...elements, newElement];
-        setElements(newElements);
-        addToHistory(newElements);
+        const newElements = [...elementsRef.current, newElement];
+        commitElements(newElements, { addHistory: true });
         setTool('select');
       } else if (tool === 'arrow' && dragStart) {
         const newElement = {
@@ -877,29 +1222,32 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           strokeWidth,
           opacity
         };
-        const newElements = [...elements, newElement];
-        setElements(newElements);
-        addToHistory(newElements);
+        const newElements = [...elementsRef.current, newElement];
+        commitElements(newElements, { addHistory: true });
         setTool('select');
+      }
+      if (tool === 'draw') {
+        currentPathRef.current = [];
+        scheduleStateUpdate({ currentPath: [] });
       }
       setDrawing(false);
       setDragStart(null);
-      setPreviewShape(null); // Clear preview
+      scheduleStateUpdate({ previewShape: null }); // Clear preview
     }
 
     if (isPanning) {
       setIsPanning(false);
     }
 
-    if (selectedElement && dragStart) {
-      addToHistory(elements);
+    if (selectedElementRef.current && dragStart) {
+      addToHistory(elementsRef.current);
       setDragStart(null);
     }
   };
 
   const handleDoubleClick = (e) => {
     const pos = getMousePos(e);
-    const clicked = [...elements].reverse().find(el => isPointInElement(pos.x, pos.y, el));
+    const clicked = [...elementsRef.current].reverse().find(el => isPointInElement(pos.x, pos.y, el));
     
     if (clicked && (clicked.type === 'text' || clicked.type === 'sticky')) {
       setEditingText(clicked);
@@ -907,62 +1255,92 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
   };
 
   const updateText = (id, newText) => {
-    const newElements = elements.map(el => 
+    const newElements = elementsRef.current.map(el => 
       el.id === id ? { ...el, text: newText } : el
     );
-    setElements(newElements);
-    addToHistory(newElements);
+    commitElements(newElements, { addHistory: true });
   };
 
   const deleteSelected = () => {
-    if (selectedElement) {
-      const newElements = elements.filter(el => el.id !== selectedElement.id);
-      setElements(newElements);
-      addToHistory(newElements);
-      setSelectedElement(null);
+    if (selectedIdsRef.current.size > 0) {
+      const newElements = elementsRef.current.filter(el => !selectedIdsRef.current.has(el.id));
+      commitElements(newElements, { addHistory: true });
+      clearSelection();
+      return;
+    }
+    if (selectedElementRef.current) {
+      const newElements = elementsRef.current.filter(el => el.id !== selectedElementRef.current.id);
+      commitElements(newElements, { addHistory: true });
+      clearSelection();
     }
   };
 
   const clearCanvas = () => {
     if (window.confirm('Clear entire canvas?')) {
-      setElements([]);
-      addToHistory([]);
-      setSelectedElement(null);
+      commitElements([], { addHistory: true });
+      clearSelection();
     }
   };
 
   const handleSave = (shouldClose = false) => {
-    const canvasData = JSON.stringify({ canvasElements: elements });
-    if (onSave) {
+    const canvasData = serializeElements(elementsRef.current);
+    if (onSave && canvasData !== lastSerializedRef.current) {
+      if (autoSaveTimeout.current) {
+        clearTimeout(autoSaveTimeout.current);
+        autoSaveTimeout.current = null;
+      }
+      lastSerializedRef.current = canvasData;
       onSave(canvasData, shouldClose);
+      setLastSaved(new Date());
+      setAutoSaving(false);
     }
-    setLastSaved(new Date());
+    if (shouldClose) {
+      onClose?.();
+    }
+  };
+
+  const handleClose = () => {
+    handleSave(true);
   };
 
   // Auto-save effect
   useEffect(() => {
+    if (!onSave || !hydratedRef.current) return;
+
+    const nextSerialized = serializeElements(elements);
+    if (nextSerialized === lastSerializedRef.current) return;
+
     if (autoSaveTimeout.current) {
       clearTimeout(autoSaveTimeout.current);
+      autoSaveTimeout.current = null;
     }
 
-    if (elements.length > 0) {
-      setAutoSaving(true);
-      autoSaveTimeout.current = setTimeout(() => {
-        const canvasData = JSON.stringify({ canvasElements: elements });
-        if (onSave) {
-          onSave(canvasData);
-        }
+    setAutoSaving(true);
+    autoSaveTimeout.current = setTimeout(() => {
+      const latestSerialized = serializeElements(elementsRef.current);
+      if (latestSerialized !== lastSerializedRef.current && onSave) {
+        lastSerializedRef.current = latestSerialized;
+        onSave(latestSerialized);
         setLastSaved(new Date());
-        setAutoSaving(false);
-      }, 2000);
-    }
+      }
+      setAutoSaving(false);
+    }, 1200);
 
     return () => {
       if (autoSaveTimeout.current) {
         clearTimeout(autoSaveTimeout.current);
+        autoSaveTimeout.current = null;
       }
     };
   }, [elements, onSave]);
+
+  useEffect(() => () => {
+    if (!onSave || !hydratedRef.current) return;
+    const canvasData = serializeElements(elementsRef.current);
+    if (canvasData !== lastSerializedRef.current) {
+      onSave(canvasData);
+    }
+  }, [onSave]);
 
   const exportAsImage = () => {
     // Create a temporary canvas for export
@@ -972,7 +1350,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
     const ctx = canvas.getContext('2d');
     
     // White background
-    ctx.fillStyle = '#0f1012';
+    ctx.fillStyle = '#fbf8f2';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     // Draw all elements
@@ -980,6 +1358,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
       ctx.strokeStyle = el.color || '#FFFFFF';
       ctx.fillStyle = el.color || '#FFFFFF';
       ctx.lineWidth = el.strokeWidth || 2;
+      ctx.globalAlpha = el.opacity || 1;
       
       if (el.type === 'draw') {
         ctx.beginPath();
@@ -989,10 +1368,37 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         });
         ctx.stroke();
       } else if (el.type === 'rectangle') {
+        if (el.fillColor && el.fillColor !== 'transparent') {
+          ctx.fillStyle = el.fillColor;
+          ctx.fillRect(el.x, el.y, el.width, el.height);
+          ctx.fillStyle = el.color || '#FFFFFF';
+        }
         ctx.strokeRect(el.x, el.y, el.width, el.height);
       } else if (el.type === 'circle') {
         ctx.beginPath();
         ctx.arc(el.x, el.y, el.radius, 0, Math.PI * 2);
+        if (el.fillColor && el.fillColor !== 'transparent') {
+          ctx.fillStyle = el.fillColor;
+          ctx.fill();
+          ctx.fillStyle = el.color || '#FFFFFF';
+        }
+        ctx.stroke();
+      } else if (el.type === 'ellipse') {
+        ctx.beginPath();
+        if (ctx.ellipse) {
+          ctx.ellipse(el.x, el.y, el.rx, el.ry, 0, 0, Math.PI * 2);
+        } else {
+          ctx.save();
+          ctx.translate(el.x, el.y);
+          ctx.scale(el.rx, el.ry);
+          ctx.arc(0, 0, 1, 0, Math.PI * 2);
+          ctx.restore();
+        }
+        if (el.fillColor && el.fillColor !== 'transparent') {
+          ctx.fillStyle = el.fillColor;
+          ctx.fill();
+          ctx.fillStyle = el.color || '#FFFFFF';
+        }
         ctx.stroke();
       } else if (el.type === 'line') {
         ctx.beginPath();
@@ -1000,16 +1406,17 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         ctx.lineTo(el.x2, el.y2);
         ctx.stroke();
       } else if (el.type === 'text') {
-        ctx.font = `${el.fontSize}px Inter`;
+        ctx.font = `${el.fontSize}px Manrope`;
         ctx.fillText(el.text, el.x, el.y);
       } else if (el.type === 'sticky') {
         ctx.fillStyle = el.color;
         ctx.fillRect(el.x, el.y, el.width, el.height);
         ctx.fillStyle = '#000000';
-        ctx.font = '14px Inter';
+        ctx.font = '14px Manrope';
         ctx.fillText(el.text, el.x + 10, el.y + 30);
       }
     });
+    ctx.globalAlpha = 1;
     
     // Download
     const link = document.createElement('a');
@@ -1023,7 +1430,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
       {/* Toolbar */}
       <div className="canvas-toolbar">
         <div className="toolbar-section">
-          <button onClick={onClose} className="tool-btn back-btn">
+          <button onClick={handleClose} className="tool-btn back-btn">
             <ArrowLeft size={20} />
             <span>Back</span>
           </button>
@@ -1035,6 +1442,12 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
             className={`tool-btn ${tool === 'select' ? 'active' : ''}`}
           >
             <MousePointer size={20} />
+          </button>
+          <button 
+            onClick={() => setTool('pan')} 
+            className={`tool-btn ${tool === 'pan' ? 'active' : ''}`}
+          >
+            <Move size={20} />
           </button>
           <button 
             onClick={() => setTool('draw')} 
@@ -1123,11 +1536,10 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                     width: 200,
                     height: 200,
                     src: event.target.result,
-                    opacity: 1
+                    opacity
                   };
-                  const newElements = [...elements, newElement];
-                  setElements(newElements);
-                  addToHistory(newElements);
+                  const newElements = [...elementsRef.current, newElement];
+                  commitElements(newElements, { addHistory: true });
                 };
                 reader.readAsDataURL(file);
               }
@@ -1142,7 +1554,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           <button onClick={redo} disabled={historyIndex === history.length - 1} className="tool-btn">
             <Redo size={20} />
           </button>
-          <button onClick={deleteSelected} disabled={!selectedElement} className="tool-btn">
+          <button onClick={deleteSelected} disabled={!selectedElement && selectedElements.length === 0} className="tool-btn">
             <Trash2 size={20} />
           </button>
           <button onClick={clearCanvas} className="tool-btn">
@@ -1267,7 +1679,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                 className={`color-btn ${color === c ? 'active' : ''}`}
                 style={{ 
                   background: c, 
-                  border: c === '#FFFFFF' ? '2px solid #666' : 'none',
+                  border: isLightColor(c) ? '1px solid rgba(15, 23, 42, 0.2)' : 'none',
                   boxShadow: tool === 'sticky' ? '0 2px 4px rgba(0,0,0,0.2)' : 'none'
                 }}
                 onClick={() => setColor(c)}
@@ -1297,7 +1709,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                 className={`color-btn ${fillColor === 'transparent' ? 'active' : ''}`}
                 style={{ 
                   background: 'transparent',
-                  border: '2px solid #666',
+                  border: '1px solid rgba(15, 23, 42, 0.25)',
                   position: 'relative'
                 }}
                 onClick={() => setFillColor('transparent')}
@@ -1315,38 +1727,66 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
               {COLORS.map(c => (
                 <button
                   key={`fill-${c}`}
-                  className={`color-btn ${fillColor === c ? 'active' : ''}`}
-                  style={{ 
-                    background: c, 
-                    border: c === '#FFFFFF' ? '2px solid #666' : 'none'
-                  }}
-                  onClick={() => setFillColor(c)}
-                />
+                className={`color-btn ${fillColor === c ? 'active' : ''}`}
+                style={{ 
+                  background: c, 
+                  border: isLightColor(c) ? '1px solid rgba(15, 23, 42, 0.2)' : 'none'
+                }}
+                onClick={() => setFillColor(c)}
+              />
               ))}
             </div>
           </div>
         )}
         {tool === 'draw' && (
-          <div className="property-group" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px' }}>
-              <input 
-                type="checkbox" 
-                checked={shapeRecognition}
-                onChange={(e) => setShapeRecognition(e.target.checked)}
-                style={{ cursor: 'pointer' }}
-              />
-              Shape Recognition
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px' }}>
-              <input 
-                type="checkbox" 
-                checked={smoothDrawing}
-                onChange={(e) => setSmoothDrawing(e.target.checked)}
-                style={{ cursor: 'pointer' }}
-              />
-              Smooth Drawing
-            </label>
-          </div>
+          <>
+            <div className="property-group">
+              <label>Pen:</label>
+              <div className="pen-style">
+                <button
+                  type="button"
+                  className={`pen-style-btn ${drawStyle === 'pen' ? 'active' : ''}`}
+                  onClick={() => applyDrawStyle('pen')}
+                >
+                  Pen
+                </button>
+                <button
+                  type="button"
+                  className={`pen-style-btn ${drawStyle === 'marker' ? 'active' : ''}`}
+                  onClick={() => applyDrawStyle('marker')}
+                >
+                  Marker
+                </button>
+                <button
+                  type="button"
+                  className={`pen-style-btn ${drawStyle === 'highlighter' ? 'active' : ''}`}
+                  onClick={() => applyDrawStyle('highlighter')}
+                >
+                  Highlighter
+                </button>
+              </div>
+            </div>
+            <div className="property-group" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px' }}>
+                <input 
+                  type="checkbox" 
+                  checked={shapeRecognition}
+                  onChange={(e) => setShapeRecognition(e.target.checked)}
+                  style={{ cursor: 'pointer' }}
+                />
+                Shape Recognition
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px' }}>
+                <input 
+                  type="checkbox" 
+                  checked={smoothDrawing}
+                  onChange={(e) => setSmoothDrawing(e.target.checked)}
+                  style={{ cursor: 'pointer' }}
+                />
+                Smooth Drawing
+              </label>
+            </div>
+          </>
         )}
         <div className="property-group">
           <label>Opacity:</label>
@@ -1359,7 +1799,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
             onChange={(e) => setOpacity(parseFloat(e.target.value))}
             style={{ width: '100px' }}
           />
-          <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: '700', minWidth: '40px' }}>
+          <span style={{ fontSize: '11px', color: 'var(--accent-ink)', fontWeight: '700', minWidth: '40px' }}>
             {Math.round(opacity * 100)}%
           </span>
         </div>
@@ -1401,7 +1841,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
       {/* Canvas Container */}
       <div 
         ref={containerRef}
-        className={`canvas-container ${snapToGrid ? 'snap-active' : ''}`}
+        className={`canvas-container ${snapToGrid ? 'snap-active' : ''} pattern-${backgroundPattern}`}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -1409,6 +1849,8 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
         style={{ 
           cursor: resizing 
             ? (resizing.handle === 'se' || resizing.handle === 'nw' ? 'nwse-resize' : 'nesw-resize')
+            : isPanning ? 'grabbing'
+            : tool === 'pan' ? 'grab'
             : tool === 'eraser' ? 'crosshair' 
             : tool === 'select' ? 'default' 
             : 'crosshair' 
@@ -1427,7 +1869,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           {showGrid && (
             <defs>
               <pattern id="grid" width={GRID_SIZE} height={GRID_SIZE} patternUnits="userSpaceOnUse">
-                <path d={`M ${GRID_SIZE} 0 L 0 0 L 0 ${GRID_SIZE}`} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="0.5"/>
+                <path d={`M ${GRID_SIZE} 0 L 0 0 L 0 ${GRID_SIZE}`} fill="none" stroke="rgba(15, 23, 42, 0.08)" strokeWidth="0.5"/>
               </pattern>
             </defs>
           )}
@@ -1442,7 +1884,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                 y1={rulerTool.y}
                 x2={rulerTool.x + rulerTool.length}
                 y2={rulerTool.y}
-                stroke="#D7B38C"
+                stroke="#f1b26c"
                 strokeWidth="40"
                 strokeLinecap="round"
                 opacity="0.1"
@@ -1453,7 +1895,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                 y1={rulerTool.y}
                 x2={rulerTool.x + rulerTool.length}
                 y2={rulerTool.y}
-                stroke="#D7B38C"
+                stroke="#f1b26c"
                 strokeWidth="4"
                 strokeLinecap="round"
               />
@@ -1465,16 +1907,16 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                     y1={rulerTool.y - (offset % 100 === 0 ? 15 : 8)}
                     x2={rulerTool.x + offset}
                     y2={rulerTool.y + (offset % 100 === 0 ? 15 : 8)}
-                    stroke="#D7B38C"
+                    stroke="#f1b26c"
                     strokeWidth="2"
                   />
                   {offset % 100 === 0 && (
                     <text
                       x={rulerTool.x + offset}
                       y={rulerTool.y - 20}
-                      fill="#D7B38C"
+                      fill="#f1b26c"
                       fontSize="12"
-                      fontFamily="Inter"
+                      fontFamily="Manrope"
                       fontWeight="700"
                       textAnchor="middle"
                     >
@@ -1488,7 +1930,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                 cx={rulerTool.x}
                 cy={rulerTool.y}
                 r="10"
-                fill="#D7B38C"
+                fill="#f1b26c"
                 stroke="#0f1012"
                 strokeWidth="2"
                 style={{ cursor: 'move' }}
@@ -1497,7 +1939,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                 cx={rulerTool.x + rulerTool.length}
                 cy={rulerTool.y}
                 r="10"
-                fill="#D7B38C"
+                fill="#f1b26c"
                 stroke="#0f1012"
                 strokeWidth="2"
                 style={{ cursor: 'ew-resize' }}
@@ -1506,9 +1948,9 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
               <text
                 x={rulerTool.x + rulerTool.length / 2}
                 y={rulerTool.y + 35}
-                fill="#D7B38C"
+                fill="#f1b26c"
                 fontSize="14"
-                fontFamily="Inter"
+                fontFamily="Manrope"
                 fontWeight="700"
                 textAnchor="middle"
               >
@@ -1529,7 +1971,8 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                   strokeWidth={el.strokeWidth}
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className={selectedElement?.id === el.id ? 'selected' : ''}
+                  opacity={el.opacity || 1}
+                  className={selectedIdSet.has(el.id) ? 'selected' : ''}
                 />
               );
             } else if (el.type === 'rectangle') {
@@ -1544,21 +1987,21 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                     stroke={el.color}
                     strokeWidth={el.strokeWidth}
                     opacity={el.opacity || 1}
-                    className={selectedElement?.id === el.id ? 'selected' : ''}
+                    className={selectedIdSet.has(el.id) ? 'selected' : ''}
                   />
                   {/* Resize handles - only show when selected */}
-                  {selectedElement?.id === el.id && tool === 'select' && (
+                  {selectedElement?.id === el.id && tool === 'select' && selectedIdSet.size <= 1 && (
                     <>
                       {/* Corner handles */}
-                      <circle cx={el.x} cy={el.y} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'nwse-resize' }} />
-                      <circle cx={el.x + el.width} cy={el.y} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'nesw-resize' }} />
-                      <circle cx={el.x} cy={el.y + el.height} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'nesw-resize' }} />
-                      <circle cx={el.x + el.width} cy={el.y + el.height} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'nwse-resize' }} />
+                      <circle cx={el.x} cy={el.y} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'nwse-resize' }} />
+                      <circle cx={el.x + el.width} cy={el.y} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'nesw-resize' }} />
+                      <circle cx={el.x} cy={el.y + el.height} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'nesw-resize' }} />
+                      <circle cx={el.x + el.width} cy={el.y + el.height} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'nwse-resize' }} />
                       {/* Edge handles */}
-                      <circle cx={el.x + el.width / 2} cy={el.y} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
-                      <circle cx={el.x + el.width / 2} cy={el.y + el.height} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
-                      <circle cx={el.x} cy={el.y + el.height / 2} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
-                      <circle cx={el.x + el.width} cy={el.y + el.height / 2} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
+                      <circle cx={el.x + el.width / 2} cy={el.y} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
+                      <circle cx={el.x + el.width / 2} cy={el.y + el.height} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
+                      <circle cx={el.x} cy={el.y + el.height / 2} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
+                      <circle cx={el.x + el.width} cy={el.y + el.height / 2} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
                     </>
                   )}
                 </g>
@@ -1574,15 +2017,39 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                     stroke={el.color}
                     strokeWidth={el.strokeWidth}
                     opacity={el.opacity || 1}
-                    className={selectedElement?.id === el.id ? 'selected' : ''}
+                    className={selectedIdSet.has(el.id) ? 'selected' : ''}
                   />
                   {/* Resize handles - only show when selected */}
-                  {selectedElement?.id === el.id && tool === 'select' && (
+                  {selectedElement?.id === el.id && tool === 'select' && selectedIdSet.size <= 1 && (
                     <>
-                      <circle cx={el.x + el.radius} cy={el.y} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
-                      <circle cx={el.x - el.radius} cy={el.y} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
-                      <circle cx={el.x} cy={el.y + el.radius} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
-                      <circle cx={el.x} cy={el.y - el.radius} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
+                      <circle cx={el.x + el.radius} cy={el.y} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
+                      <circle cx={el.x - el.radius} cy={el.y} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
+                      <circle cx={el.x} cy={el.y + el.radius} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
+                      <circle cx={el.x} cy={el.y - el.radius} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
+                    </>
+                  )}
+                </g>
+              );
+            } else if (el.type === 'ellipse') {
+              return (
+                <g key={el.id}>
+                  <ellipse
+                    cx={el.x}
+                    cy={el.y}
+                    rx={el.rx}
+                    ry={el.ry}
+                    fill={el.fillColor || 'none'}
+                    stroke={el.color}
+                    strokeWidth={el.strokeWidth}
+                    opacity={el.opacity || 1}
+                    className={selectedIdSet.has(el.id) ? 'selected' : ''}
+                  />
+                  {selectedElement?.id === el.id && tool === 'select' && selectedIdSet.size <= 1 && (
+                    <>
+                      <circle cx={el.x + el.rx} cy={el.y} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
+                      <circle cx={el.x - el.rx} cy={el.y} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
+                      <circle cx={el.x} cy={el.y + el.ry} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
+                      <circle cx={el.x} cy={el.y - el.ry} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
                     </>
                   )}
                 </g>
@@ -1599,14 +2066,14 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                   strokeWidth={el.strokeWidth}
                   strokeLinecap="round"
                   opacity={el.opacity || 1}
-                  className={selectedElement?.id === el.id ? 'selected' : ''}
+                  className={selectedIdSet.has(el.id) ? 'selected' : ''}
                 />
               );
             } else if (el.type === 'arrow') {
               const angle = Math.atan2(el.y2 - el.y1, el.x2 - el.x1);
               const arrowLength = 15;
               return (
-                <g key={el.id} className={selectedElement?.id === el.id ? 'selected' : ''}>
+                <g key={el.id} className={selectedIdSet.has(el.id) ? 'selected' : ''}>
                   <line
                     x1={el.x1}
                     y1={el.y1}
@@ -1634,7 +2101,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                   height={el.height}
                   href={el.src}
                   opacity={el.opacity || 1}
-                  className={selectedElement?.id === el.id ? 'selected' : ''}
+                  className={selectedIdSet.has(el.id) ? 'selected' : ''}
                   style={{ cursor: 'move' }}
                 />
               );
@@ -1646,8 +2113,9 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                   y={el.y}
                   fill={el.color}
                   fontSize={el.fontSize}
-                  fontFamily="Inter"
-                  className={selectedElement?.id === el.id ? 'selected' : ''}
+                  fontFamily="Manrope"
+                  opacity={el.opacity || 1}
+                  className={selectedIdSet.has(el.id) ? 'selected' : ''}
                   style={{ cursor: 'text' }}
                   onDoubleClick={(e) => {
                     e.stopPropagation();
@@ -1659,7 +2127,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
               );
             } else if (el.type === 'sticky') {
               return (
-                <g key={el.id} className={selectedElement?.id === el.id ? 'selected' : ''}>
+                <g key={el.id} className={selectedIdSet.has(el.id) ? 'selected' : ''} opacity={el.opacity || 1}>
                   {/* Shadow layers for depth */}
                   <rect
                     x={el.x + 3}
@@ -1780,15 +2248,15 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                   />
                   
                   {/* Resize handles - only show when selected */}
-                  {selectedElement?.id === el.id && tool === 'select' && (
+                  {selectedElement?.id === el.id && tool === 'select' && selectedIdSet.size <= 1 && (
                     <>
                       {/* Southeast handle (bottom-right) */}
                       <circle
                         cx={el.x + el.width}
                         cy={el.y + el.height}
                         r="6"
-                        fill="#D7B38C"
-                        stroke="#000"
+                        fill="#f1b26c"
+                        stroke="#1f2937"
                         strokeWidth="1.5"
                         style={{ cursor: 'nwse-resize' }}
                       />
@@ -1797,8 +2265,8 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                         cx={el.x}
                         cy={el.y + el.height}
                         r="6"
-                        fill="#D7B38C"
-                        stroke="#000"
+                        fill="#f1b26c"
+                        stroke="#1f2937"
                         strokeWidth="1.5"
                         style={{ cursor: 'nesw-resize' }}
                       />
@@ -1807,8 +2275,8 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                         cx={el.x + el.width}
                         cy={el.y}
                         r="6"
-                        fill="#D7B38C"
-                        stroke="#000"
+                        fill="#f1b26c"
+                        stroke="#1f2937"
                         strokeWidth="1.5"
                         style={{ cursor: 'nesw-resize' }}
                       />
@@ -1817,8 +2285,8 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                         cx={el.x}
                         cy={el.y}
                         r="6"
-                        fill="#D7B38C"
-                        stroke="#000"
+                        fill="#f1b26c"
+                        stroke="#1f2937"
                         strokeWidth="1.5"
                         style={{ cursor: 'nwse-resize' }}
                       />
@@ -1829,7 +2297,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
             } else if (el.type === 'table') {
               // Apple Notes Feature: Tables
               return (
-                <g key={el.id} className={selectedElement?.id === el.id ? 'selected' : ''}>
+                <g key={el.id} className={selectedIdSet.has(el.id) ? 'selected' : ''} opacity={el.opacity || 1}>
                   {/* Table background */}
                   <rect
                     x={el.x}
@@ -1887,7 +2355,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                       fill="#333333"
                       fontSize="14"
                       fontWeight="600"
-                      fontFamily="Inter"
+                      fontFamily="Manrope"
                     >
                       {String.fromCharCode(65 + colIndex)}
                     </text>
@@ -1902,24 +2370,24 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                       textAnchor="start"
                       fill="#666666"
                       fontSize="12"
-                      fontFamily="Inter"
+                      fontFamily="Manrope"
                     >
                       {rowIndex + 1}
                     </text>
                   ))}
                   
                   {/* Resize handles */}
-                  {selectedElement?.id === el.id && tool === 'select' && (
+                  {selectedElement?.id === el.id && tool === 'select' && selectedIdSet.size <= 1 && (
                     <>
-                      <circle cx={el.x + el.width} cy={el.y + el.height} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'nwse-resize' }} />
-                      <circle cx={el.x} cy={el.y + el.height} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'nesw-resize' }} />
-                      <circle cx={el.x + el.width} cy={el.y} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'nesw-resize' }} />
-                      <circle cx={el.x} cy={el.y} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'nwse-resize' }} />
+                      <circle cx={el.x + el.width} cy={el.y + el.height} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'nwse-resize' }} />
+                      <circle cx={el.x} cy={el.y + el.height} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'nesw-resize' }} />
+                      <circle cx={el.x + el.width} cy={el.y} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'nesw-resize' }} />
+                      <circle cx={el.x} cy={el.y} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'nwse-resize' }} />
                       {/* Edge handles */}
-                      <circle cx={el.x + el.width / 2} cy={el.y} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
-                      <circle cx={el.x + el.width / 2} cy={el.y + el.height} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
-                      <circle cx={el.x} cy={el.y + el.height / 2} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
-                      <circle cx={el.x + el.width} cy={el.y + el.height / 2} r="6" fill="#D7B38C" stroke="#000" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
+                      <circle cx={el.x + el.width / 2} cy={el.y} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
+                      <circle cx={el.x + el.width / 2} cy={el.y + el.height} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ns-resize' }} />
+                      <circle cx={el.x} cy={el.y + el.height / 2} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
+                      <circle cx={el.x + el.width} cy={el.y + el.height / 2} r="6" fill="#f1b26c" stroke="#1f2937" strokeWidth="1.5" style={{ cursor: 'ew-resize' }} />
                     </>
                   )}
                 </g>
@@ -1937,6 +2405,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
               strokeWidth={strokeWidth}
               strokeLinecap="round"
               strokeLinejoin="round"
+              opacity={opacity}
             />
           )}
 
@@ -1989,6 +2458,18 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
               )}
             </>
           )}
+
+          {selectionBox && (
+            <rect
+              x={selectionBox.x}
+              y={selectionBox.y}
+              width={selectionBox.width}
+              height={selectionBox.height}
+              fill="rgba(17, 24, 39, 0.08)"
+              stroke="rgba(17, 24, 39, 0.5)"
+              strokeDasharray="6,4"
+            />
+          )}
         </svg>
       </div>
 
@@ -2006,7 +2487,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                   max="20" 
                   value={tableRows}
                   onChange={(e) => setTableRows(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
-                  style={{ flex: 1, padding: '8px', fontSize: '14px', background: 'var(--bg-bottom)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '4px' }}
+                  style={{ flex: 1, padding: '8px', fontSize: '14px', background: '#ffffff', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '8px' }}
                 />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -2017,7 +2498,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                   max="20" 
                   value={tableCols}
                   onChange={(e) => setTableCols(Math.max(1, Math.min(20, parseInt(e.target.value) || 1)))}
-                  style={{ flex: 1, padding: '8px', fontSize: '14px', background: 'var(--bg-bottom)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '4px' }}
+                  style={{ flex: 1, padding: '8px', fontSize: '14px', background: '#ffffff', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '8px' }}
                 />
               </div>
             </div>
@@ -2044,12 +2525,12 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
                   height: tableHeight,
                   cells: Array(tableRows).fill(null).map(() => Array(tableCols).fill('')),
                   color,
-                  strokeWidth: 2
+                  strokeWidth: 2,
+                  opacity
                 };
                 
-                const newElements = [...elements, newElement];
-                setElements(newElements);
-                addToHistory(newElements);
+                const newElements = [...elementsRef.current, newElement];
+                commitElements(newElements, { addHistory: true });
                 setShowTableCreator(false);
                 setTool('select');
               }} className="btn-save">
@@ -2098,13 +2579,15 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
               <X size={14} />
             </button>
           </div>
-          <svg width="150" height="150" style={{ background: 'var(--bg-bottom)', border: '1px solid var(--border)' }}>
+          <svg width="150" height="150" style={{ background: 'var(--canvas-bg)', border: '1px solid var(--border)', borderRadius: '10px' }}>
             {elements.map(el => {
               const scale = 0.05;
               if (el.type === 'rectangle') {
                 return <rect key={el.id} x={el.x * scale} y={el.y * scale} width={el.width * scale} height={el.height * scale} fill={el.color} opacity="0.5" />;
               } else if (el.type === 'circle') {
                 return <circle key={el.id} cx={el.x * scale} cy={el.y * scale} r={el.radius * scale} fill={el.color} opacity="0.5" />;
+              } else if (el.type === 'ellipse') {
+                return <ellipse key={el.id} cx={el.x * scale} cy={el.y * scale} rx={el.rx * scale} ry={el.ry * scale} fill={el.color} opacity="0.5" />;
               } else if (el.type === 'sticky') {
                 return <rect key={el.id} x={el.x * scale} y={el.y * scale} width={el.width * scale} height={el.height * scale} fill={el.color} opacity="0.7" />;
               }
@@ -2139,6 +2622,7 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
               <div className="shortcut-section">
                 <h4>Tools</h4>
                 <div className="shortcut-item"><kbd>V</kbd> Select</div>
+                <div className="shortcut-item"><kbd>P</kbd> Pan</div>
                 <div className="shortcut-item"><kbd>D</kbd> Draw</div>
                 <div className="shortcut-item"><kbd>E</kbd> Eraser</div>
                 <div className="shortcut-item"><kbd>R</kbd> Rectangle</div>

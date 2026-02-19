@@ -3653,9 +3653,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
               setCanvasData(newCanvasData);
               if (shouldClose) {
                 setShowCanvasMode(false);
+                autoSave();
               }
-              // Trigger auto-save after a short delay
-              setTimeout(() => autoSave(), 100);
             }}
           />
         </div>
