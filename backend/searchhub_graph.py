@@ -15,6 +15,12 @@ class SearchHubState(TypedDict, total=False):
     action: str
     topic: str
     confidence: float
+    count: int
+    difficulty: str
+    length: str
+    depth: str
+    tone: str
+    command: str
     _ai_client: Any
     _db_factory: Any
 
@@ -32,6 +38,12 @@ def detect_action(state: SearchHubState) -> dict:
         "action": intent.get("action", "search"),
         "topic": intent.get("topic", query),
         "confidence": intent.get("confidence", 0.0),
+        "count": intent.get("count"),
+        "difficulty": intent.get("difficulty"),
+        "length": intent.get("length"),
+        "depth": intent.get("depth"),
+        "tone": intent.get("tone"),
+        "command": intent.get("command"),
     }
 
 
@@ -68,6 +80,12 @@ class SearchHubGraph:
                 "action": result.get("action", "search"),
                 "topic": result.get("topic", query),
                 "confidence": result.get("confidence", 0.0),
+                "count": result.get("count"),
+                "difficulty": result.get("difficulty"),
+                "length": result.get("length"),
+                "depth": result.get("depth"),
+                "tone": result.get("tone"),
+                "command": result.get("command"),
             }
         except Exception as e:
             logger.warning(f"SearchHub graph failed: {e}")

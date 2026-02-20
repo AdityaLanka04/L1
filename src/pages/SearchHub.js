@@ -24,6 +24,8 @@ const SearchHub = () => {
   const [isLoadingPrompts, setIsLoadingPrompts] = useState(true);
   const [showFollowUp, setShowFollowUp] = useState(false);
   const [followUpContext, setFollowUpContext] = useState(null);
+  const [commandCatalog, setCommandCatalog] = useState([]);
+  const [showCommandGuide, setShowCommandGuide] = useState(false);
   
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
@@ -62,10 +64,10 @@ const SearchHub = () => {
       // Not logged in - clear any stale data and show default recommendations
       setUserName('');
       const defaultPrompts = [
-        { text: 'chat about any topic', reason: 'AI tutor ready to help', priority: 'high' },
-        { text: 'create notes on a topic', reason: 'Start documenting', priority: 'high' },
-        { text: 'create flashcards to study', reason: 'Build study materials', priority: 'high' },
-        { text: 'what are my weak areas', reason: 'Identify gaps', priority: 'high' },
+        { text: '/chat', reason: 'AI tutor ready to help', priority: 'high' },
+        { text: '/notes world history', reason: 'Start documenting', priority: 'high' },
+        { text: '/flashcards biology', reason: 'Build study materials', priority: 'high' },
+        { text: '/weak', reason: 'Identify gaps', priority: 'high' },
       ];
       setPersonalizedPrompts(defaultPrompts);
       setIsLoadingPrompts(false);
@@ -74,6 +76,8 @@ const SearchHub = () => {
     if (searchInputRef.current) {
       searchInputRef.current.focus();
     }
+
+    loadCommandCatalog();
   }, []);
 
   useEffect(() => {
@@ -81,6 +85,11 @@ const SearchHub = () => {
       if (e.key === '/' && document.activeElement !== searchInputRef.current) {
         e.preventDefault();
         searchInputRef.current?.focus();
+      }
+
+      if (e.key === '?' && document.activeElement !== searchInputRef.current) {
+        e.preventDefault();
+        setShowCommandGuide(prev => !prev);
       }
     };
 
@@ -166,6 +175,16 @@ const SearchHub = () => {
             .replace(/^(explain|create|make|generate|write|what is|tell me about|learn about|study|understand|quiz on|notes on|flashcards on|about|a quiz on|a note on)\s+/gi, '')
             .replace(/\s+(flashcards?|notes?|quiz|quizzes|roadmap|export|step-by-step)$/gi, '')
             .trim();
+
+          // Handle command-style prompts: "/flashcards topic"
+          if (cleaned.startsWith('/')) {
+            const parts = cleaned.replace(/^\/+/, '').split(/\s+/);
+            if (parts.length >= 2) {
+              cleaned = parts.slice(1).join(' ').trim();
+            } else {
+              return null;
+            }
+          }
           
           // Extract topic after "on" or "about"
           const onMatch = cleaned.match(/(?:on|about)\s+(.+)/i);
@@ -195,7 +214,7 @@ const SearchHub = () => {
         
         // Always include: AI Chat
         recommendations.push({ 
-          text: 'chat about any topic', 
+          text: '/chat', 
           reason: 'AI tutor ready to help', 
           priority: 'high' 
         });
@@ -252,10 +271,10 @@ const SearchHub = () => {
         
         // Fill remaining slots with generic prompts if needed
         const genericPrompts = [
-          { text: 'what are my weak areas', reason: 'Identify knowledge gaps', priority: 'high' },
-          { text: 'create flashcards to study', reason: 'Build study materials', priority: 'medium' },
-          { text: 'create notes on a topic', reason: 'Document your learning', priority: 'medium' },
-          { text: 'show my progress', reason: 'Track your journey', priority: 'medium' }
+          { text: '/weak', reason: 'Identify knowledge gaps', priority: 'high' },
+          { text: '/flashcards biology', reason: 'Build study materials', priority: 'medium' },
+          { text: '/notes world history', reason: 'Document your learning', priority: 'medium' },
+          { text: '/progress', reason: 'Track your journey', priority: 'medium' }
         ];
         
         for (const generic of genericPrompts) {
@@ -275,27 +294,46 @@ const SearchHub = () => {
       } else {
         // Fallback to generic prompts
         setPersonalizedPrompts([
-          { text: 'chat about any topic', reason: 'AI tutor ready to help', priority: 'high' },
-          { text: 'what are my weak areas', reason: 'Identify knowledge gaps', priority: 'high' },
-          { text: 'create flashcards to study', reason: 'Build study materials', priority: 'high' },
-          { text: 'create notes on a topic', reason: 'Document your learning', priority: 'high' },
-          { text: 'show my progress', reason: 'Track your journey', priority: 'medium' },
-          { text: 'review flashcards', reason: 'Practice what you learned', priority: 'medium' }
+          { text: '/chat', reason: 'AI tutor ready to help', priority: 'high' },
+          { text: '/weak', reason: 'Identify knowledge gaps', priority: 'high' },
+          { text: '/flashcards biology', reason: 'Build study materials', priority: 'high' },
+          { text: '/notes world history', reason: 'Document your learning', priority: 'high' },
+          { text: '/progress', reason: 'Track your journey', priority: 'medium' },
+          { text: '/review', reason: 'Practice what you learned', priority: 'medium' }
         ]);
       }
     } catch (error) {
       console.error('Error loading prompts:', error);
       // Fallback to generic prompts
       setPersonalizedPrompts([
-        { text: 'chat about any topic', reason: 'AI tutor ready to help', priority: 'high' },
-        { text: 'what are my weak areas', reason: 'Identify knowledge gaps', priority: 'high' },
-        { text: 'create flashcards to study', reason: 'Build study materials', priority: 'high' },
-        { text: 'create notes on a topic', reason: 'Document your learning', priority: 'high' },
-        { text: 'show my progress', reason: 'Track your journey', priority: 'medium' },
-        { text: 'review flashcards', reason: 'Practice what you learned', priority: 'medium' }
+        { text: '/chat', reason: 'AI tutor ready to help', priority: 'high' },
+        { text: '/weak', reason: 'Identify knowledge gaps', priority: 'high' },
+        { text: '/flashcards biology', reason: 'Build study materials', priority: 'high' },
+        { text: '/notes world history', reason: 'Document your learning', priority: 'high' },
+        { text: '/progress', reason: 'Track your journey', priority: 'medium' },
+        { text: '/review', reason: 'Practice what you learned', priority: 'medium' }
       ]);
     } finally {
       setIsLoadingPrompts(false);
+    }
+  };
+
+  const loadCommandCatalog = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/agents/searchhub/commands`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.commands) {
+          setCommandCatalog(data.commands);
+        }
+      }
+    } catch (error) {
+      console.log('Error loading command catalog:', error);
     }
   };
 
@@ -475,6 +513,35 @@ const SearchHub = () => {
       setSuggestions([]);
       setShowSuggestions(false);
     }
+  };
+
+  const isCommandMode = (value) => /^[/:>!]/.test((value || '').trim());
+
+  const buildCommandAutocomplete = (value) => {
+    if (!commandCatalog || commandCatalog.length === 0) {
+      return [];
+    }
+    
+    const trimmed = (value || '').trim().replace(/^[/:>!]+/, '').toLowerCase();
+    const matches = commandCatalog.filter(cmd => {
+      const command = (cmd.command || '').toLowerCase();
+      const aliases = (cmd.aliases || []).map(a => a.toLowerCase());
+      const desc = (cmd.description || '').toLowerCase();
+      
+      if (!trimmed) return true;
+      return (
+        command.startsWith(trimmed) ||
+        aliases.some(alias => alias.startsWith(trimmed)) ||
+        desc.includes(trimmed)
+      );
+    });
+
+    return matches.slice(0, 8).map(cmd => ({
+      text: (cmd.examples && cmd.examples[0]) ? cmd.examples[0] : (cmd.syntax || `/${cmd.command}`),
+      type: 'command',
+      category: 'Command',
+      source: 'commands'
+    }));
   };
 
   const handleSearch = async (query = searchQuery) => {
@@ -998,6 +1065,15 @@ const SearchHub = () => {
       showPersonalizedRecommendations();
       return;
     }
+
+    if (isCommandMode(query)) {
+      const commandMatches = buildCommandAutocomplete(query);
+      if (commandMatches.length > 0) {
+        setAutocompleteResults(commandMatches);
+        setShowAutocomplete(true);
+        return;
+      }
+    }
     
     if (query.length < 2) {
       setShowAutocomplete(false);
@@ -1027,9 +1103,13 @@ const SearchHub = () => {
               const suggestionLower = suggestion.toLowerCase();
               let type = 'nlp_suggestion';
               let category = 'AI Suggestion';
-              
+
+              if (suggestionLower.startsWith('/') || suggestionLower.startsWith(':') || suggestionLower.startsWith('>')) {
+                type = 'command';
+                category = 'Command';
+              }
               // Intelligent categorization based on intent
-              if (suggestionLower.includes('learning path') || suggestionLower.includes('roadmap') || suggestionLower.includes('step by step') || 
+              else if (suggestionLower.includes('learning path') || suggestionLower.includes('roadmap') || suggestionLower.includes('step by step') || 
                   (suggestionLower.includes('path') && (suggestionLower.includes('create') || suggestionLower.includes('make') || suggestionLower.includes('generate'))) ||
                   suggestionLower.includes('study plan')) {
                 type = 'create_learning_path';
@@ -1143,33 +1223,33 @@ const SearchHub = () => {
       
       if (topic && topic.length > 2) {
         suggestions.push(
-          { text: `create learning path on ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
-          { text: `create path on ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
-          { text: `create flashcards on ${topic}`, type: 'create_flashcards', category: 'Create', source: 'smart' },
-          { text: `create notes on ${topic}`, type: 'create_note', category: 'Create', source: 'smart' },
-          { text: `create quiz on ${topic}`, type: 'create_quiz', category: 'Quiz', source: 'smart' }
+          { text: `/path ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
+          { text: `/flashcards ${topic}`, type: 'create_flashcards', category: 'Create', source: 'smart' },
+          { text: `/notes ${topic}`, type: 'create_note', category: 'Create', source: 'smart' },
+          { text: `/quiz ${topic}`, type: 'create_quiz', category: 'Quiz', source: 'smart' },
+          { text: `/questions ${topic}`, type: 'create_questions', category: 'Create', source: 'smart' }
         );
       }
     } else if (queryLower.includes('explain') || queryLower.includes('what is') || queryLower.includes('how')) {
       const topic = queryLower.replace(/^(explain|what is|how does|how to)\s+/i, '').trim();
       if (topic) {
         suggestions.push(
-          { text: `explain ${topic}`, type: 'explain', category: 'Learn', source: 'smart' },
-          { text: `create notes on ${topic}`, type: 'create_note', category: 'Create', source: 'smart' },
-          { text: `chat about ${topic}`, type: 'chat', category: 'Chat', source: 'smart' }
+          { text: `/explain ${topic}`, type: 'explain', category: 'Learn', source: 'smart' },
+          { text: `/notes ${topic}`, type: 'create_note', category: 'Create', source: 'smart' },
+          { text: `/chat ${topic}`, type: 'chat', category: 'Chat', source: 'smart' }
         );
       }
     } else if (queryLower.includes('weak') || queryLower.includes('struggle') || queryLower.includes('improve')) {
       suggestions.push(
-        { text: 'what are my weak areas', type: 'show_weak_areas', category: 'Weak Areas', source: 'smart' },
-        { text: 'show my progress', type: 'show_progress', category: 'Progress', source: 'smart' },
-        { text: 'review weak flashcards', type: 'review', category: 'Review', source: 'smart' }
+        { text: '/weak', type: 'show_weak_areas', category: 'Weak Areas', source: 'smart' },
+        { text: '/progress', type: 'show_progress', category: 'Progress', source: 'smart' },
+        { text: '/review', type: 'review', category: 'Review', source: 'smart' }
       );
     } else if (queryLower.includes('progress') || queryLower.includes('stats') || queryLower.includes('how am i')) {
       suggestions.push(
-        { text: 'show my progress', type: 'show_progress', category: 'Progress', source: 'smart' },
-        { text: 'what are my weak areas', type: 'show_weak_areas', category: 'Weak Areas', source: 'smart' },
-        { text: 'show my achievements', type: 'show_achievements', category: 'Progress', source: 'smart' }
+        { text: '/progress', type: 'show_progress', category: 'Progress', source: 'smart' },
+        { text: '/weak', type: 'show_weak_areas', category: 'Weak Areas', source: 'smart' },
+        { text: '/achievements', type: 'show_achievements', category: 'Progress', source: 'smart' }
       );
     } else {
       // Topic-based suggestions - also handle "path on X" patterns
@@ -1180,19 +1260,19 @@ const SearchHub = () => {
       if (pathPatternMatch) {
         const actualTopic = pathPatternMatch[3].trim();
         suggestions.push(
-          { text: `create learning path on ${actualTopic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
-          { text: `create path on ${actualTopic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
-          { text: `explain ${actualTopic}`, type: 'explain', category: 'Learn', source: 'smart' },
-          { text: `create flashcards on ${actualTopic}`, type: 'create_flashcards', category: 'Create', source: 'smart' }
+          { text: `/path ${actualTopic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
+          { text: `/explain ${actualTopic}`, type: 'explain', category: 'Learn', source: 'smart' },
+          { text: `/flashcards ${actualTopic}`, type: 'create_flashcards', category: 'Create', source: 'smart' },
+          { text: `/notes ${actualTopic}`, type: 'create_note', category: 'Create', source: 'smart' }
         );
       } else if (topic.length > 2) {
         suggestions.push(
-          { text: `create learning path on ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
-          { text: `create path on ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
-          { text: `create flashcards on ${topic}`, type: 'create_flashcards', category: 'Create', source: 'smart' },
-          { text: `explain ${topic}`, type: 'explain', category: 'Learn', source: 'smart' },
-          { text: `create notes on ${topic}`, type: 'create_note', category: 'Create', source: 'smart' },
-          { text: `quiz me on ${topic}`, type: 'create_quiz', category: 'Quiz', source: 'smart' }
+          { text: `/path ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'smart' },
+          { text: `/flashcards ${topic}`, type: 'create_flashcards', category: 'Create', source: 'smart' },
+          { text: `/explain ${topic}`, type: 'explain', category: 'Learn', source: 'smart' },
+          { text: `/notes ${topic}`, type: 'create_note', category: 'Create', source: 'smart' },
+          { text: `/quiz ${topic}`, type: 'create_quiz', category: 'Quiz', source: 'smart' },
+          { text: `/questions ${topic}`, type: 'create_questions', category: 'Create', source: 'smart' }
         );
       }
     }
@@ -1235,14 +1315,22 @@ const SearchHub = () => {
           if (onMatch && onMatch[1]) {
             topic = onMatch[1].trim();
           }
+
+          // Handle command-style prompts like "/flashcards topic"
+          if (!topic && text.trim().startsWith('/')) {
+            const parts = text.trim().replace(/^\/+/, '').split(/\s+/);
+            if (parts.length >= 2) {
+              topic = parts.slice(1).join(' ').trim();
+            }
+          }
           
           // If we found a topic, create suggestions for it
           if (topic && topic.length > 2) {
             topicSuggestions.push(
-              { text: `create learning path on ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'personalized' },
-              { text: `create flashcards on ${topic}`, type: 'create_flashcards', category: 'Create', source: 'personalized' },
-              { text: `explain ${topic}`, type: 'explain', category: 'Learn', source: 'personalized' },
-              { text: `quiz me on ${topic}`, type: 'create_quiz', category: 'Quiz', source: 'personalized' }
+              { text: `/path ${topic}`, type: 'create_learning_path', category: 'Learning Path', source: 'personalized' },
+              { text: `/flashcards ${topic}`, type: 'create_flashcards', category: 'Create', source: 'personalized' },
+              { text: `/explain ${topic}`, type: 'explain', category: 'Learn', source: 'personalized' },
+              { text: `/quiz ${topic}`, type: 'create_quiz', category: 'Quiz', source: 'personalized' }
             );
           }
         }
@@ -1254,9 +1342,9 @@ const SearchHub = () => {
         
         // Add generic helpful suggestions
         const genericSuggestions = [
-          { text: 'what are my weak areas', type: 'show_weak_areas', category: 'Weak Areas', source: 'generic' },
-          { text: 'show my progress', type: 'show_progress', category: 'Progress', source: 'generic' },
-          { text: 'chat about any topic', type: 'chat', category: 'Chat', source: 'generic' }
+          { text: '/weak', type: 'show_weak_areas', category: 'Weak Areas', source: 'generic' },
+          { text: '/progress', type: 'show_progress', category: 'Progress', source: 'generic' },
+          { text: '/chat', type: 'chat', category: 'Chat', source: 'generic' }
         ];
         
         // Combine: recent searches + topic suggestions + generic
@@ -1322,6 +1410,31 @@ const SearchHub = () => {
       setAutocompleteResults(combined);
       setShowAutocomplete(true);
     }
+  };
+
+  const getQuickCommands = () => {
+    const quickOrder = ['flashcards', 'notes', 'quiz', 'path', 'chat', 'progress', 'weak'];
+    const fromCatalog = quickOrder
+      .map(name => commandCatalog.find(cmd => cmd.command === name))
+      .filter(Boolean)
+      .map(cmd => ({
+        syntax: cmd.syntax || `/${cmd.command}`,
+        label: cmd.description || ''
+      }));
+
+    if (fromCatalog.length > 0) {
+      return fromCatalog;
+    }
+
+    return [
+      { syntax: '/flashcards <topic>', label: 'Study cards' },
+      { syntax: '/notes <topic>', label: 'Study notes' },
+      { syntax: '/quiz <topic>', label: 'Quick quiz' },
+      { syntax: '/path <topic>', label: 'Learning path' },
+      { syntax: '/chat <topic>', label: 'Talk to AI' },
+      { syntax: '/progress', label: 'Your progress' },
+      { syntax: '/weak', label: 'Weak areas' }
+    ];
   };
 
   const handleInputChange = (e) => {
@@ -1674,7 +1787,7 @@ const SearchHub = () => {
                           </div>
                           <div className="rec-content">
                             <span className="rec-category">{prompt.priority || 'Suggestion'}</span>
-                            <span className="rec-text">{prompt.text}</span>
+                            <span className="rec-text">{prompt.text?.startsWith('/') ? prompt.text : `> ${prompt.text}`}</span>
                             {prompt.reason && <span className="rec-reason">{prompt.reason}</span>}
                           </div>
                         </button>
@@ -1719,7 +1832,7 @@ const SearchHub = () => {
                             }
                           }
                         }}
-                        placeholder="Ask me anything... try 'create flashcards on physics'"
+                        placeholder="Ask me anything... or type /help"
                         className="hero-search-input"
                         autoComplete="off"
                       />
@@ -1759,8 +1872,31 @@ const SearchHub = () => {
                     )}
                   </div>
                   <p className="search-helper-text">
-                    JUST ASK NATURALLY — "CREATE FLASHCARDS ON BIOLOGY" OR "WHAT ARE MY WEAK AREAS"
+                    Type a command or ask naturally. Try "/flashcards biology" • Press ? for commands
                   </p>
+                  <button
+                    type="button"
+                    className="command-toggle-btn"
+                    onClick={() => setShowCommandGuide(prev => !prev)}
+                    aria-expanded={showCommandGuide}
+                    aria-controls="command-guide"
+                    title="Shortcut: ?"
+                  >
+                    Commands <span className="command-toggle-hint">?</span>
+                  </button>
+                  {showCommandGuide && (
+                    <div id="command-guide" className="command-console" role="region" aria-label="SearchHub commands">
+                      <div className="command-console-header">COMMANDS</div>
+                      <div className="command-console-body">
+                        {getQuickCommands().map((cmd, index) => (
+                          <div key={`${cmd.syntax}-${index}`} className="command-line">
+                            <span className="command-syntax">{cmd.syntax}</span>
+                            <span className="command-desc">{cmd.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

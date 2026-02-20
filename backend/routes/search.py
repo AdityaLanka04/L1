@@ -336,6 +336,11 @@ def _build_chroma_prompts(user_id: str) -> list:
                 "reason": "Turn recent notes into active recall",
                 "priority": "high"
             })
+            prompts.append({
+                "text": f"quiz me on {topic}",
+                "reason": "Test what you just studied",
+                "priority": "medium"
+            })
         elif source == "flashcard_created":
             if not topic:
                 continue
@@ -355,7 +360,7 @@ def _build_chroma_prompts(user_id: str) -> list:
                 })
             elif topic:
                 prompts.append({
-                    "text": f"review flashcards on {topic}",
+                    "text": f"quiz me on {topic}",
                     "reason": "Reinforce recent topics",
                     "priority": "medium"
                 })
@@ -387,7 +392,7 @@ def _build_chroma_prompts(user_id: str) -> list:
                 })
             elif topic:
                 prompts.append({
-                    "text": f"create harder questions on {topic}",
+                    "text": f"create questions on {topic}",
                     "reason": "Ready for the next level",
                     "priority": "medium"
                 })
@@ -400,6 +405,44 @@ def _build_chroma_prompts(user_id: str) -> list:
                 "reason": "Document what you discussed",
                 "priority": "medium"
             })
+            prompts.append({
+                "text": f"create flashcards on {topic}",
+                "reason": "Turn the discussion into practice",
+                "priority": "medium"
+            })
+
+    # Add weak quiz topics as high-priority prompts
+    try:
+        weak_topics = chroma_store.get_weak_quiz_topics(user_id, top_k=3)
+        for wt in weak_topics:
+            if _is_valid_topic(wt):
+                prompts.append({
+                    "text": f"quiz me on {wt}",
+                    "reason": "Focus on weaker areas",
+                    "priority": "high"
+                })
+                prompts.append({
+                    "text": f"create flashcards on {wt}",
+                    "reason": "Rebuild retention",
+                    "priority": "high"
+                })
+    except Exception:
+        pass
+
+    # Add pinned/important topics as steady reminders
+    try:
+        important_entries = chroma_store.retrieve_important(user_id, top_k=3)
+        for entry in important_entries:
+            topic = _extract_topic_from_episode(entry)
+            if not topic:
+                continue
+            prompts.append({
+                "text": f"create notes on {topic}",
+                "reason": "Pinned as important",
+                "priority": "medium"
+            })
+    except Exception:
+        pass
 
     return prompts
 

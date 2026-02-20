@@ -971,11 +971,13 @@
   border-radius: 12px;
   border: 1px solid rgba(0, 0, 0, 0.1);
   min-height: 400px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
 }
 
 .block-editor-wrapper.dark-mode {
   background: #1a1a1a !important;
   border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.35);
 }
 
 .block-editor-container {
@@ -1021,6 +1023,7 @@
 
 .block-editor-container:not(.dark-mode) .block-wrapper:focus-within {
   background: rgba(0, 0, 0, 0.03) !important;
+  box-shadow: inset 3px 0 0 rgba(241, 178, 108, 0.45);
 }
 
 /* Dark mode block wrapper */
@@ -1039,6 +1042,7 @@
 
 .block-editor-container.dark-mode .block-wrapper:focus-within {
   background: rgba(255, 255, 255, 0.05) !important;
+  box-shadow: inset 3px 0 0 rgba(241, 178, 108, 0.35);
 }
 
 /* Light mode block content */
@@ -1046,13 +1050,14 @@
   min-height: 1.5em;
   outline: none;
   cursor: text;
-  color: var(--bg-primary) !important;
+  color: var(--nr-text-primary) !important;
   background: transparent !important;
+  caret-color: var(--nr-text-primary);
 }
 
 .block-editor-container:not(.dark-mode) .block-content[contenteditable="true"]:empty:before {
   content: attr(data-placeholder);
-  color: #666666;
+  color: #94a3b8;
   pointer-events: none;
 }
 
@@ -1076,7 +1081,7 @@
 .block-editor-container:not(.dark-mode) .block-content.block-heading1,
 .block-editor-container:not(.dark-mode) .block-content.block-heading2,
 .block-editor-container:not(.dark-mode) .block-content.block-heading3 {
-  color: var(--bg-primary) !important;
+  color: var(--nr-text-primary) !important;
 }
 
 /* Headings in dark mode */

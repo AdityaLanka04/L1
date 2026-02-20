@@ -84,6 +84,113 @@
   opacity: 0.6;
 }
 
+/* Canvas block */
+.block-canvas-wrapper {
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 12px;
+  background: #fbf8f2;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+}
+
+.block-canvas-preview {
+  border-radius: 10px;
+  border: 1px dashed rgba(15, 23, 42, 0.2);
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.block-canvas-preview:hover {
+  border-color: rgba(15, 23, 42, 0.35);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.block-canvas-preview:focus-visible {
+  outline: none;
+  border-color: rgba(241, 178, 108, 0.6);
+  box-shadow: 0 0 0 3px rgba(241, 178, 108, 0.35);
+}
+
+.block-canvas-preview img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.block-canvas-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.block-canvas-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.block-canvas-btn {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  background: #111827;
+  color: #f8fafc;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.block-canvas-btn:hover {
+  background: #0b1220;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.2);
+}
+
+.block-canvas-btn:active {
+  transform: translateY(1px);
+}
+
+.block-canvas-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(241, 178, 108, 0.35);
+}
+
+.block-editor-container.dark-mode .block-canvas-wrapper {
+  background: #111827;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+.block-editor-container.dark-mode .block-canvas-preview {
+  background: #0b1220;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.block-editor-container.dark-mode .block-canvas-placeholder {
+  color: #cbd5f5;
+}
+
+.block-editor-container.dark-mode .block-canvas-btn {
+  background: #e2e8f0;
+  color: #0f172a;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.block-editor-container.dark-mode .block-canvas-btn:hover {
+  background: #f8fafc;
+}
+
 /* Drop Indicator Lines with Magnetic Effect */
 .drop-indicator {
   position: absolute;

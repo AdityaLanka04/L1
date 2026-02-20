@@ -1,14 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Indie+Flower&display=swap');
 
-:root {
+.canvas-mode {
   --bg-top: #faf6ee;
   --bg-bottom: #ece3d3;
   --canvas-bg: #fbf8f2;
   --panel: rgba(255, 255, 255, 0.9);
   --panel-solid: #ffffff;
   --border: rgba(15, 23, 42, 0.12);
-  --text-primary: #1f2937;
-  --text-secondary: #6b7280;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
   --accent: #f1b26c;
   --accent-ink: #7a4b1b;
   --success: #22c55e;
@@ -17,9 +17,9 @@
   --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.08);
   --shadow-md: 0 10px 24px rgba(15, 23, 42, 0.12);
   --shadow-lg: 0 24px 48px rgba(15, 23, 42, 0.18);
-  --hover-bg: rgba(15, 23, 42, 0.06);
+  --hover-bg: rgba(15, 23, 42, 0.1);
   --ring: rgba(241, 178, 108, 0.4);
-  --toolbar-bg: rgba(255, 255, 255, 0.88);
+  --toolbar-bg: rgba(255, 255, 255, 0.9);
 }
 
 .canvas-mode {
@@ -51,6 +51,7 @@
   background: var(--toolbar-bg);
   backdrop-filter: blur(16px) saturate(1.2);
   box-shadow: var(--shadow-md);
+  color: var(--text-primary);
   gap: 12px;
   min-height: 52px;
   z-index: 100;
@@ -60,6 +61,19 @@
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   width: calc(100% - 40px);
+}
+
+.canvas-toolbar::-webkit-scrollbar {
+  height: 6px;
+}
+
+.canvas-toolbar::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.18);
+  border-radius: 999px;
+}
+
+.canvas-toolbar::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .toolbar-section {
@@ -75,7 +89,7 @@
 .tool-btn {
   background: transparent !important;
   border: 1px solid transparent !important;
-  color: #111827;
+  color: var(--text-primary) !important;
   padding: 8px 12px !important;
   font-size: 12px !important;
   font-weight: 600 !important;
@@ -103,9 +117,19 @@
 }
 
 .tool-btn:hover:not(:disabled) {
-  color: var(--text-primary) !important;
+  color: #0b1220 !important;
   background: var(--hover-bg) !important;
-  border-color: rgba(15, 23, 42, 0.08) !important;
+  border-color: rgba(15, 23, 42, 0.14) !important;
+}
+
+.tool-btn:focus-visible {
+  outline: none;
+  border-color: rgba(241, 178, 108, 0.45) !important;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+.tool-btn:active {
+  transform: translateY(1px);
 }
 
 .tool-btn.active {

@@ -36,6 +36,24 @@ import KeyboardShortcuts from '../components/KeyboardShortcuts';
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
 
 // Utility functions
+const encodeBlockPayload = (value) => {
+  if (!value) return '';
+  try {
+    return btoa(unescape(encodeURIComponent(value)));
+  } catch (e) {
+    return '';
+  }
+};
+
+const decodeBlockPayload = (value) => {
+  if (!value) return '';
+  try {
+    return decodeURIComponent(escape(atob(value)));
+  } catch (e) {
+    return '';
+  }
+};
+
 const htmlToBlocks = (html) => {
   if (!html || html.trim() === '') {
     return [{
@@ -67,6 +85,21 @@ const htmlToBlocks = (html) => {
     
     if (node.nodeType === Node.ELEMENT_NODE) {
       const tagName = node.tagName.toLowerCase();
+      const dataBlockType = node.getAttribute('data-block-type');
+      if (dataBlockType === 'canvas') {
+        const canvasData = decodeBlockPayload(node.getAttribute('data-canvas') || '');
+        const canvasPreview = decodeBlockPayload(node.getAttribute('data-thumb') || '');
+        blocks.push({
+          id: Date.now() + Math.random(),
+          type: 'canvas',
+          content: '',
+          properties: {
+            canvasData,
+            canvasPreview
+          }
+        });
+        return;
+      }
       const content = node.innerHTML || node.textContent || '';
       const textContent = node.textContent.trim();
       
@@ -221,6 +254,8 @@ const blocksToHtml = (blocks) => {
       case 'success':
       case 'tip':
         return `<div class="callout ${block.type}">${content}</div>`;
+      case 'canvas':
+        return `<div class="canvas-block" data-block-type="canvas" data-canvas="${encodeBlockPayload(block.properties?.canvasData || '')}" data-thumb="${encodeBlockPayload(block.properties?.canvasPreview || '')}"></div>`;
       default:
         return `<p>${content}</p>`;
     }
@@ -284,6 +319,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [noteTitle, setNoteTitle] = useState("");
   const [noteContent, setNoteContent] = useState("");
   const [canvasData, setCanvasData] = useState("");
+  const [canvasBlockId, setCanvasBlockId] = useState(null);
+  const [pendingFocusBlockId, setPendingFocusBlockId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   
   // UI state
@@ -418,6 +455,12 @@ const NotesRedesign = ({ sharedMode = false }) => {
       
           }
   }, [selectedTheme]);
+
+  useEffect(() => {
+    if (!pendingFocusBlockId) return;
+    const timer = setTimeout(() => setPendingFocusBlockId(null), 300);
+    return () => clearTimeout(timer);
+  }, [pendingFocusBlockId]);
 
   // Font registration
   useEffect(() => {
@@ -1301,6 +1344,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
     setNoteTitle(n.title);
     setNoteContent(n.content);
     setCanvasData(n.canvas_data || "");
+    setCanvasBlockId(null);
+    setPendingFocusBlockId(null);
     
     // Convert HTML content to blocks
     let blocks = htmlToBlocks(n.content);
@@ -1411,6 +1456,17 @@ const NotesRedesign = ({ sharedMode = false }) => {
     // Convert blocks to HTML for saving
     const html = blocksToHtml(newBlocks);
     setNoteContent(html);
+  };
+
+  const handleOpenCanvasBlock = (blockId) => {
+    if (viewMode === 'preview' || (isSharedContent && !canEdit)) return;
+    setCanvasBlockId(blockId);
+    setShowCanvasMode(true);
+  };
+
+  const getCanvasBlockContent = (blockId) => {
+    const block = noteBlocks.find((b) => String(b.id) === String(blockId));
+    return block?.properties?.canvasData || '';
   };
 
   const handleInsertBlock = (blockType) => {
@@ -2938,6 +2994,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 <SimpleBlockEditor
                   blocks={noteBlocks}
                   onChange={handleBlocksChange}
+                  onOpenCanvas={handleOpenCanvasBlock}
+                  focusBlockId={pendingFocusBlockId}
                   readOnly={viewMode === "preview" || (isSharedContent && !canEdit)}
                   darkMode={editorDarkMode}
                 />
@@ -3647,12 +3705,53 @@ const NotesRedesign = ({ sharedMode = false }) => {
       {showCanvasMode && !isSharedContent && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}>
           <CanvasMode
-            initialContent={canvasData}
-            onClose={() => setShowCanvasMode(false)}
-            onSave={(newCanvasData, shouldClose = false) => {
-              setCanvasData(newCanvasData);
+            initialContent={canvasBlockId ? getCanvasBlockContent(canvasBlockId) : canvasData}
+            onClose={() => {
+              setShowCanvasMode(false);
+              setCanvasBlockId(null);
+            }}
+            onSave={(newCanvasData, shouldClose = false, previewData) => {
+              if (canvasBlockId) {
+                const updatedBlocks = noteBlocks.map((block) => {
+                  if (String(block.id) !== String(canvasBlockId)) return block;
+                  return {
+                    ...block,
+                    properties: {
+                      ...block.properties,
+                      canvasData: newCanvasData,
+                      canvasPreview: previewData !== undefined
+                        ? previewData
+                        : (block.properties?.canvasPreview || '')
+                    }
+                  };
+                });
+
+                let finalBlocks = updatedBlocks;
+                if (shouldClose) {
+                  const currentIndex = updatedBlocks.findIndex((block) => String(block.id) === String(canvasBlockId));
+                  let nextBlock = updatedBlocks[currentIndex + 1];
+                  if (!nextBlock) {
+                    const currentBlock = updatedBlocks[currentIndex];
+                    const newBlock = {
+                      id: Date.now() + Math.random(),
+                      type: 'paragraph',
+                      content: '',
+                      properties: {},
+                      parent_block_id: currentBlock?.parent_block_id || null
+                    };
+                    finalBlocks = [...updatedBlocks, newBlock];
+                    nextBlock = newBlock;
+                  }
+                  setPendingFocusBlockId(nextBlock?.id || null);
+                }
+                handleBlocksChange(finalBlocks);
+              } else {
+                setCanvasData(newCanvasData);
+              }
+
               if (shouldClose) {
                 setShowCanvasMode(false);
+                setCanvasBlockId(null);
                 autoSave();
               }
             }}

@@ -266,6 +266,18 @@ const translateElement = (el, dx, dy) => {
   return el;
 };
 
+const getElementsBounds = (items) => {
+  if (!items || items.length === 0) {
+    return { x: 0, y: 0, width: 0, height: 0 };
+  }
+  const bounds = items.map(getElementBounds);
+  const minX = Math.min(...bounds.map(b => b.x));
+  const minY = Math.min(...bounds.map(b => b.y));
+  const maxX = Math.max(...bounds.map(b => b.x + b.width));
+  const maxY = Math.max(...bounds.map(b => b.y + b.height));
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+};
+
 const CanvasMode = ({ initialContent, onClose, onSave }) => {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -1284,19 +1296,132 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
 
   const handleSave = (shouldClose = false) => {
     const canvasData = serializeElements(elementsRef.current);
-    if (onSave && canvasData !== lastSerializedRef.current) {
+    const shouldGeneratePreview = shouldClose || (onSave && onSave.length >= 3);
+    const previewData = shouldGeneratePreview ? renderPreviewDataUrl() : undefined;
+    const hasChanges = canvasData !== lastSerializedRef.current;
+
+    if (onSave && (hasChanges || shouldClose)) {
       if (autoSaveTimeout.current) {
         clearTimeout(autoSaveTimeout.current);
         autoSaveTimeout.current = null;
       }
-      lastSerializedRef.current = canvasData;
-      onSave(canvasData, shouldClose);
-      setLastSaved(new Date());
+      if (hasChanges) {
+        lastSerializedRef.current = canvasData;
+      }
+      if (previewData !== undefined) {
+        onSave(canvasData, shouldClose, previewData);
+      } else {
+        onSave(canvasData, shouldClose);
+      }
+      if (hasChanges) {
+        setLastSaved(new Date());
+      }
       setAutoSaving(false);
     }
     if (shouldClose) {
       onClose?.();
     }
+  };
+
+  const renderPreviewDataUrl = () => {
+    const items = elementsRef.current;
+    if (!items || items.length === 0) return '';
+    const padding = 40;
+    const bounds = getElementsBounds(items);
+    const width = Math.min(1400, Math.max(360, bounds.width + padding * 2));
+    const height = Math.min(1000, Math.max(240, bounds.height + padding * 2));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return '';
+    ctx.fillStyle = '#fbf8f2';
+    ctx.fillRect(0, 0, width, height);
+    ctx.save();
+    ctx.translate(-bounds.x + padding, -bounds.y + padding);
+    drawElementsToContext(ctx, items);
+    ctx.restore();
+    return canvas.toDataURL('image/png');
+  };
+
+  const drawElementsToContext = (ctx, items) => {
+    items.forEach(el => {
+      ctx.strokeStyle = el.color || '#111827';
+      ctx.fillStyle = el.color || '#111827';
+      ctx.lineWidth = el.strokeWidth || 2;
+      ctx.globalAlpha = el.opacity || 1;
+      
+      if (el.type === 'draw') {
+        ctx.beginPath();
+        el.points.forEach((point, i) => {
+          if (i === 0) ctx.moveTo(point.x, point.y);
+          else ctx.lineTo(point.x, point.y);
+        });
+        ctx.stroke();
+      } else if (el.type === 'rectangle') {
+        if (el.fillColor && el.fillColor !== 'transparent') {
+          ctx.fillStyle = el.fillColor;
+          ctx.fillRect(el.x, el.y, el.width, el.height);
+          ctx.fillStyle = el.color || '#111827';
+        }
+        ctx.strokeRect(el.x, el.y, el.width, el.height);
+      } else if (el.type === 'circle') {
+        ctx.beginPath();
+        ctx.arc(el.x, el.y, el.radius, 0, Math.PI * 2);
+        if (el.fillColor && el.fillColor !== 'transparent') {
+          ctx.fillStyle = el.fillColor;
+          ctx.fill();
+          ctx.fillStyle = el.color || '#111827';
+        }
+        ctx.stroke();
+      } else if (el.type === 'ellipse') {
+        ctx.beginPath();
+        if (ctx.ellipse) {
+          ctx.ellipse(el.x, el.y, el.rx, el.ry, 0, 0, Math.PI * 2);
+        } else {
+          ctx.save();
+          ctx.translate(el.x, el.y);
+          ctx.scale(el.rx, el.ry);
+          ctx.arc(0, 0, 1, 0, Math.PI * 2);
+          ctx.restore();
+        }
+        if (el.fillColor && el.fillColor !== 'transparent') {
+          ctx.fillStyle = el.fillColor;
+          ctx.fill();
+          ctx.fillStyle = el.color || '#111827';
+        }
+        ctx.stroke();
+      } else if (el.type === 'line') {
+        ctx.beginPath();
+        ctx.moveTo(el.x1, el.y1);
+        ctx.lineTo(el.x2, el.y2);
+        ctx.stroke();
+      } else if (el.type === 'arrow') {
+        const angle = Math.atan2(el.y2 - el.y1, el.x2 - el.x1);
+        const arrowLength = 15;
+        ctx.beginPath();
+        ctx.moveTo(el.x1, el.y1);
+        ctx.lineTo(el.x2, el.y2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(el.x2, el.y2);
+        ctx.lineTo(el.x2 - arrowLength * Math.cos(angle - Math.PI / 6), el.y2 - arrowLength * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(el.x2 - arrowLength * Math.cos(angle + Math.PI / 6), el.y2 - arrowLength * Math.sin(angle + Math.PI / 6));
+        ctx.closePath();
+        ctx.fillStyle = el.color || '#111827';
+        ctx.fill();
+      } else if (el.type === 'text') {
+        ctx.font = `${el.fontSize}px Manrope`;
+        ctx.fillText(el.text, el.x, el.y);
+      } else if (el.type === 'sticky') {
+        ctx.fillStyle = el.color;
+        ctx.fillRect(el.x, el.y, el.width, el.height);
+        ctx.fillStyle = '#000000';
+        ctx.font = '14px Manrope';
+        ctx.fillText(el.text, el.x + 10, el.y + 30);
+      }
+    });
+    ctx.globalAlpha = 1;
   };
 
   const handleClose = () => {
@@ -1343,85 +1468,25 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
   }, [onSave]);
 
   const exportAsImage = () => {
-    // Create a temporary canvas for export
+    const items = elementsRef.current;
+    if (!items.length) return;
+    const padding = 60;
+    const bounds = getElementsBounds(items);
+    const width = Math.min(2400, Math.max(800, bounds.width + padding * 2));
+    const height = Math.min(1800, Math.max(600, bounds.height + padding * 2));
     const canvas = document.createElement('canvas');
-    canvas.width = 2000;
-    canvas.height = 2000;
+    canvas.width = width;
+    canvas.height = height;
     const ctx = canvas.getContext('2d');
-    
-    // White background
     ctx.fillStyle = '#fbf8f2';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw all elements
-    elements.forEach(el => {
-      ctx.strokeStyle = el.color || '#FFFFFF';
-      ctx.fillStyle = el.color || '#FFFFFF';
-      ctx.lineWidth = el.strokeWidth || 2;
-      ctx.globalAlpha = el.opacity || 1;
-      
-      if (el.type === 'draw') {
-        ctx.beginPath();
-        el.points.forEach((point, i) => {
-          if (i === 0) ctx.moveTo(point.x, point.y);
-          else ctx.lineTo(point.x, point.y);
-        });
-        ctx.stroke();
-      } else if (el.type === 'rectangle') {
-        if (el.fillColor && el.fillColor !== 'transparent') {
-          ctx.fillStyle = el.fillColor;
-          ctx.fillRect(el.x, el.y, el.width, el.height);
-          ctx.fillStyle = el.color || '#FFFFFF';
-        }
-        ctx.strokeRect(el.x, el.y, el.width, el.height);
-      } else if (el.type === 'circle') {
-        ctx.beginPath();
-        ctx.arc(el.x, el.y, el.radius, 0, Math.PI * 2);
-        if (el.fillColor && el.fillColor !== 'transparent') {
-          ctx.fillStyle = el.fillColor;
-          ctx.fill();
-          ctx.fillStyle = el.color || '#FFFFFF';
-        }
-        ctx.stroke();
-      } else if (el.type === 'ellipse') {
-        ctx.beginPath();
-        if (ctx.ellipse) {
-          ctx.ellipse(el.x, el.y, el.rx, el.ry, 0, 0, Math.PI * 2);
-        } else {
-          ctx.save();
-          ctx.translate(el.x, el.y);
-          ctx.scale(el.rx, el.ry);
-          ctx.arc(0, 0, 1, 0, Math.PI * 2);
-          ctx.restore();
-        }
-        if (el.fillColor && el.fillColor !== 'transparent') {
-          ctx.fillStyle = el.fillColor;
-          ctx.fill();
-          ctx.fillStyle = el.color || '#FFFFFF';
-        }
-        ctx.stroke();
-      } else if (el.type === 'line') {
-        ctx.beginPath();
-        ctx.moveTo(el.x1, el.y1);
-        ctx.lineTo(el.x2, el.y2);
-        ctx.stroke();
-      } else if (el.type === 'text') {
-        ctx.font = `${el.fontSize}px Manrope`;
-        ctx.fillText(el.text, el.x, el.y);
-      } else if (el.type === 'sticky') {
-        ctx.fillStyle = el.color;
-        ctx.fillRect(el.x, el.y, el.width, el.height);
-        ctx.fillStyle = '#000000';
-        ctx.font = '14px Manrope';
-        ctx.fillText(el.text, el.x + 10, el.y + 30);
-      }
-    });
-    ctx.globalAlpha = 1;
-    
-    // Download
+    ctx.save();
+    ctx.translate(-bounds.x + padding, -bounds.y + padding);
+    drawElementsToContext(ctx, items);
+    ctx.restore();
     const link = document.createElement('a');
     link.download = 'canvas-export.png';
-    link.href = canvas.toDataURL();
+    link.href = canvas.toDataURL('image/png');
     link.click();
   };
 

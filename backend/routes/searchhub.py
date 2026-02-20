@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -109,12 +109,345 @@ def _extract_difficulty(query: str) -> Optional[str]:
     return None
 
 
+_COMMAND_PREFIXES = ("/", ":", ">", "!")
+_PATH_DIFFICULTY_LEVELS = ("beginner", "intermediate", "advanced")
+_PATH_LENGTH_LEVELS = ("short", "medium", "long")
+_NOTE_DEPTH_LEVELS = ("brief", "standard", "deep")
+
+_COMMAND_CATALOG: List[Dict[str, Any]] = [
+    {
+        "command": "flashcards",
+        "aliases": ["flashcards", "flashcard", "cards", "fc"],
+        "action": "create_flashcards",
+        "description": "Create flashcards and open the set",
+        "syntax": "/flashcards <topic> [--count 10] [--difficulty easy|medium|hard]",
+        "examples": [
+            "/flashcards photosynthesis",
+            "/flashcards photosynthesis --count 20 --difficulty hard",
+        ],
+        "navigate_to": "/flashcards",
+        "requires_topic": True,
+        "params": ["topic", "count", "difficulty"],
+    },
+    {
+        "command": "notes",
+        "aliases": ["notes", "note", "n"],
+        "action": "create_note",
+        "description": "Create notes and open the editor",
+        "syntax": "/notes <topic> [--depth brief|standard|deep]",
+        "examples": [
+            "/notes neural networks",
+            "/notes neural networks --depth deep",
+        ],
+        "navigate_to": "/notes/editor/:id",
+        "requires_topic": True,
+        "params": ["topic", "depth"],
+    },
+    {
+        "command": "questions",
+        "aliases": ["questions", "question", "q", "qbank"],
+        "action": "create_questions",
+        "description": "Create practice questions",
+        "syntax": "/questions <topic> [--count 10]",
+        "examples": [
+            "/questions cellular respiration",
+            "/questions cellular respiration --count 15",
+        ],
+        "navigate_to": "/question-bank",
+        "requires_topic": True,
+        "params": ["topic", "count"],
+    },
+    {
+        "command": "quiz",
+        "aliases": ["quiz", "test"],
+        "action": "create_quiz",
+        "description": "Start a quiz on a topic",
+        "syntax": "/quiz <topic> [--count 10]",
+        "examples": [
+            "/quiz world history",
+            "/quiz world history --count 12",
+        ],
+        "navigate_to": "/solo-quiz",
+        "requires_topic": True,
+        "params": ["topic", "count"],
+    },
+    {
+        "command": "path",
+        "aliases": ["path", "learning-path", "learning-paths", "roadmap", "lp"],
+        "action": "create_learning_path",
+        "description": "Generate a learning path and open it",
+        "syntax": "/path <topic> [--difficulty beginner|intermediate|advanced] [--length short|medium|long]",
+        "examples": [
+            "/path machine learning",
+            "/path machine learning --difficulty beginner --length short",
+        ],
+        "navigate_to": "/learning-paths",
+        "requires_topic": True,
+        "params": ["topic", "difficulty", "length"],
+    },
+    {
+        "command": "chat",
+        "aliases": ["chat", "talk", "discuss"],
+        "action": "start_chat",
+        "description": "Open AI chat with an initial topic",
+        "syntax": "/chat <topic>",
+        "examples": [
+            "/chat quantum mechanics",
+        ],
+        "navigate_to": "/ai-chat",
+        "requires_topic": False,
+        "params": ["topic"],
+    },
+    {
+        "command": "explain",
+        "aliases": ["explain", "what", "define", "summarize"],
+        "action": "explain",
+        "description": "Get a quick explanation",
+        "syntax": "/explain <topic> [--depth brief|standard|deep]",
+        "examples": [
+            "/explain photosynthesis",
+        ],
+        "navigate_to": None,
+        "requires_topic": True,
+        "params": ["topic", "depth"],
+    },
+    {
+        "command": "search",
+        "aliases": ["search", "find", "lookup", "look"],
+        "action": "search",
+        "description": "Search your learning content",
+        "syntax": "/search <query>",
+        "examples": [
+            "/search mitochondria notes",
+        ],
+        "navigate_to": "/search-hub",
+        "requires_topic": False,
+        "params": ["query"],
+    },
+    {
+        "command": "progress",
+        "aliases": ["progress", "stats", "analytics"],
+        "action": "show_progress",
+        "description": "Open study insights",
+        "syntax": "/progress",
+        "examples": ["/progress"],
+        "navigate_to": "/study-insights",
+        "requires_topic": False,
+        "params": [],
+    },
+    {
+        "command": "weak",
+        "aliases": ["weak", "weakness", "weak-areas", "gaps"],
+        "action": "show_weak_areas",
+        "description": "Open weak areas",
+        "syntax": "/weak",
+        "examples": ["/weak"],
+        "navigate_to": "/study-insights?tab=weak",
+        "requires_topic": False,
+        "params": [],
+    },
+    {
+        "command": "achievements",
+        "aliases": ["achievements", "badges"],
+        "action": "show_achievements",
+        "description": "Open achievements",
+        "syntax": "/achievements",
+        "examples": ["/achievements"],
+        "navigate_to": "/study-insights?tab=achievements",
+        "requires_topic": False,
+        "params": [],
+    },
+    {
+        "command": "learning-paths",
+        "aliases": ["learning-paths", "paths", "roadmaps"],
+        "action": "show_learning_paths",
+        "description": "Open learning paths",
+        "syntax": "/learning-paths",
+        "examples": ["/learning-paths"],
+        "navigate_to": "/learning-paths",
+        "requires_topic": False,
+        "params": [],
+    },
+    {
+        "command": "review",
+        "aliases": ["review", "revise"],
+        "action": "review_flashcards",
+        "description": "Open flashcards for review",
+        "syntax": "/review",
+        "examples": ["/review"],
+        "navigate_to": "/flashcards",
+        "requires_topic": False,
+        "params": [],
+    },
+    {
+        "command": "help",
+        "aliases": ["help", "commands", "?"],
+        "action": "show_help",
+        "description": "Show all commands",
+        "syntax": "/help",
+        "examples": ["/help"],
+        "navigate_to": None,
+        "requires_topic": False,
+        "params": [],
+    },
+]
+
+_COMMAND_ALIAS_MAP: Dict[str, Dict[str, Any]] = {}
+for cmd in _COMMAND_CATALOG:
+    for alias in cmd["aliases"]:
+        _COMMAND_ALIAS_MAP[alias] = cmd
+
+_ACTION_REQUIRES_TOPIC = {
+    "create_note",
+    "create_flashcards",
+    "create_questions",
+    "create_quiz",
+    "create_learning_path",
+    "explain",
+}
+
+
+def _get_command_catalog() -> List[Dict[str, Any]]:
+    return [dict(cmd) for cmd in _COMMAND_CATALOG]
+
+
+def _get_action_command_examples(action: str, limit: int = 3) -> List[str]:
+    for cmd in _COMMAND_CATALOG:
+        if cmd["action"] == action:
+            examples = cmd.get("examples") or []
+            if not examples and cmd.get("syntax"):
+                examples = [cmd["syntax"]]
+            return examples[:limit]
+    return _build_default_command_suggestions()[:limit]
+
+
+def _normalize_command_token(token: str) -> str:
+    return re.sub(r"[^a-z0-9_-]", "", token.lower())
+
+
+def _parse_command_flags(tokens: List[str]) -> Tuple[Dict[str, str], List[str]]:
+    flags: Dict[str, str] = {}
+    remaining: List[str] = []
+    short_map = {"n": "count", "d": "difficulty", "l": "length", "t": "tone"}
+    i = 0
+    while i < len(tokens):
+        token = tokens[i]
+        if token.startswith("--"):
+            key, value = token[2:], None
+            if "=" in key:
+                key, value = key.split("=", 1)
+            else:
+                if i + 1 < len(tokens) and not tokens[i + 1].startswith("-"):
+                    value = tokens[i + 1]
+                    i += 1
+            if key:
+                flags[key.lower()] = (value or "").strip()
+        elif token.startswith("-") and len(token) == 2:
+            key = short_map.get(token[1])
+            if key and i + 1 < len(tokens) and not tokens[i + 1].startswith("-"):
+                flags[key] = tokens[i + 1].strip()
+                i += 1
+            else:
+                remaining.append(token)
+        else:
+            remaining.append(token)
+        i += 1
+    return flags, remaining
+
+
+def _parse_command(query: str) -> Optional[Dict[str, Any]]:
+    raw = (query or "").strip()
+    if not raw:
+        return None
+
+    explicit = False
+    if raw[0] in _COMMAND_PREFIXES:
+        explicit = True
+        raw = raw[1:].strip()
+    elif raw.lower().startswith("cmd "):
+        explicit = True
+        raw = raw[4:].strip()
+    elif raw.lower().startswith("command "):
+        explicit = True
+        raw = raw.split(" ", 1)[1].strip()
+
+    if not raw:
+        return {"action": "show_help", "confidence": 0.95} if explicit else None
+
+    tokens = raw.split()
+    if not tokens:
+        return {"action": "show_help", "confidence": 0.95} if explicit else None
+
+    cmd_token = _normalize_command_token(tokens[0])
+    cmd_def = _COMMAND_ALIAS_MAP.get(cmd_token)
+    if not cmd_def:
+        if explicit:
+            return {
+                "action": "show_help",
+                "topic": raw,
+                "confidence": 0.45,
+                "command_unknown": True,
+            }
+        return None
+
+    flags, remaining = _parse_command_flags(tokens[1:])
+
+    count = None
+    if flags.get("count"):
+        try:
+            count = int(flags["count"])
+        except ValueError:
+            count = None
+
+    difficulty = (flags.get("difficulty") or flags.get("level") or "").strip().lower() or None
+    length = (flags.get("length") or "").strip().lower() or None
+    depth = (flags.get("depth") or "").strip().lower() or None
+    tone = (flags.get("tone") or "").strip() or None
+
+    topic_tokens: List[str] = []
+    for token in remaining:
+        lower = token.lower()
+        if count is None and token.isdigit():
+            count = int(token)
+            continue
+        if difficulty is None and lower in ("easy", "medium", "hard", *_PATH_DIFFICULTY_LEVELS):
+            difficulty = lower
+            continue
+        if length is None and lower in _PATH_LENGTH_LEVELS:
+            length = lower
+            continue
+        if depth is None and lower in _NOTE_DEPTH_LEVELS:
+            depth = lower
+            continue
+        topic_tokens.append(token)
+
+    topic = " ".join(topic_tokens).strip()
+    if topic:
+        topic = re.sub(r"^(on|about|for|to)\s+", "", topic, flags=re.IGNORECASE).strip()
+
+    return {
+        "action": cmd_def["action"],
+        "topic": topic,
+        "count": count,
+        "difficulty": difficulty,
+        "length": length,
+        "depth": depth,
+        "tone": tone,
+        "command": cmd_def["command"],
+        "confidence": 0.93 if explicit else 0.82,
+    }
+
+
 def _infer_action(query: str) -> Dict[str, Any]:
     query_clean = (query or "").strip()
     query_lower = query_clean.lower()
 
     if not query_clean:
         return {"action": "search", "confidence": 0.3}
+
+    command_intent = _parse_command(query_clean)
+    if command_intent:
+        return command_intent
 
     if re.match(r"^(hi|hello|hey|yo|good morning|good afternoon|good evening)\b", query_lower):
         return {"action": "greeting", "confidence": 0.95}
@@ -213,10 +546,24 @@ def _is_valid_topic(text: str) -> bool:
 
 def _build_topic_suggestions(topic: str) -> List[str]:
     return [
-        f"create flashcards on {topic}",
-        f"create notes on {topic}",
-        f"quiz me on {topic}",
-        f"explain {topic}",
+        f"/flashcards {topic}",
+        f"/notes {topic}",
+        f"/quiz {topic}",
+        f"/questions {topic}",
+        f"/explain {topic}",
+        f"/path {topic}",
+        f"/chat {topic}",
+    ]
+
+
+def _build_default_command_suggestions() -> List[str]:
+    return [
+        "/help",
+        "/progress",
+        "/weak",
+        "/review",
+        "/learning-paths",
+        "/chat",
     ]
 
 
@@ -274,32 +621,32 @@ def _get_chroma_suggestions(user_id: str, query: Optional[str], limit: int = 8) 
         seen_topics.add(topic.lower())
 
         if source == "note_activity":
-            suggestions.append(f"create flashcards on {topic}")
-            suggestions.append(f"quiz me on {topic}")
+            suggestions.append(f"/flashcards {topic}")
+            suggestions.append(f"/quiz {topic}")
         elif source == "flashcard_created":
-            suggestions.append(f"quiz me on {topic}")
-            suggestions.append(f"review flashcards on {topic}")
+            suggestions.append(f"/quiz {topic}")
+            suggestions.append("/review")
         elif source == "flashcard_review":
             was_correct = str(meta.get("was_correct", "")).lower() == "false"
             marked = meta.get("action") == "marked_for_review"
             if was_correct or marked:
-                suggestions.append("review weak flashcards")
+                suggestions.append("/review")
             else:
-                suggestions.append(f"review flashcards on {topic}")
+                suggestions.append("/review")
         elif source in ("quiz_created", "quiz_completed"):
             try:
                 score = float(meta.get("score", 100))
             except (ValueError, TypeError):
                 score = 100.0
             if score < 65:
-                suggestions.append(f"create flashcards on {topic}")
-                suggestions.append(f"review flashcards on {topic}")
+                suggestions.append(f"/flashcards {topic}")
+                suggestions.append("/review")
             elif score < 80:
-                suggestions.append(f"quiz me on {topic}")
+                suggestions.append(f"/quiz {topic}")
             else:
-                suggestions.append(f"create notes on {topic}")
+                suggestions.append(f"/notes {topic}")
         elif source == "chat":
-            suggestions.append(f"create flashcards on {topic}")
+            suggestions.append(f"/flashcards {topic}")
 
         if len(suggestions) >= limit:
             break
@@ -309,8 +656,23 @@ def _get_chroma_suggestions(user_id: str, query: Optional[str], limit: int = 8) 
         weak_topics = chroma_store.get_weak_quiz_topics(user_id, top_k=2)
         for wt in weak_topics:
             if _is_valid_topic(wt):
-                suggestions.insert(0, f"review flashcards on {wt}")
-                suggestions.insert(0, f"quiz me on {wt}")
+                suggestions.insert(0, f"/flashcards {wt}")
+                suggestions.insert(0, f"/quiz {wt}")
+    except Exception:
+        pass
+
+    # Include pinned/important topics if available
+    try:
+        important_entries = chroma_store.retrieve_important(user_id, top_k=3)
+        for entry in important_entries:
+            topic = _extract_topic_from_episode(entry)
+            if not topic or topic.lower() in seen_topics:
+                continue
+            seen_topics.add(topic.lower())
+            suggestions.append(f"/notes {topic}")
+            suggestions.append(f"/explain {topic}")
+            if len(suggestions) >= limit:
+                break
     except Exception:
         pass
 
@@ -430,8 +792,14 @@ async def searchhub_agent(request: SearchHubRequest, db: Session = Depends(get_d
         intent = _infer_action(query)
     action = intent.get("action")
     topic = intent.get("topic") or query
-    count = _extract_count(query) or 10
-    difficulty = _extract_difficulty(query) or "medium"
+    intent_difficulty = intent.get("difficulty")
+    difficulty = intent_difficulty if intent_difficulty in ("easy", "medium", "hard") else None
+    count = intent.get("count") or _extract_count(query) or 10
+    difficulty = difficulty or _extract_difficulty(query) or "medium"
+    path_difficulty = intent_difficulty if intent_difficulty in _PATH_DIFFICULTY_LEVELS else None
+    path_length = intent.get("length") if intent.get("length") in _PATH_LENGTH_LEVELS else None
+    note_depth = intent.get("depth") if intent.get("depth") in _NOTE_DEPTH_LEVELS else None
+    note_tone = intent.get("tone") or "professional"
 
     if action in {"create_note", "create_flashcards", "create_questions", "create_quiz"} and not user:
         return {
@@ -447,14 +815,29 @@ async def searchhub_agent(request: SearchHubRequest, db: Session = Depends(get_d
             },
         }
 
+    if action in _ACTION_REQUIRES_TOPIC and not (topic and topic.strip()):
+        return {
+            "ai_response": "Tell me the topic you want to work on so I can continue.",
+            "search_results": [],
+            "suggestions": _get_action_command_examples(action),
+            "metadata": {
+                "action": "need_topic",
+                "confidence": intent.get("confidence", 0.5),
+                "topic": topic,
+                "response_type": "chat",
+                "chatbot_message": "Which topic should I use?",
+            },
+        }
+
     if action == "greeting":
         return {
             "ai_response": "Hi! What would you like to learn or create today?",
             "search_results": [],
             "suggestions": [
-                "create flashcards on a topic",
-                "create notes on a topic",
-                "explain a concept",
+                "/flashcards biology",
+                "/notes world history",
+                "/explain photosynthesis",
+                "/quiz calculus",
             ],
             "metadata": {
                 "action": "greeting",
@@ -466,13 +849,23 @@ async def searchhub_agent(request: SearchHubRequest, db: Session = Depends(get_d
 
     if action == "show_help":
         return {
-            "ai_response": "You can ask me to search your study content or create new materials. Try: create flashcards on biology, explain quantum physics, or show my progress.",
+            "ai_response": (
+                "SearchHub works like a command terminal. Try:\n"
+                "/flashcards <topic> — create flashcards\n"
+                "/notes <topic> — create notes\n"
+                "/quiz <topic> — start a quiz\n"
+                "/path <topic> — generate a learning path\n"
+                "/progress — open study insights\n"
+                "Type /help anytime to see the full command list."
+            ),
             "search_results": [],
             "suggestions": [
-                "create flashcards on biology",
-                "create notes on world history",
-                "show my progress",
-                "review weak flashcards",
+                "/flashcards biology",
+                "/notes world history",
+                "/quiz calculus",
+                "/path machine learning",
+                "/progress",
+                "/weak",
             ],
             "metadata": {
                 "action": "show_help",
@@ -532,8 +925,8 @@ async def searchhub_agent(request: SearchHubRequest, db: Session = Depends(get_d
             "navigate_params": {
                 "autoGenerate": True,
                 "topic": topic,
-                "difficulty": "intermediate",
-                "length": "medium",
+                "difficulty": path_difficulty or "intermediate",
+                "length": path_length or "medium",
             },
             "metadata": {
                 "action": "create_learning_path",
@@ -590,7 +983,14 @@ async def searchhub_agent(request: SearchHubRequest, db: Session = Depends(get_d
         }
 
     if action == "create_note":
-        note_data = await _create_note_with_ai(db, user, topic, None, "standard", "professional")
+        note_data = await _create_note_with_ai(
+            db,
+            user,
+            topic,
+            None,
+            note_depth or "standard",
+            note_tone or "professional",
+        )
         return {
             "success": True,
             "content_id": note_data["id"],
@@ -839,18 +1239,13 @@ async def suggestions_endpoint(
     suggestions: List[str] = []
 
     if user:
-        suggestions = _get_chroma_suggestions(str(user.id), query, limit=8)
+        suggestions.extend(_get_chroma_suggestions(str(user.id), query, limit=8))
 
-    if not suggestions and query:
-        suggestions = _build_topic_suggestions(query)
+    if query:
+        suggestions.extend(_build_topic_suggestions(query))
 
     if not suggestions:
-        suggestions = [
-            "create flashcards on a topic",
-            "create notes on a topic",
-            "explain a concept",
-            "show my progress",
-        ]
+        suggestions = _build_default_command_suggestions()
 
     return {"success": True, "suggestions": _dedupe_preserve(suggestions)[:8]}
 
@@ -870,6 +1265,15 @@ async def actions_endpoint():
             {"action": "review_flashcards", "label": "Review Flashcards"},
             {"action": "start_chat", "label": "Start Chat"},
         ],
+        "commands": _get_command_catalog(),
+    }
+
+
+@router.get("/commands")
+async def commands_endpoint():
+    return {
+        "success": True,
+        "commands": _get_command_catalog(),
     }
 
 

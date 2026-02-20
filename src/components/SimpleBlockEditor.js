@@ -9,7 +9,7 @@ import {
   Hash, AtSign, MapPin, Clock, Paperclip, Palette,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Indent, Outdent, Columns, Youtube, ExternalLink,
-  GitBranch, X, Minimize2, Download, ArrowRight
+  GitBranch, X, Minimize2, Download, ArrowRight, Pen
 } from 'lucide-react';
 import './BlockEditor.css';
 import CodeBlock from './CodeBlock';
@@ -35,6 +35,7 @@ const BLOCK_TYPES = [
   { type: 'callout', label: 'Callout', icon: AlertCircle, description: 'Highlighted info box', category: 'Advanced' },
   { type: 'toggle', label: 'Toggle', icon: ChevronRight, description: 'Collapsible section', category: 'Advanced' },
   { type: 'table', label: 'Table', icon: Table, description: 'Structured data table', category: 'Advanced' },
+  { type: 'canvas', label: 'Canvas', icon: Pen, description: 'Freehand sketch block', category: 'Media' },
   
   // Special
   { type: 'divider', label: 'Divider', icon: Minus, description: 'Horizontal line', category: 'Special' },
@@ -159,7 +160,7 @@ const MermaidBlock = ({ block, updateBlock, readOnly }) => {
   );
 };
 
-const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = false }) => {
+const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = false, onOpenCanvas, focusBlockId }) => {
   const [hoveredBlockId, setHoveredBlockId] = useState(null);
   const [showBlockMenu, setShowBlockMenu] = useState(null);
   const [blockMenuPosition, setBlockMenuPosition] = useState({ top: 0, left: 0 });
@@ -180,6 +181,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
   const draggedBlockIdRef = useRef(null);
   const styleMenuRef = useRef(null);
   const menuCloseTimeoutRef = useRef(null);
+  const focusHandledRef = useRef(null);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -727,6 +729,18 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showStyleMenu]);
 
+  useEffect(() => {
+    if (!focusBlockId) return;
+    if (focusHandledRef.current === focusBlockId) return;
+    focusHandledRef.current = focusBlockId;
+    requestAnimationFrame(() => {
+      const target = blockRefs.current[focusBlockId];
+      if (target && typeof target.focus === 'function') {
+        target.focus();
+      }
+    });
+  }, [focusBlockId, blocks]);
+
   const renderBlockContent = (block) => {
     // Special handling for code blocks - don't use contentEditable
     if (block.type === 'code') {
@@ -998,6 +1012,51 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
             <div {...props} placeholder="Table content..." />
           </div>
         );
+      case 'canvas': {
+        const preview = block.properties?.canvasPreview;
+        return (
+          <div
+            className="block-canvas-wrapper"
+            ref={(el) => {
+              blockRefs.current[block.id] = el;
+            }}
+            tabIndex={0}
+          >
+            <div
+              className="block-canvas-preview"
+              role="button"
+              tabIndex={0}
+              onClick={() => onOpenCanvas?.(block.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onOpenCanvas?.(block.id);
+                }
+              }}
+            >
+              {preview ? (
+                <img src={preview} alt="Canvas preview" />
+              ) : (
+                <div className="block-canvas-placeholder">
+                  <Pen size={20} />
+                  <span>Click to sketch</span>
+                </div>
+              )}
+            </div>
+            {!readOnly && (
+              <div className="block-canvas-actions">
+                <button
+                  type="button"
+                  className="block-canvas-btn"
+                  onClick={() => onOpenCanvas?.(block.id)}
+                >
+                  Open Canvas
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      }
       case 'page':
         return (
           <div className="block-page-wrapper">
