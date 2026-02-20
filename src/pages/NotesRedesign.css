@@ -146,12 +146,13 @@
 /* Floating button to show sidebar when collapsed */
 .nr-show-sidebar-btn {
   position: fixed !important;
-  top: 80px !important;
+  top: calc(var(--nr-header-height) + 28px) !important;
   left: 16px !important;
   width: 44px !important;
   height: 44px !important;
   background: var(--nr-bg-secondary) !important;
   border: 1px solid var(--nr-border-subtle) !important;
+  border-radius: 999px !important;
   color: var(--nr-accent) !important;
   cursor: pointer !important;
   display: flex !important;
@@ -794,6 +795,14 @@
   color: var(--nr-accent);
 }
 
+.title-collapse-btn svg {
+  transition: transform 0.2s ease;
+}
+
+.title-collapse-btn svg.rotated {
+  transform: rotate(180deg);
+}
+
 /* Floating Expand Button */
 .floating-expand-btn {
   position: absolute;
@@ -810,6 +819,11 @@
   cursor: pointer;
   transition: all 0.2s;
   z-index: 1000;
+}
+
+.floating-expand-btn svg {
+  transition: transform 0.2s ease;
+  transform: rotate(180deg);
 }
 
 /* Light mode - dark button */
@@ -4929,4 +4943,93 @@ h1.note-title ::-moz-selection,
 [data-theme-mode="light"] .notes-redesign .tpl-btn-primary {
   background: var(--accent) !important;
   color: #ffffff !important;
+}
+
+/* ==================== NOTES REDESIGN ROUNDING OVERRIDES ==================== */
+.notes-redesign .block-controls,
+.notes-redesign .block-controls::before {
+  border-radius: 999px !important;
+}
+
+.notes-redesign .block-control-btn {
+  border-radius: 8px !important;
+}
+
+/* ==================== UI ENHANCEMENTS ==================== */
+.notes-redesign .tools-sidepanel {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-secondary) 92%, #ffffff 8%), var(--bg-secondary)) !important;
+  box-shadow: inset -1px 0 0 var(--nr-border-subtle), 0 16px 28px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme-mode="dark"] .notes-redesign .tools-sidepanel {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-secondary) 92%, #000000 8%), var(--bg-secondary)) !important;
+}
+
+.notes-redesign .tools-sidepanel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.notes-redesign .tools-sidepanel::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--nr-text-secondary) 35%, transparent);
+  border-radius: 999px;
+}
+
+.notes-redesign .search-box {
+  background: color-mix(in srgb, var(--nr-bg-tertiary) 85%, #ffffff 15%);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+}
+
+.notes-redesign .search-box:focus-within {
+  border-color: var(--nr-accent);
+  box-shadow: 0 0 0 3px var(--nr-accent-glow);
+}
+
+.notes-redesign .folder-item,
+.notes-redesign .note-list-item {
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.notes-redesign .folder-item:hover,
+.notes-redesign .note-list-item:hover {
+  border-color: color-mix(in srgb, var(--nr-accent) 35%, transparent);
+  background: color-mix(in srgb, var(--nr-accent) 10%, transparent);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.notes-redesign .note-list-item.active,
+.notes-redesign .folder-item.active {
+  border-color: var(--nr-accent);
+  background: color-mix(in srgb, var(--nr-accent) 18%, transparent);
+  color: var(--nr-text-primary);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+}
+
+.notes-redesign .note-card {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--nr-bg-card) 94%, #ffffff 6%), var(--nr-bg-card));
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+}
+
+.notes-redesign .note-card:hover {
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.14);
+}
+
+.notes-redesign .block-editor-container {
+  background: linear-gradient(180deg, #ffffff 0%, color-mix(in srgb, #ffffff 92%, var(--nr-accent) 8%) 100%) !important;
+}
+
+[data-theme-mode="dark"] .notes-redesign .block-editor-container.dark-mode {
+  background: linear-gradient(180deg, #0b1220 0%, #0f172a 100%) !important;
+}
+
+.notes-redesign .formatting-toolbar-wrapper {
+  border-radius: 14px;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+  border: 1px solid var(--nr-border-subtle);
+}
+
+.notes-redesign .note-action-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--nr-accent-glow);
 }

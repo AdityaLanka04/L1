@@ -1308,15 +1308,19 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
       if (hasChanges) {
         lastSerializedRef.current = canvasData;
       }
-      if (previewData !== undefined) {
-        onSave(canvasData, shouldClose, previewData);
-      } else {
-        onSave(canvasData, shouldClose);
+      try {
+        if (previewData !== undefined) {
+          onSave(canvasData, shouldClose, previewData);
+        } else {
+          onSave(canvasData, shouldClose);
+        }
+        if (hasChanges) {
+          setLastSaved(new Date());
+        }
+      } catch (error) {
+              } finally {
+        setAutoSaving(false);
       }
-      if (hasChanges) {
-        setLastSaved(new Date());
-      }
-      setAutoSaving(false);
     }
     if (shouldClose) {
       onClose?.();
@@ -1495,9 +1499,12 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
       {/* Toolbar */}
       <div className="canvas-toolbar">
         <div className="toolbar-section">
-          <button onClick={handleClose} className="tool-btn back-btn">
+          <button onClick={handleClose} className="tool-btn back-btn" title="Back to note">
             <ArrowLeft size={20} />
             <span>Back</span>
+          </button>
+          <button onClick={handleClose} className="tool-btn close-btn" title="Close canvas">
+            <X size={18} />
           </button>
         </div>
 
@@ -1622,8 +1629,8 @@ const CanvasMode = ({ initialContent, onClose, onSave }) => {
           <button onClick={deleteSelected} disabled={!selectedElement && selectedElements.length === 0} className="tool-btn">
             <Trash2 size={20} />
           </button>
-          <button onClick={clearCanvas} className="tool-btn">
-            <X size={20} />
+          <button onClick={clearCanvas} className="tool-btn" title="Clear canvas">
+            <Eraser size={20} />
           </button>
         </div>
 

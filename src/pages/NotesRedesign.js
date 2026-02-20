@@ -12,7 +12,7 @@ import {
   Plus, FileText, Upload, Search, Star, Trash2, 
   FolderPlus, Folder, Download, FileDown, Printer, 
   Eye, Edit3, Maximize2, Minimize2, Menu, X, 
-  ChevronDown, ChevronRight, Check, Sparkles, Mic, MicOff, 
+  ChevronRight, Check, Sparkles, Mic, MicOff, 
   MoreVertical, Archive, RefreshCw, Save, Clock,
   AlignLeft, Bold, Italic, Underline, 
   List, ListOrdered, Link2, Image, Code,
@@ -322,6 +322,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [canvasBlockId, setCanvasBlockId] = useState(null);
   const [pendingFocusBlockId, setPendingFocusBlockId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const savedSelectionRef = useRef(null);
   
   // UI state
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -329,7 +330,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
   const [autoSaved, setAutoSaved] = useState(false);
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
-  const [titleSectionCollapsed, setTitleSectionCollapsed] = useState(false);
+  const titleSectionCollapsed = false;
   const [viewMode, setViewMode] = useState("edit");
   
   // AI state
@@ -1339,16 +1340,40 @@ const NotesRedesign = ({ sharedMode = false }) => {
     }
   };
 
+  const isLikelyHtml = (content) => {
+    if (!content) return false;
+    if (!/<[a-z][\s\S]*>/i.test(content)) return false;
+    return /<\s*(p|h1|h2|h3|h4|h5|h6|ul|ol|li|pre|code|blockquote|div|section|article|br|span|img|a)\b/i.test(content);
+  };
+
+  const isLikelyMarkdown = (content) => {
+    if (!content || isLikelyHtml(content)) return false;
+    return (
+      /(^|\n)\s{0,3}(#{1,6}\s+|[-*+]\s+|\d+\.\s+|>\s+|```)/.test(content) ||
+      /(\*\*|__)(.*?)\1/.test(content) ||
+      /`[^`]+`/.test(content)
+    );
+  };
+
+  const normalizeNoteContent = (content) => {
+    if (!content) return '';
+    const text = String(content);
+    if (isLikelyHtml(text)) return text;
+    if (isLikelyMarkdown(text)) return convertMarkdownToHTML(text);
+    return text;
+  };
+
   const selectNote = (n) => {
+    const normalizedContent = normalizeNoteContent(n.content || '');
     setSelectedNote(n);
     setNoteTitle(n.title);
-    setNoteContent(n.content);
+    setNoteContent(normalizedContent);
     setCanvasData(n.canvas_data || "");
     setCanvasBlockId(null);
     setPendingFocusBlockId(null);
     
     // Convert HTML content to blocks
-    let blocks = htmlToBlocks(n.content);
+    let blocks = htmlToBlocks(normalizedContent);
     
     // Ensure we always have at least one block
     if (!blocks || blocks.length === 0) {
@@ -1436,11 +1461,10 @@ const NotesRedesign = ({ sharedMode = false }) => {
       if (editor) editor.scrollTo({ top: editor.scrollHeight, behavior: 'smooth' });
     },
     onToggleSidebar: () => setSidebarOpen(!sidebarOpen),
-    onToggleFocusMode: () => setTitleSectionCollapsed(!titleSectionCollapsed),
     onGoToDashboard: () => navigate('/dashboard'),
     onGoToAIChat: () => navigate('/ai-chat'),
     onGoToNotes: () => navigate('/notes/dashboard'),
-    onFullscreen: () => setTitleSectionCollapsed(!titleSectionCollapsed),
+    onFullscreen: () => setIsFullscreen(!isFullscreen),
     onPreviewMode: () => setViewMode('preview'),
     onEditMode: () => setViewMode('edit'),
     onToggleFavorite: () => selectedNote && toggleFavorite(selectedNote.id),
@@ -1457,6 +1481,46 @@ const NotesRedesign = ({ sharedMode = false }) => {
     const html = blocksToHtml(newBlocks);
     setNoteContent(html);
   };
+
+  const saveEditorSelection = useCallback(() => {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    const range = selection.getRangeAt(0);
+    const container = range.commonAncestorContainer;
+    const element = container.nodeType === Node.ELEMENT_NODE ? container : container.parentElement;
+    if (element && element.closest('.block-editor-container')) {
+      savedSelectionRef.current = range;
+    }
+  }, []);
+
+  const restoreEditorSelection = useCallback(() => {
+    const range = savedSelectionRef.current;
+    if (!range) return;
+    const selection = window.getSelection();
+    if (!selection) return;
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }, []);
+
+  const applyEditorCommand = useCallback((command, value = null) => {
+    restoreEditorSelection();
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    const range = selection.getRangeAt(0);
+    const container = range.commonAncestorContainer;
+    const element = container.nodeType === Node.ELEMENT_NODE ? container : container.parentElement;
+    const editable = element?.closest?.('[contenteditable="true"]');
+    if (editable) editable.focus();
+    document.execCommand('styleWithCSS', false, true);
+    document.execCommand(command, false, value);
+    saveEditorSelection();
+  }, [restoreEditorSelection, saveEditorSelection]);
+
+  useEffect(() => {
+    const handleSelectionChange = () => saveEditorSelection();
+    document.addEventListener('selectionchange', handleSelectionChange);
+    return () => document.removeEventListener('selectionchange', handleSelectionChange);
+  }, [saveEditorSelection]);
 
   const handleOpenCanvasBlock = (blockId) => {
     if (viewMode === 'preview' || (isSharedContent && !canEdit)) return;
@@ -1856,25 +1920,33 @@ const NotesRedesign = ({ sharedMode = false }) => {
   };
 
   const convertMarkdownToHTML = (markdown) => {
-    let html = markdown;
+    let html = markdown || '';
 
-    html = html.replace(/^[=\-*]{3,}\s*$/gim, '');
+    html = html.replace(/\r\n/g, '\n');
+    html = html.replace(/^[=\-*]{3,}\s*$/gim, '<hr>');
     html = html.replace(/\n{3,}/g, '\n\n');
+    html = html.replace(/^######\s+(.*$)/gim, '<h6>$1</h6>');
+    html = html.replace(/^#####\s+(.*$)/gim, '<h5>$1</h5>');
+    html = html.replace(/^####\s+(.*$)/gim, '<h4>$1</h4>');
     html = html.replace(/^###\s+(.*$)/gim, '<h3>$1</h3>');
     html = html.replace(/^##\s+(.*$)/gim, '<h2>$1</h2>');
     html = html.replace(/^#\s+(.*$)/gim, '<h1>$1</h1>');
+    html = html.replace(/^>\s+(.*$)/gim, '<blockquote>$1</blockquote>');
     html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/__(.*?)__/g, '<strong>$1</strong>');
     html = html.replace(/(?<!\*)\*(?!\*)([^\*]+?)\*(?!\*)/g, '<em>$1</em>');
     html = html.replace(/(?<!_)_(?!_)([^_]+?)_(?!_)/g, '<em>$1</em>');
-    html = html.replace(/^\s*[-*]\s+(.*)$/gim, '<li>$1</li>');
-    html = html.replace(/(<li>.*?<\/li>\s*)+/gis, (match) => {
-      return `<ul>${match}</ul>`;
-    });
-    html = html.replace(/^\s*(\d+)\.\s+(.*)$/gim, '<li>$2</li>');
     html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+    html = html.replace(/^\s*(\d+)\.\s+(.*)$/gim, '<li data-ol="true">$2</li>');
+    html = html.replace(/^\s*[-*+]\s+(.*)$/gim, '<li data-ul="true">$1</li>');
+    html = html.replace(/(<li data-ol="true">.*?<\/li>\s*)+/gis, (match) =>
+      `<ol>${match.replace(/ data-ol="true"/g, '')}</ol>`
+    );
+    html = html.replace(/(<li data-ul="true">.*?<\/li>\s*)+/gis, (match) =>
+      `<ul>${match.replace(/ data-ul="true"/g, '')}</ul>`
+    );
 
     const blocks = html.split(/\n\n+/);
     
@@ -2559,7 +2631,8 @@ const NotesRedesign = ({ sharedMode = false }) => {
             {/* Floating Menu Button - shows when sidebar is closed */}
             {!sidebarOpen && !isSharedContent && (
               <button 
-                className="nr-show-sidebar-btn" 
+                className="nr-show-sidebar-btn"
+                type="button"
                 onClick={() => setSidebarOpen(true)}
                 title="Show Tools Panel"
               >
@@ -2574,6 +2647,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 <button
                   onClick={() => setSidebarOpen(false)}
                   className="close-panel-btn"
+                  type="button"
                   title="Close panel"
                 >
                   <X size={18} />
@@ -2721,33 +2795,17 @@ const NotesRedesign = ({ sharedMode = false }) => {
                 <div className="title-actions">
                   <button
                     className="title-action-btn"
+                    type="button"
                     onClick={() => setIsFullscreen(!isFullscreen)}
                     title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
                   >
                     {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-                  </button>
-                  <button
-                    className="title-collapse-btn"
-                    onClick={() => setTitleSectionCollapsed(!titleSectionCollapsed)}
-                    title={titleSectionCollapsed ? "Expand title" : "Collapse title"}
-                  >
-                    <ChevronDown size={16} className={titleSectionCollapsed ? '' : 'rotated'} />
                   </button>
                 </div>
               </div>
             </div>
 
             <div className="block-editor-wrapper" style={{ position: 'relative' }}>
-              {/* Floating expand button when collapsed - inside block editor */}
-              {titleSectionCollapsed && (
-                <button
-                  className={`floating-expand-btn ${editorDarkMode ? 'dark' : 'light'}`}
-                  onClick={() => setTitleSectionCollapsed(false)}
-                  title="Show navigation"
-                >
-                  <ChevronDown size={20} />
-                </button>
-              )}
               {viewMode === "edit" && (!isSharedContent || canEdit) && (
                 <div className="formatting-toolbar-wrapper">
                   <div className="formatting-toolbar">
@@ -2757,7 +2815,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                       onChange={(e) => {
                         const value = e.target.value;
                         if (value) {
-                          document.execCommand('formatBlock', false, value);
+                          applyEditorCommand('formatBlock', value);
                           e.target.value = '';
                         }
                       }}
@@ -2775,13 +2833,18 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     {/* Font Family */}
                     <select 
                       className="format-select"
-                      value={customFont}
+                      defaultValue=""
+                      onMouseDown={saveEditorSelection}
                       onChange={(e) => {
-                        setCustomFont(e.target.value);
-                        localStorage.setItem('preferredFont', e.target.value);
+                        const value = e.target.value;
+                        if (value) {
+                          applyEditorCommand('fontName', value);
+                        }
+                        e.target.value = '';
                       }}
                       title="Font Family"
                     >
+                      <option value="" disabled>Font</option>
                       {FONTS.map(font => (
                         <option key={font} value={font}>{font}</option>
                       ))}
@@ -2793,7 +2856,7 @@ const NotesRedesign = ({ sharedMode = false }) => {
                       onChange={(e) => {
                         const value = e.target.value;
                         if (value) {
-                          document.execCommand('fontSize', false, value);
+                          applyEditorCommand('fontSize', value);
                           e.target.value = '';
                         }
                       }}
@@ -2811,28 +2874,28 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     {/* Text Formatting */}
                     <button 
                       className="format-btn" 
-                      onClick={() => document.execCommand('bold')}
+                      onClick={() => applyEditorCommand('bold')}
                       title="Bold (Ctrl+B)"
                     >
                       <Bold size={16} />
                     </button>
                     <button 
                       className="format-btn" 
-                      onClick={() => document.execCommand('italic')}
+                      onClick={() => applyEditorCommand('italic')}
                       title="Italic (Ctrl+I)"
                     >
                       <Italic size={16} />
                     </button>
                     <button 
                       className="format-btn" 
-                      onClick={() => document.execCommand('underline')}
+                      onClick={() => applyEditorCommand('underline')}
                       title="Underline (Ctrl+U)"
                     >
                       <Underline size={16} />
                     </button>
                     <button 
                       className="format-btn" 
-                      onClick={() => document.execCommand('strikeThrough')}
+                      onClick={() => applyEditorCommand('strikeThrough')}
                       title="Strikethrough"
                     >
                       <span style={{ textDecoration: 'line-through', fontSize: '14px', fontWeight: 'bold' }}>S</span>
@@ -2844,13 +2907,15 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     <input
                       type="color"
                       className="format-color"
-                      onChange={(e) => document.execCommand('foreColor', false, e.target.value)}
+                      onMouseDown={saveEditorSelection}
+                      onChange={(e) => applyEditorCommand('foreColor', e.target.value)}
                       title="Text Color"
                     />
                     <input
                       type="color"
                       className="format-color"
-                      onChange={(e) => document.execCommand('backColor', false, e.target.value)}
+                      onMouseDown={saveEditorSelection}
+                      onChange={(e) => applyEditorCommand('backColor', e.target.value)}
                       title="Background Color"
                     />
                     
@@ -2859,14 +2924,14 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     {/* Lists */}
                     <button 
                       className="format-btn" 
-                      onClick={() => document.execCommand('insertUnorderedList')}
+                      onClick={() => applyEditorCommand('insertUnorderedList')}
                       title="Bullet List"
                     >
                       <List size={16} />
                     </button>
                     <button 
                       className="format-btn" 
-                      onClick={() => document.execCommand('insertOrderedList')}
+                      onClick={() => applyEditorCommand('insertOrderedList')}
                       title="Numbered List"
                     >
                       <ListOrdered size={16} />
@@ -2875,21 +2940,21 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     {/* Alignment */}
                     <button 
                       className="format-btn" 
-                      onClick={() => document.execCommand('justifyLeft')}
+                      onClick={() => applyEditorCommand('justifyLeft')}
                       title="Align Left"
                     >
                       <AlignLeft size={16} />
                     </button>
                     <button 
                       className="format-btn" 
-                      onClick={() => document.execCommand('justifyCenter')}
+                      onClick={() => applyEditorCommand('justifyCenter')}
                       title="Align Center"
                     >
                       <span style={{ fontSize: '16px' }}>≡</span>
                     </button>
                     <button 
                       className="format-btn" 
-                      onClick={() => document.execCommand('justifyRight')}
+                      onClick={() => applyEditorCommand('justifyRight')}
                       title="Align Right"
                     >
                       <span style={{ fontSize: '16px' }}>≣</span>
@@ -2901,8 +2966,9 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     <button 
                       className="format-btn" 
                       onClick={() => {
+                        saveEditorSelection();
                         const url = prompt('Enter URL:');
-                        if (url) document.execCommand('createLink', false, url);
+                        if (url) applyEditorCommand('createLink', url);
                       }}
                       title="Insert Link"
                     >
@@ -2911,8 +2977,9 @@ const NotesRedesign = ({ sharedMode = false }) => {
                     <button 
                       className="format-btn" 
                       onClick={() => {
+                        saveEditorSelection();
                         const url = prompt('Enter image URL:');
-                        if (url) document.execCommand('insertImage', false, url);
+                        if (url) applyEditorCommand('insertImage', url);
                       }}
                       title="Insert Image"
                     >
@@ -2946,15 +3013,6 @@ const NotesRedesign = ({ sharedMode = false }) => {
                       title="AI Assistant"
                     >
                       <Sparkles size={16} />
-                    </button>
-                    
-                    {/* Clear Formatting */}
-                    <button 
-                      className="format-btn" 
-                      onClick={() => document.execCommand('removeFormat')}
-                      title="Clear Formatting"
-                    >
-                      <X size={16} />
                     </button>
                   </div>
                 </div>

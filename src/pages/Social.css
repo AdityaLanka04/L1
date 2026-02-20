@@ -2431,9 +2431,9 @@
 
 /* ==================== ACCESSIBILITY ==================== */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  .hub-page *,
+  .hub-page *::before,
+  .hub-page *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

@@ -1137,9 +1137,9 @@
 
 /* ==================== ACCESSIBILITY ==================== */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  .lpd-container *,
+  .lpd-container *::before,
+  .lpd-container *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

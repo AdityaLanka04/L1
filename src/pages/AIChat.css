@@ -3893,11 +3893,11 @@ button:not(:disabled):active,
 }
 
 /* Enhanced Tooltip Style */
-[title] {
+.ai-chat-page [title] {
   position: relative;
 }
 
-[title]:hover::after {
+.ai-chat-page [title]:hover::after {
   content: attr(title);
   position: absolute;
   bottom: 100%;

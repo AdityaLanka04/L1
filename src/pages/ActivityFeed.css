@@ -1065,9 +1065,9 @@
 
 /* ==================== ACCESSIBILITY ==================== */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  .activity-feed-page *,
+  .activity-feed-page *::before,
+  .activity-feed-page *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

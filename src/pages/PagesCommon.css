@@ -3,13 +3,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ==================== FORCE BOXY DESIGN ==================== */
-*,
-*::before,
-*::after {
+.hub-page *,
+.hub-page *::before,
+.hub-page *::after {
   border-radius: 0 !important;
 }
 
-:root {
+.hub-page {
   --bg-top: #ffffff;
   --bg-bottom: #fafafa;
   --panel: #ffffff;
@@ -31,15 +31,6 @@ html {
   scroll-behavior: smooth;
 }
 
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: var(--bg-bottom);
-  color: var(--text-primary);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  line-height: 1.5;
-}
-
 /* ==================== MAIN PAGE CONTAINER ==================== */
 .hub-page {
   min-height: 100vh;
@@ -47,6 +38,10 @@ body {
   display: flex;
   flex-direction: column;
   font-family: 'Inter', sans-serif;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
 }
 
 /* ==================== HEADER ==================== */

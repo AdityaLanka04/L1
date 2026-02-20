@@ -1,22 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
-* {
+.rg-page,
+.rg-page * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-}
-
-body {
-  font-family: 'Inter', sans-serif;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  overflow: hidden;
 }
 
 .rg-page {
   width: 100vw;
   height: 100vh;
   background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
   display: grid;
   grid-template-columns: 1fr 1fr;
   position: relative;
@@ -722,4 +718,3 @@ body {
     font-size: 20px;
   }
 }
-

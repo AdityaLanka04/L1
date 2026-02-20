@@ -9,19 +9,12 @@
 }
 
 /* ==================== RESET ==================== */
-* {
+.profile-quiz-page,
+.profile-quiz-page * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
   outline: none !important;
-}
-
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ==================== PAGE CONTAINER ==================== */
@@ -37,8 +30,11 @@ body {
   align-items: center;
   justify-content: center;
   font-family: 'Inter', sans-serif;
+  color: var(--text-primary);
   position: relative;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .profile-quiz-page::before {

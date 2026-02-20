@@ -42,7 +42,6 @@ const BLOCK_TYPES = [
   { type: 'image', label: 'Image', icon: Image, description: 'Embed an image', category: 'Media' },
   { type: 'file', label: 'File', icon: Paperclip, description: 'Attach PDF or Word doc', category: 'Media' },
   { type: 'link', label: 'Link', icon: Link2, description: 'Bookmark or link', category: 'Special' },
-  { type: 'table', label: 'Table', icon: Table, description: 'Simple table', category: 'Advanced' },
   
   // Callout Variants
   { type: 'info', label: 'Info', icon: Lightbulb, description: 'Information callout', category: 'Callouts' },
@@ -67,50 +66,96 @@ const BLOCK_TYPES = [
 ];
 
 // Mermaid Block Component
-const MermaidBlock = ({ block, updateBlock, readOnly }) => {
+const MermaidBlock = ({ block, updateBlock, readOnly, darkMode }) => {
   const [showPreview, setShowPreview] = React.useState(false);
   const [renderError, setRenderError] = React.useState(null);
   const mermaidRef = React.useRef(null);
   const [mermaid, setMermaid] = React.useState(null);
+  const [renderedSvg, setRenderedSvg] = React.useState('');
+  const [isRendering, setIsRendering] = React.useState(false);
 
   // Load Mermaid
   React.useEffect(() => {
+    let mounted = true;
     import('mermaid').then((m) => {
-      m.default.initialize({ 
+      if (!mounted) return;
+      const instance = m.default;
+      instance.initialize({ 
         startOnLoad: false,
-        theme: 'default',
+        theme: darkMode ? 'dark' : 'default',
         securityLevel: 'loose',
       });
-      setMermaid(m.default);
+      setMermaid(instance);
     });
+    return () => { mounted = false; };
   }, []);
+
+  React.useEffect(() => {
+    if (!mermaid) return;
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: darkMode ? 'dark' : 'default',
+      securityLevel: 'loose',
+    });
+  }, [mermaid, darkMode]);
 
   // Render diagram when preview is shown
   React.useEffect(() => {
-    if (showPreview && block.content && mermaidRef.current && mermaid) {
-      const renderDiagram = async () => {
-        try {
-          setRenderError(null);
+    if (!showPreview) return;
+    if (!block.content || !mermaidRef.current || !mermaid) return;
+    let cancelled = false;
+    const renderDiagram = async () => {
+      try {
+        setRenderError(null);
+        setIsRendering(true);
+        mermaidRef.current.innerHTML = '';
+        const timestamp = Date.now();
+        const randomNum = Math.floor(Math.random() * 10000);
+        const id = `mermaid_${timestamp}_${randomNum}`;
+        const { svg } = await mermaid.render(id, block.content);
+        if (cancelled) return;
+        mermaidRef.current.innerHTML = svg;
+        setRenderedSvg(svg);
+      } catch (error) {
+        if (cancelled) return;
+        setRenderError(error.message || 'Invalid diagram syntax');
+        setRenderedSvg('');
+        if (mermaidRef.current) {
           mermaidRef.current.innerHTML = '';
-          
-          // Generate a simple valid ID using only alphanumeric characters
-          const timestamp = Date.now();
-          const randomNum = Math.floor(Math.random() * 10000);
-          const id = `mermaid_${timestamp}_${randomNum}`;
-          
-          const { svg } = await mermaid.render(id, block.content);
-          mermaidRef.current.innerHTML = svg;
-        } catch (error) {
-                    setRenderError(error.message || 'Invalid diagram syntax');
-          // Clear any partial render
-          if (mermaidRef.current) {
-            mermaidRef.current.innerHTML = '';
-          }
         }
-      };
-      renderDiagram();
-    }
-  }, [showPreview, block.content, block.id, mermaid]);
+      } finally {
+        if (!cancelled) setIsRendering(false);
+      }
+    };
+    renderDiagram();
+    return () => { cancelled = true; };
+  }, [showPreview, block.content, mermaid, darkMode]);
+
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(block.content || '');
+    } catch (error) {
+          }
+  };
+
+  const handleCopySvg = async () => {
+    if (!renderedSvg) return;
+    try {
+      await navigator.clipboard.writeText(renderedSvg);
+    } catch (error) {
+          }
+  };
+
+  const handleDownloadSvg = () => {
+    if (!renderedSvg) return;
+    const blob = new Blob([renderedSvg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'diagram.svg';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
   
   return (
     <div className="block-mermaid-wrapper">
@@ -118,6 +163,30 @@ const MermaidBlock = ({ block, updateBlock, readOnly }) => {
         <GitBranch size={18} />
         <span>Mermaid Diagram</span>
         <div className="mermaid-actions">
+          <button
+            className="mermaid-toggle-btn"
+            onClick={handleCopyCode}
+            title="Copy code"
+            disabled={!block.content}
+          >
+            Copy Code
+          </button>
+          <button
+            className="mermaid-toggle-btn"
+            onClick={handleCopySvg}
+            title="Copy SVG"
+            disabled={!renderedSvg}
+          >
+            Copy SVG
+          </button>
+          <button
+            className="mermaid-toggle-btn"
+            onClick={handleDownloadSvg}
+            title="Download SVG"
+            disabled={!renderedSvg}
+          >
+            Download
+          </button>
           <button
             className="mermaid-toggle-btn"
             onClick={() => setShowPreview(!showPreview)}
@@ -132,7 +201,10 @@ const MermaidBlock = ({ block, updateBlock, readOnly }) => {
         <div className="mermaid-code-editor">
           <textarea
             value={block.content || ''}
-            onChange={(e) => updateBlock(block.id, { content: e.target.value })}
+            onChange={(e) => {
+              if (readOnly) return;
+              updateBlock(block.id, { content: e.target.value });
+            }}
             placeholder="graph TD&#10;    A[Start] --> B{Decision}&#10;    B -->|Yes| C[End]&#10;    B -->|No| D[Continue]"
             className="mermaid-textarea"
             readOnly={readOnly}
@@ -147,6 +219,8 @@ const MermaidBlock = ({ block, updateBlock, readOnly }) => {
                 <div className="mermaid-error">
                   <strong>Error:</strong> {renderError}
                 </div>
+              ) : isRendering ? (
+                <div className="mermaid-empty">Rendering diagram...</div>
               ) : (
                 <div ref={mermaidRef} className="mermaid-diagram" />
               )}
@@ -182,6 +256,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
   const styleMenuRef = useRef(null);
   const menuCloseTimeoutRef = useRef(null);
   const focusHandledRef = useRef(null);
+  const showBlockMenuRef = useRef(null);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -245,6 +320,27 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     onChange(newBlocks);
     setTimeout(() => blockRefs.current[newBlock.id]?.focus(), 0);
   }, [blocks, onChange]);
+
+  const handleCanvasAction = useCallback((targetBlock) => {
+    if (!targetBlock) return;
+    if (targetBlock.type === 'canvas') {
+      onOpenCanvas?.(targetBlock.id);
+      return;
+    }
+    const newBlock = {
+      id: Date.now() + Math.random(),
+      type: 'canvas',
+      content: '',
+      properties: {},
+      parent_block_id: targetBlock.parent_block_id || null
+    };
+    const allBlocks = [...blocks];
+    const targetIndex = allBlocks.findIndex(b => b.id === targetBlock.id);
+    if (targetIndex === -1) return;
+    allBlocks.splice(targetIndex + 1, 0, newBlock);
+    onChange(allBlocks);
+    setTimeout(() => onOpenCanvas?.(newBlock.id), 0);
+  }, [blocks, onChange, onOpenCanvas]);
 
   const indentBlock = useCallback((blockId) => {
     const index = blocks.findIndex(b => b.id === blockId);
@@ -741,6 +837,10 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     });
   }, [focusBlockId, blocks]);
 
+  useEffect(() => {
+    showBlockMenuRef.current = showBlockMenu;
+  }, [showBlockMenu]);
+
   const renderBlockContent = (block) => {
     // Special handling for code blocks - don't use contentEditable
     if (block.type === 'code') {
@@ -769,6 +869,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
               properties: { ...block.properties, tableData }
             });
           }}
+          readOnly={readOnly}
         />
       );
     }
@@ -1204,7 +1305,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
           </div>
         );
       case 'mermaid':
-        return <MermaidBlock block={block} updateBlock={updateBlock} readOnly={readOnly} />;
+        return <MermaidBlock block={block} updateBlock={updateBlock} readOnly={readOnly} darkMode={darkMode} />;
       case 'column':
         // Column block that can contain child blocks
         const columnWidth = block.properties?.width || '50%';
@@ -1547,7 +1648,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                       }}
                       onMouseLeave={() => {
                         if (!readOnly && !draggedBlockId && showBlockMenu !== childBlock.id) {
-                          setHoveredBlockId(null);
+                          scheduleHideControls(childBlock.id);
                         }
                       }}
                     >
@@ -1555,12 +1656,13 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                         <div 
                           className={`block-controls ${shouldShowControls(childBlock.id) ? 'visible' : ''}`}
                           onMouseEnter={() => handleControlsMouseEnter(childBlock.id)}
-                          onMouseLeave={handleControlsMouseLeave}
+                          onMouseLeave={() => handleControlsMouseLeave(childBlock.id)}
                           style={shouldShowControls(childBlock.id) ? { opacity: '1 !important', pointerEvents: 'auto !important' } : {}}
                         >
                           <div 
                             className="block-control-btn drag-handle" 
                             title="Drag to reorder"
+                            aria-label="Drag to reorder"
                             draggable="true"
                             onDragStart={(e) => handleDragStart(e, childBlock.id)}
                             onDragEnd={handleDragEnd}
@@ -1584,8 +1686,17 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                               setTimeout(() => blockRefs.current[newBlock.id]?.focus(), 0);
                             }}
                             title="Add block"
+                            aria-label="Add block"
                           >
                             <Plus size={16} />
+                          </button>
+                          <button
+                            className="block-control-btn canvas-action"
+                            onClick={() => handleCanvasAction(childBlock)}
+                            title={childBlock.type === 'canvas' ? 'Open canvas' : 'Add canvas'}
+                            aria-label={childBlock.type === 'canvas' ? 'Open canvas' : 'Add canvas'}
+                          >
+                            <Pen size={16} />
                           </button>
                           <button
                             className="block-control-btn"
@@ -1594,7 +1705,8 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                               setBlockMenuPosition({ top: rect.bottom + 4, left: rect.left });
                               setShowBlockMenu(showBlockMenu === childBlock.id ? null : childBlock.id);
                             }}
-                            title="More"
+                            title="More options"
+                            aria-label="More options"
                           >
                             <MoreVertical size={16} />
                           </button>
@@ -1719,6 +1831,15 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     // Always show controls for hovered block, dragged block, or block with open menu
     return hoveredBlockId === blockId || draggedBlockId === blockId || showBlockMenu === blockId;
   };
+
+  const scheduleHideControls = (blockId) => {
+    clearTimeout(menuCloseTimeoutRef.current);
+    menuCloseTimeoutRef.current = setTimeout(() => {
+      if (showBlockMenuRef.current !== blockId) {
+        setHoveredBlockId(null);
+      }
+    }, 180);
+  };
   
   // Keep menu open when hovering over controls or menu
   const handleControlsMouseEnter = (blockId) => {
@@ -1726,11 +1847,8 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
     setHoveredBlockId(blockId);
   };
   
-  const handleControlsMouseLeave = () => {
-    // Don't hide controls if menu is open
-    if (!showBlockMenu) {
-      setHoveredBlockId(null);
-    }
+  const handleControlsMouseLeave = (blockId) => {
+    scheduleHideControls(blockId);
   };
 
   return (
@@ -1774,7 +1892,7 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
             }}
             onMouseLeave={() => {
               if (!readOnly && !draggedBlockId && showBlockMenu !== block.id) {
-                setHoveredBlockId(null);
+                scheduleHideControls(block.id);
               }
             }}
             onDragOver={(e) => handleDragOver(e, block.id)}
@@ -1792,12 +1910,13 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
             <div 
               className={`block-controls ${shouldShowControls(block.id) ? 'visible' : ''}`}
               onMouseEnter={() => handleControlsMouseEnter(block.id)}
-              onMouseLeave={handleControlsMouseLeave}
+              onMouseLeave={() => handleControlsMouseLeave(block.id)}
               style={shouldShowControls(block.id) ? { opacity: '1 !important', pointerEvents: 'auto !important' } : {}}
             >
               <div 
                 className="block-control-btn drag-handle" 
                 title="Drag to reorder"
+                aria-label="Drag to reorder"
                 draggable="true"
                 onDragStart={(e) => handleDragStart(e, block.id)}
                 onDragEnd={handleDragEnd}
@@ -1808,8 +1927,17 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                 className="block-control-btn"
                 onClick={() => addBlock(index)}
                 title="Add block"
+                aria-label="Add block"
               >
                 <Plus size={16} />
+              </button>
+              <button
+                className="block-control-btn canvas-action"
+                onClick={() => handleCanvasAction(block)}
+                title={block.type === 'canvas' ? 'Open canvas' : 'Add canvas'}
+                aria-label={block.type === 'canvas' ? 'Open canvas' : 'Add canvas'}
+              >
+                <Pen size={16} />
               </button>
               <button
                 className="block-control-btn"
@@ -1818,7 +1946,8 @@ const SimpleBlockEditor = ({ blocks, onChange, readOnly = false, darkMode = fals
                   setBlockMenuPosition({ top: rect.bottom + 4, left: rect.left });
                   setShowBlockMenu(showBlockMenu === block.id ? null : block.id);
                 }}
-                title="More"
+                title="More options"
+                aria-label="More options"
               >
                 <MoreVertical size={16} />
               </button>
