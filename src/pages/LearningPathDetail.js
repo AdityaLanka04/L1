@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Loader, Lock, CheckCircle, Circle, Play, Award,
+import { Loader, Lock, CheckCircle, Circle, Play, Pause, Award,
   Clock, Target, BookOpen, MessageCircle, FileText, Brain,
   ChevronRight, ChevronLeft, Sparkles, Zap, Download, Calendar,
-  Star, ExternalLink, Lightbulb, Map, TrendingUp, Code, Video,
-  Headphones, Image as ImageIcon, Activity, GitBranch, Menu } from 'lucide-react';
+  Lightbulb, Map, TrendingUp, Image as ImageIcon, Activity,
+  GitBranch, Menu, Timer } from 'lucide-react';
 import learningPathService from '../services/learningPathService';
 import './LearningPathDetail.css';
 
@@ -36,6 +36,10 @@ const LearningPathDetail = () => {
   const [resourceRatings, setResourceRatings] = useState({});
   const [completedResources, setCompletedResources] = useState([]);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [sessionActive, setSessionActive] = useState(false);
+  const [sessionSeconds, setSessionSeconds] = useState(0);
+  const [sessionLoggedMinutes, setSessionLoggedMinutes] = useState(null);
+  const [timeSpentMinutes, setTimeSpentMinutes] = useState(0);
 
   useEffect(() => {
     loadPathDetails();
@@ -44,6 +48,11 @@ const LearningPathDetail = () => {
   useEffect(() => {
     if (selectedNode) {
       loadNodeNote();
+      setSessionActive(false);
+      setSessionSeconds(0);
+      setSessionLoggedMinutes(null);
+      const initialTime = selectedNode.progress?.time_spent_minutes ?? selectedNode.progress?.time_spent ?? 0;
+      setTimeSpentMinutes(initialTime || 0);
       // Load user's difficulty preference and resource progress
       if (selectedNode.progress) {
         setDifficultyView(selectedNode.progress.difficulty_view || 'intermediate');
@@ -62,6 +71,49 @@ const LearningPathDetail = () => {
     } catch (error) {
       console.error('Error loading note:', error);
     }
+  };
+
+  useEffect(() => {
+    if (!sessionActive) return;
+    const timer = setInterval(() => {
+      setSessionSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [sessionActive]);
+
+  const formatDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const logTimeSpent = async (minutes) => {
+    if (!selectedNode || minutes <= 0) return;
+    try {
+      const response = await learningPathService.updateTimeSpent(pathId, selectedNode.id, minutes);
+      if (response?.total_time_spent !== undefined) {
+        setTimeSpentMinutes(response.total_time_spent);
+      } else {
+        setTimeSpentMinutes((prev) => prev + minutes);
+      }
+      setSessionLoggedMinutes(minutes);
+    } catch (error) {
+      console.error('Error logging time spent:', error);
+    }
+  };
+
+  const handleSessionToggle = async () => {
+    if (!sessionActive) {
+      setSessionLoggedMinutes(null);
+      setSessionSeconds(0);
+      setSessionActive(true);
+      return;
+    }
+
+    setSessionActive(false);
+    const minutes = Math.max(1, Math.round(sessionSeconds / 60));
+    await logTimeSpent(minutes);
+    setSessionSeconds(0);
   };
 
   const handleSaveNote = async () => {
@@ -469,6 +521,66 @@ const LearningPathDetail = () => {
     }
   };
 
+  const activityPlan = selectedNode?.content_plan || [];
+  const activityMap = activityPlan.reduce((acc, activity) => {
+    if (activity?.type && !acc[activity.type]) {
+      acc[activity.type] = activity;
+    }
+    return acc;
+  }, {});
+
+  const toolkitDefaults = {
+    notes: {
+      description: 'Turn this chapter into clean, structured notes.',
+    },
+    flashcards: {
+      description: 'Build recall with quick, spaced cards.',
+      count: 8,
+    },
+    quiz: {
+      description: 'Stress test understanding with scenario questions.',
+      question_count: 6,
+    },
+    chat: {
+      description: 'Ask follow-up questions and edge cases.',
+    },
+  };
+
+  const toolkitItems = ['notes', 'flashcards', 'quiz', 'chat'].map((type) => {
+    const fallback = toolkitDefaults[type] || {};
+    const planItem = activityMap[type] || { type, ...fallback };
+    const completed = selectedNode?.progress?.evidence?.[type]?.completed;
+    const count = planItem.count || planItem.question_count;
+    return {
+      type,
+      activity: planItem,
+      description: planItem.description || fallback.description || 'Start this learning activity.',
+      count,
+      completed,
+      label: type.toUpperCase(),
+    };
+  });
+
+  const rawTags = Array.isArray(selectedNode?.tags)
+    ? selectedNode.tags
+    : selectedNode?.tags
+      ? [selectedNode.tags]
+      : [];
+  const rawKeywords = Array.isArray(selectedNode?.keywords)
+    ? selectedNode.keywords
+    : selectedNode?.keywords
+      ? [selectedNode.keywords]
+      : [];
+  const keyTerms = Array.from(new Set([...rawTags, ...rawKeywords].filter(Boolean))).slice(0, 12);
+
+  const focusBlocks = Math.max(1, Math.ceil((selectedNode?.estimated_minutes || 0) / 25));
+
+  const nextActivity = selectedNode?.content_plan?.find(
+    (activity) => !selectedNode.progress?.evidence?.[activity.type]?.completed
+  ) || selectedNode?.content_plan?.[0];
+
+  const nodeProgressPct = selectedNode?.progress?.progress_pct || 0;
+
   if (loading) {
     return (
       <div className="lpd-container">
@@ -631,6 +743,138 @@ const LearningPathDetail = () => {
                   <span>{selectedNode.progress.status.replace('_', ' ').toUpperCase()}</span>
                 </div>
               </div>
+
+              <div className="lpd-overview">
+                <div className="lpd-overview-card lpd-overview-next">
+                  <div className="lpd-overview-label">Next Up</div>
+                  <h4>{nextActivity ? nextActivity.type.toUpperCase() : 'ALL ACTIVITIES COMPLETE'}</h4>
+                  <p>
+                    {nextActivity
+                      ? nextActivity.description
+                      : 'You have completed all planned activities for this node.'}
+                  </p>
+                  <button
+                    className="lpd-overview-btn"
+                    onClick={() => nextActivity && handleActivityClick(nextActivity)}
+                    disabled={!nextActivity || actionLoading}
+                  >
+                    <Play size={14} />
+                    {nextActivity ? 'Launch Activity' : 'All Done'}
+                  </button>
+                </div>
+                <div className="lpd-overview-card lpd-overview-focus">
+                  <div className="lpd-overview-label">
+                    <Timer size={14} />
+                    Focus Session
+                  </div>
+                  <div className="lpd-focus-timer">{formatDuration(sessionSeconds)}</div>
+                  <div className="lpd-focus-meta">
+                    <span>Tracked time</span>
+                    <strong>{timeSpentMinutes} min</strong>
+                  </div>
+                  <div className="lpd-focus-actions">
+                    <button className="lpd-focus-btn" onClick={handleSessionToggle}>
+                      {sessionActive ? (
+                        <>
+                          <Pause size={14} />
+                          End & Log
+                        </>
+                      ) : (
+                        <>
+                          <Play size={14} />
+                          Start Focus
+                        </>
+                      )}
+                    </button>
+                    <button className="lpd-focus-btn lpd-focus-secondary" onClick={() => logTimeSpent(5)}>
+                      +5 min
+                    </button>
+                  </div>
+                  {sessionLoggedMinutes ? (
+                    <div className="lpd-focus-toast">Logged {sessionLoggedMinutes} min</div>
+                  ) : null}
+                </div>
+                <div className="lpd-overview-card lpd-overview-progress">
+                  <div className="lpd-overview-label">Node Pulse</div>
+                  <div className="lpd-overview-metric">
+                    <span>Progress</span>
+                    <strong>{nodeProgressPct}%</strong>
+                  </div>
+                  <div className="lpd-overview-metric">
+                    <span>Est. time</span>
+                    <strong>{selectedNode.estimated_minutes || 0} min</strong>
+                  </div>
+                  <div className="lpd-overview-metric">
+                    <span>XP Ready</span>
+                    <strong>+{selectedNode.reward?.xp || 50}</strong>
+                  </div>
+                </div>
+                <div className="lpd-overview-card lpd-overview-plan">
+                  <div className="lpd-overview-label">
+                    <Calendar size={14} />
+                    Study Plan
+                  </div>
+                  <h4>{focusBlocks} Focus Blocks</h4>
+                  <p>
+                    {focusBlocks === 1
+                      ? 'One 25-minute sprint to finish this chapter.'
+                      : `Split into ${focusBlocks} x 25-min sessions with short breaks.`}
+                  </p>
+                  <div className="lpd-overview-metric">
+                    <span>Recommended pace</span>
+                    <strong>{Math.max(1, Math.round((selectedNode.estimated_minutes || 0) / 10))} checkpoints</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Learning Toolkit */}
+              <div className="lpd-block">
+                <h3 className="lpd-block-title">
+                  <Sparkles size={16} />
+                  LEARNING TOOLKIT
+                </h3>
+                <div className="lpd-toolkit">
+                  {toolkitItems.map((item) => (
+                    <button
+                      key={item.type}
+                      className={`lpd-toolkit-card ${item.completed ? 'is-complete' : ''}`}
+                      onClick={() => handleActivityClick(item.activity)}
+                      disabled={actionLoading}
+                      type="button"
+                    >
+                      <div className="lpd-toolkit-icon">
+                        {getActivityIcon(item.type)}
+                      </div>
+                      <div className="lpd-toolkit-body">
+                        <span className="lpd-toolkit-title">{item.label}</span>
+                        <p>{item.description}</p>
+                      </div>
+                      <div className="lpd-toolkit-meta">
+                        {item.completed ? (
+                          <span className="lpd-toolkit-status done">Done</span>
+                        ) : (
+                          <span className="lpd-toolkit-status">{item.count ? `${item.count} items` : 'Ready'}</span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Key Terms */}
+              {keyTerms.length > 0 && (
+                <div className="lpd-block">
+                  <h3 className="lpd-block-title">
+                    <Zap size={16} />
+                    KEY TERMS
+                  </h3>
+                  <div className="lpd-tags">
+                    {keyTerms.map((term) => (
+                      <span key={term} className="lpd-tag">{term}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Introduction Section */}
               {selectedNode.introduction && (
@@ -1168,9 +1412,12 @@ const LearningPathDetail = () => {
                       <div className="lpd-relationships">
                         <h5>Relationships:</h5>
                         <ul>
-                          {selectedNode.concept_mapping.relationships.map((rel, idx) => (
-                            <li key={idx}>{rel}</li>
-                          ))}
+                          {selectedNode.concept_mapping.relationships.map((rel, idx) => {
+                            const label = typeof rel === 'string'
+                              ? rel
+                              : `${rel.from || ''} ${rel.label || ''} ${rel.to || ''}`.trim();
+                            return <li key={idx}>{label || 'Relationship'}</li>;
+                          })}
                         </ul>
                       </div>
                     )}

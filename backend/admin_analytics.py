@@ -6,26 +6,75 @@ from fastapi.responses import StreamingResponse
 import sqlite3
 import csv
 import io
+import json
 from datetime import datetime, timedelta
 import os
 from typing import Optional
+from activity_logger import resolve_user_id
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'brainwave_tutor.db')
 
+
+def _safe_json_loads(value):
+    if not value:
+        return {}
+    if isinstance(value, dict):
+        return value
+    try:
+        return json.loads(value)
+    except Exception:
+        return {}
+
+
+def _parse_timestamp(value):
+    if not value:
+        return None
+    try:
+        if isinstance(value, datetime):
+            return value
+        if isinstance(value, str) and value.endswith('Z'):
+            value = value.replace('Z', '+00:00')
+        return datetime.fromisoformat(value)
+    except Exception:
+        return None
+
+
+def _is_ai_activity(tool_name: str, action: str, metadata: dict) -> bool:
+    if metadata.get('token_source') == 'none':
+        return False
+    if metadata.get('prompt_tokens') or metadata.get('completion_tokens'):
+        return True
+    if metadata.get('token_source') == 'model_usage':
+        return True
+    if action == 'ai_generate':
+        return True
+    if tool_name and (tool_name.startswith('ai_') or tool_name.endswith('_ai') or 'ai' in tool_name):
+        return True
+    return False
+
 def check_admin(x_user_id: Optional[str] = Header(None)):
     """Check if user is admin - accepts email or user_id"""
-    # Admin emails
-    ADMIN_EMAILS = ['aditya.s.lanka@gmail.com', 'cerbyl@gmail.com', 'stupendous0512@gmail.com']
-    
+    ADMIN_EMAILS = ['aditya.s.lanka@gmail.com']
+
+    if not x_user_id:
+        raise HTTPException(status_code=403, detail='Admin access required')
+
     if x_user_id in ADMIN_EMAILS:
         return x_user_id
-    
-    # Admin user_id check (if numeric)
-    try:
-        if int(x_user_id) == 1:
-            return x_user_id
-    except (ValueError, TypeError):
-        pass
+
+    resolved = resolve_user_id(x_user_id)
+    if resolved:
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT email FROM users WHERE id = ?", (resolved,))
+            row = cursor.fetchone()
+            conn.close()
+            if row and row['email'] in ADMIN_EMAILS:
+                return x_user_id
+        except Exception:
+            pass
+
     raise HTTPException(status_code=403, detail='Admin access required')
 
 def get_db_connection():
@@ -45,40 +94,207 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
         # Total users
         cursor.execute("SELECT COUNT(*) as count FROM users")
         total_users = cursor.fetchone()['count']
-        
-        # Active users (users with activity in date range)
+
+        # Pull activity logs for the date range
         cursor.execute("""
-            SELECT COUNT(DISTINCT user_id) as count 
-            FROM user_activity_log 
+            SELECT * FROM user_activity_log
             WHERE timestamp >= ?
         """, (start_date.isoformat(),))
-        active_users = cursor.fetchone()['count']
-        
-        # Total tokens used
-        cursor.execute("""
-            SELECT SUM(tokens_used) as total 
-            FROM user_activity_log 
-            WHERE timestamp >= ?
-        """, (start_date.isoformat(),))
-        total_tokens = cursor.fetchone()['total'] or 0
-        
-        # Tool usage breakdown
-        cursor.execute("""
-            SELECT tool_name, COUNT(*) as usage_count, SUM(tokens_used) as tokens
-            FROM user_activity_log 
-            WHERE timestamp >= ?
-            GROUP BY tool_name
-            ORDER BY usage_count DESC
-        """, (start_date.isoformat(),))
-        tool_usage = [dict(row) for row in cursor.fetchall()]
-        
+        rows = [dict(row) for row in cursor.fetchall()]
         conn.close()
-        
+
+        total_requests = 0
+        active_users = len({row['user_id'] for row in rows if row.get('user_id')})
+
+        total_tokens = 0
+        ai_tokens = 0
+        ai_prompt_tokens = 0
+        ai_completion_tokens = 0
+        ai_requests = 0
+        ai_requests_with_usage = 0
+
+        latency_sum = 0
+        latency_count = 0
+        ai_latency_sum = 0
+        ai_latency_count = 0
+        error_count = 0
+        ai_error_count = 0
+
+        token_sources = {}
+        tool_stats = {}
+        model_stats = {}
+
+        today = datetime.now().date()
+        daily_usage = {}
+        for i in range(days - 1, -1, -1):
+            day = today - timedelta(days=i)
+            daily_usage[day.isoformat()] = {
+                "date": day.isoformat(),
+                "total_tokens": 0,
+                "ai_tokens": 0,
+                "requests": 0,
+                "ai_requests": 0,
+                "errors": 0
+            }
+
+        for row in rows:
+            metadata = _safe_json_loads(row.get('metadata'))
+            tool_name = row.get('tool_name') or 'unknown'
+            action = row.get('action')
+            tokens_used = row.get('tokens_used') or 0
+            total_tokens += tokens_used
+
+            if metadata.get('event_type') == 'request':
+                total_requests += 1
+
+            token_source = metadata.get('token_source') or 'unknown'
+            token_sources[token_source] = token_sources.get(token_source, 0) + 1
+
+            prompt_tokens = metadata.get('prompt_tokens') or 0
+            completion_tokens = metadata.get('completion_tokens') or 0
+
+            is_ai = _is_ai_activity(tool_name, action, metadata)
+            if is_ai:
+                ai_requests += 1
+                ai_tokens += tokens_used
+                ai_prompt_tokens += prompt_tokens
+                ai_completion_tokens += completion_tokens
+                if prompt_tokens or completion_tokens or token_source == 'model_usage':
+                    ai_requests_with_usage += 1
+
+            duration = metadata.get('duration_seconds')
+            if isinstance(duration, (int, float)):
+                latency_sum += duration
+                latency_count += 1
+                if is_ai:
+                    ai_latency_sum += duration
+                    ai_latency_count += 1
+
+            status_code = metadata.get('status_code')
+            if isinstance(status_code, int) and status_code >= 400:
+                error_count += 1
+                if is_ai:
+                    ai_error_count += 1
+
+            # Daily aggregation
+            ts = _parse_timestamp(row.get('timestamp'))
+            if ts:
+                key = ts.date().isoformat()
+                if key in daily_usage:
+                    daily_usage[key]["total_tokens"] += tokens_used
+                    daily_usage[key]["requests"] += 1
+                    if is_ai:
+                        daily_usage[key]["ai_tokens"] += tokens_used
+                        daily_usage[key]["ai_requests"] += 1
+                    if isinstance(status_code, int) and status_code >= 400:
+                        daily_usage[key]["errors"] += 1
+
+            # Tool stats
+            tool = tool_stats.setdefault(tool_name, {
+                "tool_name": tool_name,
+                "usage_count": 0,
+                "total_tokens": 0,
+                "ai_tokens": 0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "ai_requests": 0,
+                "latency_sum": 0,
+                "latency_count": 0,
+                "error_count": 0,
+                "last_activity": None
+            })
+            tool["usage_count"] += 1
+            tool["total_tokens"] += tokens_used
+            if is_ai:
+                tool["ai_tokens"] += tokens_used
+                tool["ai_requests"] += 1
+            tool["prompt_tokens"] += prompt_tokens
+            tool["completion_tokens"] += completion_tokens
+            if isinstance(duration, (int, float)):
+                tool["latency_sum"] += duration
+                tool["latency_count"] += 1
+            if isinstance(status_code, int) and status_code >= 400:
+                tool["error_count"] += 1
+            if row.get('timestamp'):
+                current = _parse_timestamp(tool.get("last_activity"))
+                candidate = _parse_timestamp(row.get('timestamp'))
+                if candidate and (current is None or candidate > current):
+                    tool["last_activity"] = row.get('timestamp')
+
+            # Model stats
+            model_name = metadata.get('model')
+            if model_name:
+                model = model_stats.setdefault(model_name, {
+                    "model": model_name,
+                    "total_tokens": 0,
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "requests": 0
+                })
+                model["total_tokens"] += tokens_used
+                model["prompt_tokens"] += prompt_tokens
+                model["completion_tokens"] += completion_tokens
+                if is_ai:
+                    model["requests"] += 1
+
+        tool_usage = []
+        for tool in tool_stats.values():
+            avg_tokens = 0
+            if tool["ai_requests"] > 0:
+                avg_tokens = tool["ai_tokens"] / tool["ai_requests"]
+            avg_latency = 0
+            if tool["latency_count"] > 0:
+                avg_latency = tool["latency_sum"] / tool["latency_count"]
+            error_rate = 0
+            if tool["usage_count"] > 0:
+                error_rate = tool["error_count"] / tool["usage_count"]
+
+            tool_usage.append({
+                "tool_name": tool["tool_name"],
+                "usage_count": tool["usage_count"],
+                "total_tokens": tool["total_tokens"],
+                "ai_tokens": tool["ai_tokens"],
+                "prompt_tokens": tool["prompt_tokens"],
+                "completion_tokens": tool["completion_tokens"],
+                "ai_requests": tool["ai_requests"],
+                "avg_tokens": avg_tokens,
+                "avg_latency": avg_latency,
+                "error_rate": error_rate,
+                "last_activity": tool["last_activity"]
+            })
+
+        tool_usage.sort(key=lambda t: (t["ai_tokens"], t["usage_count"]), reverse=True)
+
+        ai_token_coverage = 0
+        if ai_requests > 0:
+            ai_token_coverage = round((ai_requests_with_usage / ai_requests) * 100, 1)
+
+        if total_requests == 0:
+            total_requests = len(rows)
+
+        avg_latency = round(latency_sum / latency_count, 2) if latency_count else 0
+        avg_ai_latency = round(ai_latency_sum / ai_latency_count, 2) if ai_latency_count else 0
+        error_rate = round((error_count / total_requests) * 100, 2) if total_requests else 0
+        ai_error_rate = round((ai_error_count / ai_requests) * 100, 2) if ai_requests else 0
+
         return {
             'total_users': total_users,
             'active_users': active_users,
+            'total_requests': total_requests,
             'total_tokens': total_tokens,
+            'ai_requests': ai_requests,
+            'ai_tokens': ai_tokens,
+            'ai_prompt_tokens': ai_prompt_tokens,
+            'ai_completion_tokens': ai_completion_tokens,
+            'ai_token_coverage': ai_token_coverage,
+            'avg_latency': avg_latency,
+            'avg_ai_latency': avg_ai_latency,
+            'error_rate': error_rate,
+            'ai_error_rate': ai_error_rate,
+            'token_sources': token_sources,
             'tool_usage': tool_usage,
+            'daily_usage': list(daily_usage.values()),
+            'model_usage': list(model_stats.values()),
             'date_range': days
         }
     except Exception as e:
@@ -92,28 +308,107 @@ async def get_user_analytics(days: int = Query(30), user_id: str = Header(None, 
         cursor = conn.cursor()
         
         start_date = datetime.now() - timedelta(days=days)
-        
+
         cursor.execute("""
-            SELECT 
-                u.id,
-                u.username,
-                u.email,
-                u.created_at,
-                COUNT(DISTINCT a.id) as total_activities,
-                SUM(a.tokens_used) as total_tokens,
-                MAX(a.timestamp) as last_activity,
-                GROUP_CONCAT(DISTINCT a.tool_name) as tools_used
-            FROM users u
-            LEFT JOIN user_activity_log a ON u.id = a.user_id 
-                AND a.timestamp >= ?
-            GROUP BY u.id
-            ORDER BY total_tokens DESC
-        """, (start_date.isoformat(),))
-        
+            SELECT id, username, email, created_at
+            FROM users
+            ORDER BY created_at DESC
+        """)
         users = [dict(row) for row in cursor.fetchall()]
+
+        cursor.execute("""
+            SELECT * FROM user_activity_log
+            WHERE timestamp >= ?
+        """, (start_date.isoformat(),))
+        rows = [dict(row) for row in cursor.fetchall()]
         conn.close()
-        
-        return {'users': users}
+
+        user_stats = {}
+        for row in rows:
+            uid = row.get('user_id')
+            if uid is None:
+                continue
+            metadata = _safe_json_loads(row.get('metadata'))
+            tool_name = row.get('tool_name') or 'unknown'
+            action = row.get('action')
+            tokens_used = row.get('tokens_used') or 0
+            prompt_tokens = metadata.get('prompt_tokens') or 0
+            completion_tokens = metadata.get('completion_tokens') or 0
+            token_source = metadata.get('token_source')
+            is_ai = _is_ai_activity(tool_name, action, metadata)
+
+            stats = user_stats.setdefault(uid, {
+                "total_activities": 0,
+                "total_tokens": 0,
+                "ai_tokens": 0,
+                "ai_requests": 0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "last_activity": None,
+                "tools_used": set(),
+                "error_count": 0,
+                "latency_sum": 0,
+                "latency_count": 0,
+                "ai_requests_with_usage": 0
+            })
+
+            stats["total_activities"] += 1
+            stats["total_tokens"] += tokens_used
+            stats["tools_used"].add(tool_name)
+
+            if is_ai:
+                stats["ai_requests"] += 1
+                stats["ai_tokens"] += tokens_used
+                stats["prompt_tokens"] += prompt_tokens
+                stats["completion_tokens"] += completion_tokens
+                if prompt_tokens or completion_tokens or token_source == 'model_usage':
+                    stats["ai_requests_with_usage"] += 1
+
+            ts = _parse_timestamp(row.get('timestamp'))
+            if ts:
+                current = _parse_timestamp(stats.get("last_activity"))
+                if current is None or ts > current:
+                    stats["last_activity"] = row.get('timestamp')
+
+            status_code = metadata.get('status_code')
+            if isinstance(status_code, int) and status_code >= 400:
+                stats["error_count"] += 1
+
+            duration = metadata.get('duration_seconds')
+            if isinstance(duration, (int, float)):
+                stats["latency_sum"] += duration
+                stats["latency_count"] += 1
+
+        enriched_users = []
+        for user in users:
+            stats = user_stats.get(user["id"], {})
+            ai_requests = stats.get("ai_requests", 0)
+            ai_token_coverage = 0
+            if ai_requests:
+                ai_token_coverage = round((stats.get("ai_requests_with_usage", 0) / ai_requests) * 100, 1)
+
+            avg_latency = 0
+            if stats.get("latency_count", 0):
+                avg_latency = stats.get("latency_sum", 0) / stats.get("latency_count", 0)
+
+            enriched_users.append({
+                **user,
+                "total_activities": stats.get("total_activities", 0),
+                "total_tokens": stats.get("total_tokens", 0),
+                "ai_tokens": stats.get("ai_tokens", 0),
+                "ai_requests": ai_requests,
+                "prompt_tokens": stats.get("prompt_tokens", 0),
+                "completion_tokens": stats.get("completion_tokens", 0),
+                "ai_token_coverage": ai_token_coverage,
+                "last_activity": stats.get("last_activity"),
+                "tools_used": ", ".join(sorted(list(stats.get("tools_used", set())))) if stats else "",
+                "error_rate": round((stats.get("error_count", 0) / stats.get("total_activities", 1)) * 100, 2) if stats else 0,
+                "avg_latency": round(avg_latency, 2)
+            })
+
+        enriched_users.sort(key=lambda u: (u.get("ai_tokens", 0), u.get("total_tokens", 0)), reverse=True)
+
+        return {'users': enriched_users}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -126,7 +421,11 @@ async def get_user_detail(target_user_id: int, user_id: str = Header(None, alias
         
         # User info
         cursor.execute("SELECT * FROM users WHERE id = ?", (target_user_id,))
-        user = dict(cursor.fetchone())
+        user_row = cursor.fetchone()
+        if not user_row:
+            conn.close()
+            raise HTTPException(status_code=404, detail='User not found')
+        user = dict(user_row)
         
         # Activity log
         cursor.execute("""
@@ -135,28 +434,128 @@ async def get_user_detail(target_user_id: int, user_id: str = Header(None, alias
             ORDER BY timestamp DESC
             LIMIT 1000
         """, (target_user_id,))
-        activities = [dict(row) for row in cursor.fetchall()]
-        
-        # Tool usage summary
-        cursor.execute("""
-            SELECT 
-                tool_name,
-                COUNT(*) as usage_count,
-                SUM(tokens_used) as total_tokens,
-                AVG(tokens_used) as avg_tokens
-            FROM user_activity_log
-            WHERE user_id = ?
-            GROUP BY tool_name
-            ORDER BY usage_count DESC
-        """, (target_user_id,))
-        tool_summary = [dict(row) for row in cursor.fetchall()]
+        raw_activities = [dict(row) for row in cursor.fetchall()]
         
         conn.close()
-        
+
+        activities = []
+        tool_stats = {}
+        ai_requests = 0
+        ai_requests_with_usage = 0
+        ai_tokens = 0
+        prompt_tokens_total = 0
+        completion_tokens_total = 0
+
+        for row in raw_activities:
+            metadata = _safe_json_loads(row.get('metadata'))
+            tool_name = row.get('tool_name') or 'unknown'
+            action = row.get('action')
+            tokens_used = row.get('tokens_used') or 0
+            prompt_tokens = metadata.get('prompt_tokens') or 0
+            completion_tokens = metadata.get('completion_tokens') or 0
+            token_source = metadata.get('token_source')
+            is_ai = _is_ai_activity(tool_name, action, metadata)
+
+            if is_ai:
+                ai_requests += 1
+                ai_tokens += tokens_used
+                prompt_tokens_total += prompt_tokens
+                completion_tokens_total += completion_tokens
+                if prompt_tokens or completion_tokens or token_source == 'model_usage':
+                    ai_requests_with_usage += 1
+
+            activity = {
+                **row,
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "model": metadata.get('model'),
+                "provider": metadata.get('provider'),
+                "endpoint": metadata.get('endpoint'),
+                "method": metadata.get('method'),
+                "status_code": metadata.get('status_code'),
+                "duration_seconds": metadata.get('duration_seconds'),
+                "token_source": token_source,
+                "is_ai": is_ai,
+            }
+            activities.append(activity)
+
+            stats = tool_stats.setdefault(tool_name, {
+                "tool_name": tool_name,
+                "usage_count": 0,
+                "total_tokens": 0,
+                "ai_tokens": 0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "ai_requests": 0,
+                "latency_sum": 0,
+                "latency_count": 0,
+                "error_count": 0,
+                "last_activity": None
+            })
+            stats["usage_count"] += 1
+            stats["total_tokens"] += tokens_used
+            if is_ai:
+                stats["ai_tokens"] += tokens_used
+                stats["ai_requests"] += 1
+            stats["prompt_tokens"] += prompt_tokens
+            stats["completion_tokens"] += completion_tokens
+
+            duration = metadata.get('duration_seconds')
+            if isinstance(duration, (int, float)):
+                stats["latency_sum"] += duration
+                stats["latency_count"] += 1
+            status_code = metadata.get('status_code')
+            if isinstance(status_code, int) and status_code >= 400:
+                stats["error_count"] += 1
+            if row.get('timestamp'):
+                current = _parse_timestamp(stats.get("last_activity"))
+                candidate = _parse_timestamp(row.get('timestamp'))
+                if candidate and (current is None or candidate > current):
+                    stats["last_activity"] = row.get('timestamp')
+
+        tool_summary = []
+        for stats in tool_stats.values():
+            avg_tokens = 0
+            if stats["ai_requests"] > 0:
+                avg_tokens = stats["ai_tokens"] / stats["ai_requests"]
+            avg_latency = 0
+            if stats["latency_count"] > 0:
+                avg_latency = stats["latency_sum"] / stats["latency_count"]
+            error_rate = 0
+            if stats["usage_count"] > 0:
+                error_rate = stats["error_count"] / stats["usage_count"]
+
+            tool_summary.append({
+                "tool_name": stats["tool_name"],
+                "usage_count": stats["usage_count"],
+                "total_tokens": stats["total_tokens"],
+                "ai_tokens": stats["ai_tokens"],
+                "prompt_tokens": stats["prompt_tokens"],
+                "completion_tokens": stats["completion_tokens"],
+                "ai_requests": stats["ai_requests"],
+                "avg_tokens": avg_tokens,
+                "avg_latency": avg_latency,
+                "error_rate": error_rate,
+                "last_activity": stats["last_activity"]
+            })
+
+        tool_summary.sort(key=lambda t: (t["ai_tokens"], t["usage_count"]), reverse=True)
+
+        ai_token_coverage = 0
+        if ai_requests:
+            ai_token_coverage = round((ai_requests_with_usage / ai_requests) * 100, 1)
+
         return {
             'user': user,
             'activities': activities,
-            'tool_summary': tool_summary
+            'tool_summary': tool_summary,
+            'ai_summary': {
+                'ai_requests': ai_requests,
+                'ai_tokens': ai_tokens,
+                'prompt_tokens': prompt_tokens_total,
+                'completion_tokens': completion_tokens_total,
+                'ai_token_coverage': ai_token_coverage
+            }
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -196,19 +595,15 @@ async def export_analytics_csv(days: int = Query(30), user_id: str = Header(None
         
         # Write header
         writer.writerow([
-            'User ID', 'Username', 'Email', 'Tool Name', 
-            'Action', 'Tokens Used', 'Timestamp', 'Duration (seconds)', 
-            'Session ID', 'Endpoint', 'Status Code'
+            'User ID', 'Username', 'Email', 'Tool Name',
+            'Action', 'Tokens Used', 'Prompt Tokens', 'Completion Tokens',
+            'Model', 'Token Source', 'Timestamp', 'Duration (seconds)',
+            'Endpoint', 'Method', 'Status Code'
         ])
         
         # Write data
         for row in rows:
-            metadata = {}
-            try:
-                import json
-                metadata = json.loads(row['metadata']) if row['metadata'] else {}
-            except:
-                pass
+            metadata = _safe_json_loads(row['metadata'])
             
             writer.writerow([
                 row['user_id'],
@@ -217,10 +612,14 @@ async def export_analytics_csv(days: int = Query(30), user_id: str = Header(None
                 row['tool_name'],
                 row['action'],
                 row['tokens_used'],
+                metadata.get('prompt_tokens', ''),
+                metadata.get('completion_tokens', ''),
+                metadata.get('model', ''),
+                metadata.get('token_source', ''),
                 row['timestamp'],
                 metadata.get('duration_seconds', ''),
-                metadata.get('session_id', ''),
                 metadata.get('endpoint', ''),
+                metadata.get('method', ''),
                 metadata.get('status_code', '')
             ])
         
@@ -272,24 +671,27 @@ async def export_user_csv(target_user_id: int, user_id: str = Header(None, alias
         writer = csv.writer(output)
         
         # Write header
-        writer.writerow(['Tool Name', 'Action', 'Tokens Used', 'Timestamp', 'Duration (seconds)', 'Endpoint', 'Status Code'])
+        writer.writerow([
+            'Tool Name', 'Action', 'Tokens Used', 'Prompt Tokens', 'Completion Tokens',
+            'Model', 'Token Source', 'Timestamp', 'Duration (seconds)', 'Endpoint', 'Method', 'Status Code'
+        ])
         
         # Write data
         for row in rows:
-            metadata = {}
-            try:
-                import json
-                metadata = json.loads(row['metadata']) if row['metadata'] else {}
-            except:
-                pass
+            metadata = _safe_json_loads(row['metadata'])
                 
             writer.writerow([
                 row['tool_name'],
                 row['action'],
                 row['tokens_used'],
+                metadata.get('prompt_tokens', ''),
+                metadata.get('completion_tokens', ''),
+                metadata.get('model', ''),
+                metadata.get('token_source', ''),
                 row['timestamp'],
                 metadata.get('duration_seconds', ''),
                 metadata.get('endpoint', ''),
+                metadata.get('method', ''),
                 metadata.get('status_code', '')
             ])
         

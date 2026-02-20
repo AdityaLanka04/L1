@@ -4,6 +4,9 @@ import time
 from typing import Optional
 
 import requests
+from activity_context import get_activity_context
+from activity_logger import log_ai_tokens
+from ai_usage import extract_usage_from_openai_like, extract_usage_from_gemini_payload
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +79,8 @@ class UnifiedAIClient:
                 resp = requests.post(url, json=payload, timeout=60)
                 if resp.status_code == 200:
                     data = resp.json()
+                    usage = extract_usage_from_gemini_payload(data)
+                    self._log_usage(usage, model=self.gemini_model, provider="gemini")
                     if "candidates" in data and data["candidates"]:
                         return data["candidates"][0]["content"]["parts"][0]["text"]
                     raise Exception("Gemini response has no candidates")
@@ -97,6 +102,8 @@ class UnifiedAIClient:
             temperature=temperature,
             max_tokens=max_tokens,
         )
+        usage = extract_usage_from_openai_like(resp)
+        self._log_usage(usage, model=self.groq_model, provider="groq")
         return resp.choices[0].message.content.strip()
 
     def _fallback(self, prompt: str, max_tokens: int, temperature: float) -> str:
@@ -131,3 +138,27 @@ class UnifiedAIClient:
             return
 
         raise Exception("No AI client available for streaming")
+
+    def _log_usage(self, usage, model: str, provider: str):
+        if not usage:
+            return
+        try:
+            ctx = get_activity_context()
+            if not ctx:
+                return
+            log_ai_tokens(
+                user_id=ctx.get("user_id"),
+                tool_name=ctx.get("tool_name", "ai_unknown"),
+                prompt_tokens=usage.get("prompt_tokens", 0),
+                completion_tokens=usage.get("completion_tokens", 0),
+                total_tokens=usage.get("total_tokens", 0),
+                model=model,
+                metadata={
+                    "provider": provider,
+                    "endpoint": ctx.get("endpoint"),
+                    "method": ctx.get("method"),
+                    "source_action": ctx.get("action"),
+                },
+            )
+        except Exception as e:
+            logger.warning(f"Failed to log AI usage: {e}")

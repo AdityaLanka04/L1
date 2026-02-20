@@ -19,6 +19,8 @@ import PyPDF2
 from groq import Groq
 from sqlalchemy.orm import Session
 from datetime import datetime
+from activity_logger import log_ai_tokens
+from ai_usage import extract_usage_from_openai_like
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +34,7 @@ class ComprehensiveSlideAnalyzer:
     def __init__(self, db: Session):
         self.db = db
         self.model = "llama-3.3-70b-versatile"
+        self.current_user_id = None
     
     def call_ai(self, prompt: str, max_tokens: int = 2000, temperature: float = 0.4, retries: int = 2) -> str:
         """Call Groq AI with error handling and retries"""
@@ -45,6 +48,7 @@ class ComprehensiveSlideAnalyzer:
                     max_tokens=max_tokens,
                     temperature=temperature
                 )
+                self._log_usage(response)
                 return response.choices[0].message.content
             except Exception as e:
                 logger.error(f"AI call error (attempt {attempt + 1}/{retries}): {e}")
@@ -53,6 +57,25 @@ class ComprehensiveSlideAnalyzer:
                 else:
                     return ""
         return ""
+
+    def _log_usage(self, response):
+        if not self.current_user_id:
+            return
+        usage = extract_usage_from_openai_like(response)
+        if not usage:
+            return
+        try:
+            log_ai_tokens(
+                user_id=self.current_user_id,
+                tool_name="slide_explorer_ai",
+                prompt_tokens=usage.get("prompt_tokens", 0),
+                completion_tokens=usage.get("completion_tokens", 0),
+                total_tokens=usage.get("total_tokens", 0),
+                model=self.model,
+                metadata={"provider": "groq", "source": "slide_analysis"}
+            )
+        except Exception:
+            pass
     
     def extract_slide_content(self, file_path: Path, file_type: str) -> List[Dict[str, Any]]:
         """Extract content from PDF or PowerPoint files"""
@@ -343,7 +366,14 @@ Return ONLY this JSON structure with no extra text:
         Analyze entire presentation and return comprehensive analysis
         Checks for existing analysis first unless force_reanalyze is True
         """
-        from models import SlideAnalysis
+        from models import SlideAnalysis, UploadedSlide
+
+        try:
+            slide = self.db.query(UploadedSlide).filter(UploadedSlide.id == slide_id).first()
+            if slide:
+                self.current_user_id = slide.user_id
+        except Exception:
+            self.current_user_id = None
         
         # Check if analysis already exists
         if not force_reanalyze:

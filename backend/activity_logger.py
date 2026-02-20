@@ -5,8 +5,29 @@ import sqlite3
 import json
 from datetime import datetime
 import os
+from typing import Optional
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'brainwave_tutor.db')
+
+def resolve_user_id(user_id) -> Optional[int]:
+    """Resolve user_id from int/str/email/username to integer id."""
+    if user_id is None:
+        return None
+    try:
+        return int(user_id)
+    except (ValueError, TypeError):
+        pass
+
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM users WHERE email = ? OR username = ?", (user_id, user_id))
+        result = cursor.fetchone()
+        conn.close()
+        return result[0] if result else None
+    except Exception:
+        return None
+
 
 def log_activity(user_id, tool_name, action, tokens_used=0, metadata=None):
     """
@@ -20,6 +41,10 @@ def log_activity(user_id, tool_name, action, tokens_used=0, metadata=None):
         metadata: Additional data as dict
     """
     try:
+        resolved_user_id = resolve_user_id(user_id)
+        if resolved_user_id is None:
+            return False
+
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         
@@ -29,7 +54,7 @@ def log_activity(user_id, tool_name, action, tokens_used=0, metadata=None):
             INSERT INTO user_activity_log 
             (user_id, tool_name, action, tokens_used, metadata, timestamp)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (user_id, tool_name, action, tokens_used, metadata_json, datetime.now().isoformat()))
+        """, (resolved_user_id, tool_name, action, tokens_used, metadata_json, datetime.now().isoformat()))
         
         conn.commit()
         conn.close()
@@ -38,7 +63,15 @@ def log_activity(user_id, tool_name, action, tokens_used=0, metadata=None):
         print(f"Error logging activity: {e}")
         return False
 
-def log_ai_tokens(user_id, tool_name, prompt_tokens, completion_tokens, total_tokens, model=None):
+def log_ai_tokens(
+    user_id,
+    tool_name,
+    prompt_tokens,
+    completion_tokens,
+    total_tokens,
+    model=None,
+    metadata: Optional[dict] = None,
+):
     """
     Log AI token usage with detailed breakdown
     
@@ -50,12 +83,16 @@ def log_ai_tokens(user_id, tool_name, prompt_tokens, completion_tokens, total_to
         total_tokens: Total tokens used
         model: AI model name (optional)
     """
-    metadata = {
+    base_metadata = {
         'prompt_tokens': prompt_tokens,
         'completion_tokens': completion_tokens,
-        'model': model or 'unknown'
+        'model': model or 'unknown',
+        'token_source': 'model_usage',
+        'event_type': 'ai_usage'
     }
-    return log_activity(user_id, tool_name, 'ai_generate', total_tokens, metadata)
+    if metadata:
+        base_metadata.update(metadata)
+    return log_activity(user_id, tool_name, 'ai_generate', total_tokens, base_metadata)
 
 def get_user_token_usage(user_id, days=30):
     """Get total tokens used by user in last N days"""

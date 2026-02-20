@@ -22,6 +22,8 @@ from datetime import datetime
 import asyncio
 import re
 import logging
+from activity_logger import log_ai_tokens
+from ai_usage import extract_usage_from_openai_like, extract_usage_from_gemini_payload
 
 # Language detection
 try:
@@ -96,6 +98,50 @@ class AIMediaProcessor:
         else:
             self.gemini_model = None
             logger.info("Using Groq exclusively for AI processing")
+
+    def _log_groq_usage(self, user_id: Optional[int], tool_name: str, response, extra: Dict = None):
+        if not user_id:
+            return
+        usage = extract_usage_from_openai_like(response)
+        if not usage:
+            return
+        try:
+            metadata = {"provider": "groq", "source": "media_processing"}
+            if extra:
+                metadata.update(extra)
+            log_ai_tokens(
+                user_id=user_id,
+                tool_name=tool_name,
+                prompt_tokens=usage.get("prompt_tokens", 0),
+                completion_tokens=usage.get("completion_tokens", 0),
+                total_tokens=usage.get("total_tokens", 0),
+                model="llama-3.3-70b-versatile",
+                metadata=metadata
+            )
+        except Exception:
+            pass
+
+    def _log_gemini_usage(self, user_id: Optional[int], tool_name: str, response, extra: Dict = None):
+        if not user_id:
+            return
+        usage = extract_usage_from_gemini_payload(response)
+        if not usage:
+            return
+        try:
+            metadata = {"provider": "gemini", "source": "media_processing"}
+            if extra:
+                metadata.update(extra)
+            log_ai_tokens(
+                user_id=user_id,
+                tool_name=tool_name,
+                prompt_tokens=usage.get("prompt_tokens", 0),
+                completion_tokens=usage.get("completion_tokens", 0),
+                total_tokens=usage.get("total_tokens", 0),
+                model="gemini-2.0-flash-exp",
+                metadata=metadata
+            )
+        except Exception:
+            pass
     
     async def process_youtube_video(self, url: str, options: Dict = None) -> Dict:
         """
@@ -203,7 +249,7 @@ class AIMediaProcessor:
                 "error": str(e)
             }
     
-    async def analyze_transcript_ai(self, transcript: str, options: Dict = None) -> Dict:
+    async def analyze_transcript_ai(self, transcript: str, options: Dict = None, user_id: Optional[int] = None) -> Dict:
         """AI analysis of transcript using Groq (FREE with high limits), falls back to Gemini"""
         try:
             # Try Groq first
@@ -249,6 +295,7 @@ Format as valid JSON."""
                         temperature=0.7,
                         max_tokens=4000
                     )
+                    self._log_groq_usage(user_id, "media_notes_ai", response, {"task": "analyze_transcript"})
                     
                     result_text = response.choices[0].message.content
                     
@@ -310,6 +357,7 @@ Provide a JSON response with:
 8. language: detected language code"""
 
                 response = self.gemini_model.generate_content(prompt)
+                self._log_gemini_usage(user_id, "media_notes_ai", response, {"task": "analyze_transcript"})
                 result_text = response.text
                 
                 try:
@@ -345,7 +393,7 @@ Provide a JSON response with:
                 "error": str(e)
             }
     
-    async def generate_notes_ai(self, transcript: str, analysis: Dict, style: str = "detailed", options: Dict = None) -> Dict:
+    async def generate_notes_ai(self, transcript: str, analysis: Dict, style: str = "detailed", options: Dict = None, user_id: Optional[int] = None) -> Dict:
         """
         Generate formatted notes using Groq with style-specific prompts
         
@@ -374,7 +422,7 @@ Provide a JSON response with:
             # For very long transcripts (>12k words), use chunking with Groq
             if word_count > 12000 and style == "detailed":
                 logger.info("Using chunked processing for long transcript")
-                return await self._generate_notes_chunked_groq(transcript, analysis, difficulty, subject, custom_instructions)
+                return await self._generate_notes_chunked_groq(transcript, analysis, difficulty, subject, custom_instructions, user_id=user_id)
             
             # Get style-specific prompt
             prompt = self._get_style_prompt(style, transcript, analysis, difficulty, subject, custom_instructions, word_count)
@@ -391,6 +439,7 @@ Provide a JSON response with:
                 temperature=0.7,
                 max_tokens=8000
             )
+            self._log_groq_usage(user_id, "media_notes_ai", response, {"task": "generate_notes", "style": style})
             
             html_content = response.choices[0].message.content
             
@@ -794,7 +843,7 @@ CRITICAL: Make these notes COMPREHENSIVE and DETAILED. Students should be able t
 
 Return ONLY the HTML content (no markdown code blocks, no ```html tags)."""
     
-    async def _generate_notes_chunked_groq(self, transcript: str, analysis: Dict, difficulty: str, subject: str, custom_instructions: str) -> Dict:
+    async def _generate_notes_chunked_groq(self, transcript: str, analysis: Dict, difficulty: str, subject: str, custom_instructions: str, user_id: Optional[int] = None) -> Dict:
         """Generate notes in chunks for very long transcripts using Groq, then combine"""
         try:
             # Split transcript into chunks (roughly 10k words each to minimize API calls)
@@ -862,6 +911,7 @@ Return ONLY HTML content (no markdown)."""
                             temperature=0.7,
                             max_tokens=8000
                         )
+                        self._log_groq_usage(user_id, "media_notes_ai", response, {"task": "generate_notes_chunk", "chunk": idx + 1})
                         
                         all_notes.append(response.choices[0].message.content)
                         break  # Success, exit retry loop
@@ -913,7 +963,7 @@ Return ONLY HTML content (no markdown)."""
                 "error": str(e)
             }
     
-    async def generate_flashcards_ai(self, transcript: str, analysis: Dict, count: int = 10) -> Dict:
+    async def generate_flashcards_ai(self, transcript: str, analysis: Dict, count: int = 10, user_id: Optional[int] = None) -> Dict:
         """Generate flashcards from content using Groq"""
         try:
             if not self.groq_client:
@@ -942,6 +992,7 @@ Return ONLY valid JSON array."""
                 temperature=0.7,
                 max_tokens=2000
             )
+            self._log_groq_usage(user_id, "flashcards_ai", response, {"task": "media_flashcards"})
             
             result_text = response.choices[0].message.content
             
@@ -966,7 +1017,7 @@ Return ONLY valid JSON array."""
                 "flashcards": []
             }
     
-    async def generate_quiz_ai(self, transcript: str, analysis: Dict, count: int = 10) -> Dict:
+    async def generate_quiz_ai(self, transcript: str, analysis: Dict, count: int = 10, user_id: Optional[int] = None) -> Dict:
         """Generate quiz questions from content using Groq"""
         try:
             if not self.groq_client:
@@ -1003,6 +1054,7 @@ Return ONLY valid JSON array."""
                 temperature=0.7,
                 max_tokens=3000
             )
+            self._log_groq_usage(user_id, "quiz_ai", response, {"task": "media_quiz"})
             
             result_text = response.choices[0].message.content
             

@@ -204,6 +204,7 @@ async def process_media(
         analysis_result = await ai_media_processor.analyze_transcript_ai(
             transcript_data["transcript"],
             {"subject": subject, "difficulty": difficulty},
+            user_id=user.id,
         )
 
         if not analysis_result.get("success"):
@@ -224,6 +225,7 @@ async def process_media(
                 "subject": subject,
                 "custom_instructions": custom_instructions,
             },
+            user_id=user.id,
         )
 
         if not notes_result.get("success"):
@@ -236,6 +238,7 @@ async def process_media(
                 transcript_data["transcript"],
                 analysis_data,
                 count=10,
+                user_id=user.id,
             )
             if flashcard_result.get("success"):
                 flashcards = flashcard_result.get("flashcards", [])
@@ -249,6 +252,7 @@ async def process_media(
                 transcript_data["transcript"],
                 analysis_data,
                 count=10,
+                user_id=user.id,
             )
             if quiz_result.get("success"):
                 quiz_questions = quiz_result.get("questions", [])
@@ -373,6 +377,7 @@ async def regenerate_notes(
     difficulty: str = Body("intermediate"),
     subject: str = Body("general"),
     custom_instructions: str = Body(None),
+    current_user: models.User = Depends(get_current_user),
 ):
     try:
         if not ai_media_processor:
@@ -387,6 +392,7 @@ async def regenerate_notes(
                 "subject": subject,
                 "custom_instructions": custom_instructions,
             },
+            user_id=current_user.id,
         )
 
         if not notes_result.get("success"):

@@ -407,6 +407,28 @@ class LearningPathService {
   }
 
   /**
+   * Update time spent on a node
+   */
+  async updateTimeSpent(pathId, nodeId, minutes) {
+    try {
+      const response = await fetch(`${this.baseUrl}/${pathId}/nodes/${nodeId}/time-spent`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ minutes })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update time spent');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Update time spent error:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Export node content to notes
    */
   async exportToNotes(pathId, nodeId, options = {}) {
@@ -506,4 +528,3 @@ class LearningPathService {
 }
 
 export default new LearningPathService();
-

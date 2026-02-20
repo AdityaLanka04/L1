@@ -2,11 +2,11 @@
 Activity Logging Middleware - Automatically track all API requests
 """
 from fastapi import Request
-from datetime import datetime
 import time
-from activity_logger import log_activity
-import json
 import os
+from jose import jwt, JWTError
+from activity_logger import log_activity, resolve_user_id
+from activity_context import set_activity_context, clear_activity_context
 
 # Map endpoints to tool names
 ENDPOINT_TOOL_MAP = {
@@ -39,26 +39,42 @@ ENDPOINT_TOOL_MAP = {
     '/api/update_profile': 'profile',
 }
 
+SECRET_KEY = os.getenv("SECRET_KEY", "your-super-secret-key-change-this-in-production")
+ALGORITHM = "HS256"
+
 def get_tool_name(path: str) -> str:
     """Extract tool name from endpoint path"""
     for endpoint, tool in ENDPOINT_TOOL_MAP.items():
         if endpoint in path:
             return tool
-    return 'other'
+    cleaned = path.replace('/api/', '').strip('/')
+    if not cleaned:
+        return 'other'
+    segment = cleaned.split('/')[0]
+    ai_hints = ('generate', 'analyze', 'analysis', 'summarize', 'summary', 'recommend', 'suggest', 'ai')
+    if any(hint in path for hint in ai_hints):
+        if segment.endswith('_ai'):
+            return segment
+        return f"{segment}_ai"
+    return segment
 
 def get_action(method: str, path: str) -> str:
     """Determine action from method and path"""
-    if 'generate' in path or 'analyze' in path or 'process' in path:
-        return 'ai_generate'
-    elif method == 'POST':
+    if method == 'POST':
         return 'create'
-    elif method == 'PUT' or method == 'PATCH':
+    if method == 'PUT' or method == 'PATCH':
         return 'update'
-    elif method == 'DELETE':
+    if method == 'DELETE':
         return 'delete'
-    elif method == 'GET':
+    if method == 'GET':
         return 'view'
     return 'action'
+
+
+def is_ai_tool(tool_name: str) -> bool:
+    if not tool_name:
+        return False
+    return tool_name.startswith('ai_') or tool_name.endswith('_ai') or 'ai' in tool_name
 
 async def log_request_activity(request: Request, call_next):
     """Middleware to log all API requests"""
@@ -80,9 +96,40 @@ async def log_request_activity(request: Request, call_next):
             match = re.search(r'user_id=([^&]+)', str(request.url))
             if match:
                 user_id = match.group(1)
+
+    # If still not found, decode from Authorization token
+    if not user_id or user_id == 'null':
+        auth_header = request.headers.get('Authorization', '')
+        if auth_header.startswith('Bearer '):
+            token = auth_header.split(' ', 1)[1].strip()
+            try:
+                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+                user_id = payload.get("sub")
+            except JWTError:
+                user_id = None
     
+    # Prepare context for AI usage logging
+    context_token = None
+    resolved_user_id = None
+    if user_id and user_id != 'null' and user_id.strip() and request.url.path.startswith('/api/') and not request.url.path.startswith('/api/admin/'):
+        resolved_user_id = resolve_user_id(user_id)
+        if resolved_user_id:
+            tool_name = get_tool_name(request.url.path)
+            action = get_action(request.method, request.url.path)
+            context_token = set_activity_context({
+                'user_id': resolved_user_id,
+                'tool_name': tool_name,
+                'action': action,
+                'endpoint': request.url.path,
+                'method': request.method
+            })
+
     # Process request
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    finally:
+        if context_token is not None:
+            clear_activity_context(context_token)
     
     # Calculate duration
     duration = time.time() - start_time
@@ -92,46 +139,24 @@ async def log_request_activity(request: Request, call_next):
     if user_id and user_id != 'null' and user_id.strip() and request.url.path.startswith('/api/') and not request.url.path.startswith('/api/admin/'):
         tool_name = get_tool_name(request.url.path)
         action = get_action(request.method, request.url.path)
-        
-        # Estimate tokens (rough estimate based on response time for AI calls)
-        tokens_used = 0
-        if 'ai' in tool_name or 'generate' in request.url.path:
-            # Rough estimate: 1 second = ~100 tokens
-            tokens_used = int(duration * 100)
-        
+
         metadata = {
             'endpoint': request.url.path,
             'method': request.method,
             'duration_seconds': round(duration, 2),
-            'status_code': response.status_code
+            'status_code': response.status_code,
+            'is_ai_endpoint': is_ai_tool(tool_name),
+            'event_type': 'request'
         }
-        
+
+        # Do not estimate tokens here; AI token usage is logged at the model call.
+        tokens_used = 0
+        if is_ai_tool(tool_name):
+            metadata['token_source'] = 'none'
+
         try:
-            # Convert email to user_id by looking up in database
-            import sqlite3
-            db_path = os.path.join(os.path.dirname(__file__), 'brainwave_tutor.db')
-            
-            try:
-                user_id_value = int(user_id)
-            except ValueError:
-                # It's an email, look up the user_id
-                try:
-                    conn = sqlite3.connect(db_path)
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT id FROM users WHERE email = ? OR username = ?", (user_id, user_id))
-                    result = cursor.fetchone()
-                    conn.close()
-                    if result:
-                        user_id_value = result[0]
-                    else:
-                        # User not found, skip logging
-                        return response
-                except Exception as db_error:
-                    print(f"Failed to lookup user_id: {db_error}")
-                    return response
-                
             log_activity(
-                user_id=user_id_value,
+                user_id=resolved_user_id or user_id,
                 tool_name=tool_name,
                 action=action,
                 tokens_used=tokens_used,
@@ -139,5 +164,5 @@ async def log_request_activity(request: Request, call_next):
             )
         except Exception as e:
             print(f"Failed to log activity: {e}")
-    
+
     return response

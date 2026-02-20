@@ -103,6 +103,7 @@ from routes import (
     chat,
     notes,
     flashcards,
+    learningpath,
     questions,
     media,
     roadmaps,
@@ -123,6 +124,7 @@ app.include_router(auth.router)
 app.include_router(chat.router)
 app.include_router(notes.router)
 app.include_router(flashcards.router)
+app.include_router(learningpath.router)
 app.include_router(questions.router)
 app.include_router(media.router)
 app.include_router(roadmaps.router)
@@ -150,13 +152,6 @@ try:
     from deps import unified_ai
     from database import get_db
     register_question_bank_api(app, unified_ai, get_db)
-except ImportError:
-    pass
-
-try:
-    from learning_paths_api import register_learning_paths_api
-    from deps import unified_ai
-    register_learning_paths_api(app, unified_ai)
 except ImportError:
     pass
 
@@ -226,6 +221,14 @@ async def startup():
         logger.info("Flashcard graph initialized")
     except Exception as e:
         logger.warning(f"Flashcard graph init failed: {e}")
+
+    try:
+        from deps import unified_ai as _ai
+        from learningpath_graph import create_learningpath_graph
+        create_learningpath_graph(_ai, SessionLocal)
+        logger.info("LearningPath graph initialized")
+    except Exception as e:
+        logger.warning(f"LearningPath graph init failed: {e}")
 
     try:
         from deps import unified_ai as _ai
