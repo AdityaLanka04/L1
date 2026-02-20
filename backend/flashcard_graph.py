@@ -21,6 +21,8 @@ class FlashcardGenState(TypedDict, total=False):
     additional_specs: str
     student_weaknesses: list[str]
     student_strengths: list[str]
+    concept_prerequisites: list[str]
+    common_mistakes: list[str]
     built_prompt: str
     flashcards_json: list[dict]
     _ai_client: Any
@@ -65,6 +67,9 @@ async def fetch_context(state: FlashcardGenState) -> dict:
         except Exception as e:
             logger.warning(f"DB context fetch failed: {e}")
 
+    prerequisites: list[str] = []
+    mistakes: list[str] = []
+
     from tutor import neo4j_store
     if neo4j_store.available():
         try:
@@ -75,10 +80,23 @@ async def fetch_context(state: FlashcardGenState) -> dict:
             for c in concepts.get("mastered", []):
                 if c not in strengths:
                     strengths.append(c)
+
+            # Get prerequisites and common mistakes for the specific topic
+            topic = state.get("topic", "")
+            topic_concepts = [w for w in topic.split() if len(w) > 3]
+            if topic_concepts:
+                ctx = await neo4j_store.get_concept_context(topic_concepts[:4])
+                prerequisites = ctx.get("prerequisites", [])
+                mistakes = ctx.get("mistakes", [])
         except Exception as e:
             logger.warning(f"Neo4j context fetch failed: {e}")
 
-    return {"student_weaknesses": weaknesses, "student_strengths": strengths}
+    return {
+        "student_weaknesses": weaknesses,
+        "student_strengths": strengths,
+        "concept_prerequisites": prerequisites,
+        "common_mistakes": mistakes,
+    }
 
 
 DIFFICULTY_GUIDES = {
@@ -137,6 +155,8 @@ def build_prompt(state: FlashcardGenState) -> dict:
         additional_specs = ""
     weaknesses = state.get("student_weaknesses", [])
     strengths = state.get("student_strengths", [])
+    prerequisites = state.get("concept_prerequisites", [])
+    mistakes = state.get("common_mistakes", [])
 
     parts = []
 
@@ -167,6 +187,20 @@ def build_prompt(state: FlashcardGenState) -> dict:
         parts.append(
             f"STUDENT STRENGTHS: {', '.join(strengths[:5])}\n"
             "Skip overly basic questions on these topics — challenge the student.\n"
+        )
+
+    # Concept prerequisites from knowledge graph
+    if prerequisites:
+        parts.append(
+            f"PREREQUISITE CONCEPTS (from knowledge graph): {', '.join(prerequisites[:5])}\n"
+            "Include 1-2 cards covering these foundational concepts so the student has the necessary base.\n"
+        )
+
+    # Common mistakes — target them explicitly
+    if mistakes:
+        parts.append(
+            f"COMMON MISTAKES STUDENTS MAKE: {', '.join(mistakes[:5])}\n"
+            "Include cards specifically testing these pitfalls so the student learns to avoid them.\n"
         )
 
     # Additional specifications

@@ -255,8 +255,36 @@ def generate_filter_description(filters: dict) -> str:
 
 
 def _clean_prompt_topic(text: str) -> str:
-    cleaned = re.sub(r'^(AI Generated:|Cerbyl:|Flashcards?:|Notes?:)\s*', '', text, flags=re.IGNORECASE)
+    cleaned = re.sub(r'^(AI Generated:|Cerbyl:|Flashcards?:|Notes?:|Practice:\s*)', '', text, flags=re.IGNORECASE)
     return cleaned.strip()
+
+
+# Words that indicate a chat title is NOT a real study topic
+_JUNK_TOPIC_WORDS = frozenset({
+    "hi", "hello", "hey", "yo", "yoooo", "yoo", "yooo", "sup", "what", "ok", "okay",
+    "test", "testing", "lol", "hmm", "hm", "uh", "um", "new chat", "untitled",
+    "chat", "session", "help", "bye", "thanks", "thank", "haha", "cool",
+})
+
+
+def _is_valid_topic(text: str) -> bool:
+    """Return True only if text looks like a genuine study topic."""
+    if not text:
+        return False
+    cleaned = text.strip()
+    if len(cleaned) < 4:
+        return False
+    # Single-word topics that are obviously not subjects
+    words = cleaned.lower().split()
+    if len(words) == 1 and words[0] in _JUNK_TOPIC_WORDS:
+        return False
+    # All-digit or mostly special characters
+    if re.match(r'^[\d\s\W]+$', cleaned):
+        return False
+    # Title starts with a junk word and is short (e.g. "yo math" length 2 words but "yo" is junk)
+    if len(words) <= 2 and words[0] in _JUNK_TOPIC_WORDS:
+        return False
+    return True
 
 
 def _extract_topic_from_episode(entry: dict) -> Optional[str]:
@@ -264,14 +292,20 @@ def _extract_topic_from_episode(entry: dict) -> Optional[str]:
     for key in ("topic", "note_title", "set_title", "concept"):
         value = meta.get(key)
         if value:
-            return _clean_prompt_topic(str(value))
+            topic = _clean_prompt_topic(str(value))
+            if _is_valid_topic(topic):
+                return topic
     doc = entry.get("document", "")
     match = re.search(r"\"([^\"]+)\"", doc)
     if match:
-        return _clean_prompt_topic(match.group(1))
+        topic = _clean_prompt_topic(match.group(1))
+        if _is_valid_topic(topic):
+            return topic
     match = re.search(r"about ([^\.]+)", doc, flags=re.IGNORECASE)
     if match:
-        return _clean_prompt_topic(match.group(1))
+        topic = _clean_prompt_topic(match.group(1))
+        if _is_valid_topic(topic):
+            return topic
     return None
 
 
@@ -285,29 +319,32 @@ def _build_chroma_prompts(user_id: str) -> list:
         return []
 
     episodes = []
-    for source in ("note_activity", "flashcard_created", "chat", "flashcard_review"):
-        episodes.extend(chroma_store.retrieve_recent_by_source(user_id, source, top_k=6))
+    for source in ("note_activity", "flashcard_created", "chat", "flashcard_review", "quiz_created", "quiz_completed"):
+        episodes.extend(chroma_store.retrieve_recent_by_source(user_id, source, top_k=5))
 
     prompts = []
     for entry in episodes:
         topic = _extract_topic_from_episode(entry)
-        if not topic:
-            continue
-        source = (entry.get("metadata") or {}).get("source", "")
+        meta = entry.get("metadata") or {}
+        source = meta.get("source", "")
+
         if source == "note_activity":
+            if not topic:
+                continue
             prompts.append({
                 "text": f"create flashcards on {topic}",
                 "reason": "Turn recent notes into active recall",
                 "priority": "high"
             })
         elif source == "flashcard_created":
+            if not topic:
+                continue
             prompts.append({
-                "text": f"create a quiz on {topic}",
+                "text": f"quiz me on {topic}",
                 "reason": "Test your flashcard knowledge",
                 "priority": "high"
             })
         elif source == "flashcard_review":
-            meta = entry.get("metadata") or {}
             was_correct = str(meta.get("was_correct", "")).lower() == "false"
             marked = meta.get("action") == "marked_for_review"
             if was_correct or marked:
@@ -316,16 +353,51 @@ def _build_chroma_prompts(user_id: str) -> list:
                     "reason": "Focus on difficult cards",
                     "priority": "high"
                 })
-            else:
+            elif topic:
                 prompts.append({
                     "text": f"review flashcards on {topic}",
                     "reason": "Reinforce recent topics",
                     "priority": "medium"
                 })
-        else:
+        elif source == "quiz_created":
+            if not topic:
+                continue
+            score = meta.get("score")
+            if score is not None and float(score) < 60:
+                prompts.append({
+                    "text": f"create flashcards on {topic}",
+                    "reason": f"Reinforce — you scored {score}% on this quiz",
+                    "priority": "high"
+                })
+            else:
+                prompts.append({
+                    "text": f"quiz me on {topic}",
+                    "reason": "Practice this topic again",
+                    "priority": "medium"
+                })
+        elif source == "quiz_completed":
+            if not topic:
+                continue
+            score = meta.get("score")
+            if score is not None and float(score) < 70:
+                prompts.append({
+                    "text": f"review flashcards on {topic}",
+                    "reason": f"Scored {score}% — review will help",
+                    "priority": "high"
+                })
+            elif topic:
+                prompts.append({
+                    "text": f"create harder questions on {topic}",
+                    "reason": "Ready for the next level",
+                    "priority": "medium"
+                })
+        elif source == "chat":
+            # Chat topics: suggest flashcards or notes, never raw "explain X step-by-step"
+            if not topic:
+                continue
             prompts.append({
-                "text": f"explain {topic} step-by-step",
-                "reason": "Continue learning this topic",
+                "text": f"create notes on {topic}",
+                "reason": "Document what you discussed",
                 "priority": "medium"
             })
 
@@ -1678,13 +1750,20 @@ async def get_personalized_prompts(
             ).order_by(models.ChatSession.updated_at.desc()).limit(10).all()
 
             if recent_chats:
-                meaningful_chats = [c for c in recent_chats if c.title and c.title.lower() not in ['new chat', 'untitled', '']]
+                meaningful_chats = [
+                    c for c in recent_chats
+                    if c.title and _is_valid_topic(c.title)
+                    and c.title.lower() not in ['new chat', 'untitled', '']
+                ]
                 if meaningful_chats:
                     selected_chats = random.sample(meaningful_chats, min(2, len(meaningful_chats)))
                     for chat in selected_chats:
+                        clean_title = _clean_prompt_topic(chat.title)
+                        if not _is_valid_topic(clean_title):
+                            continue
                         topic_prompts.append({
-                            "text": f"explain {chat.title} step-by-step",
-                            "reason": "Continue learning this topic",
+                            "text": f"create notes on {clean_title}",
+                            "reason": "Document your recent discussion",
                             "priority": "medium"
                         })
 

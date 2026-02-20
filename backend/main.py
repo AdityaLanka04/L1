@@ -236,6 +236,22 @@ async def startup():
         logger.warning(f"SearchHub graph init failed: {e}")
 
     try:
+        from deps import unified_ai as _ai
+        from quiz_graph import create_quiz_graph
+        create_quiz_graph(_ai, SessionLocal)
+        logger.info("Quiz graph initialized")
+    except Exception as e:
+        logger.warning(f"Quiz graph init failed: {e}")
+
+    try:
+        from deps import unified_ai as _ai
+        from note_graph import create_note_graph
+        create_note_graph(_ai, SessionLocal)
+        logger.info("Note graph initialized")
+    except Exception as e:
+        logger.warning(f"Note graph init failed: {e}")
+
+    try:
         from tutor import neo4j_store
         await neo4j_store.connect()
         if neo4j_store.available():

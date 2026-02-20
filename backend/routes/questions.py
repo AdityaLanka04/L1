@@ -61,13 +61,23 @@ def build_user_profile_dict(user, comprehensive_profile=None) -> Dict[str, Any]:
 async def generate_practice_questions(
     payload: dict = Body(...), db: Session = Depends(get_db)
 ):
+    """Generate practice questions using the QuizGraph (LangGraph pipeline).
+
+    The graph fetches the student's weaknesses, strengths, and recent quiz
+    history from the DB + Neo4j before building a personalised prompt and
+    calling the AI — the same pattern as the FlashcardGraph.
+    """
     try:
         user_id = payload.get("user_id")
         topic = payload.get("topic") or payload.get("content", "")
-        question_count = payload.get("question_count", 10)
-        difficulty_mix = payload.get("difficulty_mix", {"easy": 3, "medium": 5, "hard": 2})
+        question_count = int(payload.get("question_count", 10))
+        # Support both old difficulty_mix and new single-difficulty param
+        difficulty = payload.get("difficulty", "mixed")
         question_types = payload.get("question_types", ["multiple_choice"])
         title = payload.get("title", f"Practice: {topic[:50]}")
+        content = payload.get("content", "")
+        generation_type = payload.get("generation_type", "topic")
+        additional_specs = payload.get("additional_specs", "")
 
         user = get_user_by_username(db, user_id) or get_user_by_email(db, user_id)
         if not user:
@@ -76,19 +86,38 @@ async def generate_practice_questions(
         if not topic:
             raise HTTPException(status_code=400, detail="Topic or content required")
 
-        type_instructions = []
-        if "multiple_choice" in question_types:
-            type_instructions.append("multiple choice questions with 4 options")
-        if "true_false" in question_types:
-            type_instructions.append("true/false questions")
-        if "short_answer" in question_types:
-            type_instructions.append("short answer questions")
+        # ── 1. Try the quiz graph (preferred) ───────────────────────────────
+        questions_data = []
+        try:
+            from quiz_graph import get_quiz_graph
+            quiz_graph = get_quiz_graph()
+            if quiz_graph:
+                questions_data = await quiz_graph.invoke(
+                    user_id=str(user.id),
+                    topic=topic,
+                    content=content,
+                    generation_type=generation_type,
+                    question_count=question_count,
+                    difficulty=difficulty,
+                    question_types=question_types,
+                    additional_specs=additional_specs,
+                )
+        except Exception as graph_err:
+            logger.warning(f"Quiz graph invoke failed, falling back to direct: {graph_err}")
 
-        type_str = (
-            ", ".join(type_instructions) if type_instructions else "multiple choice questions"
-        )
+        # ── 2. Fallback: direct AI call (backwards compat) ───────────────────
+        if not questions_data:
+            difficulty_mix = payload.get("difficulty_mix", {"easy": 3, "medium": 5, "hard": 2})
+            type_instructions = []
+            if "multiple_choice" in question_types:
+                type_instructions.append("multiple choice questions with 4 options")
+            if "true_false" in question_types:
+                type_instructions.append("true/false questions")
+            if "short_answer" in question_types:
+                type_instructions.append("short answer questions")
+            type_str = ", ".join(type_instructions) if type_instructions else "multiple choice questions"
 
-        prompt = f"""Generate {question_count} educational practice questions about: {topic}
+            fallback_prompt = f"""Generate {question_count} educational practice questions about: {topic}
 
 **DIFFICULTY DISTRIBUTION**:
 - Easy: {difficulty_mix.get('easy', 3)} questions (basic recall and understanding)
@@ -97,44 +126,35 @@ async def generate_practice_questions(
 
 **QUESTION TYPES**: Create {type_str}
 
-**REQUIREMENTS**:
-1. Questions should test understanding of key concepts
-2. Include detailed explanations for each answer
-3. Make questions clear and unambiguous
-4. Ensure correct answers are accurate
-5. For multiple choice, make distractors plausible but clearly wrong
-
 **OUTPUT FORMAT** (JSON array only, no markdown):
 [
   {{
     "question_text": "Clear, specific question?",
     "question_type": "multiple_choice|true_false|short_answer",
-    "correct_answer": "Correct answer (for MC use A/B/C/D, for T/F use true/false)",
+    "correct_answer": "Full text of the correct option",
     "options": ["Option A", "Option B", "Option C", "Option D"],
     "difficulty": "easy|medium|hard",
-    "explanation": "Detailed explanation of why this answer is correct",
+    "explanation": "Why this answer is correct",
     "topic": "{topic[:100]}"
   }}
 ]
 
-Generate exactly {question_count} high-quality questions now:"""
+Generate exactly {question_count} high-quality questions:"""
 
-        response_text = call_ai(prompt, max_tokens=4000, temperature=0.7)
-        response_text = process_math_in_response(response_text)
-
-        try:
+            response_text = call_ai(fallback_prompt, max_tokens=4000, temperature=0.7)
+            response_text = process_math_in_response(response_text)
             response_text = re.sub(r'^```(?:json)?\n?', '', response_text, flags=re.MULTILINE)
             response_text = re.sub(r'\n?```$', '', response_text, flags=re.MULTILINE)
-
             json_match = re.search(r'\[.*\]', response_text, re.DOTALL)
             if json_match:
                 questions_data = json.loads(json_match.group())
             else:
-                raise ValueError("No JSON array found in response")
-        except Exception as e:
-            logger.error(f"Failed to parse questions: {str(e)}, response: {response_text[:500]}")
-            raise HTTPException(status_code=500, detail="Failed to parse AI response")
+                raise HTTPException(status_code=500, detail="Failed to parse AI response")
 
+        if not questions_data:
+            raise HTTPException(status_code=500, detail="No questions were generated")
+
+        # ── 3. Persist to database ────────────────────────────────────────────
         question_set = models.QuestionSet(
             user_id=user.id,
             title=title,
@@ -142,7 +162,6 @@ Generate exactly {question_count} high-quality questions now:"""
             source_type="custom",
             total_questions=len(questions_data),
         )
-
         db.add(question_set)
         db.commit()
         db.refresh(question_set)
@@ -163,6 +182,28 @@ Generate exactly {question_count} high-quality questions now:"""
 
         db.commit()
         db.refresh(question_set)
+
+        # ── 4. Log to ChromaDB ────────────────────────────────────────────────
+        try:
+            from tutor import chroma_store
+            if chroma_store.available():
+                chroma_store.write_episode(
+                    user_id=str(user.id),
+                    summary=(
+                        f"Quiz created: \"{title}\" on {topic}. "
+                        f"{len(questions_data)} questions, difficulty: {difficulty}."
+                    ),
+                    metadata={
+                        "source": "quiz_created",
+                        "topic": topic[:100],
+                        "title": title[:100],
+                        "question_count": len(questions_data),
+                        "difficulty": difficulty,
+                        "question_set_id": str(question_set.id),
+                    },
+                )
+        except Exception as chroma_err:
+            logger.warning(f"Chroma write failed on quiz create: {chroma_err}")
 
         questions = (
             db.query(models.Question)
@@ -556,6 +597,56 @@ async def submit_question_answers(
             question_set.best_score = score
 
         db.commit()
+
+        topic = (question_set.title or "").replace("Practice: ", "").strip()
+
+        # Log quiz completion to both episodic memory and quiz_history collection
+        try:
+            from tutor import chroma_store
+            if chroma_store.available():
+                # Episodic memory — quiz_completed source (drives suggestions)
+                chroma_store.write_episode(
+                    user_id=str(question_set.user_id),
+                    summary=(
+                        f"Quiz completed: \"{question_set.title}\" — scored {score:.1f}% "
+                        f"({correct_count}/{len(questions)} correct)."
+                    ),
+                    metadata={
+                        "source": "quiz_completed",
+                        "topic": topic[:100],
+                        "title": (question_set.title or "")[:100],
+                        "score": str(round(score, 1)),
+                        "correct": str(correct_count),
+                        "total": str(len(questions)),
+                        "question_set_id": str(question_set_id),
+                    },
+                )
+                # Dedicated quiz_history collection — for adaptive logic
+                chroma_store.write_quiz_result(
+                    user_id=str(question_set.user_id),
+                    topic=topic,
+                    score=score,
+                    correct=correct_count,
+                    total=len(questions),
+                    metadata={"question_set_id": str(question_set_id)},
+                )
+        except Exception as chroma_err:
+            logger.warning(f"Chroma write failed on quiz submit: {chroma_err}")
+
+        # Write mastery/struggle back to Neo4j knowledge graph
+        try:
+            from tutor import neo4j_store
+            if neo4j_store.available() and topic:
+                if score >= 80:
+                    await neo4j_store.update_mastery(
+                        str(question_set.user_id),
+                        topic[:100],
+                        confidence=min(score / 100.0, 1.0),
+                    )
+                elif score < 60:
+                    await neo4j_store.update_struggle(str(question_set.user_id), topic[:100])
+        except Exception as neo4j_err:
+            logger.warning(f"Neo4j mastery write failed on quiz submit: {neo4j_err}")
 
         return {
             "status": "success",

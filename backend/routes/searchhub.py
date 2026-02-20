@@ -191,6 +191,26 @@ def _infer_action(query: str) -> Dict[str, Any]:
     return {"action": "search", "confidence": 0.6}
 
 
+_JUNK_TOPICS = frozenset({
+    "hi", "hello", "hey", "yo", "yoooo", "yoo", "yooo", "sup", "what", "ok", "okay",
+    "test", "testing", "lol", "hmm", "hm", "uh", "um", "new chat", "untitled",
+    "chat", "session", "help", "bye", "thanks", "thank", "haha", "cool",
+})
+
+
+def _is_valid_topic(text: str) -> bool:
+    if not text or len(text.strip()) < 4:
+        return False
+    words = text.strip().lower().split()
+    if len(words) == 1 and words[0] in _JUNK_TOPICS:
+        return False
+    if len(words) <= 2 and words[0] in _JUNK_TOPICS:
+        return False
+    if re.match(r'^[\d\s\W]+$', text.strip()):
+        return False
+    return True
+
+
 def _build_topic_suggestions(topic: str) -> List[str]:
     return [
         f"create flashcards on {topic}",
@@ -205,14 +225,20 @@ def _extract_topic_from_episode(entry: dict) -> Optional[str]:
     for key in ("topic", "note_title", "set_title", "concept"):
         value = meta.get(key)
         if value:
-            return _clean_topic(str(value))
+            topic = _clean_topic(str(value))
+            if _is_valid_topic(topic):
+                return topic
     doc = entry.get("document", "")
     match = re.search(r"\"([^\"]+)\"", doc)
     if match:
-        return _clean_topic(match.group(1))
+        topic = _clean_topic(match.group(1))
+        if _is_valid_topic(topic):
+            return topic
     match = re.search(r"about ([^\.]+)", doc, flags=re.IGNORECASE)
     if match:
-        return _clean_topic(match.group(1))
+        topic = _clean_topic(match.group(1))
+        if _is_valid_topic(topic):
+            return topic
     return None
 
 
@@ -225,23 +251,68 @@ def _get_chroma_suggestions(user_id: str, query: Optional[str], limit: int = 8) 
     if not chroma_store.available():
         return []
 
+    # Collect recent episodes across all tracked sources
     episodes: List[dict] = []
     if query:
         episodes = chroma_store.retrieve_episodes_filtered(user_id, query, top_k=limit)
     else:
-        for source in ("note_activity", "flashcard_created", "chat", "flashcard_review"):
+        for source in ("note_activity", "flashcard_created", "chat", "flashcard_review",
+                       "quiz_created", "quiz_completed"):
             episodes.extend(chroma_store.retrieve_recent_by_source(user_id, source, top_k=4))
 
-    topics = []
-    for entry in episodes:
-        topic = _extract_topic_from_episode(entry)
-        if topic:
-            topics.append(topic)
-
-    topics = _dedupe_preserve(topics)
+    # Build smart, source-aware suggestions
     suggestions: List[str] = []
-    for topic in topics:
-        suggestions.extend(_build_topic_suggestions(topic))
+    seen_topics: set = set()
+
+    for entry in episodes:
+        meta = entry.get("metadata") or {}
+        source = meta.get("source", "")
+        topic = _extract_topic_from_episode(entry)
+
+        if not topic or topic.lower() in seen_topics:
+            continue
+        seen_topics.add(topic.lower())
+
+        if source == "note_activity":
+            suggestions.append(f"create flashcards on {topic}")
+            suggestions.append(f"quiz me on {topic}")
+        elif source == "flashcard_created":
+            suggestions.append(f"quiz me on {topic}")
+            suggestions.append(f"review flashcards on {topic}")
+        elif source == "flashcard_review":
+            was_correct = str(meta.get("was_correct", "")).lower() == "false"
+            marked = meta.get("action") == "marked_for_review"
+            if was_correct or marked:
+                suggestions.append("review weak flashcards")
+            else:
+                suggestions.append(f"review flashcards on {topic}")
+        elif source in ("quiz_created", "quiz_completed"):
+            try:
+                score = float(meta.get("score", 100))
+            except (ValueError, TypeError):
+                score = 100.0
+            if score < 65:
+                suggestions.append(f"create flashcards on {topic}")
+                suggestions.append(f"review flashcards on {topic}")
+            elif score < 80:
+                suggestions.append(f"quiz me on {topic}")
+            else:
+                suggestions.append(f"create notes on {topic}")
+        elif source == "chat":
+            suggestions.append(f"create flashcards on {topic}")
+
+        if len(suggestions) >= limit:
+            break
+
+    # Pull weak quiz topics and prepend high-priority suggestions
+    try:
+        weak_topics = chroma_store.get_weak_quiz_topics(user_id, top_k=2)
+        for wt in weak_topics:
+            if _is_valid_topic(wt):
+                suggestions.insert(0, f"review flashcards on {wt}")
+                suggestions.insert(0, f"quiz me on {wt}")
+    except Exception:
+        pass
 
     return _dedupe_preserve(suggestions)[:limit]
 
@@ -256,21 +327,38 @@ async def _create_note_with_ai(
 ) -> dict:
     note_title = topic.strip() if topic else "New Note"
     if not content:
-        depth_lower = (depth or "standard").lower()
-        depth_guidance = {
-            "brief": "Keep it concise with key bullets and short sections.",
-            "deep": "Go in depth with detailed explanations and examples.",
-        }
-        prompt = (
-            f"Create study notes on: {note_title}\n\n"
-            f"Tone: {tone}\n"
-            f"{depth_guidance.get(depth_lower, 'Use clear headers, bullets, and examples when helpful.')}\n"
-            f"Format with markdown headers and bullet points."
-        )
+        # Preferred: personalised NoteGraph (uses Neo4j + DB context)
         try:
-            content = call_ai(prompt, max_tokens=2000, temperature=0.7).strip()
-        except Exception:
-            content = f"# {note_title}\n\n- Key ideas\n- Definitions\n- Examples"
+            from note_graph import get_note_graph
+            note_graph_instance = get_note_graph()
+            if note_graph_instance:
+                content = await note_graph_instance.invoke(
+                    user_id=str(user.id),
+                    topic=note_title,
+                    generation_type="topic",
+                    depth=depth or "standard",
+                    tone=tone or "professional",
+                )
+        except Exception as e:
+            logger.warning(f"Note graph invoke failed: {e}")
+
+        # Fallback: plain AI call
+        if not content:
+            depth_lower = (depth or "standard").lower()
+            depth_guidance = {
+                "brief": "Keep it concise with key bullets and short sections.",
+                "deep": "Go in depth with detailed explanations and examples.",
+            }
+            prompt = (
+                f"Create study notes on: {note_title}\n\n"
+                f"Tone: {tone}\n"
+                f"{depth_guidance.get(depth_lower, 'Use clear headers, bullets, and examples when helpful.')}\n"
+                f"Format with markdown headers and bullet points."
+            )
+            try:
+                content = call_ai(prompt, max_tokens=2000, temperature=0.7).strip()
+            except Exception:
+                content = f"# {note_title}\n\n- Key ideas\n- Definitions\n- Examples"
 
     new_note = models.Note(user_id=user.id, title=note_title, content=content or "")
     db.add(new_note)
