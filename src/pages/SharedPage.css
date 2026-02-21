@@ -203,7 +203,7 @@
   transition: var(--sp-transition);
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   background: transparent;
   border: 1px solid transparent;
   color: var(--text-secondary);
@@ -307,7 +307,7 @@
   position: relative;
   overflow: hidden;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   box-shadow: 0 4px 12px var(--sp-accent-glow);
 }
 
@@ -423,7 +423,7 @@
   cursor: pointer;
   transition: var(--sp-transition);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -538,7 +538,7 @@
   font-weight: 700;
   border-radius: 32px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   border: 1.5px solid;
 }
 
@@ -657,7 +657,7 @@
   font-size: 10px;
   color: var(--sp-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-weight: 600;
 }
 
@@ -708,7 +708,7 @@
   transition: var(--sp-transition-bounce);
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   box-shadow: 
     0 2px 8px rgba(0, 0, 0, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);

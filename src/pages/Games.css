@@ -115,7 +115,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   background: transparent;
   border: none;
   color: var(--text-primary, #fff);
@@ -287,7 +287,7 @@
   color: var(--text-secondary);
   margin: 0;
   text-transform: lowercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .games-container {
@@ -355,7 +355,7 @@
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   position: relative;
   z-index: 1;
 }
@@ -466,7 +466,7 @@
   font-weight: 700;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   padding: 4px 10px;
   background: rgba(215, 179, 140, 0.1);
   border: 1px solid var(--accent);
@@ -477,7 +477,7 @@
   font-weight: 700;
   color: var(--success);
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   padding: 4px 10px;
   background: rgba(16, 185, 129, 0.1);
   border: 1px solid var(--success);
@@ -542,7 +542,7 @@
   font-weight: 700;
   color: var(--success);
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
 }
 
 .reward-value {
@@ -700,7 +700,7 @@
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
 }
 
 .modal-stat-value {
@@ -757,7 +757,7 @@
   font-weight: 700;
   color: var(--success);
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
 }
 
 .modal-reward-value {
@@ -810,7 +810,7 @@
   font-size: 13px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
@@ -968,7 +968,7 @@
   font-weight: 800;
   color: var(--success);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .check-icon {

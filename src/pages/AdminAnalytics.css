@@ -384,7 +384,7 @@
   color: var(--aa-muted);
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .aa-tool-name {
@@ -420,7 +420,7 @@
   font-size: 11px;
   color: var(--aa-accent);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .aa-users-table td {

@@ -111,7 +111,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .cw-nav-btn-ghost {
@@ -152,7 +152,7 @@
   font-size: 10px;
   color: var(--text-primary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   opacity: 0.7;
 }
 
@@ -362,7 +362,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .cw-nav-btn-ghost {
@@ -403,7 +403,7 @@
   font-size: 10px;
   color: var(--text-primary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   opacity: 0.7;
 }
 
@@ -639,7 +639,7 @@
   font-weight: 700;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   padding: 4px 10px;
   background: color-mix(in srgb, var(--accent) 15%, transparent);
   border-radius: 4px;
@@ -688,7 +688,7 @@
   font-weight: 600;
   color: var(--text-primary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   opacity: 0.7;
 }
 
@@ -773,7 +773,7 @@
   font-size: 11px;
   color: var(--cw-accent);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .cw-detail-close {
@@ -811,7 +811,7 @@
   font-weight: 600;
   color: var(--cw-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   margin-bottom: 12px;
 }
 
@@ -1016,7 +1016,7 @@
   font-weight: 600;
   color: var(--cw-text-primary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .cw-analytics-content {
@@ -1957,7 +1957,7 @@
   font-weight: 600;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -1995,7 +1995,7 @@
   font-weight: 700;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   width: fit-content;
   font-family: 'Inter', sans-serif;
 }
@@ -2042,7 +2042,7 @@
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -2155,7 +2155,7 @@
   font-weight: 600;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -2184,7 +2184,7 @@
   font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -2321,7 +2321,7 @@
   font-weight: 700;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   margin-bottom: 12px;
   font-family: 'Inter', sans-serif;
 }
@@ -2711,7 +2711,7 @@
 .cw-resource-title {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
+  letter-spacing: 2px !important;
   font-weight: 700 !important;
 }
 
@@ -2734,7 +2734,7 @@
 
 .cw-nav-text,
 .sidebar-heading {
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
 }
 
 /* Cards with Gradients */
@@ -3015,7 +3015,7 @@
   font-size: 11px !important;
   font-weight: 600 !important;
   text-transform: uppercase !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
 }
 
 .cw-nav-icon {
@@ -3035,7 +3035,7 @@
 .cw-subtitle {
   font-size: 9px !important;
   font-weight: 600 !important;
-  letter-spacing: 1.5px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
@@ -3052,7 +3052,7 @@
 .cw-stat-label {
   font-size: 9px !important;
   font-weight: 600 !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
@@ -3060,7 +3060,7 @@
 .cw-nav-btn {
   font-size: 11px !important;
   font-weight: 600 !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
   padding: 8px 16px !important;
   height: 36px !important;
 }
@@ -3076,7 +3076,7 @@
 .legend-title {
   font-size: 9px !important;
   font-weight: 700 !important;
-  letter-spacing: 1.5px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
@@ -3091,7 +3091,7 @@
 .cw-card-category {
   font-size: 9px !important;
   font-weight: 700 !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
@@ -3129,7 +3129,7 @@
 .cw-detail-action-btn {
   font-size: 11px !important;
   font-weight: 600 !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
@@ -3137,7 +3137,7 @@
 .cw-form-label {
   font-size: 10px !important;
   font-weight: 700 !important;
-  letter-spacing: 1.5px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
@@ -3148,7 +3148,7 @@
 .cw-mastery-label {
   font-size: 9px !important;
   font-weight: 700 !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
@@ -3156,7 +3156,7 @@
 .cw-resource-type-badge {
   font-size: 9px !important;
   font-weight: 700 !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
@@ -3195,7 +3195,7 @@
 .cw-detail-category {
   font-size: 9px !important;
   font-weight: 600 !important;
-  letter-spacing: 1.5px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
@@ -3226,14 +3226,14 @@
 .tooltip-category {
   font-size: 9px !important;
   font-weight: 600 !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
 .tooltip-stat-label {
   font-size: 8px !important;
   font-weight: 700 !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
   text-transform: uppercase !important;
 }
 
@@ -3241,7 +3241,7 @@
 .zoom-level {
   font-size: 11px !important;
   font-weight: 600 !important;
-  letter-spacing: 0.5px !important;
+  letter-spacing: 2px !important;
 }
 
 .zoom-hint,

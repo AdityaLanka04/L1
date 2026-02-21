@@ -23,11 +23,27 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 40px;
+  padding: 0 40px;
   background: color-mix(in srgb, var(--bg-primary) 80%, transparent);
   backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
   flex-shrink: 0;
+  height: 70px;
+  min-height: 70px;
+  max-height: 70px;
+}
+
+/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
+[data-theme-mode="dark"] .cd-header {
+  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
+}
+
+[data-theme-mode="light"] .cd-header {
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
 }
 
 .cd-header-left {
@@ -73,7 +89,7 @@
   font-weight: 700;
   color: #FF9800;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .cd-header-right {
@@ -93,7 +109,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   border: none;
   border-radius: 12px;
 }
@@ -820,7 +836,7 @@
   color: var(--accent);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .cd-modal-header button {
@@ -853,7 +869,7 @@
   color: var(--accent);
   margin-bottom: 8px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .cd-modal-body input {
@@ -913,7 +929,7 @@
   font-weight: 700;
   font-family: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s ease;
 }

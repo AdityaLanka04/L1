@@ -134,7 +134,7 @@
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s;
   border: none;
@@ -162,7 +162,7 @@
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .breadcrumb-link {
@@ -199,7 +199,7 @@
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s;
   border: none;
@@ -299,7 +299,7 @@
   font-size: 9px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
   background: color-mix(in srgb, var(--text-secondary) 10%, transparent);
   color: var(--text-secondary);
@@ -353,7 +353,7 @@
   font-weight: 700;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .stat-item svg {
@@ -403,7 +403,7 @@
   color: var(--accent);
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .progress-section {
@@ -532,7 +532,7 @@
   flex-shrink: 0;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .item-icon-wrapper {
@@ -563,7 +563,7 @@
   white-space: nowrap;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .item-meta {
@@ -575,7 +575,7 @@
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .item-type {
@@ -674,7 +674,7 @@
   margin: 0 0 8px 0;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .empty-items p {
@@ -683,7 +683,7 @@
   margin: 0 0 20px 0;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .empty-btn {
@@ -702,7 +702,7 @@
   transition: all 0.2s ease;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
@@ -933,7 +933,7 @@
   transition: all 0.2s ease;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .type-option:hover {
@@ -1024,7 +1024,7 @@
   transition: all 0.2s ease;
   border: none;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
   min-width: 120px;
   display: flex;
@@ -1200,7 +1200,7 @@
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -1267,7 +1267,7 @@
   transition: all 0.2s ease;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .type-option-btn:hover {
@@ -1345,7 +1345,7 @@
   transition: all 0.2s ease;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
   flex: 1;
 }
@@ -1386,7 +1386,7 @@
   transition: all 0.2s ease;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   flex: 1;
 }
 
@@ -1463,7 +1463,7 @@
   color: var(--text-secondary);
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .queue-list {
@@ -1526,7 +1526,7 @@
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .queue-item-remove {
@@ -1567,7 +1567,7 @@
   transition: all 0.2s ease;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 

@@ -134,7 +134,7 @@
   font-weight: 600;
   color: var(--qbs-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
 }
 
 .session-timer {
@@ -218,7 +218,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   padding: 6px 14px;
   background: color-mix(in srgb, var(--qbs-accent) 15%, transparent);
   border: 1px solid color-mix(in srgb, var(--qbs-accent) 30%, transparent);
@@ -250,7 +250,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   border-radius: 10px;
 }
 
@@ -444,7 +444,7 @@
   font-weight: 600;
   color: var(--qbs-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
 }
 
 .score-display {
@@ -474,7 +474,7 @@
   font-size: 12px;
   color: var(--qbs-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-weight: 700;
 }
 
@@ -498,7 +498,7 @@
   font-size: 13px;
   color: var(--qbs-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-weight: 700;
   margin: 0 0 18px 0;
 }
@@ -616,14 +616,14 @@
   color: var(--qbs-success);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .feedback-incorrect {
   color: var(--qbs-danger);
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .feedback-hint {
@@ -651,7 +651,7 @@
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: 'Inter', sans-serif;
@@ -829,7 +829,7 @@
   font-size: 12px;
   color: var(--qbs-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-weight: 700;
 }
 
@@ -870,7 +870,7 @@
   font-weight: 700;
   cursor: pointer;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 12px;
   font-family: 'Inter', sans-serif;
@@ -941,7 +941,7 @@
   color: var(--qbs-text-secondary);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .player-score {
@@ -1073,7 +1073,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   flex-shrink: 0;
 }
 
@@ -1164,7 +1164,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   white-space: nowrap;
 }
 

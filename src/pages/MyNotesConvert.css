@@ -68,7 +68,7 @@
   color: #D7B38C !important;
   margin: 0 !important;
   text-transform: uppercase !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
 }
 
 .my-notes-page-full .iem-header-subtitle {
@@ -112,7 +112,7 @@
   color: #B8C0CC !important;
   margin-bottom: 14px !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
+  letter-spacing: 2px !important;
 }
 
 /* Select Bar */
@@ -285,7 +285,7 @@
   font-weight: 700 !important;
   color: #B8C0CC !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
+  letter-spacing: 2px !important;
 }
 
 .my-notes-page-full .iem-setting-group {

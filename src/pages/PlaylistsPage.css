@@ -150,7 +150,7 @@
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border: none;
@@ -372,7 +372,7 @@
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: left;
@@ -487,7 +487,7 @@
   font-weight: 700 !important;
   font-family: 'Inter', sans-serif !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
+  letter-spacing: 2px !important;
   cursor: pointer !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
   display: flex !important;
@@ -551,7 +551,7 @@
   font-weight: 600 !important;
   font-family: 'Inter', sans-serif !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
+  letter-spacing: 2px !important;
   cursor: pointer !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
   border-bottom: 1px solid color-mix(in srgb, var(--lp-accent) 10%, transparent) !important;
@@ -656,7 +656,7 @@
   font-weight: 600;
   color: color-mix(in srgb, var(--lp-accent) 70%, var(--lp-text-primary));
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
   position: relative;
   z-index: 1;
@@ -786,7 +786,7 @@
   margin: 0;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 /* ==================== PLAYLISTS GRID ==================== */
@@ -904,7 +904,7 @@
   line-height: 1.4;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   transition: all 0.2s;
 }
 
@@ -925,7 +925,7 @@
   line-height: 1.5;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .card-tags {
@@ -940,7 +940,7 @@
   font-size: 9px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
   transition: all 0.2s;
 }
@@ -979,7 +979,7 @@
   font-weight: 700;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   transition: all 0.2s;
 }
 
@@ -1052,7 +1052,7 @@
   color: var(--lp-accent);
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 /* ==================== MODAL STYLING ==================== */
@@ -1283,7 +1283,7 @@
   font-weight: 800;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   color: white;
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
   background: rgba(0, 0, 0, 0.5);
@@ -1328,7 +1328,7 @@
   font-weight: 700;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   color: var(--lp-accent);
 }
 
@@ -1543,7 +1543,7 @@
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -1564,7 +1564,7 @@
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -1927,7 +1927,7 @@
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 

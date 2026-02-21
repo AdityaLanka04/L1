@@ -230,7 +230,7 @@
   font-weight: 600;
   color: var(--accent);
   margin-bottom: 24px;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .empty-state h3 {
@@ -324,7 +324,7 @@
   font-size: 12px;
   color: color-mix(in srgb, var(--accent) 50%, transparent);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-weight: 500;
 }
 
@@ -431,7 +431,7 @@
   color: var(--bg-top);
   margin-bottom: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .node-title {

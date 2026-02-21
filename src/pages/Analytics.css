@@ -22,13 +22,14 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 40px;
+  padding: 0 40px;
   background: color-mix(in srgb, var(--bg-primary, var(--bg-primary)) 80%, transparent);
   backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
   flex-shrink: 0;
-  height: auto;
-  min-height: auto;
+  height: 70px;
+  min-height: 70px;
+  max-height: 70px;
 }
 
 .analytics-header-left {
@@ -50,8 +51,8 @@
 }
 
 .analytics-logo-img {
-  height: 40px;
-  width: 40px;
+  height: 60px;
+  width: 60px;
   -webkit-mask: url('../assets/logo.svg') no-repeat center;
   mask: url('../assets/logo.svg') no-repeat center;
   -webkit-mask-size: contain;
@@ -100,7 +101,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   border-radius: 8px;
   border: none;
 }
@@ -278,7 +279,7 @@
   color: var(--text-secondary);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .analytics-filter-buttons {
@@ -327,7 +328,7 @@
   color: var(--text-secondary);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .analytics-metric-chips {
@@ -739,7 +740,7 @@
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.3s ease;
   border-bottom: 3px solid transparent;
@@ -809,7 +810,7 @@
   bottom: 8px;
   font-size: 8px;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   color: var(--text-secondary);
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -1037,7 +1038,7 @@
   font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .weak-accuracy-value {
@@ -1058,7 +1059,7 @@
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .weak-source-badge.quiz {
@@ -1096,7 +1097,7 @@
   font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .weak-stat-value {
@@ -1115,7 +1116,7 @@
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.3s ease;
 }
@@ -1162,7 +1163,7 @@
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.3s ease;
   margin-top: 12px;
@@ -1240,7 +1241,7 @@
   border-radius: 8px;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -1339,7 +1340,7 @@
   color: var(--text-primary);
   margin-bottom: 16px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .topic-modal-loading {
@@ -1412,7 +1413,7 @@
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .suggestion-priority.high {
@@ -1569,7 +1570,7 @@
   border-radius: 10px;
   font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s ease;
 }

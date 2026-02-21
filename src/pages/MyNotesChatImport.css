@@ -51,7 +51,7 @@
   border-bottom: 2px solid var(--border) !important;
   background: var(--bg-secondary) !important;
   text-transform: uppercase !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
 }
 
 .my-notes-page-full .nt-modal-subtitle {

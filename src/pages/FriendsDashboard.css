@@ -160,7 +160,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   background: transparent;
   border: none;
   color: var(--text-primary, #fff);
@@ -285,29 +285,33 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 12px 16px;
   background: transparent;
   border: none;
-  border-radius: 8px;
-  color: var(--fd-text-secondary);
+  border-radius: 16px;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   width: 100%;
   text-align: left;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .fd-sidebar-item:hover {
   background: var(--fd-bg-tertiary);
-  color: var(--fd-text-primary);
+  color: var(--text-primary);
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .fd-sidebar-item.active {
-  background: var(--fd-accent-glow);
-  color: var(--fd-accent);
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .fd-nav-icon {
@@ -442,7 +446,7 @@
   position: relative;
   overflow: hidden;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .fd-btn::before {
@@ -780,7 +784,7 @@
   font-size: 9px;
   color: var(--fd-text-muted);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-weight: 700;
   position: relative;
   z-index: 1;
@@ -1014,7 +1018,7 @@
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   border: 2px solid;
   border-radius: 10px;
   position: relative;
@@ -1199,7 +1203,7 @@
   font-size: 15px;
   color: var(--fd-text-muted);
   font-weight: 600;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 /* ==================== LIGHT MODE STYLES ==================== */

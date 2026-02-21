@@ -179,7 +179,7 @@
   font-size: 11px;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 2px;
   font-weight: 600;
 }
 
@@ -238,7 +238,7 @@
   border: 1px solid var(--accent);
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-weight: 700;
   width: fit-content;
 }
@@ -256,7 +256,7 @@
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.3s;
   border: none;

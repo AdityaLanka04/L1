@@ -144,7 +144,7 @@
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s;
   border: none;
@@ -282,7 +282,7 @@
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .qbd-sidebar-item:hover {
@@ -303,7 +303,7 @@
   color: var(--qbd-bg-primary);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-size: 13px;
   margin-top: 8px;
   border: none;
@@ -471,7 +471,7 @@
   align-items: center;
   gap: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: 'Inter', sans-serif;
 }
@@ -513,7 +513,7 @@
   font-weight: 600;
   cursor: pointer;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: 'Inter', sans-serif;
 }
@@ -548,7 +548,7 @@
   font-weight: 600;
   color: var(--text-primary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -608,7 +608,7 @@
   font-size: 11px;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .qbd-document-topics {
@@ -623,7 +623,7 @@
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   background: color-mix(in srgb, var(--accent) 20%, transparent);
   color: var(--accent);
   border: 1px solid var(--accent);
@@ -657,7 +657,7 @@
   font-weight: 600;
   color: var(--text-primary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   margin-bottom: 12px;
 }
 
@@ -919,7 +919,7 @@
   color: var(--text-secondary);
   margin-bottom: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .qbd-custom-input {
@@ -1141,7 +1141,7 @@
   color: white;
   font-size: 16px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1274,7 +1274,7 @@
   line-height: 1.4;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .qbd-set-content p {
@@ -1289,7 +1289,7 @@
   line-height: 1.5;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .qbd-set-meta {
@@ -1305,7 +1305,7 @@
   font-size: 9px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -1337,7 +1337,7 @@
   font-weight: 700;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .qbd-stat-item svg {
@@ -1362,7 +1362,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
   cursor: pointer;
   transition: all 0.2s;
@@ -1549,7 +1549,7 @@
   font-size: 11px;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-weight: 600;
 }
 
@@ -1573,7 +1573,7 @@
   font-size: 16px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 2px;
 }
 
 .qbd-adaptive-content {
@@ -1699,7 +1699,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   border: 1px solid;
   border-radius: 6px !important;
 }
@@ -1840,7 +1840,7 @@
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 2px;
   margin-bottom: 8px;
   display: block;
 }
@@ -1873,7 +1873,7 @@
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   background: color-mix(in srgb, var(--accent) 20%, transparent);
   color: var(--accent);
   border: 1px solid var(--accent);
@@ -1986,7 +1986,7 @@
   font-size: 11px;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-weight: 600;
   margin-top: 6px;
 }
@@ -2017,7 +2017,7 @@
   font-weight: 700;
   color: var(--text-primary);
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 2px;
   margin-bottom: 16px;
 }
 
@@ -2372,7 +2372,7 @@
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -2547,7 +2547,7 @@
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   color: var(--qbd-text-secondary);
   margin-bottom: 12px;
 }
@@ -3017,7 +3017,7 @@
   color: var(--qbd-text-secondary);
   margin-bottom: 8px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .qbd-topic-chips {
@@ -3923,7 +3923,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   margin-bottom: 8px;
 }
 

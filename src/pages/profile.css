@@ -148,7 +148,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .profile-nav-btn-ghost {
@@ -420,7 +420,7 @@
   color: var(--pf-text-secondary);
   margin-bottom: 16px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .archetype-tagline-small {

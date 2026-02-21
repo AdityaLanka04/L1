@@ -126,7 +126,7 @@
   cursor: pointer;
   transition: all 0.3s;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 2px;
   border-radius: 0;
   font-family: 'Inter', sans-serif;
 }
@@ -180,7 +180,7 @@
   font-weight: 600;
   cursor: pointer;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   transition: all 0.3s;
   display: flex;
   align-items: center;
@@ -213,7 +213,7 @@
   cursor: pointer;
   transition: all 0.3s;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -285,7 +285,7 @@
 .challenge-status {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   color: var(--text-secondary);
 }
 
@@ -373,7 +373,7 @@
   font-weight: 600;
   cursor: pointer;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   transition: all 0.3s;
   border-radius: 0;
   font-family: 'Inter', sans-serif;
@@ -420,7 +420,7 @@
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   border: 1px solid var(--success);
 }
 
@@ -495,7 +495,7 @@
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.8px;
+  letter-spacing: 2px;
 }
 
 .form-group input,
@@ -529,7 +529,7 @@
   font-weight: 600;
   cursor: pointer;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   transition: all 0.3s;
   display: flex;
   align-items: center;

@@ -182,7 +182,7 @@
   transition: var(--af-transition);
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   background: transparent;
   border: 1px solid transparent;
   color: var(--text-secondary);
@@ -292,7 +292,7 @@
   cursor: pointer;
   transition: var(--af-transition);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .af-filter-toggle-btn:hover,
@@ -380,7 +380,7 @@
   font-weight: 700;
   color: var(--af-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 /* ==================== FILTERS PANEL ==================== */
@@ -419,7 +419,7 @@
   font-weight: 800;
   color: var(--af-accent);
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   margin-bottom: 12px;
 }
 
@@ -643,7 +643,7 @@
   font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   border: 1.5px solid;
 }
 
@@ -698,7 +698,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   transition: var(--af-transition);
   display: inline-flex;
   align-items: center;

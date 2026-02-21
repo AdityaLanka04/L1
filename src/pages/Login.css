@@ -576,7 +576,7 @@
   background-color: var(--bg-primary);
   color: var(--accent);
   font-weight: 600;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .lg-input:disabled {

@@ -157,7 +157,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .lrh-nav-btn-ghost {
@@ -369,7 +369,7 @@
   color: var(--accent);
   font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   text-transform: uppercase;
 }
 
@@ -385,7 +385,7 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary, #fff);
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   text-transform: uppercase;
   transition: color 0.3s ease;
 }
@@ -417,7 +417,7 @@
   color: var(--accent);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   text-transform: uppercase;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

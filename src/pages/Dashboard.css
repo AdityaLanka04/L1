@@ -234,7 +234,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   border-radius: 6px;
 }
@@ -301,7 +301,7 @@
   font-weight: 700;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   margin: 0 0 12px 0;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--border);
@@ -473,7 +473,7 @@
   color: var(--accent);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -530,7 +530,7 @@
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   color: var(--accent);
   opacity: 0.6;
 }
@@ -612,7 +612,7 @@
   color: var(--accent);
   flex: 1;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -659,7 +659,7 @@
   margin-top: 8px;
   display: block;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
 }
@@ -844,7 +844,7 @@
   font-size: 10px;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .ds-ai-chat-btn {
@@ -857,7 +857,7 @@
   font-weight: 700;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.3s ease;
   flex-shrink: 0;
@@ -1118,7 +1118,7 @@
   opacity: 0.8;
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   transition: all 0.3s ease;
   position: relative;
   z-index: 1;
@@ -1165,7 +1165,7 @@
   color: var(--text-secondary);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .ds-icon-top {
@@ -1317,7 +1317,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .ds-streak-actions {
@@ -1434,7 +1434,7 @@
   font-weight: 600;
   margin-top: 8px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 /* Medium mode for Activity widget */
@@ -1661,7 +1661,7 @@
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   color: var(--bg-primary);
   cursor: pointer;
   transition: all 0.3s ease;
@@ -1689,7 +1689,7 @@
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   line-height: 1.4;
 }
 
@@ -2222,7 +2222,7 @@
   font-weight: 600;
   color: var(--accent);
   text-transform: capitalize;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .ds-legend-scale {
@@ -2378,7 +2378,7 @@
   color: var(--accent);
   margin: 0 0 8px 0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .ds-customize-header p {
@@ -2413,7 +2413,7 @@
   font-weight: 700;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
@@ -2436,7 +2436,7 @@
   color: var(--accent);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .ds-layout-list {
@@ -2484,7 +2484,7 @@
   font-weight: 700;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -2598,7 +2598,7 @@
   color: var(--accent);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .ds-modal-close {
@@ -2635,7 +2635,7 @@
   color: var(--accent);
   margin-bottom: 8px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .ds-layout-name-input {
@@ -2680,7 +2680,7 @@
   font-weight: 700;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s ease;
 }

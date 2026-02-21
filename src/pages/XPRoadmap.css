@@ -160,7 +160,7 @@
   font-weight: 600;
   font-family: 'Inter', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s;
   border: none;
@@ -293,7 +293,7 @@
   color: var(--text-secondary);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 /* ==================== PROGRESS BAR ==================== */
@@ -364,7 +364,7 @@
   color: var(--text-primary);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .topics-grid {
@@ -444,7 +444,7 @@
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .topic-activity {
@@ -728,7 +728,7 @@
   font-weight: 800;
   color: var(--accent);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .milestone-tier {
@@ -738,7 +738,7 @@
   background: rgba(0, 0, 0, 0.1);
   border-radius: 6px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 [data-theme-mode="dark"] .milestone-tier {
@@ -822,7 +822,7 @@
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   margin-top: 8px;
 }
 
@@ -916,7 +916,7 @@
   color: var(--text-primary);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .sidebar-empty {
@@ -1033,7 +1033,7 @@
   font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   white-space: nowrap;
 }
 
@@ -1042,7 +1042,7 @@
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .topic-milestones-list {
@@ -1321,7 +1321,7 @@
   color: var(--text-primary);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .reward-prize p {
@@ -1346,7 +1346,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
@@ -1573,7 +1573,7 @@
   font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   align-self: flex-start;
   margin-top: 4px;
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);

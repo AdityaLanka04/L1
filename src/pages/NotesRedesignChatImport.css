@@ -57,7 +57,7 @@
   color: #D7B38C !important;
   margin: 0 !important;
   text-transform: uppercase !important;
-  letter-spacing: 1px !important;
+  letter-spacing: 2px !important;
 }
 
 .notes-redesign .chat-import-modal-new .modal-close-btn {
@@ -98,7 +98,7 @@
   color: #B8C0CC !important;
   margin-bottom: 14px !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
+  letter-spacing: 2px !important;
 }
 
 .notes-redesign .chat-import-modal-new .import-mode-options-new {
@@ -171,7 +171,7 @@
   font-weight: 700 !important;
   color: #B8C0CC !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.5px !important;
+  letter-spacing: 2px !important;
 }
 
 .notes-redesign .chat-import-modal-new .selection-actions-new {

@@ -1682,51 +1682,17 @@ const SearchHub = () => {
           <div className="header-buttons">
             {!userName && (
               <>
-                <button 
-                  className="header-text-btn login-signup-btn"
-                  onClick={() => navigate('/login')}
-                >
-                  Login
-                </button>
-                <button 
-                  className="header-text-btn login-signup-btn"
-                  onClick={() => navigate('/register')}
-                >
-                  Sign Up
-                </button>
+                <button className="header-text-btn login-signup-btn" onClick={() => navigate('/login')}>Login</button>
+                <button className="header-text-btn login-signup-btn" onClick={() => navigate('/register')}>Sign Up</button>
               </>
             )}
-            
             {userName ? (
               <>
-                <button 
-                  className="header-text-btn login-signup-btn"
-                  onClick={() => navigate('/dashboard')}
-                >
-                  Dashboard
-                </button>
-                <button 
-                  className="header-text-btn login-signup-btn"
-                  onClick={() => {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('username');
-                    setUserName('');
-                    window.location.reload();
-                  }}
-                >
-                  Logout
-                </button>
+                <button className="header-text-btn login-signup-btn" onClick={() => navigate('/dashboard')}>Dashboard</button>
+                <button className="header-text-btn login-signup-btn" onClick={() => { localStorage.removeItem('token'); localStorage.removeItem('username'); setUserName(''); window.location.reload(); }}>Logout</button>
               </>
             ) : (
-              <button 
-                className="header-text-btn login-signup-btn"
-                onClick={() => {
-                  setShowLoginMessage(true);
-                  setTimeout(() => setShowLoginMessage(false), 3000);
-                }}
-              >
-                Dashboard
-              </button>
+              <button className="header-text-btn login-signup-btn" onClick={() => { setShowLoginMessage(true); setTimeout(() => setShowLoginMessage(false), 3000); }}>Dashboard</button>
             )}
           </div>
         </div>
@@ -1787,7 +1753,13 @@ const SearchHub = () => {
                           </div>
                           <div className="rec-content">
                             <span className="rec-category">{prompt.priority || 'Suggestion'}</span>
-                            <span className="rec-text">{prompt.text?.startsWith('/') ? prompt.text : `> ${prompt.text}`}</span>
+                            <span className="rec-text">{
+                            prompt.text?.startsWith('/')
+                              ? prompt.text.slice(1)
+                              : prompt.text?.startsWith('> ')
+                                ? prompt.text.slice(2)
+                                : prompt.text
+                          }</span>
                             {prompt.reason && <span className="rec-reason">{prompt.reason}</span>}
                           </div>
                         </button>

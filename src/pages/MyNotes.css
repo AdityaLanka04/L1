@@ -184,7 +184,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .mn-nav-btn svg {
@@ -248,7 +248,7 @@
 }
 
 [data-theme-mode="dark"] .nt-nav-text {
-  color: color-mix(in srgb, var(--accent) 60%, #ffffff) !important;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary)) !important;
 }
 
 [data-theme-mode="light"] .nt-sidebar {
@@ -261,7 +261,7 @@
 }
 
 [data-theme-mode="light"] .nt-nav-text {
-  color: color-mix(in srgb, var(--accent) 80%, #000000) !important;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary)) !important;
 }
 
 .nt-sidebar.collapsed {
@@ -523,6 +523,8 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 2px;
+  color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -927,7 +929,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
 }
 
@@ -981,7 +983,7 @@
   overflow: hidden;
   margin-bottom: 16px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-family: 'Inter', sans-serif;
   font-weight: 600;
 }

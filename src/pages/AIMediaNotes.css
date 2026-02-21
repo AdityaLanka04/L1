@@ -44,9 +44,10 @@
 
 /* ==================== HEADER - Matching NotesRedesign Exactly ==================== */
 .hub-header {
-  height: var(--mn-header-height);
-  min-height: var(--mn-header-height);
-  padding: 20px 40px;
+  height: 70px;
+  min-height: 70px;
+  max-height: 70px;
+  padding: 0 40px;
   background: var(--mn-bg-primary);
   border-bottom: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
   display: flex;
@@ -55,6 +56,7 @@
   flex-shrink: 0;
   width: 100%;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .hub-header-left {
@@ -154,7 +156,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   border-radius: 8px;
 }
 
@@ -395,7 +397,7 @@
   font-weight: 500;
   color: var(--mn-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .mn-history-actions {
@@ -454,7 +456,7 @@
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   color: var(--mn-text-secondary);
   cursor: pointer;
   transition: all 0.2s;
@@ -568,7 +570,7 @@
   font-weight: 500;
   color: var(--mn-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .mn-uploaded-file {
@@ -733,7 +735,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   color: var(--mn-accent);
   margin-bottom: 8px;
 }
@@ -959,7 +961,7 @@
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   color: var(--mn-accent);
 }
 
@@ -987,7 +989,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   color: var(--mn-text-secondary);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1037,7 +1039,7 @@
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -1075,7 +1077,7 @@
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   color: var(--mn-accent);
   cursor: pointer;
   transition: all 0.2s;
@@ -1114,7 +1116,7 @@
   font-weight: 700;
   color: var(--mn-text-primary);
   margin: 24px 0 12px 0;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .mn-notes-output h4 {
@@ -1123,7 +1125,7 @@
   color: var(--mn-accent);
   margin: 20px 0 10px 0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .mn-notes-output p {
@@ -1354,7 +1356,7 @@
   color: var(--mn-accent);
   margin-top: 12px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 /* ==================== CORNELL NOTES STYLES ==================== */
@@ -1375,7 +1377,7 @@
   color: var(--mn-accent);
   margin: 0 0 8px 0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .cornell-header p {
@@ -1384,7 +1386,7 @@
   color: var(--mn-text-secondary);
   margin: 0;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .cornell-row {
@@ -1434,7 +1436,7 @@
   font-weight: 700;
   color: var(--mn-text-primary);
   margin: 0 0 12px 0;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .notes-column p {
@@ -1496,7 +1498,7 @@
   border: 2px solid var(--mn-accent);
   border-radius: 50px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .branch {
@@ -1587,7 +1589,7 @@
   padding-bottom: 16px;
   border-bottom: 3px solid var(--mn-accent);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .outline-notes h2 {
@@ -1600,7 +1602,7 @@
   border-left: 4px solid var(--mn-accent);
   border-radius: 8px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .outline-notes h3 {
@@ -1651,7 +1653,7 @@
   padding-bottom: 16px;
   border-bottom: 3px solid var(--mn-accent);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   text-align: center;
 }
 
@@ -1665,7 +1667,7 @@
   border-left: 4px solid var(--mn-accent);
   border-radius: 8px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .qa-pair {

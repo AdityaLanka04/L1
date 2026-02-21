@@ -48,6 +48,19 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ==================== ENHANCED 3D GRADIENT HEADER ==================== */
+[data-theme-mode="dark"] .lp-header {
+  background: linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid rgba(215, 179, 140, 0.2) !important;
+}
+
+[data-theme-mode="light"] .lp-header {
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%) !important;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
 .lp-header-left {
   display: flex;
   align-items: center;
@@ -120,7 +133,7 @@
   font-weight: 600;
   font-family: var(--lp-body);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   height: 38px;
@@ -268,7 +281,7 @@
   font-weight: 600;
   font-family: var(--lp-body);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: left;
@@ -343,7 +356,7 @@
   font-weight: 600;
   color: color-mix(in srgb, var(--accent) 70%, var(--text-primary));
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   font-family: var(--lp-body);
 }
 
@@ -561,7 +574,7 @@
   margin: 0;
   font-family: var(--lp-display);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 .lp-empty-state p {
@@ -583,7 +596,7 @@
   font-weight: 600;
   font-family: var(--lp-body);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -724,7 +737,7 @@
   font-weight: 700;
   font-family: var(--lp-body);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   transition: all 0.2s;
 }
 
@@ -751,7 +764,7 @@
   font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   color: var(--bg-primary);
 }
 
@@ -999,7 +1012,7 @@
   font-weight: 600;
   font-family: var(--lp-body);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
@@ -1361,7 +1374,7 @@
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   font-family: var(--lp-body);
 }
 

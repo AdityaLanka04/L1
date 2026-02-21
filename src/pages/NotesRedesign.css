@@ -565,7 +565,7 @@
   border-radius: 4px;
   color: var(--nr-accent);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .nav-center {
@@ -598,7 +598,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   border: none;
   background: transparent;
   color: var(--nr-text-primary);
@@ -631,7 +631,7 @@
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .nr-nav-btn-ghost:hover {
@@ -656,7 +656,7 @@
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   text-transform: uppercase;
   cursor: pointer;
   transition: all 0.2s;
@@ -3096,7 +3096,7 @@ h1.note-title ::-moz-selection,
   font-size: 14px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .notes-redesign .smart-folders-header .close-btn {
@@ -3157,7 +3157,7 @@ h1.note-title ::-moz-selection,
   font-weight: 700;
   color: var(--nr-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   margin: 0;
 }
 
@@ -3211,7 +3211,7 @@ h1.note-title ::-moz-selection,
   align-items: center;
   gap: 6px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .notes-redesign .create-btn:hover {
@@ -3353,7 +3353,7 @@ h1.note-title ::-moz-selection,
   font-weight: 700;
   color: var(--nr-accent);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .notes-redesign .smart-folder-modal .modal-header button {
@@ -3392,7 +3392,7 @@ h1.note-title ::-moz-selection,
   font-weight: 700;
   color: var(--nr-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .notes-redesign .smart-folder-modal .form-group input,
@@ -3486,7 +3486,7 @@ h1.note-title ::-moz-selection,
   cursor: pointer;
   transition: all 0.3s ease;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .notes-redesign .smart-folder-modal .cancel-btn:hover {
@@ -3504,7 +3504,7 @@ h1.note-title ::-moz-selection,
   cursor: pointer;
   transition: all 0.3s ease;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -3763,7 +3763,7 @@ h1.note-title ::-moz-selection,
   font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   margin-bottom: 10px;
 }
 

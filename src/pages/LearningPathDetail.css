@@ -116,7 +116,7 @@
   margin: 0;
   color: var(--text-secondary);
   font-size: 12px;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
 }
 
 /* ==================== HEADER SECTION ==================== */
@@ -199,7 +199,7 @@
   border-radius: 8px;
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   color: var(--text-secondary);
   transition: all 0.2s;
 }
@@ -267,7 +267,7 @@
   font-size: 11px;
   font-weight: 700;
   color: var(--text-secondary);
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .lpd-progress-details span {
@@ -446,7 +446,7 @@
   font-size: 11px;
   font-weight: 800;
   color: var(--text-primary);
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -575,7 +575,7 @@
   font-size: 10px;
   font-weight: 900;
   color: var(--accent);
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
 }
 
 /* ==================== OVERVIEW ==================== */
@@ -634,7 +634,7 @@
   margin: 0 0 10px 0;
   font-size: 14px;
   font-weight: 800;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   color: var(--accent);
   font-family: var(--lpd-display);
 }
@@ -705,7 +705,7 @@
   display: block;
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   color: var(--accent);
   margin-bottom: 4px;
 }
@@ -769,7 +769,7 @@
   border: none;
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   cursor: pointer;
   background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black));
   color: var(--bg-primary);
@@ -820,7 +820,7 @@
   border: none;
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -1023,7 +1023,7 @@
   font-size: 12px;
   font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1096,7 +1096,7 @@
   color: var(--text-primary);
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1204,7 +1204,7 @@
   color: var(--text-primary);
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
 }
 
 .lpd-activity-info p {
@@ -1224,7 +1224,7 @@
   font-size: 10px;
   color: var(--accent);
   font-weight: 800;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .lpd-activity-chevron {
@@ -1251,7 +1251,7 @@
   color: var(--accent);
   font-size: 19px;
   font-weight: 900;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   transition: all 0.2s;
 }
 
@@ -1546,7 +1546,7 @@ html {
   margin: 0;
   color: var(--text-secondary);
   font-size: 12px;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .lpd-quiz-progress {
@@ -1559,7 +1559,7 @@ html {
   font-size: 11px;
   font-weight: 800;
   color: var(--text-secondary);
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
   margin-bottom: 12px;
 }
 
@@ -1808,7 +1808,7 @@ html {
   margin-bottom: 10px;
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
 }
 
 .lpd-quiz-item.correct .lpd-quiz-item-header {
@@ -1934,7 +1934,7 @@ html {
   color: var(--text-secondary);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -2020,7 +2020,7 @@ html {
   font-size: 12px;
   font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .lpd-section-chevron {
@@ -2111,7 +2111,7 @@ html {
   font-size: 11px;
   font-weight: 800;
   color: var(--accent);
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
 }
 
 .lpd-connection-section ul {
@@ -2230,7 +2230,7 @@ html {
   font-size: 11px;
   font-weight: 800;
   color: var(--text-secondary);
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
 }
 
 .lpd-resource-wrapper {
@@ -2257,7 +2257,7 @@ html {
   border-radius: 4px;
   font-size: 9px;
   font-weight: 800;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   text-transform: uppercase;
 }
 
@@ -2408,7 +2408,7 @@ html {
   color: var(--text-primary);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -2462,7 +2462,7 @@ html {
   font-size: 12px;
   font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
 }
 
 .lpd-scenario-header svg {
@@ -2551,7 +2551,7 @@ html {
   font-size: 11px;
   font-weight: 700;
   color: var(--accent);
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   transition: all 0.2s;
 }
 
@@ -2565,7 +2565,7 @@ html {
   font-size: 11px;
   font-weight: 800;
   color: var(--text-secondary);
-  letter-spacing: 1.5px;
+  letter-spacing: 2px;
 }
 
 .lpd-relationships ul {
