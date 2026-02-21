@@ -1164,6 +1164,7 @@ class ComprehensiveUserProfile(Base):
     
     # Study insights settings
     show_study_insights = Column(Boolean, default=True)
+    notifications_enabled = Column(Boolean, default=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

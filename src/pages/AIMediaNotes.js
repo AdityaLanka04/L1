@@ -912,7 +912,19 @@ const AIMediaNotes = () => {
         onClose={() => setShowImportExport(false)}
         mode="import"
         sourceType="media"
-        onSuccess={() => alert("Successfully converted media!")}
+        onSuccess={(result) => {
+          if (result?.shouldNavigate) {
+            if (result.destinationType === 'questions') {
+              if (result.set_id) {
+                navigate(`/question-bank?set_id=${result.set_id}`);
+              } else {
+                navigate('/question-bank');
+              }
+            }
+          } else {
+            alert("Successfully converted media!");
+          }
+        }}
       />
     </div>
   );

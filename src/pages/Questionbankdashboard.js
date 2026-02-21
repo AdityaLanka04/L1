@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, Upload, MessageSquare, Sparkles, FileText, BarChart3, 
@@ -52,6 +52,7 @@ const QuestionBankDashboard = () => {
   const [questionCount, setQuestionCount] = useState(10);
   const [difficultyMix, setDifficultyMix] = useState({ easy: 30, medium: 50, hard: 20 }); // Percentages
   const [questionTypes, setQuestionTypes] = useState(['multiple_choice', 'true_false', 'short_answer']);
+  const autoStartRef = useRef(null);
 
   // Calculate actual difficulty counts from percentages, ensuring they sum to questionCount
   const getDifficultyCounts = () => {
@@ -726,6 +727,17 @@ const QuestionBankDashboard = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const setIdParam = params.get('set_id');
+    if (!setIdParam) return;
+    const parsedId = parseInt(setIdParam, 10);
+    if (Number.isNaN(parsedId)) return;
+    if (autoStartRef.current === parsedId) return;
+    autoStartRef.current = parsedId;
+    startStudySession(parsedId);
+  }, [location.search]);
 
   const handleAnswerChange = (questionId, answer) => {
     setUserAnswers(prev => ({ ...prev, [questionId]: answer }));

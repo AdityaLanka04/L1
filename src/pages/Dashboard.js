@@ -11,8 +11,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { rgbaFromHex } from '../utils/ThemeManager';
 import ThemeSwitcher from '../components/ThemeSwitcher';
 import LoadingSpinner from '../components/LoadingSpinner';
-import SlideNotification from '../components/SlideNotification';
 import ImportExportModal from '../components/ImportExportModal';
+import { useNotifications } from '../contexts/NotificationContext';
 import './Dashboard.css';
 import { API_URL } from '../config';
 import logo from '../assets/logo.svg';
@@ -106,14 +106,14 @@ const Dashboard = () => {
   const [learningAnalytics, setLearningAnalytics] = useState(null);
   const [conversationStarters, setConversationStarters] = useState([]);
   
-  const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  
-  const [slideNotifQueue, setSlideNotifQueue] = useState([]);
-  const [lastNotificationIds, setLastNotificationIds] = useState(new Set());
-  const notificationPollRef = useRef(null);
-  const lastNotificationCheckRef = useRef(0);
+  const {
+    notifications,
+    unreadCount,
+    refreshNotifications,
+    markNotificationAsRead,
+    deleteNotification
+  } = useNotifications();
 
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -197,7 +197,6 @@ const Dashboard = () => {
       loadHeatmapData();
       loadDashboardData();
       startDashboardSession();
-      startNotificationPolling();
       
       const justLoggedIn = sessionStorage.getItem('justLoggedIn');
       const today = new Date().toDateString();
@@ -239,7 +238,6 @@ const Dashboard = () => {
     }
     
     return () => {
-      if (notificationPollRef.current) clearInterval(notificationPollRef.current);
       if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
       if (sessionUpdateRef.current) clearInterval(sessionUpdateRef.current);
     };
@@ -320,10 +318,7 @@ const Dashboard = () => {
         
         // Trigger a notification poll to show the new notification
         setTimeout(() => {
-          if (notificationPollRef.current) {
-            clearInterval(notificationPollRef.current);
-          }
-          startNotificationPolling();
+          refreshNotifications();
         }, 1000);
       }
     } catch (error) {
@@ -354,10 +349,7 @@ const Dashboard = () => {
         console.log('✅ Welcome notification created');
         // Trigger notification poll
         setTimeout(() => {
-          if (notificationPollRef.current) {
-            clearInterval(notificationPollRef.current);
-          }
-          startNotificationPolling();
+          refreshNotifications();
         }, 1000);
       }
     } catch (error) {
@@ -483,126 +475,6 @@ const Dashboard = () => {
     } finally {
       setHeatmapLoading(false);
     }
-  };
-
-  const startNotificationPolling = () => {
-    if (notificationPollRef.current) {
-      clearInterval(notificationPollRef.current);
-    }
-
-    const pollNotifications = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const now = Date.now();
-        
-        // Throttle to prevent too frequent requests (5 seconds minimum)
-        if (now - lastNotificationCheckRef.current < 5000) {
-          return;
-        }
-        lastNotificationCheckRef.current = now;
-
-        const response = await fetch(`${API_URL}/get_notifications?user_id=${userName}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const notifs = data.notifications || [];
-          
-          console.log('📬 Fetched notifications:', notifs.length, notifs);
-          
-          setNotifications(notifs);
-          setUnreadCount(notifs.filter(n => !n.is_read).length);
-
-          // Find new unread notifications that haven't been shown yet
-          const newNotifs = notifs.filter(notif => 
-            !lastNotificationIds.has(notif.id) && !notif.is_read
-          );
-
-          console.log('🆕 New notifications to show:', newNotifs.length, newNotifs);
-
-          if (newNotifs.length > 0) {
-            const newSlideNotifs = newNotifs.map(notif => ({
-              id: notif.id,
-              title: notif.title,
-              message: notif.message,
-              notification_type: notif.notification_type || 'general',
-              created_at: notif.created_at
-            }));
-            
-            console.log('🎯 Adding to slide queue:', newSlideNotifs);
-            
-            setSlideNotifQueue(prev => [...prev, ...newSlideNotifs]);
-            setLastNotificationIds(prev => {
-              const updated = new Set(prev);
-              newNotifs.forEach(n => updated.add(n.id));
-              return updated;
-            });
-          }
-        } else {
-          console.error('❌ Failed to fetch notifications:', response.status, response.statusText);
-        }
-      } catch (error) {
-        console.error('❌ Error polling notifications:', error);
-      }
-    };
-
-    // Poll immediately on start
-    pollNotifications();
-    
-    // Then poll every 30 seconds (more frequent for better UX)
-    notificationPollRef.current = setInterval(pollNotifications, 30000);
-    
-    console.log('✅ Notification polling started');
-  };
-
-  const removeSlideNotification = (notifId) => {
-    console.log('🗑️ Removing slide notification:', notifId);
-    setSlideNotifQueue(prev => prev.filter(n => n.id !== notifId));
-    markNotificationAsRead(notifId);
-  };
-
-  const markNotificationAsRead = async (notifId) => {
-    try {
-      const token = localStorage.getItem('token');
-      console.log('✅ Marking notification as read:', notifId);
-      const response = await fetch(`${API_URL}/mark_notification_read/${notifId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        setNotifications(prev => prev.map(n => 
-          n.id === notifId ? { ...n, is_read: true } : n
-        ));
-        setUnreadCount(prev => Math.max(0, prev - 1));
-      }
-    } catch (error) {}
-  };
-
-  const deleteNotification = async (notifId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/delete_notification/${notifId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        const wasUnread = notifications.find(n => n.id === notifId)?.is_read === false;
-        setNotifications(prev => prev.filter(n => n.id !== notifId));
-        setLastNotificationIds(prev => {
-          const updated = new Set(prev);
-          updated.add(notifId);
-          return updated;
-        });
-        if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
-      }
-    } catch (error) {}
   };
 
   const startDashboardSession = async () => {
@@ -896,16 +768,6 @@ const Dashboard = () => {
 
   return (
     <div className={`ds-page ${isLoaded ? 'ds-loaded' : ''}`} data-theme-mode={themeMode}>
-      {slideNotifQueue.length > 0 && slideNotifQueue.map((notif, index) => (
-        <SlideNotification
-          key={notif.id}
-          notification={notif}
-          onClose={() => removeSlideNotification(notif.id)}
-          onMarkRead={markNotificationAsRead}
-          style={{ top: `${80 + (index * 120)}px` }}
-        />
-      ))}
-      
       {showTour && (
         <HelpTour onClose={closeTour} onComplete={completeTour} />
       )}

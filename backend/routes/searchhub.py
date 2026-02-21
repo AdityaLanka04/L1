@@ -167,7 +167,7 @@ _COMMAND_CATALOG: List[Dict[str, Any]] = [
             "/quiz world history",
             "/quiz world history --count 12",
         ],
-        "navigate_to": "/solo-quiz",
+        "navigate_to": "/question-bank",
         "requires_topic": True,
         "params": ["topic", "count"],
     },
@@ -1046,10 +1046,7 @@ async def searchhub_agent(request: SearchHubRequest, db: Session = Depends(get_d
         }
         response = await question_routes.generate_practice_questions(payload=payload, db=db)
         content_id = response.get("question_set_id") or response.get("id")
-        if action == "create_quiz":
-            navigate_to = f"/solo-quiz?set_id={content_id}" if content_id else "/solo-quiz"
-        else:
-            navigate_to = f"/question-bank?set_id={content_id}" if content_id else "/question-bank"
+        navigate_to = f"/question-bank?set_id={content_id}" if content_id else "/question-bank"
 
         return {
             "success": True,

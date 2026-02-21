@@ -155,9 +155,25 @@ const QuizHub = () => {
         isOpen={showImportExport}
         onClose={() => setShowImportExport(false)}
         mode="import"
-        sourceType="quiz"
+        sourceType="questions"
         onSuccess={(result) => {
-          alert("Successfully converted to quiz!");
+          if (result?.shouldNavigate) {
+            if (result.destinationType === 'flashcards') {
+              if (result.set_id) {
+                navigate(`/flashcards?set_id=${result.set_id}&mode=preview`);
+              } else {
+                navigate('/flashcards');
+              }
+            } else if (result.destinationType === 'notes') {
+              if (result.note_id) {
+                navigate(`/notes/editor/${result.note_id}`);
+              } else {
+                navigate('/notes');
+              }
+            }
+          } else {
+            alert("Successfully converted questions!");
+          }
         }}
       />
     </div>

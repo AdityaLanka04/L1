@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, BookOpen, Target, Brain, Award, TrendingUp, ChevronRight , Menu} from 'lucide-react';
+import { User, BookOpen, Target, Brain, Award, TrendingUp, ChevronRight, Menu, Bell } from 'lucide-react';
 import './profile.css';
 import { API_URL } from '../config';
 const Profile = () => {
@@ -19,7 +19,8 @@ const Profile = () => {
     secondaryArchetype: '',
     archetypeDescription: '',
     archetypeScores: {},
-    showStudyInsights: true
+    showStudyInsights: true,
+    notificationsEnabled: true
   });
   
   const [quizAnswers, setQuizAnswers] = useState({});
@@ -224,7 +225,8 @@ const Profile = () => {
           archetypeDescription: data.archetypeDescription || '',
           archetypeScores: {},
           // Only default to true if showStudyInsights is undefined/null, otherwise use the actual value
-          showStudyInsights: data.showStudyInsights === false ? false : true
+          showStudyInsights: data.showStudyInsights === false ? false : true,
+          notificationsEnabled: data.notificationsEnabled === false ? false : true
         };
         
         
@@ -269,17 +271,21 @@ const Profile = () => {
         [field]: value
       };
       
-      // For showStudyInsights, immediately update localStorage AND trigger immediate save
-      if (field === 'showStudyInsights') {
+      // For toggle settings, immediately update localStorage AND trigger immediate save
+      if (field === 'showStudyInsights' || field === 'notificationsEnabled') {
         const currentProfile = localStorage.getItem('userProfile');
         if (currentProfile) {
           try {
             const parsed = JSON.parse(currentProfile);
-            parsed.showStudyInsights = value;
+            parsed[field] = value;
             localStorage.setItem('userProfile', JSON.stringify(parsed));
                       } catch (e) {
                       }
         }
+
+        try {
+          window.dispatchEvent(new Event('notification-settings-changed'));
+        } catch (e) {}
         
         // Immediately save to backend (don't wait for auto-save timer)
         const saveData = {
@@ -601,6 +607,35 @@ const Profile = () => {
                     type="checkbox"
                     checked={profileData.showStudyInsights !== false}
                     onChange={(e) => handleInputChange('showStudyInsights', e.target.checked)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <section className="profile-card">
+            <div className="card-header">
+              <div className="header-content">
+                <Bell className="header-icon" />
+                <div>
+                  <h2 className="card-title">Notifications</h2>
+                  <p className="card-subtitle">Control notification popups and badges</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="study-insights-settings">
+              <div className="setting-row">
+                <div className="setting-info">
+                  <span className="setting-label">Enable Notifications</span>
+                  <span className="setting-description">Show notification popups and unread badges across the app</span>
+                </div>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={profileData.notificationsEnabled !== false}
+                    onChange={(e) => handleInputChange('notificationsEnabled', e.target.checked)}
                   />
                   <span className="toggle-slider"></span>
                 </label>

@@ -41,6 +41,7 @@ import WeaknessPractice from './pages/WeaknessPractice';
 import WeaknessTips from './pages/WeaknessTips';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import SharedItemViewer from './pages/SharedItemViewer';
 import NotesRedesign from './pages/NotesRedesign';
 import NotesDashboard from './pages/NotesDashboard';
@@ -58,6 +59,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import SafetyProtectedRoute from './components/SafetyProtectedRoute';
 import GlobalNavSidebar from './components/GlobalNavSidebar';
 import { useGlobalNav } from './hooks/useGlobalNav';
+import GlobalNotifications from './components/GlobalNotifications';
 
 function App() {
   const [notification, setNotification] = useState(null);
@@ -73,87 +75,92 @@ function App() {
 
   return (
     <ThemeProvider>
-      <ToastProvider>
-        <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-top)', color: 'var(--text-primary)' }}>
-          {/* Global Navigation Sidebar */}
-          <GlobalNavSidebar isOpen={isOpen} onClose={closeNav} />
-          
-          {/* Notification Popup */}
-          {notification && (
-            <ProactiveNotification
-              message={notification.message}
-              chatId={notification.chatId}
-              urgencyScore={notification.urgencyScore}
-              onClose={() => setNotification(null)}
-            />
-          )}
-          
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<SafetyLogin />} />
-            <Route path="/search-hub" element={<SafetyProtectedRoute><SearchHub /></SafetyProtectedRoute>} />
-            <Route path="/login" element={<SafetyProtectedRoute><Login /></SafetyProtectedRoute>} />
-            <Route path="/register" element={<SafetyProtectedRoute><Register /></SafetyProtectedRoute>} />
+      <NotificationProvider>
+        <ToastProvider>
+          <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-top)', color: 'var(--text-primary)' }}>
+            {/* Global Navigation Sidebar */}
+            <GlobalNavSidebar isOpen={isOpen} onClose={closeNav} />
+
+            {/* Global Slide Notifications */}
+            <GlobalNotifications />
             
-            {/* Protected Routes */}
-            <Route path="/homepage" element={<ProtectedRoute><Homepage /></ProtectedRoute>} />
-            <Route path="/profile-quiz" element={<ProtectedRoute><ProfileQuiz /></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/study-insights" element={<ProtectedRoute><StudyInsights /></ProtectedRoute>} />
-            <Route path="/weaknesses" element={<ProtectedRoute><Weaknesses /></ProtectedRoute>} />
-            <Route path="/weakness-practice" element={<ProtectedRoute><WeaknessPractice /></ProtectedRoute>} />
-            <Route path="/practice/:id" element={<ProtectedRoute><WeaknessPractice /></ProtectedRoute>} />
-            <Route path="/weakness-tips/:topic" element={<ProtectedRoute><WeaknessTips /></ProtectedRoute>} />
-            <Route path="/ai-chat" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />
-            <Route path="/ai-chat/:chatId?" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />
-            <Route path="/learning-review" element={<ProtectedRoute><LearningReviewHub /></ProtectedRoute>} />
-            <Route path="/social" element={<ProtectedRoute><Social /></ProtectedRoute>} />
-            <Route path="/shared" element={<ProtectedRoute><SharedPage /></ProtectedRoute>} />
-            <Route path="/playlists" element={<ProtectedRoute><PlaylistsPage /></ProtectedRoute>} />
-            <Route path="/playlists/:playlistId" element={<ProtectedRoute><PlaylistDetailPage /></ProtectedRoute>} />
-            <Route path="/friends" element={<ProtectedRoute><FriendsDashboard /></ProtectedRoute>} />
-            <Route path="/activity-feed" element={<ProtectedRoute><ActivityFeed /></ProtectedRoute>} />
-            <Route path="/leaderboards" element={<ProtectedRoute><Leaderboards /></ProtectedRoute>} />
-            <Route path="/quiz-hub" element={<ProtectedRoute><QuizHub /></ProtectedRoute>} />
-            <Route path="/quiz-battles" element={<ProtectedRoute><QuizBattle /></ProtectedRoute>} />
-            <Route path="/quiz-battle/:battleId" element={<ProtectedRoute><QuizBattleSession /></ProtectedRoute>} />
-            <Route path="/solo-quiz" element={<ProtectedRoute><SoloQuiz /></ProtectedRoute>} />
-            <Route path="/solo-quiz/session" element={<ProtectedRoute><SoloQuizSession /></ProtectedRoute>} />
-            <Route path="/solo-quiz/:quizId" element={<ProtectedRoute><SoloQuizSession /></ProtectedRoute>} />
-            <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-            <Route path="/games" element={<ProtectedRoute><Games /></ProtectedRoute>} />
-            <Route path="/xp-roadmap" element={<ProtectedRoute><XPRoadmap /></ProtectedRoute>} />
-            <Route path="/challenges" element={<ProtectedRoute><Challenges /></ProtectedRoute>} />
-            <Route path="/challenge/:challengeId" element={<ProtectedRoute><ChallengeSession /></ProtectedRoute>} />
-            <Route path="/shared" element={<SharedContent />} />
-            <Route path="/shared/:contentType/:contentId" element={<SharedContent />} />
-            <Route path="/knowledge-roadmap" element={<ProtectedRoute><KnowledgeRoadmap /></ProtectedRoute>} />
-            <Route path="/knowledge-roadmap/:roadmapId" element={<ProtectedRoute><KnowledgeRoadmap /></ProtectedRoute>} />
-            <Route path="/concept-web" element={<ProtectedRoute><ConceptWeb /></ProtectedRoute>} />
-            <Route path="/learning-paths" element={<ProtectedRoute><LearningPaths /></ProtectedRoute>} />
-            <Route path="/learning-paths/:pathId" element={<ProtectedRoute><LearningPathDetail /></ProtectedRoute>} />
-            <Route path="/question-bank" element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
-            <Route path="/slide-explorer" element={<ProtectedRoute><SlideExplorer /></ProtectedRoute>} />
-            <Route path="/statistics" element={<ProtectedRoute><Statistics /></ProtectedRoute>} />
-            <Route path="/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
-            <Route path="/notes" element={<ProtectedRoute><NotesHub /></ProtectedRoute>} />
-            <Route path="/notes/dashboard" element={<ProtectedRoute><NotesDashboard /></ProtectedRoute>} />
-            <Route path="/notes/audio-video" element={<ProtectedRoute><AudioVideoNotes /></ProtectedRoute>} />
-            <Route path="/notes/ai-media" element={<ProtectedRoute><AIMediaNotes /></ProtectedRoute>} />
-            <Route path="/notes/my-notes" element={<ProtectedRoute><MyNotes /></ProtectedRoute>} />
-            <Route path="/notes/editor/:noteId" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
-            <Route path="/activity-timeline" element={<ProtectedRoute><ActivityTimeline /></ProtectedRoute>} />
-            <Route path="/customize-dashboard" element={<ProtectedRoute><CustomizeDashboard /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-            <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
-            <Route path="/home" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-            <Route path="/shared/:contentType/:contentId" element={<SharedItemViewer />} />
-            <Route path="/shared/chat/:chatId" element={<AIChat sharedMode={true} />} />
-            <Route path="/shared/note/:noteId" element={<NotesRedesign sharedMode={true} />} />
-          </Routes>
-        </div>
-      </ToastProvider>
+            {/* Notification Popup */}
+            {notification && (
+              <ProactiveNotification
+                message={notification.message}
+                chatId={notification.chatId}
+                urgencyScore={notification.urgencyScore}
+                onClose={() => setNotification(null)}
+              />
+            )}
+            
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<SafetyLogin />} />
+              <Route path="/search-hub" element={<SafetyProtectedRoute><SearchHub /></SafetyProtectedRoute>} />
+              <Route path="/login" element={<SafetyProtectedRoute><Login /></SafetyProtectedRoute>} />
+              <Route path="/register" element={<SafetyProtectedRoute><Register /></SafetyProtectedRoute>} />
+              
+              {/* Protected Routes */}
+              <Route path="/homepage" element={<ProtectedRoute><Homepage /></ProtectedRoute>} />
+              <Route path="/profile-quiz" element={<ProtectedRoute><ProfileQuiz /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/study-insights" element={<ProtectedRoute><StudyInsights /></ProtectedRoute>} />
+              <Route path="/weaknesses" element={<ProtectedRoute><Weaknesses /></ProtectedRoute>} />
+              <Route path="/weakness-practice" element={<ProtectedRoute><WeaknessPractice /></ProtectedRoute>} />
+              <Route path="/practice/:id" element={<ProtectedRoute><WeaknessPractice /></ProtectedRoute>} />
+              <Route path="/weakness-tips/:topic" element={<ProtectedRoute><WeaknessTips /></ProtectedRoute>} />
+              <Route path="/ai-chat" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />
+              <Route path="/ai-chat/:chatId?" element={<ProtectedRoute><AIChat /></ProtectedRoute>} />
+              <Route path="/learning-review" element={<ProtectedRoute><LearningReviewHub /></ProtectedRoute>} />
+              <Route path="/social" element={<ProtectedRoute><Social /></ProtectedRoute>} />
+              <Route path="/shared" element={<ProtectedRoute><SharedPage /></ProtectedRoute>} />
+              <Route path="/playlists" element={<ProtectedRoute><PlaylistsPage /></ProtectedRoute>} />
+              <Route path="/playlists/:playlistId" element={<ProtectedRoute><PlaylistDetailPage /></ProtectedRoute>} />
+              <Route path="/friends" element={<ProtectedRoute><FriendsDashboard /></ProtectedRoute>} />
+              <Route path="/activity-feed" element={<ProtectedRoute><ActivityFeed /></ProtectedRoute>} />
+              <Route path="/leaderboards" element={<ProtectedRoute><Leaderboards /></ProtectedRoute>} />
+              <Route path="/quiz-hub" element={<ProtectedRoute><QuizHub /></ProtectedRoute>} />
+              <Route path="/quiz-battles" element={<ProtectedRoute><QuizBattle /></ProtectedRoute>} />
+              <Route path="/quiz-battle/:battleId" element={<ProtectedRoute><QuizBattleSession /></ProtectedRoute>} />
+              <Route path="/solo-quiz" element={<ProtectedRoute><SoloQuiz /></ProtectedRoute>} />
+              <Route path="/solo-quiz/session" element={<ProtectedRoute><SoloQuizSession /></ProtectedRoute>} />
+              <Route path="/solo-quiz/:quizId" element={<ProtectedRoute><SoloQuizSession /></ProtectedRoute>} />
+              <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+              <Route path="/games" element={<ProtectedRoute><Games /></ProtectedRoute>} />
+              <Route path="/xp-roadmap" element={<ProtectedRoute><XPRoadmap /></ProtectedRoute>} />
+              <Route path="/challenges" element={<ProtectedRoute><Challenges /></ProtectedRoute>} />
+              <Route path="/challenge/:challengeId" element={<ProtectedRoute><ChallengeSession /></ProtectedRoute>} />
+              <Route path="/shared" element={<SharedContent />} />
+              <Route path="/shared/:contentType/:contentId" element={<SharedContent />} />
+              <Route path="/knowledge-roadmap" element={<ProtectedRoute><KnowledgeRoadmap /></ProtectedRoute>} />
+              <Route path="/knowledge-roadmap/:roadmapId" element={<ProtectedRoute><KnowledgeRoadmap /></ProtectedRoute>} />
+              <Route path="/concept-web" element={<ProtectedRoute><ConceptWeb /></ProtectedRoute>} />
+              <Route path="/learning-paths" element={<ProtectedRoute><LearningPaths /></ProtectedRoute>} />
+              <Route path="/learning-paths/:pathId" element={<ProtectedRoute><LearningPathDetail /></ProtectedRoute>} />
+              <Route path="/question-bank" element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
+              <Route path="/slide-explorer" element={<ProtectedRoute><SlideExplorer /></ProtectedRoute>} />
+              <Route path="/statistics" element={<ProtectedRoute><Statistics /></ProtectedRoute>} />
+              <Route path="/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
+              <Route path="/notes" element={<ProtectedRoute><NotesHub /></ProtectedRoute>} />
+              <Route path="/notes/dashboard" element={<ProtectedRoute><NotesDashboard /></ProtectedRoute>} />
+              <Route path="/notes/audio-video" element={<ProtectedRoute><AudioVideoNotes /></ProtectedRoute>} />
+              <Route path="/notes/ai-media" element={<ProtectedRoute><AIMediaNotes /></ProtectedRoute>} />
+              <Route path="/notes/my-notes" element={<ProtectedRoute><MyNotes /></ProtectedRoute>} />
+              <Route path="/notes/editor/:noteId" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
+              <Route path="/activity-timeline" element={<ProtectedRoute><ActivityTimeline /></ProtectedRoute>} />
+              <Route path="/customize-dashboard" element={<ProtectedRoute><CustomizeDashboard /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
+              <Route path="/home" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="/shared/:contentType/:contentId" element={<SharedItemViewer />} />
+              <Route path="/shared/chat/:chatId" element={<AIChat sharedMode={true} />} />
+              <Route path="/shared/note/:noteId" element={<NotesRedesign sharedMode={true} />} />
+            </Routes>
+          </div>
+        </ToastProvider>
+      </NotificationProvider>
     </ThemeProvider>
   );
 }

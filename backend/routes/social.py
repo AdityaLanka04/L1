@@ -314,6 +314,14 @@ async def respond_friend_request(
         elif action == "reject":
             friend_request.status = "rejected"
             friend_request.responded_at = datetime.now(timezone.utc)
+            notification = models.Notification(
+                user_id=friend_request.sender_id,
+                title="Friend Request Declined",
+                message=f"{current_user.username} declined your friend request.",
+                notification_type="friend_rejected",
+                is_read=False
+            )
+            db.add(notification)
             db.commit()
 
             return {
@@ -418,6 +426,15 @@ async def remove_friend(
                 models.Friendship.friend_id == current_user.id
             )
         ).delete()
+
+        notification = models.Notification(
+            user_id=friend_id,
+            title="Friend Removed",
+            message=f"{current_user.username} removed you from their friends list.",
+            notification_type="friend_removed",
+            is_read=False
+        )
+        db.add(notification)
 
         db.commit()
 
@@ -1041,6 +1058,15 @@ async def join_challenge(
         challenge = db.query(models.Challenge).filter(models.Challenge.id == challenge_id).first()
         if challenge:
             challenge.participant_count += 1
+            if challenge.creator_id != current_user.id:
+                join_notification = models.Notification(
+                    user_id=challenge.creator_id,
+                    title="Challenge Joined",
+                    message=f"{current_user.username} joined your challenge '{challenge.title}'.",
+                    notification_type="challenge_joined",
+                    is_read=False
+                )
+                db.add(join_notification)
 
         db.commit()
 
@@ -1530,6 +1556,16 @@ async def update_challenge_progress(
                 is_read=False
             )
             db.add(notification)
+
+            if challenge.creator_id != current_user.id:
+                creator_notification = models.Notification(
+                    user_id=challenge.creator_id,
+                    title="Challenge Completed",
+                    message=f"{current_user.username} completed your challenge '{challenge.title}'.",
+                    notification_type="challenge_completed",
+                    is_read=False
+                )
+                db.add(creator_notification)
 
         db.commit()
 
@@ -2043,6 +2079,28 @@ async def accept_quiz_battle(
 
         logger.info(f"Battle {battle_id} accepted by user {current_user.id}")
 
+        challenger_name = battle.challenger.first_name or battle.challenger.username
+        opponent_name = current_user.first_name or current_user.username
+
+        notification = models.Notification(
+            user_id=battle.challenger_id,
+            title="Battle Accepted",
+            message=f"{opponent_name} accepted your quiz battle challenge. It's on!",
+            notification_type="battle_accepted",
+            is_read=False
+        )
+        db.add(notification)
+
+        start_notification = models.Notification(
+            user_id=current_user.id,
+            title="Battle Started",
+            message=f"You're now in a live quiz battle against {challenger_name}. Good luck!",
+            notification_type="battle_started",
+            is_read=False
+        )
+        db.add(start_notification)
+        db.commit()
+
         await notify_battle_accepted(battle.challenger_id, battle.id)
         await notify_battle_started([battle.challenger_id, battle.opponent_id], battle.id)
 
@@ -2097,6 +2155,16 @@ async def decline_quiz_battle(
         logger.info(f"Battle {battle_id} declined by user {current_user.id}")
 
         opponent_name = f"{current_user.first_name} {current_user.last_name}" if current_user.first_name else current_user.username
+        decline_notification = models.Notification(
+            user_id=battle.challenger_id,
+            title="Battle Declined",
+            message=f"{opponent_name} declined your quiz battle challenge.",
+            notification_type="battle_declined",
+            is_read=False
+        )
+        db.add(decline_notification)
+        db.commit()
+
         await notify_battle_declined(battle.challenger_id, battle.id, opponent_name)
 
         return {

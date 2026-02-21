@@ -443,6 +443,7 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
 
         if comprehensive_profile:
             show_insights_value = comprehensive_profile.show_study_insights
+            notifications_value = comprehensive_profile.notifications_enabled
             result.update({
                 "difficultyLevel": comprehensive_profile.difficulty_level or "intermediate",
                 "learningPace": comprehensive_profile.learning_pace or "moderate",
@@ -451,6 +452,7 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
                 "secondaryArchetype": comprehensive_profile.secondary_archetype or "",
                 "archetypeDescription": comprehensive_profile.archetype_description or "",
                 "showStudyInsights": show_insights_value if show_insights_value is not None else True,
+                "notificationsEnabled": notifications_value if notifications_value is not None else True,
             })
 
             try:
@@ -460,6 +462,7 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
                 result["preferredSubjects"] = []
         else:
             result["showStudyInsights"] = True
+            result["notificationsEnabled"] = True
 
         return result
 
@@ -514,6 +517,12 @@ async def update_comprehensive_profile(
             if isinstance(value, str):
                 value = value.lower() == "true"
             comprehensive_profile.show_study_insights = bool(value)
+
+        if "notificationsEnabled" in payload:
+            value = payload["notificationsEnabled"]
+            if isinstance(value, str):
+                value = value.lower() == "true"
+            comprehensive_profile.notifications_enabled = bool(value)
 
         comprehensive_profile.updated_at = datetime.now(timezone.utc)
 

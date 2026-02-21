@@ -664,6 +664,7 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
 
         if comprehensive_profile:
             show_insights_value = comprehensive_profile.show_study_insights
+            notifications_value = comprehensive_profile.notifications_enabled
             logger.info(f"Loading profile - show_study_insights from DB: {show_insights_value} (type: {type(show_insights_value)})")
 
             result.update({
@@ -673,7 +674,8 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
                 "primaryArchetype": comprehensive_profile.primary_archetype or "",
                 "secondaryArchetype": comprehensive_profile.secondary_archetype or "",
                 "archetypeDescription": comprehensive_profile.archetype_description or "",
-                "showStudyInsights": show_insights_value if show_insights_value is not None else True
+                "showStudyInsights": show_insights_value if show_insights_value is not None else True,
+                "notificationsEnabled": notifications_value if notifications_value is not None else True
             })
 
             try:
@@ -683,6 +685,7 @@ async def get_comprehensive_profile(user_id: str = Query(...), db: Session = Dep
                 result["preferredSubjects"] = []
         else:
             result["showStudyInsights"] = True
+            result["notificationsEnabled"] = True
 
         return result
 
@@ -741,6 +744,12 @@ async def update_comprehensive_profile(
                 value = value.lower() == 'true'
             comprehensive_profile.show_study_insights = bool(value)
             logger.info(f"Setting show_study_insights to: {comprehensive_profile.show_study_insights} (received: {payload['showStudyInsights']})")
+
+        if "notificationsEnabled" in payload:
+            value = payload["notificationsEnabled"]
+            if isinstance(value, str):
+                value = value.lower() == "true"
+            comprehensive_profile.notifications_enabled = bool(value)
 
         comprehensive_profile.updated_at = datetime.now(timezone.utc)
 

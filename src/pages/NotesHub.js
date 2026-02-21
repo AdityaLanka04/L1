@@ -156,7 +156,25 @@ const NotesHub = () => {
         mode="import"
         sourceType="notes"
         onSuccess={(result) => {
-          alert("Successfully converted notes!");
+          if (result?.shouldNavigate) {
+            if (result.destinationType === 'flashcards') {
+              if (result.set_id) {
+                navigate(`/flashcards?set_id=${result.set_id}&mode=preview`);
+              } else {
+                navigate('/flashcards');
+              }
+            } else if (result.destinationType === 'questions') {
+              navigate('/question-bank');
+            } else if (result.destinationType === 'notes') {
+              if (result.note_id) {
+                navigate(`/notes/editor/${result.note_id}`);
+              } else {
+                navigate('/notes');
+              }
+            }
+          } else {
+            alert("Successfully converted notes!");
+          }
         }}
       />
     </div>

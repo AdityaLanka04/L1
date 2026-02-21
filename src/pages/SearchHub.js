@@ -985,19 +985,24 @@ const SearchHub = () => {
           
           if (quizResponse.ok) {
             const quizData = await quizResponse.json();
-            if (quizData.success && quizData.content_id) {
+            if (quizData.success) {
+              const target =
+                quizData.navigate_to ||
+                (quizData.content_id
+                  ? `/question-bank?set_id=${quizData.content_id}`
+                  : '/question-bank');
               setCreatingMessage('Quiz ready! Starting...');
               setTimeout(() => {
                 setIsCreating(false);
-                navigate(`/solo-quiz?set_id=${quizData.content_id}`);
+                navigate(target);
               }, 500);
             } else {
               setIsCreating(false);
-              navigate('/solo-quiz');
+              navigate('/question-bank');
             }
           } else {
             setIsCreating(false);
-            navigate('/solo-quiz');
+            navigate('/question-bank');
           }
           break;
           
@@ -1929,7 +1934,7 @@ const SearchHub = () => {
               <div className="pulse-square pulse-2"></div>
               <div className="pulse-square pulse-3"></div>
             </div>
-            <p>Searching...</p>
+            <p>Loading...</p>
           </div>
         ) : (
           <div className="results-container">

@@ -787,6 +787,34 @@ Write at least 500 words of educational content."""
                 raise Exception("Note content was not saved properly")
             
             logger.info(f"Created note {note.id} with {len(note.content)} characters")
+
+            # Write to ChromaDB so AI features can reference this generated note
+            try:
+                from tutor import chroma_store
+                if chroma_store.available():
+                    sample_titles = [item.title for item in items if item.title][:5]
+                    topics = "; ".join(sample_titles) if sample_titles else "playlist topics"
+                    summary = (
+                        f"AI generated study notes from playlist \"{playlist.title}\" "
+                        f"with {len(items)} items. Topics: {topics}."
+                    )
+                    chroma_store.write_episode(
+                        user_id=str(user_id),
+                        summary=summary,
+                        metadata={
+                            "source": "note_activity",
+                            "action": "ai_generated",
+                            "origin": "playlist",
+                            "playlist_id": str(playlist.id),
+                            "playlist_title": playlist.title[:100],
+                            "note_id": str(note.id),
+                            "note_title": note.title[:100],
+                            "topic": playlist.title[:100],
+                            "items_count": str(len(items)),
+                        },
+                    )
+            except Exception as e:
+                logger.warning(f"Chroma write failed on playlist notes generation: {e}")
             
             return {
                 "success": True,
@@ -873,6 +901,35 @@ Return ONLY a JSON array:
                 self.db.add(flashcard)
             
             self.db.commit()
+
+            # Write to ChromaDB so AI features can reference this generated set
+            try:
+                from tutor import chroma_store
+                if chroma_store.available():
+                    sample_questions = [c.get("question", "")[:60] for c in flashcards_data[:5]]
+                    sample_text = "; ".join([q for q in sample_questions if q])
+                    summary = (
+                        f"AI generated flashcards from playlist \"{playlist.title}\" "
+                        f"with {len(flashcards_data)} cards. "
+                        f"Sample questions: {sample_text or 'N/A'}."
+                    )
+                    chroma_store.write_episode(
+                        user_id=str(user_id),
+                        summary=summary,
+                        metadata={
+                            "source": "flashcard_created",
+                            "action": "ai_generated",
+                            "origin": "playlist",
+                            "playlist_id": str(playlist.id),
+                            "playlist_title": playlist.title[:100],
+                            "set_id": str(flashcard_set.id),
+                            "set_title": flashcard_set.title[:100],
+                            "topic": playlist.title[:100],
+                            "card_count": str(len(flashcards_data)),
+                        },
+                    )
+            except Exception as e:
+                logger.warning(f"Chroma write failed on playlist flashcards generation: {e}")
             
             return {
                 "success": True,

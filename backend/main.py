@@ -51,6 +51,14 @@ with engine.connect() as _conn:
             logger.info("Added column flashcards.%s", _col)
     _conn.commit()
 
+# --- Migrate: add notifications_enabled to comprehensive_user_profiles if missing ---
+with engine.connect() as _conn:
+    _profile_cols = {r[1] for r in _conn.execute(text("PRAGMA table_info(comprehensive_user_profiles)"))}
+    if "notifications_enabled" not in _profile_cols:
+        _conn.execute(text("ALTER TABLE comprehensive_user_profiles ADD COLUMN notifications_enabled BOOLEAN DEFAULT 1"))
+        logger.info("Added column comprehensive_user_profiles.notifications_enabled")
+    _conn.commit()
+
 
 def _sync_sequences():
     if not DATABASE_URL or "postgres" not in DATABASE_URL.lower():

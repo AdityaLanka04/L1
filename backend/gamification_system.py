@@ -13,6 +13,7 @@ POINT_VALUES = {
     "ai_chat": 1,           # AI chat message
     "note_created": 20,     # Create note (AI chat, audio, or own)
     "flashcard_set": 10,    # Flashcard set created
+    "flashcard_created": 10, # Flashcard set created (alias)
     "quiz_high_score": 30,  # Quiz with 80%+ score
     "quiz_completed": 15,   # Complete quiz (any score)
     "study_hour": 50,       # Study 1 hour on app
@@ -24,6 +25,40 @@ POINT_VALUES = {
     "flashcard_mastered": 5, # Master a flashcard
     "learning_path_node": 0, # Learning path node (XP from node reward)
 }
+
+# ==================== NOTIFICATION MILESTONES ====================
+MILESTONE_COUNTS = {
+    "ai_chat": [10, 50, 100, 250, 500],
+    "note_created": [1, 5, 10, 25, 50, 100],
+    "flashcard_created": [1, 5, 10, 25, 50, 100],
+    "question_answered": [10, 50, 100, 250, 500, 1000],
+    "quiz_completed": [1, 5, 10, 25, 50],
+    "solo_quiz": [1, 5, 10, 25],
+    "flashcard_reviewed": [25, 50, 100, 250, 500],
+    "flashcard_mastered": [5, 10, 25, 50, 100],
+}
+
+STUDY_TIME_MILESTONES_MINUTES = [30, 60, 120, 300, 600, 1200]
+
+
+def _add_notification(db: Session, user_id: int, title: str, message: str, notification_type: str):
+    notification = models.Notification(
+        user_id=user_id,
+        title=title,
+        message=message,
+        notification_type=notification_type
+    )
+    db.add(notification)
+
+
+def _format_minutes(total_minutes: int) -> str:
+    if total_minutes < 60:
+        return f"{total_minutes} minutes"
+    hours = total_minutes // 60
+    minutes = total_minutes % 60
+    if minutes == 0:
+        return f"{hours} hour{'s' if hours != 1 else ''}"
+    return f"{hours}h {minutes}m"
 
 # ==================== SOLO QUIZ POINT FORMULA ====================
 # Max points: 40 (hard difficulty, max questions)
@@ -207,9 +242,12 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
     
     # Prevent duplicate tracking within 2 seconds
     from datetime import datetime, timedelta, timezone
+    duplicate_types = [activity_type]
+    if activity_type in ("flashcard_set", "flashcard_created"):
+        duplicate_types = ["flashcard_set", "flashcard_created"]
     recent_transaction = db.query(PointTransaction).filter(
         PointTransaction.user_id == user_id,
-        PointTransaction.activity_type == activity_type,
+        PointTransaction.activity_type.in_(duplicate_types),
         PointTransaction.created_at >= datetime.now(timezone.utc) - timedelta(seconds=2)
     ).first()
     
@@ -232,46 +270,131 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
         stats.total_ai_chats += 1
         stats.weekly_ai_chats += 1
         description = "AI Chat Message"
+        if stats.total_ai_chats in MILESTONE_COUNTS["ai_chat"]:
+            _add_notification(
+                db,
+                user_id,
+                "AI Chat Milestone",
+                f"You've sent {stats.total_ai_chats} messages to your AI tutor. Keep the conversation going!",
+                "ai_chat_milestone"
+            )
         
     elif activity_type == "note_created":
         points_earned = POINT_VALUES["note_created"]
         stats.total_notes_created += 1
         stats.weekly_notes_created += 1
         description = "Created Note"
+        if stats.total_notes_created in MILESTONE_COUNTS["note_created"]:
+            _add_notification(
+                db,
+                user_id,
+                "Notes Milestone",
+                f"You've created {stats.total_notes_created} notes. Great job capturing insights!",
+                "notes_milestone"
+            )
         
     elif activity_type == "question_answered":
         points_earned = POINT_VALUES["question_answered"]
         stats.total_questions_answered += 1
         stats.weekly_questions_answered += 1
         description = "Answered Question"
+        if stats.total_questions_answered in MILESTONE_COUNTS["question_answered"]:
+            _add_notification(
+                db,
+                user_id,
+                "Practice Milestone",
+                f"You've answered {stats.total_questions_answered} questions. Keep sharpening your skills!",
+                "questions_milestone"
+            )
         
-    elif activity_type == "flashcard_set":
+    elif activity_type in ("flashcard_set", "flashcard_created"):
         points_earned = POINT_VALUES["flashcard_set"]
         stats.total_flashcards_created += 1
         stats.weekly_flashcards_created += 1
         description = "Created Flashcard Set"
+        if stats.total_flashcards_created in MILESTONE_COUNTS["flashcard_created"]:
+            _add_notification(
+                db,
+                user_id,
+                "Flashcards Milestone",
+                f"You've created {stats.total_flashcards_created} flashcard sets. Keep building your memory bank!",
+                "flashcards_milestone"
+            )
         
     elif activity_type == "quiz_completed":
-        score_percentage = metadata.get("score_percentage", 0)
+        raw_score = metadata.get("score_percentage")
+        has_score = raw_score is not None
+        try:
+            score_percentage = float(raw_score) if has_score else 0
+        except (TypeError, ValueError):
+            score_percentage = 0
+            has_score = False
         if score_percentage >= 80:
             points_earned = POINT_VALUES["quiz_high_score"]
             description = f"Completed Quiz with {score_percentage}% (High Score Bonus!)"
         else:
             points_earned = POINT_VALUES["quiz_completed"]
-            description = f"Completed Quiz with {score_percentage}%"
+            description = f"Completed Quiz with {score_percentage}%" if has_score else "Completed Quiz"
         stats.total_quizzes_completed += 1
         stats.weekly_quizzes_completed += 1
+
+        if has_score:
+            if score_percentage >= 90:
+                _add_notification(
+                    db,
+                    user_id,
+                    "Excellent Work!",
+                    f"Amazing! You scored {score_percentage}% on a quiz. Keep it up!",
+                    "quiz_excellent"
+                )
+            elif score_percentage < 50:
+                _add_notification(
+                    db,
+                    user_id,
+                    "Quiz Performance Alert",
+                    f"Your recent quiz score was {score_percentage}%. Review the material and try again to improve!",
+                    "quiz_poor_performance"
+                )
+            else:
+                _add_notification(
+                    db,
+                    user_id,
+                    "Quiz Completed",
+                    f"You completed a quiz with {score_percentage}%. Nice work!",
+                    "quiz_completed"
+                )
+
+        if stats.total_quizzes_completed in MILESTONE_COUNTS["quiz_completed"]:
+            _add_notification(
+                db,
+                user_id,
+                "Quiz Milestone",
+                f"You've completed {stats.total_quizzes_completed} quizzes. Keep testing your knowledge!",
+                "quiz_milestone"
+            )
         
     elif activity_type == "study_time":
         minutes = metadata.get("minutes", 0)
         hours = minutes / 60
         points_earned = int(hours * POINT_VALUES["study_hour"])  # 50 pts per hour
+        prev_minutes = stats.total_study_minutes
         stats.total_study_minutes += minutes
         stats.weekly_study_minutes += minutes
         if minutes >= 60:
             description = f"Studied {int(hours)}h {minutes % 60}m (+{points_earned} pts)"
         else:
             description = f"Studied {minutes} minutes"
+
+        for threshold in STUDY_TIME_MILESTONES_MINUTES:
+            if prev_minutes < threshold <= stats.total_study_minutes:
+                formatted = _format_minutes(threshold)
+                _add_notification(
+                    db,
+                    user_id,
+                    "Study Time Milestone",
+                    f"You've studied for {formatted} in total. Keep it up!",
+                    "study_time_milestone"
+                )
         
     elif activity_type == "battle_win":
         points_earned = POINT_VALUES["battle_win"]
@@ -298,7 +421,10 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
         # Use the new formula for solo quiz points
         difficulty = metadata.get("difficulty", "intermediate")
         question_count = metadata.get("question_count", 10)
-        score_percentage = metadata.get("score_percentage", 0)
+        try:
+            score_percentage = float(metadata.get("score_percentage", 0))
+        except (TypeError, ValueError):
+            score_percentage = 0
         
         quiz_result = calculate_solo_quiz_points(difficulty, question_count, score_percentage)
         points_earned = quiz_result["points_earned"]
@@ -315,6 +441,24 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
         
         bonus_str = f" ({', '.join(quiz_result['bonus_reasons'])})" if quiz_result['bonus_reasons'] else ""
         description = f"Solo Quiz: {difficulty.title()} {question_count}Q - {score_percentage}%{bonus_str}"
+
+        if 50 <= score_percentage < 90:
+            _add_notification(
+                db,
+                user_id,
+                "Quiz Completed",
+                f"You completed a solo quiz with {score_percentage}%. Keep practicing!",
+                "quiz_completed"
+            )
+
+        if hasattr(stats, 'total_solo_quizzes') and stats.total_solo_quizzes in MILESTONE_COUNTS["solo_quiz"]:
+            _add_notification(
+                db,
+                user_id,
+                "Solo Quiz Milestone",
+                f"You've completed {stats.total_solo_quizzes} solo quizzes. Nice work!",
+                "quiz_milestone"
+            )
     
     elif activity_type == "flashcard_reviewed":
         points_earned = POINT_VALUES["flashcard_reviewed"]
@@ -323,6 +467,14 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
         if hasattr(stats, 'weekly_flashcards_reviewed'):
             stats.weekly_flashcards_reviewed += 1
         description = "Reviewed Flashcard"
+        if hasattr(stats, 'total_flashcards_reviewed') and stats.total_flashcards_reviewed in MILESTONE_COUNTS["flashcard_reviewed"]:
+            _add_notification(
+                db,
+                user_id,
+                "Flashcards Milestone",
+                f"You've reviewed {stats.total_flashcards_reviewed} flashcards. Great consistency!",
+                "flashcards_milestone"
+            )
     
     elif activity_type == "flashcard_mastered":
         points_earned = POINT_VALUES["flashcard_mastered"]
@@ -331,6 +483,14 @@ def award_points(db: Session, user_id: int, activity_type: str, metadata: dict =
         if hasattr(stats, 'weekly_flashcards_mastered'):
             stats.weekly_flashcards_mastered += 1
         description = "Mastered Flashcard"
+        if hasattr(stats, 'total_flashcards_mastered') and stats.total_flashcards_mastered in MILESTONE_COUNTS["flashcard_mastered"]:
+            _add_notification(
+                db,
+                user_id,
+                "Flashcard Mastery",
+                f"You've mastered {stats.total_flashcards_mastered} flashcards. Impressive!",
+                "flashcard_mastered"
+            )
     
     # Update points and level
     old_level = stats.level
