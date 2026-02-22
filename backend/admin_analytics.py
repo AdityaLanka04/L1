@@ -95,6 +95,13 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
         cursor.execute("SELECT COUNT(*) as count FROM users")
         total_users = cursor.fetchone()['count']
 
+        # New users in range
+        try:
+            cursor.execute("SELECT COUNT(*) as count FROM users WHERE created_at >= ?", (start_date.isoformat(),))
+            new_users = cursor.fetchone()['count']
+        except Exception:
+            new_users = 0
+
         # Pull activity logs for the date range
         cursor.execute("""
             SELECT * FROM user_activity_log
@@ -123,6 +130,14 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
         token_sources = {}
         tool_stats = {}
         model_stats = {}
+        provider_stats = {}
+        endpoint_stats = {}
+        action_stats = {}
+        status_codes = {}
+        status_buckets = {"2xx": 0, "3xx": 0, "4xx": 0, "5xx": 0, "unknown": 0}
+        hourly_usage = {}
+        user_rollups = {}
+        request_event_seen = False
 
         today = datetime.now().date()
         daily_usage = {}
@@ -137,6 +152,16 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
                 "errors": 0
             }
 
+        for hour in range(24):
+            hourly_usage[hour] = {
+                "hour": hour,
+                "requests": 0,
+                "ai_requests": 0,
+                "total_tokens": 0,
+                "ai_tokens": 0,
+                "errors": 0
+            }
+
         for row in rows:
             metadata = _safe_json_loads(row.get('metadata'))
             tool_name = row.get('tool_name') or 'unknown'
@@ -144,8 +169,10 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
             tokens_used = row.get('tokens_used') or 0
             total_tokens += tokens_used
 
-            if metadata.get('event_type') == 'request':
+            is_request_event = metadata.get('event_type') == 'request'
+            if is_request_event:
                 total_requests += 1
+                request_event_seen = True
 
             token_source = metadata.get('token_source') or 'unknown'
             token_sources[token_source] = token_sources.get(token_source, 0) + 1
@@ -176,6 +203,21 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
                 if is_ai:
                     ai_error_count += 1
 
+            if isinstance(status_code, int):
+                status_codes[status_code] = status_codes.get(status_code, 0) + 1
+                if 200 <= status_code < 300:
+                    status_buckets["2xx"] += 1
+                elif 300 <= status_code < 400:
+                    status_buckets["3xx"] += 1
+                elif 400 <= status_code < 500:
+                    status_buckets["4xx"] += 1
+                elif 500 <= status_code < 600:
+                    status_buckets["5xx"] += 1
+                else:
+                    status_buckets["unknown"] += 1
+            else:
+                status_buckets["unknown"] += 1
+
             # Daily aggregation
             ts = _parse_timestamp(row.get('timestamp'))
             if ts:
@@ -188,6 +230,16 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
                         daily_usage[key]["ai_requests"] += 1
                     if isinstance(status_code, int) and status_code >= 400:
                         daily_usage[key]["errors"] += 1
+
+                hour_key = ts.hour
+                if hour_key in hourly_usage:
+                    hourly_usage[hour_key]["total_tokens"] += tokens_used
+                    hourly_usage[hour_key]["requests"] += 1
+                    if is_ai:
+                        hourly_usage[hour_key]["ai_tokens"] += tokens_used
+                        hourly_usage[hour_key]["ai_requests"] += 1
+                    if isinstance(status_code, int) and status_code >= 400:
+                        hourly_usage[hour_key]["errors"] += 1
 
             # Tool stats
             tool = tool_stats.setdefault(tool_name, {
@@ -221,6 +273,68 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
                 if candidate and (current is None or candidate > current):
                     tool["last_activity"] = row.get('timestamp')
 
+            # Provider stats
+            provider = metadata.get('provider')
+            if provider:
+                provider_stat = provider_stats.setdefault(provider, {
+                    "provider": provider,
+                    "usage_count": 0,
+                    "total_tokens": 0,
+                    "ai_tokens": 0,
+                    "latency_sum": 0,
+                    "latency_count": 0,
+                    "error_count": 0
+                })
+                provider_stat["usage_count"] += 1
+                provider_stat["total_tokens"] += tokens_used
+                if is_ai:
+                    provider_stat["ai_tokens"] += tokens_used
+                if isinstance(duration, (int, float)):
+                    provider_stat["latency_sum"] += duration
+                    provider_stat["latency_count"] += 1
+                if isinstance(status_code, int) and status_code >= 400:
+                    provider_stat["error_count"] += 1
+
+            # Endpoint stats
+            endpoint = metadata.get('endpoint')
+            method = metadata.get('method') or ''
+            if endpoint:
+                endpoint_key = f"{method} {endpoint}".strip()
+                endpoint_stat = endpoint_stats.setdefault(endpoint_key, {
+                    "endpoint": endpoint,
+                    "method": method,
+                    "usage_count": 0,
+                    "total_tokens": 0,
+                    "ai_tokens": 0,
+                    "ai_requests": 0,
+                    "latency_sum": 0,
+                    "latency_count": 0,
+                    "error_count": 0
+                })
+                endpoint_stat["usage_count"] += 1
+                endpoint_stat["total_tokens"] += tokens_used
+                if is_ai:
+                    endpoint_stat["ai_tokens"] += tokens_used
+                    endpoint_stat["ai_requests"] += 1
+                if isinstance(duration, (int, float)):
+                    endpoint_stat["latency_sum"] += duration
+                    endpoint_stat["latency_count"] += 1
+                if isinstance(status_code, int) and status_code >= 400:
+                    endpoint_stat["error_count"] += 1
+
+            # Action stats
+            if action:
+                action_stat = action_stats.setdefault(action, {
+                    "action": action,
+                    "usage_count": 0,
+                    "total_tokens": 0,
+                    "ai_tokens": 0
+                })
+                action_stat["usage_count"] += 1
+                action_stat["total_tokens"] += tokens_used
+                if is_ai:
+                    action_stat["ai_tokens"] += tokens_used
+
             # Model stats
             model_name = metadata.get('model')
             if model_name:
@@ -236,6 +350,33 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
                 model["completion_tokens"] += completion_tokens
                 if is_ai:
                     model["requests"] += 1
+
+            # User rollups
+            uid = row.get('user_id')
+            if uid is not None:
+                user_stat = user_rollups.setdefault(uid, {
+                    "activity_count": 0,
+                    "request_count": 0,
+                    "total_tokens": 0,
+                    "ai_tokens": 0,
+                    "ai_requests": 0,
+                    "error_count": 0,
+                    "last_activity": None
+                })
+                user_stat["activity_count"] += 1
+                if is_request_event:
+                    user_stat["request_count"] += 1
+                user_stat["total_tokens"] += tokens_used
+                if is_ai:
+                    user_stat["ai_tokens"] += tokens_used
+                    user_stat["ai_requests"] += 1
+                if isinstance(status_code, int) and status_code >= 400:
+                    user_stat["error_count"] += 1
+                if row.get('timestamp'):
+                    current = _parse_timestamp(user_stat.get("last_activity"))
+                    candidate = _parse_timestamp(row.get('timestamp'))
+                    if candidate and (current is None or candidate > current):
+                        user_stat["last_activity"] = row.get('timestamp')
 
         tool_usage = []
         for tool in tool_stats.values():
@@ -265,12 +406,110 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
 
         tool_usage.sort(key=lambda t: (t["ai_tokens"], t["usage_count"]), reverse=True)
 
+        provider_usage = []
+        for provider in provider_stats.values():
+            avg_latency = 0
+            if provider["latency_count"] > 0:
+                avg_latency = provider["latency_sum"] / provider["latency_count"]
+            error_rate = 0
+            if provider["usage_count"] > 0:
+                error_rate = provider["error_count"] / provider["usage_count"]
+            provider_usage.append({
+                "provider": provider["provider"],
+                "usage_count": provider["usage_count"],
+                "total_tokens": provider["total_tokens"],
+                "ai_tokens": provider["ai_tokens"],
+                "avg_latency": avg_latency,
+                "error_rate": error_rate
+            })
+        provider_usage.sort(key=lambda p: (p["ai_tokens"], p["usage_count"]), reverse=True)
+
+        endpoint_usage = []
+        for endpoint in endpoint_stats.values():
+            avg_latency = 0
+            if endpoint["latency_count"] > 0:
+                avg_latency = endpoint["latency_sum"] / endpoint["latency_count"]
+            error_rate = 0
+            if endpoint["usage_count"] > 0:
+                error_rate = endpoint["error_count"] / endpoint["usage_count"]
+            endpoint_usage.append({
+                "endpoint": endpoint["endpoint"],
+                "method": endpoint["method"],
+                "usage_count": endpoint["usage_count"],
+                "total_tokens": endpoint["total_tokens"],
+                "ai_tokens": endpoint["ai_tokens"],
+                "ai_requests": endpoint["ai_requests"],
+                "avg_latency": avg_latency,
+                "error_rate": error_rate,
+                "error_count": endpoint["error_count"]
+            })
+        endpoint_usage.sort(key=lambda e: (e["usage_count"], e["ai_tokens"]), reverse=True)
+
+        action_usage = []
+        for action in action_stats.values():
+            action_usage.append({
+                "action": action["action"],
+                "usage_count": action["usage_count"],
+                "total_tokens": action["total_tokens"],
+                "ai_tokens": action["ai_tokens"]
+            })
+        action_usage.sort(key=lambda a: (a["usage_count"], a["ai_tokens"]), reverse=True)
+
+        status_code_breakdown = [
+            {"status_code": code, "count": count}
+            for code, count in status_codes.items()
+        ]
+        status_code_breakdown.sort(key=lambda s: s["count"], reverse=True)
+
+        hourly_usage_list = list(hourly_usage.values())
+        hourly_usage_list.sort(key=lambda h: h["hour"])
+
         ai_token_coverage = 0
         if ai_requests > 0:
             ai_token_coverage = round((ai_requests_with_usage / ai_requests) * 100, 1)
 
         if total_requests == 0:
             total_requests = len(rows)
+
+        # Top users by AI tokens
+        top_users = []
+        if user_rollups:
+            user_ids = list(user_rollups.keys())
+            user_lookup = {}
+            try:
+                placeholders = ",".join(["?"] * len(user_ids))
+                conn_lookup = get_db_connection()
+                cursor = conn_lookup.cursor()
+                cursor.execute(
+                    f"SELECT id, username, email FROM users WHERE id IN ({placeholders})",
+                    user_ids
+                )
+                for row in cursor.fetchall():
+                    user_lookup[row["id"]] = {"username": row["username"], "email": row["email"]}
+                conn_lookup.close()
+            except Exception:
+                user_lookup = {}
+
+            for uid, stats in user_rollups.items():
+                user_info = user_lookup.get(uid, {})
+                request_count = stats["request_count"] if request_event_seen else stats["activity_count"]
+                error_rate_user = 0
+                if request_count:
+                    error_rate_user = stats["error_count"] / request_count
+                top_users.append({
+                    "id": uid,
+                    "username": user_info.get("username", f"user_{uid}"),
+                    "email": user_info.get("email", ""),
+                    "requests": request_count,
+                    "ai_requests": stats["ai_requests"],
+                    "total_tokens": stats["total_tokens"],
+                    "ai_tokens": stats["ai_tokens"],
+                    "error_rate": error_rate_user,
+                    "last_activity": stats.get("last_activity")
+                })
+
+            top_users.sort(key=lambda u: (u["ai_tokens"], u["total_tokens"]), reverse=True)
+            top_users = top_users[:10]
 
         avg_latency = round(latency_sum / latency_count, 2) if latency_count else 0
         avg_ai_latency = round(ai_latency_sum / ai_latency_count, 2) if ai_latency_count else 0
@@ -279,6 +518,7 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
 
         return {
             'total_users': total_users,
+            'new_users': new_users,
             'active_users': active_users,
             'total_requests': total_requests,
             'total_tokens': total_tokens,
@@ -295,6 +535,13 @@ async def get_analytics_overview(days: int = Query(30), user_id: str = Header(No
             'tool_usage': tool_usage,
             'daily_usage': list(daily_usage.values()),
             'model_usage': list(model_stats.values()),
+            'provider_usage': provider_usage,
+            'endpoint_usage': endpoint_usage,
+            'action_usage': action_usage,
+            'status_code_breakdown': status_code_breakdown,
+            'status_bucket_breakdown': status_buckets,
+            'hourly_usage': hourly_usage_list,
+            'top_users': top_users,
             'date_range': days
         }
     except Exception as e:

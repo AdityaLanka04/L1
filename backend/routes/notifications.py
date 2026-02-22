@@ -36,6 +36,16 @@ def _normalize_dt(dt: Optional[datetime]) -> Optional[datetime]:
     return dt
 
 
+def _safe_notify_before_minutes(reminder: models.Reminder, default: int = 15) -> int:
+    try:
+        value = reminder.notify_before_minutes
+        if value is None:
+            return default
+        return int(value)
+    except Exception:
+        return default
+
+
 def _format_offline_duration(hours: float) -> str:
     if hours < 24:
         rounded = max(1, int(hours))
@@ -65,93 +75,103 @@ async def get_notifications(
 
         logger.info(f"Found user with id: {user.id}")
 
-        now = datetime.utcnow()
-        upcoming_reminders = db.query(models.Reminder).filter(
-            models.Reminder.user_id == user.id,
-            models.Reminder.is_completed == False,
-            models.Reminder.is_notified == False,
-            models.Reminder.reminder_date > now
-        ).all()
+        now = _normalize_dt(datetime.now(timezone.utc))
+        try:
+            upcoming_reminders = db.query(models.Reminder).filter(
+                models.Reminder.user_id == user.id,
+                models.Reminder.is_completed == False,
+                models.Reminder.is_notified == False,
+                models.Reminder.reminder_date > now
+            ).all()
 
-        for reminder in upcoming_reminders:
-            notif_type, title_prefix = _get_reminder_notif_meta(reminder)
-            time_until = reminder.reminder_date - now
-            minutes_until = time_until.total_seconds() / 60
+            for reminder in upcoming_reminders:
+                notif_type, title_prefix = _get_reminder_notif_meta(reminder)
+                reminder_dt = _normalize_dt(reminder.reminder_date)
+                if not reminder_dt:
+                    continue
+                time_until = reminder_dt - now
+                minutes_until = time_until.total_seconds() / 60
+                notify_before = _safe_notify_before_minutes(reminder)
 
-            if minutes_until <= reminder.notify_before_minutes:
-                existing = db.query(models.Notification).filter(
-                    models.Notification.user_id == user.id,
-                    models.Notification.notification_type == notif_type,
-                    models.Notification.title.contains(reminder.title),
-                    models.Notification.created_at >= datetime.now() - timedelta(hours=1)
-                ).first()
-
-                if not existing:
-                    notification = models.Notification(
-                        user_id=user.id,
-                        title=f"{title_prefix}: {reminder.title}",
-                        message=f"{reminder.description or 'Upcoming reminder'} at {reminder.reminder_date.isoformat()}",
-                        notification_type=notif_type
-                    )
-                    db.add(notification)
-                    reminder.is_notified = True
-                    db.commit()
-                    logger.info(f"Created reminder notification for: {reminder.title}")
-
-        # Inactivity reminder (offline for configured thresholds)
-        inactivity_hours = _parse_hours_list(os.getenv("INACTIVITY_NOTIFICATION_HOURS", "72,168"))
-        if inactivity_hours:
-            # Determine most recent activity timestamp
-            activity_candidates = []
-
-            user_stats = db.query(models.UserStats).filter(
-                models.UserStats.user_id == user.id
-            ).first()
-            if user_stats and user_stats.last_activity:
-                activity_candidates.append(_normalize_dt(user_stats.last_activity))
-
-            gam_stats = db.query(models.UserGamificationStats).filter(
-                models.UserGamificationStats.user_id == user.id
-            ).first()
-            if gam_stats and gam_stats.last_activity_date:
-                activity_candidates.append(_normalize_dt(gam_stats.last_activity_date))
-
-            if user.created_at:
-                activity_candidates.append(_normalize_dt(user.created_at))
-
-            last_activity = max([dt for dt in activity_candidates if dt], default=None)
-            if last_activity:
-                hours_offline = (now - last_activity).total_seconds() / 3600
-                threshold_met = max([h for h in inactivity_hours if hours_offline >= h], default=None)
-                if threshold_met is not None:
-                    existing_inactivity = db.query(models.Notification).filter(
+                if minutes_until <= notify_before:
+                    existing = db.query(models.Notification).filter(
                         models.Notification.user_id == user.id,
-                        models.Notification.notification_type == "inactivity",
-                        models.Notification.created_at >= last_activity
+                        models.Notification.notification_type == notif_type,
+                        models.Notification.title.contains(reminder.title),
+                        models.Notification.created_at >= datetime.now() - timedelta(hours=1)
                     ).first()
 
-                    if not existing_inactivity:
-                        overdue_count = db.query(models.Reminder).filter(
-                            models.Reminder.user_id == user.id,
-                            models.Reminder.is_completed == False,
-                            models.Reminder.reminder_date != None,
-                            models.Reminder.reminder_date <= now
-                        ).count()
-
-                        offline_duration = _format_offline_duration(hours_offline)
-                        message = f"You've been away for {offline_duration}. Ready to jump back in?"
-                        if overdue_count > 0:
-                            suffix = "reminders" if overdue_count != 1 else "reminder"
-                            message += f" You also have {overdue_count} overdue {suffix}."
-
-                        inactivity_notification = models.Notification(
+                    if not existing:
+                        notification = models.Notification(
                             user_id=user.id,
-                            title="Welcome Back!",
-                            message=message,
-                            notification_type="inactivity"
+                            title=f"{title_prefix}: {reminder.title}",
+                            message=f"{reminder.description or 'Upcoming reminder'} at {reminder_dt.isoformat()}",
+                            notification_type=notif_type
                         )
-                        db.add(inactivity_notification)
+                        db.add(notification)
+                        reminder.is_notified = True
                         db.commit()
+                        logger.info(f"Created reminder notification for: {reminder.title}")
+        except Exception as e:
+            logger.error(f"Error generating reminder notifications: {str(e)}", exc_info=True)
+
+        # Inactivity reminder (offline for configured thresholds)
+        try:
+            inactivity_hours = _parse_hours_list(os.getenv("INACTIVITY_NOTIFICATION_HOURS", "72,168"))
+            if inactivity_hours:
+                # Determine most recent activity timestamp
+                activity_candidates = []
+
+                user_stats = db.query(models.UserStats).filter(
+                    models.UserStats.user_id == user.id
+                ).first()
+                if user_stats and user_stats.last_activity:
+                    activity_candidates.append(_normalize_dt(user_stats.last_activity))
+
+                gam_stats = db.query(models.UserGamificationStats).filter(
+                    models.UserGamificationStats.user_id == user.id
+                ).first()
+                if gam_stats and gam_stats.last_activity_date:
+                    activity_candidates.append(_normalize_dt(gam_stats.last_activity_date))
+
+                if user.created_at:
+                    activity_candidates.append(_normalize_dt(user.created_at))
+
+                last_activity = max([dt for dt in activity_candidates if dt], default=None)
+                if last_activity:
+                    hours_offline = (now - last_activity).total_seconds() / 3600
+                    threshold_met = max([h for h in inactivity_hours if hours_offline >= h], default=None)
+                    if threshold_met is not None:
+                        existing_inactivity = db.query(models.Notification).filter(
+                            models.Notification.user_id == user.id,
+                            models.Notification.notification_type == "inactivity",
+                            models.Notification.created_at >= last_activity
+                        ).first()
+
+                        if not existing_inactivity:
+                            overdue_count = db.query(models.Reminder).filter(
+                                models.Reminder.user_id == user.id,
+                                models.Reminder.is_completed == False,
+                                models.Reminder.reminder_date != None,
+                                models.Reminder.reminder_date <= now
+                            ).count()
+
+                            offline_duration = _format_offline_duration(hours_offline)
+                            message = f"You've been away for {offline_duration}. Ready to jump back in?"
+                            if overdue_count > 0:
+                                suffix = "reminders" if overdue_count != 1 else "reminder"
+                                message += f" You also have {overdue_count} overdue {suffix}."
+
+                            inactivity_notification = models.Notification(
+                                user_id=user.id,
+                                title="Welcome Back!",
+                                message=message,
+                                notification_type="inactivity"
+                            )
+                            db.add(inactivity_notification)
+                            db.commit()
+        except Exception as e:
+            logger.error(f"Error generating inactivity notifications: {str(e)}", exc_info=True)
 
         notifications = db.query(models.Notification).filter(
             models.Notification.user_id == user.id
@@ -386,11 +406,12 @@ async def check_reminder_notifications(
                 now = datetime.fromisoformat(current_time.replace('Z', '').replace('+00:00', ''))
                 logger.info(f"Using client time: {now}")
             except Exception:
-                now = datetime.now()
+                now = datetime.now(timezone.utc)
                 logger.info(f"Failed to parse client time, using server time: {now}")
         else:
-            now = datetime.now()
+            now = datetime.now(timezone.utc)
             logger.info(f"No client time provided, using server time: {now}")
+        now = _normalize_dt(now)
 
         notifications_created = []
 
@@ -404,15 +425,17 @@ async def check_reminder_notifications(
         logger.info(f"Found {len(pending_reminders)} pending reminders for user {user_id}")
 
         for reminder in pending_reminders:
-            if not reminder.reminder_date:
+            reminder_dt = _normalize_dt(reminder.reminder_date)
+            if not reminder_dt:
                 continue
 
-            time_until = reminder.reminder_date - now
+            time_until = reminder_dt - now
             minutes_until = time_until.total_seconds() / 60
 
-            logger.info(f"Reminder '{reminder.title}': scheduled={reminder.reminder_date}, now={now}, minutes_until={minutes_until:.1f}, notify_before={reminder.notify_before_minutes}")
+            notify_before = _safe_notify_before_minutes(reminder)
+            logger.info(f"Reminder '{reminder.title}': scheduled={reminder_dt}, now={now}, minutes_until={minutes_until:.1f}, notify_before={notify_before}")
 
-            notify_window_start = reminder.notify_before_minutes
+            notify_window_start = notify_before
             is_in_notify_window = minutes_until <= notify_window_start and minutes_until >= -30
 
             if is_in_notify_window:

@@ -12,10 +12,20 @@ export const useNotifications = () => {
 };
 
 const getAuthFromStorage = () => {
-  return {
-    token: localStorage.getItem('token'),
-    userName: localStorage.getItem('username')
-  };
+  const token = localStorage.getItem('token');
+  let userName = localStorage.getItem('username');
+
+  if (!userName) {
+    const rawProfile = localStorage.getItem('userProfile');
+    if (rawProfile) {
+      try {
+        const parsed = JSON.parse(rawProfile);
+        userName = parsed.username || parsed.email || '';
+      } catch (e) {}
+    }
+  }
+
+  return { token, userName };
 };
 
 const getNotificationsEnabled = () => {
@@ -62,7 +72,7 @@ export const NotificationProvider = ({ children }) => {
       }
       lastCheckRef.current = now;
 
-      const response = await fetch(`${API_URL}/get_notifications?user_id=${userName}`, {
+      const response = await fetch(`${API_URL}/get_notifications?user_id=${encodeURIComponent(userName)}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
