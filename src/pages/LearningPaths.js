@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  ArrowLeft, Plus, Loader, BookOpen, Target, Clock, Award,
+  Plus, Loader, BookOpen, Target, Clock, Award,
   CheckCircle, Play, Trash2,
   Sparkles, Route, Map, Circle, Search,
   SlidersHorizontal, ArrowUpDown, Menu
@@ -212,8 +212,7 @@ const LearningPaths = () => {
         </div>
         <div className="lp-header-right">
           <button className="lp-back-btn" onClick={() => navigate('/dashboard')}>
-            <span>Back</span>
-            <ArrowLeft size={14} />
+            Dashboard
           </button>
         </div>
       </header>

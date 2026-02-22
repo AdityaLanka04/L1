@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import CustomPopup from './CustomPopup';
 import './Flashcards.css';
@@ -71,11 +71,14 @@ const Flashcards = () => {
   const [studyMode, setStudyMode] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const [studySessionStats, setStudySessionStats] = useState({ correct: 0, incorrect: 0, skipped: 0 });
+  const gradedCardsRef = useRef(new Set()); // tracks which card indices have been graded
   const [showStudyResults, setShowStudyResults] = useState(false);
   const [shuffledCards, setShuffledCards] = useState([]);
   const [studySettings, setStudySettings] = useState({ shuffle: false });
   const [currentStreak, setCurrentStreak] = useState(0);
   
+  const [loadingSetId, setLoadingSetId] = useState(null); // tracks which set is being loaded
+
   // UI state
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('recent');
@@ -1339,6 +1342,7 @@ const Flashcards = () => {
   };
 
   const loadFlashcardSet = async (setId, mode = 'study') => {
+    setLoadingSetId(setId);
     try {
       const token = localStorage.getItem('token');
       // Use the existing endpoint that works
@@ -1398,6 +1402,8 @@ const Flashcards = () => {
       }
     } catch (error) {
             showPopup('Error', 'Failed to load flashcard set');
+    } finally {
+      setLoadingSetId(null);
     }
   };
 
@@ -1579,6 +1585,7 @@ const Flashcards = () => {
     setIsFlipped(false);
     setShowStudyResults(false);
     setStudySessionStats({ correct: 0, incorrect: 0, skipped: 0 });
+    gradedCardsRef.current = new Set();
     setSelectedOption(null);
     setShowAnswer(false);
     
@@ -2135,21 +2142,24 @@ const Flashcards = () => {
             </div>
 
             <div className="fc-knowledge-btns">
-              <button 
+              <button
                 className="fc-knowledge-btn fc-dont-know"
                 onClick={async (e) => {
                   e.stopPropagation();
-                  setStudySessionStats(prev => ({ ...prev, incorrect: prev.incorrect + 1 }));
-                  const card = previewCards[currentCard];
-                  if (card?.id) {
-                    await updateCardMastery(card.id, false, 'preview');
-                    await markCardForReview(card.id, true);
+                  const alreadyGraded = gradedCardsRef.current.has(currentCard);
+                  if (!alreadyGraded) {
+                    gradedCardsRef.current.add(currentCard);
+                    setStudySessionStats(prev => ({ ...prev, incorrect: prev.incorrect + 1 }));
+                    const card = previewCards[currentCard];
+                    if (card?.id) {
+                      await updateCardMastery(card.id, false, 'preview');
+                      await markCardForReview(card.id, true);
+                    }
                   }
                   if (currentCard < previewCards.length - 1) {
                     setCurrentCard(currentCard + 1);
                     setIsFlipped(false);
                   } else {
-                    // Show results at the end
                     setShowStudyResults(true);
                   }
                 }}
@@ -2157,23 +2167,26 @@ const Flashcards = () => {
                 {Icons.x}
                 <span>I don't know this</span>
               </button>
-              <button 
+              <button
                 className="fc-knowledge-btn fc-know"
                 onClick={async (e) => {
                   e.stopPropagation();
-                  setStudySessionStats(prev => ({ ...prev, correct: prev.correct + 1 }));
-                  const card = previewCards[currentCard];
-                  if (card?.id) {
-                    await updateCardMastery(card.id, true, 'preview');
-                    if (card?.marked_for_review) {
-                      await markCardForReview(card.id, false);
+                  const alreadyGraded = gradedCardsRef.current.has(currentCard);
+                  if (!alreadyGraded) {
+                    gradedCardsRef.current.add(currentCard);
+                    setStudySessionStats(prev => ({ ...prev, correct: prev.correct + 1 }));
+                    const card = previewCards[currentCard];
+                    if (card?.id) {
+                      await updateCardMastery(card.id, true, 'preview');
+                      if (card?.marked_for_review) {
+                        await markCardForReview(card.id, false);
+                      }
                     }
                   }
                   if (currentCard < previewCards.length - 1) {
                     setCurrentCard(currentCard + 1);
                     setIsFlipped(false);
                   } else {
-                    // Show results at the end
                     setShowStudyResults(true);
                   }
                 }}
@@ -2262,46 +2275,65 @@ const Flashcards = () => {
             </div>
           </div>
 
-          <div className="fc-sr-card-area">
-            {card && (
-              <div className={`fc-sr-card ${srFlipped ? 'fc-sr-card-flipped' : ''}`} onClick={() => !srFlipped && setSrFlipped(true)}>
-                {!srFlipped ? (
-                  <div className="fc-sr-card-front">
-                    <div className="fc-sr-card-badge">{card.sr_state === 'new' ? 'NEW' : card.sr_state?.toUpperCase()}</div>
-                    <div className="fc-sr-card-set">{card.set_title}</div>
-                    <MathRenderer content={card.question || ''} className="fc-sr-card-content" />
-                    <div className="fc-sr-tap-hint">Tap to reveal answer</div>
-                  </div>
-                ) : (
-                  <div className="fc-sr-card-back">
-                    <div className="fc-sr-card-label">Answer</div>
-                    <MathRenderer content={card.answer || ''} className="fc-sr-card-content" />
-                  </div>
-                )}
+          <div className="fc-sr-body">
+            <div className="fc-sr-card-area">
+              {card && (
+                <div className={`fc-sr-card ${srFlipped ? 'fc-sr-card-flipped' : ''}`} onClick={() => !srFlipped && setSrFlipped(true)}>
+                  {!srFlipped ? (
+                    <div className="fc-sr-card-front">
+                      <div className="fc-sr-card-badge">{card.sr_state === 'new' ? 'NEW' : card.sr_state?.toUpperCase()}</div>
+                      <div className="fc-sr-card-set">{card.set_title}</div>
+                      <MathRenderer content={card.question || ''} className="fc-sr-card-content" />
+                      <div className="fc-sr-tap-hint">Tap to reveal answer</div>
+                    </div>
+                  ) : (
+                    <div className="fc-sr-card-back">
+                      <div className="fc-sr-card-label">Answer</div>
+                      <MathRenderer content={card.answer || ''} className="fc-sr-card-content" />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {srFlipped && card && (
+              <div className="fc-sr-grade-buttons">
+                <button className="fc-sr-grade fc-sr-again" onClick={() => handleSrReview('again')}>
+                  <span className="fc-sr-grade-interval">{card.interval_preview?.again || '1m'}</span>
+                  <span className="fc-sr-grade-label">Again</span>
+                </button>
+                <button className="fc-sr-grade fc-sr-hard" onClick={() => handleSrReview('hard')}>
+                  <span className="fc-sr-grade-interval">{card.interval_preview?.hard || '6m'}</span>
+                  <span className="fc-sr-grade-label">Hard</span>
+                </button>
+                <button className="fc-sr-grade fc-sr-good" onClick={() => handleSrReview('good')}>
+                  <span className="fc-sr-grade-interval">{card.interval_preview?.good || '1d'}</span>
+                  <span className="fc-sr-grade-label">Good</span>
+                </button>
+                <button className="fc-sr-grade fc-sr-easy" onClick={() => handleSrReview('easy')}>
+                  <span className="fc-sr-grade-interval">{card.interval_preview?.easy || '4d'}</span>
+                  <span className="fc-sr-grade-label">Easy</span>
+                </button>
               </div>
             )}
-          </div>
 
-          {srFlipped && card && (
-            <div className="fc-sr-grade-buttons">
-              <button className="fc-sr-grade fc-sr-again" onClick={() => handleSrReview('again')}>
-                <span className="fc-sr-grade-interval">{card.interval_preview?.again || '1m'}</span>
-                <span className="fc-sr-grade-label">Again</span>
+            <div className="fc-sr-nav-row">
+              <button
+                className="fc-sr-nav-btn"
+                onClick={() => { setSrCurrentCard(Math.max(0, srCurrentCard - 1)); setSrFlipped(false); }}
+                disabled={srCurrentCard === 0}
+              >
+                ← Prev
               </button>
-              <button className="fc-sr-grade fc-sr-hard" onClick={() => handleSrReview('hard')}>
-                <span className="fc-sr-grade-interval">{card.interval_preview?.hard || '6m'}</span>
-                <span className="fc-sr-grade-label">Hard</span>
-              </button>
-              <button className="fc-sr-grade fc-sr-good" onClick={() => handleSrReview('good')}>
-                <span className="fc-sr-grade-interval">{card.interval_preview?.good || '1d'}</span>
-                <span className="fc-sr-grade-label">Good</span>
-              </button>
-              <button className="fc-sr-grade fc-sr-easy" onClick={() => handleSrReview('easy')}>
-                <span className="fc-sr-grade-interval">{card.interval_preview?.easy || '4d'}</span>
-                <span className="fc-sr-grade-label">Easy</span>
+              <button
+                className="fc-sr-nav-btn"
+                onClick={() => { setSrCurrentCard(Math.min(cards.length - 1, srCurrentCard + 1)); setSrFlipped(false); }}
+                disabled={srCurrentCard === cards.length - 1}
+              >
+                Next →
               </button>
             </div>
-          )}
+          </div>
         </div>
       </div>
     );
@@ -2430,7 +2462,8 @@ const Flashcards = () => {
 
                   {showAnswer && (
                     <button className="fc-next-question-btn" onClick={handleNextMCQ}>
-                      {currentCard < currentStudyCards.length - 1 ? 'Next Question ▶' : 'Finish'}
+                      {currentCard < currentStudyCards.length - 1 ? 'NEXT QUESTION' : 'FINISH'}
+                      {Icons.chevronRight}
                     </button>
                   )}
                 </div>
@@ -2543,14 +2576,7 @@ const Flashcards = () => {
           {/* My Flashcards Panel */}
           {activePanel === 'cards' && (
             <>
-              {/* Due Cards Banner */}
-              {dueCards.due_count > 0 && (
-                <div className="fc-due-banner" onClick={() => { setActivePanel('sr_study'); loadDueCards(); loadSrStats(); }}>
-                  <span className="fc-due-banner-icon">{Icons.target}</span>
-                  <span className="fc-due-banner-text">{dueCards.due_count} cards due for review today</span>
-                  <button className="fc-btn fc-btn-sm fc-due-banner-btn">Study Now</button>
-                </div>
-              )}
+
               <div className="fc-content fc-cards-panel">
                 {loadingHistory && flashcardHistory.length === 0 ? (
                   <div className="fc-loading">
@@ -2654,14 +2680,14 @@ const Flashcards = () => {
 
                             {/* Actions */}
                             <div className="fc-set-actions-new">
-                              <button className="fc-action-btn-new fc-action-edit" onClick={() => enterEditMode(set.id)}>
+                              <button className="fc-action-btn-new fc-action-edit" onClick={() => enterEditMode(set.id)} disabled={loadingSetId === set.id}>
                                 <span>EDIT</span>
                               </button>
-                              <button className="fc-action-btn-new fc-action-preview" onClick={() => loadFlashcardSet(set.id, 'preview')}>
-                                <span>PREVIEW</span>
+                              <button className="fc-action-btn-new fc-action-preview" onClick={() => loadFlashcardSet(set.id, 'preview')} disabled={loadingSetId !== null}>
+                                <span>{loadingSetId === set.id ? '...' : 'PREVIEW'}</span>
                               </button>
-                              <button className="fc-action-btn-new fc-action-study" onClick={() => loadFlashcardSet(set.id, 'study')}>
-                                <span>STUDY</span>
+                              <button className="fc-action-btn-new fc-action-study" onClick={() => loadFlashcardSet(set.id, 'study')} disabled={loadingSetId !== null}>
+                                <span>{loadingSetId === set.id ? '...' : 'STUDY'}</span>
                               </button>
                             </div>
                           </div>
@@ -3242,8 +3268,8 @@ const Flashcards = () => {
                           </div>
 
                           <div className="fc-set-actions-new">
-                            <button className="fc-action-btn-new fc-action-preview" onClick={() => loadFlashcardSet(set.id, 'preview')}>
-                              <span>PREVIEW</span>
+                            <button className="fc-action-btn-new fc-action-preview" onClick={() => loadFlashcardSet(set.id, 'preview')} disabled={loadingSetId !== null}>
+                              <span>{loadingSetId === set.id ? '...' : 'PREVIEW'}</span>
                             </button>
                             <button className="fc-action-btn-new fc-action-copy" onClick={() => copyPublicSet(set.id)}>
                               <span>COPY TO MY SETS</span>

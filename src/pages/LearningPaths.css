@@ -127,7 +127,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 0 20px;
+  padding: 10px 20px;
   border-radius: 16px;
   font-size: 11px;
   font-weight: 600;
@@ -136,23 +136,22 @@
   letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  height: 38px;
-  min-width: 140px;
   white-space: nowrap;
 }
 
 .lp-back-btn {
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
   background: transparent;
+  border: none;
   color: var(--text-primary);
+  opacity: 0.7;
 }
 
 .lp-back-btn:hover {
-  background: var(--bg-elevated);
+  opacity: 1;
   color: var(--accent);
-  border-color: var(--accent);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 20%, transparent);
+  background: transparent;
+  transform: none;
+  box-shadow: none;
 }
 
 .lp-create-btn {
@@ -475,8 +474,10 @@
   border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
   background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 85%, black));
   color: var(--bg-primary);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
@@ -496,7 +497,10 @@
   border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
   border-radius: 14px;
   padding: 8px 12px;
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2px;
   color: var(--text-secondary);
 }
 
@@ -505,9 +509,24 @@
   background: transparent;
   border: none;
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--lp-body);
+  text-transform: uppercase;
+  letter-spacing: 2px;
   outline: none;
   cursor: pointer;
+}
+
+.lp-toolbar-filter select option,
+.lp-toolbar-sort select option {
+  background: var(--bg-primary, #0f0f0f);
+  color: var(--text-primary, #fff);
+  font-family: var(--lp-body);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 11px;
+  padding: 8px 12px;
 }
 
 /* ==================== LOADING STATE ==================== */
