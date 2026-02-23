@@ -27,6 +27,7 @@ import hashlib
 import os
 import sys
 from pathlib import Path
+from typing import Optional
 
 # Force UTF-8 output on Windows so unicode chars don't crash
 if hasattr(sys.stdout, "reconfigure"):
@@ -78,7 +79,7 @@ def _read_url_sidecar(file_path: Path) -> str:
 
 def seed_file(
     file_path: Path,
-    subject: str | None,
+    subject: Optional[str],
     grade_level: str,
     dry_run: bool,
 ) -> dict:
